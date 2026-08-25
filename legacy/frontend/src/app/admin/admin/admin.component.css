@@ -1,0 +1,17 @@
+.dashboard-container { padding: 6px 0; }
+
+.avatar-sm {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.card .card-title { font-size: 0.95rem; }
+
+.list-group-item .avatar-sm { font-size: 0.85rem; width: 42px; height: 42px; }
+
+@media (max-width: 768px) {
+  .btn-group { width: 100%; justify-content: center; }
+}

@@ -1,0 +1,668 @@
+<!-- Learner Dashboard - Complete Modern Design -->
+<div class="learner-dashboard">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p>Loading your dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-container">
+    <div class="error-card">
+      <div class="error-icon">
+        <tui-icon icon="@tui.alert-circle"></tui-icon>
+      </div>
+      <h4>Something went wrong</h4>
+      <p>{{ error }}</p>
+      <a routerLink="/mysettings" class="btn-primary" (click)="loadDashboard()">
+        <tui-icon icon="@tui.refresh-cw"></tui-icon>
+        Try Again
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <ng-container *ngIf="!isLoading && dashboard">
+
+    <!-- ==================== HERO SECTION ==================== -->
+    <section class="hero-section">
+      <div class="hero-grid">
+        <!-- User Profile Card -->
+        <div class="hero-card profile-card">
+          <div class="profile-header">
+            <div class="profile-avatar">
+              <img *ngIf="dashboard.user.avatar_url" [src]="'data:image/png;base64,'+dashboard.user.avatar_url" [alt]="dashboard.user.full_name">
+              <div *ngIf="!dashboard.user.avatar_url" class="avatar-initials">
+                {{ getInitials(dashboard.user.full_name) }}
+              </div>
+            </div>
+            <div class="profile-info">
+              <h2>{{ dashboard.user.full_name }}</h2>
+              <p class="profile-meta">
+                <span *ngIf="dashboard.user.job_title">{{ dashboard.user.job_title }}</span>
+                <span *ngIf="dashboard.user.job_title && dashboard.user.department"> • </span>
+                <span *ngIf="dashboard.user.department">{{ dashboard.user.department }}</span>
+                <span *ngIf="!dashboard.user.job_title && !dashboard.user.department">Learner</span>
+              </p>
+            </div>
+            <a routerLink="/mysettings" class="btn-share">
+              Settings
+              <tui-icon icon="@tui.settings-2"></tui-icon>
+            </a>
+          </div>
+          <div class="level-progress">
+            <div class="level-header">
+              <span class="level-name">{{ getLevelName(dashboard.overview.total_points) }}</span>
+              <span class="level-points">{{ dashboard.overview.total_points }} / {{ getNextLevelTarget(dashboard.overview.total_points) }}</span>
+            </div>
+            <div class="level-bar">
+              <div class="level-fill" [style.width.%]="getLevelProgress(dashboard.overview.total_points)"></div>
+            </div>
+            <p class="level-remaining">
+              <strong>{{ getPointsToNextLevel(dashboard.overview.total_points) }}</strong> to reach new level
+            </p>
+          </div>
+        </div>
+
+        <!-- Days in Training Stat -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">{{ getTotalDaysLearning() }}</div>
+          <div class="stat-label">Days in training</div>
+        </div>
+
+        <!-- Completed Courses Stat -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">{{ dashboard.overview.courses_completed }}</div>
+          <div class="stat-label">Completed courses</div>
+        </div>
+
+        <!-- Activity Chart Card -->
+        <div class="hero-card activity-card">
+          <div class="activity-header">
+            <div class="activity-title">
+              <h3>Activity</h3>
+              <span class="activity-range">{{ getActivityDateRange() }}</span>
+            </div>
+            <div class="activity-toggle">
+              <button [class.active]="activityView === 'week'" (click)="setActivityView('week')">Week</button>
+              <button [class.active]="activityView === 'month'" (click)="setActivityView('month')">Month</button>
+            </div>
+          </div>
+          <div class="activity-chart">
+            <button class="chart-nav prev" (click)="navigateActivity(-1)">
+              <tui-icon icon="@tui.chevron-left"></tui-icon>
+            </button>
+            <div class="lollipop-chart">
+              <div class="lollipop-item" *ngFor="let day of dashboard.weekly_progress"
+                   [class.active]="isToday(day.date)"
+                   [class.has-activity]="day.minutes > 0">
+                <div class="lollipop-stick">
+                  <div class="lollipop-fill" [style.height.%]="getActivityHeight(day.minutes)"></div>
+                </div>
+                <div class="lollipop-head" [class.filled]="day.minutes > 0">
+                  <span class="tooltip" *ngIf="day.minutes > 0">
+                    {{ formatActivityTime(day.minutes) }}
+                    <small>{{ formatActivityDate(day.date) }}</small>
+                  </span>
+                </div>
+                <span class="lollipop-label">{{ day.day }}</span>
+              </div>
+            </div>
+            <button class="chart-nav next" (click)="navigateActivity(1)">
+              <tui-icon icon="@tui.chevron-right"></tui-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== QUICK STATS ROW ==================== -->
+    <section class="stats-section">
+      <div class="stats-row">
+        <!-- Overall Progress -->
+        <div class="mini-stat">
+          <div class="progress-ring-mini">
+            <svg viewBox="0 0 40 40">
+              <circle class="ring-bg" cx="20" cy="20" r="16"></circle>
+              <circle class="ring-fill" cx="20" cy="20" r="16"
+                      [style.strokeDasharray]="'100.5 100.5'"
+                      [style.strokeDashoffset]="100.5 - (100.5 * dashboard.overview.overall_progress / 100)">
+              </circle>
+            </svg>
+            <span class="ring-text">{{ dashboard.overview.overall_progress }}%</span>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-label">Progress</span>
+          </div>
+        </div>
+
+        <!-- Courses Enrolled -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon courses">
+            <tui-icon icon="@tui.book-open"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ dashboard.overview.courses_enrolled }}</span>
+            <span class="mini-stat-label">Enrolled</span>
+          </div>
+        </div>
+
+        <!-- In Progress -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon progress-icon">
+            <tui-icon icon="@tui.loader"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ dashboard.overview.courses_in_progress }}</span>
+            <span class="mini-stat-label">In Progress</span>
+          </div>
+        </div>
+
+        <!-- Learning Hours -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon hours">
+            <tui-icon icon="@tui.clock"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ dashboard.overview.total_learning_hours }}h</span>
+            <span class="mini-stat-label">Total Hours</span>
+          </div>
+        </div>
+
+        <!-- Points -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon points">
+            <tui-icon icon="@tui.star"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ formatNumber(dashboard.overview.total_points) }}</span>
+            <span class="mini-stat-label">Points</span>
+          </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon badges">
+            <tui-icon icon="@tui.award"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ dashboard.overview.total_badges }}</span>
+            <span class="mini-stat-label">Badges</span>
+          </div>
+        </div>
+
+        <!-- Streak -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon streak">
+            <tui-icon icon="@tui.zap"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ dashboard.learning_streak.current_streak }}</span>
+            <span class="mini-stat-label">Day Streak</span>
+          </div>
+        </div>
+
+        <!-- Certificates -->
+        <div class="mini-stat">
+          <div class="mini-stat-icon certs">
+            <tui-icon icon="@tui.file-text"></tui-icon>
+          </div>
+          <div class="mini-stat-content">
+            <span class="mini-stat-value">{{ dashboard.overview.total_certificates }}</span>
+            <span class="mini-stat-label">Certificates</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MAIN CONTENT GRID ==================== -->
+    <section class="main-content">
+      <div class="content-grid">
+
+        <!-- ========== LEFT COLUMN ========== -->
+        <div class="content-left">
+
+          <!-- Continue Learning -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.circle-play"></tui-icon>
+                Continue Learning
+              </h3>
+              <a href="javascript:void(0)" class="view-all" (click)="navigateTo('my-courses')">
+                View All <tui-icon icon="@tui.arrow-right"></tui-icon>
+              </a>
+            </div>
+            <div class="card-content">
+              <div class="courses-grid" *ngIf="dashboard.courses.in_progress?.length">
+                <div class="course-card" *ngFor="let course of dashboard.courses.in_progress.slice(0, 4)"
+                     (click)="play_course(course.course_id)">
+                  <div class="course-thumb">
+                    <img *ngIf="course.thumbnail" [src]="course.thumbnail" [alt]="course.title">
+                    <div *ngIf="!course.thumbnail" class="thumb-placeholder">
+                      <tui-icon icon="@tui.book-open"></tui-icon>
+                    </div>
+                    <div class="course-overlay">
+                      <button class="play-btn">
+                        <tui-icon icon="@tui.play"></tui-icon>
+                      </button>
+                    </div>
+                    <span class="course-level" [ngClass]="getLevelClass(course.level)">{{ course.level }}</span>
+                  </div>
+                  <div class="course-body">
+                    <span class="course-category">{{ course.category || 'General' }}</span>
+                    <h4 class="course-title">{{ course.title }}</h4>
+                    <div class="course-progress">
+                      <div class="progress-bar">
+                        <div class="progress-fill" [style.width.%]="course.progress"></div>
+                      </div>
+                      <span class="progress-text">{{ course.progress }}%</span>
+                    </div>
+                    <div class="course-footer" *ngIf="course.days_until_due !== null">
+                      <span class="due-date" [class.urgent]="course.days_until_due <= 3">
+                        <tui-icon icon="@tui.clock"></tui-icon>
+                        {{ course.days_until_due }}d left
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="empty-state" *ngIf="!dashboard.courses.in_progress?.length">
+                <tui-icon icon="@tui.book-open"></tui-icon>
+                <h4>No courses in progress</h4>
+                <p>Start learning to see your courses here</p>
+                <button class="btn-primary" (click)="navigateTo('catalog')">Browse Courses</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weekly Activity Chart -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.bar-chart-2"></tui-icon>
+                This Week's Activity
+              </h3>
+            </div>
+            <div class="card-content">
+              <div class="weekly-chart-detailed">
+                <div class="chart-bars">
+                  <div class="chart-bar-item" *ngFor="let day of dashboard.weekly_progress">
+                    <div class="bar-track">
+                      <div class="bar-fill"
+                           [style.height.%]="getWeekBarHeight(day.minutes)"
+                           [class.active]="day.minutes > 0"
+                           [class.today]="isToday(day.date)">
+                      </div>
+                    </div>
+                    <span class="bar-day">{{ day.day }}</span>
+                    <span class="bar-hours">{{ day.hours }}h</span>
+                  </div>
+                </div>
+                <div class="chart-footer">
+                  <span class="chart-total">
+                    <strong>{{ dashboard.overview.hours_this_week }} hours</strong> this week
+                  </span>
+                  <span class="chart-avg">
+                    ~{{ Math.round(dashboard.overview.hours_this_week / 7 * 60) }}m daily avg
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Learning Streak -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.zap"></tui-icon>
+                Learning Streak
+              </h3>
+            </div>
+            <div class="card-content">
+              <div class="streak-container">
+                <div class="streak-main">
+                  <div class="streak-flame">🔥</div>
+                  <div class="streak-info">
+                    <span class="streak-count">{{ dashboard.learning_streak.current_streak }}</span>
+                    <span class="streak-text">day streak</span>
+                  </div>
+                  <div class="streak-best">
+                    <tui-icon icon="@tui.trophy"></tui-icon>
+                    Best: {{ dashboard.learning_streak.longest_streak }} days
+                  </div>
+                </div>
+                <div class="streak-calendar">
+                  <div class="calendar-day" *ngFor="let day of dashboard.learning_streak.week_activity"
+                       [class.completed]="day.active"
+                       [class.today]="isToday(day.date)">
+                    <div class="day-indicator">
+                      <tui-icon *ngIf="day.active" icon="@tui.check"></tui-icon>
+                    </div>
+                    <span class="day-name">{{ day.day }}</span>
+                  </div>
+                </div>
+                <div class="streak-alert" *ngIf="!dashboard.learning_streak.is_active">
+                  <tui-icon icon="@tui.alert-circle"></tui-icon>
+                  Learn today to keep your streak going!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skill Progress -->
+          <div class="content-card" *ngIf="dashboard.skill_progress?.length">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.target"></tui-icon>
+                Skill Progress
+              </h3>
+            </div>
+            <div class="card-content">
+              <div class="skills-list">
+                <div class="skill-item" *ngFor="let skill of dashboard.skill_progress">
+                  <div class="skill-header">
+                    <span class="skill-name">{{ skill.skill }}</span>
+                    <span class="skill-percent">{{ skill.progress }}%</span>
+                  </div>
+                  <div class="skill-bar">
+                    <div class="skill-fill" [ngClass]="getSkillColor(skill.progress)" [style.width.%]="skill.progress"></div>
+                  </div>
+                  <span class="skill-meta">{{ skill.completed }}/{{ skill.total }} courses completed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <section class="recommended-section" *ngIf="dashboard.recommended_courses?.length">
+            <div class="content-card full-width">
+              <div class="card-header">
+                <h3>
+                  <tui-icon icon="@tui.compass"></tui-icon>
+                  Recommended For You
+                </h3>
+                <a href="javascript:void(0)" class="view-all" (click)="navigateTo('catalog')">
+                  Browse All <tui-icon icon="@tui.arrow-right"></tui-icon>
+                </a>
+              </div>
+              <div class="card-content">
+                <div class="recommended-grid">
+                  <div class="recommended-card" *ngFor="let course of dashboard.recommended_courses.slice(0, 4)"
+                       (click)="viewCourse(course.course_id)">
+                    <div class="recommended-thumb">
+                      <img *ngIf="course.thumbnail" [src]="course.thumbnail" [alt]="course.title">
+                      <div *ngIf="!course.thumbnail" class="thumb-placeholder">
+                        <tui-icon icon="@tui.book-open"></tui-icon>
+                      </div>
+                      <span class="rec-level" [ngClass]="getLevelClass(course.level)">{{ course.level }}</span>
+                    </div>
+                    <div class="recommended-body">
+                      <span class="rec-category">{{ course.category || 'General' }}</span>
+                      <h4>{{ course.title }}</h4>
+                      <div class="rec-meta">
+                  <span class="rec-duration">
+                    <tui-icon icon="@tui.clock"></tui-icon>
+                    {{ course.duration_minutes }}m
+                  </span>
+                        <span class="rec-rating" *ngIf="course.avg_rating">
+                    <tui-icon icon="@tui.star"></tui-icon>
+                          {{ course.avg_rating }}
+                  </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ========== RIGHT COLUMN ========== -->
+        <div class="content-right">
+
+          <!-- Upcoming Deadlines -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.calendar"></tui-icon>
+                Upcoming Deadlines
+              </h3>
+            </div>
+            <div class="card-content no-padding">
+              <div class="deadlines-list" *ngIf="dashboard.upcoming_deadlines?.length">
+                <div class="deadline-item" *ngFor="let deadline of dashboard.upcoming_deadlines"
+                     [class.urgent]="deadline.urgency === 'critical'"
+                     [class.warning]="deadline.urgency === 'warning'"
+                     (click)="play_course(deadline.course_id)">
+                  <div class="deadline-indicator"></div>
+                  <div class="deadline-content">
+                    <h4>{{ deadline.title }}</h4>
+                    <div class="deadline-progress-row">
+                      <div class="deadline-bar">
+                        <div class="deadline-fill" [style.width.%]="deadline.progress"></div>
+                      </div>
+                      <span class="deadline-percent">{{ deadline.progress }}%</span>
+                    </div>
+                  </div>
+                  <span class="deadline-badge" [ngClass]="{
+                    'badge-danger': deadline.urgency === 'critical',
+                    'badge-warning': deadline.urgency === 'warning',
+                    'badge-info': deadline.urgency === 'normal'
+                  }">{{ deadline.days_remaining }}d</span>
+                </div>
+              </div>
+              <div class="empty-state small" *ngIf="!dashboard.upcoming_deadlines?.length">
+                <tui-icon icon="@tui.check-circle"></tui-icon>
+                <p>No upcoming deadlines</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compliance Status -->
+          <div class="content-card" *ngIf="dashboard.compliance">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.shield"></tui-icon>
+                Compliance Status
+              </h3>
+            </div>
+            <div class="card-content">
+              <div class="compliance-widget">
+                <div class="compliance-ring">
+                  <svg viewBox="0 0 100 100">
+                    <circle class="ring-bg" cx="50" cy="50" r="40"></circle>
+                    <circle class="ring-fill"
+                            [class.success]="dashboard.compliance.compliance_rate >= 80"
+                            [class.warning]="dashboard.compliance.compliance_rate >= 50 && dashboard.compliance.compliance_rate < 80"
+                            [class.danger]="dashboard.compliance.compliance_rate < 50"
+                            cx="50" cy="50" r="40"
+                            [style.strokeDasharray]="'251.2 251.2'"
+                            [style.strokeDashoffset]="251.2 - (251.2 * dashboard.compliance.compliance_rate / 100)">
+                    </circle>
+                  </svg>
+                  <div class="ring-center">
+                    <span class="ring-value">{{ dashboard.compliance.compliance_rate }}%</span>
+                  </div>
+                </div>
+                <div class="compliance-stats">
+                  <div class="compliance-stat success">
+                    <span class="stat-num">{{ dashboard.compliance.completed }}</span>
+                    <span class="stat-label">Done</span>
+                  </div>
+                  <div class="compliance-stat warning">
+                    <span class="stat-num">{{ dashboard.compliance.pending }}</span>
+                    <span class="stat-label">Pending</span>
+                  </div>
+                  <div class="compliance-stat danger">
+                    <span class="stat-num">{{ dashboard.compliance.overdue }}</span>
+                    <span class="stat-label">Overdue</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leaderboard -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.trophy"></tui-icon>
+                Leaderboard
+              </h3>
+            </div>
+            <div class="card-content no-padding">
+              <div class="leaderboard-list">
+                <div class="leaderboard-item" *ngFor="let learner of dashboard.leaderboard.top_learners; let i = index"
+                     [class.is-me]="learner.is_me">
+                  <div class="rank" [ngClass]="{
+                    'gold': learner.rank === 1,
+                    'silver': learner.rank === 2,
+                    'bronze': learner.rank === 3
+                  }">{{ learner.rank }}</div>
+                  <div class="learner-avatar">
+                    <img *ngIf="learner.avatar_url" [src]="'data:image/png;base64,'+learner.avatar_url" [alt]="learner.full_name">
+                    <span *ngIf="!learner.avatar_url">{{ getInitials(learner.full_name) }}</span>
+                  </div>
+                  <div class="learner-details">
+                    <span class="learner-name">
+                      {{ learner.full_name }}
+                      <span class="you-badge" *ngIf="learner.is_me">You</span>
+                    </span>
+                  </div>
+                  <span class="learner-points">{{ formatNumber(learner.points) }}</span>
+                </div>
+              </div>
+              <div class="leaderboard-footer" *ngIf="dashboard.leaderboard.my_rank && dashboard.leaderboard.my_rank > 5">
+                Your position: <strong>#{{ dashboard.leaderboard.my_rank }}</strong> of {{ dashboard.leaderboard.total_learners }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Badges -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.award"></tui-icon>
+                Recent Badges
+              </h3>
+              <a href="javascript:void(0)" class="view-all" (click)="navigateTo('achievements')">
+                View All <tui-icon icon="@tui.arrow-right"></tui-icon>
+              </a>
+            </div>
+            <div class="card-content">
+              <div class="badges-grid" *ngIf="dashboard.achievements.badges?.length">
+                <div class="badge-item" *ngFor="let badge of dashboard.achievements.badges.slice(0, 6)"
+                     [title]="badge.description">
+                  <div class="badge-icon" [style.background]="badge.color + '20'" [style.color]="badge.color">
+                    <tui-icon [icon]="'@tui.' + (badge.icon || 'award')"></tui-icon>
+                  </div>
+                  <span class="badge-name">{{ badge.name }}</span>
+                </div>
+              </div>
+              <div class="empty-state small" *ngIf="!dashboard.achievements.badges?.length">
+                <tui-icon icon="@tui.award"></tui-icon>
+                <p>No badges yet. Keep learning!</p>
+              </div>
+              <div class="next-badge" *ngIf="dashboard.achievements.next_badge">
+                <div class="next-badge-icon">
+                  <tui-icon icon="@tui.lock"></tui-icon>
+                </div>
+                <div class="next-badge-info">
+                  <span class="next-label">Next to unlock:</span>
+                  <span class="next-name">{{ dashboard.achievements.next_badge.name }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="content-card">
+            <div class="card-header">
+              <h3>
+                <tui-icon icon="@tui.activity"></tui-icon>
+                Recent Activity
+              </h3>
+            </div>
+            <div class="card-content no-padding">
+              <div class="activity-list" *ngIf="dashboard.recent_activity?.length">
+                <div class="activity-item" *ngFor="let activity of dashboard.recent_activity.slice(0, 5)">
+                  <div class="activity-icon" [ngClass]="'bg-' + activity.color">
+                    <tui-icon [icon]="'@tui.' + activity.icon"></tui-icon>
+                  </div>
+                  <div class="activity-details">
+                    <p>{{ activity.message }}</p>
+                    <span class="activity-time">{{ formatRelativeTime(activity.date) }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="empty-state small" *ngIf="!dashboard.recent_activity?.length">
+                <tui-icon icon="@tui.activity"></tui-icon>
+                <p>No recent activity</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== RECOMMENDED COURSES (Optional) ==================== -->
+
+
+    <!-- ==================== CERTIFICATES SECTION (Optional) ==================== -->
+    <section class="certificates-section" *ngIf="dashboard.certificates?.recent?.length">
+      <div class="content-card full-width">
+        <div class="card-header">
+          <h3>
+            <tui-icon icon="@tui.file-text"></tui-icon>
+            My Certificates
+            <span class="expiring-badge" *ngIf="dashboard.certificates.expiring_soon">
+              {{ dashboard.certificates.expiring_soon }} expiring soon
+            </span>
+          </h3>
+          <a href="javascript:void(0)" class="view-all" (click)="navigateTo('certificates')">
+            View All <tui-icon icon="@tui.arrow-right"></tui-icon>
+          </a>
+        </div>
+        <div class="card-content no-padding">
+          <div class="certificates-table">
+            <div class="table-header">
+              <span class="col-course">Course</span>
+              <span class="col-number">Certificate #</span>
+              <span class="col-issued">Issued</span>
+              <span class="col-expires">Expires</span>
+              <span class="col-action">Action</span>
+            </div>
+            <div class="table-body">
+              <div class="table-row" *ngFor="let cert of dashboard.certificates.recent">
+                <span class="col-course">{{ cert.course_title }}</span>
+                <span class="col-number"><code>{{ cert.certificate_number }}</code></span>
+                <span class="col-issued">{{ formatDate(cert.issued_at) }}</span>
+                <span class="col-expires" [ngClass]="{
+                  'text-danger': cert.status === 'expired',
+                  'text-warning': cert.status === 'expiring_soon',
+                  'text-success': cert.status === 'valid'
+                }">
+                  <ng-container *ngIf="cert.expiry_date">
+                    {{ formatDate(cert.expiry_date) }}
+                    <small *ngIf="cert.status === 'expiring_soon'">({{ cert.days_until_expiry }}d left)</small>
+                  </ng-container>
+                  <span *ngIf="!cert.expiry_date" class="text-muted">No expiry</span>
+                </span>
+                <span class="col-action">
+                  <button class="btn-icon" (click)="downloadCertificate(cert.certificate_id); $event.stopPropagation()">
+                    <tui-icon icon="@tui.download"></tui-icon>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </ng-container>
+</div>

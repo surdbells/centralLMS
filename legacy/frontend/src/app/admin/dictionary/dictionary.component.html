@@ -1,0 +1,975 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="row align-items-center mb-7">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5">
+            <tui-icon icon="@tui.chevron-left"></tui-icon>
+          </i>
+        </div>
+      </div>
+      <div class="col">
+        <h1 class="fs-4 mb-0 fw-bold">Dictionary</h1>
+        <p class="text-muted mb-0">Manage Branches, Teams, Levels, Job Titles, Departments</p>
+      </div>
+    </div>
+
+    <div class="card card-body mb-5 shadow-sm border-0 rounded-3">
+      <ul class="nav nav-pills" id="enrollTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button (click)="switchViewBranch(); listBranch()" class="nav-link active" id="branch-tab" data-bs-toggle="tab" data-bs-target="#branch" type="button" role="tab">
+          <tui-icon class="text-success" icon="@tui.folder-tree"></tui-icon> Branches
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button (click)="switchViewDepartment(); listDepartment()" class="nav-link" id="department-tab" data-bs-toggle="tab" data-bs-target="#department" type="button" role="tab">
+          <tui-icon class="text-success" icon="@tui.folders"></tui-icon> Departments
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button (click)="switchViewTeam(); listTeam()" class="nav-link" id="teams-tab" data-bs-toggle="tab" data-bs-target="#teams" type="button" role="tab">
+          <tui-icon class="text-success" icon="@tui.users"></tui-icon> Teams
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button (click)="switchViewLevels(); listLevels()" class="nav-link" id="levels-tab" data-bs-toggle="tab" data-bs-target="#levels" type="button" role="tab">
+          <tui-icon class="text-success" icon="@tui.radius"></tui-icon> Levels
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button (click)="switchViewJobTitle(); listJobTitle()" class="nav-link" id="job_title-tab" data-bs-toggle="tab" data-bs-target="#job_title" type="button" role="tab">
+          <tui-icon class="text-success" icon="@tui.wand-sparkles"></tui-icon> Job Title
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button (click)="switchViewCategory(); listCategory()" class="nav-link" id="category-tab" data-bs-toggle="tab" data-bs-target="#category" type="button" role="tab">
+          <tui-icon class="text-success" icon="@tui.square-dashed-top-solid"></tui-icon> Category
+        </button>
+      </li>
+    </ul>
+    </div>
+
+    <div class="tab-content mb-5" id="enrollTabsContent">
+      <div class="tab-pane fade show active" id="branch" role="tabpanel">
+        <div *ngIf="ui_controls.is_loading" class="col-12 col-sm-auto mt-4 mt-sm-0">
+          <tui-loader class="p-5" />
+        </div>
+        <div *ngIf="branch_controls.creating" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Create branch</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewBranch()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #branchForm="ngForm" (ngSubmit)="createABranch()">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Branch Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="branch_name" [(ngModel)]="createBranch.branch_name" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Branch code *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="branch_code" [(ngModel)]="createBranch.branch_code" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Address *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="address" [(ngModel)]="createBranch.address" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">City *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="city" [(ngModel)]="createBranch.city" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">State *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="state" [(ngModel)]="createBranch.state" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Country *</label>
+                  <select class="form-select animate__animated animate__fadeIn" name="country" [(ngModel)]="createBranch.country" required>
+                    <option value="" disabled selected>Select Country</option>
+                    <option *ngFor="let c of countries" [value]="c">{{ c }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="branchForm.invalid">
+                  Save Branch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="branch_controls.editing" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">{{singleBranch.branch_name}}</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewBranch()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #branchUpdateForm="ngForm" (ngSubmit)="updateABranch()">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Branch Code *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="branch_code" [(ngModel)]="singleBranch.branch_code" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Branch Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="branch_name" [(ngModel)]="singleBranch.branch_name" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Address *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="address" [(ngModel)]="singleBranch.address" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">City *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="city" [(ngModel)]="singleBranch.city" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">State *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="state" [(ngModel)]="singleBranch.state" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Country *</label>
+                  <select class="form-select animate__animated animate__fadeIn" name="country" [(ngModel)]="singleBranch.country" required>
+                    <option value="" disabled selected>Select Country</option>
+                    <option *ngFor="let c of countries" [value]="c">{{ c }}</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Status *</label>
+                  <input [checked]="singleBranch.status" (change)="singleBranch.status = !singleBranch.status" type="checkbox" name="status" class="form-check-input status">
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="branchUpdateForm.invalid">
+                  Update Branch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="!ui_controls.is_loading && !branch_controls.creating && !branch_controls.editing" class="card shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Branches</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchCreateBranch()" class="btn btn-sm btn-secondary text-white btn-secondary">
+                  Add New
+                </button>
+              </div>
+            </div>
+          </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                <tr>
+                  <th>Branch code</th>
+                  <th>Branch name</th>
+                  <th>Address</th>
+                  <th>City</th>
+                  <th>State</th>
+                  <th>Country</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Updated</th>
+                  <th style="width:120px" class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let d of branches; let i = index">
+                  <td>{{ d.branch_code }}</td>
+                  <td>{{ d.branch_name }}</td>
+                  <td>{{ d.address }}</td>
+                  <td>{{ d.city }}</td>
+                  <td>{{ d.state }}</td>
+                  <td>{{ d.country }}</td>
+                  <td>
+                    <span *ngIf="d.status" class="badge bg-success-subtle text-success">Active</span>
+                    <span *ngIf="!d.status" class="badge bg-danger-subtle text-danger">Suspended</span>
+                  </td>
+                  <td>{{ d.created_at }}</td>
+                  <td>{{ d.updated_at }}</td>
+                  <td class="text-end">
+                    <div class="d-flex justify-content-end gap-2">
+                      <button (click)="getSingleBranch(d); switchEditBranch()" class="btn btn-sm btn-secondary">
+                        <tui-icon icon="@tui.pencil"></tui-icon>
+                      </button>
+                      <button *ngIf="d.status" (click)="startDeactivateABranch(d.branch_id, d.branch_name, false)" class="btn btn-sm btn-outline-danger">
+                        <tui-icon icon="@tui.trash"></tui-icon>
+                      </button>
+                      <button *ngIf="!d.status" (click)="startReactivateABranch(d.branch_id, d.branch_name, true)" class="btn btn-sm btn-success">
+                        <tui-icon icon="@tui.check-check"></tui-icon>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="branches.length === 0">
+                  <td colspan="8" class="text-center text-muted py-4">No branches found.</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card-body">
+              <div class="d-flex align-items-center justify-content-between mt-3">
+                <div class="small text-muted">Showing {{ this.initial.page }} of {{ meta.total_pages }} pages</div>
+                <div class="d-flex gap-2 align-items-center">
+                  <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                      <li class="page-item" [class.disabled]="this.initial.page === 1"><a class="page-link btn btn-secondary" (click)="listBranch(this.initial.page-1)">Prev</a></li>
+                      <li class="page-item"><a class="page-link btn-secondary" (click)="listBranch(1, 100)">All</a></li>
+                      <li class="page-item" [class.disabled]="meta.page === meta.total_pages"><a class="page-link btn btn-secondary" (click)="listBranch(this.initial.page+1)">Next</a></li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+            </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="department" role="tabpanel">
+        <div *ngIf="ui_controls.is_loading" class="col-12 col-sm-auto mt-4 mt-sm-0">
+          <tui-loader class="p-5" />
+        </div>
+        <div *ngIf="department_controls.creating" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Create department</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewDepartment()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #departmentForm="ngForm" (ngSubmit)="createADepartment()">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Department Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="department_name" [(ngModel)]="createDepartment.department_name" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                  <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="createDepartment.description" cols="30" rows="2" required></textarea>
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="departmentForm.invalid">
+                  Save Department
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="department_controls.editing" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">{{singleDepartment.department_name}}</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewDepartment()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #departmentUpdateForm="ngForm" (ngSubmit)="updateADepartment()">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Department Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="department_name" [(ngModel)]="singleDepartment.department_name" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                  <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="singleDepartment.description" cols="30" rows="2" required></textarea>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Status *</label>
+                  <input [checked]="singleDepartment.status" (change)="singleDepartment.status = !singleDepartment.status" type="checkbox" name="status" class="form-check-input status">
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="departmentUpdateForm.invalid">
+                  Update Department
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="!ui_controls.is_loading && !department_controls.creating && !department_controls.editing" class="card shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Departments</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchCreateDepartment()" class="btn btn-sm btn-secondary text-white btn-secondary">
+                  Add New
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+              <tr>
+                <th>Department code</th>
+                <th>Department name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th style="width:120px" class="text-end">Actions</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let d of departments; let i = index">
+                <td>{{ d.department_code }}</td>
+                <td>{{ d.department_name }}</td>
+                <td>{{ d.description }}</td>
+                <td>
+                  <span *ngIf="d.status" class="badge bg-success-subtle text-success">Active</span>
+                  <span *ngIf="!d.status" class="badge bg-danger-subtle text-danger">Suspended</span>
+                </td>
+                <td>{{ d.created_at }}</td>
+                <td>{{ d.updated_at }}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button (click)="getSingleDepartment(d); switchEditDepartment()" class="btn btn-sm btn-secondary">
+                      <tui-icon icon="@tui.pencil"></tui-icon>
+                    </button>
+                    <button *ngIf="d.status" (click)="startDeactivateADepartment(d.department_id, d.department_name, false)" class="btn btn-sm btn-outline-danger">
+                      <tui-icon icon="@tui.trash"></tui-icon>
+                    </button>
+                    <button *ngIf="!d.status" (click)="startReactivateADepartment(d.department_id, d.department_name, true)" class="btn btn-sm btn-success">
+                      <tui-icon icon="@tui.check-check"></tui-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="departments.length === 0">
+                <td colspan="8" class="text-center text-muted py-4">No departments found.</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mt-3">
+              <div class="small text-muted">Showing {{ this.initial.page }} of {{ meta.total_pages }} pages</div>
+              <div class="d-flex gap-2 align-items-center">
+                <nav aria-label="Page navigation">
+                  <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" [class.disabled]="this.initial.page === 1"><a class="page-link btn btn-secondary" (click)="listDepartment(this.initial.page-1)">Prev</a></li>
+                    <li class="page-item"><a class="page-link btn-secondary" (click)="listDepartment(1, 100)">All</a></li>
+                    <li class="page-item" [class.disabled]="meta.page === meta.total_pages"><a class="page-link btn btn-secondary" (click)="listDepartment(this.initial.page+1)">Next</a></li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="teams" role="tabpanel">
+        <div *ngIf="ui_controls.is_loading" class="col-12 col-sm-auto mt-4 mt-sm-0">
+          <tui-loader class="p-5" />
+        </div>
+        <div *ngIf="team_controls.creating" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Create team</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewTeam()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #teamForm="ngForm" (ngSubmit)="createATeam()">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Team Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="team_name" [(ngModel)]="createTeam.team_name" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                  <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="createTeam.description" cols="30" rows="2" required></textarea>
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="teamForm.invalid">
+                  Save Team
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="team_controls.editing" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">{{singleTeam.team_name}}</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewTeam()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #teamUpdateForm="ngForm" (ngSubmit)="updateATeam()">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Team Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="team_name" [(ngModel)]="singleTeam.team_name" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                  <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="singleTeam.description" cols="30" rows="2" required></textarea>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Status *</label>
+                  <input [checked]="singleTeam.status" (change)="singleTeam.status = !singleTeam.status" type="checkbox" name="status" class="form-check-input status">
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="teamUpdateForm.invalid">
+                  Update Team
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="!ui_controls.is_loading && !team_controls.creating && !team_controls.editing" class="card shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Teams</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchCreateTeam()" class="btn btn-sm btn-secondary text-white btn-secondary">
+                  Add New
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+              <tr>
+                <th>Team code</th>
+                <th>Team name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th style="width:120px" class="text-end">Actions</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let d of teams; let i = index">
+                <td>{{ d.team_code }}</td>
+                <td>{{ d.team_name }}</td>
+                <td>{{ d.description }}</td>
+                <td>
+                  <span *ngIf="d.status" class="badge bg-success-subtle text-success">Active</span>
+                  <span *ngIf="!d.status" class="badge bg-danger-subtle text-danger">Suspended</span>
+                </td>
+                <td>{{ d.created_at }}</td>
+                <td>{{ d.updated_at }}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button (click)="getSingleTeam(d); switchEditTeam()" class="btn btn-sm btn-secondary">
+                      <tui-icon icon="@tui.pencil"></tui-icon>
+                    </button>
+                    <button *ngIf="d.status" (click)="startDeactivateATeam(d.team_id, d.team_name, false)" class="btn btn-sm btn-outline-danger">
+                      <tui-icon icon="@tui.trash"></tui-icon>
+                    </button>
+                    <button *ngIf="!d.status" (click)="startReactivateATeam(d.team_id, d.team_name, true)" class="btn btn-sm btn-success">
+                      <tui-icon icon="@tui.check-check"></tui-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="teams.length === 0">
+                <td colspan="8" class="text-center text-muted py-4">No teams found.</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mt-3">
+              <div class="small text-muted">Showing {{ this.initial.page }} of {{ meta.total_pages }} pages</div>
+              <div class="d-flex gap-2 align-items-center">
+                <nav aria-label="Page navigation">
+                  <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" [class.disabled]="this.initial.page === 1"><a class="page-link btn btn-secondary" (click)="listDepartment(this.initial.page-1)">Prev</a></li>
+                    <li class="page-item"><a class="page-link btn-secondary" (click)="listDepartment(1, 100)">All</a></li>
+                    <li class="page-item" [class.disabled]="meta.page === meta.total_pages"><a class="page-link btn btn-secondary" (click)="listDepartment(this.initial.page+1)">Next</a></li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="levels" role="tabpanel">
+        <div *ngIf="ui_controls.is_loading" class="col-12 col-sm-auto mt-4 mt-sm-0">
+          <tui-loader class="p-5" />
+        </div>
+        <div *ngIf="level_controls.creating" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Create Level</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewLevels()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #levelForm="ngForm" (ngSubmit)="createALevel()">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Level Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="level_name" [(ngModel)]="createLevel.level_name" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                  <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="createLevel.description" cols="30" rows="2" required></textarea>
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="levelForm.invalid">
+                  Save Level
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="level_controls.editing" class="card mb-5 shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">{{singleLevel.level_name}}</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchViewLevels()" class="btn btn-sm btn-danger">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form #levelUpdateForm="ngForm" (ngSubmit)="updateALevel()">
+              <div class="row g-3">
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Level Name *</label>
+                  <input type="text" class="form-control animate__animated animate__fadeIn" name="level_name" [(ngModel)]="singleLevel.level_name" required>
+                </div>
+                <div class="col-md-12">
+                  <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                  <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="singleLevel.description" cols="30" rows="2" required></textarea>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label animate__animated animate__fadeIn">Status *</label>
+                  <input [checked]="singleLevel.status" (change)="singleLevel.status = !singleLevel.status" type="checkbox" name="status" class="form-check-input status">
+                </div>
+              </div>
+              <div class="mt-4 text-end">
+                <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="levelUpdateForm.invalid">
+                  Update Level
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div *ngIf="!ui_controls.is_loading && !level_controls.creating && !level_controls.editing" class="card shadow-sm border-0 rounded-3">
+          <div class="card-header">
+            <div class="row align-items-center">
+              <div class="col">
+                <h5 class="animate__animated animate__fadeIn">Levels</h5>
+              </div>
+              <div class="col-auto my-n3 me-n3">
+                <button (click)="switchCreateLevels()" class="btn btn-sm btn-secondary text-white btn-secondary">
+                  Add New
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+              <tr>
+                <th>Level code</th>
+                <th>Level name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th style="width:120px" class="text-end">Actions</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let d of levels; let i = index">
+                <td>{{ d.level_code }}</td>
+                <td>{{ d.level_name }}</td>
+                <td>{{ d.description }}</td>
+                <td>
+                  <span *ngIf="d.status" class="badge bg-success-subtle text-success">Active</span>
+                  <span *ngIf="!d.status" class="badge bg-danger-subtle text-danger">Suspended</span>
+                </td>
+                <td>{{ d.created_at }}</td>
+                <td>{{ d.updated_at }}</td>
+                <td class="text-end">
+                  <div class="d-flex justify-content-end gap-2">
+                    <button (click)="getSingleLevel(d); switchEditLevels()" class="btn btn-sm btn-secondary">
+                      <tui-icon icon="@tui.pencil"></tui-icon>
+                    </button>
+                    <button *ngIf="d.status" (click)="startDeactivateALevel(d.level_id, d.level_name, false)" class="btn btn-sm btn-outline-danger">
+                      <tui-icon icon="@tui.trash"></tui-icon>
+                    </button>
+                    <button *ngIf="!d.status" (click)="startReactivateALevel(d.level_id, d.level_name, true)" class="btn btn-sm btn-success">
+                      <tui-icon icon="@tui.check-check"></tui-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="levels.length === 0">
+                <td colspan="8" class="text-center text-muted py-4">No levels found.</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mt-3">
+              <div class="small text-muted">Showing {{ this.initial.page }} of {{ meta.total_pages }} pages</div>
+              <div class="d-flex gap-2 align-items-center">
+                <nav aria-label="Page navigation">
+                  <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" [class.disabled]="this.initial.page === 1"><a class="page-link btn btn-secondary" (click)="listLevels(this.initial.page-1)">Prev</a></li>
+                    <li class="page-item"><a class="page-link btn-secondary" (click)="listLevels(1, 100)">All</a></li>
+                    <li class="page-item" [class.disabled]="meta.page === meta.total_pages"><a class="page-link btn btn-secondary" (click)="listLevels(this.initial.page+1)">Next</a></li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="job_title" role="tabpanel">
+            <div *ngIf="ui_controls.is_loading" class="col-12 col-sm-auto mt-4 mt-sm-0">
+              <tui-loader class="p-5" />
+            </div>
+            <div *ngIf="level_controls.creating" class="card mb-5 shadow-sm border-0 rounded-3">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 class="animate__animated animate__fadeIn">Create Job titles</h5>
+                  </div>
+                  <div class="col-auto my-n3 me-n3">
+                    <button (click)="switchViewJobTitle()" class="btn btn-sm btn-danger">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <form #titleForm="ngForm" (ngSubmit)="createAJobTitle()">
+                  <div class="row g-3">
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Title Name *</label>
+                      <input type="text" class="form-control animate__animated animate__fadeIn" name="title_name" [(ngModel)]="createJobTitle.title_name" required>
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                      <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="createJobTitle.description" cols="30" rows="2" required></textarea>
+                    </div>
+                  </div>
+                  <div class="mt-4 text-end">
+                    <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="titleForm.invalid">
+                      Save Job title
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div *ngIf="jobTitle_controls.editing" class="card mb-5 shadow-sm border-0 rounded-3">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 class="animate__animated animate__fadeIn">{{singleJobTitle.title_name}}</h5>
+                  </div>
+                  <div class="col-auto my-n3 me-n3">
+                    <button (click)="switchViewJobTitle()" class="btn btn-sm btn-danger">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <form #titleUpdateForm="ngForm" (ngSubmit)="updateAJobTitle()">
+                  <div class="row g-3">
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Title Name *</label>
+                      <input type="text" class="form-control animate__animated animate__fadeIn" name="title_name" [(ngModel)]="singleJobTitle.title_name" required>
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                      <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="singleJobTitle.description" cols="30" rows="2" required></textarea>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label animate__animated animate__fadeIn">Status *</label>
+                      <input [checked]="singleJobTitle.status" (change)="singleJobTitle.status = !singleJobTitle.status" type="checkbox" name="status" class="form-check-input status">
+                    </div>
+                  </div>
+                  <div class="mt-4 text-end">
+                    <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="titleUpdateForm.invalid">
+                      Update Job Title.
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div *ngIf="!ui_controls.is_loading && !jobTitle_controls.creating && !jobTitle_controls.editing" class="card shadow-sm border-0 rounded-3">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 class="animate__animated animate__fadeIn">Job titles</h5>
+                  </div>
+                  <div class="col-auto my-n3 me-n3">
+                    <button (click)="switchCreateJobTitle()" class="btn btn-sm btn-secondary text-white btn-secondary">
+                      Add New
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead>
+                  <tr>
+                    <th>Title name</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th style="width:120px" class="text-end">Actions</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr *ngFor="let d of job_title; let i = index">
+                    <td>{{ d.title_name }}</td>
+                    <td>{{ d.description }}</td>
+                    <td>
+                      <span *ngIf="d.status" class="badge bg-success-subtle text-success">Active</span>
+                      <span *ngIf="!d.status" class="badge bg-danger-subtle text-danger">Suspended</span>
+                    </td>
+                    <td>{{ d.created_at }}</td>
+                    <td>{{ d.updated_at }}</td>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end gap-2">
+                        <button (click)="getSingleJobTitle(d); switchEditJobTitle()" class="btn btn-sm btn-secondary">
+                          <tui-icon icon="@tui.pencil"></tui-icon>
+                        </button>
+                        <button *ngIf="d.status" (click)="startDeactivateAJobTitle(d.job_title_id, d.title_name, false)" class="btn btn-sm btn-outline-danger">
+                          <tui-icon icon="@tui.trash"></tui-icon>
+                        </button>
+                        <button *ngIf="!d.status" (click)="startReactivateAJobTitle(d.job_title_id, d.title_name, true)" class="btn btn-sm btn-success">
+                          <tui-icon icon="@tui.check-check"></tui-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="job_title.length === 0">
+                    <td colspan="8" class="text-center text-muted py-4">No job titles found.</td>
+                  </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mt-3">
+                  <div class="small text-muted">Showing {{ this.initial.page }} of {{ meta.total_pages }} pages</div>
+                  <div class="d-flex gap-2 align-items-center">
+                    <nav aria-label="Page navigation">
+                      <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" [class.disabled]="this.initial.page === 1"><a class="page-link btn btn-secondary" (click)="listLevels(this.initial.page-1)">Prev</a></li>
+                        <li class="page-item"><a class="page-link btn-secondary" (click)="listLevels(1, 100)">All</a></li>
+                        <li class="page-item" [class.disabled]="meta.page === meta.total_pages"><a class="page-link btn btn-secondary" (click)="listLevels(this.initial.page+1)">Next</a></li>
+                      </ul>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            </div>
+      </div>
+      <div class="tab-pane fade" id="category" role="tabpanel">
+            <div *ngIf="ui_controls.is_loading" class="col-12 col-sm-auto mt-4 mt-sm-0">
+              <tui-loader class="p-5" />
+            </div>
+            <div *ngIf="category_controls.creating" class="card mb-5 shadow-sm border-0 rounded-3">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 class="animate__animated animate__fadeIn">Create Course Category</h5>
+                  </div>
+                  <div class="col-auto my-n3 me-n3">
+                    <button (click)="switchViewCategory()" class="btn btn-sm btn-danger">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <form #categoryForm="ngForm" (ngSubmit)="createACategory()">
+                  <div class="row g-3">
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Name *</label>
+                      <input type="text" class="form-control animate__animated animate__fadeIn" name="name" [(ngModel)]="createCategory.name" required>
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                      <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="createCategory.description" cols="30" rows="2" required></textarea>
+                    </div>
+                  </div>
+                  <div class="mt-4 text-end">
+                    <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="categoryForm.invalid">
+                      Save Category
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div *ngIf="category_controls.editing" class="card mb-5 shadow-sm border-0 rounded-3">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 class="animate__animated animate__fadeIn">{{singleCategory.name}}</h5>
+                  </div>
+                  <div class="col-auto my-n3 me-n3">
+                    <button (click)="switchViewCategory()" class="btn btn-sm btn-danger">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <form #categoryUpdateForm="ngForm" (ngSubmit)="updateACategory()">
+                  <div class="row g-3">
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Name *</label>
+                      <input type="text" class="form-control animate__animated animate__fadeIn" name="name" [(ngModel)]="singleCategory.name" required>
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label animate__animated animate__fadeIn">Description *</label>
+                      <textarea class="form-control animate__animated animate__fadeIn" name="description" [(ngModel)]="singleCategory.description" cols="30" rows="2" required></textarea>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label animate__animated animate__fadeIn">Status *</label>
+                      <input [checked]="singleCategory.status" (change)="singleCategory.status = !singleCategory.status" type="checkbox" name="status" class="form-check-input status">
+                    </div>
+                  </div>
+                  <div class="mt-4 text-end">
+                    <button *ngIf="!ui_controls.is_loading" class="btn btn-secondary btn-sm animate__animated animate__fadeIn" type="submit" [disabled]="categoryUpdateForm.invalid">
+                      Update Category
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            <div *ngIf="!ui_controls.is_loading && !jobTitle_controls.creating && !jobTitle_controls.editing" class="card shadow-sm border-0 rounded-3">
+              <div class="card-header">
+                <div class="row align-items-center">
+                  <div class="col">
+                    <h5 class="animate__animated animate__fadeIn">Course category</h5>
+                  </div>
+                  <div class="col-auto my-n3 me-n3">
+                    <button (click)="switchCreateCategory()" class="btn btn-sm btn-secondary text-white btn-secondary">
+                      Add New
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th style="width:120px" class="text-end">Actions</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  <tr *ngFor="let d of category; let i = index">
+                    <td>{{ d.name }}</td>
+                    <td>{{ d.description }}</td>
+                    <td>
+                      <span *ngIf="d.status" class="badge bg-success-subtle text-success">Active</span>
+                      <span *ngIf="!d.status" class="badge bg-danger-subtle text-danger">Suspended</span>
+                    </td>
+                    <td>{{ d.created_at }}</td>
+                    <td>{{ d.updated_at }}</td>
+                    <td class="text-end">
+                      <div class="d-flex justify-content-end gap-2">
+                        <button (click)="getSingleCategory(d); switchEditCategory()" class="btn btn-sm btn-secondary">
+                          <tui-icon icon="@tui.pencil"></tui-icon>
+                        </button>
+                        <button *ngIf="d.status" (click)="startDeactivateACategory(d.category_id, d.name, false)" class="btn btn-sm btn-outline-danger">
+                          <tui-icon icon="@tui.trash"></tui-icon>
+                        </button>
+                        <button *ngIf="!d.status" (click)="startReactivateACategory(d.category_id, d.name, true)" class="btn btn-sm btn-success">
+                          <tui-icon icon="@tui.check-check"></tui-icon>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="category.length === 0">
+                    <td colspan="8" class="text-center text-muted py-4">No categories found.</td>
+                  </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mt-3">
+                  <div class="small text-muted">Showing {{ this.initial.page }} of {{ meta.total_pages }} pages</div>
+                  <div class="d-flex gap-2 align-items-center">
+                    <nav aria-label="Page navigation">
+                      <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item" [class.disabled]="this.initial.page === 1"><a class="page-link btn btn-secondary" (click)="listLevels(this.initial.page-1)">Prev</a></li>
+                        <li class="page-item"><a class="page-link btn-secondary" (click)="listLevels(1, 100)">All</a></li>
+                        <li class="page-item" [class.disabled]="meta.page === meta.total_pages"><a class="page-link btn btn-secondary" (click)="listLevels(this.initial.page+1)">Next</a></li>
+                      </ul>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            </div>
+      </div>
+    </div>
+
+
+  </div>
+</main>

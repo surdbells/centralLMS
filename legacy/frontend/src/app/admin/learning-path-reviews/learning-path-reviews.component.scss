@@ -1,0 +1,90 @@
+    .rating-card {
+      border: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+
+      .rating-value {
+        font-size: 4rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1;
+      }
+
+      .rating-stars {
+        font-size: 1.5rem;
+      }
+    }
+
+    .rating-distribution {
+      .distribution-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+
+        .rating-label {
+          width: 3rem;
+          font-size: 0.875rem;
+        }
+
+        .progress {
+          height: 8px;
+          border-radius: 4px;
+        }
+
+        .rating-count {
+          width: 2rem;
+          text-align: right;
+          font-size: 0.875rem;
+          color: #64748b;
+        }
+      }
+    }
+
+    .review-card {
+      border: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+    }
+
+    .reviewer-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .review-stars {
+      font-size: 0.875rem;
+    }
+
+    .review-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .review-text {
+      color: #475569;
+    }
+
+    .instructor-response {
+      background: #f8fafc;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+
+      strong {
+        color: var(--bs-primary);
+      }
+    }

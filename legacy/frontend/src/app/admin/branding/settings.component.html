@@ -1,0 +1,18 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid py-4">
+    <div class="row align-items-center mb-4">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
+        </div>
+      </div>
+      <div class="col">
+        <h1 class="fs-4 mb-0">Settings & Configuratio0sn</h1>
+        <small class="text-muted">Change logo, colors, language, SMTP, and other tenant settings.</small>
+      </div>
+    </div>
+
+    <app-tenant-settings></app-tenant-settings>
+  </div>
+</main>

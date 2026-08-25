@@ -1,0 +1,528 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="learning-paths-list">
+  <!-- Header -->
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-1">Learning Paths</h1>
+      <p class="text-muted mb-0">Create and manage structured learning journeys</p>
+    </div>
+    <a routerLink="/admin/learning-paths/create" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-2"></i>Create Learning Path
+    </a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-primary-subtle text-primary">
+              <i class="bi bi-signpost-split"></i>
+            </div>
+            <div class="ms-3">
+              <h6 class="text-muted mb-1">Total Paths</h6>
+              <h3 class="mb-0">{{ totalItems() }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-success-subtle text-success">
+              <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="ms-3">
+              <h6 class="text-muted mb-1">Published</h6>
+              <!-- FIXED: Use computed signal instead of arrow function -->
+              <h3 class="mb-0">{{ publishedCount() }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-warning-subtle text-warning">
+              <i class="bi bi-pencil-square"></i>
+            </div>
+            <div class="ms-3">
+              <h6 class="text-muted mb-1">Drafts</h6>
+              <!-- FIXED: Use computed signal instead of arrow function -->
+              <h3 class="mb-0">{{ draftCount() }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="d-flex align-items-center">
+            <div class="stat-icon bg-info-subtle text-info">
+              <i class="bi bi-people"></i>
+            </div>
+            <div class="ms-3">
+              <h6 class="text-muted mb-1">Total Enrollments</h6>
+              <!-- FIXED: Use computed signal instead of arrow function -->
+              <h3 class="mb-0">{{ totalEnrollments() }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Actions Bar -->
+  <div class="card filter-card mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <!-- Search -->
+        <div class="col-md-4">
+          <label class="form-label small text-muted">Search</label>
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Search paths..."
+              [(ngModel)]="searchQuery"
+              (keyup.enter)="onSearch()"
+            >
+          </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-md-2">
+          <label class="form-label small text-muted">Status</label>
+          <select class="form-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+            <option value="">All Statuses</option>
+            @for (status of pathStatuses; track status.value) {
+              <option [value]="status.value">{{ status.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Skill Level Filter -->
+        <div class="col-md-2">
+          <label class="form-label small text-muted">Skill Level</label>
+          <select class="form-select" [(ngModel)]="skillFilter" (change)="onFilterChange()">
+            <option value="">All Levels</option>
+            @for (level of skillLevels; track level.value) {
+              <option [value]="level.value">{{ level.label }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- View Toggle & Actions -->
+        <div class="col-md-4">
+          <div class="d-flex justify-content-end gap-2">
+            @if (hasSelection()) {
+              <div class="btn-group">
+                <button class="btn btn-success btn-sm" (click)="bulkPublish()">
+                  <i class="bi bi-check-lg me-1"></i>Publish
+                </button>
+                <button class="btn btn-outline-warning btn-sm" (click)="bulkArchive()">
+                  <i class="bi bi-archive me-1"></i>Archive
+                </button>
+                <button class="btn btn-outline-danger btn-sm" (click)="bulkDelete()">
+                  <i class="bi bi-trash me-1"></i>Delete
+                </button>
+              </div>
+            }
+
+            <div class="btn-group">
+              <button
+                class="btn btn-secondary btn-sm"
+                [class.active]="viewMode() === 'grid'"
+                (click)="setViewMode('grid')"
+              >
+                <i class="bi bi-grid-3x3-gap"></i>
+              </button>
+              <button
+                class="btn btn-secondary btn-sm"
+                [class.active]="viewMode() === 'list'"
+                (click)="setViewMode('list')"
+              >
+                <i class="bi bi-list-ul"></i>
+              </button>
+            </div>
+
+            @if (searchQuery() || statusFilter() || skillFilter()) {
+              <button class="btn btn-secondary btn-sm" (click)="clearFilters()">
+                <i class="bi bi-x-lg me-1"></i>Clear
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  } @else {
+    <!-- Empty State -->
+    @if (paths().length === 0) {
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="empty-state-icon mb-4">
+            <i class="bi bi-signpost-split display-1 text-muted"></i>
+          </div>
+          <h4>No Learning Paths Found</h4>
+          <p class="text-muted mb-4">
+            @if (searchQuery() || statusFilter() || skillFilter()) {
+              No paths match your current filters. Try adjusting your search criteria.
+            } @else {
+              Get started by creating your first learning path.
+            }
+          </p>
+          @if (!searchQuery() && !statusFilter() && !skillFilter()) {
+            <a routerLink="/admin/learning-paths/create" class="btn btn-primary">
+              <i class="bi bi-plus-lg me-2"></i>Create Learning Path
+            </a>
+          }
+        </div>
+      </div>
+    } @else {
+      <!-- Grid View -->
+      @if (viewMode() === 'grid') {
+        <div class="row g-4">
+          @for (path of paths(); track path.path_id) {
+            <div class="col-md-6 col-lg-4">
+              <div class="card path-card h-100">
+                <!-- Thumbnail -->
+                <div class="path-thumbnail">
+                  @if (path.thumbnail_url) {
+                    <img [src]="path.thumbnail_url" [alt]="path.title" class="card-img-top">
+                  } @else {
+                    <div class="thumbnail-placeholder">
+                      <i class="bi bi-signpost-split"></i>
+                    </div>
+                  }
+                  <div class="path-badges">
+                    <span [class]="getStatusBadgeClass(path.status)">{{ path.status }}</span>
+                    @if (path.is_mandatory) {
+                      <span class="badge bg-danger ms-1">Mandatory</span>
+                    }
+                  </div>
+                  <!-- Selection Checkbox -->
+                  <div class="path-select">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      [checked]="isSelected(path.path_id)"
+                      (change)="toggleSelect(path.path_id)"
+                    >
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span [class]="getSkillBadgeClass(path.skill_level)" class="badge-sm">
+                      {{ getSkillLabel(path.skill_level) }}
+                    </span>
+                    @if (path.avg_rating) {
+                      <div class="rating-badge">
+                        <i class="bi bi-star-fill text-warning"></i>
+                        <span>{{ path.avg_rating | number:'1.1-1' }}</span>
+                      </div>
+                    }
+                  </div>
+
+                  <h5 class="card-title">
+                    <a [routerLink]="['/admin/learning-paths', path.path_id]">{{ path.title }}</a>
+                  </h5>
+
+                  <p class="card-text text-muted small">{{ path.short_description }}</p>
+
+                  <!-- Stats -->
+                  <div class="path-stats">
+                    <div class="stat">
+                      <i class="bi bi-collection"></i>
+                      <span>{{ path.total_items }} items</span>
+                    </div>
+                    <div class="stat">
+                      <i class="bi bi-clock"></i>
+                      <span>{{ formatDuration(path.estimated_duration_hours) }}</span>
+                    </div>
+                    <div class="stat">
+                      <i class="bi bi-people"></i>
+                      <span>{{ path.total_enrollments }} enrolled</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card-footer bg-transparent">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                      Updated {{ formatDate(path.updated_at || path.created_at) }}
+                    </small>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                          <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id]">
+                            <i class="bi bi-eye me-2"></i>View
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'edit']">
+                            <i class="bi bi-pencil me-2"></i>Edit
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'builder']">
+                            <i class="bi bi-diagram-3 me-2"></i>Builder
+                          </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        @if (path.status === 'draft') {
+                          <li>
+                            <button class="dropdown-item" (click)="publishPath(path)">
+                              <i class="bi bi-check-circle me-2"></i>Publish
+                            </button>
+                          </li>
+                        }
+                        @if (path.status === 'published') {
+                          <li>
+                            <button class="dropdown-item" (click)="archivePath(path)">
+                              <i class="bi bi-archive me-2"></i>Archive
+                            </button>
+                          </li>
+                        }
+                        <li>
+                          <button class="dropdown-item" (click)="duplicatePath(path)">
+                            <i class="bi bi-copy me-2"></i>Duplicate
+                          </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                          <button class="dropdown-item text-danger" (click)="deletePath(path)">
+                            <i class="bi bi-trash me-2"></i>Delete
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- List View -->
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+              <tr>
+                <th style="width: 40px">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    [checked]="selectAll()"
+                    (change)="toggleSelectAll()"
+                  >
+                </th>
+                <th class="sortable" (click)="onSort('title')">
+                  Title
+                  @if (sortBy() === 'title') {
+                    <i class="bi" [class.bi-sort-up]="sortDir() === 'asc'" [class.bi-sort-down]="sortDir() === 'desc'"></i>
+                  }
+                </th>
+                <th>Status</th>
+                <th>Level</th>
+                <th class="text-center">Items</th>
+                <th class="text-center">Enrollments</th>
+                <th class="text-center sortable" (click)="onSort('avg_rating')">
+                  Rating
+                  @if (sortBy() === 'avg_rating') {
+                    <i class="bi" [class.bi-sort-up]="sortDir() === 'asc'" [class.bi-sort-down]="sortDir() === 'desc'"></i>
+                  }
+                </th>
+                <th class="sortable" (click)="onSort('created_at')">
+                  Created
+                  @if (sortBy() === 'created_at') {
+                    <i class="bi" [class.bi-sort-up]="sortDir() === 'asc'" [class.bi-sort-down]="sortDir() === 'desc'"></i>
+                  }
+                </th>
+                <th style="width: 100px"></th>
+              </tr>
+              </thead>
+              <tbody>
+                @for (path of paths(); track path.path_id) {
+                  <tr>
+                    <td>
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        [checked]="isSelected(path.path_id)"
+                        (change)="toggleSelect(path.path_id)"
+                      >
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="path-thumb-sm me-3">
+                          @if (path.thumbnail_url) {
+                            <img [src]="path.thumbnail_url" [alt]="path.title">
+                          } @else {
+                            <div class="thumb-placeholder">
+                              <i class="bi bi-signpost-split"></i>
+                            </div>
+                          }
+                        </div>
+                        <div>
+                          <a [routerLink]="['/admin/learning-paths', path.path_id]" class="fw-semibold text-decoration-none">
+                            {{ path.title }}
+                          </a>
+                          @if (path.is_mandatory) {
+                            <span class="badge bg-danger-subtle text-danger ms-2">Mandatory</span>
+                          }
+                          <div class="text-muted small text-truncate" style="max-width: 300px">
+                            {{ path.short_description }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span [class]="getStatusBadgeClass(path.status)">{{ path.status }}</span>
+                    </td>
+                    <td>
+                      <span [class]="getSkillBadgeClass(path.skill_level)" class="badge-sm">
+                        {{ getSkillLabel(path.skill_level) }}
+                      </span>
+                    </td>
+                    <td class="text-center">{{ path.total_items }}</td>
+                    <td class="text-center">{{ path.total_enrollments }}</td>
+                    <td class="text-center">
+                      @if (path.avg_rating) {
+                        <span class="text-warning">
+                          <i class="bi bi-star-fill"></i>
+                          {{ path.avg_rating | number:'1.1-1' }}
+                        </span>
+                        <small class="text-muted">({{ path.total_ratings }})</small>
+                      } @else {
+                        <span class="text-muted">-</span>
+                      }
+                    </td>
+                    <td>{{ formatDate(path.created_at) }}</td>
+                    <td>
+                      <div class="btn-group btn-group-sm">
+                        <a [routerLink]="['/admin/learning-paths', path.path_id, 'edit']" class="btn btn-secondary">
+                          <i class="bi bi-pencil"></i>
+                        </a>
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                          </button>
+                          <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                              <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id]">
+                                <i class="bi bi-eye me-2"></i>View Details
+                              </a>
+                            </li>
+                            <li>
+                              <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'builder']">
+                                <i class="bi bi-diagram-3 me-2"></i>Content Builder
+                              </a>
+                            </li>
+                            <li>
+                              <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'enrollments']">
+                                <i class="bi bi-people me-2"></i>Enrollments
+                              </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            @if (path.status === 'draft') {
+                              <li>
+                                <button class="dropdown-item" (click)="publishPath(path)">
+                                  <i class="bi bi-check-circle me-2"></i>Publish
+                                </button>
+                              </li>
+                            }
+                            <li>
+                              <button class="dropdown-item" (click)="duplicatePath(path)">
+                                <i class="bi bi-copy me-2"></i>Duplicate
+                              </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                              <button class="dropdown-item text-danger" (click)="deletePath(path)">
+                                <i class="bi bi-trash me-2"></i>Delete
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <nav class="mt-4">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" [class.disabled]="currentPage() === 1">
+              <button class="page-link" (click)="goToPage(currentPage() - 1)">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+            </li>
+
+            @if (currentPage() > 3) {
+              <li class="page-item">
+                <button class="page-link" (click)="goToPage(1)">1</button>
+              </li>
+              <li class="page-item disabled">
+                <span class="page-link">...</span>
+              </li>
+            }
+
+            @for (page of getPageNumbers(); track page) {
+              <li class="page-item" [class.active]="page === currentPage()">
+                <button class="page-link" (click)="goToPage(page)">{{ page }}</button>
+              </li>
+            }
+
+            @if (currentPage() < totalPages() - 2) {
+              <li class="page-item disabled">
+                <span class="page-link">...</span>
+              </li>
+              <li class="page-item">
+                <button class="page-link" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+              </li>
+            }
+
+            <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+              <button class="page-link" (click)="goToPage(currentPage() + 1)">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      }
+    }
+  }
+</div>
+  </div>
+</main>
+

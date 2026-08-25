@@ -1,0 +1,103 @@
+<style>
+  /* keep the image filling its card without distortion */
+  .object-fit-cover { object-fit: cover; }
+</style>
+
+<div style="max-width: 50rem; padding-top: 5%" class="container animate__animated animate__fadeIn">
+  <span class="badge abayti_secondary_background rounded-pill mb-3">
+    <a routerLink="/" class="btn px-1 py-0 btn-sm text-white">Back to website</a>
+  </span>
+  <div  class="row justify-content-center align-items-stretch g-4">
+    <div class="col-12">
+
+    </div>
+    <div class="col-12 col-lg-6 d-none d-md-flex">
+      <div class="card shadow-lg w-100 h-100 overflow-hidden">
+        <img src="assets/img/learner.jpg" alt="Central LMS login page interface" class="w-100 h-100 object-fit-cover animate__animated animate__fadeIn"
+        />
+      </div>
+    </div>
+    <div class="col-12 col-lg-6 d-flex">
+      <div class="card shadow-lg w-100 h-100">
+        <div class="card-header text-center">
+          <div class="row align-items-center">
+            <div class="col-6 text-start">
+              <img class="img-fluid" style="max-width: 140px" src="assets/img/logo.png" alt="User login portal for corporate training Africa" />
+            </div>
+            <div class="col-6 text-end">
+              <app-language-switcher></app-language-switcher>
+            </div>
+          </div>
+        </div>
+        <div class="card-body d-flex flex-column justify-content-center">
+          <h1 class="fs-2">{{ 'Access Your Learning Dashboard' | translate }}</h1>
+          <p class="lead text-body-secondary">{{ 'Secure Login to Central LMS' | translate }}</p>
+          <form (ngSubmit)="user_login()" method="post" class="mb-2">
+            <div class="mb-2">
+              <label for="email">{{ 'email' | translate }}</label>
+              <input
+                [(ngModel)]="login.email"
+                name="email"
+                id="email"
+                type="email"
+                class="form-control"
+                placeholder="{{ 'email' | translate }}" />
+            </div>
+            <div class="mb-2">
+              <label for="password">{{ 'password' | translate }}</label>
+              <div class="input-group">
+                <input
+                  [type]="fieldTextType ? 'text' : 'password'"
+                  class="form-control"
+                  name="password"
+                  id="password"
+                  [(ngModel)]="login.password"
+                  placeholder="{{ 'password' | translate }}" />
+                <button (click)="toggleFieldTextType()" class="btn btn-dark" type="button">
+                  <span *ngIf="fieldTextType" class="material-symbols-outlined">visibility</span>
+                  <span *ngIf="!fieldTextType" class="material-symbols-outlined">visibility_off</span>
+                </button>
+              </div>
+            </div>
+            <tui-loader *ngIf="loading"></tui-loader>
+            <button *ngIf="!loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
+              {{ 'sign_in' | translate }}
+            </button>
+          </form>
+
+          <div class="social-login-section mt-3">
+            <div class="text-center text-body-secondary small mb-2">Or continue with</div>
+            <div class="d-grid gap-2">
+              <button class="btn btn-outline-secondary social-login-btn" type="button" disabled aria-disabled="true">
+                <span class="fw-semibold">Sign in with AD</span>
+                <span class="small text-muted">Not configured</span>
+              </button>
+              <button class="btn btn-outline-secondary social-login-btn" type="button" disabled aria-disabled="true">
+                <span class="fw-semibold">Sign in with Google</span>
+                <span class="small text-muted">Not configured</span>
+              </button>
+              <button class="btn btn-outline-secondary social-login-btn" type="button" disabled aria-disabled="true">
+                <span class="fw-semibold">Sign in with SSO</span>
+                <span class="small text-muted">Not configured</span>
+              </button>
+            </div>
+            <p class="small text-muted text-center mt-2 mb-0">
+              These sign-in options are currently disabled until the identity provider is configured.
+            </p>
+          </div>
+
+          <p class="text-center text-body-secondary mb-0 mt-auto">
+            {{ 'not_registered_message' | translate }}
+            <a class="text-black" routerLink="/register">{{ 'register' | translate }}</a>
+          </p>
+        </div>
+        <div class="card-footer">
+          <p class="text-center text-body-secondary mb-0">
+            {{ 'forgot_password_message' | translate }}
+            <a class="text-black" routerLink="/reset">{{ 'reset_password' | translate }}</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

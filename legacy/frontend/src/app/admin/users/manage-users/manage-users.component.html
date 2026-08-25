@@ -1,0 +1,359 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="row align-items-center mb-7">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5">
+            <tui-icon icon="@tui.chevron-left" />
+          </i>
+        </div>
+      </div>
+      <div class="col">
+        <h1 class="fs-4 mb-0">{{ single.first_name }} {{ single.last_name }}</h1>
+        <p class="text-muted mb-0">{{ single.staffId }} - {{ single.email }}</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <div class="dashboard-container">
+          <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mb-4 gap-3">
+            <div>
+              <ul class="nav nav-pills" id="enrollTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button (click)="switchViewProfile(); getProfile()" class="nav-link active" id="branch-tab" data-bs-toggle="tab" data-bs-target="#branch" type="button" role="tab">
+                    <tui-icon class="text-success" icon="@tui.user-round"></tui-icon> Profile
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button (click)="switchViewActivity(); Activity()" class="nav-link" id="department-tab" data-bs-toggle="tab" data-bs-target="#department" type="button" role="tab">
+                    <tui-icon class="text-success" icon="@tui.activity"></tui-icon> Activity
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button (click)="switchViewCourse(); Course()" class="nav-link" id="teams-tab" data-bs-toggle="tab" data-bs-target="#teams" type="button" role="tab">
+                    <tui-icon class="text-success" icon="@tui.book"></tui-icon> Courses
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button (click)="switchViewReports(); Reports()" class="nav-link" id="levels-tab" data-bs-toggle="tab" data-bs-target="#levels" type="button" role="tab">
+                    <tui-icon class="text-success" icon="@tui.radius"></tui-icon> Reports
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button (click)="switchViewNotes(); Notes()" class="nav-link" id="job_title-tab" data-bs-toggle="tab" data-bs-target="#job_title" type="button" role="tab">
+                    <tui-icon class="text-success" icon="@tui.wand-sparkles"></tui-icon> Notes
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button *ngIf="!single.is_active" (click)="start_activate(single.user_id, single.first_name + ' ' + single.last_name )" class="btn btn-success btn-sm">
+                <tui-icon class="fs-4"  icon="@tui.check"></tui-icon>
+              </button>
+              <button *ngIf="single.is_active" (click)="start_deactivate(single.user_id, single.first_name + ' ' + single.last_name )" class="btn btn-danger btn-sm">
+                <tui-icon class="fs-4"  icon="@tui.x"></tui-icon>
+              </button>
+              <button class="btn btn-dark btn-sm" (click)="open.set(true)">
+                <tui-icon class="text-success" icon="@tui.user-pen" /> Manage
+              </button>
+              <button class="btn btn-dark btn-sm" (click)="open.set(true)">
+                <tui-icon class="text-success" icon="@tui.user-lock" /> Password
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="container-fluid py-4">
+      <div *ngIf="ui_controls.is_loading" class="text-center my-5">
+        <tui-loader class="p-5" />
+      </div>
+      <div  *ngIf="!ui_controls.is_loading" class="row g-3">
+        <div class="col-12">
+          <div class="profile-card">
+            <div class="profile-header"></div>
+            <div class="px-4 pb-4">
+              <div class="d-flex flex-column flex-md-row align-items-center align-items-md-end gap-3">
+                <img src="{{single.picture}}"
+                     alt="Profile"
+                     class="profile-image rounded-circle">
+                <div class="text-center text-md-start pb-2 mt-3">
+                  <h5 class="profile-name mb-0">{{ single.first_name }} {{ single.last_name }}</h5>
+                  <p class="profile-title mb-0">{{ single.job_titleName }}</p>
+                </div>
+              </div>
+
+              <hr class="my-3">
+
+              <!-- Profile Info Grid -->
+              <div class="row g-3">
+                <div class="col-8">
+                  <div class="row">
+                    <div class="col-6 col-md-3">
+                      <div class="d-flex align-items-start gap-2">
+                        <tui-icon class="text-success fs-1" icon="@tui.network"></tui-icon>
+                        <div>
+                          <div class="info-label">Branch</div>
+                          <div class="info-value">{{ single.branchName }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="d-flex align-items-start gap-2">
+                        <tui-icon class="text-success fs-1" icon="@tui.folders"></tui-icon>
+                        <div>
+                          <div class="info-label">Department</div>
+                          <div class="info-value">{{ single.departmentName }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="d-flex align-items-start gap-2">
+                        <tui-icon class="text-success fs-1" icon="@tui.users"></tui-icon>
+                        <div>
+                          <div class="info-label">Team</div>
+                          <div class="info-value">{{ single.teamName }}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="d-flex align-items-start gap-2">
+                        <tui-icon class="text-success fs-1" icon="@tui.id-card"></tui-icon>
+                        <div>
+                          <div class="info-label">StaffID</div>
+                          <div class="info-value">{{ single.staffId }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="points-section p-3">
+                    <div class="d-flex justify-content-center gap-4">
+                      <div class="d-flex align-items-center gap-2 point-item">
+                        <span class="point-icon point-icon"></span>
+                        <span class="fw-semibold text-secondary">Points</span>
+                        <span class="fw-bold">{{ statistics.total_points }}</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 point-item">
+                        <span class="point-icon badge-icon"></span>
+                        <span class="fw-semibold text-secondary">Badges</span>
+                        <span class="fw-bold">{{ statistics.total_badges }}</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 point-item">
+                        <span class="point-icon cert-icon"></span>
+                        <span class="fw-semibold text-secondary">Certificates</span>
+                        <span class="fw-bold">{{ statistics.total_certificates }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="row g-3">
+            <!-- Training Hours -->
+            <div class="col-md-4">
+              <div class="stat-card card card-body shadow-sm">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="stat-label">Training Hours</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span class="stat-number">0</span>
+                  <span class="stat-badge">
+
+                         <i class="bi bi-arrow-up"></i> 0
+                    </span>
+                </div>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="sub-stat-label">COURSES</div>
+                    <div class="sub-stat-value">{{ single.course_count }}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="sub-stat-label">ACTIVITIES</div>
+                    <div class="sub-stat-value">{{ single.activity_count }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Course Completion Rate -->
+            <div class="col-md-4">
+              <div class="stat-card card card-body shadow-sm">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="stat-label">Course Completion Rate</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span class="stat-number">{{ single.completion_rate }}%</span>
+                  <span class="stat-badge">
+                      <i class="bi bi-arrow-up"></i> 0%
+                  </span>
+                </div>
+                <div class="row">
+                  <div class="col-6">
+                    <div class="sub-stat-label">STARTED</div>
+                    <div class="sub-stat-value">{{ single.course_started }}</div>
+                  </div>
+                  <div class="col-6">
+                    <div class="sub-stat-label">COMPLETED</div>
+                    <div class="sub-stat-value">{{ single.course_completed }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Days Since Last Activity -->
+            <div class="col-md-4">
+              <div class="stat-card card card-body shadow-sm">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="stat-label">Days Since Last Activity</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span class="stat-number">{{ single.days_since_last_login }}</span>
+                </div>
+                <div class="row">
+                  <div class="col-12">
+                    <div class="sub-stat-label">LAST ACTIVE</div>
+                    <div class="sub-stat-value">{{ single.last_login }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+</main>
+<tui-drawer *tuiPopup="open()" direction="right" class="drawer" [overlay]="true" (click.self)="CloseForm()">
+  <header class="header">
+    <h2 tuiHeader>
+      <div tuiTitle>User Registration</div>
+      <div tuiAccessories>
+        <button tuiButton type="button" (click)="open.set(false)"> Close</button>
+      </div>
+    </h2>
+  </header>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">First Name</label>
+      <input type="text" class="form-control" name="first_name" [(ngModel)]="single.first_name">
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Last Name</label>
+      <input type="text" class="form-control" name="last_name" [(ngModel)]="single.last_name">
+    </div>
+  </div>
+  <!-- Email -->
+  <div class="mb-3">
+    <label class="form-label">Email Address</label>
+    <input type="email" class="form-control" name="email" [(ngModel)]="single.email" required>
+  </div>
+  <!-- Dropdowns -->
+  <div class="row">
+    <!-- Department -->
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Department</label>
+      <select class="form-select" name="department" [(ngModel)]="single.department">
+        <option value="">Select Department</option>
+        <option *ngFor="let dept of department" [ngValue]="dept.department_id">
+          {{ dept.department_name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Job Title -->
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Job Title</label>
+      <select class="form-select" name="job_title" [(ngModel)]="single.job_title">
+        <option value="">Select Job Title</option>
+        <option *ngFor="let job of jobTitles" [ngValue]="job.jobTitle_id">
+          {{ job.jobTitle_name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Level -->
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Level</label>
+      <select class="form-select" name="level" [(ngModel)]="single.level">
+        <option value="">Select Level</option>
+        <option *ngFor="let lvl of levels" [ngValue]="lvl.level_id">
+          {{ lvl.level_name }}
+        </option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Team</label>
+      <select class="form-select" name="team" [(ngModel)]="single.team">
+        <option value="">Select Team</option>
+        <option *ngFor="let team of teams" [ngValue]="team.team_id">
+          {{ team.team_name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Branch -->
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Branch</label>
+      <select class="form-select" name="branch" [(ngModel)]="single.branch">
+        <option value="">Select Branch</option>
+        <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
+          {{ branch.branch_name }}
+        </option>
+      </select>
+    </div>
+  </div>
+  <div class="row my-5">
+    <div class="col-12">
+      <h6>Select roles</h6>
+    </div>
+    <div class="col-12">
+      <div class="row">
+        <div class="col-md-4">
+          <input class="form-check-input" type="checkbox" name="is_admin" [(ngModel)]="single.is_admin">
+          <label class="form-check-label mx-5">Admin</label>
+        </div>
+        <div class="col-md-4">
+          <input class="form-check-input" type="checkbox" name="is_learner" [(ngModel)]="single.is_learner">
+          <label class="form-check-label mx-5">Learner</label>
+        </div>
+        <div class="col-md-4">
+          <input class="form-check-input" type="checkbox" name="is_instructor" [(ngModel)]="single.is_instructor">
+          <label class="form-check-label mx-5">Instructor</label>
+        </div>
+        <div class="col-md-4 mt-2">
+          <input class="form-check-input" type="checkbox" name="is_content" [(ngModel)]="single.is_content">
+          <label class="form-check-label mx-5">Content</label>
+        </div>
+        <div class="col-md-4 mt-2">
+          <input class="form-check-input" type="checkbox" name="is_hr" [(ngModel)]="single.is_hr">
+          <label class="form-check-label mx-5">HR</label>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="row my-5">
+    <div class="col-12">
+      <h6>Account Status</h6>
+    </div>
+    <div class="col-md-4 mt-2">
+      <input class="form-check-input" type="checkbox" name="is_active" [(ngModel)]="single.is_active">
+      <label class="form-check-label mx-5">Active</label>
+    </div>
+  </div>
+  <footer>
+    <button (click)="update_user()" tuiButton appearance="primary" size="m" type="button" data-appearance="primary" data-size="m" style=""> Update </button>
+  </footer>
+</tui-drawer>

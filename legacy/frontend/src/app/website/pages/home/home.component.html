@@ -1,0 +1,282 @@
+<div class="website-shell">
+  <div class="grain-overlay"></div>
+  <ws-navbar></ws-navbar>
+
+  <!-- HERO - LIGHT -->
+  <section class="hero-light">
+    <div class="hero-glow hero-glow--1"></div>
+    <div class="hero-glow hero-glow--2"></div>
+    <div class="ws-container hero-inner">
+      <div class="hero-text">
+        <span class="hero-pill reveal stagger-1" [class.visible]="heroVisible"><i class="bi bi-lightning-charge-fill"></i> Trusted by Leading Organizations </span>
+        <h1 class="display-xl reveal stagger-2" [class.visible]="heroVisible">Learning Management System for <span class="text-gradient">Corporate Training in Africa</span></h1>
+<!--         <p class="body-lg reveal stagger-3" [class.visible]="heroVisible" style="max-width:580px; margin:0 auto;">
+          The enterprise-grade learning management system that empowers your workforce with scalable, technology-driven learning - delivering measurable outcomes across geographies and teams.
+        </p> -->
+        <div class="hero-ctas reveal stagger-4" [class.visible]="heroVisible">
+          <!-- <a routerLink="/onboarding" class="btn-hero primary lg">Sign Up <i class="bi bi-arrow-right ms-1"></i></a> -->
+          <a routerLink="/book-demo" class="btn-hero outline lg"><i class="bi bi-play-circle me-1"></i> Book a Demo</a>
+        </div>
+      </div>
+    </div>
+    <!-- App Screenshot -->
+     <div class="hero-screenshot-wrap reveal-scale stagger-3" [class.visible]="heroVisible">
+      <div class="ws-container">
+        <div class="hero-screenshot">
+          <img  src="assets/img/home.png" alt="Central LMS dashboard interface for corporate training" class="dashboard-screenshot img-fluid w-100" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+    <!-- ══ BOOST BUSINESS PRODUCTIVITY ══ add colors if possible -->
+  <section class="ws-section ws-section--alt" data-section="productivity">
+    <div class="ws-container">
+      <div class="split-section">
+        <div class="split-cards reveal-left" [class.visible]="sv['productivity']">
+          <span class="eyebrow">Boost Business Productivity</span>
+          <h2 class="display-lg">Empower Your Workforce <br><em>with Central LMS</em></h2>
+          <p class="body-lg">Empower your team with the knowledge and skills they need to perform at their best; driving efficiency, consistency, and measurable results.</p>
+
+                    <div class="benefit-card" *ngFor="let item of productivityItems">
+            <i class="bi" [class]="item.icon"></i>
+            <div><strong>{{ item.title }}</strong><p>{{ item.desc }}</p></div>
+          </div>
+        </div>
+        <div class="split-cards reveal-right" [class.visible]="sv['productivity']">
+          <span class="eyebrow">Customer Training & Education</span>
+          <h2 class="display-lg text-gradient">Turn Customers into <br> <em>Power Users</em></h2>
+          <p class="body-lg">Educate your customers on your products and services; improving adoption, satisfaction, and long-term loyalty.</p>
+           <div class="benefit-card" *ngFor="let item of customerItems">
+            <i class="bi" [class]="item.icon"></i>
+            <div><strong>{{ item.title }}</strong><p>{{ item.desc }}</p></div>
+          </div>
+        </div>
+      </div>
+        <div class="hero-ctas reveal stagger-4" [class.visible]="heroVisible">
+          <a routerLink="/features" class="btn-hero outline lg">Learn More <i class="bi bi-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+  </section>
+
+
+  <!-- CAPABILITIES -->
+  <section class="ws-section" data-section="enable"><div class="ws-container">
+    <div class="section-header"><span class="eyebrow reveal" [class.visible]="sv['enable']">What We Enable</span>
+      <h2 class="display-lg reveal stagger-1" [class.visible]="sv['enable']">Advanced Learning Technology for the <em>Modern Workforce</em></h2><p class="body-lg reveal stagger-2" [class.visible]="sv['enable']">Integrated, technology-driven learning solutions that enhance performance, engagement, and capability; delivered at scale.</p></div>
+    <div class="enable-grid"><div class="enable-card glass-card reveal" *ngFor="let c of capabilities; let i=index" [class.visible]="sv['enable']" [class]="'stagger-'+(i+1)" data-section="enable"><div class="enable-icon" [style.background]="c.color+'10'" [style.color]="c.color"><i class="bi" [class]="c.icon"></i></div><h3>{{ c.title }}</h3><p>{{ c.desc }}</p></div></div>
+  </div></section>
+
+    <!-- ══ COMPLIANCE ══ -->
+  <section class="ws-section  ws-section--alt" data-section="compliance">
+    <div class="ws-container">
+      <div class="section-header">
+        <span class="eyebrow reveal" [class.visible]="sv['compliance']">Training & Compliance</span>
+        <h2 class="display-lg reveal stagger-1" [class.visible]="sv['compliance']">Stay Compliant. <em>Stay Ahead.</em></h2>
+        <p class="body-lg reveal stagger-2" [class.visible]="sv['compliance']">Deliver, track, and manage compliance training with ease; ensuring your workforce meets regulatory requirements without the complexity.</p>
+      </div>
+      <div class="compliance-grid">
+        <div class="compliance-card glass-card reveal" *ngFor="let item of complianceItems; let i = index" [class.visible]="sv['compliance']" [class]="'stagger-' + (i+1)" data-section="compliance">
+          <i class="bi" [class]="item.icon" style="font-size:1.5rem; color:var(--c-primary); margin-bottom:0.75rem; display:block;"></i>
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.desc }}</p>
+        </div>
+      </div>
+      <p class="text-center reveal stagger-6" [class.visible]="sv['compliance']" style="margin-top:1.5rem; font-size:0.9rem; font-style:italic;">
+        From onboarding to ongoing regulatory training, Central LMS ensures your organization stays compliant - effortlessly.
+      </p>
+    </div>
+  </section>
+
+
+
+    <!-- ══ BUSINESS GROWTH ══ merger of this andn -->
+  <section class="ws-section ws-section--dark" data-section="growth">
+    <div class="mesh-orb mesh-orb--gold" style="width:500px;height:500px;top:-150px;right:-100px;opacity:0.3;"></div>
+    <div class="ws-container" style="position:relative; z-index:1;">
+            <div class="section-header">
+              <span class="eyebrow reveal" [class.visible]="sv['growth']">Drive Business Growth</span>
+              <h2 class="display-lg reveal stagger-1" [class.visible]="sv['growth']" style="color:#fff;">Train Better. <em>Grow Faster.</em></h2>
+              <p class="body-lg reveal stagger-2" [class.visible]="sv['growth']" style="color:rgba(255,255,255,0.55);">Central LMS is more than a training platform - it's a growth engine that helps you improve performance, unlock new revenue streams, and scale operations.</p>
+            </div>
+            <div class="growth-grid">
+              <div class="growth-card reveal" *ngFor="let item of growthItems; let i = index" [class.visible]="sv['growth']" [class]="'stagger-' + (i+1)">
+                <i class="bi" [class]="item.icon" style="font-size:1.75rem; color:var(--c-accent); margin-bottom:0.75rem; display:block;"></i>
+                <strong style="color:#fff; display:block; margin-bottom:0.375rem;">{{ item.title }}</strong>
+                <p style="color:rgba(255,255,255,0.5); font-size:0.88rem; line-height:1.6; margin:0;">{{ item.desc }}</p>
+              </div>
+            </div>
+    </div>
+  </section>
+
+  <!-- FEATURES PREVIEW -->
+  <section class="ws-section ws-section--alt" data-section="features"><div class="ws-container">
+    <div class="section-header">
+      <span class="eyebrow reveal" [class.visible]="sv['features']">Platform Features</span>
+      <h2 class="display-lg reveal stagger-1" [class.visible]="sv['features']">Everything You Need.  <em>Nothing You Don't.</em></h2>
+    </div>
+    <div class="features-bento">
+<!--      <div class="bento-card reveal" *ngFor="let f of features; let i=index" [class]="'bento-'+f.size+' stagger-'+(i+1)" [class.visible]="sv['features']">-->
+      <div class="bento-card reveal" *ngFor="let f of features; let i=index" [class]="'bento-md stagger-4'" [class.visible]="sv['features']">
+        <div class="bento-badge" [style.background]="f.color+'12'" [style.color]="f.color">{{ f.badge }}</div>
+        <h4>{{ f.title }}</h4>
+        <p>{{ f.desc }}</p>
+        <div class="bento-stat" *ngIf="f.stat">
+          <span class="bento-stat__value">{{ f.stat }}</span>
+          <span class="bento-stat__label">{{ f.statLabel }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="text-center reveal stagger-6" [class.visible]="sv['features']" style="margin-top:2.5rem;">
+      <a routerLink="/features" class="btn-hero outline">Explore All Features <i class="bi bi-arrow-right ms-1"></i></a>
+    </div>
+  </div></section>
+
+    <!-- ══ MOBILE APP ══ -->
+  <section class="ws-section" data-section="mobile">
+    <div class="ws-container">
+      <div class="mobile-section">
+        <div class="mobile-text reveal-left" [class.visible]="sv['mobile']">
+          <span class="eyebrow">Mobile Learning App</span>
+          <h2 class="display-lg">Empower Learning <br> <em>Without Limits</em></h2>
+          <p class="body-lg" style="margin-bottom:2rem;">In today's fast-paced world, learning isn't confined to a desk. With Central Mobile Learning App, learning becomes flexible, continuous, and accessible.</p>
+          <div class="mobile-bullet" *ngFor="let f of mobileFeatures; let i = index">
+            <i class="bi bi-check-circle-fill" style="color:var(--c-primary); font-size:1rem; flex-shrink:0; margin-top:3px;"></i>
+            <span>{{ f }}</span>
+          </div>
+          <div style="margin-top:2rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <a href="#" class="store-btn"><i class="bi bi-apple"></i> App Store</a>
+            <a href="#" class="store-btn"><i class="bi bi-google-play"></i> Google Play</a>
+          </div>
+        </div>
+        <div class="mobile-screenshot reveal-right" [class.visible]="sv['mobile']">
+          <!-- PLACEHOLDER: Replace src with actual mobile app screenshot -->
+          <div class="phone-frame">
+            <img src="assets/img/mobile.png" alt="Corporate eLearning solution Africa onboarding system" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <div class="phone-placeholder" style="display:none;">
+              <i class="bi bi-phone" style="font-size:3rem; color:var(--c-text-muted);"></i>
+              <span style="font-size:0.82rem; color:var(--c-text-muted); margin-top:0.5rem;">Mobile App Screenshot</span>
+              <span style="font-size:0.7rem; color:var(--c-border);">Replace: assets/img/mobile-app-screenshot.png</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- APPROACH -->
+  <section class="ws-section ws-section--dark" data-section="how"><div class="mesh-orb mesh-orb--green" style="width:500px;height:500px;top:-150px;right:-100px;opacity:0.5;"></div><div class="ws-container" style="position:relative;z-index:1;">
+    <div class="section-header"><span class="eyebrow reveal" [class.visible]="sv['how']">Our Approach</span><h2 class="display-lg reveal stagger-1" [class.visible]="sv['how']" style="color:#fff;">From Strategy to <em>Impact</em></h2></div>
+    <div class="approach-timeline"><div class="approach-step glass-card--dark reveal" *ngFor="let s of approach; let i=index" [class.visible]="sv['how']" [class]="'stagger-'+(i+1)"><div class="approach-num">{{ i+1 }}</div><h4>{{ s.title }}</h4><p>{{ s.desc }}</p></div></div>
+  </div></section>
+
+  <!-- RESULTS -->
+  <section class="ws-section" data-section="results"><div class="ws-container">
+    <div class="section-header"><span class="eyebrow reveal" [class.visible]="sv['results']">Proven Results</span><h2 class="display-lg reveal stagger-1" [class.visible]="sv['results']">Real Impact Across <em>Industries</em></h2></div>
+    <div class="results-grid"><div class="result-card reveal" *ngFor="let r of results; let i=index" [class.visible]="sv['results']" [class]="'stagger-'+(i+1)"><span class="result-metric">{{ r.metric }}</span><span class="result-label">{{ r.label }}</span><p>{{ r.desc }}</p></div></div>
+  </div></section>
+
+
+
+
+
+  <!-- PRICING PREVIEW -->
+  <section class="ws-section ws-section--alt" data-section="pricing"><div class="ws-container" style="text-align:center;">
+    <span class="eyebrow reveal" [class.visible]="sv['pricing']">Simple Pricing</span><h2 class="display-lg reveal stagger-1" [class.visible]="sv['pricing']">Plans for Every Organization</h2>
+    <p class="body-lg reveal stagger-2" [class.visible]="sv['pricing']" style="max-width:520px;margin:0 auto 2rem;">From small teams to global enterprises.</p>
+    <div class="pricing-preview reveal stagger-3" [class.visible]="sv['pricing']"><div class="price-pill" *ngFor="let p of pricingPreview"><h5>{{ p.name }}</h5><span class="price-amount">{{ p.price }}</span><span class="price-desc">{{ p.desc }}</span></div></div>
+    <a routerLink="/pricing" class="btn-hero primary reveal stagger-4" [class.visible]="sv['pricing']" style="margin-top:2rem;">View Full Pricing <i class="bi bi-arrow-right ms-1"></i></a>
+  </div></section>
+
+  <!-- TESTIMONIALS -->
+  <section class="ws-section" data-section="testimonials"><div class="ws-container">
+    <div class="section-header"><span class="eyebrow reveal" [class.visible]="sv['testimonials']">What Leaders Say</span><h2 class="display-lg reveal stagger-1" [class.visible]="sv['testimonials']">Trusted by Learning Professionals </h2></div>
+    <div class="testimonials-row"><div class="testimonial glass-card reveal" *ngFor="let t of testimonials; let i=index" [class.visible]="sv['testimonials']" [class]="'stagger-'+(i+1)"><div class="testimonial-stars"><i class="bi bi-star-fill" *ngFor="let s of [1,2,3,4,5]"></i></div><blockquote>"{{ t.quote }}"</blockquote><div class="testimonial-author"><div class="testimonial-avatar">{{ t.initials }}</div><div><strong>{{ t.name }}</strong><span>{{ t.role }}, {{ t.company }}</span></div></div></div></div>
+  </div></section>
+
+    <!-- MARKETPLACE PREVIEW -->
+  <section class="ws-section" data-section="marketplace"><div class="ws-container" style="text-align:center;">
+    <span class="eyebrow reveal" [class.visible]="sv['marketplace']">Content Marketplace</span><h2 class="display-lg reveal stagger-1" [class.visible]="sv['marketplace']">Ready-Made <em>Course Packs</em></h2><p class="body-lg reveal stagger-2" [class.visible]="sv['marketplace']" style="max-width:560px;margin:0 auto 2rem;">Launch training instantly with professional course bundles including SCORM content, assessments, and certificates.</p>
+    <div class="marketplace-preview reveal stagger-3" [class.visible]="sv['marketplace']"><div class="mp-card" *ngFor="let p of marketplacePreview"><div class="mp-icon" [style.background]="p.color+'12'" [style.color]="p.color"><i class="bi" [class]="p.icon"></i></div><h5>{{ p.name }}</h5><span class="mp-meta">{{ p.courses }} courses</span></div></div>
+
+<!--    <a routerLink="/content-marketplace" class="btn-hero primary reveal stagger-4" [class.visible]="sv['marketplace']" style="margin-top:2rem;">Browse All Packs <i class="bi bi-arrow-right ms-1"></i></a>-->
+  </div></section>
+
+
+      <!-- TRUST LOGOS -->
+<section class="trust-strip">
+  <div class="ws-container">
+    <p class="trust-label">Trusted by leading organizations across Africa and beyond</p>
+
+    <div class="logo-scroll">
+      <div class="logo-track">
+        <span *ngFor="let l of trustLogos" class="trust-logo">
+          <img [src]="l.logo" [alt]="l.name">
+        </span>
+
+        <span *ngFor="let l of trustLogos" class="trust-logo">
+          <img [src]="l.logo" [alt]="l.name">
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+  <!-- ══ BLOG PREVIEW ══ -->
+  <section class="ws-section ws-section--alt" data-section="blog">
+    <div class="ws-container">
+      <div class="section-header">
+        <span class="eyebrow reveal" [class.visible]="sv['blog']">Insights</span>
+        <h2 class="display-lg reveal stagger-1" [class.visible]="sv['blog']">From Our <em>Blog</em></h2>
+      </div>
+      <div class="blog-grid">
+        <a [routerLink]="['/blog', p.slug]" class="blog-card reveal" *ngFor="let p of blogPosts; let i=index" [class.visible]="sv['blog']" [class]="'stagger-'+(i+1)">
+          <div class="blog-img" [style.background]="p.gradient"></div>
+          <div class="blog-body"><span class="blog-tag" [style.color]="p.tagColor">{{ p.tag }}</span><h4>{{ p.title }}</h4><p>{{ p.excerpt }}</p><div class="blog-meta"><span>{{ p.date }}</span><span>{{ p.readTime }}</span></div></div>
+        </a>
+      </div>
+      <div class="text-center reveal stagger-4" [class.visible]="sv['blog']" style="margin-top:2.5rem;">
+        <a routerLink="/blog" class="btn-hero outline">View All Articles <i class="bi bi-arrow-right ms-1"></i></a>
+      </div>
+    </div>
+  </section>
+
+
+      <!-- ══ FAQ ══ -->
+  <section class="ws-section" data-section="faq">
+    <div class="ws-container ws-container--narrow">
+      <div class="section-header">
+        <span class="eyebrow reveal" [class.visible]="sv['faq']">FAQ</span>
+        <h2 class="display-lg reveal stagger-1" [class.visible]="sv['faq']">Frequently Asked Questions</h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item reveal" *ngFor="let faq of faqs; let i = index" [class.visible]="sv['faq']" [class]="'stagger-' + ((i % 6) + 1)" (click)="toggleFaq(i)" [class.open]="openFaq === i">
+          <div class="faq-q"><span>{{ faq.q }}</span><i class="bi" [class]="openFaq === i ? 'bi-dash' : 'bi-plus'"></i></div>
+          <div class="faq-a" *ngIf="openFaq === i">{{ faq.a }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="ws-section ws-section--dark cta-final" data-section="cta">
+    <div class="mesh-orb mesh-orb--gold" style="width:600px;height:600px;bottom:-200px;right:-150px;opacity:0.4;"></div>
+    <div class="mesh-orb mesh-orb--green" style="width:400px;height:400px;top:-100px;left:-50px;opacity:0.3;"></div>
+    <div class="ws-container" style="position:relative;z-index:1;">
+    <div class="cta-inner reveal" [class.visible]="sv['cta']">
+      <h2 class="display-lg" style="color:#fff;">Ready to Transform Your Training Program?</h2>
+      <p class="body-lg" style="color:rgba(255,255,255,0.6);max-width:760px;margin:1.5rem auto;">Join thousands of organizations delivering impactful learning. Start free today.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem;">
+        <!-- <a routerLink="/onboarding" class="btn-hero accent lg">Start Your Free Trial <i class="bi bi-arrow-right ms-1"></i></a> -->
+        <a routerLink="/book-demo" class="btn-hero outline-light lg">Schedule a Demo</a></div>
+      </div>
+  </div>
+  </section>
+
+
+
+  <ws-footer></ws-footer>
+</div>

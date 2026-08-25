@@ -1,0 +1,257 @@
+<nav *ngIf="user_session.is_learner"  class="navbar bg-white border-bottom navbar-expand-lg fixed-top">
+  <div class="container-fluid px-3 px-lg-4">
+    <!-- Left Section: Logo + Modules Dropdown -->
+    <div class="d-flex align-items-center">
+      <!-- Logo -->
+      <a class="navbar-brand me-2 me-lg-3" routerLink="/administration">
+        <img src="/assets/img/logo.png" alt="Central LMS" class="logo-img">
+      </a>
+      <!-- Modules Dropdown -->
+    <div class="dropdown modules-dropdown">
+        <button class="btn btn-modules dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <tui-icon class="fs-5" icon="@tui.layout-grid"></tui-icon>
+          <span class="modules-label">Modules</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-modules shadow-lg">
+          <li class="dropdown-header">
+            <span class="fw-semibold">Available Modules</span>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-3" routerLink="/competencies">
+              <div class="module-icon bg-warning-subtle text-warning">
+                <tui-icon icon="@tui.brain"></tui-icon>
+              </div>
+              <div>
+                <div class="fw-medium">Competencies</div>
+                <small class="text-muted">Skills & certifications</small>
+              </div>
+<!--              <span class="badge bg-success ms-auto">NEW</span>-->
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-3" routerLink="/mytraining">
+              <div class="module-icon bg-info-subtle text-info">
+                <tui-icon icon="@tui.presentation"></tui-icon>
+              </div>
+              <div>
+                <div class="fw-medium">Live Training</div>
+                <small class="text-muted">ILT sessions</small>
+              </div>
+<!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-3" routerLink="/learner/paths">
+              <div class="module-icon bg-purple-subtle text-purple">
+                <tui-icon icon="@tui.route"></tui-icon>
+              </div>
+              <div>
+                <div class="fw-medium">Learning Paths</div>
+                <small class="text-muted">Curated journeys</small>
+              </div>
+<!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
+            </a>
+          </li>
+<!--          <li>
+            <a class="dropdown-item d-flex align-items-center gap-3" routerLink="/learner/assessments">
+              <div class="module-icon bg-secondary-subtle text-secondary">
+                <tui-icon icon="@tui.monitor-speaker"></tui-icon>
+              </div>
+              <div>
+                <div class="fw-medium">Assessment</div>
+                <small class="text-muted">Proctored Assessment</small>
+              </div>
+              <span class="badge bg-warning text-dark ms-auto">BETA</span>
+            </a>
+          </li>-->
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-3" routerLink="/learner/reports">
+              <div class="module-icon bg-danger-subtle text-danger">
+                <tui-icon icon="@tui.chart-area"></tui-icon>
+              </div>
+              <div>
+                <div class="fw-medium">Report</div>
+                <small class="text-muted">Reports & Analytics</small>
+              </div>
+<!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-3" routerLink="/messaging">
+              <div class="module-icon bg-info-subtle text-info">
+                <tui-icon icon="@tui.message-square-text"></tui-icon>
+              </div>
+              <div>
+                <div class="fw-medium">Messaging</div>
+                <small class="text-muted">Communication hub</small>
+              </div>
+<!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Mobile Toggle Button -->
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+            aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Center Section: Main Navigation (collapsible on mobile) -->
+    <div class="collapse navbar-collapse" id="navbarMain">
+      <div class="navbar-nav-wrapper mx-auto">
+        <ul class="nav centered-nav" role="menubar" aria-label="Main menu">
+          <li class="nav-item" role="none">
+            <a routerLink="/account" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.panel-bottom-dashed"></tui-icon>
+              <span class="nav-label">Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a routerLink="/learning" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon"  icon="@tui.presentation"></tui-icon>
+              <span class="nav-label">Learning</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a routerLink="/myreport" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.chart-area"></tui-icon>
+              <span class="nav-label">Reports</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a routerLink="/competencies" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.brain"></tui-icon>
+              <span class="nav-label">Competencies</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a routerLink="/messaging" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.message-square-text"></tui-icon>
+              <span class="nav-label">Messages</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
+            <a routerLink="/mytraining" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.presentation"></tui-icon>
+              <span class="nav-label">Live Training</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Right Section: Actions -->
+    <div class="d-flex align-items-center gap-2 right-actions">
+      <!-- Language Switcher (hidden on xs) -->
+      <div class="d-none d-sm-block">
+        <app-language-switcher></app-language-switcher>
+      </div>
+
+      <!-- Divider -->
+      <div class="vr align-self-center bg-dark-subtle mx-1 d-none d-sm-block" style="height: 24px;"></div>
+
+      <!-- Notifications -->
+      <div class="dropdown">
+        <button (click)="get_notifications()" class="btn btn-icon position-relative" type="button"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+          <span class="material-symbols-outlined abayti_primary_color">notifications</span>
+          <span *ngIf="ui_controls.count > 0" class="notification-badge">
+            {{ ui_controls.count > 9 ? '9+' : ui_controls.count }}
+          </span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end dropdown-notifications shadow-lg">
+          <!-- Header -->
+          <div class="dropdown-header-notifications d-flex justify-content-between align-items-center px-3 py-2">
+            <h6 class="mb-0 fw-semibold">Notifications</h6>
+            <div class="d-flex gap-2">
+              <button (click)="mark_notifications()" class="btn btn-sm btn-link p-0" type="button">
+                <span class="material-symbols-outlined fs-6">done_all</span>
+              </button>
+              <span class="badge bg-primary rounded-pill">{{ ui_controls.count }}</span>
+            </div>
+          </div>
+          <hr class="dropdown-divider m-0">
+          <!-- Notifications List -->
+          <div class="notifications-list">
+            <div *ngIf="ui_controls.is_loading" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            </div>
+            <div *ngIf="!ui_controls.is_loading && notifications?.length === 0" class="text-center py-4 text-muted">
+              <span class="material-symbols-outlined d-block mb-2" style="font-size: 2rem;">notifications_off</span>
+              <small>No notifications</small>
+            </div>
+            <div *ngIf="!ui_controls.is_loading" class="list-group list-group-flush">
+              <div *ngFor="let a_notification of notifications"
+                   class="list-group-item list-group-item-action px-3 py-2"
+                   [class.notification-unread]="!a_notification.is_read">
+                <div class="d-flex gap-2">
+                  <div class="notification-indicator" *ngIf="!a_notification.is_read"></div>
+                  <div class="flex-grow-1">
+                    <p class="mb-1 small" [class.fw-semibold]="!a_notification.is_read">
+                      {{ a_notification.message }}
+                    </p>
+                    <small class="text-muted">{{ a_notification.created_at | date:'short' }}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Footer -->
+          <hr class="dropdown-divider m-0">
+          <div class="text-center py-2">
+            <a routerLink="/notifications" class="btn btn-sm btn-link text-decoration-none">View all notifications</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="vr align-self-center bg-dark-subtle mx-1 d-none d-md-block" style="height: 24px;"></div>
+
+      <!-- User Dropdown -->
+      <div class="dropdown user-dropdown">
+        <button class="btn btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="avatar avatar-sm">
+            <img class="avatar-img" src="data:image/png;base64,{{ user_session.avatar }}" alt="User avatar" />
+          </span>
+          <span class="d-none d-lg-inline ms-2 user-name">{{ user_session.first_name }}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+          <li class="dropdown-header d-lg-none">
+            <div class="d-flex align-items-center gap-2">
+              <span class="avatar avatar-sm">
+                <img class="avatar-img" src="data:image/png;base64,{{ user_session.avatar }}" alt="" />
+              </span>
+              <div>
+                <div class="fw-medium">{{ user_session.first_name }} {{ user_session.last_name }}</div>
+                <small class="text-muted">{{ user_session.email }}</small>
+              </div>
+            </div>
+          </li>
+          <li class="d-lg-none"><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" routerLink="/mysettings"><span class="material-symbols-outlined me-2">person</span>Settings</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <!-- Language switcher for mobile -->
+          <li class="d-sm-none px-3 py-2">
+            <small class="text-muted d-block mb-2">Language</small>
+            <app-language-switcher></app-language-switcher>
+          </li>
+          <li class="d-sm-none"><hr class="dropdown-divider"></li>
+          @if(user_session.is_admin){
+            <li><a (click)="sessionStorage.setItem('IS_CURRENT', 'superadmin');" class="dropdown-item" routerLink="/administration"><span class="material-symbols-outlined me-2">admin_panel_settings</span>Administrator</a></li>
+            <li><hr class="dropdown-divider"></li>
+          }
+          <li><a class="dropdown-item text-danger" (click)="sign_out()"><span class="material-symbols-outlined me-2">logout</span>Sign out</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>

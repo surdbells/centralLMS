@@ -1,0 +1,10 @@
+RewriteEngine on
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.php -f
+RewriteRule ^(.*)$ $1.php [NC,L]
+
+RewriteRule ^student/certificate/([0-9a-zA-Z-]+)/$   certificates.php?certificate=$1 [nc,qsa]
+RewriteRule ^course/description/([0-9]+)/$   description.php?course=$1 [nc,qsa]
+
+# map neat URL to internal URL
+

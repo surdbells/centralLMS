@@ -1,0 +1,16 @@
+{
+  "require": {
+    "ext-mysqli": "*",
+    "firebase/php-jwt": "^6.11",
+    "guzzlehttp/guzzle": "7.4.5.0",
+    "ext-openssl": "*",
+    "ext-fileinfo": "*",
+    "ext-pdo": "*",
+    "ext-zip": "*",
+    "ext-libxml": "*",
+    "ext-simplexml": "*",
+    "ext-curl": "*",
+    "ext-gd": "*",
+    "ext-mbstring": "*"
+  }
+}

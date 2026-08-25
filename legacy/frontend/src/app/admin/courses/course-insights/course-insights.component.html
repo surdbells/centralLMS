@@ -1,0 +1,969 @@
+<!-- Course Insights Dashboard -->
+<div class="container-fluid p-4">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+    <div class="text-center">
+      <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="text-muted">Loading insights...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="text-center py-5">
+    <tui-icon class="fs-1 text-danger mb-3" icon="@tui.alert-triangle"></tui-icon>
+    <h4>Unable to load insights</h4>
+    <p class="text-muted">{{ error }}</p>
+    <button class="btn btn-primary" (click)="refreshData()">
+      <tui-icon icon="@tui.refresh-cw" class="me-2"></tui-icon>Try Again
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <ng-container *ngIf="insights && !isLoading && !error">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <div class="d-flex gap-2 mb-2">
+          <span class="badge" [ngClass]="{
+            'bg-success': insights.course.difficulty_level === 'Beginner',
+            'bg-warning text-dark': insights.course.difficulty_level === 'Intermediate',
+            'bg-danger': insights.course.difficulty_level === 'Advanced'
+          }">{{ insights.course.difficulty_level }}</span>
+          <span class="badge bg-secondary">{{ insights.course.category }}</span>
+        </div>
+        <h2 class="fw-bold mb-2">{{ insights.course.title }}</h2>
+        <div class="d-flex gap-3 text-muted small">
+          <span><tui-icon icon="@tui.layout-grid" class="me-1"></tui-icon>{{ insights.course.total_modules }} Modules</span>
+          <span><tui-icon icon="@tui.circle-play" class="me-1"></tui-icon>{{ insights.course.total_lessons }} Lessons</span>
+          <span><tui-icon icon="@tui.clock" class="me-1"></tui-icon>{{ formatDuration(insights.course.estimated_duration || 0) }}</span>
+          <span *ngIf="insights.overview.course_rating > 0">
+            <tui-icon icon="@tui.star" class="me-1 text-warning"></tui-icon>
+            {{ insights.overview.course_rating.toFixed(1) }} ({{ insights.overview.total_reviews }} reviews)
+          </span>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <select class="form-select form-select-sm" [(ngModel)]="filter.date_range" (change)="onFilterChange()" style="width: auto;">
+          <option value="last_7_days">Last 7 days</option>
+          <option value="last_30_days">Last 30 days</option>
+          <option value="last_90_days">Last 90 days</option>
+          <option value="this_year">This year</option>
+          <option value="all_time">All time</option>
+        </select>
+        <div class="dropdown">
+          <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <tui-icon icon="@tui.download" class="me-1"></tui-icon>Export
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToPDF()"><tui-icon icon="@tui.file-text" class="me-2"></tui-icon>PDF Report</a></li>
+            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToExcel()"><tui-icon icon="@tui.file-spreadsheet" class="me-2"></tui-icon>Excel</a></li>
+            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToCSV()"><tui-icon icon="@tui.file" class="me-2"></tui-icon>CSV</a></li>
+          </ul>
+        </div>
+        <button class="btn btn-dark btn-sm" (click)="refreshData()" title="Refresh">
+          <tui-icon icon="@tui.refresh-cw"></tui-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+      <!-- Total Enrolled -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="rounded-3 p-2 bg-primary bg-opacity-10 me-2">
+                <tui-icon icon="@tui.users" class="text-primary"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.total_enrolled) }}</h3>
+            <p class="text-muted small mb-1">Total Enrolled</p>
+            <small [ngClass]="insights.enrollment.growth_rate >= 0 ? 'text-success' : 'text-danger'">
+              <tui-icon [icon]="insights.enrollment.growth_rate >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
+              {{ formatPercentage(Math.abs(insights.enrollment.growth_rate)) }}
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completion Rate -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="rounded-3 p-2 bg-success bg-opacity-10 me-2">
+                <tui-icon icon="@tui.trophy" class="text-success"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatPercentage(insights.completion.completion_rate) }}</h3>
+            <p class="text-muted small mb-1">Completion Rate</p>
+            <small class="text-muted">{{ insights.overview.completed_count }} completed</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average Score -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="rounded-3 p-2 bg-info bg-opacity-10 me-2">
+                <tui-icon icon="@tui.target" class="text-info"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ insights.overview.average_score?.toFixed(1) || 0 }}%</h3>
+            <p class="text-muted small mb-1">Average Score</p>
+            <small class="text-muted">{{ formatPercentage(insights.assessments.pass_rate) }} pass rate</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Learners -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="rounded-3 p-2 bg-warning bg-opacity-10 me-2">
+                <tui-icon icon="@tui.zap" class="text-warning"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.active_learners) }}</h3>
+            <p class="text-muted small mb-1">Active Learners</p>
+            <small class="text-muted">{{ insights.overview.in_progress_count }} in progress</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avg Time Spent -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="rounded-3 p-2 bg-secondary bg-opacity-10 me-2">
+                <tui-icon icon="@tui.clock" class="text-secondary"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatDuration(insights.overview.average_time_spent) }}</h3>
+            <p class="text-muted small mb-1">Avg. Time Spent</p>
+            <small class="text-muted">per learner</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificates -->
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="rounded-3 p-2 bg-danger bg-opacity-10 me-2">
+                <tui-icon icon="@tui.award" class="text-danger"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.total_certificates_issued) }}</h3>
+            <p class="text-muted small mb-1">Certificates</p>
+            <small class="text-muted">issued</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-pills mb-4 bg-light rounded-3 p-2">
+      <li class="nav-item me-3">
+        <button class="nav-link" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
+          <tui-icon icon="@tui.bar-chart-2" class="me-2"></tui-icon>Overview
+        </button>
+      </li>
+      <li class="nav-item me-3">
+        <button class="nav-link" [class.active]="activeTab === 'learners'" (click)="setActiveTab('learners')">
+          <tui-icon icon="@tui.users" class="me-2"></tui-icon>Learners
+        </button>
+      </li>
+      <li class="nav-item me-3">
+        <button class="nav-link" [class.active]="activeTab === 'content'" (click)="setActiveTab('content')">
+          <tui-icon icon="@tui.book-open" class="me-2"></tui-icon>Content
+        </button>
+      </li>
+      <li class="nav-item me-3">
+        <button class="nav-link" [class.active]="activeTab === 'assessments'" (click)="setActiveTab('assessments')">
+          <tui-icon icon="@tui.clipboard-list" class="me-2"></tui-icon>Assessments
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" [class.active]="activeTab === 'leaderboard'" (click)="setActiveTab('leaderboard')">
+          <tui-icon icon="@tui.award" class="me-2"></tui-icon>Leaderboard
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+
+      <!-- OVERVIEW TAB -->
+      <div *ngIf="activeTab === 'overview'" class="tab-pane-content">
+        <div class="row g-4">
+
+          <!-- Enrollment Trends -->
+          <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><tui-icon icon="@tui.trending-up" class="me-2 text-primary"></tui-icon>Enrollment Trends</h5>
+                <div class="d-flex gap-3 small">
+                  <span><span class="badge bg-primary me-1">&nbsp;</span>Enrollments</span>
+                  <span><span class="badge bg-success me-1">&nbsp;</span>Completions</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-end gap-2" style="height: 200px;">
+                  <div *ngFor="let point of insights.trends.data_points" class="flex-fill text-center">
+                    <div class="d-flex flex-column align-items-center gap-1" style="height: 180px; justify-content: flex-end;">
+                      <div class="bg-primary rounded" [style.height.px]="(point.enrollments || 0) * 40 + 10" style="width: 20px;"></div>
+                      <div class="bg-success rounded" [style.height.px]="(point.completions || 0) * 40 + 5" style="width: 20px;"></div>
+                    </div>
+                    <small class="text-muted d-block mt-2">{{ point.label }}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completion Funnel -->
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.filter" class="me-2 text-primary"></tui-icon>Completion Funnel</h5>
+              </div>
+              <div class="card-body">
+                <div class="funnel-container">
+                  <div class="funnel-stage mb-2">
+                    <div class="progress" style="height: 30px;">
+                      <div class="progress-bar bg-primary" style="width: 100%;">
+                        Enrolled: {{ insights.completion.completion_funnel.enrolled }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="funnel-stage mb-2">
+                    <div class="progress" style="height: 30px;">
+                      <div class="progress-bar bg-info" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.started, insights.completion.completion_funnel.enrolled)">
+                        Started: {{ insights.completion.completion_funnel.started }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="funnel-stage mb-2">
+                    <div class="progress" style="height: 30px;">
+                      <div class="progress-bar bg-warning" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.halfway, insights.completion.completion_funnel.enrolled)">
+                        Halfway: {{ insights.completion.completion_funnel.halfway }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="funnel-stage mb-2">
+                    <div class="progress" style="height: 30px;">
+                      <div class="progress-bar" style="background-color: #fd7e14;" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.almost_done, insights.completion.completion_funnel.enrolled)">
+                        Almost: {{ insights.completion.completion_funnel.almost_done }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="funnel-stage">
+                    <div class="progress" style="height: 30px;">
+                      <div class="progress-bar bg-success" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.completed, insights.completion.completion_funnel.enrolled)">
+                        Completed: {{ insights.completion.completion_funnel.completed }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enrollment by Source -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>Enrollment by Source</h5>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let source of insights.enrollment.by_source" class="mb-3">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span>{{ source.source }}</span>
+                    <span class="fw-bold">{{ source.count }} ({{ source.percentage }}%)</span>
+                  </div>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" [style.width.%]="source.percentage"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enrollment by Department -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.building" class="me-2 text-primary"></tui-icon>By Department</h5>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let dept of insights.enrollment.by_department" class="mb-3">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span>{{ dept.department_name }}</span>
+                    <span class="fw-bold">{{ dept.enrolled }} enrolled, {{ dept.completed }} completed</span>
+                  </div>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-success" [style.width.%]="dept.completion_rate"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Engagement Score -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>Engagement</h5>
+              </div>
+              <div class="card-body">
+                <div class="text-center mb-4">
+                  <div class="display-4 fw-bold text-primary">{{ insights.engagement.engagement_score }}</div>
+                  <p class="text-muted">Engagement Score</p>
+                </div>
+                <div class="row text-center">
+                  <div class="col-4">
+                    <h5 class="mb-0">{{ insights.engagement.total_sessions }}</h5>
+                    <small class="text-muted">Sessions</small>
+                  </div>
+                  <div class="col-4">
+                    <h5 class="mb-0">{{ formatDuration(insights.engagement.average_session_duration) }}</h5>
+                    <small class="text-muted">Avg Duration</small>
+                  </div>
+                  <div class="col-4">
+                    <h5 class="mb-0">{{ insights.engagement.average_sessions_per_learner?.toFixed(1) || 0 }}</h5>
+                    <small class="text-muted">Per Learner</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Peak Activity -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.clock" class="me-2 text-primary"></tui-icon>Peak Activity</h5>
+              </div>
+              <div class="card-body">
+                <h6 class="text-muted mb-2">Peak Hours</h6>
+                <div class="mb-3">
+                  <div *ngFor="let hour of insights.engagement.peak_hours" class="d-flex justify-content-between align-items-center mb-2">
+                    <span>{{ hour.hour }}:00</span>
+                    <div class="flex-grow-1 mx-3">
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-info" [style.width.%]="hour.percentage"></div>
+                      </div>
+                    </div>
+                    <span class="small text-muted">{{ hour.sessions }} sessions</span>
+                  </div>
+                </div>
+                <h6 class="text-muted mb-2">Peak Days</h6>
+                <div>
+                  <div *ngFor="let day of insights.engagement.peak_days" class="d-flex justify-content-between align-items-center mb-2">
+                    <span>{{ day.day }}</span>
+                    <div class="flex-grow-1 mx-3">
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-warning" [style.width.%]="day.percentage"></div>
+                      </div>
+                    </div>
+                    <span class="small text-muted">{{ day.sessions }} sessions</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- LEARNERS TAB -->
+      <div *ngIf="activeTab === 'learners'" class="tab-pane-content">
+        <div class="row g-4">
+
+          <!-- Top Performers -->
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.award" class="me-2 text-success"></tui-icon>Top Performers</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let learner of insights.learners.top_performers" class="list-group-item d-flex align-items-center">
+                    <div class="me-3">
+                      <span class="badge rounded-pill" [ngClass]="{
+                        'bg-warning text-dark': learner.rank === 1,
+                        'bg-secondary': learner.rank === 2,
+                        'bg-danger': learner.rank === 3,
+                        'bg-black text-white': learner.rank > 3
+                      }">#{{ learner.rank }}</span>
+                    </div>
+                    <div class="flex-shrink-0 me-3">
+                      <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <span class="text-primary fw-bold">{{ learner.full_name?.charAt(0) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0">{{ learner.full_name }}</h6>
+                      <small class="text-muted">{{ learner.department }}</small>
+                    </div>
+                    <div class="text-end">
+                      <div class="fw-bold text-success">{{ learner.average_score?.toFixed(1) }}%</div>
+                      <small class="text-muted">{{ formatDuration(learner.time_spent) }}</small>
+                    </div>
+                  </div>
+                  <div *ngIf="!insights.learners.top_performers?.length" class="list-group-item text-center text-muted py-4">
+                    No completions yet
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Completions -->
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.circle-check" class="me-2 text-success"></tui-icon>Recent Completions</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let completion of insights.learners.recent_completions" class="list-group-item d-flex align-items-center">
+                    <div class="flex-shrink-0 me-3">
+                      <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <tui-icon icon="@tui.check" class="text-success"></tui-icon>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0">{{ completion.full_name }}</h6>
+                      <small class="text-muted">{{ formatRelativeTime(completion.completed_at) }} • {{ completion.time_to_complete }} days</small>
+                    </div>
+                    <div class="text-end">
+                      <div class="fw-bold">{{ completion.final_score }}%</div>
+                      <small *ngIf="completion.certificate_id" class="text-success">
+                        <tui-icon icon="@tui.award"></tui-icon> Certified
+                      </small>
+                    </div>
+                  </div>
+                  <div *ngIf="!insights.learners.recent_completions?.length" class="list-group-item text-center text-muted py-4">
+                    No recent completions
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- At Risk Learners -->
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.triangle-alert" class="me-2 text-danger"></tui-icon>At Risk Learners</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let learner of insights.learners.at_risk_learners" class="list-group-item">
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0 me-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                          <span class="text-danger fw-bold">{{ learner.full_name?.charAt(0) }}</span>
+                        </div>
+                      </div>
+                      <div class="flex-grow-1">
+                        <h6 class="mb-0">{{ learner.full_name }}</h6>
+                        <small class="text-muted">{{ learner.department }}</small>
+                      </div>
+                      <span class="badge" [ngClass]="{
+                        'bg-danger': learner.risk_level === 'high',
+                        'bg-warning text-dark': learner.risk_level === 'medium',
+                        'bg-info': learner.risk_level === 'low'
+                      }">{{ learner.risk_level }}</span>
+                    </div>
+                    <div class="mt-2">
+                      <div class="progress mb-1" style="height: 4px;">
+                        <div class="progress-bar bg-danger" [style.width.%]="learner.progress"></div>
+                      </div>
+                      <small class="text-muted">{{ learner.progress }}% complete • {{ learner.days_inactive }} days inactive</small>
+                    </div>
+                    <div class="mt-2">
+                      <button class="btn btn-sm btn-primary" (click)="sendReminder(learner)">
+                        <tui-icon icon="@tui.mail" class="me-1"></tui-icon>Send Reminder
+                      </button>
+                    </div>
+                  </div>
+                  <div *ngIf="!insights.learners.at_risk_learners?.length" class="list-group-item text-center text-muted py-4">
+                    No at-risk learners
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Learner Segments -->
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>Learner Segments</h5>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let segment of insights.learners.learner_segments" class="mb-3">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="text-capitalize">{{ segment.segment.replace('_', ' ') }}</span>
+                    <span class="fw-bold">{{ segment.count }} ({{ segment.percentage }}%)</span>
+                  </div>
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" [ngClass]="{
+                      'bg-success': segment.segment === 'completed',
+                      'bg-primary': segment.segment === 'in_progress',
+                      'bg-secondary': segment.segment === 'not_started',
+                      'bg-danger': segment.segment === 'dropped'
+                    }" [style.width.%]="segment.percentage"></div>
+                  </div>
+                  <small *ngIf="segment.average_score" class="text-muted">Avg score: {{ segment.average_score?.toFixed(1) }}%</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CONTENT TAB -->
+      <div *ngIf="activeTab === 'content'" class="tab-pane-content">
+        <div class="row g-4">
+
+          <!-- Module Analytics -->
+          <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.folder" class="me-2 text-primary"></tui-icon>Module Performance</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="accordion accordion-flush" id="modulesAccordion">
+                  <div *ngFor="let module of insights.modules; let i = index" class="accordion-item">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button collapsed" type="button"
+                              data-bs-toggle="collapse"
+                              [attr.data-bs-target]="'#module' + module.module_id">
+                        <div class="d-flex align-items-center flex-grow-1 me-3">
+                          <span class="badge bg-primary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">{{ module.order_index + 1 }}</span>
+                          <div class="flex-grow-1">
+                            <h6 class="mb-0">{{ module.title }}</h6>
+                            <small class="text-muted">{{ module.total_lessons }} lessons • {{ formatDuration(module.average_time_spent) }} avg</small>
+                          </div>
+                          <div class="d-flex gap-4 me-3">
+                            <div class="text-center">
+                              <div class="fw-bold">{{ formatPercentage(module.completion_rate) }}</div>
+                              <small class="text-muted">Completion</small>
+                            </div>
+                            <div class="text-center" *ngIf="module.average_score !== null">
+                              <div class="fw-bold text-success">{{ module.average_score?.toFixed(0) }}%</div>
+                              <small class="text-muted">Score</small>
+                            </div>
+                            <div class="text-center">
+                              <div class="fw-bold text-danger">{{ formatPercentage(module.drop_off_rate) }}</div>
+                              <small class="text-muted">Drop-off</small>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    </h2>
+                    <div [id]="'module' + module.module_id" class="accordion-collapse collapse">
+                      <div class="accordion-body bg-light">
+                        <div *ngIf="module.lessons?.length; else noLessons">
+                          <div *ngFor="let lesson of module.lessons" class="d-flex align-items-center py-2 border-bottom">
+                            <tui-icon [icon]="getLessonIcon(lesson.type)" class="me-3 text-muted"></tui-icon>
+                            <div class="flex-grow-1">
+                              <span>{{ lesson.title }}</span>
+                              <small class="text-muted ms-2 text-uppercase">{{ lesson.type }}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                              <div class="progress" style="width: 100px; height: 6px;">
+                                <div class="progress-bar bg-success" [style.width.%]="lesson.completion_rate"></div>
+                              </div>
+                              <span class="small" style="min-width: 45px;">{{ formatPercentage(lesson.completion_rate) }}</span>
+                              <span class="small text-muted" style="min-width: 50px;">{{ formatDuration(lesson.average_time_spent) }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <ng-template #noLessons>
+                          <p class="text-muted mb-0">No lessons in this module</p>
+                        </ng-template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content Interactions -->
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.mouse-pointer" class="me-2 text-primary"></tui-icon>Interactions</h5>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let interaction of insights.engagement.content_interactions" class="d-flex align-items-center mb-3">
+                  <div class="rounded-3 p-2 bg-primary bg-opacity-10 me-3">
+                    <tui-icon [icon]="getInteractionTuiIcon(interaction.type)" class="text-primary"></tui-icon>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-0">{{ formatInteractionType(interaction.type) }}</h6>
+                    <small class="text-muted">{{ interaction.unique_users }} users</small>
+                  </div>
+                  <span class="badge bg-primary rounded-pill">{{ interaction.count }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ASSESSMENTS TAB -->
+      <div *ngIf="activeTab === 'assessments'" class="tab-pane-content">
+        <div class="row g-4">
+
+          <!-- Assessment Summary -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.clipboard-check" class="me-2 text-primary"></tui-icon>Assessment Summary</h5>
+              </div>
+              <div class="card-body">
+                <div class="row text-center mb-4">
+                  <div class="col-3">
+                    <h3 class="mb-0">{{ insights.assessments.total_assessments }}</h3>
+                    <small class="text-muted">Assessments</small>
+                  </div>
+                  <div class="col-3">
+                    <h3 class="mb-0">{{ insights.assessments.total_attempts }}</h3>
+                    <small class="text-muted">Attempts</small>
+                  </div>
+                  <div class="col-3">
+                    <h3 class="mb-0 text-success">{{ insights.assessments.average_score }}%</h3>
+                    <small class="text-muted">Avg Score</small>
+                  </div>
+                  <div class="col-3">
+                    <h3 class="mb-0">{{ formatPercentage(insights.assessments.pass_rate) }}</h3>
+                    <small class="text-muted">Pass Rate</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score Distribution -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.bar-chart" class="me-2 text-primary"></tui-icon>Score Distribution</h5>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-end justify-content-around" style="height: 200px;">
+                  <div *ngFor="let dist of insights.assessments.score_distribution" class="text-center" style="flex: 1;">
+                    <div class="mx-1 rounded-top" [ngClass]="{
+                      'bg-danger': dist.range === '0-20',
+                      'bg-warning': dist.range === '21-40',
+                      'bg-info': dist.range === '41-60',
+                      'bg-primary': dist.range === '61-80',
+                      'bg-success': dist.range === '81-100'
+                    }" [style.height.px]="dist.percentage * 1.5 + 10"></div>
+                    <small class="d-block mt-2">{{ dist.range }}</small>
+                    <small class="text-muted">{{ dist.count }}</small>
+                  </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                  <div class="col-4">
+                    <h5 class="text-success mb-0">{{ insights.assessments.highest_score }}%</h5>
+                    <small class="text-muted">Highest</small>
+                  </div>
+                  <div class="col-4">
+                    <h5 class="text-danger mb-0">{{ insights.assessments.lowest_score }}%</h5>
+                    <small class="text-muted">Lowest</small>
+                  </div>
+                  <div class="col-4">
+                    <h5 class="mb-0">{{ formatPercentage(insights.assessments.pass_rate) }}</h5>
+                    <small class="text-muted">Pass Rate</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assessment List -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.list" class="me-2 text-primary"></tui-icon>Assessment Performance</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                    <tr>
+                      <th>Assessment</th>
+                      <th>Type</th>
+                      <th class="text-center">Questions</th>
+                      <th class="text-center">Attempts</th>
+                      <th class="text-center">Avg Score</th>
+                      <th class="text-center">Pass Rate</th>
+                      <th class="text-center">Avg Time</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let assessment of insights.assessments.assessments">
+                      <td class="fw-medium">{{ assessment.title }}</td>
+                      <td>
+                          <span class="badge" [ngClass]="{
+                            'bg-info': assessment.type === 'quiz',
+                            'bg-warning text-dark': assessment.type === 'exam',
+                            'bg-secondary': assessment.type === 'assignment'
+                          }">{{ assessment.type }}</span>
+                      </td>
+                      <td class="text-center">{{ assessment.total_questions }}</td>
+                      <td class="text-center">{{ assessment.total_attempts }}</td>
+                      <td class="text-center">
+                          <span [ngClass]="{
+                            'text-success': assessment.average_score >= 80,
+                            'text-warning': assessment.average_score >= 60 && assessment.average_score < 80,
+                            'text-danger': assessment.average_score < 60
+                          }">{{ assessment.average_score?.toFixed(1) || 0 }}%</span>
+                      </td>
+                      <td class="text-center">{{ formatPercentage(assessment.pass_rate) }}</td>
+                      <td class="text-center">{{ formatDuration(assessment.average_time) }}</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Challenging Questions -->
+          <div class="col-12" *ngIf="insights.assessments.question_analytics?.length">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.help-circle" class="me-2 text-warning"></tui-icon>Most Challenging Questions</h5>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let question of insights.assessments.question_analytics.slice(0, 5)" class="border-bottom py-3">
+                  <div class="d-flex align-items-start">
+                    <span class="badge me-3" [ngClass]="{
+                      'bg-success': question.difficulty === 'easy',
+                      'bg-warning text-dark': question.difficulty === 'medium',
+                      'bg-danger': question.difficulty === 'hard'
+                    }">{{ question.difficulty }}</span>
+                    <div class="flex-grow-1">
+                      <p class="mb-2">{{ question.question_text }}</p>
+                      <div class="d-flex gap-4">
+                        <small [ngClass]="question.correct_rate < 50 ? 'text-danger' : 'text-success'">
+                          <tui-icon icon="@tui.check-circle" class="me-1"></tui-icon>{{ formatPercentage(question.correct_rate) }} correct
+                        </small>
+                        <small class="text-muted">
+                          <tui-icon icon="@tui.clock" class="me-1"></tui-icon>{{ question.average_time }}s avg
+                        </small>
+                      </div>
+                      <small *ngIf="question.most_selected_wrong" class="text-danger d-block mt-1">
+                        <tui-icon icon="@tui.x-circle" class="me-1"></tui-icon>Common wrong: {{ question.most_selected_wrong }}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- LEADERBOARD TAB -->
+      <div *ngIf="activeTab === 'leaderboard'" class="tab-pane-content">
+        <div class="row g-4">
+
+          <!-- Top 3 Podium Cards -->
+          <div class="col-12" *ngIf="insights.learners.top_performers?.length">
+            <div class="podium-container">
+              <!-- Second Place (Left) -->
+              <div class="podium-card podium-second" *ngIf="insights.learners.top_performers[1]">
+                <div class="confetti-dots">
+                  <span class="dot dot-1"></span>
+                  <span class="dot dot-2"></span>
+                  <span class="dot dot-3"></span>
+                  <span class="dot dot-4"></span>
+                  <span class="dot dot-5"></span>
+                </div>
+                <div class="podium-avatar">
+                  <svg class="progress-ring" viewBox="0 0 120 120">
+                    <circle class="progress-ring-bg" cx="60" cy="60" r="54"></circle>
+                    <circle class="progress-ring-fill" cx="60" cy="60" r="54"
+                            [style.strokeDasharray]="getProgressDashArray(insights.learners.top_performers[1].progress || 100)"
+                            [style.strokeDashoffset]="getProgressDashOffset(insights.learners.top_performers[1].progress || 100)">
+                    </circle>
+                  </svg>
+                  <div class="avatar-inner">
+                    <img *ngIf="insights.learners.top_performers[1].avatar_url"
+                         [src]="insights.learners.top_performers[1].avatar_url"
+                         [alt]="insights.learners.top_performers[1].full_name">
+                    <span *ngIf="!insights.learners.top_performers[1].avatar_url" class="avatar-initials">
+                      {{ getInitials(insights.learners.top_performers[1].full_name) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="podium-rank rank-2">2</div>
+                <h6 class="podium-name">{{ insights.learners.top_performers[1].full_name }}</h6>
+                <p class="podium-email">{{ insights.learners.top_performers[1].email }}</p>
+                <div class="podium-stats">
+                  <div class="stat-item">
+                    <div class="stat-icon trophy"><tui-icon icon="@tui.trophy"></tui-icon></div>
+                    <span class="stat-value">{{ insights.learners.top_performers[1].average_score?.toFixed(0) || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon chart"><tui-icon icon="@tui.bar-chart-2"></tui-icon></div>
+                    <span class="stat-value">{{ insights.learners.top_performers[1].progress || 100 }}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- First Place (Center) -->
+              <div class="podium-card podium-first" *ngIf="insights.learners.top_performers[0]">
+                <div class="confetti-dots">
+                  <span class="dot dot-1"></span>
+                  <span class="dot dot-2"></span>
+                  <span class="dot dot-3"></span>
+                  <span class="dot dot-4"></span>
+                  <span class="dot dot-5"></span>
+                  <span class="dot dot-6"></span>
+                </div>
+                <div class="podium-avatar large">
+                  <svg class="progress-ring" viewBox="0 0 120 120">
+                    <circle class="progress-ring-bg" cx="60" cy="60" r="54"></circle>
+                    <circle class="progress-ring-fill gold" cx="60" cy="60" r="54"
+                            [style.strokeDasharray]="getProgressDashArray(insights.learners.top_performers[0].progress || 100)"
+                            [style.strokeDashoffset]="getProgressDashOffset(insights.learners.top_performers[0].progress || 100)">
+                    </circle>
+                  </svg>
+                  <div class="avatar-inner">
+                    <img *ngIf="insights.learners.top_performers[0].avatar_url"
+                         [src]="insights.learners.top_performers[0].avatar_url"
+                         [alt]="insights.learners.top_performers[0].full_name">
+                    <span *ngIf="!insights.learners.top_performers[0].avatar_url" class="avatar-initials">
+                      {{ getInitials(insights.learners.top_performers[0].full_name) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="podium-rank rank-1">1</div>
+                <h6 class="podium-name">{{ insights.learners.top_performers[0].full_name }}</h6>
+                <p class="podium-email">{{ insights.learners.top_performers[0].email }}</p>
+                <div class="podium-stats">
+                  <div class="stat-item">
+                    <div class="stat-icon trophy"><tui-icon icon="@tui.trophy"></tui-icon></div>
+                    <span class="stat-value">{{ insights.learners.top_performers[0].average_score?.toFixed(0) || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon chart"><tui-icon icon="@tui.bar-chart-2"></tui-icon></div>
+                    <span class="stat-value">{{ insights.learners.top_performers[0].progress || 100 }}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Third Place (Right) -->
+              <div class="podium-card podium-third" *ngIf="insights.learners.top_performers[2]">
+                <div class="confetti-dots">
+                  <span class="dot dot-1"></span>
+                  <span class="dot dot-2"></span>
+                  <span class="dot dot-3"></span>
+                  <span class="dot dot-4"></span>
+                  <span class="dot dot-5"></span>
+                </div>
+                <div class="podium-avatar">
+                  <svg class="progress-ring" viewBox="0 0 120 120">
+                    <circle class="progress-ring-bg" cx="60" cy="60" r="54"></circle>
+                    <circle class="progress-ring-fill bronze" cx="60" cy="60" r="54"
+                            [style.strokeDasharray]="getProgressDashArray(insights.learners.top_performers[2].progress || 100)"
+                            [style.strokeDashoffset]="getProgressDashOffset(insights.learners.top_performers[2].progress || 100)">
+                    </circle>
+                  </svg>
+                  <div class="avatar-inner">
+                    <img *ngIf="insights.learners.top_performers[2].avatar_url"
+                         [src]="insights.learners.top_performers[2].avatar_url"
+                         [alt]="insights.learners.top_performers[2].full_name">
+                    <span *ngIf="!insights.learners.top_performers[2].avatar_url" class="avatar-initials">
+                      {{ getInitials(insights.learners.top_performers[2].full_name) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="podium-rank rank-3">3</div>
+                <h6 class="podium-name">{{ insights.learners.top_performers[2].full_name }}</h6>
+                <p class="podium-email">{{ insights.learners.top_performers[2].email }}</p>
+                <div class="podium-stats">
+                  <div class="stat-item">
+                    <div class="stat-icon trophy"><tui-icon icon="@tui.trophy"></tui-icon></div>
+                    <span class="stat-value">{{ insights.learners.top_performers[2].average_score?.toFixed(0) || 0 }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-icon chart"><tui-icon icon="@tui.bar-chart-2"></tui-icon></div>
+                    <span class="stat-value">{{ insights.learners.top_performers[2].progress || 100 }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Remaining Leaderboard (4th place onwards) -->
+          <div class="col-6 offset-3" *ngIf="insights.learners.top_performers.length > 3">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0"><tui-icon icon="@tui.users" class="me-2 text-primary"></tui-icon>Other Performers</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let learner of insights.learners.top_performers.slice(3)" class="list-group-item d-flex align-items-center">
+                    <div class="me-3">
+                      <span class="badge rounded-pill bg-black text-white">#{{ learner.rank }}</span>
+                    </div>
+                    <div class="flex-shrink-0 me-3">
+                      <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <img *ngIf="learner.avatar_url" [src]="'data:image/png;base64,'+learner.avatar_url" [alt]="learner.full_name" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                        <span *ngIf="!learner.avatar_url" class="text-primary fw-bold">{{ learner.full_name?.charAt(0) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-0">{{ learner.full_name }}</h6>
+                      <small class="text-muted">{{ learner.department }}</small>
+                    </div>
+                    <div class="text-end">
+                      <div class="fw-bold text-success">{{ learner.average_score?.toFixed(1) }}%</div>
+                      <small class="text-muted">{{ formatDuration(learner.time_spent) }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="col-12" *ngIf="!insights.learners.top_performers?.length">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body text-center py-5">
+                <tui-icon icon="@tui.award" class="fs-1 text-muted mb-3"></tui-icon>
+                <h5 class="text-muted">No completions yet</h5>
+                <p class="text-muted small">Learners will appear here once they complete the course.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

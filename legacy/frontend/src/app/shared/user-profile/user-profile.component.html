@@ -1,0 +1,77 @@
+<app-top></app-top>
+<main class="main ml-desktop-22rem px-lg-6">
+  <!-- Content -->
+  <div class="container-lg">
+    <!-- Page header -->
+    <!-- Page header -->
+    <div class="row align-items-center mb-7">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5">
+            <tui-icon icon="@tui.chevron-left" />
+          </i>
+        </div>
+      </div>
+      <div class="col">
+        <h1 class="fs-4 mb-0">User profile</h1>
+      </div>
+      <div class="col-12 col-sm-auto mt-4 mt-sm-0">
+        <!--        <a class="btn btn-secondary d-block">
+                  <span class="material-symbols-outlined me-1"> add </span> New
+                </a>-->
+      </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="row">
+      <div class="col-12 col-lg-9">
+        <section *ngIf="!ui_controls.is_loading" class="card bg-body-tertiary border-transparent mb-5" id="password">
+          <div class="card-body">
+            <h2 class="fs-5 mb-1">Update profile</h2>
+            <p class="text-body-secondary">Keep your information up to date</p>
+            <div class="container my-4">
+              <form class="row g-3 align-items-center">
+                <label for="profileUpload" class="col-sm-2 col-form-label fw-semibold">
+                  Profile Picture
+                </label>
+                <div class="col-sm-6">
+                  <input [(ngModel)]="user_single.avatar" (change)="select_avatar($event)" class="form-control" type="file" id="profileUpload" accept="image/*" />
+                </div>
+                <div class="col-sm-4 text-center">
+                  <img id="profilePreview"  src="{{user_single.avatar}}"  alt="Profile Preview" class="img-thumbnail rounded-circle" style="width:120px; height:120px; object-fit:cover;" />
+                </div>
+              </form>
+            </div>
+            <div class="card border-transparent">
+              <div class="card-body">
+                <div class="mb-4">
+                  <label class="form-label">First name</label>
+                  <input [disabled]="true" type="text" [(ngModel)]="user_single.first_name" name="first_name" class="form-control">
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Last name</label>
+                  <input [disabled]="true" type="text" [(ngModel)]="user_single.last_name" name="last_name" class="form-control">
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Email address</label>
+                  <input [disabled]="true" [(ngModel)]="user_single.email" type="text" name="email" class="form-control">
+                  <div class="form-text">
+                    For security reasons, your name and email can’t be edited here. Please contact Support to request an update: support&#64;3bayti.com.
+                  </div>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Phone number</label>
+                  <input [(ngModel)]="user_single.phone" type="text" name="phone" class="form-control">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button (click)="update_changes()" class="btn btn-secondary text-white" type="button">Save Changes</button>
+          </div>
+        </section>
+        <tui-loader *ngIf="ui_controls.is_loading" />
+      </div>
+    </div>
+  </div>
+</main>

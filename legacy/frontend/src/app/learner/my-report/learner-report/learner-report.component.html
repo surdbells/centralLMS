@@ -1,0 +1,530 @@
+<!-- learner-report/learner-report.component.html -->
+
+<div class="learner-report-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-text">
+        <h1><i class="bi bi-graph-up"></i> My Learning Report</h1>
+        <p>Track your progress, achievements, and learning analytics</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline-light" (click)="exportReport()" [disabled]="exporting">
+          <i class="bi bi-download me-1"></i>
+          {{ exporting ? 'Exporting...' : 'Export Report' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-container">
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTab === 'overview'" (click)="selectTab('overview')">
+        <i class="bi bi-speedometer2"></i> Overview
+      </button>
+      <button class="tab" [class.active]="activeTab === 'courses'" (click)="selectTab('courses')">
+        <i class="bi bi-journal-bookmark"></i> Courses
+      </button>
+      <button class="tab" [class.active]="activeTab === 'activity'" (click)="selectTab('activity')">
+        <i class="bi bi-activity"></i> Activity
+      </button>
+      <button class="tab" [class.active]="activeTab === 'quizzes'" (click)="selectTab('quizzes')">
+        <i class="bi bi-question-circle"></i> Quizzes
+      </button>
+      <button class="tab" [class.active]="activeTab === 'certificates'" (click)="selectTab('certificates')">
+        <i class="bi bi-award"></i> Certificates
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner-border text-primary"></div>
+  </div>
+
+  <!-- ==========================================
+       OVERVIEW TAB
+       ========================================== -->
+  <div class="tab-content" *ngIf="activeTab === 'overview' && !loading && overview">
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <!-- Enrollment Stats -->
+      <div class="stat-card primary">
+        <div class="stat-icon"><i class="bi bi-journal-bookmark"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.enrollment_stats.total_enrolled }}</span>
+          <span class="stat-label">Total Courses</span>
+        </div>
+        <div class="stat-breakdown">
+          <span class="completed">{{ overview.enrollment_stats.completed }} completed</span>
+          <span class="in-progress">{{ overview.enrollment_stats.in_progress }} in progress</span>
+        </div>
+      </div>
+
+      <!-- Completion Rate -->
+      <div class="stat-card success">
+        <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.enrollment_stats.completion_rate }}%</span>
+          <span class="stat-label">Completion Rate</span>
+        </div>
+        <div class="stat-progress">
+          <div class="progress">
+            <div class="progress-bar" [style.width.%]="overview.enrollment_stats.completion_rate"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Learning Time -->
+      <div class="stat-card info">
+        <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.learning_time.total_hours }}h</span>
+          <span class="stat-label">Total Learning Time</span>
+        </div>
+        <div class="stat-breakdown">
+          <span>{{ formatDuration(overview.learning_time.this_week_minutes) }} this week</span>
+        </div>
+      </div>
+
+      <!-- Certificates -->
+      <div class="stat-card warning">
+        <div class="stat-icon"><i class="bi bi-award"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.achievements.certificates_earned }}</span>
+          <span class="stat-label">Certificates Earned</span>
+        </div>
+      </div>
+
+      <!-- Points -->
+      <div class="stat-card purple" *ngIf="overview.achievements.total_points > 0">
+        <div class="stat-icon"><i class="bi bi-star"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.achievements.total_points }}</span>
+          <span class="stat-label">Total Points</span>
+        </div>
+        <div class="stat-breakdown" *ngIf="overview.rank">
+          <span>Rank #{{ overview.rank }}</span>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="stat-card orange" *ngIf="overview.current_streak > 0">
+        <div class="stat-icon"><i class="bi bi-fire"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.current_streak }}</span>
+          <span class="stat-label">Day Streak</span>
+        </div>
+      </div>
+
+      <!-- Quiz Performance -->
+      <div class="stat-card teal" *ngIf="overview.performance.quizzes_taken > 0">
+        <div class="stat-icon"><i class="bi bi-question-circle"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.performance.average_score }}%</span>
+          <span class="stat-label">Avg Quiz Score</span>
+        </div>
+        <div class="stat-breakdown">
+          <span>{{ overview.performance.quizzes_passed }}/{{ overview.performance.quizzes_taken }} passed</span>
+        </div>
+      </div>
+
+      <!-- Mandatory Compliance -->
+      <div class="stat-card" [class.danger]="overview.enrollment_stats.mandatory_compliance_rate < 100"
+           [class.success]="overview.enrollment_stats.mandatory_compliance_rate === 100"
+           *ngIf="overview.enrollment_stats.mandatory_total > 0">
+        <div class="stat-icon"><i class="bi bi-shield-check"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ overview.enrollment_stats.mandatory_compliance_rate }}%</span>
+          <span class="stat-label">Mandatory Compliance</span>
+        </div>
+        <div class="stat-breakdown">
+          <span>{{ overview.enrollment_stats.mandatory_completed }}/{{ overview.enrollment_stats.mandatory_total }} completed</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="overview-columns">
+      <!-- Left Column -->
+      <div class="overview-column">
+        <!-- Monthly Activity Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-bar-chart"></i> Learning Activity</h3>
+            <span class="subtitle">Last 6 months</span>
+          </div>
+          <div class="card-body">
+            <div class="bar-chart" *ngIf="monthlyActivity.length > 0">
+              <div class="chart-bars">
+                <div class="bar-wrapper" *ngFor="let month of monthlyActivity">
+                  <div class="bar" [style.height.%]="getBarHeight(month.minutes_spent)"
+                       [title]="formatDuration(month.minutes_spent)">
+                    <span class="bar-value">{{ month.hours_spent }}h</span>
+                  </div>
+                  <span class="bar-label">{{ month.month_label }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="monthlyActivity.length === 0">
+              <i class="bi bi-bar-chart"></i>
+              <p>No activity data yet</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-folder"></i> Learning by Category</h3>
+          </div>
+          <div class="card-body">
+            <div class="category-list" *ngIf="categoryBreakdown.length > 0">
+              <div class="category-item" *ngFor="let cat of categoryBreakdown">
+                <div class="category-info">
+                  <span class="category-name">{{ cat.category_name }}</span>
+                  <span class="category-stats">{{ cat.completed_courses }}/{{ cat.total_courses }} courses</span>
+                </div>
+                <div class="category-bar">
+                  <div class="bar-bg">
+                    <div class="bar-fill" [style.width.%]="cat.completion_rate"></div>
+                  </div>
+                  <span class="bar-percent">{{ cat.completion_rate }}%</span>
+                </div>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="categoryBreakdown.length === 0">
+              <i class="bi bi-folder"></i>
+              <p>No category data</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="overview-column">
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-clock-history"></i> Recent Activity</h3>
+          </div>
+          <div class="card-body">
+            <div class="activity-list" *ngIf="recentActivities.length > 0">
+              <div class="activity-item" *ngFor="let activity of recentActivities">
+                <div class="activity-icon" [ngClass]="activity.activity_type">
+                  <i [class]="getActivityIcon(activity.activity_type)"></i>
+                </div>
+                <div class="activity-content">
+                  <span class="activity-title">{{ activity.item_title }}</span>
+                  <span class="activity-meta">
+                    {{ getActivityLabel(activity) }} · {{ formatRelativeDate(activity.activity_at) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="empty-state" *ngIf="recentActivities.length === 0">
+              <i class="bi bi-clock-history"></i>
+              <p>No recent activity</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-lightning"></i> Quick Stats</h3>
+          </div>
+          <div class="card-body">
+            <div class="quick-stats-list">
+              <div class="quick-stat">
+                <span class="label">Avg. Daily Learning</span>
+                <span class="value">{{ formatDuration(overview.learning_time.avg_daily_minutes) }}</span>
+              </div>
+              <div class="quick-stat">
+                <span class="label">Active Days (Last 30)</span>
+                <span class="value">{{ overview.learning_time.active_days_last_30 }} days</span>
+              </div>
+              <div class="quick-stat">
+                <span class="label">This Month</span>
+                <span class="value">{{ formatDuration(overview.learning_time.this_month_minutes) }}</span>
+              </div>
+              <div class="quick-stat" *ngIf="overview.performance.quizzes_taken > 0">
+                <span class="label">Highest Quiz Score</span>
+                <span class="value">{{ overview.performance.highest_score }}%</span>
+              </div>
+              <div class="quick-stat" *ngIf="overview.enrollment_stats.overdue > 0">
+                <span class="label text-danger">Overdue Courses</span>
+                <span class="value text-danger">{{ overview.enrollment_stats.overdue }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       COURSES TAB
+       ========================================== -->
+  <div class="tab-content" *ngIf="activeTab === 'courses'">
+    <div class="loading-state" *ngIf="loadingCourses">
+      <div class="spinner-border spinner-border-sm"></div>
+      <span>Loading courses...</span>
+    </div>
+
+    <div class="course-progress-list" *ngIf="!loadingCourses">
+      <div class="course-progress-item" *ngFor="let course of courseProgress"
+           [class.overdue]="course.is_overdue">
+        <div class="course-main">
+          <div class="course-info">
+            <h4 (click)="playCourse(course.course_id)">{{ course.title }}</h4>
+            <div class="course-meta">
+              <span class="category" *ngIf="course.category_name">{{ course.category_name }}</span>
+              <span class="badge" [ngClass]="getStatusClass(course.status)">
+                {{ getStatusLabel(course.status) }}
+              </span>
+              <span class="mandatory" *ngIf="course.is_mandatory">
+                <i class="bi bi-exclamation-circle"></i> Mandatory
+              </span>
+            </div>
+          </div>
+          <div class="course-progress">
+            <div class="progress-circle">
+              <svg viewBox="0 0 36 36">
+                <path class="bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+                <path class="progress" [attr.stroke-dasharray]="course.progress_percentage + ', 100'"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+              </svg>
+              <span class="progress-text">{{ course.progress_percentage | number:'1.0-0' }}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="course-details">
+          <div class="detail">
+            <span class="label">Lessons</span>
+            <span class="value">{{ course.completed_lessons }}/{{ course.total_lessons }}</span>
+          </div>
+          <div class="detail">
+            <span class="label">Time Spent</span>
+            <span class="value">{{ formatDuration(course.time_spent_minutes) }}</span>
+          </div>
+          <div class="detail">
+            <span class="label">Enrolled</span>
+            <span class="value">{{ formatDate(course.enrolled_at) }}</span>
+          </div>
+          <div class="detail" *ngIf="course.due_date">
+            <span class="label" [class.text-danger]="course.is_overdue">Due Date</span>
+            <span class="value" [class.text-danger]="course.is_overdue">{{ formatDate(course.due_date) }}</span>
+          </div>
+          <div class="detail" *ngIf="course.completed_at">
+            <span class="label">Completed</span>
+            <span class="value">{{ formatDate(course.completed_at) }}</span>
+          </div>
+          <div class="detail" *ngIf="course.days_to_complete && course.status === 'completed'">
+            <span class="label">Days to Complete</span>
+            <span class="value">{{ course.days_to_complete }} days</span>
+          </div>
+        </div>
+        <div class="course-actions">
+          <button class="btn btn-primary btn-sm" (click)="playCourse(course.course_id)"
+                  *ngIf="course.status !== 'completed'">
+            {{ course.status === 'not_started' ? 'Start' : 'Continue' }}
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="playCourse(course.course_id)"
+                  *ngIf="course.status === 'completed'">
+            Review
+          </button>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="courseProgress.length === 0">
+        <i class="bi bi-journal-x"></i>
+        <p>No courses enrolled yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ACTIVITY TAB
+       ========================================== -->
+  <div class="tab-content" *ngIf="activeTab === 'activity'">
+    <div class="activity-controls">
+      <div class="period-selector">
+        <button [class.active]="activityPeriod === 'daily'" (click)="activityPeriod = 'daily'; loadDailyActivity()">
+          Daily (30 days)
+        </button>
+        <button [class.active]="activityPeriod === 'monthly'" (click)="activityPeriod = 'monthly'; loadMonthlyActivity()">
+          Monthly (12 months)
+        </button>
+      </div>
+    </div>
+
+    <div class="loading-state" *ngIf="loadingActivity">
+      <div class="spinner-border spinner-border-sm"></div>
+      <span>Loading activity...</span>
+    </div>
+
+    <!-- Daily Activity Chart -->
+    <div class="card activity-chart-card" *ngIf="!loadingActivity && activityPeriod === 'daily'">
+      <div class="card-header">
+        <h3>Daily Learning Activity</h3>
+      </div>
+      <div class="card-body">
+        <div class="daily-chart" *ngIf="dailyActivity.length > 0">
+          <div class="chart-scroll">
+            <div class="chart-bars horizontal">
+              <div class="bar-wrapper" *ngFor="let day of dailyActivity">
+                <div class="bar" [style.height.%]="getBarHeight(day.minutes_spent)"
+                     [class.has-completion]="day.lessons_completed > 0">
+                  <span class="bar-tooltip">
+                    {{ formatDuration(day.minutes_spent) }}<br>
+                    {{ day.lessons_completed }} completed
+                  </span>
+                </div>
+                <span class="bar-label">{{ day.date | date:'d' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="dailyActivity.length === 0">
+          <i class="bi bi-bar-chart"></i>
+          <p>No activity in the last 30 days</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Activity Chart -->
+    <div class="card activity-chart-card" *ngIf="!loadingActivity && activityPeriod === 'monthly'">
+      <div class="card-header">
+        <h3>Monthly Learning Activity</h3>
+      </div>
+      <div class="card-body">
+        <div class="monthly-chart" *ngIf="monthlyActivity.length > 0">
+          <div class="chart-bars">
+            <div class="bar-wrapper" *ngFor="let month of monthlyActivity">
+              <div class="bar" [style.height.%]="getBarHeight(month.minutes_spent)">
+                <span class="bar-value">{{ month.hours_spent }}h</span>
+              </div>
+              <span class="bar-label">{{ month.month_label }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="monthlyActivity.length === 0">
+          <i class="bi bi-bar-chart"></i>
+          <p>No activity in the last 12 months</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Summary Table -->
+    <div class="card" *ngIf="!loadingActivity && activityPeriod === 'monthly' && monthlyActivity.length > 0">
+      <div class="card-header">
+        <h3>Monthly Summary</h3>
+      </div>
+      <div class="card-body">
+        <table class="summary-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Time Spent</th>
+              <th>Lessons Completed</th>
+              <th>Active Days</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let month of monthlyActivity">
+              <td>{{ month.month_label }}</td>
+              <td>{{ formatDuration(month.minutes_spent) }}</td>
+              <td>{{ month.lessons_completed }}</td>
+              <td>{{ month.active_days }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       QUIZZES TAB
+       ========================================== -->
+  <div class="tab-content" *ngIf="activeTab === 'quizzes'">
+    <div class="loading-state" *ngIf="loadingQuizzes">
+      <div class="spinner-border spinner-border-sm"></div>
+      <span>Loading quizzes...</span>
+    </div>
+
+    <div class="quizzes-list" *ngIf="!loadingQuizzes">
+      <div class="quiz-item" *ngFor="let quiz of quizAttempts" [class.passed]="quiz.passed" [class.failed]="!quiz.passed">
+        <div class="quiz-result">
+          <div class="score-circle" [class.passed]="quiz.passed">
+            <span class="score">{{ quiz.score }}</span>
+            <span class="max">%</span>
+          </div>
+        </div>
+        <div class="quiz-info">
+          <h4>{{ quiz.quiz_title }}</h4>
+          <p class="course-name">{{ quiz.course_title }}</p>
+          <div class="quiz-meta">
+            <span><i class="bi bi-check-circle"></i> Passing: {{ quiz.passing_score }}%</span>
+            <span><i class="bi bi-clock"></i> {{ quiz.time_taken_minutes }}m</span>
+            <span><i class="bi bi-arrow-repeat"></i> Attempt #{{ quiz.attempt_number }}</span>
+          </div>
+        </div>
+        <div class="quiz-date">
+          <span class="badge" [class.bg-success]="quiz.passed" [class.bg-danger]="!quiz.passed">
+            {{ quiz.passed ? 'Passed' : 'Failed' }}
+          </span>
+          <span class="date">{{ formatDate(quiz.attempted_at) }}</span>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="quizAttempts.length === 0">
+        <i class="bi bi-question-circle"></i>
+        <p>No quiz attempts yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       CERTIFICATES TAB
+       ========================================== -->
+  <div class="tab-content" *ngIf="activeTab === 'certificates'">
+    <div class="loading-state" *ngIf="loadingCertificates">
+      <div class="spinner-border spinner-border-sm"></div>
+      <span>Loading certificates...</span>
+    </div>
+
+    <div class="certificates-grid" *ngIf="!loadingCertificates">
+      <div class="certificate-card" *ngFor="let cert of certificates" [ngClass]="cert.status">
+        <div class="certificate-badge">
+          <i class="bi bi-award"></i>
+        </div>
+        <div class="certificate-content">
+          <h4>{{ cert.course_title }}</h4>
+          <p class="cert-number">Certificate #{{ cert.certificate_number }}</p>
+          <div class="cert-meta">
+            <span><i class="bi bi-calendar-check"></i> Issued: {{ formatDate(cert.issue_date) }}</span>
+            <span *ngIf="cert.expiry_date">
+              <i class="bi bi-calendar-x"></i> Expires: {{ formatDate(cert.expiry_date) }}
+            </span>
+          </div>
+          <span class="status-badge" [ngClass]="getStatusClass(cert.status)">
+            {{ getStatusLabel(cert.status) }}
+          </span>
+        </div>
+        <div class="certificate-actions">
+          <button class="btn btn-primary btn-sm" (click)="viewCertificate(cert)" *ngIf="cert.pdf_url">
+            <i class="bi bi-download me-1"></i> Download
+          </button>
+        </div>
+      </div>
+
+      <div class="empty-state full-width" *ngIf="certificates.length === 0">
+        <i class="bi bi-award"></i>
+        <p>No certificates earned yet</p>
+        <span>Complete courses to earn certificates!</span>
+      </div>
+    </div>
+  </div>
+</div>

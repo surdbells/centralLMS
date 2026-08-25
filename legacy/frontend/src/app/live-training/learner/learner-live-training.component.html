@@ -1,0 +1,561 @@
+<!-- learner-live-training.component.html -->
+
+<div class="learner-live-training">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <div *ngIf="activeTab === 'progress'" class="mb-2">
+          <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+          </button>
+        </div>
+        <h1 class="page-title mb-1">
+          <i class="bi bi-camera-video me-2"></i>
+          {{ activeTab === 'progress' ? learnerProgress?.enrollment?.training_title : 'Live Training' }}
+        </h1>
+        <p class="text-muted mb-0" *ngIf="activeTab === 'dashboard'">
+          Your scheduled training sessions
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" (click)="openQRScanner()">
+          <i class="bi bi-qr-code-scan me-2"></i>Scan Attendance
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard View -->
+  <div *ngIf="activeTab === 'dashboard'">
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-4">
+        <div class="quick-action-card" (click)="loadUpcomingSessions()">
+          <div class="action-icon bg-primary-subtle text-primary">
+            <i class="bi bi-calendar-event"></i>
+          </div>
+          <div class="action-content">
+            <h5 class="action-title">Upcoming Sessions</h5>
+            <p class="action-desc">View all your scheduled sessions</p>
+          </div>
+          <i class="bi bi-chevron-right action-arrow"></i>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="quick-action-card" (click)="openQRScanner()">
+          <div class="action-icon bg-success-subtle text-success">
+            <i class="bi bi-qr-code-scan"></i>
+          </div>
+          <div class="action-content">
+            <h5 class="action-title">Mark Attendance</h5>
+            <p class="action-desc">Scan QR code at venue</p>
+          </div>
+          <i class="bi bi-chevron-right action-arrow"></i>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="quick-action-card">
+          <div class="action-icon bg-info-subtle text-info">
+            <i class="bi bi-award"></i>
+          </div>
+          <div class="action-content">
+            <h5 class="action-title">My Certificates</h5>
+            <p class="action-desc">View earned certificates</p>
+          </div>
+          <i class="bi bi-chevron-right action-arrow"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's Sessions -->
+    <div class="card mb-4" *ngIf="upcomingSessions.length > 0">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-calendar-day me-2"></i>Today's Sessions
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="session-list">
+          <ng-container *ngFor="let session of upcomingSessions; trackBy: trackBySessionId">
+            <div class="session-item" *ngIf="isSessionToday(session)">
+              <div class="session-time">
+                <div class="time-badge" [class.ongoing]="!isSessionUpcoming(session)">
+                  {{ formatTime(session.start_time) }}
+                </div>
+                <small class="text-muted">{{ formatTime(session.end_time) }}</small>
+              </div>
+              <div class="session-info">
+                <h6 class="session-title">{{ session.title }}</h6>
+                <p class="session-training text-muted mb-1">{{ session.training_title }}</p>
+                <div class="session-meta">
+                  <span class="badge bg-black text-white">
+                    <i class="bi me-1" [ngClass]="getSessionTypeIcon(session.session_type)"></i>
+                    {{ session.session_type | titlecase }}
+                  </span>
+                  <span class="text-muted small" *ngIf="session.venue_name">
+                    <i class="bi bi-geo-alt me-1"></i>{{ session.venue_name }}
+                  </span>
+                </div>
+              </div>
+              <div class="session-actions">
+                <button class="btn btn-success btn-sm" *ngIf="canJoinSession(session)" (click)="joinSession(session)">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Join
+                </button>
+                <span class="countdown-badge" *ngIf="isSessionUpcoming(session)">
+                  <i class="bi bi-clock me-1"></i>{{ getTimeUntilSession(session) }}
+                </span>
+              </div>
+            </div>
+          </ng-container>
+          <div class="text-center py-4 text-muted"
+               *ngIf="getTodaySessions().length === 0">
+            <i class="bi bi-calendar-x d-block mb-2" style="font-size: 2rem;"></i>
+            No sessions scheduled for today
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Sessions -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-calendar-week me-2"></i>Upcoming Sessions
+        </h5>
+        <button class="btn btn-link btn-sm" (click)="loadUpcomingSessions()">View All</button>
+      </div>
+      <div class="card-body p-0" *ngIf="!loading">
+        <div class="session-list">
+          <div class="session-item" *ngFor="let session of upcomingSessions | slice:0:5; trackBy: trackBySessionId">
+            <div class="session-date-box">
+              <div class="date-month">{{ session.session_date | date:'MMM' }}</div>
+              <div class="date-day">{{ session.session_date | date:'d' }}</div>
+            </div>
+            <div class="session-info" (click)="viewTrainingDetails(session)">
+              <h6 class="session-title">{{ session.title }}</h6>
+              <p class="session-training text-muted mb-1">{{ session.training_title }}</p>
+              <div class="session-meta">
+                <span class="badge bg-black text-white me-2">
+                  <i class="bi me-1" [ngClass]="getSessionTypeIcon(session.session_type)"></i>
+                  {{ session.session_type | titlecase }}
+                </span>
+                <span class="text-muted small">
+                  <i class="bi bi-clock me-1"></i>
+                  {{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}
+                </span>
+              </div>
+            </div>
+            <div class="session-actions d-flex flex-column align-items-end gap-2">
+              <span class="countdown-badge">
+                {{ getTimeUntilSession(session) }}
+              </span>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-primary" (click)="loadSessionDetails(session.session_id)"
+                        title="View Details">
+                  <i class="bi bi-info-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-success" *ngIf="canJoinSession(session)" (click)="joinSession(session)">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="text-center py-5 text-muted" *ngIf="upcomingSessions.length === 0">
+            <i class="bi bi-calendar-check display-4 d-block mb-3"></i>
+            <h5>No upcoming sessions</h5>
+            <p>You don't have any scheduled training sessions</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-body" *ngIf="loading">
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Enrollments -->
+    <div class="card mt-4" *ngIf="enrolledTrainings.length > 0">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-book me-2"></i>My Training Enrollments
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+          <div class="list-group-item d-flex justify-content-between align-items-center"
+               *ngFor="let enrollment of enrolledTrainings; trackBy: trackByEnrollmentId">
+            <div>
+              <h6 class="mb-1">{{ enrollment.training_title }}</h6>
+              <small class="text-muted">
+                Enrolled: {{ formatDateTime(enrollment.enrolled_at || '') }} |
+                Progress: {{ enrollment.attendance_percentage || 0 }}%
+              </small>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              <span class="badge" [ngClass]="getStatusBadgeClass(enrollment.certification_status || 'pending')">
+                {{ enrollment.certification_status || 'Pending' | titlecase }}
+              </span>
+              <button class="btn btn-sm btn-primary" (click)="loadTrainingProgress(enrollment)">
+                <i class="bi bi-eye me-1"></i>View Progress
+              </button>
+              <button class="btn btn-sm btn-outline-info" (click)="loadEnrollmentDetails(enrollment.enrollment_id)">
+                <i class="bi bi-info-circle"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upcoming Sessions View -->
+  <div *ngIf="activeTab === 'upcoming'">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <button class="btn btn-link p-0" (click)="goBack()">
+        <i class="bi bi-arrow-left me-2"></i>Back
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="session-list">
+          <div class="session-item" *ngFor="let session of upcomingSessions; trackBy: trackBySessionId">
+            <div class="session-date-box">
+              <div class="date-month">{{ session.session_date | date:'MMM' }}</div>
+              <div class="date-day">{{ session.session_date | date:'d' }}</div>
+              <div class="date-weekday">{{ session.session_date | date:'EEE' }}</div>
+            </div>
+            <div class="session-info flex-grow-1">
+              <h6 class="session-title mb-1">{{ session.title }}</h6>
+              <p class="session-training text-muted mb-2">{{ session.training_title }}</p>
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="badge bg-black text-white">
+                  <i class="bi me-1" [ngClass]="getSessionTypeIcon(session.session_type)"></i>
+                  {{ session.session_type | titlecase }}
+                </span>
+                <span class="text-muted small">
+                  <i class="bi bi-clock me-1"></i>
+                  {{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}
+                </span>
+                <span class="text-muted small" *ngIf="session.venue_name">
+                  <i class="bi bi-geo-alt me-1"></i>{{ session.venue_name }}
+                </span>
+                <span class="text-muted small" *ngIf="session.video_platform">
+                  <i class="bi me-1" [ngClass]="getPlatformIcon(session.video_platform)"></i>
+                  {{ session.video_platform | titlecase }}
+                </span>
+              </div>
+              <!-- Instructors -->
+              <div class="mt-2" *ngIf="session.instructors && session.instructors.length > 0">
+                <small class="text-muted">
+                  <i class="bi bi-person-badge me-1"></i>
+                  {{ session.instructors[0]?.first_name }} {{ session.instructors[0]?.last_name }}
+                  <span *ngIf="session.instructors && session.instructors.length > 1">
+                    +{{ session.instructors.length - 1 }} more
+                  </span>
+                </small>
+              </div>
+            </div>
+            <div class="session-actions d-flex flex-column align-items-end gap-2">
+              <span class="countdown-badge">{{ getTimeUntilSession(session) }}</span>
+              <button class="btn btn-success btn-sm" *ngIf="canJoinSession(session)" (click)="joinSession(session)">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Join Now
+              </button>
+              <button class="btn btn-primary btn-sm" *ngIf="session.session_type !== 'virtual'" (click)="openQRScanner()">
+                <i class="bi bi-qr-code me-1"></i>Scan QR
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress View -->
+  <div *ngIf="activeTab === 'progress' && learnerProgress">
+    <!-- Progress Summary -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-primary-subtle text-primary">
+            <i class="bi bi-calendar-check"></i>
+          </div>
+          <div class="stat-value">
+            {{ learnerProgress.enrollment.sessions_attended }} / {{ learnerProgress.enrollment.sessions_total }}
+          </div>
+          <div class="stat-label">Sessions Attended</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-success-subtle text-success">
+            <i class="bi bi-percent"></i>
+          </div>
+          <div class="stat-value">{{ learnerProgress.enrollment.attendance_percentage }}%</div>
+          <div class="stat-label">Attendance Rate</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon bg-warning-subtle text-warning">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+          <div class="stat-value">
+            {{ learnerProgress.enrollment.sessions_total - learnerProgress.enrollment.sessions_attended }}
+          </div>
+          <div class="stat-label">Remaining</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card">
+          <div class="stat-icon" [ngClass]="{
+            'bg-success-subtle text-success': learnerProgress.enrollment.certification_status === 'eligible' || learnerProgress.enrollment.certification_status === 'issued',
+            'bg-warning-subtle text-warning': learnerProgress.enrollment.certification_status === 'pending',
+            'bg-danger-subtle text-danger': learnerProgress.enrollment.certification_status === 'not_eligible'
+          }">
+            <i class="bi bi-award"></i>
+          </div>
+          <div class="stat-value text-capitalize">{{ learnerProgress.enrollment.certification_status }}</div>
+          <div class="stat-label">Certificate Status</div>
+          <button class="btn btn-sm btn-primary mt-2"
+                  (click)="checkMyEligibility(learnerProgress.enrollment)"
+                  *ngIf="learnerProgress.enrollment.certification_status === 'pending'">
+            <i class="bi bi-arrow-repeat me-1"></i>Check Eligibility
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between mb-2">
+          <span>Overall Progress</span>
+          <span class="fw-bold">{{ learnerProgress.enrollment.attendance_percentage }}%</span>
+        </div>
+        <div class="progress" style="height: 12px;">
+          <div class="progress-bar bg-success" role="progressbar"
+               [style.width.%]="learnerProgress.enrollment.attendance_percentage"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Session Details</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+            <tr>
+              <th>Session</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Type</th>
+              <th class="text-center">Attendance</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let session of learnerProgress.sessions">
+              <td>
+                <div class="fw-medium">{{ session.title }}</div>
+                <span class="badge bg-warning text-dark" *ngIf="session.is_mandatory">Required</span>
+              </td>
+              <td>{{ formatDate(session.session_date) }}</td>
+              <td>{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</td>
+              <td>
+                  <span class="badge bg-black text-white">
+                    <i class="bi me-1" [ngClass]="getSessionTypeIcon(session.session_type)"></i>
+                    {{ session.session_type | titlecase }}
+                  </span>
+              </td>
+              <td class="text-center">
+                  <span class="badge" [ngClass]="getStatusBadgeClass(session.attendance_status || 'pending')">
+                    {{ session.attendance_status ? (session.attendance_status | titlecase) : 'Pending' }}
+                  </span>
+                <div class="small text-muted mt-1" *ngIf="session.attendance_mode">
+                  via {{ session.attendance_mode }}
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Scanner Modal -->
+<ng-template [tuiDialogOptions]="{label: 'Scan Attendance QR', size: 'l'}" [(tuiDialog)]="showQRScanner">
+  <div class="card">
+    <div class="card-body">
+      <!-- Camera Scanner Placeholder -->
+      <div class="scanner-area mb-4">
+        <div class="scanner-frame">
+          <i class="bi bi-qr-code-scan scanner-icon"></i>
+          <p class="text-muted mt-3">Camera scanner not available</p>
+          <small class="text-muted">Enter the code manually below</small>
+        </div>
+      </div>
+
+      <!-- Manual Entry -->
+      <div class="manual-entry">
+        <label class="form-label">Enter QR Code</label>
+        <div class="input-group">
+          <input type="text" class="form-control" [(ngModel)]="qrToken"
+                 placeholder="Paste or type the QR code"
+                 (keyup.enter)="submitQRCode()">
+          <button class="btn btn-primary" (click)="submitQRCode()" [disabled]="!qrToken.trim()">
+            <i class="bi bi-check-lg me-1"></i>Submit
+          </button>
+        </div>
+      </div>
+
+      <!-- Simulated Scan (for testing) -->
+      <div class="mt-3 text-center">
+        <button class="btn btn-secondary btn-sm" (click)="onQRCodeScanned('TEST-QR-TOKEN-123')">
+          <i class="bi bi-lightning me-1"></i>Simulate Scan (Test)
+        </button>
+      </div>
+
+      <!-- Result Message -->
+      <div class="mt-4" *ngIf="scanMessage">
+        <div class="alert" [ngClass]="scanSuccess ? 'alert-success' : 'alert-danger'">
+          <i class="bi me-2" [ngClass]="scanSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'"></i>
+          {{ scanMessage }}
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeQRScanner()">Close</button>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Session Detail Modal -->
+<div class="modal fade" [class.show]="showSessionDetailModal" [style.display]="showSessionDetailModal ? 'block' : 'none'"
+     tabindex="-1" *ngIf="showSessionDetailModal && selectedSession">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-calendar-event me-2"></i>Session Details
+        </h5>
+        <button type="button" class="btn-close" (click)="closeSessionDetailModal()"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Session Header -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+          <div>
+            <h4 class="mb-1">{{ selectedSession.title }}</h4>
+            <p class="text-muted mb-0">{{ selectedSession.training_title }}</p>
+          </div>
+          <span class="badge" [ngClass]="getStatusBadgeClass(selectedSession.status)">
+            {{ selectedSession.status | titlecase }}
+          </span>
+        </div>
+
+        <!-- Session Info -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="bi bi-calendar3"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-label">Date</div>
+                <div class="info-value">{{ formatDate(selectedSession.session_date) }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="bi bi-clock"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-label">Time</div>
+                <div class="info-value">{{ formatTime(selectedSession.start_time) }} - {{ formatTime(selectedSession.end_time) }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="bi" [ngClass]="getSessionTypeIcon(selectedSession.session_type)"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-label">Type</div>
+                <div class="info-value">{{ selectedSession.session_type | titlecase }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6" *ngIf="selectedSession.venue_name">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="bi bi-geo-alt"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-label">Venue</div>
+                <div class="info-value">{{ selectedSession.venue_name }}</div>
+                <small class="text-muted" *ngIf="selectedSession.venue_address">
+                  {{ selectedSession.venue_address }}
+                </small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6" *ngIf="selectedSession.video_platform">
+            <div class="info-card">
+              <div class="info-icon">
+                <i class="bi" [ngClass]="getPlatformIcon(selectedSession.video_platform)"></i>
+              </div>
+              <div class="info-content">
+                <div class="info-label">Platform</div>
+                <div class="info-value">{{ selectedSession.video_platform | titlecase }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div *ngIf="selectedSession.description" class="mb-4">
+          <h6>Description</h6>
+          <p class="text-muted">{{ selectedSession.description }}</p>
+        </div>
+
+        <!-- Instructors -->
+        <div *ngIf="selectedSession.instructors && selectedSession.instructors.length > 0" class="mb-4">
+          <h6>Instructors</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <div *ngFor="let instructor of selectedSession.instructors" class="instructor-badge">
+              <div class="avatar avatar-sm me-2">
+                <span class="avatar-initials">{{ instructor.first_name?.charAt(0) }}{{ instructor.last_name?.charAt(0) }}</span>
+              </div>
+              <span>{{ instructor.first_name }} {{ instructor.last_name }}</span>
+              <span class="badge bg-info ms-1" *ngIf="instructor.role === 'primary'">Lead</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2 justify-content-center pt-3 border-top">
+          <button class="btn btn-success" *ngIf="canJoinSession(selectedSession)" (click)="joinSession(selectedSession)">
+            <i class="bi bi-box-arrow-up-right me-2"></i>Join Now
+          </button>
+          <button class="btn btn-primary" *ngIf="selectedSession.session_type !== 'virtual'" (click)="openQRScanner(); closeSessionDetailModal()">
+            <i class="bi bi-qr-code-scan me-2"></i>Scan QR
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeSessionDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showSessionDetailModal"></div>

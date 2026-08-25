@@ -1,0 +1,5 @@
+/* course-enrollment.component.scss */
+.card { border-radius: 8px; }
+.table thead th { vertical-align: middle; }
+.table tbody tr:hover { background: #fbfbfd; }
+.form-text code { background:#f8f9fa; padding:2px 6px; border-radius:4px; }

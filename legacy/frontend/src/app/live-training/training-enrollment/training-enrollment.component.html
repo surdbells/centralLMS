@@ -1,0 +1,493 @@
+<!-- admin-live-training.component.html -->
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p>Loading enrollment data...</p>
+    </div>
+
+    <div class="enrollment-content" *ngIf="!loading">
+
+      <!-- Step 1: Training Selection -->
+      <div class="enrollment-step" *ngIf="showTrainingSelector">
+        <div class="step-header">
+          <span class="step-number">1</span>
+          <div>
+            <h2>Select a Training</h2>
+            <p>Choose the training to enroll users in</p>
+          </div>
+        </div>
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text"
+                 class="form-control"
+                 placeholder="Search trainings..."
+                 [(ngModel)]="trainingSearch">
+        </div>
+        <div class="course-grid">
+          <div class="course-card"
+               *ngFor="let training of filterTrainings()"
+               [class.is-full]="training.is_full"
+               (click)="!training.is_full && selectTraining(training)">
+            <div class="course-thumbnail">
+              <img [src]="training.thumbnail_url || '../assets/img/training-placeholder.png'"
+                   [alt]="training.title">
+              <span class="course-badge" *ngIf="training.is_full">Full</span>
+            </div>
+            <div class="course-info">
+              <h4>{{ training.title }}</h4>
+              <span class="category-badge" *ngIf="training.category_name">{{ training.category_name }}</span>
+              <div class="course-meta">
+                <span><i class="bi bi-calendar"></i> {{ training.session_count }} sessions</span>
+                <span><i class="bi bi-people"></i> {{ training.enrollment_count }} enrolled</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="filterTrainings().length === 0">
+          <i class="bi bi-search"></i>
+          <p>No trainings found</p>
+        </div>
+      </div>
+
+      <!-- Step 2: Enrollment Configuration -->
+      <div class="enrollment-step" *ngIf="!showTrainingSelector && selectedTraining">
+        <!-- Selected Training Summary -->
+        <div class="selected-course-banner">
+          <div class="course-preview">
+            <img [src]="selectedTraining.thumbnail_url || '../assets/img/training-placeholder.png'"
+                 [alt]="selectedTraining.title">
+            <div class="course-details">
+              <h3>{{ selectedTraining.title }}</h3>
+              <span class="category-badge" *ngIf="selectedTraining.category_name">{{ selectedTraining.category_name }}</span>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" (click)="changeTraining()">
+            <i class="bi bi-arrow-left"></i> Change Training
+          </button>
+        </div>
+
+        <div class="step-header">
+          <span class="step-number">2</span>
+          <div>
+            <h2>Select Users to Enroll</h2>
+            <p>Choose how to select users for enrollment</p>
+          </div>
+        </div>
+
+        <!-- Enrollment Type Tabs -->
+        <div class="enrollment-type-tabs">
+          <button class="type-tab"
+                  [class.active]="enrollmentType === 'department'"
+                  (click)="enrollmentType = 'department'; onEnrollmentTypeChange()">
+            <i class="bi bi-building"></i>
+            <span>By Department</span>
+          </button>
+          <button class="type-tab"
+                  [class.active]="enrollmentType === 'team'"
+                  (click)="enrollmentType = 'team'; onEnrollmentTypeChange()">
+            <i class="bi bi-people"></i>
+            <span>By Team</span>
+          </button>
+          <button class="type-tab"
+                  [class.active]="enrollmentType === 'branch'"
+                  (click)="enrollmentType = 'branch'; onEnrollmentTypeChange()">
+            <i class="bi bi-geo-alt"></i>
+            <span>By Branch</span>
+          </button>
+          <button class="type-tab"
+                  [class.active]="enrollmentType === 'users'"
+                  (click)="enrollmentType = 'users'; onEnrollmentTypeChange()">
+            <i class="bi bi-person-check"></i>
+            <span>Select Users</span>
+          </button>
+        </div>
+
+        <div class="enrollment-config">
+          <!-- Department Selection -->
+          <div class="selection-panel" *ngIf="enrollmentType === 'department'">
+            <label class="form-label">Select Department</label>
+            <select class="form-select form-select-lg" [(ngModel)]="selectedDepartmentId">
+              <option [ngValue]="null">-- Select a department --</option>
+              <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
+                {{ dept.department_name }} ({{ dept.user_count }} users)
+              </option>
+            </select>
+
+            <div class="selection-info" *ngIf="selectedDepartmentId">
+              <i class="bi bi-info-circle"></i>
+              All active users in this department will be enrolled.
+            </div>
+          </div>
+
+          <!-- Team Selection -->
+          <div class="selection-panel" *ngIf="enrollmentType === 'team'">
+            <label class="form-label">Select Team</label>
+            <select class="form-select form-select-lg" [(ngModel)]="selectedTeamId">
+              <option [ngValue]="null">-- Select a team --</option>
+              <option *ngFor="let team of teams" [ngValue]="team.team_id">
+                {{ team.team_name }} ({{ team.user_count }} users)
+              </option>
+            </select>
+
+            <div class="selection-info" *ngIf="selectedTeamId">
+              <i class="bi bi-info-circle"></i>
+              All active users in this team will be enrolled.
+            </div>
+          </div>
+
+          <!-- Branch Selection -->
+          <div class="selection-panel" *ngIf="enrollmentType === 'branch'">
+            <label class="form-label">Select Branch</label>
+            <select class="form-select form-select-lg" [(ngModel)]="selectedBranchId">
+              <option [ngValue]="null">-- Select a branch --</option>
+              <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
+                {{ branch.branch_name }} - {{ branch.city }} ({{ branch.user_count }} users)
+              </option>
+            </select>
+
+            <div class="selection-info" *ngIf="selectedBranchId">
+              <i class="bi bi-info-circle"></i>
+              All active users in this branch will be enrolled.
+            </div>
+          </div>
+
+          <!-- Individual User Selection -->
+          <div class="selection-panel user-selection" *ngIf="enrollmentType === 'users'">
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label">Filter by Department</label>
+                <select class="form-select"
+                        [(ngModel)]="selectedDepartmentId"
+                        (ngModelChange)="onDepartmentChange()">
+                  <option [ngValue]="null">All Departments</option>
+                  <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
+                    {{ dept.department_name }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Filter by Team</label>
+                <select class="form-select"
+                        [(ngModel)]="selectedTeamId"
+                        (ngModelChange)="onTeamChange()">
+                  <option [ngValue]="null">All Teams</option>
+                  <option *ngFor="let team of teams" [ngValue]="team.team_id">
+                    {{ team.team_name }}
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Filter by Branch</label>
+                <select class="form-select"
+                        [(ngModel)]="selectedBranchId"
+                        (ngModelChange)="onBranchChange()">
+                  <option [ngValue]="null">All Branches</option>
+                  <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
+                    {{ branch.branch_name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="user-selection-area">
+              <div class="user-list-panel">
+                <div class="panel-header">
+                  <h5>
+                    <i class="bi bi-people"></i>
+                    Available Users
+                    <span class="badge bg-secondary">{{ users.length }}</span>
+                  </h5>
+                </div>
+
+                <div class="panel-body">
+                  <div class="search-box small mb-2">
+                    <i class="bi bi-search"></i>
+                    <input type="text"
+                           class="form-control form-control-sm"
+                           placeholder="Search users..."
+                           [(ngModel)]="userSearch"
+                           (input)="onUserSearchChange()">
+                  </div>
+
+                  <div class="user-list" [class.loading]="loadingUsers">
+                    <div class="loading-overlay" *ngIf="loadingUsers">
+                      <div class="spinner-border spinner-border-sm"></div>
+                    </div>
+
+                    <div class="user-item"
+                         *ngFor="let user of users"
+                         [class.selected]="isUserSelected(user)"
+                         (click)="toggleUserSelection(user)">
+                      <div class="user-checkbox">
+                        <input type="checkbox" [checked]="isUserSelected(user)">
+                      </div>
+                      <div class="user-info">
+                        <div class="user-name">{{ user.first_name }} {{ user.last_name }}</div>
+                        <div class="user-email">{{ user.email }}</div>
+                        <div class="user-meta" *ngIf="user.department_name">
+                          <span>{{ user.department_name }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="empty-state small" *ngIf="users.length === 0 && !loadingUsers">
+                      <i class="bi bi-inbox"></i>
+                      <p>No users found</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel-footer">
+                  <button class="btn btn-link btn-sm" (click)="selectAllUsers()">Select All</button>
+                  <button class="btn btn-link btn-sm" (click)="deselectAllUsers()">Deselect All</button>
+                </div>
+              </div>
+
+              <div class="selected-users-panel">
+                <div class="panel-header">
+                  <h5>
+                    <i class="bi bi-person-check"></i>
+                    Selected Users
+                    <span class="badge bg-primary">{{ selectedUsers.length }}</span>
+                  </h5>
+                </div>
+
+                <div class="selected-users-list">
+                  <div *ngIf="selectedUsers.length === 0" class="empty-state small">
+                    <i class="bi bi-person-x"></i>
+                    <p>No users selected</p>
+                  </div>
+
+                  <div class="selected-user-chip" *ngFor="let user of selectedUsers">
+                    <span>{{ user.first_name }} {{ user.last_name }}</span>
+                    <button class="btn-remove" (click)="removeSelectedUser(user)">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enrollment Options -->
+          <div class="enrollment-options">
+            <h5><i class="bi bi-gear"></i> Enrollment Options</h5>
+
+            <div class="options-grid">
+              <div class="option-item">
+                <label class="form-check">
+                  <input type="checkbox" class="form-check-input" [(ngModel)]="isMandatory">
+                  <span class="form-check-label">
+                <strong>Mandatory Training</strong>
+                <small>Users must complete this training</small>
+              </span>
+                </label>
+              </div>
+
+              <div class="option-item">
+                <label class="form-check">
+                  <input type="checkbox" class="form-check-input" [(ngModel)]="notifyUsers">
+                  <span class="form-check-label">
+                <strong>Send Email Notification</strong>
+                <small>Notify users about their enrollment</small>
+              </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div class="alert alert-danger" *ngIf="error">
+            <i class="bi bi-exclamation-triangle"></i> {{ error }}
+          </div>
+
+          <!-- Enrollment Summary & Action -->
+          <div class="enrollment-summary" *ngIf="canPreview()">
+            <div class="summary-content">
+              <i class="bi bi-info-circle"></i>
+              <span>{{ getEnrollmentSummary() }}</span>
+            </div>
+            <button class="btn btn-primary btn-lg"
+                    (click)="previewEnrollment()"
+                    [disabled]="loadingPreview">
+          <span *ngIf="!loadingPreview">
+            <i class="bi bi-eye me-2"></i>Preview Enrollment
+          </span>
+              <span *ngIf="loadingPreview">
+            <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+          </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" *ngIf="showPreviewModal" (click)="closePreviewModal()">
+      <div class="modal-container preview-modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3><i class="bi bi-eye"></i> Enrollment Preview</h3>
+          <button class="btn-close" (click)="closePreviewModal()"></button>
+        </div>
+
+        <div class="modal-body" *ngIf="preview">
+          <div class="preview-course">
+            <strong>Training:</strong> {{ preview.training.title }}
+          </div>
+
+          <div class="preview-stats">
+            <div class="stat-card success">
+              <span class="stat-value">{{ preview.summary.will_enroll }}</span>
+              <span class="stat-label">Will be enrolled</span>
+            </div>
+            <div class="stat-card warning">
+              <span class="stat-value">{{ preview.summary.already_enrolled }}</span>
+              <span class="stat-label">Already enrolled</span>
+            </div>
+            <div class="stat-card info" *ngIf="preview.summary.will_waitlist > 0">
+              <span class="stat-value">{{ preview.summary.will_waitlist }}</span>
+              <span class="stat-label">Will be waitlisted</span>
+            </div>
+            <div class="stat-card info">
+              <span class="stat-value">{{ preview.summary.total_users }}</span>
+              <span class="stat-label">Total users</span>
+            </div>
+          </div>
+
+          <div class="preview-lists">
+            <div class="preview-list" *ngIf="preview.users_to_enroll.length > 0">
+              <h5><i class="bi bi-person-plus text-success"></i> Users to Enroll</h5>
+              <ul>
+                <li *ngFor="let user of preview.users_to_enroll">
+                  {{ user.name }} <small class="text-muted">({{ user.email }})</small>
+                </li>
+              </ul>
+            </div>
+
+            <div class="preview-list" *ngIf="preview.users_already_enrolled.length > 0">
+              <h5><i class="bi bi-person-check text-warning"></i> Already Enrolled (Skipped)</h5>
+              <ul>
+                <li *ngFor="let user of preview.users_already_enrolled">
+                  {{ user.name }} <small class="text-muted">({{ user.email }})</small>
+                </li>
+              </ul>
+            </div>
+
+            <div class="preview-list" *ngIf="preview.users_to_waitlist && preview.users_to_waitlist.length > 0">
+              <h5><i class="bi bi-hourglass text-info"></i> Will be Waitlisted</h5>
+              <ul>
+                <li *ngFor="let user of preview.users_to_waitlist">
+                  {{ user.name }} <small class="text-muted">({{ user.email }})</small>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="enrollment-settings-preview">
+            <span *ngIf="isMandatory" class="badge bg-danger">Mandatory</span>
+            <span *ngIf="notifyUsers" class="badge bg-secondary">Email notifications enabled</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closePreviewModal()">Cancel</button>
+          <button class="btn btn-success btn-lg"
+                  (click)="confirmEnrollment()"
+                  [disabled]="enrolling || preview?.summary?.will_enroll === 0">
+        <span *ngIf="!enrolling">
+          <i class="bi bi-check-circle me-2"></i>Confirm Enrollment
+        </span>
+            <span *ngIf="enrolling">
+          <span class="spinner-border spinner-border-sm me-2"></span>Enrolling...
+        </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal-overlay" *ngIf="showResultModal">
+      <div class="modal-container result-modal">
+        <div class="modal-header">
+          <h3>
+            <i class="bi" [class.bi-check-circle-fill]="result?.summary?.enrolled_count! > 0"
+               [class.text-success]="result?.summary?.enrolled_count! > 0"
+               [class.bi-exclamation-circle-fill]="result?.summary?.enrolled_count === 0"
+               [class.text-warning]="result?.summary?.enrolled_count === 0"></i>
+            Enrollment Complete
+          </h3>
+        </div>
+
+        <div class="modal-body" *ngIf="result">
+          <div class="result-message">
+            {{ result.message }}
+          </div>
+
+          <div class="result-stats">
+            <div class="stat-card success">
+              <span class="stat-value">{{ result.summary.enrolled_count }}</span>
+              <span class="stat-label">Enrolled</span>
+            </div>
+            <div class="stat-card warning" *ngIf="result.summary.waitlisted_count > 0">
+              <span class="stat-value">{{ result.summary.waitlisted_count }}</span>
+              <span class="stat-label">Waitlisted</span>
+            </div>
+            <div class="stat-card warning">
+              <span class="stat-value">{{ result.summary.skipped_count }}</span>
+              <span class="stat-label">Skipped</span>
+            </div>
+            <div class="stat-card danger" *ngIf="result.summary.failed_count > 0">
+              <span class="stat-value">{{ result.summary.failed_count }}</span>
+              <span class="stat-label">Failed</span>
+            </div>
+          </div>
+
+          <div class="result-details" *ngIf="result.enrolled.length > 0">
+            <h5>Successfully Enrolled:</h5>
+            <div class="enrolled-list">
+          <span class="enrolled-chip" *ngFor="let user of result.enrolled">
+            {{ user.first_name }} {{ user.last_name }}
+          </span>
+            </div>
+          </div>
+
+          <div class="result-details info" *ngIf="result.waitlisted && result.waitlisted.length > 0">
+            <h5>Waitlisted:</h5>
+            <ul>
+              <li *ngFor="let user of result.waitlisted">
+                {{ user.first_name }} {{ user.last_name }} - Position #{{ user.waitlist_position }}
+              </li>
+            </ul>
+          </div>
+
+          <div class="result-details warning" *ngIf="result.skipped.length > 0">
+            <h5>Skipped (Already Enrolled):</h5>
+            <ul>
+              <li *ngFor="let user of result.skipped">{{ user.name }} - {{ user.reason }}</li>
+            </ul>
+          </div>
+
+          <div class="result-details danger" *ngIf="result.failed.length > 0">
+            <h5>Failed:</h5>
+            <ul>
+              <li *ngFor="let user of result.failed">{{ user.name }} - {{ user.reason }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-lg" (click)="startNewEnrollment()">
+            <i class="bi bi-plus-circle me-2"></i>New Enrollment
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>

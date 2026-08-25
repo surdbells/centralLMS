@@ -1,0 +1,621 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+      <!-- Loading State -->
+      <div class="loading-container" *ngIf="loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+
+      <!-- Builder Content -->
+      <div class="learning-path-builder" *ngIf="!loading && path">
+        <!-- Main Content Area -->
+        <div class="builder-main">
+          <!-- Stats Bar -->
+          <div class="stats-bar">
+            <div class="stat">
+              <span class="stat-value">{{ totalItems }}</span>
+              <span class="stat-label">Items</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ totalSections }}</span>
+              <span class="stat-label">Sections</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ totalPoints }}</span>
+              <span class="stat-label">Total Points</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ formattedDuration }}</span>
+              <span class="stat-label">Duration</span>
+            </div>
+          </div>
+
+          <!-- Content Items Section -->
+          <div class="content-section">
+            <div class="section-header">
+              <div class="section-title-group">
+                <i class="bi bi-folder2-open"></i>
+                <h6 class="mb-0">Content Items</h6>
+              </div>
+              <div class="dropdown">
+                <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-plus-lg me-1"></i>Add Item
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <button class="dropdown-item" (click)="openCourseSelector(null)">
+                      <i class="bi bi-collection-play me-2"></i>Add Course
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item" (click)="openAssessmentSelector(null)">
+                      <i class="bi bi-clipboard-check me-2"></i>Add Assessment
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <button class="dropdown-item" (click)="openItemModal(null)">
+                      <i class="bi bi-link-45deg me-2"></i>External Link
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Items List Container -->
+            <div
+              class="items-list"
+              cdkDropList
+              #unsectionedList="cdkDropList"
+              [cdkDropListData]="unsectionedItems"
+              [cdkDropListConnectedTo]="getConnectedDropLists()"
+              (cdkDropListDropped)="onItemDrop($event, null)"
+              id="unsectioned-items"
+            >
+              <!-- Empty State -->
+              <div class="empty-state" *ngIf="unsectionedItems.length === 0 && sections.length === 0">
+                <div class="empty-icon">
+                  <i class="bi bi-plus-circle"></i>
+                </div>
+                <p class="empty-text">No items yet. Add courses, assessments, or external links to build your learning path.</p>
+              </div>
+
+              <!-- Items -->
+              <div
+                class="item-card"
+                *ngFor="let item of unsectionedItems; trackBy: trackByItemId"
+                cdkDrag
+              >
+                <div class="item-drag-handle" cdkDragHandle>
+                  <i class="bi bi-grip-vertical"></i>
+                </div>
+                <div class="item-icon" [ngClass]="'icon-' + item.item_type">
+                  <i class="bi" [ngClass]="getItemTypeIcon(item.item_type)"></i>
+                </div>
+                <div class="item-info">
+                  <span class="item-title">{{ item.display_title || item.external_title }}</span>
+                  <span class="item-meta">
+                    <span class="item-type">{{ getItemTypeLabel(item.item_type) }}</span>
+                    <ng-container *ngIf="item.points_value">
+                      <span class="separator">•</span>
+                      <span>{{ item.points_value }} pts</span>
+                    </ng-container>
+                    <ng-container *ngIf="item.estimated_duration_minutes">
+                      <span class="separator">•</span>
+                      <span>{{ formatDuration(item.estimated_duration_minutes) }}</span>
+                    </ng-container>
+                  </span>
+                </div>
+                <div class="item-badges">
+                  <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">Required</span>
+                </div>
+                <div class="item-actions">
+                  <button class="btn btn-icon" (click)="openItemModal(null, item)" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-icon text-danger" (click)="deleteItem(item)" title="Delete">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sections List -->
+          <div
+            class="sections-container"
+            cdkDropList
+            [cdkDropListData]="sections"
+            (cdkDropListDropped)="onSectionDrop($event)"
+            *ngIf="sections.length > 0"
+          >
+            <div
+              class="content-section section-block"
+              *ngFor="let section of sections; trackBy: trackBySectionId"
+              cdkDrag
+            >
+              <div class="section-header" cdkDragHandle>
+                <div class="section-title-group">
+                  <i class="bi bi-grip-vertical text-muted drag-handle"></i>
+                  <span class="badge bg-warning text-dark me-2" *ngIf="section.is_milestone">
+                    <i class="bi bi-flag me-1"></i>Milestone
+                  </span>
+                  <h6 class="mb-0">{{ section.title }}</h6>
+                  <span class="item-count">({{ section.items?.length || 0 }} items)</span>
+                </div>
+                <div class="section-actions-group">
+                  <div class="dropdown">
+                    <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                      <i class="bi bi-plus-lg me-1"></i>Add
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li>
+                        <button class="dropdown-item" (click)="openCourseSelector(section.section_id)">
+                          <i class="bi bi-collection-play me-2"></i>Course
+                        </button>
+                      </li>
+                      <li>
+                        <button class="dropdown-item" (click)="openAssessmentSelector(section.section_id)">
+                          <i class="bi bi-clipboard-check me-2"></i>Assessment
+                        </button>
+                      </li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <button class="dropdown-item" (click)="openItemModal(section.section_id)">
+                          <i class="bi bi-link-45deg me-2"></i>External Link
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                  <button class="btn btn-icon" (click)="openSectionModal(section)" title="Edit Section">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-icon text-danger" (click)="deleteSection(section)" title="Delete Section">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section Items -->
+              <div
+                class="items-list"
+                cdkDropList
+                [cdkDropListData]="section.items || []"
+                [cdkDropListConnectedTo]="getConnectedDropLists()"
+                (cdkDropListDropped)="onItemDrop($event, section.section_id)"
+                [id]="'section-' + section.section_id"
+              >
+                <div class="empty-section-state" *ngIf="!section.items || section.items.length === 0">
+                  <i class="bi bi-collection"></i>
+                  <span>Drag items here or use the Add button</span>
+                </div>
+
+                <div
+                  class="item-card"
+                  *ngFor="let item of section.items; trackBy: trackByItemId"
+                  cdkDrag
+                >
+                  <div class="item-drag-handle" cdkDragHandle>
+                    <i class="bi bi-grip-vertical"></i>
+                  </div>
+                  <div class="item-icon" [ngClass]="'icon-' + item.item_type">
+                    <i class="bi" [ngClass]="getItemTypeIcon(item.item_type)"></i>
+                  </div>
+                  <div class="item-info">
+                    <span class="item-title">{{ item.display_title || item.external_title }}</span>
+                    <span class="item-meta">
+                      <span class="item-type">{{ getItemTypeLabel(item.item_type) }}</span>
+                      <ng-container *ngIf="item.points_value">
+                        <span class="separator">•</span>
+                        <span>{{ item.points_value }} pts</span>
+                      </ng-container>
+                      <ng-container *ngIf="item.estimated_duration_minutes">
+                        <span class="separator">•</span>
+                        <span>{{ formatDuration(item.estimated_duration_minutes) }}</span>
+                      </ng-container>
+                    </span>
+                  </div>
+                  <div class="item-badges">
+                    <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">Required</span>
+                  </div>
+                  <div class="item-actions">
+                    <button class="btn btn-icon" (click)="openItemModal(section.section_id, item)" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-icon text-danger" (click)="deleteItem(item)" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="builder-sidebar">
+          <!-- Add Section Panel -->
+          <div class="sidebar-panel">
+            <h6 class="panel-title">Add Section</h6>
+            <p class="panel-description">Organize your content into logical sections.</p>
+            <button class="btn btn-primary w-100" (click)="openSectionModal()">
+              <i class="bi bi-folder-plus me-2"></i>New Section
+            </button>
+          </div>
+
+          <!-- Tips Panel -->
+          <div class="sidebar-panel tips-panel">
+            <h6 class="panel-title">Tips</h6>
+            <ul class="tips-list">
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Drag items and sections to reorder</span>
+              </li>
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Mark important sections as milestones</span>
+              </li>
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Use required items for essential content</span>
+              </li>
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Add points to gamify the experience</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Quick Add Panel -->
+          <div class="sidebar-panel quick-add-panel">
+            <h6 class="panel-title">Quick Add</h6>
+            <div class="quick-add-grid">
+              <button class="quick-add-btn" (click)="openCourseSelector(null)">
+                <i class="bi bi-collection-play"></i>
+                <span>Add Course</span>
+              </button>
+              <button class="quick-add-btn" (click)="openAssessmentSelector(null)">
+                <i class="bi bi-clipboard-check"></i>
+                <span>Add Assessment</span>
+              </button>
+              <button class="quick-add-btn" (click)="openItemModal(null)">
+                <i class="bi bi-link-45deg"></i>
+                <span>External Link</span>
+              </button>
+              <button class="quick-add-btn" (click)="openSectionModal()">
+                <i class="bi bi-folder-plus"></i>
+                <span>Add Section</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- More Tips -->
+          <div class="sidebar-panel tips-panel">
+            <h6 class="panel-title">Tips</h6>
+            <ul class="tips-list">
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Drag items to reorder them</span>
+              </li>
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Use sections to group related content</span>
+              </li>
+              <li>
+                <i class="bi bi-lightbulb"></i>
+                <span>Mark important sections as milestones</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Bottom Action Bar -->
+        <div class="builder-footer">
+          <button class="btn btn-link" (click)="goBack()">
+            <i class="bi bi-arrow-left me-1"></i>
+          </button>
+          <div class="footer-actions">
+            <button class="btn btn-secondary" (click)="goToSettings()">
+              <i class="bi bi-gear me-2"></i>Settings
+            </button>
+            <button
+              class="btn btn-primary"
+              (click)="publishPath()"
+              [disabled]="totalItems === 0 || path.status === 'published'"
+            >
+              <i class="bi bi-check-lg me-2"></i>Publish
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section Modal -->
+      <ng-container *ngIf="showSectionModal">
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">{{ editingSection ? 'Edit Section' : 'Add New Section' }}</h5>
+                <button type="button" class="btn-close" (click)="closeSectionModal()"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Section Title *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="sectionForm.title"
+                    placeholder="e.g., Introduction to the Course"
+                  >
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Description</label>
+                  <textarea
+                    class="form-control"
+                    rows="2"
+                    [(ngModel)]="sectionForm.description"
+                    placeholder="Brief description of this section"
+                  ></textarea>
+                </div>
+                <div class="mb-3">
+                  <div class="form-check">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      id="isMilestone"
+                      [(ngModel)]="sectionForm.is_milestone"
+                    >
+                    <label class="form-check-label" for="isMilestone">
+                      <strong>Mark as Milestone</strong>
+                      <small class="d-block text-muted">Milestones are key checkpoints in the learning journey</small>
+                    </label>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Unlock Requirement</label>
+                  <select class="form-select" [(ngModel)]="sectionForm.unlock_type">
+                    <option value="none">No requirement (always available)</option>
+                    <option value="previous_section">Complete previous section</option>
+                    <option value="all_previous">Complete all previous sections</option>
+                    <option value="admin_unlock">Admin unlock only</option>
+                  </select>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeSectionModal()">Cancel</button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="saveSection()"
+                  [disabled]="saving || !sectionForm.title"
+                >
+                  <span class="spinner-border spinner-border-sm me-2" *ngIf="saving"></span>
+                  {{ editingSection ? 'Update' : 'Create' }} Section
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Item Modal (External Link) -->
+      <ng-container *ngIf="showItemModal">
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">{{ editingItem ? 'Edit Item' : 'Add External Link' }}</h5>
+                <button type="button" class="btn-close" (click)="closeItemModal()"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Title *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="itemForm.external_title"
+                    placeholder="e.g., Additional Reading Material"
+                  >
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">URL *</label>
+                  <input
+                    type="url"
+                    class="form-control"
+                    [(ngModel)]="itemForm.external_url"
+                    placeholder="https://..."
+                  >
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Description</label>
+                  <textarea
+                    class="form-control"
+                    rows="2"
+                    [(ngModel)]="itemForm.external_description"
+                    placeholder="Brief description of this resource"
+                  ></textarea>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Points</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      [(ngModel)]="itemForm.points_value"
+                      min="0"
+                    >
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Duration (minutes)</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      [(ngModel)]="itemForm.estimated_duration_minutes"
+                      min="0"
+                      placeholder="Optional"
+                    >
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <div class="form-check">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      id="isRequired"
+                      [(ngModel)]="itemForm.is_required"
+                    >
+                    <label class="form-check-label" for="isRequired">Required to complete path</label>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeItemModal()">Cancel</button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="saveItem()"
+                  [disabled]="saving || !itemForm.external_title || !itemForm.external_url"
+                >
+                  <span class="spinner-border spinner-border-sm me-2" *ngIf="saving"></span>
+                  {{ editingItem ? 'Update' : 'Add' }} Item
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Course Selector Modal -->
+      <ng-container *ngIf="showCourseSelector">
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1">
+          <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Add Course</h5>
+                <button type="button" class="btn-close" (click)="closeCourseSelector()"></button>
+              </div>
+              <div class="modal-body">
+                <!-- Search -->
+                <div class="search-box mb-4">
+                  <i class="bi bi-search"></i>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Search courses..."
+                    [(ngModel)]="courseSearch"
+                    (ngModelChange)="onCourseSearchChange()"
+                  >
+                </div>
+
+                <!-- Loading -->
+                <div class="text-center py-4" *ngIf="loadingCourses">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <p class="mt-2 text-muted">Loading courses...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-modal-state" *ngIf="!loadingCourses && filteredCourses.length === 0">
+                  <i class="bi bi-collection-play"></i>
+                  <p *ngIf="courseSearch">No courses found matching "{{ courseSearch }}"</p>
+                  <p *ngIf="!courseSearch">No published courses available</p>
+                </div>
+
+                <!-- Courses Grid -->
+                <div class="courses-grid" *ngIf="!loadingCourses && filteredCourses.length > 0">
+                  <div
+                    class="course-option"
+                    *ngFor="let course of filteredCourses; trackBy: trackByCourseId"
+                    (click)="addCourse(course)"
+                    [class.disabled]="saving"
+                  >
+                    <div class="course-thumb">
+                      <img *ngIf="course.thumbnail_url" [src]="course.thumbnail_url" [alt]="course.title">
+                      <i class="bi bi-collection-play" *ngIf="!course.thumbnail_url"></i>
+                    </div>
+                    <div class="course-info">
+                      <span class="course-title">{{ course.title }}</span>
+                      <span class="course-meta">
+                        <span *ngIf="course.category_name">{{ course.category_name }}</span>
+                        <span *ngIf="course.estimated_duration_minutes">{{ formatDuration(course.estimated_duration_minutes) }}</span>
+                      </span>
+                    </div>
+                    <i class="bi bi-plus-lg add-icon"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Assessment Selector Modal -->
+      <ng-container *ngIf="showAssessmentSelector">
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1">
+          <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Add Assessment</h5>
+                <button type="button" class="btn-close" (click)="closeAssessmentSelector()"></button>
+              </div>
+              <div class="modal-body">
+                <!-- Search -->
+                <div class="search-box mb-4">
+                  <i class="bi bi-search"></i>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Search assessments..."
+                    [(ngModel)]="assessmentSearch"
+                    (ngModelChange)="onAssessmentSearchChange()"
+                  >
+                </div>
+
+                <!-- Loading -->
+                <div class="text-center py-4" *ngIf="loadingAssessments">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <p class="mt-2 text-muted">Loading assessments...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-modal-state" *ngIf="!loadingAssessments && filteredAssessments.length === 0">
+                  <i class="bi bi-clipboard-check"></i>
+                  <p *ngIf="assessmentSearch">No assessments found matching "{{ assessmentSearch }}"</p>
+                  <p *ngIf="!assessmentSearch">No published assessments available</p>
+                </div>
+
+                <!-- Assessments List -->
+                <div class="assessments-list" *ngIf="!loadingAssessments && filteredAssessments.length > 0">
+                  <div
+                    class="assessment-option"
+                    *ngFor="let assessment of filteredAssessments; trackBy: trackByAssessmentId"
+                    (click)="addAssessment(assessment)"
+                    [class.disabled]="saving"
+                  >
+                    <div class="assessment-icon">
+                      <i class="bi bi-clipboard-check"></i>
+                    </div>
+                    <div class="assessment-info">
+                      <span class="assessment-title">{{ assessment.title }}</span>
+                      <span class="assessment-meta">
+                        <span *ngIf="assessment.category_name">{{ assessment.category_name }}</span>
+                        <span *ngIf="assessment.questions_count">{{ assessment.questions_count }} questions</span>
+                        <span *ngIf="assessment.time_limit_minutes">{{ assessment.time_limit_minutes }} min</span>
+                        <span *ngIf="assessment.passing_score">Pass: {{ assessment.passing_score }}%</span>
+                      </span>
+                    </div>
+                    <i class="bi bi-plus-lg add-icon"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+  </div>
+</main>

@@ -1,0 +1,528 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="instructor-dashboard">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title mb-1">
+          <i class="bi bi-mortarboard me-2"></i>Instructor Dashboard
+        </h1>
+        <p class="text-muted mb-0">Manage your training sessions</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" (click)="refreshData()">
+          <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon bg-primary-subtle">
+          <i class="bi bi-calendar-event text-primary"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ todaySessions.length }}</div>
+          <div class="stat-label">Today's Sessions</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon bg-success-subtle">
+          <i class="bi bi-calendar-week text-success"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ upcomingSessions.length }}</div>
+          <div class="stat-label">This Week</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon bg-info-subtle">
+          <i class="bi bi-people text-info"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ totalLearners }}</div>
+          <div class="stat-label">Total Learners</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card">
+        <div class="stat-icon bg-warning-subtle">
+          <i class="bi bi-percent text-warning"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-value">{{ avgAttendance }}%</div>
+          <div class="stat-label">Avg Attendance</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active/Ongoing Session Banner -->
+  <div class="alert alert-warning d-flex align-items-center mb-4" *ngIf="activeSession">
+    <i class="bi bi-broadcast fs-4 me-3"></i>
+    <div class="flex-grow-1">
+      <strong>Session in Progress:</strong> {{ activeSession.title }}
+      <span class="text-muted ms-2">{{ activeSession.training_title }}</span>
+    </div>
+    <button class="btn btn-warning" (click)="openSession(activeSession)">
+      <i class="bi bi-arrow-right me-2"></i>Go to Session
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-pills mb-4">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'today'" (click)="activeTab = 'today'">
+        <i class="bi bi-calendar-day me-2"></i>Today
+        <span class="badge bg-primary ms-2" *ngIf="todaySessions.length">{{ todaySessions.length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'upcoming'" (click)="activeTab = 'upcoming'">
+        <i class="bi bi-calendar-week me-2"></i>Upcoming
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'past'" (click)="activeTab = 'past'">
+        <i class="bi bi-clock-history me-2"></i>Past Sessions
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'attendance'" (click)="activeTab = 'attendance'">
+        <i class="bi bi-clipboard-check me-2"></i>Attendance
+      </button>
+    </li>
+  </ul>
+
+  <!-- Today's Sessions -->
+  <div *ngIf="activeTab === 'today'">
+    <div class="card" *ngIf="todaySessions.length > 0; else noToday">
+      <div class="card-body p-0">
+        <div class="session-list">
+          <div class="session-item" *ngFor="let session of todaySessions; trackBy: trackBySessionId">
+            <div class="session-time">
+              <span class="time-display">{{ formatTime(session.start_time) }}</span>
+              <span class="time-end">{{ formatTime(session.end_time) }}</span>
+            </div>
+            <div class="session-info flex-grow-1">
+              <h6 class="session-title mb-1">{{ session.title }}</h6>
+              <p class="text-muted mb-2">{{ session.training_title }}</p>
+              <div class="session-meta">
+                    <span class="badge" [ngClass]="getSessionTypeBadge(session.session_type)">
+                      <i class="bi me-1" [ngClass]="getTypeIcon(session.session_type)"></i>
+                      {{ session.session_type | titlecase }}
+                    </span>
+                <span class="badge bg-black text-white" *ngIf="session.venue_name">
+                      <i class="bi bi-geo-alt me-1"></i>{{ session.venue_name }}
+                    </span>
+                <span class="badge" [ngClass]="getStatusBadge(session.status)">
+                      {{ session.status | titlecase }}
+                    </span>
+              </div>
+            </div>
+            <div class="session-stats text-center">
+              <div class="stat-mini">
+                <div class="stat-value">{{ session.enrolled_count || 0 }}</div>
+                <div class="stat-label">Enrolled</div>
+              </div>
+            </div>
+            <div class="session-actions">
+              <button class="btn btn-primary btn-sm" (click)="openSession(session)">
+                <i class="bi bi-arrow-right me-1"></i>
+                {{ session.status === 'ongoing' ? 'Continue' : 'Start' }}
+              </button>
+              <button class="btn btn-secondary btn-sm" (click)="showQRCode(session)"
+                      *ngIf="session.session_type !== 'virtual'" title="QR Code">
+                <i class="bi bi-qr-code"></i>
+              </button>
+              <button class="btn btn-outline-info btn-sm" (click)="loadSessionInstructors(session.session_id)"
+                      title="View Instructors">
+                <i class="bi bi-person-badge"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ng-template #noToday>
+      <div class="empty-state">
+        <i class="bi bi-calendar-x display-4 text-muted"></i>
+        <h5 class="mt-3">No Sessions Today</h5>
+        <p class="text-muted">You don't have any training sessions scheduled for today.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Upcoming Sessions -->
+  <div *ngIf="activeTab === 'upcoming'">
+    <div class="card" *ngIf="upcomingSessions.length > 0; else noUpcoming">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+          <tr>
+            <th>Session</th>
+            <th>Training</th>
+            <th>Date & Time</th>
+            <th>Type</th>
+            <th>Enrolled</th>
+            <th class="text-end">Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let session of upcomingSessions; trackBy: trackBySessionId">
+            <td>
+              <strong>{{ session.title }}</strong>
+              <div class="small text-muted" *ngIf="session.is_mandatory">
+                <i class="bi bi-asterisk text-danger"></i> Mandatory
+              </div>
+            </td>
+            <td>{{ session.training_title }}</td>
+            <td>
+              <div>{{ formatDate(session.session_date) }}</div>
+              <small class="text-muted">{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</small>
+            </td>
+            <td>
+                    <span class="badge" [ngClass]="getSessionTypeBadge(session.session_type)">
+                      {{ session.session_type | titlecase }}
+                    </span>
+            </td>
+            <td>{{ session.enrolled_count || 0 }}</td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-primary" (click)="viewSessionDetails(session)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-secondary" (click)="showQRCode(session)">
+                  <i class="bi bi-qr-code"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ng-template #noUpcoming>
+      <div class="empty-state">
+        <i class="bi bi-calendar-plus display-4 text-muted"></i>
+        <h5 class="mt-3">No Upcoming Sessions</h5>
+        <p class="text-muted">You don't have any upcoming sessions scheduled.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Past Sessions -->
+  <div *ngIf="activeTab === 'past'">
+    <div class="card" *ngIf="pastSessions.length > 0; else noPast">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+          <tr>
+            <th>Session</th>
+            <th>Training</th>
+            <th>Date</th>
+            <th>Attendance</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let session of pastSessions; trackBy: trackBySessionId">
+            <td><strong>{{ session.title }}</strong></td>
+            <td>{{ session.training_title }}</td>
+            <td>{{ formatDate(session.session_date) }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height: 8px; width: 100px;">
+                  <div class="progress-bar bg-success" [style.width.%]="getAttendancePercent(session)"></div>
+                </div>
+                <span class="small">{{ session.present_count || 0 }}/{{ session.enrolled_count || 0 }}</span>
+              </div>
+            </td>
+            <td>
+                    <span class="badge" [ngClass]="getStatusBadge(session.status)">
+                      {{ session.status | titlecase }}
+                    </span>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-primary" (click)="viewAttendance(session)">
+                  <i class="bi bi-clipboard-data me-1"></i>Attendance
+                </button>
+                <button class="btn btn-secondary" (click)="exportAttendance(session)">
+                  <i class="bi bi-download"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ng-template #noPast>
+      <div class="empty-state">
+        <i class="bi bi-clock-history display-4 text-muted"></i>
+        <h5 class="mt-3">No Past Sessions</h5>
+        <p class="text-muted">You haven't conducted any training sessions yet.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Attendance View -->
+  <div *ngIf="activeTab === 'attendance'">
+    <div class="card">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-clipboard-check me-2"></i>
+            {{ selectedSessionForAttendance ? selectedSessionForAttendance.title : 'Select a Session' }}
+          </h5>
+          <select class="form-select" style="width: auto;" [(ngModel)]="selectedSessionId" (change)="loadAttendance()">
+            <option value="">Select Session</option>
+            <option *ngFor="let session of allSessions" [value]="session.session_id">
+              {{ session.title }} - {{ formatDate(session.session_date) }}
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body" *ngIf="selectedSessionForAttendance">
+        <!-- Attendance Summary -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="summary-card bg-success-subtle">
+              <div class="summary-value text-success">{{ attendanceSummary.present }}</div>
+              <div class="summary-label">Present</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="summary-card bg-warning-subtle">
+              <div class="summary-value text-warning">{{ attendanceSummary.late }}</div>
+              <div class="summary-label">Late</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="summary-card bg-danger-subtle">
+              <div class="summary-value text-danger">{{ attendanceSummary.absent }}</div>
+              <div class="summary-label">Absent</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="summary-card bg-secondary-subtle">
+              <div class="summary-value">{{ attendanceSummary.excused }}</div>
+              <div class="summary-label">Excused</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance List -->
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Learner</th>
+              <th>Mode</th>
+              <th>Check-in Time</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let record of attendanceRecords; trackBy: trackByAttendanceId">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="avatar avatar-sm">
+                    <img [src]="record.profile_image" *ngIf="record.profile_image" class="avatar-img">
+                    <span class="avatar-initials" *ngIf="!record.profile_image">
+                            {{ getInitials(record.first_name, record.last_name) }}
+                          </span>
+                  </div>
+                  <div>
+                    <strong>{{ record.first_name }} {{ record.last_name }}</strong>
+                    <div class="small text-muted">{{ record.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                      <span class="badge bg-black text-white">
+                        <i class="bi me-1" [ngClass]="record.attendance_mode === 'virtual' ? 'bi-camera-video' : 'bi-qr-code'"></i>
+                        {{ record.attendance_mode | titlecase }}
+                      </span>
+              </td>
+              <td>
+                {{ record.marked_at ? formatDateTime(record.marked_at) : '-' }}
+              </td>
+              <td>
+                      <span class="badge" [ngClass]="getAttendanceStatusBadge(record.status)">
+                        {{ record.status | titlecase }}
+                      </span>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm" *ngIf="!selectedSessionForAttendance?.attendance_locked">
+                  <button class="btn btn-success btn-sm"
+                          (click)="markAttendance(record, 'present')"
+                          [disabled]="record.status === 'present'"
+                          title="Mark Present">
+                    <i class="bi bi-check"></i>
+                  </button>
+                  <button class="btn btn-outline-warning btn-sm"
+                          (click)="markAttendance(record, 'late')"
+                          [disabled]="record.status === 'late'"
+                          title="Mark Late">
+                    <i class="bi bi-clock"></i>
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm"
+                          (click)="markAttendance(record, 'absent')"
+                          [disabled]="record.status === 'absent'"
+                          title="Mark Absent">
+                    <i class="bi bi-x"></i>
+                  </button>
+                  <button class="btn btn-outline-info btn-sm"
+                          (click)="openVirtualAttendanceForm(record)"
+                          *ngIf="selectedSessionForAttendance?.session_type !== 'physical'"
+                          title="Mark Virtual Attendance">
+                    <i class="bi bi-camera-video"></i>
+                  </button>
+                </div>
+                <span class="badge bg-secondary" *ngIf="selectedSessionForAttendance?.attendance_locked">
+                        <i class="bi bi-lock me-1"></i>Locked
+                      </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Lock Attendance Button -->
+        <div class="text-end mt-3" *ngIf="!selectedSessionForAttendance?.attendance_locked">
+          <button class="btn btn-warning" (click)="lockAttendance()">
+            <i class="bi bi-lock me-2"></i>Lock Attendance
+          </button>
+        </div>
+      </div>
+      <div class="card-body text-center py-5" *ngIf="!selectedSessionForAttendance">
+        <i class="bi bi-clipboard2 display-4 text-muted"></i>
+        <p class="text-muted mt-3">Select a session to view attendance</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Code Modal -->
+  <div class="modal fade" [class.show]="showQRModal" [style.display]="showQRModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-qr-code me-2"></i>Session QR Code
+          </h5>
+          <button type="button" class="btn-close" (click)="closeQRModal()"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div *ngIf="qrSession">
+            <h6 class="mb-3">{{ qrSession.title }}</h6>
+            <div class="qr-container mb-3">
+              <img [src]="getQRCodeUrl(qrSession.qr_code_token)" alt="QR Code" class="qr-image">
+            </div>
+            <p class="text-muted small">
+              Learners can scan this code to mark their attendance
+            </p>
+            <div class="d-flex gap-2 justify-content-center">
+              <button class="btn btn-primary" (click)="downloadQR()">
+                <i class="bi bi-download me-2"></i>Download
+              </button>
+              <button class="btn btn-secondary" (click)="regenerateQR()">
+                <i class="bi bi-arrow-clockwise me-2"></i>Regenerate
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showQRModal" (click)="closeQRModal()"></div>
+
+  <!-- Virtual Attendance Modal -->
+  <div class="modal fade" [class.show]="showVirtualModal" [style.display]="showVirtualModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-camera-video me-2"></i>Mark Virtual Attendance
+          </h5>
+          <button type="button" class="btn-close" (click)="closeVirtualModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div *ngIf="selectedAttendanceRecord" class="mb-3">
+            <p class="mb-1"><strong>Learner:</strong> {{ selectedAttendanceRecord.first_name }} {{ selectedAttendanceRecord.last_name }}</p>
+            <p class="text-muted mb-0">{{ selectedAttendanceRecord.email }}</p>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+            <input type="number" class="form-control" [(ngModel)]="virtualDuration"
+                   placeholder="Enter meeting duration" min="1">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeVirtualModal()">Cancel</button>
+          <button class="btn btn-primary" (click)="submitVirtualAttendance()" [disabled]="!virtualDuration">
+            <i class="bi bi-check me-1"></i>Mark Attendance
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showVirtualModal" (click)="closeVirtualModal()"></div>
+
+  <!-- Instructors Modal -->
+  <div class="modal fade" [class.show]="showInstructorsModal" [style.display]="showInstructorsModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-person-badge me-2"></i>Session Instructors
+          </h5>
+          <button type="button" class="btn-close" (click)="showInstructorsModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <div *ngIf="sessionInstructors.length > 0">
+            <div class="list-group">
+              <div class="list-group-item d-flex align-items-center gap-3"
+                   *ngFor="let instructor of sessionInstructors; trackBy: trackByInstructorId">
+                <div class="avatar">
+                  <span class="avatar-initials">{{ getInitials(instructor.first_name, instructor.last_name) }}</span>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-medium">{{ instructor.first_name }} {{ instructor.last_name }}</div>
+                  <small class="text-muted">{{ instructor.email }}</small>
+                </div>
+                <div>
+                  <span class="badge bg-info">{{ instructor.role | titlecase }}</span>
+                  <span class="badge bg-success ms-1" *ngIf="instructor.is_host">Host</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center py-4 text-muted" *ngIf="sessionInstructors.length === 0">
+            <i class="bi bi-person-x display-4 d-block mb-2"></i>
+            No instructors assigned
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="showInstructorsModal = false">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showInstructorsModal" (click)="showInstructorsModal = false"></div>
+</div>
+  </div>
+</main>

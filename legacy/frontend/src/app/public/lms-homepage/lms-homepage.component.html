@@ -1,0 +1,753 @@
+<div class="lms-homepage">
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  NAVIGATION                                 -->
+  <!-- ═══════════════════════════════════════════ -->
+  <nav class="navbar navbar-expand-lg fixed-top" [class.scrolled]="isScrolled">
+    <div class="container">
+      <a class="navbar-brand" href="javascript:void(0)" (click)="scrollToSection('hero')">
+        <img src="assets/img/logo.png" alt="Central LMS" class="rounded-2 animate__animated animate__fadeIn bg-white"/>
+      </a>
+      <button class="navbar-toggler" type="button" (click)="toggleMobileMenu()">
+        <i class="bi" [class.bi-list]="!mobileMenuOpen" [class.bi-x-lg]="mobileMenuOpen"></i>
+      </button>
+      <div class="collapse navbar-collapse" [class.show]="mobileMenuOpen">
+        <ul class="navbar-nav mx-auto">
+          <li class="nav-item"><a class="nav-link" href="javascript:void(0)" (click)="scrollToSection('features')">Features</a></li>
+          <li class="nav-item"><a class="nav-link" href="javascript:void(0)" (click)="scrollToSection('industries')">Industries</a></li>
+          <li class="nav-item"><a class="nav-link" href="javascript:void(0)" (click)="scrollToSection('use-cases')">Use Cases</a></li>
+          <li class="nav-item"><a class="nav-link" href="javascript:void(0)" (click)="scrollToSection('marketplace')">Content Packs</a></li>
+          <li class="nav-item"><a class="nav-link" href="javascript:void(0)" (click)="scrollToSection('pricing')">Pricing</a></li>
+        </ul>
+        <div class="nav-cta d-flex gap-2">
+          <a href="javascript:void(0)" class="btn btn-dark text-black btn-sm" routerLink="/login">Sign In</a>
+          <a href="javascript:void(0)" class="btn btn-primary btn-sm" routerLink="/onboarding">Start Free Trial</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  HERO SECTION                               -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="hero-section" #heroSection data-section="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+    <div class="container">
+      <div class="hero-content" [class.visible]="heroVisible">
+        <div class="hero-badge animate-item">
+          <i class="bi bi-stars"></i>
+          <span>Trusted by 2,500+ Organizations Worldwide</span>
+        </div>
+        <h1 class="hero-title animate-item delay-1">
+          Transform Your <span class="text-gradient">Learning Culture</span>
+        </h1>
+        <p class="hero-subtitle animate-item delay-2">
+          The enterprise-grade learning management system that scales with your organization.
+          Create engaging training programs, track progress in real-time, and drive measurable results.
+        </p>
+        <div class="hero-cta animate-item delay-3">
+          <a href="javascript:void(0)" class="btn btn-primary btn-lg" routerLink="/onboarding">
+            Start Free Trial <i class="bi bi-arrow-right ms-2"></i>
+          </a>
+          <a href="javascript:void(0)" class="btn btn-outline-dark btn-lg" (click)="scrollToSection('platform-tour')">
+            <i class="bi bi-play-circle me-2"></i> See It In Action
+          </a>
+        </div>
+        <div class="hero-stats animate-item delay-4">
+          <div class="row g-4">
+            <div class="col-6 col-md-3" *ngFor="let stat of stats">
+              <div class="stat-item">
+                <div class="stat-value">{{ stat.current | number }}{{ stat.suffix }}</div>
+                <div class="stat-label">{{ stat.label }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Dashboard Screenshot -->
+      <div class="hero-screenshot animate-item delay-5" [class.visible]="heroVisible">
+        <div class="screenshot-frame">
+          <div class="screenshot-toolbar">
+            <div class="toolbar-dots"><span></span><span></span><span></span></div>
+            <div class="toolbar-url">app.centrallms.com/dashboard</div>
+          </div>
+          <img src="assets/img/screenshots/admin-dashboard.png" alt="Central LMS Dashboard" class="screenshot-img"
+               onerror="this.style.display='none'; this.parentElement.classList.add('screenshot-placeholder')">
+          <!-- Fallback if screenshot not found -->
+          <div class="screenshot-fallback">
+            <div class="fallback-sidebar">
+              <div class="fb-logo"></div>
+              <div class="fb-nav-item active"></div>
+              <div class="fb-nav-item"></div>
+              <div class="fb-nav-item"></div>
+              <div class="fb-nav-item"></div>
+              <div class="fb-nav-item"></div>
+            </div>
+            <div class="fallback-main">
+              <div class="fb-topbar"></div>
+              <div class="fb-kpi-row">
+                <div class="fb-kpi"></div><div class="fb-kpi"></div><div class="fb-kpi"></div><div class="fb-kpi"></div>
+              </div>
+              <div class="fb-chart-row">
+                <div class="fb-chart"></div>
+                <div class="fb-chart-sm"></div>
+              </div>
+              <div class="fb-table"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  FEATURES SECTION (with screenshot preview) -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section features-section" #featuresSection data-section="features" id="features">
+    <div class="container">
+      <div class="section-header" [class.visible]="featuresVisible">
+        <div class="section-badge animate-item"><i class="bi bi-lightning-charge-fill"></i><span>Powerful Features</span></div>
+        <h2 class="section-title animate-item delay-1">Everything You Need to <span class="text-gradient">Succeed</span></h2>
+        <p class="section-subtitle animate-item delay-2">A complete learning ecosystem built for modern organizations.</p>
+      </div>
+
+      <!-- Features with screenshot: left list + right preview -->
+      <div class="features-showcase" [class.visible]="featuresVisible">
+        <div class="features-list">
+          <div class="feature-item animate-item" *ngFor="let feat of features; let i = index"
+               [class.active]="activeFeature === i" (click)="setActiveFeature(i)"
+               [style.animation-delay.ms]="100 + (i * 80)">
+            <div class="feature-item-icon" [style.background]="feat.color + '15'" [style.color]="feat.color">
+              <i class="bi" [class]="feat.icon"></i>
+            </div>
+            <div class="feature-item-body">
+              <div class="feature-item-head">
+                <span class="feature-highlight-tag" [style.background]="feat.color + '18'" [style.color]="feat.color">{{ feat.highlight }}</span>
+                <h5>{{ feat.title }}</h5>
+              </div>
+              <p *ngIf="activeFeature === i">{{ feat.description }}</p>
+            </div>
+            <i class="bi bi-chevron-right feature-arrow" *ngIf="activeFeature === i"></i>
+          </div>
+        </div>
+
+        <div class="features-preview animate-item delay-3">
+          <div class="preview-frame">
+            <div class="preview-toolbar">
+              <div class="toolbar-dots"><span></span><span></span><span></span></div>
+              <div class="toolbar-title">{{ features[activeFeature].title }}</div>
+            </div>
+            <div class="preview-body">
+              <img [src]="features[activeFeature].screenshot" [alt]="features[activeFeature].title" class="preview-screenshot"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+              <div class="preview-fallback" style="display:none">
+                <div class="fallback-icon" [style.color]="features[activeFeature].color">
+                  <i class="bi" [class]="features[activeFeature].icon"></i>
+                </div>
+                <h5>{{ features[activeFeature].title }}</h5>
+                <p>{{ features[activeFeature].description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  INDUSTRIES SECTION                         -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section industries-section" #industriesSection data-section="industries" id="industries">
+    <div class="container">
+      <div class="section-header" [class.visible]="industriesVisible">
+        <div class="section-badge animate-item"><i class="bi bi-globe2"></i><span>Industry Solutions</span></div>
+        <h2 class="section-title animate-item delay-1">Built for <span class="text-gradient">Every Industry</span></h2>
+        <p class="section-subtitle animate-item delay-2">Trusted by organizations across every sector.</p>
+      </div>
+      <div class="row g-3" [class.visible]="industriesVisible">
+        <div class="col-6 col-md-3" *ngFor="let ind of industries; let i = index">
+          <div class="industry-card animate-item" [style.animation-delay.ms]="100 + (i * 80)">
+            <i class="bi" [class]="ind.icon"></i>
+            <h5>{{ ind.name }}</h5>
+            <p>{{ ind.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  PLATFORM TOUR SECTION (Screenshot Gallery)  -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section platform-tour-section" #platformTourSection data-section="platformTour" id="platform-tour">
+    <div class="container">
+      <div class="section-header" [class.visible]="platformTourVisible">
+        <div class="section-badge animate-item"><i class="bi bi-laptop"></i><span>Platform Tour</span></div>
+        <h2 class="section-title animate-item delay-1">See the Platform <span class="text-gradient">In Action</span></h2>
+        <p class="section-subtitle animate-item delay-2">Take a visual tour of the tools your admins and learners will use every day.</p>
+      </div>
+
+      <div class="tour-container" [class.visible]="platformTourVisible">
+        <!-- Tab navigation -->
+        <div class="tour-tabs animate-item delay-2">
+          <button class="tour-tab" *ngFor="let tab of platformScreenshots; let i = index"
+                  [class.active]="activeScreenshotTab === i"
+                  (click)="activeScreenshotTab = i">
+            <i class="bi" [class]="tab.icon"></i>
+            <span>{{ tab.title }}</span>
+          </button>
+        </div>
+
+        <!-- Screenshot display -->
+        <div class="tour-preview animate-item delay-3">
+          <div class="tour-frame">
+            <div class="tour-toolbar">
+              <div class="toolbar-dots"><span></span><span></span><span></span></div>
+              <div class="toolbar-url">app.centrallms.com</div>
+            </div>
+            <div class="tour-screenshot-wrap">
+              <img [src]="platformScreenshots[activeScreenshotTab].image"
+                   [alt]="platformScreenshots[activeScreenshotTab].title"
+                   class="tour-screenshot"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+              <!-- Fallback wireframe when no screenshot exists -->
+              <div class="tour-fallback" style="display:none">
+                <i class="bi" [class]="platformScreenshots[activeScreenshotTab].icon"></i>
+                <h4>{{ platformScreenshots[activeScreenshotTab].title }}</h4>
+                <p>Screenshot: <code>{{ platformScreenshots[activeScreenshotTab].image }}</code></p>
+                <p class="text-muted small">Place your screenshot at this path to display it here.</p>
+              </div>
+            </div>
+          </div>
+          <div class="tour-caption">
+            <h5>{{ platformScreenshots[activeScreenshotTab].title }}</h5>
+            <p>{{ platformScreenshots[activeScreenshotTab].description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  USE CASES SECTION                          -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section use-cases-section" #useCasesSection data-section="useCases" id="use-cases">
+    <div class="container">
+      <div class="section-header" [class.visible]="useCasesVisible">
+        <div class="section-badge animate-item"><i class="bi bi-bullseye"></i><span>Use Cases</span></div>
+        <h2 class="section-title animate-item delay-1">Proven <span class="text-gradient">Results</span></h2>
+        <p class="section-subtitle animate-item delay-2">Real impact across organizations of all sizes.</p>
+      </div>
+      <div class="row g-4" [class.visible]="useCasesVisible">
+        <div class="col-md-4" *ngFor="let uc of useCases; let i = index">
+          <div class="use-case-card animate-item" [style.animation-delay.ms]="100 + (i * 150)">
+            <span class="use-case-emoji">{{ uc.emoji }}</span>
+            <div class="use-case-metric">{{ uc.metric }}</div>
+            <div class="use-case-metric-label">{{ uc.metricLabel }}</div>
+            <h4>{{ uc.title }}</h4>
+            <p>{{ uc.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  CONTENT MARKETPLACE SECTION                -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section marketplace-section" #marketplaceSection data-section="marketplace" id="marketplace">
+    <div class="container">
+      <div class="section-header" [class.visible]="marketplaceVisible">
+        <div class="section-badge animate-item"><i class="bi bi-box-seam"></i><span>Content Marketplace</span></div>
+        <h2 class="section-title animate-item delay-1">Ready-Made <span class="text-gradient">Course Packs</span></h2>
+        <p class="section-subtitle animate-item delay-2">
+          Launch your training program instantly with professionally designed course bundles.
+          Each includes SCORM content, assessments, certificates, and learning paths.
+        </p>
+      </div>
+      <div class="row g-4" [class.visible]="marketplaceVisible">
+        <div class="col-md-6 col-lg-4" *ngFor="let pkg of contentPackages; let i = index">
+          <div class="content-pack-card animate-item" [style.animation-delay.ms]="100 + (i * 100)">
+            <div class="pack-popular-badge" *ngIf="pkg.popular">Popular</div>
+            <div class="pack-icon" [style.background]="pkg.color + '15'" [style.color]="pkg.color">
+              <i class="bi" [class]="pkg.icon"></i>
+            </div>
+            <h4>{{ pkg.name }}</h4>
+            <p class="pack-desc">{{ pkg.description }}</p>
+            <div class="pack-meta">
+              <span><i class="bi bi-book me-1"></i>{{ pkg.courses }} Courses</span>
+              <span><i class="bi bi-pencil-square me-1"></i>{{ pkg.assessments }} Assessments</span>
+              <span><i class="bi bi-award me-1"></i>{{ pkg.certificates }} Certificates</span>
+            </div>
+            <div class="pack-tags">
+              <span class="tag" *ngFor="let tag of pkg.tags" [style.background]="pkg.color + '12'" [style.color]="pkg.color">{{ tag }}</span>
+            </div>
+            <div class="pack-footer">
+              <span class="pack-price">{{ pkg.price }}</span>
+              <span class="pack-price-note">one-time</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="text-center mt-4" [class.visible]="marketplaceVisible">
+        <a href="javascript:void(0)" class="btn btn-primary btn-lg animate-item delay-3" routerLink="/onboarding">
+          Get Started with Content Packs <i class="bi bi-arrow-right ms-2"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  TESTIMONIALS SECTION                       -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section testimonials-section" #testimonialsSection data-section="testimonials" id="testimonials">
+    <div class="container">
+      <div class="section-header" [class.visible]="testimonialsVisible">
+        <div class="section-badge animate-item"><i class="bi bi-chat-quote-fill"></i><span>Testimonials</span></div>
+        <h2 class="section-title animate-item delay-1">Loved by <span class="text-gradient">Leaders</span></h2>
+        <p class="section-subtitle animate-item delay-2">Hear what learning and development professionals have to say.</p>
+      </div>
+      <div class="row g-4" [class.visible]="testimonialsVisible">
+        <div class="col-md-4" *ngFor="let t of testimonials; let i = index">
+          <div class="testimonial-card animate-item" [style.animation-delay.ms]="100 + (i * 100)">
+            <div class="testimonial-rating"><i class="bi bi-star-fill" *ngFor="let s of [1,2,3,4,5]"></i></div>
+            <p class="testimonial-quote">"{{ t.quote }}"</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">{{ t.avatar }}</div>
+              <div class="author-info"><h5>{{ t.author }}</h5><p>{{ t.role }}, {{ t.company }}</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  PRICING SECTION                            -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="section pricing-section" #pricingSection data-section="pricing" id="pricing">
+    <div class="container">
+      <div class="section-header" [class.visible]="pricingVisible">
+        <div class="section-badge animate-item"><i class="bi bi-tag-fill"></i><span>Pricing</span></div>
+        <h2 class="section-title animate-item delay-1">Simple, Transparent <span class="text-gradient">Pricing</span></h2>
+        <p class="section-subtitle animate-item delay-2">All plans include a 14-day free trial. No credit card required.</p>
+        <!-- Billing toggle -->
+        <div class="billing-toggle animate-item delay-3">
+          <span [class.active]="billingCycle === 'monthly'" (click)="billingCycle = 'monthly'">Monthly</span>
+          <div class="toggle-switch" (click)="billingCycle = billingCycle === 'monthly' ? 'yearly' : 'monthly'"
+               [class.yearly]="billingCycle === 'yearly'">
+            <div class="toggle-knob"></div>
+          </div>
+          <span [class.active]="billingCycle === 'yearly'" (click)="billingCycle = 'yearly'">
+            Yearly <span class="save-badge">Save 20%</span>
+          </span>
+        </div>
+      </div>
+      <div class="row g-4 justify-content-center" [class.visible]="pricingVisible">
+        <div class="col-md-6 col-lg-4" *ngFor="let plan of pricingPlans; let i = index">
+          <div class="pricing-card animate-item" [class.popular]="plan.popular" [style.animation-delay.ms]="100 + (i * 100)">
+            <div class="popular-badge" *ngIf="plan.popular">Most Popular</div>
+            <h4 class="plan-name">{{ plan.name }}</h4>
+            <div class="plan-price">
+              <span class="price">{{ getPlanPrice(plan) }}</span>
+              <span class="period" *ngIf="plan.period">{{ plan.period }}</span>
+            </div>
+            <p class="plan-description">{{ plan.description }}</p>
+            <ul class="plan-features">
+              <li *ngFor="let feat of plan.features"><i class="bi bi-check-lg"></i>{{ feat }}</li>
+            </ul>
+            <a href="javascript:void(0)" class="btn" [class.btn-primary]="plan.popular" [class.btn-outline-primary]="!plan.popular"
+               (click)="openOnboarding(plan.plan_id)">
+              {{ plan.cta }}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  CTA SECTION                                -->
+  <!-- ═══════════════════════════════════════════ -->
+  <section class="cta-section" #ctaSection data-section="cta">
+    <div class="container">
+      <div class="cta-content" [class.visible]="ctaVisible">
+        <h2 class="animate-item">Ready to Transform Your <span class="text-gradient-light">Training Program</span>?</h2>
+        <p class="animate-item delay-1">Join thousands of organizations delivering impactful learning experiences. Start your free 14-day trial today.</p>
+        <div class="cta-buttons animate-item delay-2">
+          <a href="javascript:void(0)" class="btn btn-primary btn-lg" (click)="openOnboarding()">Start Your Free Trial <i class="bi bi-arrow-right ms-2"></i></a>
+          <a href="javascript:void(0)" class="btn btn-outline-light btn-lg">Schedule a Demo</a>
+        </div>
+        <p class="cta-note animate-item delay-3">
+          <i class="bi bi-check-circle-fill me-2"></i>Free 14-day trial &bull; No credit card required &bull; Cancel anytime
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  FOOTER                                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <footer class="homepage-footer">
+    <div class="container">
+      <div class="row g-5">
+        <div class="col-lg-4">
+          <div class="footer-brand">
+            <img src="assets/img/logo.png" alt="Central LMS" class="rounded-2 bg-white"/>
+          </div>
+          <p class="footer-about">Empowering organizations worldwide to create transformative learning experiences that drive real business results.</p>
+          <div class="footer-social">
+            <a href="javascript:void(0)"><i class="bi bi-twitter-x"></i></a>
+            <a href="javascript:void(0)"><i class="bi bi-linkedin"></i></a>
+            <a href="javascript:void(0)"><i class="bi bi-facebook"></i></a>
+            <a href="javascript:void(0)"><i class="bi bi-youtube"></i></a>
+          </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <h5>Product</h5>
+          <ul><li><a href="javascript:void(0)">Features</a></li><li><a href="javascript:void(0)">Integrations</a></li><li><a href="javascript:void(0)">Pricing</a></li><li><a href="javascript:void(0)">Changelog</a></li></ul>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <h5>Solutions</h5>
+          <ul><li><a href="javascript:void(0)">Enterprise</a></li><li><a href="javascript:void(0)">Small Business</a></li><li><a href="javascript:void(0)">Compliance</a></li><li><a href="javascript:void(0)">Onboarding</a></li></ul>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <h5>Resources</h5>
+          <ul><li><a href="javascript:void(0)">Documentation</a></li><li><a href="javascript:void(0)">API Reference</a></li><li><a href="javascript:void(0)">Blog</a></li><li><a href="javascript:void(0)">Webinars</a></li></ul>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+          <h5>Company</h5>
+          <ul><li><a href="javascript:void(0)">About Us</a></li><li><a href="javascript:void(0)">Careers</a></li><li><a href="javascript:void(0)">Contact</a></li><li><a href="javascript:void(0)">Partners</a></li></ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Central LMS. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="javascript:void(0)">Privacy Policy</a>
+          <a href="javascript:void(0)">Terms of Service</a>
+          <a href="javascript:void(0)">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!--  ONBOARDING WIZARD MODAL                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div class="onboarding-overlay" *ngIf="showOnboarding" (click)="closeOnboarding()">
+    <div class="onboarding-modal" (click)="$event.stopPropagation()">
+
+      <!-- Close button -->
+      <button class="modal-close" (click)="closeOnboarding()" *ngIf="!onboardingLoading"><i class="bi bi-x-lg"></i></button>
+
+      <!-- Wizard progress -->
+      <div class="wizard-progress" *ngIf="!onboardingSuccess">
+        <div class="wizard-step" *ngFor="let step of wizardSteps; let i = index"
+             [class.active]="onboardingStep === i + 1"
+             [class.complete]="step.complete"
+             (click)="goToStep(i + 1)">
+          <div class="step-circle">
+            <i class="bi" [class]="step.complete ? 'bi-check' : step.icon"></i>
+          </div>
+          <span class="step-label d-none d-md-inline">{{ step.label }}</span>
+        </div>
+        <div class="wizard-line">
+          <div class="wizard-line-fill" [style.width.%]="((onboardingStep - 1) / (totalOnboardingSteps - 1)) * 100"></div>
+        </div>
+      </div>
+
+      <!-- Error alert -->
+      <div class="alert alert-danger mx-4 mt-3 mb-0 small" *ngIf="onboardingError">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ onboardingError }}
+      </div>
+
+      <!-- ═══ Step 1: Choose Plan ═══ -->
+      <div class="wizard-body" *ngIf="onboardingStep === 1">
+        <h3 class="wizard-title">Choose Your Plan</h3>
+        <p class="wizard-subtitle">All plans come with a free 14-day trial. Upgrade or downgrade anytime.</p>
+
+        <!-- Billing toggle (inline) -->
+        <div class="billing-toggle-sm mb-4">
+          <span [class.active]="billingCycle === 'monthly'" (click)="billingCycle = 'monthly'">Monthly</span>
+          <div class="toggle-switch-sm" (click)="billingCycle = billingCycle === 'monthly' ? 'yearly' : 'monthly'"
+               [class.yearly]="billingCycle === 'yearly'">
+            <div class="toggle-knob-sm"></div>
+          </div>
+          <span [class.active]="billingCycle === 'yearly'" (click)="billingCycle = 'yearly'">Yearly <span class="save-badge-sm">-20%</span></span>
+        </div>
+
+        <div class="plan-grid">
+          <div class="plan-option" *ngFor="let plan of pricingPlans"
+               [class.selected]="selectedPlanId === plan.plan_id"
+               [class.popular]="plan.popular"
+               (click)="selectPlan(plan.plan_id)">
+            <div class="plan-popular-tag" *ngIf="plan.popular">Recommended</div>
+            <div class="plan-option-check"><i class="bi" [class]="selectedPlanId === plan.plan_id ? 'bi-check-circle-fill' : 'bi-circle'"></i></div>
+            <h5>{{ plan.name }}</h5>
+            <div class="plan-option-price">
+              <strong>{{ getPlanPrice(plan) }}</strong><span *ngIf="plan.period">{{ plan.period }}</span>
+            </div>
+            <p>{{ plan.description }}</p>
+            <ul>
+              <li *ngFor="let f of plan.features.slice(0, 5)"><i class="bi bi-check text-success me-1"></i>{{ f }}</li>
+              <li *ngIf="plan.features.length > 5" class="text-muted small">+{{ plan.features.length - 5 }} more features</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Step 2: Company Info ═══ -->
+      <div class="wizard-body" *ngIf="onboardingStep === 2">
+        <h3 class="wizard-title">Tell Us About Your Organization</h3>
+        <p class="wizard-subtitle">We'll set up your LMS based on this information.</p>
+
+        <div class="signup-form">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Company Name <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-building"></i></span>
+                <input type="text" class="form-control" [(ngModel)]="signupForm.company_name" placeholder="Acme Corporation">
+              </div>
+              <div class="form-text" *ngIf="signupForm.company_name.trim()">
+                Your LMS URL: <strong>{{ generateSubdomain() }}.lmsplatform.com</strong>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">First Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="signupForm.admin_first_name" placeholder="John">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Last Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="signupForm.admin_last_name" placeholder="Doe">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Admin Email <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input type="email" class="form-control" [(ngModel)]="signupForm.admin_email"
+                       (blur)="onEmailBlur()" placeholder="admin@acme.com"
+                       [class.is-invalid]="emailTouched && !emailValid">
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Password <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                <input [type]="showPassword ? 'text' : 'password'" class="form-control"
+                       [(ngModel)]="signupForm.password" (input)="onPasswordInput()" placeholder="Min 8 characters">
+                <button class="btn btn-outline-secondary" type="button" (click)="showPassword = !showPassword">
+                  <i class="bi" [class]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+              <div class="password-strength mt-1" *ngIf="signupForm.password">
+                <div class="strength-bars">
+                  <div class="bar" *ngFor="let b of [1,2,3,4]" [class.active]="passwordStrength >= b"
+                       [style.background]="passwordStrength >= b ? getPasswordStrengthColor() : ''"></div>
+                </div>
+                <small [style.color]="getPasswordStrengthColor()">{{ getPasswordStrengthLabel() }}</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                <input [type]="showPassword ? 'text' : 'password'" class="form-control"
+                       [(ngModel)]="signupForm.confirm_password" placeholder="Re-enter password"
+                       [class.is-invalid]="signupForm.confirm_password && signupForm.password !== signupForm.confirm_password">
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Company Size <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="signupForm.company_size">
+                <option value="" disabled>Select company size</option>
+                <option *ngFor="let size of companySizes" [value]="size.value">{{ size.label }}</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Industry <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="signupForm.industry">
+                <option value="" disabled>Select industry</option>
+                <option *ngFor="let ind of industryOptions" [value]="ind">{{ ind }}</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Phone <span class="text-muted">(optional)</span></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                <input type="tel" class="form-control" [(ngModel)]="signupForm.phone" placeholder="+1 (555) 000-0000">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Step 3: Content Packs ═══ -->
+      <div class="wizard-body" *ngIf="onboardingStep === 3">
+        <h3 class="wizard-title">Choose Content Packages</h3>
+        <p class="wizard-subtitle">Optional - Select ready-made course bundles to jumpstart your training program, or skip to start with a blank LMS.</p>
+
+        <div class="content-grid">
+          <div class="content-option" *ngFor="let pkg of contentPackages"
+               [class.selected]="isPackageSelected(pkg.id)" (click)="togglePackage(pkg.id)">
+            <div class="content-option-check">
+              <i class="bi" [class]="isPackageSelected(pkg.id) ? 'bi-check-square-fill' : 'bi-square'"></i>
+            </div>
+            <div class="content-option-icon" [style.background]="pkg.color + '15'" [style.color]="pkg.color">
+              <i class="bi" [class]="pkg.icon"></i>
+            </div>
+            <div class="content-option-info">
+              <h5>{{ pkg.name }} <span class="pop-tag" *ngIf="pkg.popular">Popular</span></h5>
+              <p>{{ pkg.description }}</p>
+              <div class="content-meta">
+                <span>{{ pkg.courses }} courses</span>
+                <span>{{ pkg.assessments }} assessments</span>
+                <span>{{ pkg.certificates }} certs</span>
+              </div>
+            </div>
+            <div class="content-option-price">{{ pkg.price }}</div>
+          </div>
+        </div>
+
+        <div class="content-summary mt-3" *ngIf="selectedPackages.length">
+          <strong>{{ selectedPackages.length }} package(s) selected</strong> - Total: <strong>{{ getContentPackagesTotal() }}</strong>
+        </div>
+      </div>
+
+      <!-- ═══ Step 4: Review ═══ -->
+      <div class="wizard-body" *ngIf="onboardingStep === 4">
+        <h3 class="wizard-title">Review & Confirm</h3>
+        <p class="wizard-subtitle">Please review your details before we set up your LMS.</p>
+
+        <div class="review-grid">
+          <!-- Plan -->
+          <div class="review-card">
+            <h6><i class="bi bi-tag me-2"></i>Selected Plan</h6>
+            <div class="review-value" *ngIf="getSelectedPlan() as plan">
+              <strong>{{ plan.name }}</strong> - {{ getPlanPrice(plan) }}{{ plan.period }}
+              <div class="small text-muted">{{ plan.description }}</div>
+            </div>
+          </div>
+
+          <!-- Company -->
+          <div class="review-card">
+            <h6><i class="bi bi-building me-2"></i>Organization</h6>
+            <div class="review-value">
+              <strong>{{ signupForm.company_name }}</strong>
+              <div class="small text-muted">{{ signupForm.company_size }} employees &bull; {{ signupForm.industry }}</div>
+              <div class="small text-muted mt-1">URL: <code>{{ generateSubdomain() }}.lmsplatform.com</code></div>
+            </div>
+          </div>
+
+          <!-- Admin -->
+          <div class="review-card">
+            <h6><i class="bi bi-person-badge me-2"></i>Admin Account</h6>
+            <div class="review-value">
+              <strong>{{ signupForm.admin_first_name }} {{ signupForm.admin_last_name }}</strong>
+              <div class="small text-muted">{{ signupForm.admin_email }}</div>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="review-card">
+            <h6><i class="bi bi-collection me-2"></i>Content Packages</h6>
+            <div class="review-value" *ngIf="selectedPackages.length; else noPackages">
+              <div *ngFor="let pkg of getSelectedPackages()">
+                <span class="badge bg-light text-dark border me-1 mb-1">{{ pkg.name }} ({{ pkg.price }})</span>
+              </div>
+              <div class="small text-muted mt-1">Total: {{ getContentPackagesTotal() }}</div>
+            </div>
+            <ng-template #noPackages>
+              <div class="review-value text-muted">No content packages - starting with blank LMS</div>
+            </ng-template>
+          </div>
+        </div>
+
+        <div class="review-note mt-3">
+          <i class="bi bi-info-circle me-2"></i>
+          After setup, you'll get a guided onboarding wizard to upload your logo, add employees, and create your first course.
+        </div>
+      </div>
+
+      <!-- ═══ Step 5: Provisioning ═══ -->
+      <div class="wizard-body text-center" *ngIf="onboardingStep === 5">
+        <!-- Provisioning in progress -->
+        <div *ngIf="onboardingLoading && !onboardingSuccess">
+          <div class="provisioning-spinner mb-4">
+            <div class="spinner-ring"></div>
+            <i class="bi bi-gear-fill spin-icon"></i>
+          </div>
+          <h3 class="wizard-title">Setting Up Your LMS</h3>
+          <p class="wizard-subtitle mb-4">This usually takes about 30 seconds. Please don't close this window.</p>
+
+          <div class="progress-bar-container mb-3">
+            <div class="progress-bar-fill" [style.width.%]="provisioningProgress"></div>
+          </div>
+          <div class="provisioning-pct mb-3">{{ provisioningProgress }}%</div>
+
+          <div class="provisioning-log">
+            <div class="log-item" *ngFor="let msg of provisioningMessages; let last = last"
+                 [class.active]="last">
+              <i class="bi" [class]="last ? 'bi-arrow-right-circle-fill text-primary' : 'bi-check-circle-fill text-success'"></i>
+              {{ msg }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Success -->
+        <div *ngIf="onboardingSuccess" class="success-state">
+          <div class="success-icon">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <h3 class="wizard-title">Your LMS is Ready!</h3>
+          <p class="wizard-subtitle">
+            Welcome to <strong>{{ signupForm.company_name }}</strong>'s learning platform.
+          </p>
+
+          <div class="success-details">
+            <div class="success-detail"><span>URL</span><strong>{{ generateSubdomain() }}.lmsplatform.com</strong></div>
+            <div class="success-detail"><span>Admin</span><strong>{{ signupForm.admin_email }}</strong></div>
+            <div class="success-detail"><span>Plan</span><strong>{{ getSelectedPlan()?.name }}</strong></div>
+          </div>
+
+          <div class="success-next mt-4">
+            <h6 class="mb-3">What's Next?</h6>
+            <div class="next-steps">
+              <div class="next-step"><span class="step-num">1</span><span>Upload your logo & brand colors</span></div>
+              <div class="next-step"><span class="step-num">2</span><span>Add employees (CSV, manual, or HR sync)</span></div>
+              <div class="next-step"><span class="step-num">3</span><span>Create your first course or use content packs</span></div>
+              <div class="next-step"><span class="step-num">4</span><span>Invite learners and start training</span></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg mt-4" (click)="goToNewLMS()">
+            Go to My LMS <i class="bi bi-arrow-right ms-2"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Wizard footer -->
+      <div class="wizard-footer" *ngIf="!onboardingSuccess && !onboardingLoading">
+        <button class="btn btn-outline-secondary" (click)="prevStep()" *ngIf="onboardingStep > 1">
+          <i class="bi bi-chevron-left me-1"></i> Back
+        </button>
+        <div class="flex-grow-1"></div>
+        <span class="step-indicator text-muted small">Step {{ onboardingStep }} of {{ totalOnboardingSteps }}</span>
+        <button class="btn btn-primary" (click)="onboardingStep === 4 ? startProvisioning() : nextStep()">
+          {{ onboardingStep === 3 ? (selectedPackages.length ? 'Continue' : 'Skip &amp; Continue') : onboardingStep === 4 ? 'Create My LMS' : 'Continue' }}
+          <i class="bi bi-chevron-right ms-1"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

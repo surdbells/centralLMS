@@ -1,0 +1,95 @@
+<aside class="aside aside-base sidenav-base">
+  <nav class="navbar navbar-expand-xl navbar-vertical">
+    <div class="container-lg">
+        <div class="card mb-5 hide-on-mobile">
+        <div class="card-header text-center">
+          <img class="img img-fluid w-50" src="assets/img/abayti.png" alt="abayti" />
+        </div>
+      </div>
+      <button
+        class="navbar-toggler ms-3"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#sidenavBaseCollapse"
+        aria-controls="sidenavBaseCollapse"
+        aria-expanded="false"
+        aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <!-- Collapse -->
+      <div class="collapse navbar-collapse" id="sidenavBaseCollapse">
+        <!-- Search -->
+        <div class="input-group d-xl-none my-4 my-xl-0">
+          <input class="form-control" type="search" placeholder="Search" aria-label="Search" aria-describedby="sidenavBaseSearchMobile" />
+          <span class="input-group-text" id="sidenavBaseSearchMobile">
+                <span class="material-symbols-outlined">search</span>
+              </span>
+        </div>
+        <!-- Heading -->
+        <h3 class="fs-base px-3 mb-4">Main Menu</h3>
+        <!-- Nav -->
+        <nav class="navbar-nav nav-pills mb-7">
+          <div class="nav-item">
+            <a routerLink="/backend" class="nav-link">
+              <span class="me-3">
+              <span class="material-symbols-outlined abayti_secondary_color fs-4">analytics</span>
+              </span><span class="abayti_secondary_color">Dashboard</span>
+            </a>
+          </div>
+
+          <div class="nav-item">
+            <a routerLink="/collections" class="nav-link">
+              <span class="me-3">
+                <span class="material-symbols-outlined abayti_secondary_color fs-4">folder</span>
+              </span> <span class="abayti_secondary_color">Collections</span>
+            </a>
+          </div>
+          <div class="nav-item">
+            <a routerLink="/products" class="nav-link">
+              <span class="me-3">
+                <span class="material-symbols-outlined abayti_secondary_color fs-4">apparel</span>
+              </span> <span class="abayti_secondary_color">Products</span>
+            </a>
+          </div>
+          <div class="nav-item">
+            <a routerLink="/customers" class="nav-link">
+              <span class="me-3">
+                <span class="material-symbols-outlined abayti_secondary_color fs-4">for_you</span>
+              </span> <span class="abayti_secondary_color">Customers</span>
+            </a>
+          </div>
+          <div class="nav-item">
+            <a routerLink="/stores" class="nav-link">
+              <span class="me-3">
+                <span class="material-symbols-outlined abayti_secondary_color fs-4">storefront</span>
+              </span> <span class="abayti_secondary_color">Stores</span>
+            </a>
+          </div>
+          <hr/>
+          <div class="nav-item">
+            <a routerLink="/profile" class="nav-link">
+            <span class="me-3">
+              <span class="material-symbols-outlined abayti_secondary_color fs-4">account_box</span>
+            </span> <span class="abayti_secondary_color">User profile</span>
+            </a>
+          </div>
+          <div class="nav-item">
+            <a routerLink="/security" class="nav-link">
+            <span class="me-3">
+              <span class="material-symbols-outlined abayti_secondary_color fs-4">security</span>
+            </span> <span class="abayti_secondary_color">Security</span>
+            </a>
+          </div>
+          <hr>
+          <div class="nav-item text-danger">
+            <a (click)="sign_out()" role="link" class="nav-link">
+            <span class="me-3 text-danger">
+              <span class="material-symbols-outlined fs-3"> logout </span>
+            </span><span class="text-danger"> Sign out</span>
+            </a>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </nav>
+</aside>
