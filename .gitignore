@@ -72,3 +72,6 @@ legacy/frontend/src/environments/environment*.ts
 legacy/backend/webhooks/noon-payments.php
 legacy/backend/codebase/public/config.php
 legacy/frontend/src/app/live-training/services/video-integration.service.ts
+
+# Claude Code session state
+.claude/
