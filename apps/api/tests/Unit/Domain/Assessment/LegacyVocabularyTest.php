@@ -6,7 +6,7 @@ namespace Central\Api\Tests\Unit\Domain\Assessment;
 
 use Central\Api\Domain\Assessment\AssessmentStatus;
 use Central\Api\Domain\Assessment\AttemptStatus;
-use Central\Api\Domain\Assessment\Difficulty;
+use Central\Api\Domain\Shared\Difficulty;
 use Central\Api\Domain\Assessment\PassingType;
 use Central\Api\Domain\Assessment\ProctoringLevel;
 use Central\Api\Domain\Assessment\QuestionSelectionMode;

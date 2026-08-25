@@ -1,2 +1,22 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalise to LF in the repository, and keep LF in the working tree too.
+#
+# `text=auto` alone only normalises what gets committed; on Windows,
+# core.autocrlf=true still writes CRLF to disk. That makes PHP_CodeSniffer
+# report Generic.Files.LineEndings.InvalidEOLChar on every source file, so the
+# gate passes on Linux and fails on a developer's machine for reasons that have
+# nothing to do with their change. `eol=lf` pins the checkout as well, which
+# also matches the deploy target (PHP-FPM on Linux).
+* text=auto eol=lf
+
+# Binary — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.zip binary

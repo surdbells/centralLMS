@@ -16,6 +16,11 @@
     <arg name="extensions" value="php"/>
     <arg value="sp"/>
 
+    <!-- Warnings are advisory. The line-length rule below is declared as a
+         warning precisely so it cannot fail the build; phpcs otherwise exits
+         non-zero on warnings, which would contradict that. Errors still fail. -->
+    <config name="ignore_warnings_on_exit" value="1"/>
+
     <rule ref="PSR12">
         <!-- The codebase aligns array arrows and assignment blocks for
              readability, which PSR-12 does not anticipate. -->

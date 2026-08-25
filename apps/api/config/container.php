@@ -20,7 +20,9 @@ use Central\Api\Application\Middleware\RateLimitMiddleware;
 use Central\Api\Domain\Authz\RoleRepository;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
+use Central\Api\Domain\Catalog\CourseRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
+use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
 use Central\Api\Infrastructure\Authz\DbalRoleRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
@@ -295,6 +297,10 @@ return [
 
     RefreshTokenRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalRefreshTokenRepository($c->get(Connection::class)),
+    ),
+
+    CourseRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
     ),
 
     LookupRepository::class => factory(

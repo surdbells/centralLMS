@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Central\Api\Domain\Assessment;
+namespace Central\Api\Domain\Shared;
 
 /**
- * A single three-point difficulty scale.
+ * A single three-point difficulty scale, shared by courses and assessments.
+ *
+ * Lives in Shared rather than Assessment because courses grade themselves on
+ * the same scale — and the legacy `courses.level` column stored it as free
+ * text ("beginner", "Beginner", "Intermediate", ''), which is exactly the
+ * drift a single enum prevents.
  *
  * The legacy schema managed to have two of these *within the same family*:
  * `proc_assessments.difficulty` was `Beginner|Intermediate|Professional` while

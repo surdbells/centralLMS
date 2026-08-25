@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Reference data ported. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Courses ported. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — ready to start |
-| **API quality gate** | ✅ 116 unit + 10 integration tests / 371 assertions · PHPStan level 8 clean · 0 style errors |
+| **Blocking the next slice** | Nothing — modules + lessons endpoints are next |
+| **API quality gate** | ✅ 148 unit + 25 integration tests / 504 assertions · PHPStan level 8 clean · 0 style errors · 33 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -95,7 +95,7 @@ foundations above it.
 | 2 | users + roles | ✅ | ~9 | custom roles per tenant; `DbalRoleRepository` live |
 | 3 | auth endpoints | 🟡 | 6 | login/refresh/logout/me ✅; register, reset, OTP ⬜ |
 | 4 | dictionary | ✅ | **36** | 52 legacy PHP files → **6 routes**; tenant isolation fixed |
-| 5 | courses + modules + lessons | ⬜ | 9 | |
+| 5 | courses + modules + lessons | 🟡 | 9 | Courses ✅ (6 routes); modules + lessons tables ✅, endpoints ⬜ |
 | 6 | enrolments | ⬜ | 2 | |
 | 7 | assessments core | ⬜ | 3 | Design done — [`schema-assessments.md`](docs/migration/schema-assessments.md) |
 | 8 | proctoring extension | ⬜ | 1 | Advanced module, entitlement-gated |
@@ -203,6 +203,75 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-26 — Courses
+
+Six routes under `/v1/courses`: list, catalogue, show, create, update, set
+status. Backed by `courses`, `course_modules` and `lessons`
+(`Version20260825160000`).
+
+**Referential integrity is structural, not advisory.** Two composite foreign
+keys, both verified by trying to break them:
+
+- `courses (category_id, category_kind) → lookups (id, kind)` with
+  `category_kind` a generated column fixed at `'category'`. A course cannot
+  point at a branch as its category. The FK is `NO ACTION` rather than
+  `SET NULL` because PostgreSQL cannot null a generated column.
+- `lessons (module_id, course_id) → course_modules (id, course_id)`. A lesson
+  whose `course_id` disagrees with its module's is rejected outright, so the
+  two paths to a lesson's course can never diverge.
+
+**Deliberate design points**
+
+- The learner catalogue is its own repository method, not a `status` filter on
+  the admin list. A caller cannot forget to filter and expose drafts.
+- `POST /v1/courses` always creates a draft; a `status` in the request body is
+  ignored. Publishing needs `course.publish`, which instructors do not hold.
+- `PUT` never changes status, so an update cannot bypass that permission.
+- Publishing a course with no active lessons is refused (409 `course_empty`) —
+  otherwise a learner enrols and finds nothing to complete, and it counts
+  against them in every completion report.
+- `published_at` is stamped on first publish and never cleared. "First
+  published on" is a fact about the course, not its current state.
+- Courses are soft-deleted. Enrolments, progress and certificates reference
+  them, and a certificate for a course that no longer exists is unverifiable.
+
+**Dropped from the legacy table:** `pass_mark` (duplicated `pass_percentage`),
+`total_ratings` (duplicated `rating_count`), `column_name` (unused).
+`course_type` survives as `kind`.
+
+**Fixed along the way — malformed ids returned 500.** `/v1/courses/not-a-uuid`
+reached PostgreSQL, raised `SQLSTATE[22P02]`, and returned a driver exception
+in the response body. `/v1/lookups` had the same hole. Path ids now carry a
+UUID pattern in the route, so the router 404s before anything reaches the
+database. Found by the live check, not by a unit test.
+
+**Also fixed — the style gate was failing for everyone on Windows.**
+`core.autocrlf=true` rewrites the working tree to CRLF on checkout, so
+`Generic.Files.LineEndings.InvalidEOLChar` fired on 105 files that were LF in
+the repository. `.gitattributes` now pins `eol=lf`, which also matches the
+deploy target. `phpcs.xml.dist` sets `ignore_warnings_on_exit`, since the
+line-length rule was declared as a warning specifically so it could not fail
+the build, and phpcs was failing on it anyway.
+
+**Verification**
+
+- 32 unit tests over `Course::fromInput()` and `CourseStatus`, including the
+  boundaries (255-character title, pass mark 0 and 100, same start and end
+  date) and that `''` for an enrolment limit means *no limit* rather than
+  *nobody may enrol*.
+- 15 integration tests against real PostgreSQL: every cross-tenant read,
+  update, publish and delete, plus catalogue visibility and the ORDER BY
+  allow-list.
+- 33 live checks against the running stack covering the full sequence —
+  login, create, publish-empty → 409, add a lesson, publish → 200, catalogue
+  excludes drafts, learner is refused create and publish, and every
+  cross-tenant call returns 404.
+
+**Noted, not changed:** `users.tenant_id` does not cascade from `tenants`,
+while `courses` and `lookups` do. Deleting a tenant with users still in it
+fails on the foreign key. That is arguably the safer behaviour, but it is an
+inconsistency worth a decision before the first production tenant is removed.
 
 ### 2026-08-25 — Legacy user import
 
