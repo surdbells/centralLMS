@@ -1,0 +1,30 @@
+{
+    "name": "@central/lms",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Central LMS monorepo \u2014 Slim/PostgreSQL API, Angular web + SaaS consoles, Ionic mobile.",
+    "packageManager": "pnpm@11.5.0",
+    "engines": {
+        "node": ">=22.0.0",
+        "pnpm": ">=10.0.0"
+    },
+    "scripts": {
+        "build": "turbo run build",
+        "dev": "turbo run dev",
+        "lint": "turbo run lint",
+        "test": "turbo run test",
+        "typecheck": "turbo run typecheck",
+        "format": "prettier --write \"**/*.{ts,tsx,js,json,md,html,scss,yml,yaml}\"",
+        "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,html,scss,yml,yaml}\"",
+        "api": "pnpm --filter @central/api",
+        "up": "docker compose -f infra/docker/docker-compose.yml up -d",
+        "down": "docker compose -f infra/docker/docker-compose.yml down",
+        "logs": "docker compose -f infra/docker/docker-compose.yml logs -f",
+        "clean": "turbo run clean && rimraf node_modules"
+    },
+    "devDependencies": {
+        "prettier": "^3.4.2",
+        "rimraf": "^6.0.1",
+        "turbo": "^2.3.3"
+    }
+}

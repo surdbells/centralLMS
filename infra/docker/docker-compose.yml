@@ -1,0 +1,111 @@
+name: central-lms
+
+# Local development stack.
+#
+# Production runs on an aaPanel host with PHP-FPM, not from these images — the
+# point here is that every developer gets the same PostgreSQL 16 and Redis
+# without installing either, and that CI can bring up the identical pair.
+#
+#   pnpm up      start everything in the background
+#   pnpm logs    follow the output
+#   pnpm down    stop and keep the data (add -v to wipe it)
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: central-lms-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: central_lms
+      POSTGRES_USER: central_lms
+      POSTGRES_PASSWORD: central_lms
+      # Deterministic collation: without this the image picks it up from the
+      # host locale, and index ordering then differs between machines.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    ports:
+      - "${DB_PORT:-5442}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U central_lms -d central_lms"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: central-lms-redis
+    restart: unless-stopped
+    # appendonly keeps queued Messenger jobs across a restart. Losing the cache
+    # is fine; losing a pending "send the enrolment email" job is not.
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    ports:
+      - "${REDIS_PORT:-6389}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: central-lms-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: "true"
+      DB_HOST: db
+      DB_PORT: "5432"
+      REDIS_DSN: redis://redis:6379
+      MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
+    env_file:
+      - path: ../../apps/api/.env
+        required: false
+    volumes:
+      # Bind-mounted so a code change is visible without a rebuild; vendor/ is
+      # kept out of the mount so the container keeps its own install.
+      - ../../apps/api:/var/www/api
+      - api-vendor:/var/www/api/vendor
+    ports:
+      - "${API_PORT:-8081}:8080"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/version') ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    container_name: central-lms-worker
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      APP_ENV: dev
+      DB_HOST: db
+      REDIS_DSN: redis://redis:6379
+      MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
+    volumes:
+      - ../../apps/api:/var/www/api
+      - api-vendor:/var/www/api/vendor
+    # Restarts itself every 5 minutes by design — see ConsumeMessagesCommand.
+    command: ["sh", "-c", "while true; do php bin/console messenger:consume --time-limit=290 || sleep 5; done"]
+
+volumes:
+  db-data:
+  redis-data:
+  api-vendor:

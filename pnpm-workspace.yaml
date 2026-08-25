@@ -1,0 +1,18 @@
+packages:
+  - "apps/web"
+  - "apps/saas"
+  - "apps/mobile"
+  - "packages/*"
+
+# legacy/** is deliberately NOT a workspace. It is reference-only material
+# for the rewrite and must never be installed, built, linted or deployed.
+
+# Dependencies allowed to run install scripts. pnpm blocks these by default —
+# an install script is arbitrary code execution — so each is an explicit
+# decision. Angular's build and dev-server need esbuild; the rest are optional
+# native accelerators for file watching and caching.
+allowBuilds:
+  esbuild: true
+  '@parcel/watcher': true
+  lmdb: true
+  msgpackr-extract: true

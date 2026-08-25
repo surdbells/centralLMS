@@ -1,0 +1,9 @@
+legacy/
+pnpm-lock.yaml
+dist/
+www/
+.angular/
+.turbo/
+apps/api/vendor/
+apps/mobile/android/
+apps/mobile/ios/
