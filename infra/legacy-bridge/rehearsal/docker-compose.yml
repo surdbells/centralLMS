@@ -1,0 +1,31 @@
+name: legacy-rehearsal
+services:
+  rehearsal-mysql:
+    image: mysql:5.7
+    container_name: rehearsal-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rehearsal
+      MYSQL_DATABASE: central_lxp
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-prehearsal"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  rehearsal-php:
+    build:
+      context: .
+      dockerfile: php.Dockerfile
+    container_name: rehearsal-php
+    depends_on:
+      rehearsal-mysql:
+        condition: service_healthy
+    environment:
+      JWT_SECRET: rehearsal-shared-secret-long-enough-for-hs256
+      JWT_ISSUER: central-lms
+      JWT_AUDIENCE: central-clients
+    volumes:
+      - ./backend:/var/www
+    ports:
+      - "8090:8090"
