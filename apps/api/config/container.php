@@ -21,8 +21,12 @@ use Central\Api\Domain\Authz\RoleRepository;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Catalog\CourseRepository;
+use Central\Api\Domain\Catalog\LessonRepository;
+use Central\Api\Domain\Catalog\ModuleRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
+use Central\Api\Infrastructure\Persistence\DbalLessonRepository;
+use Central\Api\Infrastructure\Persistence\DbalModuleRepository;
 use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
 use Central\Api\Infrastructure\Authz\DbalRoleRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
@@ -301,6 +305,14 @@ return [
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
+    ),
+
+    ModuleRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalModuleRepository($c->get(Connection::class)),
+    ),
+
+    LessonRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalLessonRepository($c->get(Connection::class)),
     ),
 
     LookupRepository::class => factory(

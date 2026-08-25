@@ -39,9 +39,14 @@ final class UpdateCourseAction extends CourseAction
         }
 
         $course = Course::fromInput($existing->id, $tenantId, [
+            // The current state is the base, so a form that edits only the
+            // summary does not reset the pass mark to 70, the level to null
+            // and every flag to false. Derived from the entity rather than
+            // listed by hand, so it cannot fall behind as fields are added.
+            ...$existing->toArray(),
             ...$this->body($request),
-            // Preserved: publishing is setStatus()'s job, and letting an
-            // update change it would bypass the publish permission.
+            // Preserved regardless: publishing is setStatus()'s job, and
+            // letting an update change it would bypass the publish permission.
             'status' => $existing->status->value,
         ]);
 

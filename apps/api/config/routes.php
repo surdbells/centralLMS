@@ -17,11 +17,26 @@ use Central\Api\Application\Action\Auth\LoginAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
 use Central\Api\Application\Action\Auth\RefreshAction;
 use Central\Api\Application\Action\Catalog\CourseCatalogueAction;
+use Central\Api\Application\Action\Catalog\CourseOutlineAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
+use Central\Api\Application\Action\Catalog\CreateLessonAction;
+use Central\Api\Application\Action\Catalog\CreateModuleAction;
+use Central\Api\Application\Action\Catalog\DeleteLessonAction;
+use Central\Api\Application\Action\Catalog\DeleteModuleAction;
 use Central\Api\Application\Action\Catalog\ListCoursesAction;
+use Central\Api\Application\Action\Catalog\ListLessonsAction;
+use Central\Api\Application\Action\Catalog\ListModulesAction;
+use Central\Api\Application\Action\Catalog\ReorderLessonsAction;
+use Central\Api\Application\Action\Catalog\ReorderModulesAction;
 use Central\Api\Application\Action\Catalog\SetCourseStatusAction;
+use Central\Api\Application\Action\Catalog\SetLessonStatusAction;
+use Central\Api\Application\Action\Catalog\SetModuleStatusAction;
 use Central\Api\Application\Action\Catalog\ShowCourseAction;
+use Central\Api\Application\Action\Catalog\ShowLessonAction;
+use Central\Api\Application\Action\Catalog\ShowModuleAction;
 use Central\Api\Application\Action\Catalog\UpdateCourseAction;
+use Central\Api\Application\Action\Catalog\UpdateLessonAction;
+use Central\Api\Application\Action\Catalog\UpdateModuleAction;
 use Central\Api\Application\Action\HealthAction;
 use Central\Api\Application\Action\Ilt\ListMeetingProvidersAction;
 use Central\Api\Application\Action\Lookup\ActiveLookupsAction;
@@ -84,6 +99,43 @@ return static function (App $app): void {
                 $c->get('/{id:' . $uuid . '}', ShowCourseAction::class)->setName('courses.show');
                 $c->put('/{id:' . $uuid . '}', UpdateCourseAction::class)->setName('courses.update');
                 $c->patch('/{id:' . $uuid . '}/status', SetCourseStatusAction::class)->setName('courses.status');
+
+                // Structure. Modules and lessons are addressed through their
+                // parent rather than by bare id, so an id from another course
+                // cannot be reached even inside the right tenant.
+                $c->group('/{courseId:' . $uuid . '}', function (RouteCollectorProxy $s) use ($uuid): void {
+                    // Modules with their lessons, in two queries. The whole
+                    // point of the endpoint — see CourseOutlineAction.
+                    $s->get('/outline', CourseOutlineAction::class)->setName('courses.outline');
+
+                    $s->group('/modules', function (RouteCollectorProxy $m) use ($uuid): void {
+                        // Before `/{id}`, or `order` is read as a module id.
+                        $m->put('/order', ReorderModulesAction::class)->setName('modules.reorder');
+
+                        $m->get('', ListModulesAction::class)->setName('modules.list');
+                        $m->post('', CreateModuleAction::class)->setName('modules.create');
+                        $m->get('/{id:' . $uuid . '}', ShowModuleAction::class)->setName('modules.show');
+                        $m->put('/{id:' . $uuid . '}', UpdateModuleAction::class)->setName('modules.update');
+                        $m->patch('/{id:' . $uuid . '}/status', SetModuleStatusAction::class)
+                            ->setName('modules.status');
+                        $m->delete('/{id:' . $uuid . '}', DeleteModuleAction::class)->setName('modules.delete');
+
+                        $m->group('/{moduleId:' . $uuid . '}/lessons', function (
+                            RouteCollectorProxy $l,
+                        ) use ($uuid): void {
+                            $l->put('/order', ReorderLessonsAction::class)->setName('lessons.reorder');
+
+                            $l->get('', ListLessonsAction::class)->setName('lessons.list');
+                            $l->post('', CreateLessonAction::class)->setName('lessons.create');
+                            $l->get('/{id:' . $uuid . '}', ShowLessonAction::class)->setName('lessons.show');
+                            $l->put('/{id:' . $uuid . '}', UpdateLessonAction::class)->setName('lessons.update');
+                            $l->patch('/{id:' . $uuid . '}/status', SetLessonStatusAction::class)
+                                ->setName('lessons.status');
+                            $l->delete('/{id:' . $uuid . '}', DeleteLessonAction::class)
+                                ->setName('lessons.delete');
+                        });
+                    });
+                });
             });
 
             // Reference data. Six routes replace 36 legacy PHP endpoints —

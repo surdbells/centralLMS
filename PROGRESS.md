@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Courses ported. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue complete (courses, modules, lessons). Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — modules + lessons endpoints are next |
-| **API quality gate** | ✅ 148 unit + 25 integration tests / 504 assertions · PHPStan level 8 clean · 0 style errors · 33 live checks |
+| **Blocking the next slice** | Nothing — enrolments are next |
+| **API quality gate** | ✅ 187 unit + 45 integration tests / 662 assertions · PHPStan level 8 clean · 0 style errors · 90 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -95,7 +95,7 @@ foundations above it.
 | 2 | users + roles | ✅ | ~9 | custom roles per tenant; `DbalRoleRepository` live |
 | 3 | auth endpoints | 🟡 | 6 | login/refresh/logout/me ✅; register, reset, OTP ⬜ |
 | 4 | dictionary | ✅ | **36** | 52 legacy PHP files → **6 routes**; tenant isolation fixed |
-| 5 | courses + modules + lessons | 🟡 | 9 | Courses ✅ (6 routes); modules + lessons tables ✅, endpoints ⬜ |
+| 5 | courses + modules + lessons | ✅ | **19** | 6 course + 13 structure routes; 20 duplicate legacy files → 10 |
 | 6 | enrolments | ⬜ | 2 | |
 | 7 | assessments core | ⬜ | 3 | Design done — [`schema-assessments.md`](docs/migration/schema-assessments.md) |
 | 8 | proctoring extension | ⬜ | 1 | Advanced module, entitlement-gated |
@@ -203,6 +203,76 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-26 — Modules and lessons
+
+Thirteen routes completing module 5. Modules and lessons are addressed through
+their parent — `/v1/courses/{courseId}/modules/{id}` and
+`…/modules/{moduleId}/lessons/{id}` — so a module id from another course is a
+404 even inside the right tenant. Every action walks tenant → course → module
+→ lesson and stops at the first link that does not hold.
+
+**Deduplication.** The legacy backend had `modules/` and `user/modules/`,
+`lessons/` and `user/lessons/` — 20 files, all ten pairs byte-identical.
+
+**`GET /v1/courses/{id}/outline`** returns the whole structure in two queries.
+The legacy player fetched the modules and then one lesson list per module, so
+a twelve-module course cost thirteen round trips. What it returns depends on
+the caller: with `course.manage`, everything including drafts and deactivated
+rows; otherwise published courses only, active rows only, and an unpublished
+course is a 404 rather than a 403 so its existence cannot be probed.
+
+**Deliberate design points**
+
+- Reordering is one endpoint (`PUT …/modules/order`) taking the full list, not
+  one PUT per row. The list must name every item exactly once — a partial list
+  silently leaves the rest at their old positions, which is how two rows end
+  up sharing one. It applies in a single statement, so it either all lands or
+  none does.
+- A new module or lesson goes to the end of its parent. Defaulting to 0 would
+  stack every new row on top of the first and let the tie-break decide.
+- Content rules the database cannot express: a video, audio, PDF or SCORM
+  lesson needs a URL; a text or HTML lesson needs a body. A quiz needs neither
+  — it points at an assessment the assessments module will own.
+- Deleting a module soft-deletes its lessons in the same transaction. A lesson
+  whose module is gone is unreachable but would still be counted by anything
+  reading lessons directly.
+- Structure can only change while the course itself is editable. Otherwise
+  archiving would freeze a course's details but leave its lessons editable,
+  which is the more surprising half.
+- `courseId` on a lesson comes from the resolved module, never the request
+  body. The composite foreign key would reject a mismatched pair anyway; this
+  makes the rejection unnecessary.
+
+**Fixed — a partial `PUT` silently wiped fields.** Sending
+`{"title": "…"}` to a lesson reset `durationMinutes` and `description` to
+null. The same bug was already live in courses, and worse: any partial edit
+reset the pass mark to 70, the level to null and every boolean flag to false.
+The cause was a hand-written list of fields to carry over, which drops
+whichever field it forgets. All three update actions now rebuild from
+`[...$existing->toArray(), ...$body]`, so the carry-over is derived from the
+entity and cannot fall behind as fields are added.
+[`PartialUpdateTest`](apps/api/tests/Unit/Domain/Catalog/PartialUpdateTest.php)
+pins it, including a no-op round trip that fails if `toArray()` and
+`fromInput()` ever disagree about a key. Found by the live check — every unit
+test passed throughout.
+
+**Verification**
+
+- 39 unit tests over `CourseModule`, `Lesson`, `LessonContentType` and the
+  partial-update round trip.
+- 20 integration tests against real PostgreSQL, including the case a fake
+  cannot show: right tenant, wrong parent.
+- 57 live checks against the running stack — reordering and its four refusal
+  cases, content rules, the author/learner split on the outline, deletion
+  cascading to lessons, an archived course refusing structural edits, and
+  every cross-tenant and cross-course call returning 404.
+
+Gate: 242 tests / 662 assertions, PHPStan level 8, no style errors.
+
+**Not included:** delivering a lesson to an enrolled learner, and
+`lessons/complete.php`. Both need an enrolment check and a progress write, so
+they belong to module 6 rather than the catalogue.
 
 ### 2026-08-26 — Courses
 
