@@ -23,24 +23,24 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 | --- | --- | --- | --- |
 | 0 | 🔴 **Authentication is bypassed on the entire legacy API.** `Database::verify_user()` hardcodes `return 100`; every caller checks `!= 100`, so the check never fails. 248 live files. Also SQL-injectable on `user_id`. → **Fix written and tested: [`infra/legacy-bridge/`](infra/legacy-bridge/README.md). Awaiting deployment to the live host.** | — | 🟡 ready to deploy |
 | 0b | 🔴 **Cross-tenant data leak in the live reference-data endpoints.** `dictionary/*/list.php` runs `SELECT * FROM branches` with no tenant filter, and `Branches::update()` / `setStatus()` run `WHERE branch_id = ?` with no tenant column — so any caller can read every organisation's structure and edit or deactivate another's records by id. Affects branches, departments, job titles, levels, teams. Only the `active` dropdown query is scoped. Fixed in the new API; **the live PHP still has it.** | — | ⬜ |
-| 1 | 🔴 **Rotate the Noon payment webhook secret** in `legacy/backend/webhooks/noon-payments.php`. A leaked webhook secret lets anyone forge payment notifications. | — | ⬜ |
-| 2 | Rotate **three** database passwords, all hardcoded in the working tree: `central_lxp` (`config/Database.php`), `sql_3bayti_com` (`webhooks/noon-payments.php`), `sql_ifitness_cen` (`codebase/public/config.php`) | — | ⬜ |
+| 1 | 🔴 **Delete `webhooks/noon-payments.php` from the live backend.** A payment webhook we do not use and never will — removed from this repo. If it is still deployed it is a reachable endpoint that writes to `orders` and holds a second database's credentials, so deleting the file is the fix; rotating its secret is not. | — | ⬜ |
+| 2 | Rotate **three** database passwords found hardcoded in legacy source: `central_lxp` (`config/Database.php`), `sql_ifitness_cen` (`codebase/public/config.php`), and `sql_3bayti_com` — that last one came from the payment webhook in action 1. Deleting the file removes our copy, not the credential: rotate it too. | — | ⬜ |
 | 3 | Rotate the Zoom API key — it appears in `environment.ts`, `environment.development.ts` **and** hardcoded as a fallback in `video-integration.service.ts` | — | ⬜ |
 | 4 | Restrict the production MySQL host to known source IPs — all three databases sit on the same public address | — | ⬜ |
-| 5 | Commit redacted copies of the five excluded files so their structure stays available for the port | — | ⬜ |
+| 5 | Commit redacted copies of the four excluded files so their structure stays available for the port | — | ⬜ |
 | 6 | Delete `legacy/backend/class/earningPathEnrollment.php` from the **live** backend — duplicate class name, one careless `require` from swapping the implementation | — | ⬜ |
 
 Items 1–4 are **contained but not fixed**. Every file holding a live credential
 is git-ignored and `legacy/` was untracked when found, so git history is clean —
 but the secrets are still valid in production.
 
-Five locations, found by a pre-commit scan rather than by reading:
+Found by a pre-commit scan rather than by reading:
 
 | File | Holds | Status |
 | --- | --- | --- |
 | `legacy/backend/config/Database.php` | `central_lxp` DB password | ignored |
-| `legacy/backend/webhooks/noon-payments.php` | **Noon webhook secret** + `sql_3bayti_com` password | ignored |
 | `legacy/backend/codebase/public/config.php` | `sql_ifitness_cen` password | ignored |
+| ~~`legacy/backend/webhooks/noon-payments.php`~~ | `sql_3bayti_com` password | **deleted** — unused integration |
 | `legacy/frontend/src/environments/environment*.ts` | Zoom API key | ignored |
 | `apps/web/.../video-integration.service.ts` | Zoom API key, hardcoded fallback | **fixed in code** |
 

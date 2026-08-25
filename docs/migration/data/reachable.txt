@@ -166,4 +166,3 @@ user/training-enrollment.php
 user/users.php
 user/user_list.php
 user/video-webhooks.php
-webhooks/noon-payments.php

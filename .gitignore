@@ -67,9 +67,7 @@ legacy/frontend/src/environments/environment*.ts
 # Further legacy files found to contain live credentials. Same rule as above:
 # excluded so the secrets never enter git history; commit REDACTED copies once
 # the credentials have been rotated.
-#   legacy/backend/webhooks/noon-payments.php   Noon payment webhook secret + a second DB
-#   legacy/backend/codebase/public/config.php   a third database's credentials
-legacy/backend/webhooks/noon-payments.php
+#   legacy/backend/codebase/public/config.php   a second database's credentials
 legacy/backend/codebase/public/config.php
 legacy/frontend/src/app/live-training/services/video-integration.service.ts
 
