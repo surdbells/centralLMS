@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<ruleset name="Central LMS API">
+    <description>PSR-12 with a couple of project conventions.</description>
+
+    <file>src</file>
+    <file>config</file>
+    <file>tests</file>
+    <file>public</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/var/*</exclude-pattern>
+    <!-- legacy/ is never linted; see legacy/README.md -->
+    <exclude-pattern>*/legacy/*</exclude-pattern>
+
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12">
+        <!-- The codebase aligns array arrows and assignment blocks for
+             readability, which PSR-12 does not anticipate. -->
+        <exclude name="Generic.Formatting.DisallowMultipleStatements"/>
+    </rule>
+
+    <!-- Line length: warn early, never fail the build over it. -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+
+    <!-- Every file must declare strict types: silent type juggling is exactly
+         the class of bug the rewrite is meant to eliminate. -->
+    <rule ref="Generic.PHP.RequireStrictTypes"/>
+
+    <!-- Test method names are snake_case sentences on purpose; they read as
+         specifications in the PHPUnit output. -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+</ruleset>

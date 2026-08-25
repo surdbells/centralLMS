@@ -1,0 +1,23 @@
+includes:
+    - vendor/phpstan/phpstan-doctrine/extension.neon
+    - vendor/phpstan/phpstan-doctrine/rules.neon
+
+parameters:
+    # Level 8 checks nullability properly, which is where most real bugs hide.
+    # Raise to 9 (strict mixed) once the domain entities have landed.
+    level: 8
+
+    paths:
+        - src
+        - config
+        - tests
+
+    # legacy/ is reference material, not code we own. It lives outside this
+    # directory anyway, but the exclusion is explicit so nobody is tempted.
+    excludePaths:
+        - ../../legacy/*
+        - var/*
+        - vendor/*
+
+    treatPhpDocTypesAsCertain: false
+

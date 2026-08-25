@@ -1,0 +1,22 @@
+# Fallback front-controller rules for Apache hosts (aaPanel default).
+# Nginx deployments use the try_files directive in infra/docker/nginx.conf
+# instead and ignore this file.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Authorization is not passed to PHP-FPM by default on some Apache builds,
+    # which makes every authenticated request look anonymous.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+</IfModule>

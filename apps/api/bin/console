@@ -1,0 +1,85 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Central\Api\Application\Console\CheckIltProvidersCommand;
+use Central\Api\Application\Console\GenerateOpenApiCommand;
+use Central\Api\Application\Console\ConsumeMessagesCommand;
+use Central\Api\Application\Console\ImportLegacyUsersCommand;
+use Central\Api\Application\Console\ProvisionTenantCommand;
+use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
+use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
+use Doctrine\Migrations\DependencyFactory;
+use Doctrine\Migrations\Tools\Console\Command as Migrations;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Tools\Console\ConsoleRunner;
+use Doctrine\ORM\Tools\Console\EntityManagerProvider\SingleManagerProvider;
+use Symfony\Component\Console\Application;
+
+/**
+ * CLI entry point. Cron on the deployment host invokes these commands:
+ *
+ *   php bin/console doctrine:migrations:migrate --no-interaction
+ *   php bin/console messenger:consume --time-limit=3600
+ *   php bin/console ilt:check-providers
+ */
+$container = (require __DIR__ . '/../config/bootstrap.php')();
+
+$settings = $container->get('settings');
+$app      = new Application((string) $settings['app']['name'] . ' CLI', (string) $settings['app']['version']);
+
+$entityManager = $container->get(EntityManagerInterface::class);
+
+// --- Doctrine migrations ---------------------------------------------------
+$migrations = DependencyFactory::fromEntityManager(
+    new ConfigurationArray([
+        'table_storage' => [
+            'table_name'                 => 'doctrine_migration_versions',
+            'version_column_name'        => 'version',
+            'version_column_length'      => 191,
+            'executed_at_column_name'    => 'executed_at',
+            'execution_time_column_name' => 'execution_time',
+        ],
+        'migrations_paths' => [
+            'Central\Api\Migrations' => $settings['paths']['migrations'],
+        ],
+        // PostgreSQL supports transactional DDL, so a failed migration rolls
+        // back completely instead of leaving the schema half-applied.
+        'all_or_nothing'          => true,
+        'transactional'           => true,
+        'check_database_platform' => true,
+        'organize_migrations'     => 'none',
+    ]),
+    new ExistingEntityManager($entityManager),
+);
+
+$app->addCommands([
+    new Migrations\CurrentCommand($migrations),
+    new Migrations\DiffCommand($migrations),
+    new Migrations\DumpSchemaCommand($migrations),
+    new Migrations\ExecuteCommand($migrations),
+    new Migrations\GenerateCommand($migrations),
+    new Migrations\LatestCommand($migrations),
+    new Migrations\ListCommand($migrations),
+    new Migrations\MigrateCommand($migrations),
+    new Migrations\RollupCommand($migrations),
+    new Migrations\StatusCommand($migrations),
+    new Migrations\SyncMetadataCommand($migrations),
+    new Migrations\UpToDateCommand($migrations),
+    new Migrations\VersionCommand($migrations),
+]);
+
+// --- Doctrine ORM (schema validation, entity info) -------------------------
+ConsoleRunner::addCommands($app, new SingleManagerProvider($entityManager));
+
+// --- application commands --------------------------------------------------
+$app->addCommands([
+    $container->get(GenerateOpenApiCommand::class),
+    $container->get(CheckIltProvidersCommand::class),
+    $container->get(ConsumeMessagesCommand::class),
+    $container->get(ProvisionTenantCommand::class),
+    $container->get(ImportLegacyUsersCommand::class),
+]);
+
+$app->run();
