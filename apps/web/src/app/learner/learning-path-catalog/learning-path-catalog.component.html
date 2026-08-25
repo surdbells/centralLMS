@@ -1,0 +1,218 @@
+<app-top></app-top>
+<main class="main">
+  <div class="container-fluid py-4">
+<div class="learning-path-catalog">
+  <!-- Hero Section -->
+  <section class="catalog-hero">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+          <h1 class="hero-title">Learning Paths</h1>
+          <p class="hero-subtitle">
+            Structured learning journeys designed to help you master new skills and advance your career
+          </p>
+
+          <!-- Search -->
+          <div class="search-box">
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control form-control-lg"
+                placeholder="Search learning paths..."
+                [(ngModel)]="searchQuery"
+                (keyup.enter)="onSearch()"
+              >
+              @if (searchQuery()) {
+                <button class="btn btn-secondary" type="button" (click)="searchQuery.set(''); onSearch()">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container catalog-content">
+    <!-- Filters Bar -->
+    <div class="filters-bar mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-3">
+          <select class="form-select" [(ngModel)]="skillFilter" (change)="onFilterChange()">
+            <option value="">All Levels</option>
+            @for (level of skillLevels; track level.value) {
+              <option [value]="level.value">{{ level.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" [(ngModel)]="categoryFilter" (change)="onFilterChange()">
+            <option [ngValue]="null">All Categories</option>
+            @for (category of categories(); track category.category_id) {
+              <option [ngValue]="category.category_id">{{ category.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" [(ngModel)]="sortBy" (change)="onFilterChange()">
+            <option value="popular">Most Popular</option>
+            <option value="rating">Highest Rated</option>
+            <option value="newest">Newest</option>
+            <option value="duration">Shortest First</option>
+          </select>
+        </div>
+        <div class="col-md-3 text-md-end">
+          <span class="results-count">{{ totalItems() }} paths found</span>
+          @if (hasFilters()) {
+            <button class="btn btn-link btn-sm" (click)="clearFilters()">Clear filters</button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 text-muted">Loading learning paths...</p>
+      </div>
+    } @else if (paths().length === 0) {
+      <!-- Empty State -->
+      <div class="empty-state text-center py-5">
+        <i class="bi bi-search display-1 text-muted"></i>
+        <h3 class="mt-4">No Learning Paths Found</h3>
+        <p class="text-muted">
+          @if (hasFilters()) {
+            Try adjusting your search or filters to find what you're looking for.
+          } @else {
+            There are no learning paths available at this time. Check back soon!
+          }
+        </p>
+        @if (hasFilters()) {
+          <button class="btn btn-primary" (click)="clearFilters()">Clear Filters</button>
+        }
+      </div>
+    } @else {
+      <!-- Path Grid -->
+      <div class="row g-4">
+        @for (path of paths(); track path.path_id) {
+          <div class="col-md-6 col-lg-4">
+            <div class="card path-card h-100">
+              <!-- Thumbnail -->
+              <div class="path-thumbnail">
+                @if (path.thumbnail_url) {
+                  <img [src]="path.thumbnail_url" [alt]="path.title">
+                } @else {
+                  <div class="thumbnail-placeholder">
+                    <i class="bi bi-signpost-split"></i>
+                  </div>
+                }
+                <div class="path-badges">
+                  <span class="badge bg-{{ getSkillLevel(path.skill_level).color }}">
+                    {{ getSkillLevel(path.skill_level).label }}
+                  </span>
+                  @if (path.is_mandatory) {
+                    <span class="badge bg-danger">Required</span>
+                  }
+                  @if (path.certificate_enabled) {
+                    <span class="badge bg-warning text-dark">
+                      <i class="bi bi-award"></i>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="card-body">
+                <!-- Rating -->
+                @if (path.avg_rating) {
+                  <div class="path-rating mb-2">
+                    <i class="bi bi-star-fill text-warning"></i>
+                    <span class="rating-value">{{ path.avg_rating | number:'1.1-1' }}</span>
+                    <span class="rating-count">({{ path.total_ratings }})</span>
+                  </div>
+                }
+
+                <h5 class="card-title">
+                  <a [routerLink]="['/learner/paths', path.path_id]">{{ path.title }}</a>
+                </h5>
+
+                <p class="card-text">{{ path.short_description }}</p>
+
+                <!-- Meta Info -->
+                <div class="path-meta">
+                  <div class="meta-item">
+                    <i class="bi bi-collection"></i>
+                    <span>{{ path.total_items }} items</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="bi bi-clock"></i>
+                    <span>{{ formatDuration(path.estimated_duration_hours) }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <i class="bi bi-people"></i>
+                    <span>{{ path.total_enrollments }} enrolled</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-footer">
+                <a [routerLink]="['/learner/paths', path.path_id]" class="btn btn-primary w-100">
+                  View Path
+                </a>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <nav class="mt-5">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" [class.disabled]="currentPage() === 1">
+              <button class="page-link" (click)="goToPage(currentPage() - 1)">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+            </li>
+
+            @if (currentPage() > 3) {
+              <li class="page-item">
+                <button class="page-link" (click)="goToPage(1)">1</button>
+              </li>
+              <li class="page-item disabled">
+                <span class="page-link">...</span>
+              </li>
+            }
+
+            @for (page of getPageNumbers(); track page) {
+              <li class="page-item" [class.active]="page === currentPage()">
+                <button class="page-link" (click)="goToPage(page)">{{ page }}</button>
+              </li>
+            }
+
+            @if (currentPage() < totalPages() - 2) {
+              <li class="page-item disabled">
+                <span class="page-link">...</span>
+              </li>
+              <li class="page-item">
+                <button class="page-link" (click)="goToPage(totalPages())">{{ totalPages() }}</button>
+              </li>
+            }
+
+            <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+              <button class="page-link" (click)="goToPage(currentPage() + 1)">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      }
+    }
+  </div>
+</div>
+  </div>
+</main>

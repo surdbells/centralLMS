@@ -1,0 +1,556 @@
+<!-- course-player/components/course-player/course-player.component.html -->
+
+<div class="course-player" [class.sidebar-collapsed]="sidebarCollapsed">
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-overlay">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3">Loading course...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error-container">
+    <div class="alert alert-danger">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+    </div>
+    <button class="btn btn-primary" routerLink="/learning">Back to Courses</button>
+  </div>
+
+  <!-- Main Content -->
+  <ng-container *ngIf="!loading && !error && courseData">
+
+    <!-- Top Bar -->
+    <header class="player-header">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn bg-black text-white p-0" routerLink="/learning">
+          <i class="bi bi-arrow-left fs-4"></i>
+        </button>
+        <div class="course-title">
+          <h1 class="h5 mb-0 text-white">{{ courseData.course.title }}</h1>
+          <small class="text-white-50">{{ currentLesson?.title || 'Select a lesson' }}</small>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Progress -->
+        <div class="progress-info text-white">
+          <span class="small">{{ courseData.stats.completed_lessons }}/{{ courseData.stats.total_lessons }} lessons</span>
+          <div class="progress" style="width: 120px; height: 6px;">
+            <div class="progress-bar bg-success" [style.width.%]="getProgressPercentage()"></div>
+          </div>
+        </div>
+
+        <!-- Toggle Sidebar -->
+        <button class="btn btn-outline-light btn-sm" (click)="toggleSidebar()">
+          <i class="bi" [class.bi-layout-sidebar]="sidebarCollapsed" [class.bi-layout-sidebar-inset]="!sidebarCollapsed"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="player-body">
+      <!-- Sidebar -->
+      <aside class="player-sidebar" [class.collapsed]="sidebarCollapsed">
+        <div class="sidebar-header">
+          <h6 class="mb-0">Course Content</h6>
+        </div>
+
+        <div class="sidebar-content">
+          <!-- Modules Accordion -->
+          <div class="modules-list">
+            <div class="module-item" *ngFor="let module of courseData.modules; let i = index">
+              <button class="module-header"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      [attr.data-bs-target]="'#module-' + module.module_id">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-folder2"></i>
+                  <span class="module-title">{{ module.title }}</span>
+                </div>
+                <div class="module-meta">
+                  <span class="badge bg-secondary">{{ module.completed_lessons }}/{{ module.total_lessons }}</span>
+                  <i class="bi bi-chevron-down"></i>
+                </div>
+              </button>
+
+              <div [id]="'module-' + module.module_id" class="collapse" [class.show]="i === 0 || module.module_id === currentLesson?.module_id">
+                <ul class="lessons-list">
+                  <li *ngFor="let lesson of module.lessons"
+                      class="lesson-item"
+                      [class.active]="currentLesson?.lesson_id === lesson.lesson_id && !showQuizView"
+                      [class.completed]="lesson.status === 'completed'"
+                      (click)="selectLesson(lesson)">
+                    <i class="bi" [class]="getStatusIcon(lesson.status)"></i>
+                    <i class="bi" [class]="getLessonIcon(lesson.content_type)"></i>
+                    <span class="lesson-title">{{ lesson.title }}</span>
+                    <span class="badge bg-warning-subtle text-warning badge-scorm" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
+                    <span class="lesson-duration">{{ lesson.duration_minutes }}m</span>
+                  </li>
+
+                  <!-- Module Assessments -->
+                  <li *ngFor="let assessment of module.assessments"
+                      class="lesson-item assessment-item"
+                      [class.active]="currentAssessment?.assessment_id === assessment.assessment_id && showQuizView"
+                      [class.completed]="assessment.has_passed"
+                      (click)="selectAssessment(assessment)">
+                    <i class="bi" [class]="getAssessmentStatusIcon(assessment)"></i>
+                    <i class="bi" [class]="getAssessmentIcon(assessment.assessment_type)"></i>
+                    <span class="lesson-title">{{ assessment.title }}</span>
+                    <span class="badge assessment-badge" [class]="getAssessmentBadgeClass(assessment.assessment_type)">
+                      {{ assessment.assessment_type | titlecase }}
+                    </span>
+                    <span class="lesson-duration" *ngIf="assessment.total_questions">
+                      {{ assessment.total_questions }}Q
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="player-main">
+        <div class="content-wrapper" [class.quiz-active]="showQuizView">
+          <!-- Quiz View -->
+          <div class="quiz-view" *ngIf="showQuizView && currentAssessment && courseData">
+            <app-quiz
+              [assessmentId]="currentAssessment.assessment_id"
+              [enrollmentId]="courseData.enrollment.enrollment_id"
+              (onComplete)="onQuizComplete($event)"
+              (onClose)="closeQuizView()">
+            </app-quiz>
+          </div>
+
+          <!-- Video Player -->
+          <div class="video-container" *ngIf="!showQuizView && currentLesson?.content_type === 'video' && currentLesson">
+            <video #videoPlayer
+                   class="video-player"
+                   [src]="currentLesson.content_url"
+                   (loadedmetadata)="onVideoLoaded(videoPlayer)"
+                   (timeupdate)="onTimeUpdate(videoPlayer.currentTime)"
+                   (play)="onVideoPlay()"
+                   (pause)="onVideoPause()"
+                   (ended)="onVideoComplete()">
+            </video>
+
+            <!-- Custom Controls -->
+            <div class="video-controls">
+              <div class="progress-bar-container">
+                <input type="range"
+                       class="video-progress"
+                       [value]="currentTime"
+                       [max]="duration"
+                       (input)="videoElement && (videoElement.currentTime = $any($event.target).value)">
+              </div>
+
+              <div class="controls-row">
+                <div class="controls-left">
+                  <button class="control-btn" (click)="togglePlay()">
+                    <i class="bi" [class.bi-play-fill]="!isPlaying" [class.bi-pause-fill]="isPlaying"></i>
+                  </button>
+                  <button class="control-btn" (click)="seek(-10)">
+                    <i class="bi bi-skip-backward-fill"></i>
+                  </button>
+                  <button class="control-btn" (click)="seek(10)">
+                    <i class="bi bi-skip-forward-fill"></i>
+                  </button>
+                  <div class="volume-control">
+                    <button class="control-btn" (click)="setVolume(volume > 0 ? 0 : 1)">
+                      <i class="bi" [class.bi-volume-up-fill]="volume > 0.5"
+                         [class.bi-volume-down-fill]="volume > 0 && volume <= 0.5"
+                         [class.bi-volume-mute-fill]="volume === 0"></i>
+                    </button>
+                    <input type="range" class="volume-slider" min="0" max="1" step="0.1"
+                           [value]="volume" (input)="setVolume($any($event.target).value)">
+                  </div>
+                  <span class="time-display">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+                </div>
+
+                <div class="controls-right">
+                  <select class="speed-select" [value]="playbackRate" (change)="setPlaybackRate($any($event.target).value)">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1">1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                  </select>
+                  <button class="control-btn" (click)="addBookmark()" title="Add Bookmark (B)">
+                    <i class="bi bi-bookmark"></i>
+                  </button>
+                  <button class="control-btn" (click)="openNoteModal()" title="Add Note (N)">
+                    <i class="bi bi-journal-plus"></i>
+                  </button>
+                  <button class="control-btn" (click)="videoElement?.requestFullscreen()" title="Fullscreen (F)">
+                    <i class="bi bi-fullscreen"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Video Actions -->
+            <div class="video-actions">
+              <button class="btn btn-primary"
+                      (click)="markLessonComplete()"
+                      [disabled]="currentLesson.status === 'completed'">
+                <i class="bi me-2" [class.bi-check-circle]="currentLesson.status !== 'completed'"
+                   [class.bi-check-circle-fill]="currentLesson.status === 'completed'"></i>
+                {{ currentLesson.status === 'completed' ? 'Completed' : 'Mark as Complete' }}
+              </button>
+              <small class="text-muted ms-3" *ngIf="currentLesson.status !== 'completed'">
+                <i class="bi bi-info-circle me-1"></i>Auto-completes when video ends
+              </small>
+            </div>
+          </div>
+
+          <!-- PDF Viewer -->
+          <div class="pdf-container" *ngIf="!showQuizView && currentLesson?.content_type === 'pdf' && currentLesson">
+            <iframe [src]="getSafeUrl(currentLesson.content_url)" class="pdf-viewer"></iframe>
+            <div class="pdf-actions">
+              <a class="btn btn-secondary me-2"
+                 [href]="currentLesson.content_url"
+                 target="_blank"
+                 (click)="onDocumentDownload()">
+                <i class="bi bi-download me-2"></i>Download PDF
+              </a>
+              <button class="btn btn-primary"
+                      (click)="markLessonComplete()"
+                      [disabled]="currentLesson.status === 'completed'">
+                <i class="bi me-2" [class.bi-check-circle]="currentLesson.status !== 'completed'"
+                   [class.bi-check-circle-fill]="currentLesson.status === 'completed'"></i>
+                {{ currentLesson.status === 'completed' ? 'Completed' : 'Mark as Complete' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- HTML Content -->
+          <div class="html-container" *ngIf="!showQuizView && currentLesson?.content_type === 'html' && currentLesson">
+            <iframe [src]="getSafeUrl(currentLesson.content_url)" class="html-viewer"></iframe>
+            <div class="html-actions">
+              <button class="btn btn-primary"
+                      (click)="markLessonComplete()"
+                      [disabled]="currentLesson.status === 'completed'">
+                <i class="bi me-2" [class.bi-check-circle]="currentLesson.status !== 'completed'"
+                   [class.bi-check-circle-fill]="currentLesson.status === 'completed'"></i>
+                {{ currentLesson.status === 'completed' ? 'Completed' : 'Mark as Complete' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Audio Player -->
+          <div class="audio-container" *ngIf="!showQuizView && currentLesson?.content_type === 'audio' && currentLesson">
+            <div class="audio-artwork">
+              <i class="bi bi-music-note-beamed"></i>
+            </div>
+            <h4>{{ currentLesson.title }}</h4>
+            <audio #audioPlayer
+                   controls
+                   [src]="currentLesson.content_url"
+                   (loadedmetadata)="onMediaLoaded(audioPlayer)"
+                   (timeupdate)="onTimeUpdate(audioPlayer.currentTime)"
+                   (ended)="onAudioComplete()">
+            </audio>
+
+            <!-- Audio Actions -->
+            <div class="audio-actions">
+              <button class="btn btn-primary"
+                      (click)="markLessonComplete()"
+                      [disabled]="currentLesson.status === 'completed'">
+                <i class="bi me-2" [class.bi-check-circle]="currentLesson.status !== 'completed'"
+                   [class.bi-check-circle-fill]="currentLesson.status === 'completed'"></i>
+                {{ currentLesson.status === 'completed' ? 'Completed' : 'Mark as Complete' }}
+              </button>
+              <small class="text-muted ms-3" *ngIf="currentLesson.status !== 'completed'">
+                <i class="bi bi-info-circle me-1"></i>Auto-completes when audio ends
+              </small>
+            </div>
+          </div>
+
+          <!-- SCORM Content -->
+          <div class="scorm-container" *ngIf="!showQuizView && currentLesson?.content_type === 'scorm' && currentLesson && scormReady && currentScormUrl">
+            <iframe [src]="currentScormUrl"
+                    class="scorm-viewer"
+                    id="scorm-frame"
+                    allow="autoplay; fullscreen"></iframe>
+          </div>
+
+          <!-- SCORM Loading -->
+          <div class="scorm-loading" *ngIf="!showQuizView && currentLesson?.content_type === 'scorm' && (!scormReady || !currentScormUrl)">
+            <div class="text-center">
+              <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Loading SCORM...</span>
+              </div>
+              <p class="text-muted">Initializing SCORM content...</p>
+            </div>
+          </div>
+
+          <!-- No Lesson Selected -->
+          <div class="no-lesson" *ngIf="!currentLesson && !showQuizView">
+            <i class="bi bi-play-circle fs-1 text-muted"></i>
+            <p>Select a lesson from the sidebar to begin</p>
+          </div>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div class="bottom-panel">
+          <!-- Tabs -->
+          <ul class="nav nav-tabs">
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'content'" (click)="activeTab = 'content'">
+                <i class="bi bi-info-circle me-1"></i>Overview
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'notes'" (click)="activeTab = 'notes'">
+                <i class="bi bi-journal-text me-1"></i>Notes
+                <span class="badge bg-secondary ms-1" *ngIf="notes.length">{{ notes.length }}</span>
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" [class.active]="activeTab === 'resources'" (click)="activeTab = 'resources'">
+                <i class="bi bi-paperclip me-1"></i>Resources
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab Content -->
+          <div class="tab-content p-3">
+            <!-- Overview Tab -->
+            <div *ngIf="activeTab === 'content'" class="tab-pane active">
+              <div class="lesson-info" *ngIf="currentLesson">
+                <h5>{{ currentLesson.title }}</h5>
+                <p class="text-muted">{{ currentLesson.description }}</p>
+
+                <div class="d-flex gap-4 mt-3">
+                  <div>
+                    <small class="text-muted">Duration</small>
+                    <p class="mb-0"><i class="bi bi-clock me-1"></i>{{ currentLesson.duration_minutes }} minutes</p>
+                  </div>
+                  <div>
+                    <small class="text-muted">Status</small>
+                    <p class="mb-0">
+                      <i class="bi" [class]="getStatusIcon(currentLesson.status)"></i>
+                      {{ currentLesson.status | titlecase }}
+                    </p>
+                  </div>
+                  <div *ngIf="currentLesson.score">
+                    <small class="text-muted">Score</small>
+                    <p class="mb-0"><i class="bi bi-award me-1"></i>{{ currentLesson.score }}%</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Navigation Buttons -->
+              <div class="lesson-navigation mt-4">
+                <button class="btn btn-secondary"
+                        [disabled]="!hasPreviousLesson()"
+                        (click)="previousLesson()">
+                  <i class="bi bi-chevron-left me-1"></i>Previous
+                </button>
+
+                <!-- Manual complete button - NOT shown for SCORM (SCORM auto-completes via API) -->
+                <button class="btn btn-primary"
+                        *ngIf="currentLesson?.status !== 'completed' && currentLesson?.content_type !== 'scorm'"
+                        (click)="markLessonComplete()">
+                  <i class="bi bi-check-circle me-1"></i>Complete & Continue
+                </button>
+
+                <!-- SCORM status indicator -->
+                <span class="badge bg-info" *ngIf="currentLesson?.content_type === 'scorm' && currentLesson?.status !== 'completed'">
+                  <i class="bi bi-info-circle me-1"></i>Complete the SCORM content to progress
+                </span>
+
+                <button class="btn btn-primary"
+                        *ngIf="currentLesson?.status === 'completed'"
+                        [disabled]="!hasNextLesson()"
+                        (click)="nextLesson()">
+                  Next<i class="bi bi-chevron-right ms-1"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Notes Tab -->
+            <div *ngIf="activeTab === 'notes'" class="tab-pane active">
+              <div class="notes-input mb-3">
+                <textarea class="form-control"
+                          rows="2"
+                          placeholder="Add a note..."
+                          [(ngModel)]="newNote"
+                          (keydown.ctrl.enter)="saveNoteFromPanel()"></textarea>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                  <small class="text-muted">
+                    <i class="bi bi-clock me-1"></i>Timestamp: {{ formatTime(currentTime) }}
+                  </small>
+                  <button class="btn btn-primary btn-sm" [disabled]="!newNote.trim()" (click)="saveNoteFromPanel()">
+                    <i class="bi bi-plus-lg me-1"></i>Add Note
+                  </button>
+                </div>
+              </div>
+
+              <div class="notes-list">
+                <div class="note-item" *ngFor="let note of notes">
+                  <div class="note-header">
+                    <span class="note-timestamp" *ngIf="note.video_timestamp" (click)="goToBookmark(note.video_timestamp)">
+                      <i class="bi bi-play-circle me-1"></i>{{ formatTime(note.video_timestamp) }}
+                    </span>
+                    <span class="note-date">{{ note.created_at | date:'short' }}</span>
+                    <i class="bi bi-pin-fill text-warning" *ngIf="note.is_pinned"></i>
+                  </div>
+                  <p class="note-content">{{ note.content }}</p>
+                </div>
+
+                <p class="text-muted text-center" *ngIf="notes.length === 0">
+                  No notes yet. Add your first note above!
+                </p>
+              </div>
+            </div>
+
+            <!-- Resources Tab -->
+            <div *ngIf="activeTab === 'resources'" class="tab-pane active">
+              <div class="bookmarks-section mb-4">
+                <h6><i class="bi bi-bookmark me-2"></i>Bookmarks</h6>
+                <div class="bookmark-list">
+                  <div class="bookmark-item" *ngFor="let bookmark of courseData.bookmarks"
+                       (click)="goToBookmark(bookmark.position_seconds)">
+                    <i class="bi bi-play-circle"></i>
+                    <span class="bookmark-time">{{ formatTime(bookmark.position_seconds) }}</span>
+                    <span class="bookmark-note">{{ bookmark.note || 'No note' }}</span>
+                  </div>
+                  <p class="text-muted" *ngIf="courseData.bookmarks.length === 0">
+                    No bookmarks yet. Press B while watching to add one.
+                  </p>
+                </div>
+              </div>
+
+              <div class="keyboard-shortcuts">
+                <h6><i class="bi bi-keyboard me-2"></i>Keyboard Shortcuts</h6>
+                <div class="shortcuts-grid">
+                  <div><kbd>Space</kbd> Play/Pause</div>
+                  <div><kbd>←</kbd><kbd>→</kbd> Seek 10s</div>
+                  <div><kbd>↑</kbd><kbd>↓</kbd> Volume</div>
+                  <div><kbd>M</kbd> Mute</div>
+                  <div><kbd>F</kbd> Fullscreen</div>
+                  <div><kbd>B</kbd> Bookmark</div>
+                  <div><kbd>N</kbd> Add Note</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </ng-container>
+
+  <!-- Completion Modal -->
+  <div class="modal fade" [class.show]="showCompletionModal" [style.display]="showCompletionModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center py-5">
+          <div class="completion-icon mb-4">
+            <i class="bi bi-trophy-fill text-warning fs-1"></i>
+          </div>
+          <h3>Congratulations! 🎉</h3>
+          <p class="text-muted">You've completed all lessons in this course.</p>
+
+          <div class="completion-stats my-4">
+            <div class="stat">
+              <span class="stat-value">{{ courseData?.stats?.total_lessons || 0 }}</span>
+              <span class="stat-label">Lessons</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{{ courseData?.enrollment?.time_spent_minutes || 0 }}m</span>
+              <span class="stat-label">Time Spent</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg" (click)="completeCourse()">
+            <i class="bi bi-check-circle me-2"></i>Complete Course
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showCompletionModal"></div>
+
+  <!-- Rating Modal -->
+  <div class="modal fade" [class.show]="showRatingModal" [style.display]="showRatingModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Rate this Course</h5>
+          <button type="button" class="btn-close" (click)="skipRating()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted">How would you rate your learning experience?</p>
+
+          <div class="rating-stars text-center my-4">
+            <button *ngFor="let star of [1,2,3,4,5]"
+                    class="btn btn-link p-1"
+                    (click)="setRating(star)">
+              <i class="bi fs-2"
+                 [class.bi-star-fill]="star <= userRating"
+                 [class.bi-star]="star > userRating"
+                 [class.text-warning]="star <= userRating"></i>
+            </button>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Write a review (optional)</label>
+            <textarea class="form-control" rows="3"
+                      placeholder="Share your thoughts about this course..."
+                      [(ngModel)]="userReview"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="skipRating()">Skip</button>
+          <button type="button" class="btn btn-primary" [disabled]="userRating === 0" (click)="submitRating()">
+            Submit Rating
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showRatingModal"></div>
+
+  <!-- Note Modal -->
+  <div class="modal fade" [class.show]="showNoteModal" [style.display]="showNoteModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-journal-plus me-2 text-primary-color"></i>Add Note
+          </h5>
+          <button type="button" class="btn-close" (click)="closeNoteModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="timestamp-badge mb-3">
+            <span class="badge bg-primary-light text-primary-color">
+              <i class="bi bi-clock me-1"></i>{{ formatTime(noteTimestamp) }}
+            </span>
+            <span class="text-muted ms-2" *ngIf="currentLesson">in {{ currentLesson.title }}</span>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Your Note</label>
+            <textarea class="form-control"
+                      rows="4"
+                      placeholder="Write your note here..."
+                      [(ngModel)]="newNote"
+                      (keydown.ctrl.enter)="saveNote()"
+                      autofocus></textarea>
+            <small class="text-muted">Press Ctrl+Enter to save</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeNoteModal()">Cancel</button>
+          <button type="button" class="btn btn-primary" [disabled]="!newNote.trim()" (click)="saveNote()">
+            <i class="bi bi-check-lg me-1"></i>Save Note
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showNoteModal"></div>
+</div>

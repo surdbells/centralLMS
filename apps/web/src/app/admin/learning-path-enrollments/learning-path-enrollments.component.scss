@@ -1,0 +1,601 @@
+// learning-path-enrollment/learning-path-enrollment.component.scss
+
+.enrollment-container {
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+// Page Header
+.page-header {
+  h1 {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .stat-badge {
+    text-align: center;
+    padding: 0.75rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 8px;
+
+    .stat-value {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Step Numbers
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-right: 0.75rem;
+}
+
+// Search Box
+.search-box {
+  position: relative;
+  min-width: 280px;
+
+  i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+  }
+
+  input {
+    padding-left: 38px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+
+    &:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+  }
+}
+
+// Path Grid
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+  padding: 1.5rem;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.path-card {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(.disabled) {
+    border-color: #6366f1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .path-thumbnail {
+    position: relative;
+    height: 140px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .path-thumbnail-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: white;
+      font-size: 3rem;
+      opacity: 0.7;
+    }
+
+    .path-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+
+  .path-info {
+    padding: 1rem;
+
+    .path-title {
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .path-description {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 0.75rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .path-meta {
+      display: flex;
+      gap: 1rem;
+
+      .meta-item {
+        font-size: 0.75rem;
+        color: #94a3b8;
+
+        i {
+          margin-right: 0.25rem;
+        }
+      }
+    }
+  }
+}
+
+// Selected Path Banner
+.selected-path-banner {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+
+  .path-thumb-small {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    i {
+      color: white;
+      font-size: 1.5rem;
+    }
+  }
+
+  h5 {
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+// Enrollment Type Selector
+.enrollment-type-selector {
+  .btn-group {
+    .btn {
+      flex: 1;
+      padding: 0.75rem;
+      font-weight: 500;
+
+      i {
+        font-size: 1.1rem;
+      }
+    }
+
+    .btn-check:checked + .btn {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      border-color: #4f46e5;
+      color: white;
+    }
+  }
+}
+
+// Selection Section
+.selection-section {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+
+  .form-select-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .selection-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #e0f2fe;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #0369a1;
+  }
+}
+
+// User Selection Section
+.user-selection-section {
+  .user-list-container {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .user-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .user-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background-color 0.15s;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: #f8fafc;
+    }
+
+    &.selected {
+      background: #eef2ff;
+
+      .user-checkbox input {
+        accent-color: #6366f1;
+      }
+    }
+
+    .user-checkbox {
+      input {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      &.small {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+      }
+    }
+
+    .user-info {
+      flex: 1;
+      min-width: 0;
+
+      .user-name {
+        font-weight: 500;
+        color: #1e293b;
+      }
+
+      .user-email {
+        font-size: 0.8125rem;
+        color: #64748b;
+      }
+    }
+
+    .user-meta {
+      .badge {
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// Selected Users List
+.selected-users-list {
+  max-height: 200px;
+  overflow-y: auto;
+
+  .selected-user-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .user-name {
+      flex: 1;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+  }
+}
+
+// Action Card
+.action-card {
+  position: sticky;
+  top: 1rem;
+
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #e2e8f0;
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+
+    .label {
+      color: #64748b;
+      font-size: 0.875rem;
+    }
+
+    .value {
+      font-weight: 500;
+      color: #1e293b;
+      text-align: right;
+      max-width: 60%;
+      word-break: break-word;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #94a3b8;
+
+  i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  p {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+}
+
+// Modal Styles
+.modal {
+  .modal-dialog-centered {
+    .modal-content {
+      border-radius: 16px;
+      border: none;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  .modal-header {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1.25rem 1.5rem;
+
+    .modal-title {
+      font-weight: 600;
+    }
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .modal-footer {
+    border-top: 1px solid #e2e8f0;
+    padding: 1rem 1.5rem;
+  }
+}
+
+// Preview/Result Sections
+.preview-path-info,
+.result-path-info {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.preview-stat,
+.result-stat {
+  text-align: center;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &.text-success .stat-value { color: #10b981; }
+  &.text-warning .stat-value { color: #f59e0b; }
+  &.text-danger .stat-value { color: #ef4444; }
+}
+
+.preview-section,
+.result-section {
+  .section-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .preview-user-list,
+  .result-user-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: #f8fafc;
+    border-radius: 8px;
+
+    .preview-user-item,
+    .result-user-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.625rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .user-name {
+        font-weight: 500;
+        color: #1e293b;
+      }
+
+      .user-email {
+        font-size: 0.8125rem;
+        color: #64748b;
+      }
+
+      .user-reason {
+        font-size: 0.8125rem;
+      }
+    }
+  }
+}
+
+// Responsive Adjustments
+@media (max-width: 992px) {
+  .enrollment-type-selector {
+    .btn-group {
+      flex-direction: column;
+
+      .btn {
+        border-radius: 0 !important;
+
+        &:first-child {
+          border-radius: 8px 8px 0 0 !important;
+        }
+
+        &:last-child {
+          border-radius: 0 0 8px 8px !important;
+        }
+      }
+    }
+  }
+
+  .path-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+
+    .stat-badge {
+      padding: 0.5rem 1rem;
+
+      .stat-value {
+        font-size: 1.25rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .enrollment-container {
+    padding: 1rem;
+  }
+
+  .search-box {
+    min-width: 100%;
+    margin-top: 1rem;
+  }
+
+  .path-card {
+    .path-thumbnail {
+      height: 120px;
+    }
+  }
+}
+
+// Custom scrollbar
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+
+  &:hover {
+    background: #94a3b8;
+  }
+}

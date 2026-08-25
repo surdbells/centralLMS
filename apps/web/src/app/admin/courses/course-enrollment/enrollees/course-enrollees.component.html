@@ -1,0 +1,478 @@
+<!-- course-enrollment/course-enrollees.component.html -->
+
+<div class="enrollees-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1><i class="bi bi-person-lines-fill"></i> Manage Course Enrollees</h1>
+      <p class="text-muted">View and manage users enrolled in courses</p>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-container" *ngIf="successMessage || errorMessage">
+    <div class="alert alert-success alert-dismissible" *ngIf="successMessage">
+      <i class="bi bi-check-circle me-2"></i>{{ successMessage }}
+      <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+    </div>
+    <div class="alert alert-danger alert-dismissible" *ngIf="errorMessage">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
+      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Loading courses...</p>
+  </div>
+
+  <!-- Course Selection -->
+  <div class="course-selector-section" *ngIf="!loading && showCourseSelector">
+    <div class="section-card">
+      <div class="section-header">
+        <h2>Select a Course</h2>
+        <p>Choose a course to manage its enrollees</p>
+      </div>
+
+      <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text"
+               class="form-control"
+               placeholder="Search courses..."
+               [(ngModel)]="courseSearch">
+      </div>
+
+      <div class="course-list">
+        <div class="course-item"
+             *ngFor="let course of filterCourses()"
+             (click)="selectCourse(course)">
+          <div class="course-thumb">
+            <img [src]="course.thumbnail_url || 'assets/images/course-placeholder.png'" [alt]="course.title">
+          </div>
+          <div class="course-details">
+            <h4>{{ course.title }}</h4>
+            <div class="course-meta">
+              <span class="category" *ngIf="course.category_name">{{ course.category_name }}</span>
+              <span class="enrollments">
+                <i class="bi bi-people"></i> {{ course.current_enrollments }} enrolled
+              </span>
+            </div>
+          </div>
+          <i class="bi bi-chevron-right"></i>
+        </div>
+
+        <div class="empty-state" *ngIf="filterCourses().length === 0">
+          <i class="bi bi-search"></i>
+          <p>No courses found</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enrollees Management -->
+  <div class="enrollees-management" *ngIf="!loading && !showCourseSelector && selectedCourse">
+    <!-- Course Header -->
+    <div class="course-header-card">
+      <div class="course-info">
+        <img [src]="selectedCourse.thumbnail_url || 'assets/images/course-placeholder.png'"
+             [alt]="selectedCourse.title"
+             class="course-thumb">
+        <div class="course-text">
+          <h2>{{ selectedCourse.title }}</h2>
+          <span class="category-badge" *ngIf="selectedCourse.category_name">
+            {{ selectedCourse.category_name }}
+          </span>
+        </div>
+      </div>
+      <button class="btn btn-secondary" (click)="changeCourse()">
+        <i class="bi bi-arrow-left me-1"></i> Change Course
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" *ngIf="stats">
+      <div class="stat-card">
+        <div class="stat-icon total">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ stats.total_enrolled || 0 }}</span>
+          <span class="stat-label">Total Enrolled</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon not-started">
+          <i class="bi bi-hourglass"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ stats.not_started || 0 }}</span>
+          <span class="stat-label">Not Started</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon in-progress">
+          <i class="bi bi-play-circle"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ stats.in_progress || 0 }}</span>
+          <span class="stat-label">In Progress</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon completed">
+          <i class="bi bi-check-circle"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ stats.completed || 0 }}</span>
+          <span class="stat-label">Completed</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon mandatory">
+          <i class="bi bi-exclamation-circle"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ stats.mandatory || 0 }}</span>
+          <span class="stat-label">Mandatory</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon progress">
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ formatProgress(stats.avg_progress) }}</span>
+          <span class="stat-label">Avg Progress</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar-card">
+      <div class="toolbar-left">
+        <div class="filter-group">
+          <label>Status:</label>
+          <select class="form-select form-select-sm"
+                  [(ngModel)]="statusFilter"
+                  (ngModelChange)="onStatusFilterChange()">
+            <option value="all">All Status</option>
+            <option value="not_started">Not Started</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="dropped">Dropped</option>
+          </select>
+        </div>
+
+        <div class="selection-info" *ngIf="selectedCount > 0">
+          <span class="badge bg-primary">{{ selectedCount }} selected</span>
+        </div>
+      </div>
+
+      <div class="toolbar-right">
+        <button class="btn btn-primary btn-sm" (click)="openAddUsersModal()">
+          <i class="bi bi-person-plus me-1"></i> Add Users
+        </button>
+
+        <div class="btn-group" *ngIf="selectedCount > 0">
+          <button class="btn btn-secondary btn-sm" (click)="openDueDateModal()">
+            <i class="bi bi-calendar-event me-1"></i> Set Due Date
+          </button>
+          <button class="btn btn-outline-warning btn-sm" (click)="initiateMandatory()">
+            <i class="bi bi-exclamation-circle me-1"></i> Set Mandatory
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="initiateOptional()">
+            <i class="bi bi-dash-circle me-1"></i> Set Optional
+          </button>
+          <button class="btn btn-outline-danger btn-sm" (click)="initiateUnenroll()">
+            <i class="bi bi-person-dash me-1"></i> Unenroll
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enrollees Table -->
+    <div class="table-card">
+      <div class="table-loading" *ngIf="loadingEnrollees">
+        <div class="spinner-border spinner-border-sm"></div>
+        <span>Loading enrollees...</span>
+      </div>
+
+      <div class="table-responsive" *ngIf="!loadingEnrollees">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th class="checkbox-col">
+                <input type="checkbox"
+                       class="form-check-input"
+                       [(ngModel)]="selectAll"
+                       (change)="toggleSelectAll()">
+              </th>
+              <th>User</th>
+              <th>Department</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th>Enrolled</th>
+              <th>Due Date</th>
+              <th>Mandatory</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let enrollee of enrollees"
+                [class.selected]="isSelected(enrollee)"
+                (click)="toggleEnrolleeSelection(enrollee)">
+              <td class="checkbox-col" (click)="$event.stopPropagation()">
+                <input type="checkbox"
+                       class="form-check-input"
+                       [checked]="isSelected(enrollee)"
+                       (change)="toggleEnrolleeSelection(enrollee)">
+              </td>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar">
+                    {{ enrollee.first_name.charAt(0) }}{{ enrollee.last_name.charAt(0) }}
+                  </div>
+                  <div class="user-info">
+                    <span class="user-name">{{ enrollee.first_name }} {{ enrollee.last_name }}</span>
+                    <span class="user-email">{{ enrollee.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="dept-badge" *ngIf="enrollee.department_name">
+                  {{ enrollee.department_name }}
+                </span>
+                <span class="text-muted" *ngIf="!enrollee.department_name">-</span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(enrollee.status)">
+                  {{ getStatusLabel(enrollee.status) }}
+                </span>
+              </td>
+              <td>
+                <div class="progress-cell">
+                  <div class="progress">
+                    <div class="progress-bar"
+                         [style.width.%]="enrollee.progress_percentage"
+                         [class.bg-success]="enrollee.progress_percentage === 100"></div>
+                  </div>
+                  <span class="progress-text">{{ formatProgress(enrollee.progress_percentage) }}</span>
+                </div>
+              </td>
+              <td>{{ formatDate(enrollee.enrolled_at) }}</td>
+              <td>
+                <span [class.text-danger]="enrollee.due_date && isOverdue(enrollee.due_date)">
+                  {{ formatDate(enrollee.due_date) }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="enrollee.is_mandatory ? 'bg-danger' : 'bg-black text-white'">
+                  {{ enrollee.is_mandatory ? 'Yes' : 'No' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state" *ngIf="enrollees.length === 0">
+          <i class="bi bi-people"></i>
+          <p>No enrollees found</p>
+          <button class="btn btn-primary btn-sm" (click)="openAddUsersModal()">
+            <i class="bi bi-person-plus me-1"></i> Add Users
+          </button>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="table-footer" *ngIf="totalPages > 1">
+        <div class="pagination-info">
+          Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalEnrollees) }}
+          of {{ totalEnrollees }}
+        </div>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <a class="page-link" (click)="goToPage(currentPage - 1)">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+            </li>
+            <li class="page-item"
+                *ngFor="let page of pageNumbers"
+                [class.active]="page === currentPage">
+              <a class="page-link" (click)="goToPage(page)">{{ page }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <a class="page-link" (click)="goToPage(currentPage + 1)">
+                <i class="bi bi-chevron-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Users Modal -->
+  <div class="modal-overlay" *ngIf="showAddUsersModal" (click)="closeAddUsersModal()">
+    <div class="modal-container" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="bi bi-person-plus"></i> Add Users to Course</h3>
+        <button class="btn-close" (click)="closeAddUsersModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text"
+                 class="form-control"
+                 placeholder="Search users..."
+                 [(ngModel)]="userSearch"
+                 (ngModelChange)="onUserSearchChange()">
+        </div>
+
+        <div class="user-selection-grid">
+          <!-- Available Users -->
+          <div class="users-list-panel">
+            <h5>Available Users</h5>
+            <div class="users-list" [class.loading]="loadingUnenrolled">
+              <div class="loading-overlay" *ngIf="loadingUnenrolled">
+                <div class="spinner-border spinner-border-sm"></div>
+              </div>
+
+              <div class="user-item"
+                   *ngFor="let user of unenrolledUsers"
+                   [class.selected]="isUserToAddSelected(user)"
+                   (click)="toggleUserToAdd(user)">
+                <div class="user-avatar small">
+                  {{ user.first_name.charAt(0) }}{{ user.last_name.charAt(0) }}
+                </div>
+                <div class="user-info">
+                  <span class="name">{{ user.first_name }} {{ user.last_name }}</span>
+                  <span class="email">{{ user.email }}</span>
+                </div>
+                <i class="bi" [class.bi-plus-circle]="!isUserToAddSelected(user)"
+                   [class.bi-check-circle-fill]="isUserToAddSelected(user)"></i>
+              </div>
+
+              <div class="empty-state small" *ngIf="unenrolledUsers.length === 0 && !loadingUnenrolled">
+                <p>No available users found</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected Users -->
+          <div class="selected-panel">
+            <h5>Selected ({{ selectedUsersToAdd.length }})</h5>
+            <div class="selected-list">
+              <div class="selected-chip" *ngFor="let user of selectedUsersToAdd">
+                <span>{{ user.first_name }} {{ user.last_name }}</span>
+                <button class="btn-remove" (click)="removeUserToAdd(user)">
+                  <i class="bi bi-x"></i>
+                </button>
+              </div>
+
+              <div class="empty-state small" *ngIf="selectedUsersToAdd.length === 0">
+                <p>Select users from the list</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeAddUsersModal()">Cancel</button>
+        <button class="btn btn-primary"
+                (click)="confirmAddUsers()"
+                [disabled]="selectedUsersToAdd.length === 0 || processing">
+          <span *ngIf="!processing">
+            <i class="bi bi-person-plus me-1"></i> Add {{ selectedUsersToAdd.length }} User(s)
+          </span>
+          <span *ngIf="processing">
+            <span class="spinner-border spinner-border-sm me-1"></span> Adding...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Due Date Modal -->
+  <div class="modal-overlay" *ngIf="showDueDateModal" (click)="closeDueDateModal()">
+    <div class="modal-container small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="bi bi-calendar-event"></i> Set Due Date</h3>
+        <button class="btn-close" (click)="closeDueDateModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <p>Set due date for {{ selectedCount }} selected enrollment(s).</p>
+        <p class="text-muted small">Leave empty to remove the due date.</p>
+
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input type="date" class="form-control" [(ngModel)]="newDueDate">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDueDateModal()">Cancel</button>
+        <button class="btn btn-primary"
+                (click)="confirmDueDateUpdate()"
+                [disabled]="processing">
+          <span *ngIf="!processing">Update Due Date</span>
+          <span *ngIf="processing">
+            <span class="spinner-border spinner-border-sm me-1"></span> Updating...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Action Modal -->
+  <div class="modal-overlay" *ngIf="showConfirmModal" (click)="closeConfirmModal()">
+    <div class="modal-container small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>
+          <i class="bi"
+             [class.bi-person-dash]="confirmAction === 'unenroll'"
+             [class.bi-exclamation-circle]="confirmAction === 'mandatory'"
+             [class.bi-dash-circle]="confirmAction === 'optional'"></i>
+          {{ confirmAction === 'unenroll' ? 'Confirm Unenroll' :
+             confirmAction === 'mandatory' ? 'Set as Mandatory' : 'Set as Optional' }}
+        </h3>
+        <button class="btn-close" (click)="closeConfirmModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <p *ngIf="confirmAction === 'unenroll'">
+          Are you sure you want to unenroll <strong>{{ selectedCount }}</strong> user(s) from this course?
+          This action will mark their enrollment as dropped.
+        </p>
+        <p *ngIf="confirmAction === 'mandatory'">
+          Set <strong>{{ selectedCount }}</strong> enrollment(s) as mandatory?
+          Users will be required to complete this course.
+        </p>
+        <p *ngIf="confirmAction === 'optional'">
+          Set <strong>{{ selectedCount }}</strong> enrollment(s) as optional?
+          Users will not be required to complete this course.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeConfirmModal()">Cancel</button>
+        <button class="btn"
+                [class.btn-danger]="confirmAction === 'unenroll'"
+                [class.btn-warning]="confirmAction === 'mandatory'"
+                [class.btn-secondary]="confirmAction === 'optional'"
+                (click)="confirmAction === 'unenroll' ? confirmUnenroll() : confirmMandatoryChange()"
+                [disabled]="processing">
+          <span *ngIf="!processing">Confirm</span>
+          <span *ngIf="processing">
+            <span class="spinner-border spinner-border-sm me-1"></span> Processing...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

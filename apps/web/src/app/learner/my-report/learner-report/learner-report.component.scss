@@ -1,0 +1,1027 @@
+// learner-report/learner-report.component.scss
+
+// Light Theme Variables
+$primary-color: #303234;
+$primary-dark:   #696969;
+$primary-light: rgba(201, 162, 39, 0.1);
+
+$bg-primary: #f8f9fa;
+$bg-secondary: #ffffff;
+$bg-tertiary: #f1f3f5;
+$text-primary: #212529;
+$text-secondary: #6c757d;
+$text-muted: #adb5bd;
+$border-color: #e9ecef;
+
+$success-color: #28a745;
+$warning-color: #ffc107;
+$danger-color: #dc3545;
+$info-color: #17a2b8;
+$purple-color: #6f42c1;
+$orange-color: #fd7e14;
+$teal-color: #20c997;
+
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+$border-radius: 0.5rem;
+$border-radius-lg: 0.75rem;
+
+// Container
+.learner-report-container {
+  min-height: 100vh;
+  background: #ffffff;
+  padding-bottom: 3rem;
+}
+
+// Header
+.page-header {
+  background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+  padding: 1.5rem 2rem;
+
+  .header-content {
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .header-text {
+    h1 {
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+
+      i { margin-right: 0.5rem; }
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.85);
+      margin: 0.25rem 0 0 0;
+      font-size: 0.875rem;
+    }
+  }
+
+  .header-actions .btn {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #fff;
+    }
+  }
+}
+
+// Tabs
+.tabs-container {
+  background: #ffffff;
+  border-bottom: 1px solid $border-color;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .tabs {
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    padding: 0 1rem;
+
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .tab {
+    padding: 1rem 1.5rem;
+    border: none;
+    background: transparent;
+    color: $text-secondary;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+
+    i { margin-right: 0.5rem; }
+
+    &:hover {
+      color: $primary-color;
+      background: $primary-light;
+    }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+    }
+  }
+}
+
+// Tab Content
+.tab-content {
+  margin: 0 auto;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+// Loading State
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: $text-secondary;
+}
+
+// ==========================================
+// STATS GRID
+// ==========================================
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: $bg-secondary;
+  border-radius: $border-radius-lg;
+  padding: 1.25rem;
+  box-shadow: $shadow-sm;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+  }
+
+  &.primary::before { background: $primary-color; }
+  &.success::before { background: $success-color; }
+  &.info::before { background: $info-color; }
+  &.warning::before { background: $warning-color; }
+  &.danger::before { background: $danger-color; }
+  &.purple::before { background: $purple-color; }
+  &.orange::before { background: $orange-color; }
+  &.teal::before { background: $teal-color; }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+  }
+
+  &.primary .stat-icon { background: $primary-light; color: $primary-color; }
+  &.success .stat-icon { background: rgba($success-color, 0.1); color: $success-color; }
+  &.info .stat-icon { background: rgba($info-color, 0.1); color: $info-color; }
+  &.warning .stat-icon { background: rgba($warning-color, 0.15); color: darken($warning-color, 15%); }
+  &.danger .stat-icon { background: rgba($danger-color, 0.1); color: $danger-color; }
+  &.purple .stat-icon { background: rgba($purple-color, 0.1); color: $purple-color; }
+  &.orange .stat-icon { background: rgba($orange-color, 0.1); color: $orange-color; }
+  &.teal .stat-icon { background: rgba($teal-color, 0.1); color: $teal-color; }
+
+  .stat-content {
+    .stat-value {
+      display: block;
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.8125rem;
+      color: $text-secondary;
+    }
+  }
+
+  .stat-breakdown {
+    font-size: 0.75rem;
+    color: $text-muted;
+
+    span {
+      display: inline-block;
+      margin-right: 0.75rem;
+    }
+
+    .completed { color: $success-color; }
+    .in-progress { color: $info-color; }
+  }
+
+  .stat-progress {
+    .progress {
+      height: 6px;
+      background: $bg-tertiary;
+      border-radius: 3px;
+
+      .progress-bar {
+        background: $success-color;
+        border-radius: 3px;
+      }
+    }
+  }
+}
+
+// ==========================================
+// OVERVIEW COLUMNS
+// ==========================================
+
+.overview-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overview-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// ==========================================
+// CARDS
+// ==========================================
+
+.card {
+  background: $bg-secondary;
+  border-radius: $border-radius-lg;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+
+  .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid $border-color;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      i { color: $primary-color; }
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+}
+
+// ==========================================
+// BAR CHART
+// ==========================================
+
+.bar-chart, .daily-chart, .monthly-chart {
+  .chart-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $text-muted;
+      border-radius: 2px;
+    }
+  }
+
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    height: 150px;
+    min-width: fit-content;
+
+    &.horizontal {
+      min-width: 600px;
+    }
+  }
+
+  .bar-wrapper {
+    flex: 1;
+    min-width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .bar {
+    width: 100%;
+    max-width: 50px;
+    background: linear-gradient(180deg, $primary-color 0%, $primary-dark 100%);
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+    position: relative;
+    transition: height 0.3s ease;
+
+    &.has-completion {
+      background: linear-gradient(180deg, $success-color 0%, darken($success-color, 10%) 100%);
+    }
+
+    .bar-value {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: $text-secondary;
+      white-space: nowrap;
+    }
+
+    .bar-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: $text-primary;
+      color: #fff;
+      padding: 0.375rem 0.625rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    &:hover .bar-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .bar-label {
+    font-size: 0.6875rem;
+    color: $text-muted;
+    white-space: nowrap;
+  }
+}
+
+// ==========================================
+// CATEGORY LIST
+// ==========================================
+
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-item {
+  .category-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.375rem;
+
+    .category-name {
+      font-weight: 500;
+      font-size: 0.875rem;
+    }
+
+    .category-stats {
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+  }
+
+  .category-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .bar-bg {
+      flex: 1;
+      height: 8px;
+      background: $bg-tertiary;
+      border-radius: 4px;
+      overflow: hidden;
+
+      .bar-fill {
+        height: 100%;
+        background: $primary-color;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+      }
+    }
+
+    .bar-percent {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: $text-secondary;
+      min-width: 40px;
+      text-align: right;
+    }
+  }
+}
+
+// ==========================================
+// ACTIVITY LIST
+// ==========================================
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: $border-radius;
+  transition: background 0.15s;
+
+  &:hover {
+    background: $bg-tertiary;
+  }
+
+  .activity-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+
+    &.lesson { background: rgba($info-color, 0.1); color: $info-color; }
+    &.course_completed { background: rgba($success-color, 0.1); color: $success-color; }
+    &.certificate { background: rgba($warning-color, 0.15); color: darken($warning-color, 15%); }
+    &.quiz { background: rgba($purple-color, 0.1); color: $purple-color; }
+  }
+
+  .activity-content {
+    flex: 1;
+    min-width: 0;
+
+    .activity-title {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .activity-meta {
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+  }
+}
+
+// ==========================================
+// QUICK STATS
+// ==========================================
+
+.quick-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quick-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid $border-color;
+
+  &:last-child { border-bottom: none; }
+
+  .label {
+    font-size: 0.875rem;
+    color: $text-secondary;
+  }
+
+  .value {
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+}
+
+// ==========================================
+// COURSE PROGRESS LIST
+// ==========================================
+
+.course-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.course-progress-item {
+  background: $bg-secondary;
+  border-radius: $border-radius-lg;
+  padding: 1.25rem;
+  box-shadow: $shadow-sm;
+
+  &.overdue {
+    border-left: 4px solid $danger-color;
+  }
+
+  .course-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .course-info {
+    flex: 1;
+
+    h4 {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+      cursor: pointer;
+
+      &:hover { color: $primary-color; }
+    }
+
+    .course-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+
+      .category {
+        font-size: 0.75rem;
+        color: $text-muted;
+        background: $bg-tertiary;
+        padding: 0.125rem 0.5rem;
+        border-radius: 4px;
+      }
+
+      .badge {
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+      }
+
+      .mandatory {
+        font-size: 0.75rem;
+        color: $danger-color;
+
+        i { margin-right: 0.25rem; }
+      }
+    }
+  }
+
+  .course-progress {
+    .progress-circle {
+      width: 60px;
+      height: 60px;
+      position: relative;
+
+      svg {
+        transform: rotate(-90deg);
+        width: 100%;
+        height: 100%;
+
+        .bg {
+          fill: none;
+          stroke: $bg-tertiary;
+          stroke-width: 4;
+        }
+
+        .progress {
+          fill: none;
+          stroke: $primary-color;
+          stroke-width: 4;
+          stroke-linecap: round;
+        }
+      }
+
+      .progress-text {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8125rem;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .course-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid $border-color;
+
+    .detail {
+      .label {
+        display: block;
+        font-size: 0.6875rem;
+        color: $text-muted;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .value {
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .course-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+  }
+}
+
+// ==========================================
+// ACTIVITY TAB
+// ==========================================
+
+.activity-controls {
+  margin-bottom: 1.5rem;
+
+  .period-selector {
+    display: flex;
+    gap: 0.5rem;
+    background: $bg-secondary;
+    padding: 0.375rem;
+    border-radius: $border-radius;
+    width: fit-content;
+
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      border-radius: $border-radius;
+      font-size: 0.875rem;
+      cursor: pointer;
+      color: $text-secondary;
+      transition: all 0.2s;
+
+      &:hover {
+        background: $bg-tertiary;
+      }
+
+      &.active {
+        background: $primary-color;
+        color: #fff;
+      }
+    }
+  }
+}
+
+.activity-chart-card {
+  .card-body {
+    padding: 1.5rem;
+  }
+}
+
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid $border-color;
+  }
+
+  th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: $text-muted;
+    background: $bg-tertiary;
+  }
+
+  td {
+    font-size: 0.875rem;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+// ==========================================
+// QUIZZES LIST
+// ==========================================
+
+.quizzes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quiz-item {
+  background: $bg-secondary;
+  border-radius: $border-radius-lg;
+  padding: 1.25rem;
+  box-shadow: $shadow-sm;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+
+  &.passed { border-left: 4px solid $success-color; }
+  &.failed { border-left: 4px solid $danger-color; }
+
+  .quiz-result {
+    .score-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba($danger-color, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      &.passed {
+        background: rgba($success-color, 0.1);
+
+        .score { color: $success-color; }
+      }
+
+      .score {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: $danger-color;
+        line-height: 1;
+      }
+
+      .max {
+        font-size: 0.6875rem;
+        color: $text-muted;
+      }
+    }
+  }
+
+  .quiz-info {
+    flex: 1;
+
+    h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 0.25rem 0;
+    }
+
+    .course-name {
+      font-size: 0.8125rem;
+      color: $text-secondary;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .quiz-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: $text-muted;
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+    }
+  }
+
+  .quiz-date {
+    text-align: right;
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.625rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      margin-bottom: 0.375rem;
+    }
+
+    .date {
+      display: block;
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+  }
+}
+
+// ==========================================
+// CERTIFICATES GRID
+// ==========================================
+
+.certificates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.certificate-card {
+  background: $bg-secondary;
+  border-radius: $border-radius-lg;
+  padding: 1.5rem;
+  box-shadow: $shadow-md;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: $success-color;
+  }
+
+  &.expired::before { background: $danger-color; }
+  &.expiring_soon::before { background: $warning-color; }
+
+  .certificate-badge {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #fff;
+  }
+
+  .certificate-content {
+    flex: 1;
+
+    h4 {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      margin: 0 0 0.375rem 0;
+    }
+
+    .cert-number {
+      font-size: 0.8125rem;
+      color: $text-secondary;
+      margin: 0 0 0.75rem 0;
+    }
+
+    .cert-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      color: $text-muted;
+      margin-bottom: 0.75rem;
+
+      span {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+      }
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.625rem;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+    }
+  }
+
+  .certificate-actions {
+    padding-top: 1rem;
+    border-top: 1px solid $border-color;
+  }
+}
+
+// ==========================================
+// STATUS CLASSES
+// ==========================================
+
+.status-not-started {
+  background: rgba($text-secondary, 0.1);
+  color: $text-secondary;
+}
+
+.status-in-progress {
+  background: rgba($info-color, 0.1);
+  color: $info-color;
+}
+
+.status-completed, .status-valid {
+  background: rgba($success-color, 0.1);
+  color: $success-color;
+}
+
+.status-expired {
+  background: rgba($danger-color, 0.1);
+  color: $danger-color;
+}
+
+.status-expiring {
+  background: rgba($warning-color, 0.15);
+  color: darken($warning-color, 15%);
+}
+
+// ==========================================
+// EMPTY STATE
+// ==========================================
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: $text-muted;
+
+  &.full-width {
+    grid-column: 1 / -1;
+  }
+
+  i {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+  }
+
+  span {
+    font-size: 0.875rem;
+  }
+}
+
+// ==========================================
+// RESPONSIVE
+// ==========================================
+
+@media (max-width: 768px) {
+  .page-header .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .quiz-item {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .quiz-date {
+      text-align: left;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+  }
+
+  .certificates-grid {
+    grid-template-columns: 1fr;
+  }
+}

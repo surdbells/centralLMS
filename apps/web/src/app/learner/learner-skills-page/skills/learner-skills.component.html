@@ -1,0 +1,348 @@
+<!-- skills/learner/learner-skills.component.html -->
+
+<div class="learner-skills-container">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <h1 class="h3 mb-1">My Skills</h1>
+        <p class="text-muted mb-0">Track your acquired skills and competencies</p>
+      </div>
+      <div class="d-flex gap-2">
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-sm"
+                  [class.btn-primary]="viewMode === 'grid'"
+                  [class.btn-secondary]="viewMode !== 'grid'"
+                  (click)="viewMode = 'grid'">
+            <i class="bi bi-grid-3x3-gap"></i>
+          </button>
+          <button type="button" class="btn btn-sm"
+                  [class.btn-primary]="viewMode === 'list'"
+                  [class.btn-secondary]="viewMode !== 'list'"
+                  (click)="viewMode = 'list'">
+            <i class="bi bi-list"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-acquired">
+        <div class="stat-icon">
+          <i class="bi bi-star-fill"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ totalSkillsCount }}</div>
+          <div class="stat-label">Skills Acquired</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-progress">
+        <div class="stat-icon">
+          <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ inProgressCount }}</div>
+          <div class="stat-label">In Progress</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-expert">
+        <div class="stat-icon">
+          <i class="bi bi-trophy"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ expertSkillsCount }}</div>
+          <div class="stat-label">Expert Level</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-categories">
+        <div class="stat-icon">
+          <i class="bi bi-diagram-3"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ categoryCount }}</div>
+          <div class="stat-label">Categories</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-pills skill-tabs mb-4">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'acquired'" (click)="activeTab = 'acquired'">
+        <i class="bi bi-star-fill me-2"></i>Acquired
+        <span class="badge bg-black text-white ms-2">{{ totalSkillsCount }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'progress'" (click)="activeTab = 'progress'">
+        <i class="bi bi-hourglass-split me-2"></i>In Progress
+        <span class="badge bg-black text-white ms-2">{{ inProgressCount }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">
+        <i class="bi bi-collection me-2"></i>All Skills
+        <span class="badge bg-black text-white ms-2">{{ skillProgress.length }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="text-muted mt-3">Loading your skills...</p>
+  </div>
+
+  <!-- ==================== ACQUIRED SKILLS TAB ==================== -->
+  <div *ngIf="!loading && activeTab === 'acquired'">
+    <!-- Filter -->
+    <div class="d-flex justify-content-end mb-3">
+      <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLevel">
+        <option value="">All Levels</option>
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="expert">Expert</option>
+      </select>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="acquiredSkills.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <i class="bi bi-star"></i>
+      </div>
+      <h5>No skills acquired yet</h5>
+      <p class="text-muted">Complete courses to acquire new skills and competencies</p>
+      <button class="btn btn-primary" routerLink="/learning">
+        <i class="bi bi-book me-2"></i>Browse Courses
+      </button>
+    </div>
+
+    <!-- Skills by Category -->
+    <div *ngIf="acquiredSkills.length > 0">
+      <div class="category-section" *ngFor="let category of skillsByCategory; trackBy: trackByCategoryName">
+        <div class="category-header">
+          <div class="category-color" [style.background]="category.category_color"></div>
+          <h5 class="category-title mb-0">{{ category.category_name }}</h5>
+          <span class="skill-count">{{ category.total_skills }} skill(s)</span>
+        </div>
+
+        <!-- Grid View -->
+        <div class="row g-3" *ngIf="viewMode === 'grid'">
+          <div class="col-sm-6 col-md-4 col-lg-3" *ngFor="let skill of category.skills; trackBy: trackBySkillId">
+            <div class="skill-card acquired" (click)="viewSkillCourses(skill)">
+              <div class="skill-card-badge">
+                <span class="badge" [ngClass]="getLevelBadgeClass(skill.highest_proficiency)">
+                  {{ skill.highest_proficiency | titlecase }}
+                </span>
+              </div>
+              <div class="skill-icon" [style.background]="skill.color + '20'" [style.color]="skill.color">
+                <i [class]="skill.icon || 'bi-star'"></i>
+              </div>
+              <h6 class="skill-name">{{ skill.skill_name }}</h6>
+              <div class="skill-meta">
+                <span><i class="bi bi-book me-1"></i>{{ skill.courses_completed }} course(s)</span>
+              </div>
+              <div class="skill-date">
+                Acquired {{ formatRelativeDate(skill.last_acquired) }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div class="skill-list" *ngIf="viewMode === 'list'">
+          <div class="skill-list-item" *ngFor="let skill of category.skills; trackBy: trackBySkillId"
+               (click)="viewSkillCourses(skill)">
+            <div class="skill-icon-sm" [style.background]="skill.color + '20'" [style.color]="skill.color">
+              <i [class]="skill.icon || 'bi-star'"></i>
+            </div>
+            <div class="skill-info">
+              <div class="skill-name">{{ skill.skill_name }}</div>
+              <small class="text-muted">{{ skill.description || 'No description' }}</small>
+            </div>
+            <div class="skill-stats text-end">
+              <span class="badge mb-1" [ngClass]="getLevelBadgeClass(skill.highest_proficiency)">
+                {{ skill.highest_proficiency | titlecase }}
+              </span>
+              <small class="text-muted d-block">{{ skill.courses_completed }} course(s)</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== IN PROGRESS TAB ==================== -->
+  <div *ngIf="!loading && activeTab === 'progress'">
+    <!-- Empty State -->
+    <div *ngIf="inProgressSkills.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <i class="bi bi-hourglass"></i>
+      </div>
+      <h5>No skills in progress</h5>
+      <p class="text-muted">Start a course to begin acquiring new skills</p>
+    </div>
+
+    <!-- In Progress Skills -->
+    <div class="row g-3" *ngIf="inProgressSkills.length > 0">
+      <div class="col-md-6 col-lg-4" *ngFor="let skill of inProgressSkills; trackBy: trackBySkillId">
+        <div class="skill-progress-card" (click)="viewSkillCourses(skill)">
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="skill-icon" [style.background]="skill.color + '20'" [style.color]="skill.color">
+              <i [class]="skill.icon || 'bi-star'"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ skill.skill_name }}</h6>
+              <span class="text-muted small">{{ skill.category_name || 'Uncategorized' }}</span>
+            </div>
+          </div>
+
+          <div class="progress-info mb-2">
+            <span class="text-muted small">Progress</span>
+            <span class="fw-medium">{{ skill.progress_percentage }}%</span>
+          </div>
+          <div class="progress mb-3" style="height: 6px;">
+            <div class="progress-bar" [ngClass]="getProgressBarClass(skill.progress_percentage)"
+                 [style.width.%]="skill.progress_percentage"></div>
+          </div>
+
+          <div class="d-flex justify-content-between text-muted small">
+            <span><i class="bi bi-check-circle me-1"></i>{{ skill.completed_courses }}/{{ skill.total_courses }} courses</span>
+            <span><i class="bi bi-play-circle me-1"></i>{{ skill.in_progress_courses }} in progress</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ALL SKILLS TAB ==================== -->
+  <div *ngIf="!loading && activeTab === 'all'">
+    <!-- Filter -->
+    <div class="d-flex justify-content-end mb-3">
+      <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLevel">
+        <option value="">All Levels</option>
+        <option value="beginner">Beginner</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="expert">Expert</option>
+      </select>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4" *ngFor="let skill of allSkillProgress; trackBy: trackBySkillId">
+        <div class="skill-progress-card" [class.acquired]="skill.is_acquired" (click)="viewSkillCourses(skill)">
+          <div class="skill-status-badge" *ngIf="skill.is_acquired">
+            <i class="bi bi-check-circle-fill text-success"></i>
+          </div>
+
+          <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="skill-icon" [style.background]="skill.color + '20'" [style.color]="skill.color">
+              <i [class]="skill.icon || 'bi-star'"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ skill.skill_name }}</h6>
+              <span class="text-muted small">{{ skill.category_name || 'Uncategorized' }}</span>
+            </div>
+            <span class="badge" [ngClass]="getLevelBadgeClass(skill.skill_level)">
+              {{ skill.skill_level | titlecase }}
+            </span>
+          </div>
+
+          <div class="progress-info mb-2">
+            <span class="text-muted small">{{ skill.is_acquired ? 'Completed' : 'Progress' }}</span>
+            <span class="fw-medium">{{ skill.progress_percentage }}%</span>
+          </div>
+          <div class="progress mb-3" style="height: 6px;">
+            <div class="progress-bar" [ngClass]="skill.is_acquired ? 'bg-success' : getProgressBarClass(skill.progress_percentage)"
+                 [style.width.%]="skill.progress_percentage"></div>
+          </div>
+
+          <div class="d-flex justify-content-between text-muted small">
+            <span><i class="bi bi-check-circle me-1"></i>{{ skill.completed_courses }}/{{ skill.total_courses }} courses</span>
+            <span *ngIf="!skill.is_acquired && skill.in_progress_courses > 0">
+              <i class="bi bi-play-circle me-1"></i>{{ skill.in_progress_courses }} active
+            </span>
+            <span *ngIf="skill.is_acquired" class="text-success">
+              <i class="bi bi-patch-check me-1"></i>Acquired
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="allSkillProgress.length === 0" class="empty-state">
+      <div class="empty-icon">
+        <i class="bi bi-collection"></i>
+      </div>
+      <h5>No skills available</h5>
+      <p class="text-muted">Enroll in courses to start building your skills</p>
+    </div>
+  </div>
+</div>
+
+<!-- Courses Modal -->
+<div class="modal fade" [class.show]="showCoursesModal" [style.display]="showCoursesModal ? 'block' : 'none'"
+     tabindex="-1" *ngIf="showCoursesModal">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="d-flex align-items-center gap-3">
+          <div class="skill-icon-modal"
+               [style.background]="(selectedSkill?.color || '#303234') + '20'"
+               [style.color]="selectedSkill?.color || '#303234'">
+            <i [class]="selectedSkill?.icon || 'bi-star'"></i>
+          </div>
+          <div>
+            <h5 class="modal-title mb-0">{{ selectedSkill?.skill_name }}</h5>
+            <small class="text-muted">Courses teaching this skill</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closeCoursesModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="skillCourses.length === 0" class="text-center py-4 text-muted">
+          <i class="bi bi-book display-4 d-block mb-2"></i>
+          No courses are linked to this skill
+        </div>
+        <div class="course-list" *ngIf="skillCourses.length > 0">
+          <div class="course-item" *ngFor="let course of skillCourses" (click)="goToCourse(course.course_id)">
+            <div class="course-thumb">
+              <img *ngIf="course.thumbnail_url" [src]="course.thumbnail_url" alt="">
+              <i *ngIf="!course.thumbnail_url" class="bi bi-book"></i>
+            </div>
+            <div class="course-info">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="course-title">{{ course.title }}</span>
+                <span class="badge bg-warning-subtle text-warning" *ngIf="course.is_primary">Primary</span>
+              </div>
+              <small class="text-muted">
+                {{ course.category_name || 'Uncategorized' }}
+                <span *ngIf="course.duration_minutes"> · {{ course.duration_minutes }}h</span>
+              </small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge" [ngClass]="getLevelBadgeClass(course.proficiency_level)">
+                {{ course.proficiency_level | titlecase }}
+              </span>
+              <i class="bi bi-chevron-right text-muted"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showCoursesModal"></div>

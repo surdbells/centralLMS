@@ -1,0 +1,571 @@
+<!-- Admin Dashboard -->
+<div class="container-fluid p-4">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+    <div class="text-center">
+      <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="text-muted">Loading dashboard...</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <ng-container *ngIf="!isLoading && dashboard">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-1">Admin Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back! Here's what's happening with your LMS.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <select class="form-select form-select-sm" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()" style="width: auto;">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">This Year</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" (click)="refreshDashboard()">
+          <tui-icon icon="@tui.refresh-cw"></tui-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Stats Row -->
+    <div class="row g-3 mb-4">
+      <!-- Total Users -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="stat-icon bg-primary bg-opacity-10">
+                <tui-icon icon="@tui.users" class="text-primary"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_users) }}</h3>
+            <p class="text-muted small mb-1">Total Users</p>
+            <small class="text-success">
+              <tui-icon icon="@tui.user-plus"></tui-icon>
+              {{ dashboard.overview.active_learners }} active
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Courses -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="stat-icon bg-info bg-opacity-10">
+                <tui-icon icon="@tui.book-open" class="text-info"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_courses) }}</h3>
+            <p class="text-muted small mb-1">Total Courses</p>
+            <small class="text-info">
+              <tui-icon icon="@tui.check"></tui-icon>
+              {{ dashboard.overview.published_courses }} published
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enrollments -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="stat-icon bg-warning bg-opacity-10">
+                <tui-icon icon="@tui.user-check" class="text-warning"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_enrollments) }}</h3>
+            <p class="text-muted small mb-1">Enrollments</p>
+            <small [ngClass]="dashboard.overview.enrollment_growth >= 0 ? 'text-success' : 'text-danger'">
+              <tui-icon [icon]="dashboard.overview.enrollment_growth >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
+              {{ formatPercentage(Math.abs(dashboard.overview.enrollment_growth)) }} this month
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completions -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="stat-icon bg-success bg-opacity-10">
+                <tui-icon icon="@tui.award" class="text-success"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_completions) }}</h3>
+            <p class="text-muted small mb-1">Completions</p>
+            <small [ngClass]="dashboard.overview.completion_growth >= 0 ? 'text-success' : 'text-danger'">
+              <tui-icon [icon]="dashboard.overview.completion_growth >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
+              {{ formatPercentage(Math.abs(dashboard.overview.completion_growth)) }} this month
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completion Rate -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="stat-icon bg-purple bg-opacity-10">
+                <tui-icon icon="@tui.percent" class="text-purple"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatPercentage(dashboard.overview.completion_rate) }}</h3>
+            <p class="text-muted small mb-1">Completion Rate</p>
+            <small class="text-muted">
+              {{ dashboard.overview.in_progress_count }} in progress
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Learning Hours -->
+      <div class="col-6 col-md-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 stat-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <div class="stat-icon bg-danger bg-opacity-10">
+                <tui-icon icon="@tui.clock" class="text-danger"></tui-icon>
+              </div>
+            </div>
+            <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_learning_hours) }}h</h3>
+            <p class="text-muted small mb-1">Learning Hours</p>
+            <small class="text-muted">
+              {{ dashboard.overview.total_certificates }} certificates
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row g-4">
+
+      <!-- Left Column -->
+      <div class="col-lg-8">
+
+        <!-- Enrollment & Completion Trends Chart -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.trending-up" class="me-2 text-primary"></tui-icon>
+              Enrollment & Completion Trends
+            </h5>
+            <div class="btn-group btn-group-sm">
+              <button class="btn" [class.btn-primary]="chartView === 'monthly'" [class.btn-secondary]="chartView !== 'monthly'" (click)="chartView = 'monthly'">Monthly</button>
+              <button class="btn" [class.btn-primary]="chartView === 'daily'" [class.btn-secondary]="chartView !== 'daily'" (click)="chartView = 'daily'">Daily</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Simple Bar Chart -->
+            <div class="chart-container" style="height: 280px;">
+              <div class="d-flex align-items-end justify-content-between h-100 gap-1" *ngIf="chartView === 'monthly'">
+                <div *ngFor="let item of dashboard.trends.enrollment_trend" class="chart-bar-group text-center flex-fill">
+                  <div class="d-flex flex-column align-items-center" style="height: 240px; justify-content: flex-end;">
+                    <div class="chart-bar bg-primary" [style.height.px]="getBarHeight(item.value, getMaxEnrollment())"></div>
+                  </div>
+                  <small class="text-muted d-block mt-2" style="font-size: 10px;">{{ item.month }}</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-end justify-content-between h-100 gap-0" *ngIf="chartView === 'daily'" style="overflow-x: auto;">
+                <div *ngFor="let item of dashboard.trends.daily_trend" class="chart-bar-group text-center" style="min-width: 20px;">
+                  <div class="d-flex flex-column align-items-center gap-1" style="height: 240px; justify-content: flex-end;">
+                    <div class="chart-bar bg-primary" [style.height.px]="getBarHeight(item.enrollments, getMaxDaily())" style="width: 8px;"></div>
+                    <div class="chart-bar bg-success" [style.height.px]="getBarHeight(item.completions, getMaxDaily())" style="width: 8px;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="d-flex justify-content-center gap-4 mt-3">
+              <span class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary">&nbsp;&nbsp;</span>
+                <small class="text-muted">Enrollments</small>
+              </span>
+              <span class="d-flex align-items-center gap-2">
+                <span class="badge bg-success">&nbsp;&nbsp;</span>
+                <small class="text-muted">Completions</small>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Courses & Department Stats -->
+        <div class="row g-4">
+          <!-- Top Courses -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                  <tui-icon icon="@tui.star" class="me-2 text-warning"></tui-icon>
+                  Top Courses
+                </h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                  <div *ngFor="let course of dashboard.top_courses; let i = index" class="list-group-item d-flex align-items-center">
+                    <div class="rank-badge me-3" [ngClass]="{
+                      'bg-warning': i === 0,
+                      'bg-secondary': i === 1,
+                      'bg-danger': i === 2,
+                      'bg-black text-white': i > 2
+                    }">{{ i + 1 }}</div>
+                    <div class="flex-grow-1 min-width-0">
+                      <h6 class="mb-0 text-truncate">{{ course.title }}</h6>
+                      <small class="text-muted">{{ course.enrollments }} enrolled</small>
+                    </div>
+                    <div class="text-end">
+                      <div class="fw-bold text-success">{{ formatPercentage(course.completion_rate) }}</div>
+                      <small class="text-muted">completion</small>
+                    </div>
+                  </div>
+                  <div *ngIf="!dashboard.top_courses?.length" class="list-group-item text-center text-muted py-4">
+                    No courses yet
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Department Stats -->
+          <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-transparent border-0">
+                <h5 class="mb-0">
+                  <tui-icon icon="@tui.building" class="me-2 text-info"></tui-icon>
+                  Department Performance
+                </h5>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let dept of dashboard.department_stats.slice(0, 5)" class="mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-truncate" style="max-width: 150px;">{{ dept.department }}</span>
+                    <span class="fw-bold">{{ formatPercentage(dept.completion_rate) }}</span>
+                  </div>
+                  <div class="progress" style="height: 6px;">
+                    <div class="progress-bar" [ngClass]="{
+                      'bg-success': dept.completion_rate >= 75,
+                      'bg-warning': dept.completion_rate >= 50 && dept.completion_rate < 75,
+                      'bg-danger': dept.completion_rate < 50
+                    }" [style.width.%]="dept.completion_rate"></div>
+                  </div>
+                  <small class="text-muted">{{ dept.total_users }} users • {{ dept.completions }}/{{ dept.total_enrollments }} completed</small>
+                </div>
+                <div *ngIf="!dashboard.department_stats?.length" class="text-center text-muted py-4">
+                  No department data
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column -->
+      <div class="col-lg-4">
+
+        <!-- Learner Status Distribution -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>
+              Learner Status
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-center mb-4">
+              <!-- Donut Chart Placeholder -->
+              <div class="donut-chart">
+                <svg viewBox="0 0 120 120" class="donut-svg">
+                  <circle class="donut-ring" cx="60" cy="60" r="50"></circle>
+                  <circle class="donut-segment completed" cx="60" cy="60" r="50"
+                          [style.strokeDasharray]="getDonutSegment('completed')"
+                          [style.strokeDashoffset]="getDonutOffset('completed')"></circle>
+                  <circle class="donut-segment in-progress" cx="60" cy="60" r="50"
+                          [style.strokeDasharray]="getDonutSegment('in_progress')"
+                          [style.strokeDashoffset]="getDonutOffset('in_progress')"></circle>
+                  <circle class="donut-segment not-started" cx="60" cy="60" r="50"
+                          [style.strokeDasharray]="getDonutSegment('not_started')"
+                          [style.strokeDashoffset]="getDonutOffset('not_started')"></circle>
+                </svg>
+                <div class="donut-center">
+                  <span class="donut-value">{{ dashboard.overview.total_enrollments }}</span>
+                  <span class="donut-label">Total</span>
+                </div>
+              </div>
+            </div>
+            <div class="d-flex flex-column gap-2">
+              <div *ngFor="let status of dashboard.learners.by_status" class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="status-dot" [ngClass]="{
+                    'bg-success': status.status === 'completed',
+                    'bg-primary': status.status === 'in_progress',
+                    'bg-secondary': status.status === 'not_started',
+                    'bg-danger': status.status === 'dropped'
+                  }"></span>
+                  <span class="text-capitalize">{{ formatStatus(status.status) }}</span>
+                </div>
+                <span class="fw-bold">{{ status.count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Compliance Status -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.shield" class="me-2 text-success"></tui-icon>
+              Compliance Status
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="text-center mb-3">
+              <div class="compliance-gauge">
+                <div class="gauge-value" [ngClass]="{
+                  'text-success': dashboard.compliance.compliance_rate >= 80,
+                  'text-warning': dashboard.compliance.compliance_rate >= 60 && dashboard.compliance.compliance_rate < 80,
+                  'text-danger': dashboard.compliance.compliance_rate < 60
+                }">{{ formatPercentage(dashboard.compliance.compliance_rate) }}</div>
+                <div class="gauge-label">Compliance Rate</div>
+              </div>
+            </div>
+            <div class="row text-center g-3">
+              <div class="col-4">
+                <div class="p-2 bg-success bg-opacity-10 rounded">
+                  <div class="fw-bold text-success">{{ dashboard.compliance.compliant }}</div>
+                  <small class="text-muted">Compliant</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 bg-danger bg-opacity-10 rounded">
+                  <div class="fw-bold text-danger">{{ dashboard.compliance.overdue_count }}</div>
+                  <small class="text-muted">Overdue</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2 bg-warning bg-opacity-10 rounded">
+                  <div class="fw-bold text-warning">{{ dashboard.compliance.expiring_certificates }}</div>
+                  <small class="text-muted">Expiring</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.zap" class="me-2 text-warning"></tui-icon>
+              Quick Actions
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary text-start" (click)="navigateTo('courses')">
+                <tui-icon icon="@tui.plus" class="me-2"></tui-icon>
+                Create New Course
+              </button>
+              <button class="btn btn-primary text-start" (click)="navigateTo('users')">
+                <tui-icon icon="@tui.user-plus" class="me-2"></tui-icon>
+                Add Users
+              </button>
+              <button class="btn btn-primary text-start" (click)="navigateTo('reports')">
+                <tui-icon icon="@tui.bar-chart-2" class="me-2"></tui-icon>
+                View Reports
+              </button>
+              <button class="btn btn-primary text-start" (click)="navigateTo('settings')">
+                <tui-icon icon="@tui.settings" class="me-2"></tui-icon>
+                Settings
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="row g-4 mt-0">
+
+      <!-- Recent Activity -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>
+              Recent Activity
+            </h5>
+            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('activity')">View All</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="activity-timeline">
+              <div *ngFor="let activity of dashboard.recent_activity" class="activity-item">
+                <div class="activity-icon" [ngClass]="'bg-' + activity.color + ' bg-opacity-10'">
+                  <tui-icon [icon]="'@tui.' + activity.icon" [ngClass]="'text-' + activity.color"></tui-icon>
+                </div>
+                <div class="activity-content">
+                  <p class="mb-0">{{ activity.message }}</p>
+                  <small class="text-muted">{{ formatRelativeTime(activity.date) }}</small>
+                </div>
+              </div>
+              <div *ngIf="!dashboard.recent_activity?.length" class="text-center text-muted py-4">
+                No recent activity
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- At Risk Learners -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.alert-triangle" class="me-2 text-danger"></tui-icon>
+              At-Risk Learners
+            </h5>
+            <span class="badge bg-danger">{{ dashboard.at_risk_learners.length || 0 }}</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              <div *ngFor="let learner of dashboard.at_risk_learners.slice(0, 5)" class="list-group-item">
+                <div class="d-flex align-items-center">
+                  <div class="avatar-circle me-3" [ngClass]="'bg-' + getRiskColor(learner.risk_level) + ' bg-opacity-10'">
+                    <span [ngClass]="'text-' + getRiskColor(learner.risk_level)">{{ getInitials(learner.full_name) }}</span>
+                  </div>
+                  <div class="flex-grow-1 min-width-0">
+                    <h6 class="mb-0 text-truncate">{{ learner.full_name }}</h6>
+                    <small class="text-muted">{{ learner.department }}</small>
+                  </div>
+                  <span class="badge" [ngClass]="{
+                    'bg-danger': learner.risk_level === 'high',
+                    'bg-warning text-dark': learner.risk_level === 'medium',
+                    'bg-info': learner.risk_level === 'low'
+                  }">{{ learner.risk_level }}</span>
+                </div>
+                <div class="mt-2">
+                  <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-danger" [style.width.%]="learner.avg_progress"></div>
+                  </div>
+                  <small class="text-muted">{{ learner.avg_progress }}% • {{ learner.days_inactive }} days inactive</small>
+                </div>
+              </div>
+              <div *ngIf="!dashboard.at_risk_learners?.length" class="list-group-item text-center text-muted py-4">
+                <tui-icon icon="@tui.check-circle" class="text-success fs-4 mb-2 d-block"></tui-icon>
+                All learners on track!
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Deadlines -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.calendar" class="me-2 text-warning"></tui-icon>
+              Upcoming Deadlines
+            </h5>
+            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('deadlines')">View All</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+              <div *ngFor="let deadline of dashboard.upcoming_deadlines.slice(0, 5)" class="list-group-item">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="min-width-0">
+                    <h6 class="mb-0 text-truncate">{{ deadline.full_name }}</h6>
+                    <small class="text-muted text-truncate d-block">{{ deadline.course_title }}</small>
+                  </div>
+                  <div class="text-end ms-2">
+                    <span class="badge" [ngClass]="{
+                      'bg-danger': deadline.urgency === 'critical',
+                      'bg-warning text-dark': deadline.urgency === 'warning',
+                      'bg-info': deadline.urgency === 'normal'
+                    }">{{ deadline.days_remaining }}d left</span>
+                    <div class="progress mt-1" style="height: 3px; width: 60px;">
+                      <div class="progress-bar" [style.width.%]="deadline.progress"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="!dashboard.upcoming_deadlines?.length" class="list-group-item text-center text-muted py-4">
+                No upcoming deadlines
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Recent Completions Row -->
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <tui-icon icon="@tui.check-circle" class="me-2 text-success"></tui-icon>
+              Recent Completions
+            </h5>
+            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('completions')">View All</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                  <th>Learner</th>
+                  <th>Course</th>
+                  <th>Completed</th>
+                  <th class="text-center">Score</th>
+                  <th class="text-center">Certificate</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let completion of dashboard.recent_completions.slice(0, 5)">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-circle bg-success bg-opacity-10 me-2">
+                        <span class="text-success">{{ getInitials(completion.full_name) }}</span>
+                      </div>
+                      <span>{{ completion.full_name }}</span>
+                    </div>
+                  </td>
+                  <td class="text-truncate" style="max-width: 200px;">{{ completion.course_title }}</td>
+                  <td>{{ formatRelativeTime(completion.completed_at) }}</td>
+                  <td class="text-center">
+                      <span class="badge" [ngClass]="{
+                        'bg-success': completion.final_score >= 80,
+                        'bg-warning text-dark': completion.final_score >= 60 && completion.final_score < 80,
+                        'bg-danger': completion.final_score < 60
+                      }">{{ completion.final_score }}%</span>
+                  </td>
+                  <td class="text-center">
+                    <tui-icon *ngIf="completion.has_certificate" icon="@tui.award" class="text-success"></tui-icon>
+                    <span *ngIf="!completion.has_certificate" class="text-muted">-</span>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+              <div *ngIf="!dashboard.recent_completions?.length" class="text-center text-muted py-4">
+                No recent completions
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

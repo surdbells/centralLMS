@@ -1,0 +1,88 @@
+import { decodeSessionBlob } from '../../core/utils/session-blob';
+import {Component, OnInit, ViewChild} from '@angular/core';
+import {TopComponent} from '../../partials/top/top.component';
+import {Router, RouterLink, RouterLinkActive} from '@angular/router';
+import {CrudService} from '../../services/crud.service';
+import {HotToastService} from '@ngneat/hot-toast';
+import {CommonModule} from '@angular/common';
+import {TuiIcon, TuiLoader} from '@taiga-ui/core';
+import {DataTablesModule} from 'angular-datatables';
+import {TranslatePipe} from '../../translate.pipe';
+import {AsideComponent} from '../../partials/aside/aside.component';
+import {SideComponent} from '../../partials/side/side.component';
+import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import {AdminDashboardComponent} from '../admin-dashboard/admin-dashboard.component';
+
+
+interface StatCard {
+  title: string;
+  subtitle?: string;
+  value: string | number;
+  delta?: string;
+  icon?: string; // use Material icons names
+}
+
+
+interface TopLearner { name: string; role: string; points: number; avatarUrl?: string }
+@Component({
+  selector: 'app-admin',
+  imports: [AsideComponent, CommonModule, TopComponent, TuiLoader, DataTablesModule, RouterLink, TranslatePipe, RouterLinkActive, SideComponent, TuiIcon, AdmintopComponent, AdminDashboardComponent],
+  standalone: true,
+  templateUrl: './admin.component.html',
+  styleUrl: './admin.component.css'
+})
+export class AdminComponent implements OnInit {
+  constructor(
+    private router: Router,
+    private crudService: CrudService,
+    private toast: HotToastService,
+  ) {
+  }
+  ui_controls = {
+    is_loading: false,
+    no_recent: false,
+    viewing_dashboard: true,
+    viewing_recent_orders: false,
+    viewing_menu: false
+  };
+  session_data: any = ""
+  user_session = {
+    id: 0,
+    tenant_id: 0,
+    tenant: {
+      id: 0,
+      name: "",
+      status: "",
+    },
+    token: "",
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    avatar: "",
+    is_2fa: false,
+    is_active: false,
+    account_locked: false,
+    is_admin: false,
+    is_content: false,
+    is_instructor: false,
+    is_learner: false,
+  };
+  ngOnInit(): void {
+    this.session_data = sessionStorage.getItem("SESSION");
+    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
+  }
+  error_notification(message: string) {
+    this.toast.error(message);
+  }
+  success_notification(message: string) {
+    this.toast.success(message);
+  }
+  sign_out(): void {
+    this.success_notification("User logged out successfully.");
+    this.router.navigate(['/']).then(r => console.log(r));
+  }
+  goBack() {
+    this.router.navigate(['/administration']).then(r => console.log(r));
+  }
+}

@@ -1,0 +1,173 @@
+<section class="container-fluid my-5">
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs" id="centralLMSTabs" role="tablist">
+
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="preview-tab" data-bs-toggle="tab"
+              data-bs-target="#preview" type="button" role="tab">
+        📄 Preview
+      </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="upload-tab" data-bs-toggle="tab"
+              data-bs-target="#upload" type="button" role="tab">
+        ⬆️ Upload New
+      </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="history-tab" data-bs-toggle="tab"
+              data-bs-target="#history" type="button" role="tab">
+        🕓 Version History
+      </button>
+    </li>
+
+  </ul>
+
+  <!-- Tabs Content -->
+  <div class="tab-content border border-top-0 p-4" id="centralLMSTabsContent">
+
+    <!-- 1. Preview -->
+    <div class="tab-pane fade show active" id="preview" role="tabpanel">
+      <h3 class="title">{{ data.title }}</h3>
+      <div class="ratio ratio-16x9">
+        <div [ngSwitch]="data.type" class="card-body">
+          <video *ngSwitchCase="'VIDEO'" controls autoplay>
+            <source [src]="data.url" type="video/mp4" />
+          </video>
+          <audio *ngSwitchCase="'AUDIO'" controls autoplay>
+            <source [src]="data.url" type="audio/mpeg" />
+          </audio>
+          <iframe *ngSwitchCase="'PDF'" [src]="safeUrl"></iframe>
+          <iframe  *ngSwitchCase="'SCORM'" [src]="safeUrl" allowfullscreen ></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Upload New -->
+    <div class="tab-pane fade" id="upload" role="tabpanel">
+      <div class="card m-4">
+        <div class="card-body">
+          <div class="media-manager">
+            <div class="header text-center">
+              <h2>Upload new</h2>
+              <p>Upload a new version of {{ data.title }}</p>
+            </div>
+            <app-media-upload
+              [token]="user_session.token"
+              [userId]="user_session.id"
+              [tenantId]="user_session.tenant_id"
+              [parentMediaId]="data.id"
+              [multiple]="true"
+              [acceptedTypes]="['VIDEO', 'AUDIO', 'PDF', 'SCORM']"
+              [maxFiles]="10"
+              (uploadComplete)="onFileUploaded($event)"
+              (uploadError)="onUploadError($event)"
+              (allUploadsComplete)="onAllUploadsComplete($event)">
+            </app-media-upload>
+            <div class="container">
+              <div class="row">
+                <textarea rows="4" class="form-control form-text" placeholder="Notes"></textarea>
+              </div>
+            </div>
+            <div class="uploaded-files" *ngIf="uploadedFiles.length > 0">
+              <div class="section-header">
+                <h3>Uploaded Files ({{ uploadedFiles.length }})</h3>
+                <button class="btn-clear" (click)="clearUploadedFiles()">
+                  <i class="bi bi-trash3"></i>
+                  Clear All
+                </button>
+              </div>
+
+              <div class="files-grid">
+                <div class="file-card" *ngFor="let file of uploadedFiles; let i = index">
+                  <div class="file-icon" [ngSwitch]="file.media_type">
+                    <i *ngSwitchCase="'VIDEO'" class="bi bi-camera-video-fill video"></i>
+                    <i *ngSwitchCase="'AUDIO'" class="bi bi-music-note-beamed audio"></i>
+                    <i *ngSwitchCase="'PDF'" class="bi bi-file-earmark-pdf-fill pdf"></i>
+                    <i *ngSwitchCase="'SCORM'" class="bi bi-box-seam-fill scorm"></i>
+                    <i *ngSwitchDefault class="bi bi-file-earmark"></i>
+                  </div>
+                  <div class="file-details">
+                    <h4 class="file-title">{{ file.title }}</h4>
+                    <div class="file-meta">
+                      <span class="type-badge">{{ file.media_type }}</span>
+                      <span class="file-size">{{ file.file_size_formatted }}</span>
+                      <span class="version" *ngIf="file.version.version_number > 1">
+                            v{{ file.version.version_number }}
+                          </span>
+                    </div>
+
+                    <!-- Media specific info -->
+                    <div class="media-info" *ngIf="file.metadata">
+                        <span *ngIf="file.metadata.duration_formatted">
+                          <i class="bi bi-clock"></i> {{ file.metadata.duration_formatted }}
+                        </span>
+                      <span *ngIf="file.metadata.resolution">
+                          <i class="bi bi-aspect-ratio"></i> {{ file.metadata.resolution }}
+                        </span>
+                      <span *ngIf="file.metadata.page_count">
+                          <i class="bi bi-file-text"></i> {{ file.metadata.page_count }} pages
+                        </span>
+                    </div>
+                  </div>
+                  <div class="file-actions">
+                    <a [href]="file.file_url" target="_blank" class="btn-action" title="View">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <button class="btn-action danger" (click)="removeUploadedFile(i)" title="Remove">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Version History -->
+    <div class="tab-pane fade" id="history" role="tabpanel">
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light">
+          <tr>
+            <th>Version</th>
+            <th>Uploaded By</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Action</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>v5.0</td>
+            <td>Bello Sodiq</td>
+            <td>02 Mar 2026</td>
+            <td>Compliance Assessments updates for 2026</td>
+            <td>
+              <button class="btn btn-sm btn-secondary">View</button>
+            </td>
+          </tr>
+          <tr>
+            <td>v4.9</td>
+            <td>Adeleye Famoyegun</td>
+            <td>15 Feb 2026</td>
+            <td>Initial Upload</td>
+            <td>
+              <button class="btn btn-sm btn-danger">Restore</button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+
+

@@ -1,0 +1,131 @@
+{
+    "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+    "version": 1,
+    "newProjectRoot": "projects",
+    "projects": {
+        "central": {
+            "projectType": "application",
+            "schematics": [],
+            "root": "",
+            "sourceRoot": "src",
+            "prefix": "app",
+            "architect": {
+                "build": {
+                    "builder": "@angular-devkit/build-angular:application",
+                    "options": {
+                        "outputPath": "dist/central",
+                        "index": "src/index.html",
+                        "browser": "src/main.ts",
+                        "polyfills": [
+                            "zone.js"
+                        ],
+                        "tsConfig": "tsconfig.app.json",
+                        "assets": [
+                            {
+                                "glob": "**/*",
+                                "input": "public"
+                            },
+                            {
+                                "glob": "**/*",
+                                "input": "node_modules/@taiga-ui/icons/src",
+                                "output": "assets/taiga-ui/icons"
+                            },
+                            {
+                                "glob": "**/*",
+                                "input": "node_modules/@kolkov/angular-editor/assets/icons",
+                                "output": "assets/ae-icons/"
+                            }
+                        ],
+                        "styles": [
+                            "node_modules/datatables.net-dt/css/dataTables.dataTables.min.css",
+                            "node_modules/datatables.net-bs5/css/dataTables.bootstrap5.min.css",
+                            "node_modules/@ngneat/hot-toast/src/styles/styles.css",
+                            "node_modules/@taiga-ui/core/styles/taiga-ui-theme.less",
+                            "node_modules/@taiga-ui/core/styles/taiga-ui-fonts.less",
+                            "public/assets/css/libs.bundle.css",
+                            "public/assets/css/theme.bundle.css",
+                            "src/styles.scss"
+                        ],
+                        "scripts": [
+                            "node_modules/jquery/dist/jquery.min.js",
+                            "node_modules/datatables.net/js/dataTables.min.js",
+                            "node_modules/datatables.net-bs5/js/dataTables.bootstrap5.min.js",
+                            "node_modules/apexcharts/dist/apexcharts.min.js",
+                            "public/assets/js/theme.bundle.js",
+                            "public/assets/js/vendor.bundle.js"
+                        ]
+                    },
+                    "configurations": {
+                        "production": {
+                            "budgets": [
+                                {
+                                    "type": "initial",
+                                    "maximumWarning": "15MB",
+                                    "maximumError": "15MB"
+                                },
+                                {
+                                    "type": "anyComponentStyle",
+                                    "maximumWarning": "40kB",
+                                    "maximumError": "80kB"
+                                }
+                            ],
+                            "outputHashing": "all"
+                        },
+                        "development": {
+                            "optimization": false,
+                            "extractLicenses": false,
+                            "sourceMap": true,
+                            "fileReplacements": [
+                                {
+                                    "replace": "src/environments/environment.ts",
+                                    "with": "src/environments/environment.development.ts"
+                                }
+                            ]
+                        }
+                    },
+                    "defaultConfiguration": "production"
+                },
+                "serve": {
+                    "builder": "@angular-devkit/build-angular:dev-server",
+                    "configurations": {
+                        "production": {
+                            "buildTarget": "central:build:production"
+                        },
+                        "development": {
+                            "buildTarget": "central:build:development"
+                        }
+                    },
+                    "defaultConfiguration": "development"
+                },
+                "extract-i18n": {
+                    "builder": "@angular-devkit/build-angular:extract-i18n"
+                },
+                "test": {
+                    "builder": "@angular-devkit/build-angular:karma",
+                    "options": {
+                        "polyfills": [
+                            "zone.js",
+                            "zone.js/testing"
+                        ],
+                        "tsConfig": "tsconfig.spec.json",
+                        "assets": [
+                            {
+                                "glob": "**/*",
+                                "input": "public"
+                            }
+                        ],
+                        "styles": [
+                            "src/styles.scss"
+                        ],
+                        "scripts": [],
+                        "karmaConfig": "karma.conf.js",
+                        "browsers": "ChromeHeadlessNoSandbox"
+                    }
+                }
+            }
+        }
+    },
+    "cli": {
+        "analytics": "43120ae2-c506-4cdb-9bb8-17eda8bd2f08"
+    }
+}

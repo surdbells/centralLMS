@@ -1,0 +1,262 @@
+<!-- Media Upload Component -->
+<div class="media-upload-container">
+
+  <!-- Drop Zone -->
+  <div
+    class="drop-zone"
+    [class.drag-over]="isDragOver"
+    [class.has-files]="fileQueue.length > 0"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    (click)="openFileBrowser()">
+
+    <input
+      #fileInput
+      type="file"
+      [accept]="getAcceptedExtensions()"
+      [multiple]="multiple"
+      (change)="onFileSelect($event)"
+      hidden>
+
+    <div class="drop-zone-content" *ngIf="fileQueue.length === 0">
+      <div class="upload-icon-wrapper">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <div class="icon-ring"></div>
+      </div>
+      <h3>Drag & drop files here</h3>
+      <p>or click to browse</p>
+
+      <div class="accepted-types">
+        <span class="type-badge" *ngFor="let type of acceptedTypes"
+              [style.--type-color]="getMediaTypeColor(type)">
+          <i [class]="getMediaTypeIcon(type)"></i>
+          {{ type }}
+        </span>
+      </div>
+
+      <p class="size-hint">
+        Max file sizes: Video 2GB, Audio 500MB, PDF 100MB, SCORM 1GB
+      </p>
+    </div>
+
+    <!-- Mini drop zone when files exist -->
+    <div class="drop-zone-mini" *ngIf="fileQueue.length > 0">
+      <i class="bi bi-plus-circle"></i>
+      <span>Add more files</span>
+    </div>
+  </div>
+
+  <!-- File Queue -->
+  <div class="file-queue" *ngIf="fileQueue.length > 0">
+
+    <!-- Queue Header -->
+    <div class="queue-header">
+      <div class="queue-stats">
+        <span class="stat">
+          <i class="bi bi-files"></i>
+          {{ fileQueue.length }} file{{ fileQueue.length > 1 ? 's' : '' }}
+        </span>
+        <span class="stat pending" *ngIf="pendingCount > 0">
+          <i class="bi bi-hourglass-split"></i>
+          {{ pendingCount }} pending
+        </span>
+        <span class="stat uploading" *ngIf="uploadingCount > 0">
+          <i class="bi bi-arrow-up-circle"></i>
+          {{ uploadingCount }} uploading
+        </span>
+        <span class="stat success" *ngIf="completedCount > 0">
+          <i class="bi bi-check-circle"></i>
+          {{ completedCount }} completed
+        </span>
+        <span class="stat error" *ngIf="failedCount > 0">
+          <i class="bi bi-exclamation-circle"></i>
+          {{ failedCount }} failed
+        </span>
+      </div>
+
+      <div class="queue-actions">
+        <button
+          class="btn btn-sm btn-secondary"
+          (click)="clearQueue()"
+          [disabled]="isUploading">
+          <i class="bi bi-trash3"></i>
+          Clear
+        </button>
+        <button
+          class="btn btn-sm btn-primary"
+          (click)="startUpload()"
+          [disabled]="isUploading || pendingCount === 0">
+          <i class="bi bi-cloud-upload"></i>
+          Upload {{ pendingCount > 0 ? '(' + pendingCount + ')' : '' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Overall Progress -->
+    <div class="overall-progress" *ngIf="isUploading">
+      <div class="progress-bar-container">
+        <div class="progress-bar" [style.width.%]="overallProgress"></div>
+      </div>
+      <span class="progress-text">{{ overallProgress }}%</span>
+    </div>
+
+    <!-- File List -->
+    <div class="file-list">
+      <div
+        class="file-item"
+        *ngFor="let queuedFile of fileQueue"
+        [class.uploading]="queuedFile.status === 'uploading'"
+        [class.success]="queuedFile.status === 'success'"
+        [class.error]="queuedFile.status === 'error'">
+
+        <!-- File Preview/Icon -->
+        <div class="file-preview" [style.--type-color]="getMediaTypeColor(queuedFile.mediaType)">
+          <img *ngIf="queuedFile.preview" [src]="queuedFile.preview" alt="Preview">
+          <i *ngIf="!queuedFile.preview" [class]="getMediaTypeIcon(queuedFile.mediaType)"></i>
+
+          <!-- Upload Progress Overlay -->
+          <div class="progress-overlay" *ngIf="queuedFile.status === 'uploading'">
+            <svg class="progress-ring" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="16" class="progress-bg"/>
+              <circle cx="18" cy="18" r="16" class="progress-fill"
+                      [style.stroke-dashoffset]="100 - queuedFile.progress"/>
+            </svg>
+            <span class="progress-percent">{{ queuedFile.progress }}%</span>
+          </div>
+
+          <!-- Status Icon Overlay -->
+          <div class="status-overlay success" *ngIf="queuedFile.status === 'success'">
+            <i class="bi bi-check-lg"></i>
+          </div>
+          <div class="status-overlay error" *ngIf="queuedFile.status === 'error'">
+            <i class="bi bi-x-lg"></i>
+          </div>
+        </div>
+
+        <!-- File Info -->
+        <div class="file-info">
+          <div class="file-name" [title]="queuedFile.file.name">
+            {{ queuedFile.config.title || queuedFile.file.name }}
+          </div>
+          <div class="file-meta">
+            <span class="media-type">{{ queuedFile.mediaType }}</span>
+            <span class="file-size">{{ mediaService.formatFileSize(queuedFile.file.size) }}</span>
+            <span class="version-label" *ngIf="queuedFile.config.version_label">
+              {{ queuedFile.config.version_label }}
+            </span>
+          </div>
+
+          <!-- Error Message -->
+          <div class="error-message" *ngIf="queuedFile.error">
+            {{ queuedFile.error }}
+          </div>
+
+          <!-- Success Info -->
+          <div class="success-info" *ngIf="queuedFile.response">
+            <a [href]="queuedFile.response.file_url" target="_blank" class="file-link">
+              <i class="bi bi-box-arrow-up-right"></i>
+              View file
+            </a>
+            <span *ngIf="queuedFile.response.version.version_number > 1" class="version-badge">
+              v{{ queuedFile.response.version.version_number }}
+            </span>
+          </div>
+        </div>
+
+        <!-- File Actions -->
+        <div class="file-actions">
+          <button
+            class="btn-icon"
+            title="Configure"
+            (click)="openConfig(queuedFile); $event.stopPropagation()"
+            *ngIf="queuedFile.status === 'pending'">
+            <i class="bi bi-gear"></i>
+          </button>
+          <button
+            class="btn-icon"
+            title="Retry"
+            (click)="retryUpload(queuedFile); $event.stopPropagation()"
+            *ngIf="queuedFile.status === 'error'">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+          <button
+            class="btn-icon danger"
+            title="Remove"
+            (click)="removeFile(queuedFile); $event.stopPropagation()"
+            *ngIf="queuedFile.status !== 'uploading'">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Config Modal -->
+<div class="modal-backdrop" *ngIf="showConfigModal" (click)="closeConfigModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i [class]="getMediaTypeIcon(selectedFile?.mediaType || '')"
+           [style.color]="getMediaTypeColor(selectedFile?.mediaType || '')"></i>
+        File Settings
+      </h3>
+      <button class="btn-close" (click)="closeConfigModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="fileTitle">Title</label>
+        <input
+          type="text"
+          id="fileTitle"
+          class="form-control"
+          [(ngModel)]="fileTitle"
+          placeholder="Enter file title">
+      </div>
+
+      <div class="form-group">
+        <label for="fileDescription">Description</label>
+        <textarea
+          id="fileDescription"
+          class="form-control"
+          [(ngModel)]="fileDescription"
+          rows="3"
+          placeholder="Enter file description (optional)"></textarea>
+      </div>
+
+      <div class="form-row" *ngIf="parentMediaId">
+        <div class="form-group">
+          <label for="versionLabel">Version Label</label>
+          <input
+            type="text"
+            id="versionLabel"
+            class="form-control"
+            [(ngModel)]="versionLabel"
+            placeholder="e.g., v2.0, Final">
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="parentMediaId">
+        <label for="versionNotes">Version Notes</label>
+        <textarea
+          id="versionNotes"
+          class="form-control"
+          [(ngModel)]="versionNotes"
+          rows="2"
+          placeholder="Describe what changed in this version"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeConfigModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="saveConfig()">
+        <i class="bi bi-check-lg"></i>
+        Save
+      </button>
+    </div>
+  </div>
+</div>

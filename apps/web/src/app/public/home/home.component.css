@@ -1,0 +1,49 @@
+.btn-brand { background: #166f16; border-color: #166f16; }
+.btn-brand:hover { background: #6f4e3b; border-color: #6f4e3b; }
+.link-brand { color: #166f16; }
+
+.navbar .btn-outline-light:hover { color: #111; background: #fff; }
+
+.hero{
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgb(196 206 57), transparent),
+    linear-gradient(180deg, rgb(196 206 57), rgba(232, 220, 203, .1));
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+.glass { backdrop-filter: blur(8px); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+.shadow-soft {
+  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+}
+
+.soft-secondary {
+  background: rgba(113, 204, 13, 0.12);
+  color: #166f16;
+  border: 1px solid rgba(113, 204, 13, 0.12);
+}
+/* CTA */
+.cta { background: linear-gradient(135deg, #166f16 0%, #e8dccb 100%); color:#fff; border-top: 1px solid rgba(255,255,255,.2); }
+
+.feature-icon {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: rgba(113, 204, 13, 0.12);
+  color: #166f16;
+}
+
+.step {
+  border-left: 3px solid #166f16;
+  padding-left: 1rem;
+}
+
+.stat-pill {
+  background: conic-gradient(
+    from 90deg,
+    rgba(144,105,82,.12),
+    rgba(232,220,203,.5)
+  );
+  border-radius: 1rem;
+}

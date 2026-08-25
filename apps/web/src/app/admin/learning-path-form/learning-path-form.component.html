@@ -1,0 +1,604 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+  @if (loading()) {
+  <div class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+} @else {
+  <div class="learning-path-form">
+    <!-- Header -->
+    <div class="page-header mb-4">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+              <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
+              <li class="breadcrumb-item active">{{ mode === 'create' ? 'Create' : 'Edit' }}</li>
+            </ol>
+          </nav>
+          <h1 class="h3 mb-0">{{ mode === 'create' ? 'Create Learning Path' : 'Edit Learning Path' }}</h1>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onSubmit()"
+            [disabled]="saving()"
+          >
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            {{ mode === 'create' ? 'Create & Continue' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Sidebar Navigation -->
+      <div class="col-lg-3">
+        <div class="nav-card sticky-top">
+          <nav class="nav flex-column">
+            <a
+              class="nav-link"
+              [class.active]="activeTab() === 'basic'"
+              (click)="setActiveTab('basic')"
+            >
+              <i class="bi bi-info-circle me-2"></i>Basic Information
+            </a>
+            <a
+              class="nav-link"
+              [class.active]="activeTab() === 'structure'"
+              (click)="setActiveTab('structure')"
+            >
+              <i class="bi bi-diagram-3 me-2"></i>Structure & Flow
+            </a>
+            <a
+              class="nav-link"
+              [class.active]="activeTab() === 'completion'"
+              (click)="setActiveTab('completion')"
+            >
+              <i class="bi bi-check-circle me-2"></i>Completion & Rewards
+            </a>
+            <a
+              class="nav-link"
+              [class.active]="activeTab() === 'access'"
+              (click)="setActiveTab('access')"
+            >
+              <i class="bi bi-lock me-2"></i>Access & Enrollment
+            </a>
+            <a
+              class="nav-link"
+              [class.active]="activeTab() === 'meta'"
+              (click)="setActiveTab('meta')"
+            >
+              <i class="bi bi-tags me-2"></i>Meta & SEO
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Form Content -->
+      <div class="col-lg-9">
+        <form [formGroup]="form">
+          <!-- Basic Information -->
+          @if (activeTab() === 'basic') {
+            <div class="card form-section">
+              <div class="card-header">
+                <h5 class="mb-0">Basic Information</h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label">Title <span class="text-danger">*</span></label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="title"
+                    placeholder="e.g., Project Management Professional Certification Path"
+                    [class.is-invalid]="isFieldInvalid('title')"
+                  >
+                  @if (isFieldInvalid('title')) {
+                    <div class="invalid-feedback">Title is required</div>
+                  }
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Short Description <span class="text-danger">*</span></label>
+                  <textarea
+                    class="form-control"
+                    formControlName="short_description"
+                    rows="2"
+                    placeholder="Brief description shown in cards and listings..."
+                    [class.is-invalid]="isFieldInvalid('short_description')"
+                  ></textarea>
+                  <div class="form-text">{{ form.value.short_description?.length || 0 }}/500 characters</div>
+                  @if (isFieldInvalid('short_description')) {
+                    <div class="invalid-feedback">Short description is required</div>
+                  }
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Full Description</label>
+                  <textarea
+                    class="form-control"
+                    formControlName="description"
+                    rows="6"
+                    placeholder="Detailed description with HTML formatting support..."
+                  ></textarea>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" formControlName="category_id">
+                      <option [ngValue]="null">Select category...</option>
+                      @for (category of categories(); track category.category_id) {
+                        <option [ngValue]="category.category_id">{{ category.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Skill Level</label>
+                    <select class="form-select" formControlName="skill_level">
+                      @for (level of skillLevels; track level.value) {
+                        <option [value]="level.value">{{ level.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Thumbnail Image URL</label>
+                    <input
+                      type="url"
+                      class="form-control"
+                      formControlName="thumbnail_url"
+                      placeholder="https://..."
+                    >
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Banner Image URL</label>
+                    <input
+                      type="url"
+                      class="form-control"
+                      formControlName="banner_url"
+                      placeholder="https://..."
+                    >
+                  </div>
+                </div>
+
+                <!-- Duration -->
+                <h6 class="mt-4 mb-3">Duration Estimates</h6>
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Total Hours</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="estimated_duration_hours"
+                      min="0"
+                      step="0.5"
+                    >
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Weeks to Complete</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="estimated_weeks"
+                      min="0"
+                    >
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label">Weekly Commitment (hrs)</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="weekly_commitment_hours"
+                      min="0"
+                      step="0.5"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Structure & Flow -->
+          @if (activeTab() === 'structure') {
+            <div class="card form-section">
+              <div class="card-header">
+                <h5 class="mb-0">Structure & Flow</h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label class="form-label">Path Type</label>
+                  <div class="path-type-options">
+                    @for (type of pathTypes; track type.value) {
+                      <div
+                        class="path-type-option"
+                        [class.selected]="form.value.path_type === type.value"
+                        (click)="form.patchValue({ path_type: type.value })"
+                      >
+                        <div class="option-icon">
+                          @switch (type.value) {
+                            @case ('sequential') { <i class="bi bi-list-ol"></i> }
+                            @case ('flexible') { <i class="bi bi-grid-3x3"></i> }
+                            @case ('milestone') { <i class="bi bi-flag"></i> }
+                          }
+                        </div>
+                        <div class="option-content">
+                          <strong>{{ type.label }}</strong>
+                          <small>{{ type.description }}</small>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check mb-3">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="isMandatory"
+                        formControlName="is_mandatory"
+                      >
+                      <label class="form-check-label" for="isMandatory">
+                        <strong>Mandatory Path</strong>
+                        <small class="d-block text-muted">Users must complete this path</small>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check mb-3">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="enforcePrerequisites"
+                        formControlName="enforce_prerequisites"
+                      >
+                      <label class="form-check-label" for="enforcePrerequisites">
+                        <strong>Enforce Prerequisites</strong>
+                        <small class="d-block text-muted">Users must meet prerequisites to enroll</small>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-check mb-3">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="allowSkip"
+                    formControlName="allow_skip"
+                  >
+                  <label class="form-check-label" for="allowSkip">
+                    <strong>Allow Skipping</strong>
+                    <small class="d-block text-muted">Users can skip non-required items</small>
+                  </label>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Prerequisites Description</label>
+                  <textarea
+                    class="form-control"
+                    formControlName="prerequisites_description"
+                    rows="3"
+                    placeholder="Describe what learners should know before starting..."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Completion & Rewards -->
+          @if (activeTab() === 'completion') {
+            <div class="card form-section">
+              <div class="card-header">
+                <h5 class="mb-0">Completion & Rewards</h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label class="form-label">Completion Criteria</label>
+                  <div class="completion-type-options">
+                    @for (type of completionTypes; track type.value) {
+                      <div
+                        class="completion-type-option"
+                        [class.selected]="form.value.completion_type === type.value"
+                        (click)="form.patchValue({ completion_type: type.value })"
+                      >
+                        <strong>{{ type.label }}</strong>
+                        <small>{{ type.description }}</small>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                @if (form.value.completion_type === 'percentage') {
+                  <div class="mb-3">
+                    <label class="form-label">Completion Threshold (%)</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="completion_threshold"
+                      min="1"
+                      max="100"
+                      style="max-width: 150px"
+                    >
+                  </div>
+                }
+
+                @if (form.value.completion_type === 'assessments') {
+                  <div class="mb-3">
+                    <label class="form-label">Passing Score (%)</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="passing_score"
+                      min="1"
+                      max="100"
+                      style="max-width: 150px"
+                    >
+                  </div>
+                }
+
+                <hr class="my-4">
+
+                <h6 class="mb-3">Certificate</h6>
+                <div class="form-check mb-3">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="certificateEnabled"
+                    formControlName="certificate_enabled"
+                  >
+                  <label class="form-check-label" for="certificateEnabled">
+                    <strong>Award Certificate on Completion</strong>
+                  </label>
+                </div>
+
+                @if (form.value.certificate_enabled) {
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Certificate Template</label>
+                      <select class="form-select" formControlName="certificate_template_id">
+                        <option [ngValue]="null">Select template...</option>
+                        @for (template of certificateTemplates(); track template.template_id) {
+                          <option [ngValue]="template.template_id">{{ template.name }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label class="form-label">Certificate Validity (months)</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        formControlName="certificate_validity_months"
+                        min="0"
+                        placeholder="Leave empty for no expiry"
+                      >
+                    </div>
+                  </div>
+                }
+
+                <hr class="my-4">
+
+                <h6 class="mb-3">Gamification</h6>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Total Points Available</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      formControlName="total_points"
+                      min="0"
+                    >
+                    <div class="form-text">Points are distributed across items</div>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Completion Badge</label>
+                    <select class="form-select" formControlName="badge_id">
+                      <option [ngValue]="null">No badge</option>
+                      @for (badge of badges(); track badge.badge_id) {
+                        <option [ngValue]="badge.badge_id">{{ badge.icon }} {{ badge.name }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Access & Enrollment -->
+          @if (activeTab() === 'access') {
+            <div class="card form-section">
+              <div class="card-header">
+                <h5 class="mb-0">Access & Enrollment</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Visibility</label>
+                    <select class="form-select" formControlName="visibility">
+                      @for (option of visibilityOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Enrollment Type</label>
+                    <select class="form-select" formControlName="enrollment_type">
+                      @for (option of enrollmentTypes; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Max Enrollments</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    formControlName="max_enrollments"
+                    min="0"
+                    placeholder="Leave empty for unlimited"
+                    style="max-width: 200px"
+                  >
+                </div>
+
+                <h6 class="mt-4 mb-3">Enrollment Window</h6>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Start Date</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      formControlName="enrollment_start_date"
+                    >
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">End Date</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      formControlName="enrollment_end_date"
+                    >
+                  </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h6 class="mb-3">Pricing</h6>
+                <div class="form-check mb-3">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="isFree"
+                    formControlName="is_free"
+                  >
+                  <label class="form-check-label" for="isFree">
+                    <strong>Free Path</strong>
+                  </label>
+                </div>
+
+                @if (!form.value.is_free) {
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Price</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        formControlName="price"
+                        min="0"
+                        step="0.01"
+                      >
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Currency</label>
+                      <select class="form-select" formControlName="currency">
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="NGN">NGN</option>
+                      </select>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Meta & SEO -->
+          @if (activeTab() === 'meta') {
+            <div class="card form-section">
+              <div class="card-header">
+                <h5 class="mb-0">Meta & SEO</h5>
+              </div>
+              <div class="card-body">
+                <!-- Tags -->
+                <div class="mb-4">
+                  <label class="form-label">Tags</label>
+                  <div class="input-group mb-2">
+                    <input
+                      type="text"
+                      class="form-control"
+                      [(ngModel)]="newTag"
+                      [ngModelOptions]="{ standalone: true }"
+                      placeholder="Add a tag..."
+                      (keyup.enter)="addTag()"
+                    >
+                    <button class="btn btn-secondary" type="button" (click)="addTag()">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                  <div class="tags-list">
+                    @for (tag of form.value.tags; track $index) {
+                      <span class="badge bg-secondary me-1 mb-1">
+                        {{ tag }}
+                        <button type="button" class="btn-close btn-close-white ms-1" (click)="removeTag($index)"></button>
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Learning Objectives -->
+                <div class="mb-4">
+                  <label class="form-label">Learning Objectives</label>
+                  <div class="input-group mb-2">
+                    <input
+                      type="text"
+                      class="form-control"
+                      [(ngModel)]="newObjective"
+                      [ngModelOptions]="{ standalone: true }"
+                      placeholder="Add a learning objective..."
+                      (keyup.enter)="addObjective()"
+                    >
+                    <button class="btn btn-secondary" type="button" (click)="addObjective()">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                  <ul class="objectives-list">
+                    @for (objective of form.value.learning_objectives; track $index) {
+                      <li>
+                        <span>{{ objective }}</span>
+                        <button type="button" class="btn btn-sm btn-link text-danger" (click)="removeObjective($index)">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            </div>
+          }
+        </form>
+
+        <!-- Footer Actions -->
+        <div class="form-footer mt-4">
+          <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onSubmit()"
+            [disabled]="saving()"
+          >
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            }
+            {{ mode === 'create' ? 'Create & Continue to Builder' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+  </div>
+</main>

@@ -1,0 +1,483 @@
+<app-home-top></app-home-top>
+<!-- HERO -->
+<header id="home" class="py-5 hero abayti_primary_background">
+  <div class="container">
+    <div class="row align-items-center gy-4">
+      <div class="col-lg-6 animate__animated animate__fadeInUp">
+        <span class="badge  abayti_secondary_background rounded-pill px-3 py-2 mb-3">Welcome to Central LMS</span>
+        <h1 class="display-5 fw-bold mb-3 abayti_secondary_color">
+          Corporate learning made simple, scalable, and measurable
+        </h1>
+        <p class="lead mb-4">Create courses, engage learners, certify teams, and track progress - all in one powerful platform.</p>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/register">Get started - free demo</a>
+          <a class="btn abayti_primary_background text-black btn-secondary" routerLink="/login">Sign in</a>
+        </div>
+        <div class="d-flex align-items-center gap-3 mt-4 abayti_secondary_color">
+          <div class="d-flex align-items-center gap-2"><i class="bi bi-shield-check"></i><small>No setup fees</small></div>
+          <div class="d-flex align-items-center gap-2"><i class="bi bi-shield-fill-check"></i><small>Enterprise-grade security</small></div>
+          <div class="d-flex align-items-center gap-2"><i class="bi bi-rocket"></i><small>Go live in a day</small></div>
+        </div>
+        <div class="d-flex align-items-center gap-4 mt-4">
+          <div><h4 class="mb-0">10k+</h4><small class="text-muted">Active learners</small></div>
+          <div><h4 class="mb-0">5 min</h4><small class="text-muted">course setup time</small></div>
+          <div><h4 class="mb-0">99.9%</h4><small class="text-muted">uptime</small></div>
+        </div>
+      </div>
+        <div class="col-lg-6 animate__animated animate__fadeIn hero-visual">
+          <div class="glass rounded-4 p-3 p-md-4 shadow-soft">
+            <!-- Dashboard mockup -->
+            <div class="bg-white rounded-4 p-3 shadow-soft">
+              <!-- Header -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge text-bg-light border">Admin</span>
+                  <span class="abayti_secondary_color fw-semibold">Dashboard</span>
+                </div>
+                <i class="bi bi-three-dots-vertical text-muted"></i>
+              </div>
+
+              <!-- Stats row -->
+              <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3">
+                  <div class="border rounded-3 p-3 text-center h-100">
+                    <small class="text-muted d-block">Courses</small>
+                    <h4 class="fw-bold mb-0 abayti_secondary_color">180</h4>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="border rounded-3 p-3 text-center h-100">
+                    <small class="text-muted d-block">Learners</small>
+                    <h4 class="fw-bold mb-0">7600</h4>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="border rounded-3 p-3 text-center h-100">
+                    <small class="text-muted d-block">Assessments pending</small>
+                    <h4 class="fw-bold mb-0">75</h4>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="border rounded-3 p-3 text-center h-100">
+                    <small class="text-muted d-block">Certificates issued</small>
+                    <h4 class="fw-bold mb-0">6000</h4>
+                  </div>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <!-- Sales Performance (SVG) -->
+                  <div class="border rounded-3 p-3 h-100" data-animate="animate__fadeInUp">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <small class="text-muted fw-semibold">Learner Activity (Monthly)</small>
+                      <i class="bi bi-bar-chart-line text-muted"></i>
+                    </div>
+
+                    <!-- Values (orders): Jan..Dec = [2,1,3,2,4,3,2,9,4,5,6,7] -->
+                    <svg class="chart-svg" viewBox="0 0 360 180" aria-labelledby="salesTitle salesDesc" role="img">
+                      <title id="salesTitle">Learner Activity (Monthly) - completions and enrollments over time.</title>
+                      <desc id="salesDesc">
+                        Bar chart showing monthly orders with gradual growth and an August spike.
+                        Values: Jan 2, Feb 1, Mar 3, Apr 2, May 4, Jun 3, Jul 2, Aug 9, Sep 4, Oct 5, Nov 6, Dec 7.
+                      </desc>
+
+                      <style>
+                        .bar { fill: #0E630E; opacity: .95; transition: opacity .2s, transform .2s; }
+                        .bar:hover { opacity: 1; transform: translateY(-1px); }
+                        .grid { stroke: #e9ecef; stroke-width: 1; }
+                        .axis { stroke: #adb5bd; stroke-width: 1; }
+                        .label { fill: #6c757d; font-size: 9px; }
+                      </style>
+
+                      <!-- gridlines -->
+                      <g class="grid">
+                        <line x1="32" y1="150" x2="350" y2="150" />
+                        <line x1="32" y1="122" x2="350" y2="122" />
+                        <line x1="32" y1="94"  x2="350" y2="94"  />
+                        <line x1="32" y1="66"  x2="350" y2="66"  />
+                        <line x1="32" y1="38"  x2="350" y2="38"  />
+                        <line x1="32" y1="10"  x2="350" y2="10"  />
+                      </g>
+
+                      <!-- axes -->
+                      <g class="axis">
+                        <line x1="32" y1="150" x2="350" y2="150" />
+                        <line x1="32" y1="150" x2="32"  y2="10"  />
+                      </g>
+
+                      <!-- bars (chartBottom=150, chartHeight=120, max=10) -->
+                      <g class="bars">
+                        <!-- rx for rounded tops -->
+                        <rect class="bar" x="39.2"  y="126" width="12" height="24" rx="3"><title>Jan: 2</title></rect>
+                        <rect class="bar" x="65.8"  y="138" width="12" height="12" rx="3"><title>Feb: 1</title></rect>
+                        <rect class="bar" x="92.2"  y="114" width="12" height="36" rx="3"><title>Mar: 3</title></rect>
+                        <rect class="bar" x="118.8" y="126" width="12" height="24" rx="3"><title>Apr: 2</title></rect>
+                        <rect class="bar" x="145.2" y="102" width="12" height="48" rx="3"><title>May: 4</title></rect>
+                        <rect class="bar" x="171.8" y="114" width="12" height="36" rx="3"><title>Jun: 3</title></rect>
+                        <rect class="bar" x="198.2" y="126" width="12" height="24" rx="3"><title>Jul: 2</title></rect>
+                        <rect class="bar" x="224.8" y="42"  width="12" height="108" rx="3"><title>Aug: 9</title></rect>
+                        <rect class="bar" x="251.2" y="102" width="12" height="48" rx="3"><title>Sep: 4</title></rect>
+                        <rect class="bar" x="277.8" y="90"  width="12" height="60" rx="3"><title>Oct: 5</title></rect>
+                        <rect class="bar" x="304.2" y="78"  width="12" height="72" rx="3"><title>Nov: 6</title></rect>
+                        <rect class="bar" x="330.8" y="66"  width="12" height="84" rx="3"><title>Dec: 7</title></rect>
+                      </g>
+
+                      <!-- x labels -->
+                      <g class="label" text-anchor="middle">
+                        <text x="45.2"  y="170">Jan</text>
+                        <text x="71.8"  y="170">Feb</text>
+                        <text x="98.2"  y="170">Mar</text>
+                        <text x="124.8" y="170">Apr</text>
+                        <text x="151.2" y="170">May</text>
+                        <text x="177.8" y="170">Jun</text>
+                        <text x="204.2" y="170">Jul</text>
+                        <text x="230.8" y="170">Aug</text>
+                        <text x="257.2" y="170">Sep</text>
+                        <text x="283.8" y="170">Oct</text>
+                        <text x="310.2" y="170">Nov</text>
+                        <text x="336.8" y="170">Dec</text>
+                      </g>
+
+                      <!-- y labels -->
+                      <g class="label" text-anchor="end">
+                        <text x="28" y="152">0</text>
+                        <text x="28" y="124">2</text>
+                        <text x="28" y="96">4</text>
+                        <text x="28" y="68">6</text>
+                        <text x="28" y="40">8</text>
+                        <text x="28" y="12">10</text>
+                      </g>
+                    </svg>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <!-- Top Selling Product (SVG Pie) -->
+                  <div class="border rounded-3 p-3 h-100" data-animate="animate__fadeInUp">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <small class="text-muted fw-semibold">Popular Courses</small>
+                      <i class="bi bi-trophy text-warning"></i>
+                    </div>
+
+                    <div class="row g-2 align-items-center">
+                      <div class="col-6">
+                        <!-- 45% / 35% / 20% -->
+                        <svg class="chart-svg" viewBox="0 0 160 160" aria-labelledby="pieTitle pieDesc" role="img">
+                          <title id="pieTitle">Popular Courses</title>
+                          <desc id="pieDesc">Anti Money Laundering 45 percent, Business Continuity 35 percent, Compliance Essentials 20 percent.</desc>
+
+                          <!-- background circle (ring) -->
+                          <circle cx="80" cy="80" r="70" fill="#f8f9fa"></circle>
+
+                          <!-- segment 1: Vintage Abaya (45%) -->
+                          <path d="M 80,80 L 150.000,80.000 A 70,70 0 0 1 13.426,101.631 Z" fill="#000000">
+                            <title>Anti Money Laundering - 45%</title>
+                          </path>
+                          <!-- segment 2: Zebra Stripe Mukhawar (35%) -->
+                          <path d="M 80,80 L 13.426,101.631 A 70,70 0 0 1 101.631,13.426 Z" fill="#c4ce39">
+                            <title>Business Continuity - 35%</title>
+                          </path>
+                          <!-- segment 3: Checked Leather Bag (20%) -->
+                          <path d="M 80,80 L 101.631,13.426 A 70,70 0 0 1 150.000,80.000 Z" fill="#0E630E">
+                            <title>Compliance Essentials - 20%</title>
+                          </path>
+
+                          <!-- inner hole for a donut look (optional) -->
+                          <circle cx="80" cy="80" r="40" fill="#ffffff"></circle>
+
+                          <!-- center label -->
+                          <text x="80" y="84" text-anchor="middle" font-size="12" fill="#6c757d">Course Share</text>
+                        </svg>
+                      </div>
+
+                      <div class="col-6">
+                        <!-- Legend -->
+                        <ul class="list-unstyled small mb-0">
+                          <li class="d-flex align-items-center mb-2">
+                            <span class="legend-swatch me-2" style="background:#906952"></span> Anti Money Laundering <span class="ms-auto fw-semibold">45%</span>
+                          </li>
+                          <li class="d-flex align-items-center mb-2">
+                            <span class="legend-swatch me-2" style="background:#c9ac98"></span> Business Continuity <span class="ms-auto fw-semibold">35%</span>
+                          </li>
+                          <li class="d-flex align-items-center">
+                            <span class="legend-swatch me-2" style="background:#e8dccb"></span>Compliance Essentials <span class="ms-auto fw-semibold">20%</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Top Products badges -->
+              <div class="border rounded-3 p-3 mt-3">
+                <small class="text-muted d-block mb-2">Recently course enrollments</small>
+                <div class="d-flex gap-2 flex-wrap">
+                  <span class="badge rounded-pill text-bg-light border">Business Continuity</span>
+                  <span class="badge rounded-pill text-bg-light border">Anti Money Laundering</span>
+                  <span class="badge rounded-pill text-bg-light border">Compliance Essentials</span>
+                </div>
+              </div>
+            </div>
+            <small class="d-block abayti_secondary_color text-center mt-2">Preview of admin dashboard</small>
+          </div>
+        </div>
+    </div>
+  </div>
+</header>
+
+<!-- FEATURES -->
+<section id="features" class="py-5 mt-5">
+  <div class="container">
+    <div class="text-center mb-5 animate__animated animate__fadeInUp">
+      <span class="badge rounded-pill soft-secondary mb-2">Why choose Central LMS</span>
+      <h2 class="fw-bold">Everything you need to deliver world-class learning</h2>
+      <p class="text-muted">From micro-lessons to enterprise training, Central LMS can handle it all.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+        <div class="p-4 bg-white rounded-4 shadow-soft h-100">
+          <div class="feature-icon mb-3 abayti_secondary_color">
+            <i class="bi bi-file-plus fs-3"></i>
+          </div>
+          <h5 class="fw-semibold">Course Builder</h5>
+          <p class="text-muted">Drag-and-drop lessons, multimedia, quizzes, and SCORM/xAPI import.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+        <div class="p-4 bg-white rounded-4 shadow-soft h-100">
+          <div class="feature-icon mb-3 abayti_secondary_color"><i class="bi bi-credit-card-2-front  fs-3"></i></div>
+          <h5 class="fw-semibold">Assessments & Certification</h5>
+          <p class="text-muted">Auto-graded tests, peer reviews, and verifiable certificates.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+        <div class="p-4 bg-white rounded-4 shadow-soft h-100">
+          <div class="feature-icon mb-3 abayti_secondary_color"><i class="bi bi-braces fs-3"></i></div>
+          <h5 class="fw-semibold">Integrations & SSO</h5>
+          <p class="text-muted">Connect HR, CRM, and SSO (SAML/OAuth) seamlessly.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+        <div class="p-4 bg-white rounded-4 shadow-soft h-100">
+          <div class="feature-icon mb-3 abayti_secondary_color"><i class="bi bi-bar-chart-line fs-3"></i></div>
+          <h5 class="fw-semibold">Analytics & Reporting</h5>
+          <p class="text-muted">Track completions, skill progress, and export custom reports.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+        <div class="p-4 bg-white rounded-4 shadow-soft h-100">
+          <div class="feature-icon mb-3 abayti_secondary_color"><i class="bi bi-person-badge fs-3"></i></div>
+          <h5 class="fw-semibold">Gamification</h5>
+          <p class="text-muted">Badges, leaderboards, and rewards to drive learner engagement.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4 animate__animated animate__fadeInUp">
+        <div class="p-4 bg-white rounded-4 shadow-soft h-100">
+          <div class="feature-icon mb-3 abayti_secondary_color"><i class="bi bi-shield-check fs-3"></i></div>
+          <h5 class="fw-semibold">Compliance & Security</h5>
+          <p class="text-muted">Role-based access, encrypted data, and audit logs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="py-5 mt-5 animate__animated animate__fadeInUp">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-6">
+        <h2 class="fw-bold">Train your workforce in 3 steps</h2>
+        <div class="mt-4 step">
+          <div class="d-flex gap-3">
+            <div class="text-brand"><i class="bi bi-file-plus fs-3 link-brand"></i></div>
+            <div>
+              <h6 class="mb-1">1. Build courses</h6>
+              <p class="text-muted mb-0">Upload videos, slides, or SCORM/xAPI content.</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 step">
+          <div class="d-flex gap-3">
+            <div class="text-brand"><i class="bi bi-card-checklist fs-3 link-brand"></i></div>
+            <div>
+              <h6 class="mb-1">2. Enroll learners</h6>
+              <p class="text-muted mb-0">Assign courses by team, role, or individual.</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 step">
+          <div class="d-flex gap-3">
+            <div class="text-brand"><i class="bi bi-bar-chart-line fs-3 link-brand"></i></div>
+            <div>
+              <h6 class="mb-1">3. Track results</h6>
+              <p class="text-muted mb-0">Monitor progress and view digital certificates.</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <a routerLink="/register" class="btn abayti_secondary_background text-white btn-secondary btn-lg">Register now</a>
+          <a routerLink="/login" class="btn abayti_primary_background text-black btn-secondary btn-lg ms-2">Log in</a>
+        </div>
+      </div>
+      <div class="col-lg-6" id="demo">
+        <div class="glass rounded-4 p-3 p-md-4 shadow-soft">
+          <!-- Dashboard mockup -->
+          <div class="bg-white rounded-4 p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge text-bg-light border">Admin</span>
+                <span class="abayti_secondary_color">Dashboard</span>
+              </div>
+              <i class="bi bi-three-dots-vertical text-muted"></i>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="border rounded-3 p-3 h-100">
+                  <small class="text-muted">Today’s logins</small>
+                  <h3 class="mb-0">54 learners</h3>
+                  <small class="text-success"><i class="bi bi-graph-up"></i> +74%</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="border rounded-3 p-3 h-100">
+                  <small class="text-muted">New enrollments</small>
+                  <h3 class="mb-0">22</h3>
+                  <small class="text-success"><i class="bi bi-graph-up"></i> +18%</small>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="border rounded-3 p-3">
+                  <small class="text-muted d-block mb-2">Top course</small>
+                  <div class="d-flex gap-3 flex-wrap">
+                    <span class="badge rounded-pill text-bg-light border">Workplace Safety Essentials</span>
+                    <span class="badge rounded-pill text-bg-light border">Black vintage abaya</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <small class="d-block abayti_secondary_color text-center mt-2">A quick look at the Central LMS experience.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- STATS -->
+<section class="py-5 mt-5 bg-white reveal" data-anim="animate__fadeInUp">
+  <div class="container">
+    <div class="row text-center g-4">
+      <div class="col-6 col-md-3">
+        <h3 class="fw-bold" data-counter="1200">8,000+</h3>
+        <p class="text-muted mb-0">Active learners</p>
+      </div>
+      <div class="col-6 col-md-3">
+        <h3 class="fw-bold" data-counter="48000">2,500</h3>
+        <p class="text-muted mb-0">Courses delivered</p>
+      </div>
+      <div class="col-6 col-md-3">
+        <h3 class="fw-bold" data-counter="98">96%</h3>
+        <p class="text-muted mb-0">Course completion rate</p>
+      </div>
+      <div class="col-6 col-md-3">
+        <h3 class="fw-bold" data-counter="4.8">4.8</h3>
+        <p class="text-muted mb-0">Avg. learner rating</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" data-anim="animate__fadeInUp" class="py-5 bg-light">
+  <div class="container">
+    <div class="text-center mb-4">
+      <h2 class="fw-bold">Frequently asked questions</h2>
+      <p class="text-muted">Everything you need to know to get started.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-lg-8 mx-auto">
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="q1">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#a1" aria-expanded="true" aria-controls="a1">
+                How quickly can we get started?
+              </button>
+            </h2>
+            <div id="a1" class="accordion-collapse collapse show" aria-labelledby="q1" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">Most teams launch within a week. Larger rollouts with integrations may take a few weeks.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="q2">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a2" aria-expanded="false" aria-controls="a2">
+                Do you support SCORM and xAPI?
+              </button>
+            </h2>
+            <div id="a2" class="accordion-collapse collapse" aria-labelledby="q2" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">Yes, Central LMS is fully SCORM 1.2 and 2004 compliant.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="q3">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a3" aria-expanded="false" aria-controls="a3">
+                Can it connect with our HR systems?
+              </button>
+            </h2>
+            <div id="a3" class="accordion-collapse collapse" aria-labelledby="q3" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">Yes - integrations and SSO (SAML, OAuth, SCIM) are supported.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="q4">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#a4" aria-expanded="false" aria-controls="a4">
+                How secure is Central LMS?
+              </button>
+            </h2>
+            <div id="a4" class="accordion-collapse collapse" aria-labelledby="q4" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">We use enterprise-grade encryption, role-based access, and regular security audits.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="py-5 abayti_primary_background animate__animated animate__fadeIn">
+  <div class="container">
+    <div class="row align-items-center gy-3">
+      <div class="col-lg-8" data-animate="animate__fadeInLeft">
+        <h2 class="fw-bold abayti_secondary_color mb-1">Ready to empower your workforce?</h2>
+        <p class="mb-0">Start a free pilot today or book a personalized demo with our team.</p>
+      </div>
+      <div class="col-lg-4 text-lg-end" data-animate="animate__fadeInRight">
+        <a [routerLink]="'/'" class="btn abayti_secondary_background btn-secondary text-white rounded-pill me-2">Start free pilot - Book a demo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="py-4 text-white abayti_secondary_background">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-md-6">
+        <div class="d-flex align-items-center gap-2">
+          <span>© <span id="year"></span>All Rights Reserved by Kodek</span>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <ul class="nav justify-content-md-end mt-3 mt-md-0">
+          <li class="nav-item"><a class="nav-link text-white px-2" href="#features">Features</a></li>
+          <li class="nav-item"><a class="nav-link text-white px-2" href="#faq">FAQ</a></li>
+          <li class="nav-item"><a class="nav-link text-white px-2" routerLink="/login">Login</a></li>
+          <li class="nav-item"><a class="nav-link text-white px-2" routerLink="/register">Register</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+

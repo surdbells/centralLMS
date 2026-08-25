@@ -1,0 +1,614 @@
+/* ===========================================
+   ADMIN TOP NAVIGATION - RESPONSIVE STYLES
+   =========================================== */
+
+/* Logo */
+.logo-img {
+  height: 36px;
+  width: auto;
+  transition: height 0.2s ease;
+}
+
+/* ===========================================
+   MODULES DROPDOWN (Left Side)
+   =========================================== */
+.btn-modules {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  color: #333;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.btn-modules:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  border-color: #ced4da;
+  color: #000;
+}
+
+.btn-modules:focus {
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.25);
+}
+
+.btn-modules .modules-label {
+  display: inline;
+}
+
+.dropdown-menu-modules {
+  width: 320px;
+  padding: 0.5rem 0;
+  border: none;
+  border-radius: 12px;
+  margin-top: 0.5rem !important;
+}
+
+.dropdown-menu-modules .dropdown-header {
+  padding: 0.75rem 1rem 0.5rem;
+  color: #6c757d;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-menu-modules .dropdown-item {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: 0.125rem 0;
+  transition: all 0.15s ease;
+}
+
+.dropdown-menu-modules .dropdown-item:hover {
+  background: rgba(201, 162, 39, 0.1);
+}
+
+.module-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.module-icon tui-icon {
+  font-size: 1.25rem;
+}
+
+/* Custom purple color */
+.bg-purple-subtle {
+  background-color: rgba(111, 66, 193, 0.15) !important;
+}
+.text-purple {
+  color: #6f42c1 !important;
+}
+
+/* ===========================================
+   CENTER NAVIGATION
+   =========================================== */
+.navbar-nav-wrapper {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+}
+
+.centered-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 0.25rem 0;
+}
+
+.centered-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.centered-nav .nav-item {
+  flex-shrink: 0;
+}
+
+.centered-nav .nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  color: #555;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  min-width: 70px;
+  text-align: center;
+}
+
+.centered-nav .nav-link:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #333;
+}
+
+.centered-nav .nav-link.active {
+  background: rgba(201, 162, 39, 0.15);
+  color: #303234;
+}
+
+.centered-nav .nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.centered-nav .nav-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* ===========================================
+   RIGHT ACTIONS
+   =========================================== */
+.right-actions {
+  flex-shrink: 0;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: #dc3545;
+  border-radius: 10px;
+}
+
+/* Notifications Dropdown */
+.dropdown-notifications {
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dropdown-header-notifications {
+  background: #f8f9fa;
+}
+
+.notifications-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.notification-unread {
+  background: rgba(201, 162, 39, 0.05);
+}
+
+.notification-indicator {
+  width: 8px;
+  height: 8px;
+  background: #303234;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* User Dropdown */
+.btn-user {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-user:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: #e9ecef;
+}
+
+.btn-user::after {
+  margin-left: 0.25rem;
+  opacity: 0.6;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-dropdown .dropdown-menu {
+  min-width: 220px;
+  border: none;
+  border-radius: 12px;
+  padding: 0.5rem 0;
+}
+
+.user-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+}
+
+.user-dropdown .dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.user-dropdown .dropdown-item .material-symbols-outlined {
+  font-size: 1.25rem;
+  opacity: 0.7;
+}
+
+/* ===========================================
+   RESPONSIVE BREAKPOINTS
+   =========================================== */
+
+/* Extra Large (≥1400px) */
+@media (min-width: 1400px) {
+  .centered-nav .nav-link {
+    padding: 0.5rem 1rem;
+    min-width: 80px;
+  }
+
+  .centered-nav .nav-label {
+    font-size: 0.75rem;
+  }
+}
+
+/* Large (992px - 1399px) */
+@media (min-width: 992px) and (max-width: 1399.98px) {
+  .centered-nav .nav-link {
+    padding: 0.5rem 0.625rem;
+    min-width: 65px;
+  }
+
+  .centered-nav .nav-label {
+    font-size: 0.65rem;
+  }
+
+  .modules-label {
+    display: none;
+  }
+
+  .btn-modules {
+    padding: 0.5rem;
+  }
+}
+
+/* Medium (768px - 991px) - Tablet */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .navbar-collapse {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    z-index: 1000;
+  }
+
+  .centered-nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .centered-nav .nav-link {
+    flex-direction: row;
+    min-width: auto;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+  }
+
+  .centered-nav .nav-icon {
+    font-size: 1.125rem;
+  }
+
+  .centered-nav .nav-label {
+    font-size: 0.8125rem;
+  }
+
+  .modules-label {
+    display: none;
+  }
+
+  .btn-modules {
+    padding: 0.5rem;
+  }
+}
+
+/* Small (576px - 767px) - Large phones */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .logo-img {
+    height: 30px;
+  }
+
+  .navbar-collapse {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    z-index: 1000;
+  }
+
+  .centered-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+
+  .centered-nav .nav-link {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: auto;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .centered-nav .nav-icon {
+    font-size: 1.25rem;
+  }
+
+  .centered-nav .nav-label {
+    font-size: 0.875rem;
+  }
+
+  .modules-label {
+    display: none;
+  }
+
+  .btn-modules {
+    padding: 0.5rem;
+  }
+
+  .dropdown-menu-modules {
+    width: 280px;
+  }
+}
+
+/* Extra Small (<576px) - Phones */
+@media (max-width: 575.98px) {
+  .navbar {
+    padding: 0.5rem 0;
+  }
+
+  .logo-img {
+    height: 28px;
+  }
+
+  .modules-dropdown {
+    margin-left: 0.25rem;
+  }
+
+  .modules-label {
+    display: none;
+  }
+
+  .btn-modules {
+    padding: 0.5rem;
+    border-radius: 8px;
+  }
+
+  .dropdown-menu-modules {
+    width: calc(100vw - 2rem);
+    max-width: 300px;
+    left: 0.5rem !important;
+    right: auto !important;
+    transform: none !important;
+  }
+
+  .module-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .navbar-collapse {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 0.75rem;
+    z-index: 1000;
+    max-height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+
+  .centered-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.125rem;
+  }
+
+  .centered-nav .nav-link {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-width: auto;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+    border-radius: 8px;
+  }
+
+  .centered-nav .nav-icon {
+    font-size: 1.125rem;
+  }
+
+  .centered-nav .nav-label {
+    font-size: 0.875rem;
+  }
+
+  .right-actions {
+    gap: 0.25rem !important;
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .avatar-sm {
+    width: 28px;
+    height: 28px;
+  }
+
+  .btn-user {
+    padding: 0.25rem;
+  }
+
+  .btn-user::after {
+    display: none;
+  }
+
+  .dropdown-notifications {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+  }
+
+  .user-dropdown .dropdown-menu {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    width: auto !important;
+    transform: none !important;
+  }
+}
+
+/* Very small devices (<360px) */
+@media (max-width: 359.98px) {
+  .logo-img {
+    height: 24px;
+  }
+
+  .btn-modules {
+    padding: 0.375rem;
+  }
+
+  .btn-modules tui-icon {
+    font-size: 1.125rem;
+  }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .avatar-sm {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+/* ===========================================
+   DARK MODE SUPPORT (optional)
+   =========================================== */
+@media (prefers-color-scheme: dark) {
+  /* Add dark mode styles here if needed */
+}
+
+/* ===========================================
+   ANIMATIONS
+   =========================================== */
+.navbar-collapse.collapsing {
+  transition: height 0.2s ease;
+}
+
+.dropdown-menu {
+  animation: fadeInDown 0.15s ease;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===========================================
+   PRINT STYLES
+   =========================================== */
+@media print {
+  .navbar {
+    display: none !important;
+  }
+}

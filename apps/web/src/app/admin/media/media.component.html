@@ -1,0 +1,313 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-12">
+        <div class="content-dashboard">
+          <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mb-4 gap-3">
+            <div class="row align-items-center">
+              <div (click)="goBack()" role="button" class="col-auto">
+                <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+                  <i class="fs-5">
+                    <tui-icon icon="@tui.chevron-left" />
+                  </i>
+                </div>
+              </div>
+              <div class="col">
+                <h1 class="fs-4 mb-0">Media Management</h1>
+              </div>
+            </div>
+            <div class="header-actions">
+
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-refresh" *ngIf="!ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = true">
+                <i class="bi bi-upload"></i> <span class="ps-4">Upload</span>
+              </button>
+              <button class="btn btn-refresh" *ngIf="!ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = false; storageStatistics(); list_media()" title="Refresh">
+                <i class="bi bi-arrow-clockwise"></i> <span class="ps-4">Refresh</span>
+              </button>
+              <button class="btn btn-danger btn-refresh" *ngIf="ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = false; storageStatistics(); list_media()" title="Refresh">
+                <i class="bi bi-x"></i> <span class="ps-4">Close</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- Optional quick stats row (mirrors reference feel) -->
+    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="row g-3 mb-4">
+      <div class="col-sm-6 col-md-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div>Storage Usage</div>
+                <div class="fw-bold fs-5 mt-1"><span class="progress-percentage unlimited">{{ tenant_storage_response.data.storage.total_used_formatted }}</span> of <span class="progress-percentage unlimited">{{tenant_storage_response.data.storage.storage_limit_formatted}}</span>  </div>
+              </div>
+              <div class="text-success align-self-center">
+                <tui-icon class="fs-1"  icon="@tui.server"></tui-icon>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer p-3 text-center">
+            <div class="text-success small">{{ tenant_storage_response.data.storage.total_files }} Total Files</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-2">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div>Videos</div>
+                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.video.used_formatted }}</div>
+              </div>
+              <div class="text-success align-self-center">
+                <tui-icon class="fs-1"  icon="@tui.video"></tui-icon>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer p-3 text-center">
+            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.video.count }} Files</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-2">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div>AUDIO</div>
+                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.audio.used_formatted }}</div>
+              </div>
+              <div class="text-success align-self-center">
+                <tui-icon class="fs-1"  icon="@tui.file-music"></tui-icon>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer p-3 text-center">
+            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.audio.count }} Files</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-2">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div>PDFS</div>
+                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.pdf.used_formatted }}</div>
+              </div>
+              <div class="text-success align-self-center">
+                <tui-icon class="fs-1"  icon="@tui.files"></tui-icon>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer p-3 text-center">
+            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.pdf.count }} Files</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-md-2">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div>SCORM</div>
+                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.scorm.used_formatted }}</div>
+              </div>
+              <div class="text-success align-self-center">
+                <tui-icon class="fs-1" icon="@tui.package-2"></tui-icon>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer p-3 text-center">
+            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.scorm.count }} Files</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="ui_controls.viewing_upload" class="row">
+      <div class="col-12">
+        <div class="content-dashboard">
+          <div class="card">
+            <div class="card-body">
+              <div class="media-manager">
+                <div class="header">
+                  <h2>Media Manager</h2>
+                  <p>Upload videos, audio files, PDFs, and SCORM packages</p>
+                </div>
+                <app-media-upload
+                  [token]="user_session.token"
+                  [userId]="user_session.id"
+                  [tenantId]="user_session.tenant_id"
+                  [parentMediaId]="parentMediaId"
+                  [multiple]="true"
+                  [acceptedTypes]="['VIDEO', 'AUDIO', 'PDF', 'SCORM']"
+                  [maxFiles]="10"
+                  (uploadComplete)="onFileUploaded($event)"
+                  (uploadError)="onUploadError($event)"
+                  (allUploadsComplete)="onAllUploadsComplete($event)">
+                </app-media-upload>
+                <div class="uploaded-files" *ngIf="uploadedFiles.length > 0">
+                  <div class="section-header">
+                    <h3>Uploaded Files ({{ uploadedFiles.length }})</h3>
+                    <button class="btn-clear" (click)="clearUploadedFiles()">
+                      <i class="bi bi-trash3"></i>
+                      Clear All
+                    </button>
+                  </div>
+
+                  <div class="files-grid">
+                    <div class="file-card" *ngFor="let file of uploadedFiles; let i = index">
+                      <div class="file-icon" [ngSwitch]="file.media_type">
+                        <i *ngSwitchCase="'VIDEO'" class="bi bi-camera-video-fill video"></i>
+                        <i *ngSwitchCase="'AUDIO'" class="bi bi-music-note-beamed audio"></i>
+                        <i *ngSwitchCase="'PDF'" class="bi bi-file-earmark-pdf-fill pdf"></i>
+                        <i *ngSwitchCase="'SCORM'" class="bi bi-box-seam-fill scorm"></i>
+                        <i *ngSwitchDefault class="bi bi-file-earmark"></i>
+                      </div>
+                      <div class="file-details">
+                        <h4 class="file-title">{{ file.title }}</h4>
+                        <div class="file-meta">
+                          <span class="type-badge">{{ file.media_type }}</span>
+                          <span class="file-size">{{ file.file_size_formatted }}</span>
+                          <span class="version" *ngIf="file.version.version_number > 1">
+                            v{{ file.version.version_number }}
+                          </span>
+                        </div>
+
+                        <!-- Media specific info -->
+                        <div class="media-info" *ngIf="file.metadata">
+                        <span *ngIf="file.metadata.duration_formatted">
+                          <i class="bi bi-clock"></i> {{ file.metadata.duration_formatted }}
+                        </span>
+                          <span *ngIf="file.metadata.resolution">
+                          <i class="bi bi-aspect-ratio"></i> {{ file.metadata.resolution }}
+                        </span>
+                          <span *ngIf="file.metadata.page_count">
+                          <i class="bi bi-file-text"></i> {{ file.metadata.page_count }} pages
+                        </span>
+                        </div>
+                      </div>
+                      <div class="file-actions">
+                        <a [href]="file.file_url" target="_blank" class="btn-action" title="View">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                        <button class="btn-action danger" (click)="removeUploadedFile(i)" title="Remove">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Content table -->
+    <div *ngIf="ui_controls.is_loading" class="text-center my-5">
+      <tui-loader class="p-5" />
+    </div>
+    <!-- Filters + search -->
+    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="row mb-5 align-items-center">
+      <div class="col-md-2 mb-2 mb-md-0">
+        <select [(ngModel)]="request.media_type" (change)="list_media()" class="form-select form-select-sm">
+          <option value="">Select media type</option>
+          <option [value]="'AUDIO'">AUDIO</option>
+          <option [value]="'VIDEO'">VIDEO</option>
+          <option [value]="'SCORM'">SCORM</option>
+          <option [value]="'PDF'">FILE [ PDF ]</option>
+        </select>
+      </div>
+    </div>
+    <div style="min-height: 300px" *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="table-responsive shadow-sm rounded-3">
+      <table class="table table-bordered table-hover align-middle mb-0">
+        <thead class="bg-dark">
+        <tr>
+          <th>Title</th>
+          <th>Type</th>
+          <th>Size</th>
+          <th>Version</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr role="button" *ngFor="let mL of mediaList; let i = index">
+          <td>{{mL.title}}</td>
+          <td>{{mL.media_type}}</td>
+          <td>{{mL.file_size_formatted}}</td>
+          <td>{{mL.version_label}}</td>
+          <td>
+
+            <div class="dropdown">
+              <button class="btn w-100 btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Actions
+              </button>
+              <ul class="dropdown-menu">
+                @if(mL.media_type == 'SCORM'){
+                  <li><a class="dropdown-item" role="link" (click)="openPreview({ type: mL.media_type, title: mL.title, url: mL.file_url.replace('.zip', '/story.html'), id: mL.media_id})">Manage</a></li>
+                } @else {
+                  <li><a class="dropdown-item" role="link" (click)="openPreview({ type: mL.media_type, title: mL.title, url: mL.file_url, id: mL.media_id})">Manage</a></li>
+                }
+                <li><a class="dropdown-item" role="link" (click)="confirmDelete(mL.media_id, mL.title)">Delete</a></li>
+
+              </ul>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="mediaList.length === 0">
+          <td colspan="8" class="text-center text-muted py-4">No media found.</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="card card-body my-5 shadow-sm border-0 rounded-3">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="small text-muted">Showing {{ pagination.page }} of {{ pagination.total_pages }}</div>
+        <div class="d-flex gap-2 align-items-center">
+          <select class="form-select form-select-sm" style="width:80px" [(ngModel)]="pagination.per_page" (change)="paginate()">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" [class.disabled]="this.pagination.page === 1"><a role="button" class="page-link" (click)="list_media(this.pagination.page-1)">Prev</a></li>
+              <li class="page-item active"><a class="page-link">{{ pagination.page }}</a></li>
+              <li class="page-item" [class.disabled]="pagination.page === pagination.total_pages"><a role="button" class="page-link" (click)="list_media(this.pagination.page+1)">Next</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #deleteDialog let-observer>
+    <p class="text-muted">
+      This action cannot be undone.
+    </p>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="deleteAllVersions" [(ngModel)]="delete.delete_all_versions" />
+      <label class="form-check-label" for="deleteAllVersions">
+        Delete all versions
+      </label>
+    </div>
+
+    <div class="d-flex gap-2 justify-content-end">
+      <button type="button" class="btn btn-danger" (click)="observer.next(true); observer.complete();">
+        Delete
+      </button>
+
+      <button type="button" class="btn btn-secondary" (click)="observer.next(false); observer.complete();">
+        Cancel
+      </button>
+    </div>
+  </ng-template>
+
+</main>

@@ -1,0 +1,9 @@
+/* Compact learning page styles */
+.lesson-row { cursor: pointer; }
+.lesson-row .badge { font-size: 0.65rem; padding: 0.25rem 0.4rem; }
+.active-lesson { background: #eef6ff; border-left: 3px solid #0d6efd; }
+.scorm-placeholder iframe { min-height: 240px; }
+.content-block { max-height: 360px; overflow:auto; }
+.reaction-btn.active { box-shadow: 0 0 0 2px rgba(13,110,253,0.12); }
+.comments-list { font-size: 0.9rem; }
+.card .card-body { padding: 1rem; }

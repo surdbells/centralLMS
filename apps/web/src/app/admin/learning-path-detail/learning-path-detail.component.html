@@ -1,0 +1,378 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+@if (loading()) {
+  <div class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+} @else if (path()) {
+  <div class="learning-path-detail">
+    <!-- Header -->
+    <div class="page-header mb-4">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+              <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
+              <li class="breadcrumb-item active">{{ path()!.title }}</li>
+            </ol>
+          </nav>
+          <div class="d-flex align-items-center gap-3">
+            <h1 class="h3 mb-0">{{ path()!.title }}</h1>
+            <span class="badge bg-{{ getStatusBadge(path()!.status).color }}">
+              {{ getStatusBadge(path()!.status).label }}
+            </span>
+            @if (path()!.is_mandatory) {
+              <span class="badge bg-danger">Mandatory</span>
+            }
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          @if (path()!.status === 'draft') {
+            <button
+              class="btn btn-success"
+              (click)="publishPath()"
+              [disabled]="publishing() || path()!.total_items === 0"
+            >
+              @if (publishing()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+              }
+              <i class="bi bi-check-lg me-2"></i>Publish
+            </button>
+          }
+          @if (path()!.status === 'published') {
+            <button class="btn btn-outline-warning" (click)="archivePath()">
+              <i class="bi bi-archive me-2"></i>Archive
+            </button>
+          }
+          <a [routerLink]="['/admin/learning-paths', pathId, 'edit']" class="btn btn-primary">
+            <i class="bi bi-pencil me-2"></i>Edit
+          </a>
+          <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-primary">
+            <i class="bi bi-diagram-3 me-2"></i>Builder
+          </a>
+          <div class="dropdown">
+            <button class="btn btn-secondary" data-bs-toggle="dropdown">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'enrollments']">
+                  <i class="bi bi-people me-2"></i>Manage Enrollments
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'assignments']">
+                  <i class="bi bi-person-plus me-2"></i>Assignments
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'reviews']">
+                  <i class="bi bi-star me-2"></i>Reviews
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item" (click)="duplicatePath()">
+                  <i class="bi bi-copy me-2"></i>Duplicate
+                </button>
+              </li>
+              <li>
+                <a class="dropdown-item" [href]="'/learn/paths/' + pathId" target="_blank">
+                  <i class="bi bi-box-arrow-up-right me-2"></i>Preview as Learner
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <button class="dropdown-item text-danger" (click)="deletePath()">
+                  <i class="bi bi-trash me-2"></i>Delete
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Main Content -->
+      <div class="col-lg-8">
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-sm-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body text-center">
+                <div class="stat-value">{{ path()!.total_items }}</div>
+                <div class="stat-label">Items</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body text-center">
+                <div class="stat-value">{{ statistics()?.total_enrollments || 0 }}</div>
+                <div class="stat-label">Enrolled</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body text-center">
+                <div class="stat-value">{{ statistics()?.completed_enrollments || 0 }}</div>
+                <div class="stat-label">Completed</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6 col-md-3">
+            <div class="card stat-card">
+              <div class="card-body text-center">
+                <div class="stat-value">{{ getCompletionRate() }}%</div>
+                <div class="stat-label">Completion Rate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        @if (path()!.short_description || path()!.description) {
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Description</h5>
+            </div>
+            <div class="card-body">
+              <p class="lead mb-3">{{ path()!.short_description }}</p>
+              @if (path()!.description) {
+                <div [innerHTML]="path()!.description"></div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Content Structure -->
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Content Structure</h5>
+            <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-sm btn-primary">
+              <i class="bi bi-pencil me-1"></i>Edit Content
+            </a>
+          </div>
+          <div class="card-body p-0">
+            @if (sections().length === 0 && path()!.total_items === 0) {
+              <div class="text-center py-5">
+                <i class="bi bi-collection display-4 text-muted"></i>
+                <h5 class="mt-3">No Content Yet</h5>
+                <p class="text-muted">Add courses, assessments, and other content to build your learning path.</p>
+                <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-primary">
+                  <i class="bi bi-plus-lg me-2"></i>Add Content
+                </a>
+              </div>
+            } @else {
+              <div class="content-structure">
+                @for (section of sections(); track section.section_id) {
+                  <div class="content-section">
+                    <div class="section-header">
+                      <div class="d-flex align-items-center gap-2">
+                        @if (section.is_milestone) {
+                          <span class="badge bg-warning text-dark">
+                            <i class="bi bi-flag me-1"></i>Milestone
+                          </span>
+                        }
+                        <h6 class="mb-0">{{ section.title }}</h6>
+                        <span class="text-muted">({{ section.items?.length || 0 }} items)</span>
+                      </div>
+                    </div>
+                    @if (section.items && section.items.length > 0) {
+                      <div class="section-items">
+                        @for (item of section.items; track item.item_id) {
+                          <div class="content-item">
+                            <div class="item-icon">
+                              <i class="bi {{ getItemTypeIcon(item.item_type) }}"></i>
+                            </div>
+                            <div class="item-info">
+                              <span class="item-title">{{ item.display_title || item.external_title }}</span>
+                              <span class="item-meta">
+                                {{ item.item_type | titlecase }}
+                                @if (item.points_value) {
+                                  • {{ item.points_value }} pts
+                                }
+                                @if (item.estimated_duration_minutes) {
+                                  • {{ item.estimated_duration_minutes }} min
+                                }
+                              </span>
+                            </div>
+                            @if (item.is_required) {
+                              <span class="badge bg-primary-subtle text-primary">Required</span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Learning Objectives -->
+        @if (path()!.learning_objectives && path()!.learning_objectives.length > 0) {
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Learning Objectives</h5>
+            </div>
+            <div class="card-body">
+              <ul class="objectives-list">
+                @for (objective of path()!.learning_objectives; track $index) {
+                  <li>
+                    <i class="bi bi-check2-circle text-success"></i>
+                    <span>{{ objective }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Quick Info -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">Quick Info</h6>
+          </div>
+          <div class="card-body">
+            <dl class="info-list">
+              <div class="info-item">
+                <dt>Skill Level</dt>
+                <dd>
+                  <span class="badge bg-{{ getSkillLevel(path()!.skill_level).color }}">
+                    {{ getSkillLevel(path()!.skill_level).label }}
+                  </span>
+                </dd>
+              </div>
+              <div class="info-item">
+                <dt>Path Type</dt>
+                <dd>{{ path()!.path_type | titlecase }}</dd>
+              </div>
+              <div class="info-item">
+                <dt>Completion</dt>
+                <dd>{{ path()!.completion_type | titlecase }}</dd>
+              </div>
+              <div class="info-item">
+                <dt>Duration</dt>
+                <dd>{{ formatDuration(path()!.estimated_duration_hours) }}</dd>
+              </div>
+              <div class="info-item">
+                <dt>Total Points</dt>
+                <dd>{{ path()!.total_points }}</dd>
+              </div>
+              <div class="info-item">
+                <dt>Certificate</dt>
+                <dd>
+                  @if (path()!.certificate_enabled) {
+                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Enabled</span>
+                  } @else {
+                    <span class="text-muted">Disabled</span>
+                  }
+                </dd>
+              </div>
+              <div class="info-item">
+                <dt>Visibility</dt>
+                <dd>{{ path()!.visibility | titlecase }}</dd>
+              </div>
+              <div class="info-item">
+                <dt>Enrollment</dt>
+                <dd>{{ path()!.enrollment_type | titlecase }}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <!-- Ratings -->
+        @if (ratingSummary() && ratingSummary()!.total_reviews > 0) {
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h6 class="mb-0">Ratings</h6>
+              <a [routerLink]="['/admin/learning-paths', pathId, 'reviews']" class="btn btn-sm btn-link p-0">
+                View All
+              </a>
+            </div>
+            <div class="card-body">
+              <div class="rating-summary text-center mb-3">
+                <div class="rating-value">{{ (ratingSummary()?.avg_rating || 0) | number:'1.1-1' }}</div>
+                <div class="rating-stars">
+                  @for (star of [1,2,3,4,5]; track star) {
+                    <i class="bi" [class.bi-star-fill]="star <= (ratingSummary()?.avg_rating || 0)" [class.bi-star]="star > (ratingSummary()?.avg_rating || 0)" [class.text-warning]="star <= (ratingSummary()?.avg_rating || 0)"></i>
+                  }
+                </div>
+                <div class="rating-count text-muted">{{ ratingSummary()?.total_reviews || 0 }} reviews</div>
+              </div>
+
+              <!-- Rating Distribution -->
+              <div class="rating-distribution">
+                @for (rating of [5,4,3,2,1]; track rating) {
+                  <div class="distribution-row">
+                    <span class="rating-label">{{ rating }}</span>
+                    <div class="progress flex-fill">
+                      <div
+                        class="progress-bar bg-warning"
+                        [style.width.%]="((ratingSummary()?.distribution?.[rating] || 0) / (ratingSummary()?.total_reviews || 1)) * 100"
+                      ></div>
+                    </div>
+                    <span class="rating-count">{{ ratingSummary()?.distribution?.[rating] || 0 }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Dates -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">Dates</h6>
+          </div>
+          <div class="card-body">
+            <dl class="info-list mb-0">
+              <div class="info-item">
+                <dt>Created</dt>
+                <dd>{{ formatDate(path()!.created_at) }}</dd>
+              </div>
+              <div class="info-item">
+                <dt>Last Updated</dt>
+                <dd>{{ formatDate(path()!.updated_at) }}</dd>
+              </div>
+              @if (path()!.published_at) {
+                <div class="info-item">
+                  <dt>Published</dt>
+                  <dd>{{ formatDate(path()!.published_at) }}</dd>
+                </div>
+              }
+            </dl>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        @if (path()!.tags && path()!.tags.length > 0) {
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">Tags</h6>
+            </div>
+            <div class="card-body">
+              <div class="tags">
+                @for (tag of path()!.tags; track tag) {
+                  <span class="badge bg-black text-white">{{ tag }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+  </div>
+</main>

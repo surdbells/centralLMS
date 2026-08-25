@@ -1,0 +1,997 @@
+<!-- messaging/messaging.component.html -->
+<!-- admin-live-training.component.html -->
+<app-top></app-top>
+<main style="margin-top: 62px !important;" class="main px-lg-6">
+  <div class="container-fluid">
+<div class="messaging-container" [class.mobile]="isMobile">
+  <!-- Sidebar - Conversation List -->
+  <aside class="conversations-sidebar" [class.hidden]="isMobile && !showConversationList">
+    <!-- Header -->
+    <div class="sidebar-header">
+      <h2 class="sidebar-title">
+        <i class="bi bi-chat-dots me-2"></i>Messages
+      </h2>
+      <div class="header-actions">
+        <button class="btn btn-icon" (click)="openBroadcasts()" [class.has-badge]="unreadCounts.unread_broadcasts > 0" title="Announcements">
+          <i class="bi bi-megaphone"></i>
+          <span class="badge" *ngIf="unreadCounts.unread_broadcasts > 0">{{ unreadCounts.unread_broadcasts }}</span>
+        </button>
+        <button class="btn btn-icon" (click)="openNewConversation()" title="New Message">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="sidebar-search">
+      <div class="search-input-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" class="form-control" placeholder="Search conversations..."
+               [(ngModel)]="conversationSearch" (ngModelChange)="onConversationSearchChange()">
+      </div>
+      <div class="filter-tabs">
+        <button class="filter-tab" [class.active]="conversationFilter === 'all'" (click)="conversationFilter = 'all'; onConversationFilterChange()">All</button>
+        <button class="filter-tab" [class.active]="conversationFilter === 'direct'" (click)="conversationFilter = 'direct'; onConversationFilterChange()">Direct</button>
+        <button class="filter-tab" [class.active]="conversationFilter === 'group'" (click)="conversationFilter = 'group'; onConversationFilterChange()">Groups</button>
+        <button class="filter-tab" [class.active]="conversationFilter === 'channel'" (click)="conversationFilter = 'channel'; onConversationFilterChange()">Channels</button>
+      </div>
+    </div>
+
+    <!-- Conversations List -->
+    <div class="conversations-list">
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner-border spinner-border-sm text-primary"></div>
+        <span>Loading...</span>
+      </div>
+
+      <div *ngIf="!loading && filteredConversations.length === 0" class="empty-state">
+        <i class="bi bi-chat-left-text"></i>
+        <p>No conversations yet</p>
+        <button class="btn btn-primary btn-sm" (click)="openNewConversation()">Start a conversation</button>
+      </div>
+
+      <!-- Conversation Items -->
+      <div class="conversation-item"
+           *ngFor="let conv of filteredConversations; trackBy: trackByConversationId"
+           [class.active]="activeConversation?.conversation_id === conv.conversation_id"
+           [class.unread]="conv.unread_count > 0"
+           [class.pinned]="conv.is_pinned"
+           [class.muted]="conv.is_muted"
+           (click)="selectConversation(conv)">
+
+        <!-- Avatar -->
+        <div class="conversation-avatar">
+          <img *ngIf="getConversationAvatar(conv)" [src]="'data:image/png;base64,'+getConversationAvatar(conv)" [alt]="getConversationName(conv)">
+          <div *ngIf="!getConversationAvatar(conv)" class="avatar-placeholder" [class]="'type-' + conv.type">
+            <span *ngIf="conv.type === 'direct'">{{ getInitials(getConversationName(conv)) }}</span>
+            <i *ngIf="conv.type === 'group'" class="bi bi-people"></i>
+            <i *ngIf="conv.type === 'channel'" class="bi bi-hash"></i>
+          </div>
+          <span class="online-indicator" *ngIf="conv.type === 'direct'" [class]="getOnlineStatusClass(conv.online_status)"></span>
+        </div>
+
+        <!-- Content -->
+        <div class="conversation-content">
+          <div class="conversation-header">
+            <span class="conversation-name">
+              <i *ngIf="conv.is_pinned" class="bi bi-pin-fill pin-icon"></i>
+              {{ getConversationName(conv) }}
+            </span>
+            <span class="conversation-time" *ngIf="conv.last_message_at">{{ formatTime(conv.last_message_at) }}</span>
+          </div>
+          <div class="conversation-preview">
+            <span class="preview-text" *ngIf="conv.last_message_content">
+              <strong *ngIf="conv.type !== 'direct' && conv.last_message_sender_id">{{ conv.sender_first_name }}: </strong>
+              {{ conv.last_message_content | slice:0:50 }}{{ conv.last_message_content && conv.last_message_content.length > 50 ? '...' : '' }}
+            </span>
+            <span class="preview-text empty" *ngIf="!conv.last_message_content">No messages yet</span>
+          </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="conversation-badges">
+          <span class="unread-badge" *ngIf="conv.unread_count > 0">{{ conv.unread_count > 99 ? '99+' : conv.unread_count }}</span>
+          <i class="bi bi-bell-slash muted-icon" *ngIf="conv.is_muted" title="Muted"></i>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Chat Area -->
+  <main style="margin-top: 0" class="chat-main" [class.hidden]="isMobile && showConversationList">
+    <!-- No Conversation Selected -->
+    <div class="no-conversation" *ngIf="!activeConversation">
+      <div class="no-conversation-content">
+        <i class="bi bi-chat-square-text"></i>
+        <h3>Welcome to Messages</h3>
+        <p>Select a conversation or start a new one</p>
+        <button class="btn btn-primary" (click)="openNewConversation()">
+          <i class="bi bi-plus-lg me-2"></i>New Conversation
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Conversation -->
+    <ng-container *ngIf="activeConversation">
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <button class="btn btn-icon back-btn" *ngIf="isMobile" (click)="goBackToList()">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+
+        <div class="chat-header-info" (click)="toggleParticipants()">
+          <div class="chat-avatar">
+            <img *ngIf="getConversationAvatar(activeConversation)" [src]="'data:image/png;base64,'+getConversationAvatar(activeConversation)">
+            <div *ngIf="!getConversationAvatar(activeConversation)" class="avatar-placeholder" [class]="'type-' + activeConversation.type">
+              <span *ngIf="activeConversation.type === 'direct'">{{ getInitials(getConversationName(activeConversation)) }}</span>
+              <i *ngIf="activeConversation.type === 'group'" class="bi bi-people"></i>
+              <i *ngIf="activeConversation.type === 'channel'" class="bi bi-hash"></i>
+            </div>
+          </div>
+          <div class="chat-info">
+            <h3 class="chat-name">{{ getConversationName(activeConversation) }}</h3>
+            <p class="chat-status" *ngIf="typingUsers.length > 0">{{ getTypingText() }}</p>
+            <p class="chat-status" *ngIf="typingUsers.length === 0 && activeConversation.type === 'direct'">
+              {{ activeConversation.online_status === 'online' ? 'Online' : 'Offline' }}
+            </p>
+            <p class="chat-status" *ngIf="typingUsers.length === 0 && activeConversation.type !== 'direct'">
+              {{ participants.length }} members
+            </p>
+          </div>
+        </div>
+
+        <div class="chat-header-actions">
+          <button class="btn btn-icon" (click)="openMessageSearch()" title="Search Messages">
+            <i class="bi bi-search"></i>
+          </button>
+          <button class="btn btn-icon" (click)="toggleMuteConversation()" [title]="activeConversation.is_muted ? 'Unmute' : 'Mute'">
+            <i class="bi" [ngClass]="activeConversation.is_muted ? 'bi-bell-slash' : 'bi-bell'"></i>
+          </button>
+          <button class="btn btn-icon" (click)="togglePinConversation()" [title]="activeConversation.is_pinned ? 'Unpin' : 'Pin'">
+            <i class="bi" [ngClass]="activeConversation.is_pinned ? 'bi-pin-fill' : 'bi-pin'"></i>
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-icon" data-bs-toggle="dropdown">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" (click)="toggleParticipants()"><i class="bi bi-people me-2"></i>View Members</a></li>
+              <li *ngIf="isGroupOrChannel() && canManageParticipants()"><a class="dropdown-item" (click)="openAddParticipantsModal()"><i class="bi bi-person-plus me-2"></i>Add Members</a></li>
+              <li *ngIf="isGroupOrChannel() && canEditConversation()"><a class="dropdown-item" (click)="openConversationSettings()"><i class="bi bi-gear me-2"></i>Settings</a></li>
+              <li><a class="dropdown-item" (click)="refreshConversation()"><i class="bi bi-arrow-clockwise me-2"></i>Refresh</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" (click)="archiveConversation()"><i class="bi bi-archive me-2"></i>Archive</a></li>
+              <li *ngIf="activeConversation.type !== 'direct'"><a class="dropdown-item text-danger" (click)="leaveConversation()"><i class="bi bi-box-arrow-left me-2"></i>Leave</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages Area -->
+      <div class="messages-area" #messagesContainer (scroll)="onMessagesScroll($event)">
+        <!-- Loading More -->
+        <div class="loading-more" *ngIf="loadingMoreMessages">
+          <div class="spinner-border spinner-border-sm"></div>
+        </div>
+
+        <!-- Messages -->
+        <ng-container *ngFor="let message of messages; let i = index; trackBy: trackByMessageId">
+          <!-- Date Divider -->
+          <div class="date-divider" *ngIf="shouldShowDateDivider(i)">
+            <span>{{ getDateDividerText(message.created_at) }}</span>
+          </div>
+
+          <!-- System Message -->
+          <div class="system-message" *ngIf="message.message_type === 'system'">
+            <span>{{ message.content }}</span>
+          </div>
+
+          <!-- Regular Message -->
+          <div class="message-wrapper"
+               [id]="'message-' + message.message_id"
+               *ngIf="message.message_type !== 'system'"
+               [class.own]="isOwnMessage(message)"
+               [class.grouped]="shouldGroupMessage(i)"
+               [class.pinned]="message.is_pinned"
+               (contextmenu)="openContextMenu($event, message)">
+
+            <!-- Avatar -->
+            <div class="message-avatar" *ngIf="!isOwnMessage(message) && !shouldGroupMessage(i)">
+              <img *ngIf="message.sender_avatar" [src]="'data:image/png;base64,'+message.sender_avatar">
+              <div *ngIf="!message.sender_avatar" class="avatar-placeholder">
+                {{ getInitials(message.sender_first_name + ' ' + message.sender_last_name) }}
+              </div>
+            </div>
+
+            <div class="message-content-wrapper">
+              <!-- Sender Name (for group chats) -->
+              <div class="message-sender" *ngIf="!isOwnMessage(message) && !shouldGroupMessage(i) && activeConversation.type !== 'direct'">
+                {{ message.sender_first_name }} {{ message.sender_last_name }}
+              </div>
+
+              <!-- Reply Reference -->
+              <div class="message-reply-ref" *ngIf="message.reply_to">
+                <i class="bi bi-reply"></i>
+                <span class="reply-sender">{{ message.reply_to.first_name }}</span>
+                <span class="reply-content">{{ message.reply_to.content }}</span>
+              </div>
+
+              <!-- Message Bubble -->
+              <div class="message-bubble" [class.edited]="message.is_edited">
+                <!-- Forwarded Label -->
+                <div class="forwarded-label" *ngIf="message.forwarded_from_id">
+                  <i class="bi bi-forward"></i> Forwarded
+                </div>
+
+                <!-- Text Content -->
+                <div class="message-text" [innerHTML]="message.content_html || message.content"></div>
+
+                <!-- Attachments -->
+                <div class="message-attachments" *ngIf="message.attachments && message.attachments.length > 0">
+                  <div class="attachment-item" *ngFor="let attachment of message.attachments">
+                    <!-- Image -->
+                    <div class="attachment-image" *ngIf="attachment.file_type.startsWith('image/')">
+                      <img [src]="attachment.file_url" [alt]="attachment.file_name" (click)="openImagePreview(attachment)">
+                    </div>
+                    <!-- File -->
+                    <a class="attachment-file" *ngIf="!attachment.file_type.startsWith('image/')" [href]="attachment.file_url" target="_blank">
+                      <i class="bi" [ngClass]="getFileIcon(attachment.file_type)"></i>
+                      <div class="file-info">
+                        <span class="file-name">{{ attachment.file_name }}</span>
+                        <span class="file-size">{{ formatFileSize(attachment.file_size) }}</span>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Message Meta -->
+                <div class="message-meta">
+                  <span class="message-time">{{ formatTime(message.created_at) }}</span>
+                  <span class="edited-label" *ngIf="message.is_edited">(edited)</span>
+                  <i class="bi bi-pin-fill pin-label" *ngIf="message.is_pinned"></i>
+                </div>
+              </div>
+
+              <!-- Reactions -->
+              <div class="message-reactions" *ngIf="message.reactions && message.reactions.length > 0">
+                <button class="reaction-btn"
+                        *ngFor="let reaction of message.reactions"
+                        [class.reacted]="reaction.reacted_by_me"
+                        (click)="toggleReaction(message, reaction.emoji)">
+                  {{ reaction.emoji }} {{ reaction.count }}
+                </button>
+                <button class="reaction-btn add-reaction" (click)="showEmojiPicker = true; contextMenuMessage = message">
+                  <i class="bi bi-emoji-smile"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="message-actions">
+              <button class="action-btn" (click)="replyToMessage(message)" title="Reply">
+                <i class="bi bi-reply"></i>
+              </button>
+              <button class="action-btn" (click)="showEmojiPicker = true; contextMenuMessage = message" title="React">
+                <i class="bi bi-emoji-smile"></i>
+              </button>
+              <button class="action-btn" (click)="openContextMenu($event, message)" title="More">
+                <i class="bi bi-three-dots"></i>
+              </button>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Loading Messages -->
+        <div class="loading-messages" *ngIf="loadingMessages">
+          <div class="spinner-border text-primary"></div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-messages" *ngIf="!loadingMessages && messages.length === 0">
+          <i class="bi bi-chat-left-text"></i>
+          <p>No messages yet. Start the conversation!</p>
+        </div>
+      </div>
+
+      <!-- Message Input Area -->
+      <div class="message-input-area">
+        <!-- Reply Preview -->
+        <div class="reply-preview" *ngIf="replyingTo">
+          <div class="reply-content">
+            <i class="bi bi-reply"></i>
+            <div class="reply-info">
+              <span class="reply-to">Replying to {{ replyingTo.sender_first_name }}</span>
+              <span class="reply-text">{{ replyingTo.content | slice:0:100 }}</span>
+            </div>
+          </div>
+          <button class="btn btn-icon" (click)="cancelReply()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <!-- Edit Preview -->
+        <div class="edit-preview" *ngIf="editingMessage">
+          <div class="edit-content">
+            <i class="bi bi-pencil"></i>
+            <span>Editing message</span>
+          </div>
+          <button class="btn btn-icon" (click)="cancelEdit()">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+
+        <!-- Attachment Previews -->
+        <div class="attachment-previews" *ngIf="selectedAttachments.length > 0">
+          <div class="preview-item" *ngFor="let file of selectedAttachments; let i = index">
+            <img *ngIf="attachmentPreviews[i]" [src]="attachmentPreviews[i]">
+            <i *ngIf="!attachmentPreviews[i]" class="bi" [ngClass]="getFileIcon(file.type)"></i>
+            <span class="file-name">{{ file.name }}</span>
+            <button class="remove-btn" (click)="removeAttachment(i)">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="input-row">
+          <button class="btn btn-icon" (click)="triggerFileInput()" title="Attach file" *ngIf="activeConversation.allow_attachments">
+            <i class="bi bi-paperclip"></i>
+          </button>
+          <input type="file" #fileInput (change)="onFilesSelected($event)" multiple hidden>
+
+          <div class="text-input-wrapper">
+            <textarea #messageInput
+                      class="form-control"
+                      [(ngModel)]="messageContent"
+                      (input)="onMessageInput()"
+                      (keydown)="onKeyDown($event)"
+                      placeholder="Type a message..."
+                      rows="1"
+                      [disabled]="activeConversation.is_readonly && activeConversation.my_role === 'member'"></textarea>
+            <button class="btn btn-icon clear-draft-btn" *ngIf="messageContent.trim()" (click)="clearDraft()" title="Clear draft">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </div>
+
+          <button class="btn btn-icon emoji-btn" (click)="showEmojiPicker = !showEmojiPicker; $event.stopPropagation()">
+            <i class="bi bi-emoji-smile"></i>
+          </button>
+
+          <button class="btn btn-primary send-btn"
+                  (click)="sendMessage()"
+                  [disabled]="sendingMessage || (!messageContent.trim() && selectedAttachments.length === 0)">
+            <i class="bi bi-send"></i>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </main>
+
+  <!-- Participants Panel -->
+  <aside class="participants-panel" *ngIf="showParticipants && activeConversation">
+    <div class="panel-header">
+      <h3>Members</h3>
+      <button class="btn btn-icon" (click)="showParticipants = false">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="panel-actions" *ngIf="canManageParticipants() && isGroupOrChannel()">
+      <button class="btn btn-primary btn-sm w-100" (click)="openAddParticipantsModal()">
+        <i class="bi bi-person-plus me-1"></i> Add Members
+      </button>
+    </div>
+    <div class="participants-list">
+      <div class="participant-item" *ngFor="let participant of participants; trackBy: trackByParticipantId">
+        <div class="participant-avatar">
+          <img *ngIf="participant.profile_image" [src]="'data:image/png;base64,'+participant.profile_image">
+          <div *ngIf="!participant.profile_image" class="avatar-placeholder">
+            {{ getInitials(participant.first_name + ' ' + participant.last_name) }}
+          </div>
+          <span class="online-indicator" [class]="getOnlineStatusClass(participant.online_status)"></span>
+        </div>
+        <div class="participant-info">
+          <span class="participant-name">{{ participant.first_name }} {{ participant.last_name }}</span>
+          <span class="participant-role badge ms-1" [ngClass]="getRoleBadgeClass(participant.role)" *ngIf="participant.role !== 'member'">{{ participant.role }}</span>
+        </div>
+        <div class="participant-actions" *ngIf="canManageParticipants() && participant.user_id !== messagingService.getCurrentUserId()">
+          <div class="dropdown">
+            <button class="btn btn-icon btn-sm" data-bs-toggle="dropdown">
+              <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" (click)="openParticipantRoleModal(participant)"><i class="bi bi-shield me-2"></i>Change Role</a></li>
+              <li><a class="dropdown-item" (click)="openBlockUserModal(participant)"><i class="bi bi-slash-circle me-2"></i>Block</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" (click)="removeMember(participant)"><i class="bi bi-person-x me-2"></i>Remove</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+  </div>
+</main>
+<!-- Context Menu -->
+<div class="context-menu"
+     *ngIf="showContextMenu && contextMenuMessage"
+     [style.left.px]="contextMenuPosition.x"
+     [style.top.px]="contextMenuPosition.y"
+     (click)="$event.stopPropagation()">
+  <button class="context-item" (click)="replyToMessage(contextMenuMessage)">
+    <i class="bi bi-reply"></i> Reply
+  </button>
+  <button class="context-item" (click)="openForwardModal(contextMenuMessage)">
+    <i class="bi bi-forward"></i> Forward
+  </button>
+  <button class="context-item" (click)="saveMessage(contextMenuMessage)">
+    <i class="bi bi-bookmark"></i> Save
+  </button>
+  <button class="context-item" (click)="togglePinMessage(contextMenuMessage)" *ngIf="activeConversation?.my_role !== 'member'">
+    <i class="bi" [ngClass]="contextMenuMessage.is_pinned ? 'bi-pin-fill' : 'bi-pin'"></i>
+    {{ contextMenuMessage.is_pinned ? 'Unpin' : 'Pin' }}
+  </button>
+  <hr>
+  <button class="context-item" (click)="viewMessageDetails(contextMenuMessage)">
+    <i class="bi bi-info-circle"></i> Details
+  </button>
+  <button class="context-item" (click)="viewReadReceipts(contextMenuMessage)">
+    <i class="bi bi-check2-all"></i> Read Receipts
+  </button>
+  <hr *ngIf="isOwnMessage(contextMenuMessage)">
+  <button class="context-item" (click)="editMessage(contextMenuMessage)" *ngIf="isOwnMessage(contextMenuMessage)">
+    <i class="bi bi-pencil"></i> Edit
+  </button>
+  <button class="context-item text-danger" (click)="deleteMessage(contextMenuMessage, true)" *ngIf="isOwnMessage(contextMenuMessage)">
+    <i class="bi bi-trash"></i> Delete
+  </button>
+  <hr *ngIf="!isOwnMessage(contextMenuMessage)">
+  <button class="context-item text-warning" (click)="blockMessageSender(contextMenuMessage)" *ngIf="!isOwnMessage(contextMenuMessage)">
+    <i class="bi bi-slash-circle"></i> Block User
+  </button>
+  <button class="context-item text-danger" (click)="reportMessage(contextMenuMessage)" *ngIf="!isOwnMessage(contextMenuMessage)">
+    <i class="bi bi-flag"></i> Report
+  </button>
+</div>
+<!-- Emoji Picker -->
+<div class="emoji-picker" *ngIf="showEmojiPicker" (click)="$event.stopPropagation()">
+  <div class="emoji-grid">
+    <button class="emoji-btn" *ngFor="let emoji of commonEmojis" (click)="contextMenuMessage ? addReaction(contextMenuMessage, emoji) : null; showEmojiPicker = false">
+      {{ emoji }}
+    </button>
+  </div>
+</div>
+<!-- New Conversation Modal -->
+<div class="modal-backdrop" *ngIf="showNewConversation" (click)="closeNewConversation()"></div>
+<div class="modal-dialog new-conversation-modal" *ngIf="showNewConversation" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title">New Conversation</h4>
+      <button class="btn btn-icon" (click)="closeNewConversation()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <!-- Type Selection -->
+      <div class="type-selection">
+        <button class="type-btn" [class.active]="newConversationType === 'direct'" (click)="newConversationType = 'direct'">
+          <i class="bi bi-person"></i> Direct Message
+        </button>
+        <button class="type-btn" [class.active]="newConversationType === 'group'" (click)="newConversationType = 'group'">
+          <i class="bi bi-people"></i> Group
+        </button>
+        <button class="type-btn" [class.active]="newConversationType === 'channel'" (click)="newConversationType = 'channel'">
+          <i class="bi bi-hash"></i> Channel
+        </button>
+      </div>
+
+      <!-- Group/Channel Name -->
+      <div class="form-group" *ngIf="newConversationType !== 'direct'">
+        <label class="form-label">{{ newConversationType === 'group' ? 'Group' : 'Channel' }} Name</label>
+        <input type="text" class="form-control" [(ngModel)]="newConversationName" placeholder="Enter name...">
+      </div>
+
+      <div class="form-group" *ngIf="newConversationType !== 'direct'">
+        <label class="form-label">Description (optional)</label>
+        <textarea class="form-control" [(ngModel)]="newConversationDescription" rows="2" placeholder="What's this about?"></textarea>
+      </div>
+
+      <!-- User Search -->
+      <div class="form-group">
+        <label class="form-label">{{ newConversationType === 'direct' ? 'To' : 'Add Members' }}</label>
+        <input type="text" class="form-control" [(ngModel)]="userSearchQuery" (ngModelChange)="searchUsers()" placeholder="Search users...">
+
+        <!-- Search Results -->
+        <div class="user-search-results" *ngIf="userSearchResults.length > 0">
+          <div class="user-result" *ngFor="let user of userSearchResults" (click)="selectUser(user)">
+            <div class="user-avatar">
+              <img *ngIf="user.profile_image" [src]="'data:image/png;base64,'+user.profile_image">
+              <div *ngIf="!user.profile_image" class="avatar-placeholder">{{ getInitials(user.first_name + ' ' + user.last_name) }}</div>
+            </div>
+            <div class="user-info">
+              <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+              <span class="user-email">{{ user.email }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected Users -->
+      <div class="selected-users" *ngIf="selectedUsers.length > 0">
+        <div class="selected-user" *ngFor="let user of selectedUsers">
+          <span>{{ user.first_name }} {{ user.last_name }}</span>
+          <button class="remove-btn" (click)="removeSelectedUser(user)">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeNewConversation()">Cancel</button>
+      <button class="btn btn-primary" (click)="createConversation()" [disabled]="selectedUsers.length === 0">
+        {{ newConversationType === 'direct' ? 'Start Chat' : 'Create' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Forward Modal -->
+<div class="modal-backdrop" *ngIf="showForwardModal" (click)="closeForwardModal()"></div>
+<div class="modal-dialog forward-modal" *ngIf="showForwardModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title">Forward Message</h4>
+      <button class="btn btn-icon" (click)="closeForwardModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="forward-preview">"{{ forwardingMessage?.content | slice:0:100 }}..."</p>
+      <div class="forward-targets">
+        <div class="target-item"
+             *ngFor="let conv of conversations"
+             [class.selected]="forwardTargets.includes(conv.conversation_id)"
+             (click)="toggleForwardTarget(conv.conversation_id)">
+          <div class="target-avatar">
+            <img *ngIf="getConversationAvatar(conv)" [src]="'data:image/png;base64,'+getConversationAvatar(conv)">
+            <div *ngIf="!getConversationAvatar(conv)" class="avatar-placeholder">{{ getInitials(getConversationName(conv)) }}</div>
+          </div>
+          <span class="target-name">{{ getConversationName(conv) }}</span>
+          <i class="bi bi-check-circle-fill" *ngIf="forwardTargets.includes(conv.conversation_id)"></i>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeForwardModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="forwardMessage()" [disabled]="forwardTargets.length === 0">
+        Forward to {{ forwardTargets.length }} chat{{ forwardTargets.length > 1 ? 's' : '' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Broadcasts Modal -->
+<div class="modal-backdrop" *ngIf="showBroadcasts" (click)="closeBroadcasts()"></div>
+<div class="modal-dialog broadcasts-modal" *ngIf="showBroadcasts" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-megaphone me-2"></i>Announcements</h4>
+      <button class="btn btn-icon" (click)="closeBroadcasts()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="broadcast-empty" *ngIf="broadcasts.length === 0">
+        <i class="bi bi-megaphone"></i>
+        <p>No announcements</p>
+      </div>
+      <div class="broadcast-item" *ngFor="let broadcast of broadcasts" [class.unread]="!broadcast.is_read" (click)="viewBroadcastDetails(broadcast)">
+        <div class="broadcast-header">
+          <span class="broadcast-title">{{ broadcast.title }}</span>
+          <span class="broadcast-time">{{ formatTime(broadcast.sent_at!) }}</span>
+        </div>
+        <div class="broadcast-content" [innerHTML]="broadcast.content_html || broadcast.content"></div>
+        <div class="broadcast-footer">
+          <span class="broadcast-sender">From {{ broadcast.sender_first_name }} {{ broadcast.sender_last_name }}</span>
+          <div class="broadcast-actions">
+            <button class="btn btn-sm btn-primary" *ngIf="!broadcast.is_read" (click)="markBroadcastRead(broadcast); $event.stopPropagation()">
+              Mark as Read
+            </button>
+            <button class="btn btn-sm btn-primary" *ngIf="broadcast.requires_acknowledgment && !broadcast.is_acknowledged" (click)="acknowledgeBroadcast(broadcast); $event.stopPropagation()">
+              Acknowledge
+            </button>
+            <span class="acknowledged-badge" *ngIf="broadcast.is_acknowledged">
+              <i class="bi bi-check-circle-fill"></i> Acknowledged
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Conversation Settings Modal (uses updateConversation) -->
+<div class="modal-backdrop" *ngIf="showConversationSettings" (click)="closeConversationSettings()"></div>
+<div class="modal-dialog" *ngIf="showConversationSettings" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-gear me-2"></i>Conversation Settings</h4>
+      <button class="btn btn-icon" (click)="closeConversationSettings()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" class="form-control" [(ngModel)]="editingConversationName" placeholder="Conversation name">
+      </div>
+      <div class="form-group mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" [(ngModel)]="editingConversationDescription" rows="3" placeholder="What's this conversation about?"></textarea>
+      </div>
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="isPrivate" [(ngModel)]="editingConversationIsPrivate">
+        <label class="form-check-label" for="isPrivate">Private conversation (invite only)</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeConversationSettings()">Cancel</button>
+      <button class="btn btn-primary" (click)="saveConversationSettings()" [disabled]="savingConversation">
+        <span *ngIf="savingConversation" class="spinner-border spinner-border-sm me-2"></span>
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Participants Modal (uses addParticipant, addParticipants) -->
+<div class="modal-backdrop" *ngIf="showAddParticipantsModal" (click)="closeAddParticipantsModal()"></div>
+<div class="modal-dialog" *ngIf="showAddParticipantsModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add Members</h4>
+      <button class="btn btn-icon" (click)="closeAddParticipantsModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group mb-3">
+        <label class="form-label">Search Users</label>
+        <input type="text" class="form-control" [(ngModel)]="newParticipantSearchQuery"
+               (ngModelChange)="searchNewParticipants()" placeholder="Search by name or email...">
+      </div>
+
+      <!-- Search Results -->
+      <div class="user-search-results" *ngIf="newParticipantSearchResults.length > 0">
+        <div class="user-result" *ngFor="let user of newParticipantSearchResults" (click)="selectNewParticipant(user)">
+          <div class="user-avatar">
+            <img *ngIf="user.profile_image" [src]="'data:image/png;base64,'+user.profile_image">
+            <div *ngIf="!user.profile_image" class="avatar-placeholder">{{ getInitials(user.first_name + ' ' + user.last_name) }}</div>
+          </div>
+          <div class="user-info">
+            <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+            <span class="user-email">{{ user.email }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected Users -->
+      <div class="selected-users mt-3" *ngIf="selectedNewParticipants.length > 0">
+        <label class="form-label">Selected ({{ selectedNewParticipants.length }})</label>
+        <div class="selected-user" *ngFor="let user of selectedNewParticipants">
+          <span>{{ user.first_name }} {{ user.last_name }}</span>
+          <button class="remove-btn" (click)="removeSelectedNewParticipant(user)">
+            <i class="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeAddParticipantsModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="addSelectedParticipants()" [disabled]="selectedNewParticipants.length === 0 || addingParticipants">
+        <span *ngIf="addingParticipants" class="spinner-border spinner-border-sm me-2"></span>
+        Add {{ selectedNewParticipants.length }} Member{{ selectedNewParticipants.length > 1 ? 's' : '' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Participant Role Modal (uses updateParticipantRole) -->
+<div class="modal-backdrop" *ngIf="showParticipantRoleModal" (click)="closeParticipantRoleModal()"></div>
+<div class="modal-dialog modal-sm" *ngIf="showParticipantRoleModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-shield me-2"></i>Change Role</h4>
+      <button class="btn btn-icon" (click)="closeParticipantRoleModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body" *ngIf="selectedParticipant">
+      <p class="mb-3">Change role for <strong>{{ selectedParticipant.first_name }} {{ selectedParticipant.last_name }}</strong></p>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-select" [(ngModel)]="selectedParticipantRole">
+          <option value="member">Member</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="role-permissions mt-3">
+        <small class="text-muted">
+          <div *ngIf="selectedParticipantRole === 'member'">Members can read and send messages.</div>
+          <div *ngIf="selectedParticipantRole === 'moderator'">Moderators can pin/delete messages and mute members.</div>
+          <div *ngIf="selectedParticipantRole === 'admin'">Admins can manage members and conversation settings.</div>
+        </small>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeParticipantRoleModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="saveParticipantRole()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Read Receipts Modal (uses getReadReceipts) -->
+<div class="modal-backdrop" *ngIf="showReadReceiptsModal" (click)="closeReadReceiptsModal()"></div>
+<div class="modal-dialog modal-sm" *ngIf="showReadReceiptsModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-check2-all me-2"></i>Read By</h4>
+      <button class="btn btn-icon" (click)="closeReadReceiptsModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="loadingReadReceipts" class="text-center py-4">
+        <div class="spinner-border spinner-border-sm"></div>
+        <span class="ms-2">Loading...</span>
+      </div>
+      <div *ngIf="!loadingReadReceipts && readReceipts.length === 0" class="text-center text-muted py-4">
+        <i class="bi bi-eye-slash d-block mb-2" style="font-size: 2rem;"></i>
+        No one has read this message yet
+      </div>
+      <div class="read-receipts-list" *ngIf="!loadingReadReceipts && readReceipts.length > 0">
+        <div class="receipt-item" *ngFor="let receipt of readReceipts">
+          <div class="receipt-avatar">
+            <img *ngIf="receipt.profile_image" [src]="'data:image/png;base64,'+receipt.profile_image">
+            <div *ngIf="!receipt.profile_image" class="avatar-placeholder">{{ getInitials(receipt.first_name + ' ' + receipt.last_name) }}</div>
+          </div>
+          <div class="receipt-info">
+            <span class="receipt-name">{{ receipt.first_name }} {{ receipt.last_name }}</span>
+            <span class="receipt-time">{{ formatDateTime(receipt.read_at) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Message Search Modal (uses searchMessages) -->
+<div class="modal-backdrop" *ngIf="showMessageSearchModal" (click)="closeMessageSearch()"></div>
+<div class="modal-dialog modal-lg" *ngIf="showMessageSearchModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-search me-2"></i>Search Messages</h4>
+      <button class="btn btn-icon" (click)="closeMessageSearch()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <!-- Search Form -->
+      <div class="search-form mb-4">
+        <div class="row g-3">
+          <div class="col-12">
+            <input type="text" class="form-control form-control-lg" [(ngModel)]="messageSearchQuery"
+                   placeholder="Search messages..." (keyup.enter)="performMessageSearch()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">From Date</label>
+            <input type="date" class="form-control" [(ngModel)]="searchFromDate">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">To Date</label>
+            <input type="date" class="form-control" [(ngModel)]="searchToDate">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small text-muted">&nbsp;</label>
+            <div class="form-check mt-2">
+              <input type="checkbox" class="form-check-input" id="hasAttachments" [(ngModel)]="searchHasAttachments">
+              <label class="form-check-label" for="hasAttachments">Has attachments</label>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" (click)="performMessageSearch()" [disabled]="!messageSearchQuery.trim() || searchingMessages">
+          <span *ngIf="searchingMessages" class="spinner-border spinner-border-sm me-2"></span>
+          <i *ngIf="!searchingMessages" class="bi bi-search me-2"></i>
+          Search
+        </button>
+      </div>
+
+      <!-- Search Results -->
+      <div class="search-results">
+        <div *ngIf="searchingMessages" class="text-center py-4">
+          <div class="spinner-border"></div>
+        </div>
+        <div *ngIf="!searchingMessages && messageSearchResults.length === 0 && messageSearchQuery" class="text-center text-muted py-4">
+          <i class="bi bi-search d-block mb-2" style="font-size: 2rem;"></i>
+          No messages found
+        </div>
+        <div class="search-result-item" *ngFor="let message of messageSearchResults" (click)="jumpToSearchResult(message)">
+          <div class="result-header">
+            <span class="result-sender">{{ message.sender_first_name }} {{ message.sender_last_name }}</span>
+            <span class="result-time">{{ formatDateTime(message.created_at) }}</span>
+          </div>
+          <div class="result-content">{{ message.content_plain || message.content }}</div>
+          <div class="result-attachments" *ngIf="message.attachments && message.attachments.length > 0">
+            <i class="bi bi-paperclip"></i> {{ message.attachments.length }} attachment(s)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Block User Modal (uses blockUser) -->
+<div class="modal-backdrop" *ngIf="showBlockUserModal" (click)="closeBlockUserModal()"></div>
+<div class="modal-dialog modal-sm" *ngIf="showBlockUserModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-slash-circle me-2"></i>Block User</h4>
+      <button class="btn btn-icon" (click)="closeBlockUserModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body" *ngIf="userToBlock">
+      <div class="text-center mb-3">
+        <div class="user-avatar-lg mx-auto mb-2">
+          <img *ngIf="userToBlock.profile_image" [src]="'data:image/png;base64,'+userToBlock.profile_image">
+          <div *ngIf="!userToBlock.profile_image" class="avatar-placeholder">{{ getInitials(userToBlock.first_name + ' ' + userToBlock.last_name) }}</div>
+        </div>
+        <h5>{{ userToBlock.first_name }} {{ userToBlock.last_name }}</h5>
+      </div>
+      <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Blocking this user will prevent them from sending you direct messages.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason (optional)</label>
+        <textarea class="form-control" [(ngModel)]="blockReason" rows="2" placeholder="Why are you blocking this user?"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeBlockUserModal()">Cancel</button>
+      <button class="btn btn-danger" (click)="confirmBlockUser()" [disabled]="blockingUser">
+        <span *ngIf="blockingUser" class="spinner-border spinner-border-sm me-2"></span>
+        Block User
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Broadcast Detail Modal (uses getBroadcast) -->
+<div class="modal-backdrop" *ngIf="showBroadcastDetailModal" (click)="closeBroadcastDetailModal()"></div>
+<div class="modal-dialog" *ngIf="showBroadcastDetailModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-megaphone me-2"></i>Announcement</h4>
+      <button class="btn btn-icon" (click)="closeBroadcastDetailModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="loadingBroadcast" class="text-center py-4">
+        <div class="spinner-border"></div>
+      </div>
+      <div *ngIf="!loadingBroadcast && selectedBroadcast">
+        <div class="broadcast-detail-header mb-3">
+          <span class="badge me-2" [ngClass]="{
+            'bg-danger': selectedBroadcast.priority === 'urgent',
+            'bg-warning text-dark': selectedBroadcast.priority === 'important',
+            'bg-secondary': selectedBroadcast.priority === 'normal'
+          }">{{ selectedBroadcast.priority | titlecase }}</span>
+          <span class="text-muted">{{ formatDateTime(selectedBroadcast.sent_at!) }}</span>
+        </div>
+        <h5 class="mb-3">{{ selectedBroadcast.title }}</h5>
+        <div class="broadcast-detail-content mb-4" [innerHTML]="selectedBroadcast.content_html || selectedBroadcast.content"></div>
+        <div class="broadcast-detail-meta text-muted small">
+          <div><i class="bi bi-person me-2"></i>From: {{ selectedBroadcast.sender_first_name }} {{ selectedBroadcast.sender_last_name }}</div>
+          <div><i class="bi bi-people me-2"></i>Recipients: {{ selectedBroadcast.recipients_count }}</div>
+          <div><i class="bi bi-eye me-2"></i>Read: {{ selectedBroadcast.read_count }}</div>
+          <div *ngIf="selectedBroadcast.requires_acknowledgment">
+            <i class="bi bi-check-circle me-2"></i>Acknowledged: {{ selectedBroadcast.acknowledged_count }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" *ngIf="selectedBroadcast">
+      <button class="btn btn-primary" *ngIf="selectedBroadcast.requires_acknowledgment && !selectedBroadcast.is_acknowledged"
+              (click)="acknowledgeBroadcast(selectedBroadcast)">
+        <i class="bi bi-check-circle me-2"></i>Acknowledge
+      </button>
+      <span class="acknowledged-badge text-success" *ngIf="selectedBroadcast.is_acknowledged">
+        <i class="bi bi-check-circle-fill me-1"></i>Acknowledged
+      </span>
+      <button class="btn btn-secondary" (click)="closeBroadcastDetailModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Message Detail Modal (uses getMessage) -->
+<div class="modal-backdrop" *ngIf="showMessageDetailModal" (click)="closeMessageDetailModal()"></div>
+<div class="modal-dialog" *ngIf="showMessageDetailModal" (click)="$event.stopPropagation()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 class="modal-title"><i class="bi bi-chat-left-text me-2"></i>Message Details</h4>
+      <button class="btn btn-icon" (click)="closeMessageDetailModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="loadingMessageDetail" class="text-center py-4">
+        <div class="spinner-border"></div>
+      </div>
+      <div *ngIf="!loadingMessageDetail && selectedMessageDetail">
+        <div class="message-detail-sender mb-3 d-flex align-items-center">
+          <div class="message-avatar me-3">
+            <img *ngIf="selectedMessageDetail.sender_avatar" [src]="'data:image/png;base64,'+selectedMessageDetail.sender_avatar">
+            <div *ngIf="!selectedMessageDetail.sender_avatar" class="avatar-placeholder">
+              {{ getInitials(selectedMessageDetail.sender_first_name + ' ' + selectedMessageDetail.sender_last_name) }}
+            </div>
+          </div>
+          <div>
+            <strong>{{ selectedMessageDetail.sender_first_name }} {{ selectedMessageDetail.sender_last_name }}</strong>
+            <div class="text-muted small">{{ formatDateTime(selectedMessageDetail.created_at) }}</div>
+          </div>
+        </div>
+
+        <div class="message-detail-content p-3 bg-light rounded mb-3">
+          <div [innerHTML]="selectedMessageDetail.content_html || selectedMessageDetail.content"></div>
+        </div>
+
+        <!-- Attachments -->
+        <div class="message-detail-attachments mb-3" *ngIf="selectedMessageDetail.attachments && selectedMessageDetail.attachments.length > 0">
+          <h6 class="mb-2">Attachments</h6>
+          <div class="attachment-item d-flex align-items-center p-2 border rounded mb-2" *ngFor="let attachment of selectedMessageDetail.attachments">
+            <i class="bi me-2" [ngClass]="getFileIcon(attachment.file_type)"></i>
+            <div class="flex-grow-1">
+              <div class="file-name">{{ attachment.file_name }}</div>
+              <div class="file-size text-muted small">{{ formatFileSize(attachment.file_size) }}</div>
+            </div>
+            <a [href]="attachment.file_url" target="_blank" class="btn btn-sm btn-primary">
+              <i class="bi bi-download"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Reactions -->
+        <div class="message-detail-reactions mb-3" *ngIf="selectedMessageDetail.reactions && selectedMessageDetail.reactions.length > 0">
+          <h6 class="mb-2">Reactions</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-light text-dark" *ngFor="let reaction of selectedMessageDetail.reactions">
+              {{ reaction.emoji }} {{ reaction.count }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Meta Info -->
+        <div class="message-detail-meta text-muted small">
+          <div *ngIf="selectedMessageDetail.is_edited">
+            <i class="bi bi-pencil me-1"></i>Edited {{ formatDateTime(selectedMessageDetail.edited_at!) }}
+          </div>
+          <div *ngIf="selectedMessageDetail.is_pinned">
+            <i class="bi bi-pin-fill me-1"></i>Pinned
+          </div>
+          <div *ngIf="selectedMessageDetail.reply_to">
+            <i class="bi bi-reply me-1"></i>Reply to: "{{ selectedMessageDetail.reply_to.content | slice:0:50 }}..."
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="viewReadReceipts(selectedMessageDetail!)" *ngIf="selectedMessageDetail">
+        <i class="bi bi-check2-all me-1"></i>View Read Receipts
+      </button>
+      <button class="btn btn-secondary" (click)="closeMessageDetailModal()">Close</button>
+    </div>
+  </div>
+</div>

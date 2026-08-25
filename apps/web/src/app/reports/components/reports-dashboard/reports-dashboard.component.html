@@ -1,0 +1,115 @@
+
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="row align-items-center mb-7">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5">
+            <tui-icon icon="@tui.chevron-left"></tui-icon>
+          </i>
+        </div>
+      </div>
+      <div class="col"></div>
+    </div>
+    <div class="reports-dashboard">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="fw-bold mb-1">Reports & Analytics</h4>
+          <p class="text-muted mb-0 small">Comprehensive LMS reporting across {{ totalReports }} reports</p>
+        </div>
+        <div class="d-flex gap-2">
+          <a routerLink="/admin/reports/catalog" class="btn btn-primary">
+            <i class="bi bi-grid-3x3-gap me-1"></i>Browse Catalog
+          </a>
+          <a routerLink="/admin/reports/custom" class="btn btn-primary">
+            <i class="bi bi-tools me-1"></i>Custom Builder
+          </a>
+          <a routerLink="/admin/reports/scheduled" class="btn btn-secondary">
+            <i class="bi bi-clock-history me-1"></i>Scheduled
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="row g-3 mb-4">
+        <div *ngFor="let kpi of kpis" class="col-sm-6 col-md-4 col-lg-2">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center py-3">
+              <div class="mb-2">
+                <i [class]="kpi.icon + ' fs-4 text-' + kpi.color"></i>
+              </div>
+              <h5 class="fw-bold mb-0">{{ kpi.value }}</h5>
+              <p class="text-muted small mb-0">{{ kpi.label }}</p>
+              <small *ngIf="kpi.change !== undefined" [class]="kpi.trend === 'up' ? 'text-success' : kpi.trend === 'down' ? 'text-danger' : 'text-muted'">
+                <i class="bi" [class.bi-arrow-up]="kpi.trend==='up'" [class.bi-arrow-down]="kpi.trend==='down'"></i>
+                {{ kpi.change }}%
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Grid -->
+      <h5 class="fw-semibold mb-3">Report Categories</h5>
+      <div class="row g-3 mb-4">
+        <div *ngFor="let cat of categories" class="col-sm-6 col-md-4 col-lg-3">
+          <a [routerLink]="['/admin/reports/catalog']" [queryParams]="{category: cat.key}"
+             class="card border-0 shadow-sm h-100 text-decoration-none cat-card" style="transition:transform .15s">
+            <div class="card-body d-flex align-items-center gap-3">
+              <div class="rounded-3 p-2 bg-primary-subtle">
+                <i [class]="cat.icon + ' fs-4 text-primary'"></i>
+              </div>
+              <div>
+                <h6 class="fw-semibold mb-0 text-black">{{ cat.name }}</h6>
+                <span class="small text-muted">{{ cat.count }} report{{ cat.count !== 1 ? 's' : '' }}</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick Access: Popular Reports -->
+      <h5 class="fw-semibold mb-3">Quick Access</h5>
+      <div class="row g-3 mb-4">
+        <div *ngFor="let r of quickAccess" class="col-sm-6 col-md-4 col-lg-3">
+          <a [routerLink]="['/admin/reports', r.key]" class="card border-0 shadow-sm h-100 text-decoration-none" style="transition:transform .15s">
+            <div class="card-body py-3">
+              <div class="d-flex justify-content-between">
+                <span class="badge bg-primary-subtle text-primary small mb-2">{{ r.catName }}</span>
+                <i class="bi bi-arrow-right text-muted"></i>
+              </div>
+              <h6 class="fw-semibold mb-1 text-black">{{ r.name }}</h6>
+              <p class="text-muted small mb-0" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ r.description }}</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Saved Reports -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-semibold mb-0">Saved Reports</h5>
+        <a routerLink="/admin/reports/saved" class="btn btn-sm btn-primary">View All</a>
+      </div>
+      <div class="row g-3" *ngIf="savedReports.length">
+        <div *ngFor="let s of savedReports.slice(0, 4)" class="col-sm-6 col-md-3">
+          <a [routerLink]="['/admin/reports', s.report_key]" [queryParams]="s.filters"
+             class="card border-0 shadow-sm text-decoration-none">
+            <div class="card-body py-3">
+              <h6 class="fw-semibold text-black mb-1">{{ s.name }}</h6>
+              <p class="text-muted small mb-0">{{ s.created_at | date:'mediumDate' }}</p>
+            </div>
+          </a>
+        </div>
+      </div>
+      <div *ngIf="!savedReports.length" class="text-center py-4 text-muted">
+        <i class="bi bi-bookmark fs-3 d-block mb-2"></i>
+        <p class="small">No saved reports yet. Run a report and click Save to bookmark it.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+
+

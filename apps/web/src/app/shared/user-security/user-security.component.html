@@ -1,0 +1,84 @@
+<app-top></app-top>
+<main class="main ml-desktop-22rem px-lg-6">
+  <!-- Content -->
+  <div class="container-lg">
+    <!-- Page header -->
+    <!-- Page header -->
+    <div class="row align-items-center mb-7">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5">
+            <tui-icon icon="@tui.chevron-left" />
+          </i>
+        </div>
+      </div>
+      <div class="col">
+        <h1 class="fs-4 mb-0">Security settings</h1>
+      </div>
+      <div class="col-12 col-sm-auto mt-4 mt-sm-0">
+        <!--        <a class="btn btn-secondary d-block">
+                  <span class="material-symbols-outlined me-1"> add </span> New
+                </a>-->
+      </div>
+    </div>
+
+    <!-- Page content -->
+    <div class="row">
+      <div class="col-12 col-lg-9" data-bs-spy="scroll" data-bs-target="#accountNav" data-bs-smooth-scroll="true" tabindex="0">
+        <section *ngIf="!ui_controls.is_loading" class="card card-line bg-body-tertiary border-transparent mb-5" id="visibility">
+          <div class="card-body">
+            <h2 class="fs-5 mb-1">Enforce two-step verification</h2>
+            <p class="text-body-secondary">Add an extra layer of security with two-step verification.</p>
+            <div class="card border-transparent">
+              <div class="card-body py-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item px-0">
+                    <div class="row align-items-center">
+                      <div class="col">
+                        This setting is locked by security policy.
+                      </div>
+                      <div class="col-auto">
+                        <div class="form-check form-switch mb-3 align-items-center d-flex">
+                          <input checked class="form-check-input" type="checkbox" role="switch">
+                          <label class="form-check-label mx-2">
+                            Enable 2FA
+                          </label>
+                          <button [disabled]="true"  type="button" class="btn btn-sm btn-secondary ms-auto">
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section *ngIf="!ui_controls.is_loading" class="card card-line bg-body-tertiary border-transparent mb-5" id="password">
+          <div class="card-body">
+            <h2 class="fs-5 mb-1">Change password</h2>
+            <p class="text-body-secondary">Keep your account secure - update your password now.</p>
+            <div class="card border-transparent">
+              <div class="card-body">
+                <div class="mb-4">
+                  <label class="form-label">Password</label>
+                  <input [(ngModel)]="update_password.password" type="password" name="password" class="form-control">
+                </div>
+                <div class="mb-4">
+                  <label class="form-label">Confirm password</label>
+                  <input [(ngModel)]="update_password.confirm_password" type="password" name="confirm_password" class="form-control">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button (click)="password_change()" class="btn btn-secondary text-white" type="button">Save Changes</button>
+          </div>
+        </section>
+        <tui-loader *ngIf="ui_controls.is_loading" />
+
+      </div>
+    </div>
+  </div>
+</main>

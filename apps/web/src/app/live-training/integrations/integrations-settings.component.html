@@ -1,0 +1,260 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="integrations-settings">
+      <div class="settings-header mb-4">
+        <h4 class="mb-1">
+          <i class="bi bi-plug me-2"></i>
+          Video Conferencing Integrations
+        </h4>
+        <p class="text-muted mb-0">
+          Connect your video conferencing platforms for live training sessions
+        </p>
+      </div>
+
+      <div class="platforms-grid">
+        <div *ngFor="let platform of platforms" class="platform-card" [class.connected]="isConnected(platform.id)">
+          <!-- Platform Header -->
+          <div class="platform-header">
+            <div class="platform-icon" [style.background]="getColor(platform.id) + '20'" [style.color]="getColor(platform.id)">
+              <i class="bi" [ngClass]="getIcon(platform.id)"></i>
+            </div>
+            <div class="platform-info">
+              <h5 class="platform-name mb-0">{{ getDisplayName(platform.id) }}</h5>
+              <span class="platform-status" *ngIf="isConnected(platform.id)">
+                <i class="bi bi-check-circle-fill text-success me-1"></i>Connected
+              </span>
+              <span class="platform-status text-muted" *ngIf="!isConnected(platform.id)">
+                Not connected
+              </span>
+            </div>
+            <div class="platform-action">
+              <button *ngIf="!isConnected(platform.id)"
+                      class="btn btn-primary btn-sm"
+                      (click)="connect(platform.id)"
+                      [disabled]="connecting === platform.id">
+                <span *ngIf="connecting === platform.id" class="spinner-border spinner-border-sm me-1"></span>
+                Connect
+              </button>
+              <div *ngIf="isConnected(platform.id)" class="btn-group btn-group-sm">
+                <button class="btn btn-primary" (click)="openTestMeetingModal(platform.id)"
+                        title="Test Connection">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button class="btn btn-secondary" (click)="setDefault(platform.id)"
+                        [class.active]="isDefault(platform.id)"
+                        [disabled]="isDefault(platform.id)">
+                  <i class="bi bi-star me-1" [class.bi-star-fill]="isDefault(platform.id)"></i>
+                  {{ isDefault(platform.id) ? 'Default' : 'Set Default' }}
+                </button>
+                <button class="btn btn-outline-danger" (click)="disconnect(platform.id)">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platform Description -->
+          <div class="platform-body">
+            <p class="platform-description text-muted small">
+              {{ platform.description }}
+            </p>
+            <div class="platform-features">
+              <span *ngFor="let feature of platform.features" class="feature-badge">
+                <i class="bi bi-check2 me-1"></i>{{ feature }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Connection Details -->
+          <div class="platform-footer" *ngIf="isConnected(platform.id)">
+            <div class="connection-details">
+              <div class="detail-item" *ngIf="getIntegration(platform.id)?.account_email">
+                <i class="bi bi-envelope me-1"></i>
+                {{ getIntegration(platform.id)?.account_email }}
+              </div>
+              <div class="detail-item" *ngIf="getIntegration(platform.id)?.expires_at">
+                <i class="bi bi-clock me-1"></i>
+                Token expires: {{ formatDate(getIntegration(platform.id)?.expires_at) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Help Section -->
+      <div class="help-section mt-4 p-4 bg-light rounded">
+        <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>How to Connect</h6>
+        <ol class="mb-0 ps-3">
+          <li class="mb-2">Click "Connect" on the platform you want to use</li>
+          <li class="mb-2">Sign in to your platform account in the popup window</li>
+          <li class="mb-2">Authorize the LMS to create and manage meetings</li>
+          <li>Once connected, set your preferred platform as default</li>
+        </ol>
+      </div>
+
+      <!-- OAuth Callback Handler -->
+      <div *ngIf="callbackMessage" class="alert mt-4" [ngClass]="callbackSuccess ? 'alert-success' : 'alert-danger'">
+        <i class="bi me-2" [ngClass]="callbackSuccess ? 'bi-check-circle' : 'bi-exclamation-triangle'"></i>
+        {{ callbackMessage }}
+        <button type="button" class="btn-close float-end" (click)="callbackMessage = null"></button>
+      </div>
+    </div>
+
+    <!-- Test Meeting Modal -->
+    <div class="modal fade" [class.show]="showTestMeetingModal" [style.display]="showTestMeetingModal ? 'block' : 'none'"
+         tabindex="-1" *ngIf="showTestMeetingModal">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-play-circle me-2"></i>Test {{ getDisplayName(testMeetingPlatform) }} Integration
+            </h5>
+            <button type="button" class="btn-close" (click)="closeTestMeetingModal()"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Create Test Meeting Form -->
+            <div *ngIf="!testMeetingResult">
+              <p class="text-muted mb-4">Create a test meeting to verify your integration is working correctly.</p>
+
+              <div class="mb-3">
+                <label class="form-label">Meeting Topic</label>
+                <input type="text" class="form-control" [(ngModel)]="testMeetingForm.topic">
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Start Time</label>
+                  <input type="datetime-local" class="form-control" [(ngModel)]="testMeetingForm.start_time">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Duration (minutes)</label>
+                  <input type="number" class="form-control" [(ngModel)]="testMeetingForm.duration" min="15" max="480">
+                </div>
+              </div>
+            </div>
+
+            <!-- Test Meeting Result -->
+            <div *ngIf="testMeetingResult" class="test-result">
+              <div class="alert alert-success mb-4">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                Meeting created successfully!
+              </div>
+
+              <div class="meeting-details p-3 bg-light rounded">
+                <h6 class="mb-3">{{ testMeetingResult.topic }}</h6>
+
+                <div class="detail-row mb-2">
+                  <span class="label">Meeting ID:</span>
+                  <span class="value">{{ testMeetingResult.id }}</span>
+                  <button class="btn btn-link btn-sm p-0 ms-2" (click)="copyToClipboard(testMeetingResult.id)">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+
+                <div class="detail-row mb-2">
+                  <span class="label">Start Time:</span>
+                  <span class="value">{{ formatDate(testMeetingResult.start_time) }}</span>
+                </div>
+
+                <div class="detail-row mb-2">
+                  <span class="label">Duration:</span>
+                  <span class="value">{{ testMeetingResult.duration }} minutes</span>
+                </div>
+
+                <div class="detail-row mb-2" *ngIf="testMeetingResult.password">
+                  <span class="label">Password:</span>
+                  <span class="value">{{ testMeetingResult.password }}</span>
+                  <button class="btn btn-link btn-sm p-0 ms-2" (click)="copyToClipboard(testMeetingResult.password || '')">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+
+                <div class="mt-3 pt-3 border-top">
+                  <a [href]="testMeetingResult.join_url" target="_blank" class="btn btn-primary btn-sm me-2">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Join Meeting
+                  </a>
+                  <button class="btn btn-secondary btn-sm me-2" (click)="copyToClipboard(testMeetingResult.join_url)">
+                    <i class="bi bi-link-45deg me-1"></i>Copy Link
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm" (click)="deleteMeeting(testMeetingPlatform, testMeetingResult.id)">
+                    <i class="bi bi-trash me-1"></i>Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeTestMeetingModal()">Close</button>
+            <button *ngIf="!testMeetingResult" type="button" class="btn btn-primary"
+                    (click)="createTestMeeting()" [disabled]="testMeetingLoading">
+              <span *ngIf="testMeetingLoading" class="spinner-border spinner-border-sm me-2"></span>
+              Create Test Meeting
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop fade show" *ngIf="showTestMeetingModal"></div>
+
+    <!-- Meeting Details Modal -->
+    <div class="modal fade" [class.show]="showMeetingDetailsModal" [style.display]="showMeetingDetailsModal ? 'block' : 'none'"
+         tabindex="-1" *ngIf="showMeetingDetailsModal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-camera-video me-2"></i>Meeting Details
+            </h5>
+            <button type="button" class="btn-close" (click)="closeMeetingDetailsModal()"></button>
+          </div>
+          <div class="modal-body" *ngIf="currentMeeting">
+            <div class="row">
+              <div class="col-md-6">
+                <h6>{{ currentMeeting.topic }}</h6>
+                <p class="text-muted small mb-3">{{ currentMeeting.platform | titlecase }}</p>
+
+                <div class="detail-item mb-2">
+                  <i class="bi bi-calendar me-2"></i>
+                  {{ formatDate(currentMeeting.start_time) }}
+                </div>
+                <div class="detail-item mb-2">
+                  <i class="bi bi-clock me-2"></i>
+                  {{ currentMeeting.duration }} minutes
+                </div>
+                <div class="detail-item mb-2">
+                  <i class="bi bi-globe me-2"></i>
+                  {{ currentMeeting.timezone }}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h6 class="mb-3">Participants</h6>
+                <div *ngIf="loadingParticipants" class="text-center py-3">
+                  <div class="spinner-border spinner-border-sm"></div>
+                </div>
+                <div *ngIf="!loadingParticipants && meetingParticipants.length === 0" class="text-muted">
+                  No participants yet
+                </div>
+                <ul class="list-group list-group-flush" *ngIf="!loadingParticipants && meetingParticipants.length > 0">
+                  <li class="list-group-item px-0" *ngFor="let p of meetingParticipants">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <strong>{{ p.name }}</strong>
+                        <small class="text-muted d-block">{{ p.email }}</small>
+                      </div>
+                      <small class="text-muted">{{ p.duration_minutes }} min</small>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeMeetingDetailsModal()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop fade show" *ngIf="showMeetingDetailsModal"></div>
+  </div>
+</main>

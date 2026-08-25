@@ -1,0 +1,79 @@
+<div class="container container animate__animated animate__fadeIn mt-5">
+  <div class="row justify-content-center">
+    <div class="col-12" style="max-width: 30rem">
+        <span class="badge abayti_secondary_background rounded-pill mb-3">
+          <a routerLink="/" class="btn px-1 py-0 btn-sm text-white">Back to website</a>
+        </span>
+      <div class="card">
+        <div class="card-header text-center">
+          <div class="row align-items-center">
+            <div class="col-6 text-start">
+              <img class="img-fluid" style="max-width: 140px" src="assets/img/logo.png" alt="Password recovery page Central LMS Africa" />
+            </div>
+            <div class="col-6 text-end">
+              <app-language-switcher></app-language-switcher>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!ui_controls.confirmed && !ui_controls.validated" class="card-body">
+          <h1 class="fs-2">{{ 'Reset Your Password' | translate }}</h1>
+          <p class="lead text-body-secondary">{{ 'Recover Your Central LMS Account' | translate }}</p>
+          <form (ngSubmit)="user_confirm()"  method="post"  class="mb-5">
+            <div class="mb-4">
+              <label for="email" class="form-label">{{ 'email' | translate }}</label>
+              <input [(ngModel)]="reset.email" name="email" class="form-control" id="email" type="email" placeholder="" />
+            </div>
+            <tui-loader *ngIf="ui_controls.loading" />
+            <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
+              {{'reset_password' | translate }}
+            </button>
+          </form>
+          <p class="text-center text-body-secondary mb-0">
+            {{'have_account' | translate}}
+            <a class="text-black" routerLink="/login">{{'sign_in' | translate}}</a>
+          </p>
+        </div>
+        <div *ngIf="ui_controls.confirmed && !ui_controls.validated" class="card-body">
+          <h1 class="fs-1">{{ "confirm_email" | translate }}</h1>
+          <p class="lead text-body-secondary">{{ 'otp_message' | translate }}</p>
+          <form (ngSubmit)="user_validate()"  method="post"  class="mb-5">
+            <div class="mb-4">
+              <label for="otp" class="form-label">{{ 'otp' | translate }}</label>
+              <input [max]="6" [(ngModel)]="confirm.input_otp" name="otp" class="form-control" id="otp" type="text" />
+            </div>
+            <tui-loader *ngIf="ui_controls.loading" />
+            <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
+              {{ 'validate' | translate }}
+            </button>
+          </form>
+        </div>
+        <div *ngIf="ui_controls.confirmed && ui_controls.validated" class="card-body">
+          <h1 class="fs-1">{{ 'set_a_new_password' | translate }}</h1>
+          <p class="lead text-body-secondary">
+            {{'otp_confirm' | translate}}
+          </p>
+          <form (ngSubmit)="reset_password()"  method="post"  class="mb-5">
+            <div class="row">
+              <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
+                <div class="mb-4">
+                  <label for="password" class="form-label">{{ 'password' |  translate }}</label>
+                  <input [type]="fieldTextType ? 'text' : 'password'" class="form-control" name="password" id="password" [(ngModel)]="r_password.password" type="password"/>
+                </div>
+              </div>
+              <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
+                <div class="mb-4">
+                  <label for="password" class="form-label">{{ 'confirm_password' | translate }}</label>
+                  <input [type]="fieldTextType ? 'text' : 'password'" class="form-control" name="confirm_password" id="confirm_password" [(ngModel)]="r_password.confirm_password" type="password"/>
+                </div>
+              </div>
+            </div>
+            <tui-loader *ngIf="ui_controls.loading" />
+            <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
+              {{'reset_password' | translate}}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

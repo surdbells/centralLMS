@@ -1,0 +1,389 @@
+/* Admin Dashboard Styles */
+
+/* Stat Cards */
+.stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon tui-icon {
+  font-size: 1.25rem;
+}
+
+/* Custom purple color */
+.bg-purple {
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+.text-purple {
+  color: #8b5cf6;
+}
+
+/* Cards */
+.card {
+  border-radius: 12px;
+}
+
+.card-header {
+  padding: 1rem 1.25rem;
+}
+
+.card-header h5 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Chart Container */
+.chart-container {
+  position: relative;
+}
+
+.chart-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-bar {
+  width: 24px;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+/* Rank Badge */
+.rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 12px;
+  color: #fff;
+}
+
+.rank-badge.bg-light {
+  color: #333;
+}
+
+/* Avatar Circle */
+.avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Status Dot */
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Donut Chart */
+.donut-chart {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.donut-ring {
+  fill: none;
+  stroke: #e9ecef;
+  stroke-width: 12;
+}
+
+.donut-segment {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s ease;
+}
+
+.donut-segment.completed {
+  stroke: #28a745;
+}
+
+.donut-segment.in-progress {
+  stroke: #007bff;
+}
+
+.donut-segment.not-started {
+  stroke: #6c757d;
+}
+
+.donut-segment.dropped {
+  stroke: #dc3545;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.donut-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.donut-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+/* Compliance Gauge */
+.compliance-gauge {
+  padding: 1rem;
+}
+
+.gauge-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.gauge-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Activity Timeline */
+.activity-timeline {
+  padding: 0;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-content p {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin-bottom: 2px;
+  word-wrap: break-word;
+}
+
+/* List Group Enhancements */
+.list-group-item {
+  border-left: none;
+  border-right: none;
+  padding: 1rem 1.25rem;
+}
+
+.list-group-item:first-child {
+  border-top: none;
+}
+
+.list-group-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Progress Bars */
+.progress {
+  background-color: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+/* Table */
+.table > :not(caption) > * > * {
+  padding: 0.875rem 1rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(212, 160, 18, 0.05);
+}
+
+/* Min Width Helper */
+.min-width-0 {
+  min-width: 0;
+}
+
+/* Quick Actions Buttons */
+.d-grid .btn {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+.d-grid .btn tui-icon {
+  font-size: 1.1rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1200px) {
+  .stat-card .card-body {
+    padding: 1rem;
+  }
+
+  .stat-card h3 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container-fluid {
+    padding: 1rem !important;
+  }
+
+  .d-flex.justify-content-between.align-items-center.mb-4 {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .chart-container {
+    overflow-x: auto;
+  }
+
+  .chart-bar {
+    width: 16px;
+  }
+
+  .donut-chart {
+    width: 140px;
+    height: 140px;
+  }
+
+  .donut-value {
+    font-size: 1.5rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .stat-card h3 {
+    font-size: 1.25rem;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .gauge-value {
+    font-size: 2rem;
+  }
+
+  .activity-content p {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  animation: fadeInUp 0.3s ease;
+}
+
+/* Scrollbar Styling */
+.chart-container::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.chart-container::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chart-container::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.chart-container::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Badge refinements */
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+
+/* Text truncate with tooltip support */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

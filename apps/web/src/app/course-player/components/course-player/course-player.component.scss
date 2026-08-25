@@ -1,0 +1,1074 @@
+// course-player/components/course-player/course-player.component.scss
+
+// Variables - Light Theme
+$primary-color: #303234;
+$primary-dark:   #696969;
+$header-height: 60px;
+$sidebar-width: 320px;
+
+// Light theme colors
+$bg-primary: #f8f9fa;
+$bg-secondary: #ffffff;
+$bg-tertiary: #f1f3f5;
+$text-primary: #212529;
+$text-secondary: #6c757d;
+$text-muted: #adb5bd;
+$border-color: #e9ecef;
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+$shadow-xl: 0 12px 40px rgba(0, 0, 0, 0.15);
+
+.course-player {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $bg-primary;
+  color: $text-primary;
+  overflow: hidden;
+}
+
+// Loading & Error States
+.loading-overlay,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  background: $bg-primary;
+}
+
+// Header
+.player-header {
+  height: $header-height;
+  background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+  box-shadow: $shadow-md;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  flex-shrink: 0;
+  z-index: 100;
+
+  .course-title {
+    h1 {
+      line-height: 1.2;
+      color: #fff;
+    }
+
+    small {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .btn-link {
+    color: #fff !important;
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.8) !important;
+    }
+  }
+
+  .progress-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #fff;
+
+    .progress {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+
+      .progress-bar {
+        background: #fff;
+      }
+    }
+  }
+
+  .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.5);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+// Body
+.player-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+// Sidebar
+.player-sidebar {
+  width: $sidebar-width;
+  background: $bg-secondary;
+  border-right: 1px solid $border-color;
+  box-shadow: $shadow-md;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, margin 0.3s ease;
+  overflow: hidden;
+  z-index: 50;
+
+  &.collapsed {
+    width: 0;
+    margin-left: -1px;
+    box-shadow: none;
+  }
+
+  .sidebar-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid $border-color;
+    background: $bg-tertiary;
+    flex-shrink: 0;
+
+    h6 {
+      color: $text-primary;
+      font-weight: 600;
+    }
+  }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $text-muted;
+      border-radius: 3px;
+    }
+  }
+}
+
+// Modules & Lessons
+.modules-list {
+  .module-item {
+    border-bottom: 1px solid $border-color;
+  }
+
+  .module-header {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    background: transparent;
+    border: none;
+    color: $text-primary;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: $bg-tertiary;
+    }
+
+    i {
+      color: $primary-color;
+    }
+
+    .module-title {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .module-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      .badge {
+        background: $bg-tertiary !important;
+        color: $text-secondary;
+        font-weight: 500;
+      }
+
+      .bi-chevron-down {
+        transition: transform 0.2s;
+        color: $text-muted;
+      }
+    }
+
+    &[aria-expanded="true"] .bi-chevron-down {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.lessons-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: $bg-tertiary;
+
+  .lesson-item {
+    padding: 0.625rem 1.25rem 0.625rem 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+    border-left: 3px solid transparent;
+    color: $text-secondary;
+
+    &:hover {
+      background: darken($bg-tertiary, 3%);
+      color: $text-primary;
+    }
+
+    &.active {
+      background: rgba($primary-color, 0.1);
+      border-left-color: $primary-color;
+      color: $text-primary;
+
+      .lesson-title {
+        font-weight: 500;
+      }
+    }
+
+    &.completed {
+      .bi-check-circle-fill {
+        color: #28a745;
+      }
+    }
+
+    .lesson-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lesson-duration {
+      font-size: 0.75rem;
+      color: $text-muted;
+      background: $bg-secondary;
+      padding: 0.125rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    .badge-scorm {
+      font-size: 0.625rem;
+      padding: 0.125rem 0.375rem;
+      font-weight: 600;
+    }
+
+    // Assessment item styling
+    &.assessment-item {
+      background: rgba($primary-color, 0.03);
+      border-top: 1px dashed $border-color;
+
+      &:first-of-type {
+        margin-top: 0.5rem;
+      }
+
+      &:hover {
+        background: rgba($primary-color, 0.08);
+      }
+
+      &.active {
+        background: rgba($primary-color, 0.15);
+      }
+
+      .assessment-badge {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+        font-weight: 600;
+        border-radius: 4px;
+      }
+    }
+  }
+}
+
+// Quiz View Container
+.quiz-view {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  background: #f8f9fa;
+}
+
+// Main Content
+.player-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: $bg-primary;
+}
+
+.content-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
+
+  // Light background when quiz is active
+  &.quiz-active {
+    background: #f8f9fa;
+    box-shadow: none;
+    align-items: flex-start;
+  }
+}
+
+// Video Player
+.video-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .video-player {
+    flex: 1;
+    width: 100%;
+    background: #000;
+    object-fit: contain;
+  }
+}
+
+.video-controls {
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  padding: 1.5rem 1rem 1rem;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+
+  .video-container:hover & {
+    opacity: 1;
+  }
+
+  .progress-bar-container {
+    margin-bottom: 0.75rem;
+  }
+
+  .video-progress {
+    width: 100%;
+    height: 5px;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    cursor: pointer;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: $primary-color;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .controls-left,
+  .controls-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .control-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 1.25rem;
+    opacity: 0.9;
+    transition: all 0.2s;
+    border-radius: 6px;
+
+    &:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .volume-control {
+    display: flex;
+    align-items: center;
+
+    .volume-slider {
+      width: 0;
+      opacity: 0;
+      transition: width 0.2s, opacity 0.2s;
+      accent-color: $primary-color;
+    }
+
+    &:hover .volume-slider {
+      width: 70px;
+      opacity: 1;
+      margin-left: 0.5rem;
+    }
+  }
+
+  .time-display {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .speed-select {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+
+    option {
+      background: #333;
+    }
+  }
+}
+
+// Video Actions Bar
+.video-actions {
+  padding: 1rem;
+  background: $bg-secondary;
+  border-top: 1px solid $border-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: $shadow-sm;
+
+  .btn:disabled {
+    background: #28a745;
+    border-color: #28a745;
+    opacity: 1;
+  }
+
+  small {
+    display: flex;
+    align-items: center;
+  }
+}
+
+// PDF & HTML Viewers
+.pdf-container,
+.html-container,
+.scorm-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $bg-secondary;
+
+  iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  .pdf-actions,
+  .html-actions {
+    padding: 1rem;
+    background: $bg-secondary;
+    border-top: 1px solid $border-color;
+    text-align: center;
+    box-shadow: $shadow-sm;
+
+    .btn:disabled {
+      background: #28a745;
+      border-color: #28a745;
+      opacity: 1;
+    }
+  }
+}
+
+// Audio Player
+.audio-container {
+  text-align: center;
+  padding: 3rem;
+  background: linear-gradient(135deg, $bg-secondary 0%, $bg-tertiary 100%);
+  border-radius: 1rem;
+  box-shadow: $shadow-lg;
+  margin: 2rem;
+
+  .audio-artwork {
+    width: 180px;
+    height: 180px;
+    background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    box-shadow: $shadow-lg;
+
+    i {
+      font-size: 4rem;
+      color: #fff;
+    }
+  }
+
+  h4 {
+    color: $text-primary;
+    margin-bottom: 1.5rem;
+  }
+
+  audio {
+    width: 100%;
+    max-width: 500px;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .audio-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 1rem;
+    border-top: 1px solid $border-color;
+    margin-top: 1rem;
+
+    .btn:disabled {
+      background: #28a745;
+      border-color: #28a745;
+      opacity: 1;
+    }
+
+    small {
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+// SCORM Loading
+.scorm-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: $bg-secondary;
+
+  .spinner-border {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+// No Lesson
+.no-lesson {
+  text-align: center;
+  color: $text-muted;
+  background: $bg-secondary;
+  padding: 3rem;
+  border-radius: 1rem;
+  box-shadow: $shadow-md;
+
+  i {
+    color: $primary-color;
+  }
+
+  p {
+    margin-top: 1rem;
+    color: $text-secondary;
+  }
+}
+
+// Bottom Panel
+.bottom-panel {
+  background: $bg-secondary;
+  border-top: 1px solid $border-color;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  max-height: 320px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  .nav-tabs {
+    border-bottom: 1px solid $border-color;
+    flex-shrink: 0;
+    background: $bg-tertiary;
+
+    .nav-link {
+      color: $text-secondary;
+      border: none;
+      padding: 0.875rem 1.25rem;
+      font-weight: 500;
+
+      &:hover {
+        color: $text-primary;
+        border-color: transparent;
+      }
+
+      &.active {
+        background: $bg-secondary;
+        color: $primary-color;
+        border-bottom: 3px solid $primary-color;
+      }
+
+      .badge {
+        background: $primary-color !important;
+      }
+    }
+  }
+
+  .tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem;
+  }
+}
+
+// Lesson Info
+.lesson-info {
+  h5 {
+    margin-bottom: 0.5rem;
+    color: $text-primary;
+  }
+
+  p {
+    color: $text-secondary;
+  }
+
+  .text-muted {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.lesson-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+
+  .badge {
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .btn-primary {
+    background: $primary-color;
+    border-color: $primary-color;
+    box-shadow: $shadow-sm;
+
+    &:hover {
+      background: $primary-dark;
+      border-color: $primary-dark;
+    }
+  }
+}
+
+// Notes
+.notes-input {
+  background: $bg-tertiary;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: $shadow-sm;
+
+  textarea {
+    background: $bg-secondary;
+    border: 1px solid $border-color;
+    color: $text-primary;
+    border-radius: 0.5rem;
+
+    &::placeholder {
+      color: $text-muted;
+    }
+
+    &:focus {
+      background: $bg-secondary;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
+    }
+  }
+
+  .btn-primary {
+    background: $primary-color;
+    border-color: $primary-color;
+
+    &:hover {
+      background: $primary-dark;
+    }
+
+    &:disabled {
+      background: $text-muted;
+      border-color: $text-muted;
+    }
+  }
+}
+
+.notes-list {
+  margin-top: 1rem;
+
+  .note-item {
+    padding: 1rem;
+    background: $bg-tertiary;
+    border-radius: 0.75rem;
+    margin-bottom: 0.75rem;
+    box-shadow: $shadow-sm;
+    border-left: 3px solid $primary-color;
+
+    .note-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
+      color: $text-muted;
+    }
+
+    .note-timestamp {
+      cursor: pointer;
+      color: $primary-color;
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .note-content {
+      margin: 0;
+      font-size: 0.9375rem;
+      color: $text-primary;
+      line-height: 1.5;
+    }
+  }
+}
+
+// Bookmarks
+.bookmarks-section {
+  h6 {
+    color: $text-primary;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+}
+
+.bookmark-list {
+  .bookmark-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    background: $bg-tertiary;
+    margin-bottom: 0.5rem;
+    box-shadow: $shadow-sm;
+    transition: all 0.2s;
+
+    &:hover {
+      background: darken($bg-tertiary, 3%);
+      transform: translateX(4px);
+    }
+
+    i {
+      color: $primary-color;
+    }
+
+    .bookmark-time {
+      color: $primary-color;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .bookmark-note {
+      color: $text-secondary;
+      font-size: 0.875rem;
+      flex: 1;
+    }
+  }
+}
+
+// Keyboard Shortcuts
+.keyboard-shortcuts {
+  h6 {
+    color: $text-primary;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: $text-secondary;
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  kbd {
+    background: $bg-tertiary;
+    border: 1px solid $border-color;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    color: $text-primary;
+    box-shadow: $shadow-sm;
+  }
+}
+
+// Completion Modal
+.modal-content {
+  background: $bg-secondary;
+  border: none;
+  border-radius: 1rem;
+  box-shadow: $shadow-xl;
+  color: $text-primary;
+}
+
+.modal-header {
+  border-bottom: 1px solid $border-color;
+
+  .btn-close {
+    opacity: 0.6;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.modal-footer {
+  border-top: 1px solid $border-color;
+}
+
+.completion-icon {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, rgba($primary-color, 0.15) 0%, rgba($primary-color, 0.25) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: $shadow-md;
+
+  i {
+    color: $primary-color;
+  }
+}
+
+.completion-stats {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+
+  .stat {
+    text-align: center;
+    padding: 1rem 1.5rem;
+    background: $bg-tertiary;
+    border-radius: 0.75rem;
+    box-shadow: $shadow-sm;
+
+    .stat-value {
+      display: block;
+      font-size: 2rem;
+      font-weight: 700;
+      color: $primary-color;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: $text-secondary;
+    }
+  }
+}
+
+// Rating Stars
+.rating-stars {
+  .btn-link {
+    text-decoration: none;
+
+    i {
+      transition: transform 0.2s;
+      color: $text-muted;
+
+      &.bi-star-fill.text-warning {
+        color: $primary-color !important;
+      }
+    }
+
+    &:hover i {
+      transform: scale(1.2);
+    }
+  }
+}
+
+// Modal Backdrop
+.modal {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+// Form controls in modals
+.modal {
+  .form-control {
+    background: $bg-tertiary;
+    border-color: $border-color;
+    color: $text-primary;
+
+    &:focus {
+      background: $bg-secondary;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.15);
+    }
+
+    &::placeholder {
+      color: $text-muted;
+    }
+  }
+
+  .form-label {
+    color: $text-primary;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    background: $primary-color;
+    border-color: $primary-color;
+
+    &:hover {
+      background: $primary-dark;
+      border-color: $primary-dark;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 992px) {
+  .player-sidebar {
+    position: fixed;
+    left: 0;
+    top: $header-height;
+    bottom: 0;
+    z-index: 100;
+
+    &.collapsed {
+      left: -$sidebar-width;
+    }
+  }
+
+  .sidebar-collapsed .player-sidebar {
+    left: 0;
+    width: $sidebar-width;
+  }
+}
+
+@media (max-width: 576px) {
+  .player-header {
+    padding: 0 1rem;
+
+    .course-title h1 {
+      font-size: 1rem;
+    }
+
+    .progress-info {
+      display: none;
+    }
+  }
+
+  .bottom-panel {
+    max-height: 280px;
+
+    .nav-tabs .nav-link {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  .lesson-navigation {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  .completion-stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .shortcuts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Utility classes
+.text-primary-color {
+  color: $primary-color !important;
+}
+
+.bg-primary-light {
+  background: rgba($primary-color, 0.1) !important;
+}
+
+.shadow-card {
+  box-shadow: $shadow-md;
+}
+
+// Note Modal specific
+.timestamp-badge {
+  .badge {
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+// Control button in video with note icon
+.control-btn.note-btn {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    background: $primary-color;
+    border-radius: 50%;
+    opacity: 0;
+  }
+
+  &.has-notes::after {
+    opacity: 1;
+  }
+}

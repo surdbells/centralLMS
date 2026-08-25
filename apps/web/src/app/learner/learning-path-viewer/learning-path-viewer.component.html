@@ -1,0 +1,444 @@
+<app-top></app-top>
+<main class="main">
+  <div class="container-fluid py-4">
+@if (loading()) {
+  <div class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+} @else if (path()) {
+  <div class="learning-path-viewer">
+    <!-- Hero Section -->
+    <section class="path-hero" [style.backgroundImage]="path()!.banner_url ? 'url(' + path()!.banner_url + ')' : ''">
+      <div class="hero-overlay"></div>
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+              <ol class="breadcrumb breadcrumb-light">
+                <li class="breadcrumb-item"><a routerLink="/learner">Learning</a></li>
+                <li class="breadcrumb-item"><a routerLink="/learner/paths">Paths</a></li>
+                <li class="breadcrumb-item active">{{ path()!.title }}</li>
+              </ol>
+            </nav>
+
+            <!-- Badges -->
+            <div class="path-badges mb-3">
+              <span class="badge bg-{{ getSkillLevel(path()!.skill_level).color }}">
+                {{ getSkillLevel(path()!.skill_level).label }}
+              </span>
+              @if (path()!.is_mandatory) {
+                <span class="badge bg-danger">Mandatory</span>
+              }
+              @if (path()!.certificate_enabled) {
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-award me-1"></i>Certificate
+                </span>
+              }
+            </div>
+
+            <!-- Title -->
+            <h1 class="path-title">{{ path()!.title }}</h1>
+            <p class="path-description">{{ path()!.short_description }}</p>
+
+            <!-- Meta Info -->
+            <div class="path-meta">
+              @if (path()!.estimated_duration_hours) {
+                <div class="meta-item">
+                  <i class="bi bi-clock"></i>
+                  <span>{{ formatDuration(path()!.estimated_duration_hours) }}</span>
+                </div>
+              }
+              <div class="meta-item">
+                <i class="bi bi-collection"></i>
+                <span>{{ path()!.total_items }} items</span>
+              </div>
+              <div class="meta-item">
+                <i class="bi bi-people"></i>
+                <span>{{ path()!.total_enrollments }} enrolled</span>
+              </div>
+              @if (ratingSummary()?.avg_rating) {
+                <div class="meta-item">
+                  <i class="bi bi-star-fill text-warning"></i>
+                  <span>{{ ratingSummary()!.avg_rating | number:'1.1-1' }} ({{ ratingSummary()!.total_reviews }} reviews)</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="container path-content">
+      <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+          <!-- Progress Card (if enrolled) -->
+          @if (isEnrolled() && progress()) {
+            <div class="card progress-card mb-4">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h5 class="mb-0">Your Progress</h5>
+                  <span class="progress-percentage">{{ enrollment()!.progress_percentage | number:'1.0-0' }}%</span>
+                </div>
+                <div class="progress mb-3" style="height: 8px;">
+                  <div
+                    class="progress-bar"
+                    [class.bg-success]="isCompleted()"
+                    [style.width.%]="enrollment()!.progress_percentage"
+                  ></div>
+                </div>
+                <div class="progress-stats">
+                  <div class="stat">
+                    <span class="stat-value">{{ completedCount() }}/{{ totalCount() }}</span>
+                    <span class="stat-label">Items Completed</span>
+                  </div>
+                  <div class="stat">
+                    <span class="stat-value">{{ formatMinutes(enrollment()!.total_time_spent_minutes) || '0m' }}</span>
+                    <span class="stat-label">Time Spent</span>
+                  </div>
+                  <div class="stat">
+                    <span class="stat-value">{{ enrollment()!.total_points_earned }}</span>
+                    <span class="stat-label">Points Earned</span>
+                  </div>
+                  @if (enrollment()!.due_date) {
+                    <div class="stat">
+                      <span class="stat-value" [class.text-danger]="enrollment()!.is_overdue">
+                        {{ enrollment()!.due_date | date:'MMM d' }}
+                      </span>
+                      <span class="stat-label">Due Date</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Content Sections -->
+          <div class="card content-card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-list-check me-2"></i>Path Content
+              </h5>
+            </div>
+            <div class="card-body p-0">
+              @if (progress()) {
+                <!-- Enrolled: Show with progress -->
+                @for (sectionData of progress()!.sections; track sectionData.section.section_id) {
+                  <div class="content-section" [class.completed]="sectionData.section.status === 'completed'">
+                    <!-- Section Header -->
+                    <div
+                      class="section-header"
+                      (click)="toggleSection(sectionData.section.section_id)"
+                      [class.expanded]="isSectionExpanded(sectionData.section.section_id)"
+                    >
+                      <div class="section-status">
+                        @if (sectionData.section.status === 'completed') {
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                        } @else if (sectionData.section.status === 'locked') {
+                          <i class="bi bi-lock-fill text-muted"></i>
+                        } @else {
+                          <div class="section-progress-ring">
+                            <span>{{ sectionData.section.items_completed }}/{{ sectionData.section.items_total }}</span>
+                          </div>
+                        }
+                      </div>
+                      <div class="section-info">
+                        <h6 class="section-title">{{ sectionData.section.section_title }}</h6>
+                        <span class="section-meta">{{ sectionData.section.items_total }} items</span>
+                      </div>
+                      <i class="bi section-chevron" [class.bi-chevron-down]="!isSectionExpanded(sectionData.section.section_id)" [class.bi-chevron-up]="isSectionExpanded(sectionData.section.section_id)"></i>
+                    </div>
+
+                    <!-- Section Items -->
+                    @if (isSectionExpanded(sectionData.section.section_id)) {
+                      <div class="section-items">
+                        @for (item of sectionData.items; track item.item_id) {
+                          <div
+                            class="content-item"
+                            [class.locked]="item.status === 'locked'"
+                            [class.completed]="item.status === 'completed'"
+                            [class.current]="item.status === 'in_progress' || item.status === 'available'"
+                            (click)="item.status !== 'locked' && startItem(item)"
+                          >
+                            <div class="item-status">
+                              @switch (item.status) {
+                                @case ('completed') {
+                                  <i class="bi bi-check-circle-fill text-success"></i>
+                                }
+                                @case ('locked') {
+                                  <i class="bi bi-lock-fill text-muted"></i>
+                                }
+                                @case ('in_progress') {
+                                  <div class="item-progress-ring">
+                                    <span>{{ item.progress_percentage | number:'1.0-0' }}%</span>
+                                  </div>
+                                }
+                                @case ('failed') {
+                                  <i class="bi bi-x-circle-fill text-danger"></i>
+                                }
+                                @default {
+                                  <i class="bi bi-circle text-primary"></i>
+                                }
+                              }
+                            </div>
+                            <div class="item-icon">
+                              <i class="bi {{ getItemType(item.item_type!).icon }}"></i>
+                            </div>
+                            <div class="item-info">
+                              <span class="item-title">{{ item.display_title }}</span>
+                              <span class="item-meta">
+                                {{ getItemType(item.item_type!).label }}
+                                @if (item.estimated_duration_minutes) {
+                                  <span class="separator">•</span>
+                                  {{ item.estimated_duration_minutes }} min
+                                }
+                                @if (item.points_value) {
+                                  <span class="separator">•</span>
+                                  {{ item.points_value }} pts
+                                }
+                              </span>
+                            </div>
+                            @if (item.status !== 'locked') {
+                              <div class="item-action">
+                                @if (startingItem() === item.item_id) {
+                                  <div class="spinner-border spinner-border-sm" role="status"></div>
+                                } @else {
+                                  <i class="bi bi-chevron-right"></i>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Unsectioned Items -->
+                @if (progress()!.unsectioned_items.length > 0) {
+                  <div class="section-items standalone">
+                    @for (item of progress()!.unsectioned_items; track item.item_id) {
+                      <div
+                        class="content-item"
+                        [class.locked]="item.status === 'locked'"
+                        [class.completed]="item.status === 'completed'"
+                        [class.current]="item.status === 'in_progress' || item.status === 'available'"
+                        (click)="item.status !== 'locked' && startItem(item)"
+                      >
+                        <div class="item-status">
+                          @switch (item.status) {
+                            @case ('completed') {
+                              <i class="bi bi-check-circle-fill text-success"></i>
+                            }
+                            @case ('locked') {
+                              <i class="bi bi-lock-fill text-muted"></i>
+                            }
+                            @case ('in_progress') {
+                              <div class="item-progress-ring">
+                                <span>{{ item.progress_percentage | number:'1.0-0' }}%</span>
+                              </div>
+                            }
+                            @default {
+                              <i class="bi bi-circle text-primary"></i>
+                            }
+                          }
+                        </div>
+                        <div class="item-icon">
+                          <i class="bi {{ getItemType(item.item_type!).icon }}"></i>
+                        </div>
+                        <div class="item-info">
+                          <span class="item-title">{{ item.display_title }}</span>
+                          <span class="item-meta">
+                            {{ getItemType(item.item_type!).label }}
+                            @if (item.estimated_duration_minutes) {
+                              <span class="separator">•</span>
+                              {{ item.estimated_duration_minutes }} min
+                            }
+                          </span>
+                        </div>
+                        @if (item.status !== 'locked') {
+                          <div class="item-action">
+                            <i class="bi bi-chevron-right"></i>
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              } @else {
+                <!-- Not enrolled: Show preview -->
+                <div class="preview-notice">
+                  <i class="bi bi-lock"></i>
+                  <p>Enroll to access the full content</p>
+                </div>
+                <div class="preview-items">
+                  <div class="content-item preview">
+                    <div class="item-icon"><i class="bi bi-collection-play"></i></div>
+                    <div class="item-info">
+                      <span class="item-title">{{ path()!.total_courses }} Courses</span>
+                    </div>
+                  </div>
+                  <div class="content-item preview">
+                    <div class="item-icon"><i class="bi bi-clipboard-check"></i></div>
+                    <div class="item-info">
+                      <span class="item-title">{{ path()!.total_assessments }} Assessments</span>
+                    </div>
+                  </div>
+                  <div class="content-item preview">
+                    <div class="item-icon"><i class="bi bi-collection"></i></div>
+                    <div class="item-info">
+                      <span class="item-title">{{ path()!.total_items }} Total Items</span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Description -->
+          @if (path()!.description) {
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">About This Path</h5>
+              </div>
+              <div class="card-body">
+                <div [innerHTML]="path()!.description"></div>
+              </div>
+            </div>
+          }
+
+          <!-- Learning Objectives -->
+          @if (path()!.learning_objectives && path()!.learning_objectives.length > 0) {
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">What You'll Learn</h5>
+              </div>
+              <div class="card-body">
+                <ul class="objectives-list">
+                  @for (objective of showAllObjectives() ? path()!.learning_objectives : path()!.learning_objectives.slice(0, 4); track $index) {
+                    <li>
+                      <i class="bi bi-check2-circle text-success"></i>
+                      <span>{{ objective }}</span>
+                    </li>
+                  }
+                </ul>
+                @if (path()!.learning_objectives.length > 4) {
+                  <button class="btn btn-link p-0" (click)="showAllObjectives.set(!showAllObjectives())">
+                    {{ showAllObjectives() ? 'Show Less' : 'Show All ' + path()!.learning_objectives.length + ' Objectives' }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+          <!-- Action Card -->
+          <div class="card action-card sticky-top mb-4">
+            @if (path()!.thumbnail_url) {
+              <img [src]="path()!.thumbnail_url" class="card-img-top" [alt]="path()!.title">
+            }
+            <div class="card-body">
+              @if (!isEnrolled()) {
+                <!-- Not Enrolled -->
+                @if (!path()!.is_free) {
+                  <div class="price mb-3">
+                    <span class="amount">{{ path()!.price | currency:path()!.currency }}</span>
+                  </div>
+                }
+                <button
+                  class="btn btn-primary btn-lg w-100 mb-3"
+                  [disabled]="!canEnroll() || enrolling()"
+                  (click)="enroll()"
+                >
+                  @if (enrolling()) {
+                    <span class="spinner-border spinner-border-sm me-2"></span>
+                    Enrolling...
+                  } @else {
+                    <i class="bi bi-play-circle me-2"></i>
+                    {{ path()!.is_free ? 'Enroll Now' : 'Buy Now' }}
+                  }
+                </button>
+              } @else if (!enrollment()!.started_at) {
+                <!-- Enrolled but not started -->
+                <button class="btn btn-primary btn-lg w-100 mb-3" (click)="startPath()">
+                  <i class="bi bi-play-fill me-2"></i>Start Learning
+                </button>
+              } @else if (!isCompleted()) {
+                <!-- In Progress -->
+                <button class="btn btn-primary btn-lg w-100 mb-3" (click)="continuePath()">
+                  <i class="bi bi-play-fill me-2"></i>Continue Learning
+                </button>
+              } @else {
+                <!-- Completed -->
+                <div class="completion-badge mb-3">
+                  <i class="bi bi-trophy-fill"></i>
+                  <span>Completed!</span>
+                </div>
+                @if (path()!.certificate_enabled && enrollment()!.certificate_id) {
+                  <a [routerLink]="['/certificates', enrollment()!.certificate_id]" class="btn btn-success w-100 mb-3">
+                    <i class="bi bi-award me-2"></i>View Certificate
+                  </a>
+                }
+              }
+
+              <!-- Quick Stats -->
+              <div class="quick-stats">
+                <div class="quick-stat">
+                  <i class="bi bi-clock"></i>
+                  <div>
+                    <span class="value">{{ formatDuration(path()!.estimated_duration_hours) || 'Self-paced' }}</span>
+                    <span class="label">Duration</span>
+                  </div>
+                </div>
+                <div class="quick-stat">
+                  <i class="bi bi-bar-chart"></i>
+                  <div>
+                    <span class="value">{{ getSkillLevel(path()!.skill_level).label }}</span>
+                    <span class="label">Level</span>
+                  </div>
+                </div>
+                <div class="quick-stat">
+                  <i class="bi bi-trophy"></i>
+                  <div>
+                    <span class="value">{{ path()!.total_points }}</span>
+                    <span class="label">Total Points</span>
+                  </div>
+                </div>
+              </div>
+
+              @if (isEnrolled() && !isCompleted()) {
+                <hr>
+                <button class="btn btn-link text-danger p-0" (click)="withdraw()">
+                  <i class="bi bi-box-arrow-left me-1"></i>Withdraw from Path
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Tags -->
+          @if (path()!.tags && path()!.tags.length > 0) {
+            <div class="card mb-4">
+              <div class="card-header">
+                <h6 class="mb-0">Tags</h6>
+              </div>
+              <div class="card-body">
+                <div class="tags">
+                  @for (tag of path()!.tags; track tag) {
+                    <span class="badge bg-light text-dark">{{ tag }}</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
+  </div>
+</main>

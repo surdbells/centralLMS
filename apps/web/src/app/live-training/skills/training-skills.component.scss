@@ -1,0 +1,25 @@
+
+.available-skills {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.list-group-item {
+  cursor: pointer;
+}
+
+.list-group-item.active {
+  background-color: #303234;
+  border-color: #303234;
+}
+
+.badge-beginner { background-color: #6c757d; }
+.badge-intermediate { background-color: #0dcaf0; }
+.badge-advanced { background-color: #0d6efd; }
+.badge-expert { background-color: #198754; }
+
+.modal.show {
+  display: block !important;
+}

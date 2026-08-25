@@ -1,0 +1,214 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+  <div class="reviews-page">
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
+            @if (path()) {
+              <li class="breadcrumb-item"><a [routerLink]="['/admin/learning-paths', path()!.path_id]">{{ path()!.title }}</a></li>
+            }
+            <li class="breadcrumb-item active">Reviews</li>
+          </ol>
+        </nav>
+        <h1 class="h3 mb-0">Reviews & Ratings</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Rating Summary -->
+    <div class="col-md-4 mb-4">
+      @if (ratingSummary()) {
+        <div class="card rating-card">
+          <div class="card-body text-center">
+            <div class="rating-value">{{ (ratingSummary()?.avg_rating || 0) | number:'1.1-1' }}</div>
+            <div class="rating-stars mb-2">
+              @for (star of [1,2,3,4,5]; track star) {
+                <i class="bi"
+                   [class.bi-star-fill]="star <= (ratingSummary()?.avg_rating || 0)"
+                   [class.bi-star]="star > (ratingSummary()?.avg_rating || 0)"
+                   [class.text-warning]="star <= (ratingSummary()?.avg_rating || 0)">
+                </i>
+              }
+            </div>
+            <p class="text-muted mb-4">{{ ratingSummary()?.total_reviews || 0 }} reviews</p>
+
+            <!-- Distribution -->
+            <div class="rating-distribution">
+              @for (rating of [5,4,3,2,1]; track rating) {
+                <div class="distribution-row">
+                  <span class="rating-label">{{ rating }} <i class="bi bi-star-fill text-warning small"></i></span>
+                  <div class="progress flex-fill mx-2">
+                    <div
+                      class="progress-bar bg-warning"
+                      [style.width.%]="getDistributionPercent(rating)"
+                    ></div>
+                  </div>
+                  <span class="rating-count">{{ ratingSummary()?.distribution?.[rating] || 0 }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Reviews List -->
+    <div class="col-md-8">
+      <!-- Filter -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <select class="form-select w-auto" [(ngModel)]="statusFilter" (change)="loadReviews()">
+          <option value="">All Reviews</option>
+          <option value="pending">Pending Moderation</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="flagged">Flagged</option>
+        </select>
+      </div>
+
+      @if (loading()) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+      } @else if (reviews().length === 0) {
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-chat-left-text display-4 text-muted"></i>
+            <h5 class="mt-3">No Reviews</h5>
+            <p class="text-muted">No reviews have been submitted for this learning path yet.</p>
+          </div>
+        </div>
+      } @else {
+        @for (review of reviews(); track review.review_id) {
+          <div class="card review-card mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="reviewer-avatar">
+                    @if (review.profile_image_url) {
+                      <img [src]="review.profile_image_url" [alt]="review.first_name">
+                    } @else {
+                      <span>{{ review.first_name?.[0] }}{{ review.last_name?.[0] }}</span>
+                    }
+                  </div>
+                  <div>
+                    <div class="fw-medium">{{ review.first_name }} {{ review.last_name }}</div>
+                    <div class="review-stars">
+                      @for (star of [1,2,3,4,5]; track star) {
+                        <i class="bi"
+                           [class.bi-star-fill]="star <= review.rating"
+                           [class.bi-star]="star > review.rating"
+                           [class.text-warning]="star <= review.rating">
+                        </i>
+                      }
+                      <span class="ms-2 text-muted small">{{ review.created_at | date:'MMM d, yyyy' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="badge" [class]="getStatusBadge(review.moderation_status)">
+                      {{ review.moderation_status }}
+                    </span>
+              </div>
+
+              @if (review.title) {
+                <h6 class="review-title">{{ review.title }}</h6>
+              }
+              <p class="review-text mb-3">{{ review.review_text }}</p>
+
+              @if (review.instructor_response) {
+                <div class="instructor-response">
+                  <strong>Instructor Response:</strong>
+                  <p class="mb-0">{{ review.instructor_response }}</p>
+                </div>
+              }
+
+              <!-- Actions -->
+              <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <div class="text-muted small">
+                  <i class="bi bi-hand-thumbs-up me-1"></i>{{ review.helpful_count }} found helpful
+                  @if (review.reported_count > 0) {
+                    <span class="ms-3 text-danger">
+                          <i class="bi bi-flag me-1"></i>{{ review.reported_count }} reports
+                        </span>
+                  }
+                </div>
+                <div class="btn-group btn-group-sm">
+                  @if (review.moderation_status === 'pending') {
+                    <button class="btn btn-success" (click)="approveReview(review)">
+                      <i class="bi bi-check-lg me-1"></i>Approve
+                    </button>
+                    <button class="btn btn-outline-danger" (click)="rejectReview(review)">
+                      <i class="bi bi-x-lg me-1"></i>Reject
+                    </button>
+                  }
+                  @if (!review.instructor_response) {
+                    <button class="btn btn-primary" (click)="openResponseModal(review)">
+                      <i class="bi bi-reply me-1"></i>Respond
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Pagination -->
+        @if (totalPages() > 1) {
+          <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+              <li class="page-item" [class.disabled]="currentPage() === 1">
+                <button class="page-link" (click)="goToPage(currentPage() - 1)">Previous</button>
+              </li>
+              @for (page of [1,2,3,4,5]; track page) {
+                @if (page <= totalPages()) {
+                  <li class="page-item" [class.active]="page === currentPage()">
+                    <button class="page-link" (click)="goToPage(page)">{{ page }}</button>
+                  </li>
+                }
+              }
+              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                <button class="page-link" (click)="goToPage(currentPage() + 1)">Next</button>
+              </li>
+            </ul>
+          </nav>
+        }
+      }
+    </div>
+  </div>
+</div>
+  <!-- Response Modal -->
+  @if (showResponseModal()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Respond to Review</h5>
+            <button type="button" class="btn-close" (click)="closeResponseModal()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Your Response</label>
+              <textarea class="form-control" rows="4" [(ngModel)]="responseText" placeholder="Write your response..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeResponseModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="submitResponse()" [disabled]="!responseText || saving()">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+              }
+              Submit Response
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+  </div>
+</main>

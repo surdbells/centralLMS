@@ -1,0 +1,210 @@
+<!-- admin-live-training.component.html -->
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+  <div class="training-skills">
+  <!-- Header -->
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="bi bi-award me-2"></i>Skills & Competencies
+    </h5>
+    <button class="btn btn-primary btn-sm" (click)="showAddSkillModal = true">
+      <i class="bi bi-plus-circle me-1"></i>Add Skill
+    </button>
+  </div>
+
+  <div class="card-body">
+    <!-- Loading State -->
+    <div *ngIf="loading" class="text-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Assigned Skills List -->
+    <div *ngIf="!loading && assignedSkills.length > 0">
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+          <tr>
+            <th>Skill Name</th>
+            <th>Category</th>
+            <th>Proficiency Level</th>
+            <th>Required</th>
+            <th width="120">Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let skill of assignedSkills">
+            <td>
+              <strong>{{ skill.skill_name }}</strong>
+              <div class="small text-muted" *ngIf="skill.skill_description">
+                {{ skill.skill_description }}
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-secondary">{{ skill.skill_category }}</span>
+            </td>
+            <td>
+                    <span class="badge" [ngClass]="getProficiencyBadgeClass(skill.proficiency_level)">
+                      {{ getProficiencyDisplayName(skill.proficiency_level) }}
+                    </span>
+            </td>
+            <td>
+              <i class="bi"
+                 [ngClass]="skill.is_required ? 'bi-check-circle text-success' : 'bi-circle text-muted'">
+              </i>
+              <span class="ms-1">{{ skill.is_required ? 'Yes' : 'No' }}</span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger"
+                      (click)="removeSkill(skill)"
+                      title="Remove skill">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Summary -->
+      <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>{{ assignedSkills.length }}</strong> skill(s) assigned to this training.
+        Learners will automatically acquire these skills upon completion.
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && assignedSkills.length === 0" class="text-center py-5">
+      <i class="bi bi-award display-4 text-muted"></i>
+      <h5 class="mt-3">No Skills Assigned</h5>
+      <p class="text-muted">
+        Assign skills to this training to help learners build their competency profile.
+      </p>
+      <button class="btn btn-primary" (click)="showAddSkillModal = true">
+        <i class="bi bi-plus-circle me-2"></i>Add First Skill
+      </button>
+    </div>
+  </div>
+
+  <!-- Add Skill Modal -->
+  <div class="modal fade" [class.show]="showAddSkillModal"
+       [style.display]="showAddSkillModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-plus-circle me-2"></i>Add Skill
+          </h5>
+          <button type="button" class="btn-close" (click)="closeAddSkillModal()"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Search Skills -->
+          <div class="mb-3">
+            <label class="form-label">Search Skills</label>
+            <div class="input-group">
+              <input type="text" class="form-control"
+                     placeholder="Search by name or category..."
+                     [(ngModel)]="skillSearchQuery"
+                     (input)="searchSkills()">
+              <button class="btn btn-secondary" (click)="searchSkills()">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category Filter -->
+          <div class="mb-3">
+            <label class="form-label">Filter by Category</label>
+            <select class="form-select" [(ngModel)]="selectedCategory" (change)="searchSkills()">
+              <option [value]="null">All Categories</option>
+              <option *ngFor="let category of skillCategories" [value]="category.category_id">
+                {{ category.category_name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Available Skills -->
+          <div class="available-skills">
+            <div *ngIf="searchingSkills" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm"></div>
+            </div>
+
+            <div *ngIf="!searchingSkills && availableSkills.length === 0"
+                 class="alert alert-info">
+              No skills found. Try a different search term.
+            </div>
+
+            <div class="list-group" *ngIf="!searchingSkills && availableSkills.length > 0">
+              <button type="button" class="list-group-item list-group-item-action"
+                      *ngFor="let skill of availableSkills"
+                      [class.active]="selectedSkill?.skill_id === skill.skill_id"
+                      (click)="selectSkill(skill)">
+                <div class="d-flex w-100 justify-content-between">
+                  <h6 class="mb-1">{{ skill.skill_name }}</h6>
+                  <span class="badge bg-secondary">{{ skill.skill_category }}</span>
+                </div>
+                <small class="text-muted" *ngIf="skill.skill_description">
+                  {{ skill.skill_description }}
+                </small>
+              </button>
+            </div>
+          </div>
+
+          <!-- Selected Skill Configuration -->
+          <div *ngIf="selectedSkill" class="mt-3 p-3 bg-light rounded">
+            <h6>Configure Skill Assignment</h6>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Proficiency Level</label>
+                <select class="form-select" [(ngModel)]="proficiencyLevel">
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label d-block">Required for Completion</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox"
+                         id="isRequired" [(ngModel)]="isRequired">
+                  <label class="form-check-label" for="isRequired">
+                    {{ isRequired ? 'Required' : 'Optional' }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-info mb-0">
+              <i class="bi bi-info-circle me-2"></i>
+              <small>
+                Learners will acquire this skill at <strong>{{ proficiencyLevel }}</strong> level
+                upon completing this training.
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeAddSkillModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary"
+                  [disabled]="!selectedSkill || adding"
+                  (click)="addSkill()">
+            <span *ngIf="adding" class="spinner-border spinner-border-sm me-2"></span>
+            <i class="bi bi-plus-circle me-1" *ngIf="!adding"></i>
+            {{ adding ? 'Adding...' : 'Add Skill' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showAddSkillModal" (click)="closeAddSkillModal()"></div>
+</div>
+  </div>
+</main>
