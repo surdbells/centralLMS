@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, filter, map } from 'rxjs';
 import { ApiClient, Endpoints, type Paged } from '../core/api';
 import type { LearnerSkills } from './skills.service';
 
@@ -117,6 +117,55 @@ export interface UserStatistics {
   joinedLast30: number;
 }
 
+// --- importing --------------------------------------------------------------
+
+/** What an imported row can be told to do about somebody already here. */
+export type ExistingPolicy = 'skip' | 'update';
+
+/** One row, as the columns the reader recognised. */
+export type ImportRowValues = Record<string, string>;
+
+export interface ImportRow {
+  line: number;
+  /** The row itself, to show and to send back. */
+  values: ImportRowValues;
+  email: string;
+  name: string;
+  existingId: string | null;
+  action: 'create' | 'existing' | 'error';
+  /** Field by field, and any one of them stops the row. */
+  violations: Record<string, string>;
+  /** Things worth knowing that do not stop it — an unknown department. */
+  warnings: string[];
+}
+
+export interface ImportPreview {
+  /** Which column each field was read from, so a mis-mapping is visible. */
+  mapping: Record<string, string>;
+  /** Columns nothing was read from. */
+  ignored: string[];
+  truncated: boolean;
+  maxRows: number;
+  rows: ImportRow[];
+  summary: { total: number; create: number; existing: number; error: number; warnings: number };
+}
+
+export interface ImportOutcome {
+  line: number;
+  email: string;
+  name: string;
+  outcome: 'created' | 'updated' | 'skipped' | 'error';
+  reason?: string;
+}
+
+export interface ImportResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  rows: ImportOutcome[];
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -181,6 +230,32 @@ export class UsersService {
 
   statistics(): Observable<UserStatistics> {
     return this.api.get<UserStatistics>(Endpoints.users.statistics);
+  }
+
+  // --- adding a lot of people at once -------------------------------------
+
+  /**
+   * Reads a spreadsheet and says what would happen. Writes nothing.
+   */
+  importPreview(file: File): Observable<ImportPreview> {
+    const form = new FormData();
+    form.append('file', file);
+
+    return this.api.upload<ImportPreview>(Endpoints.users.importPreview, form).pipe(
+      filter((event): event is typeof event & { result: ImportPreview } => event.state === 'done'),
+      map((event) => event.result),
+    );
+  }
+
+  /**
+   * Writes the rows.
+   *
+   * The rows go back as they came, because nothing is kept on the server
+   * between the two calls — and the commit checks them again from nothing, so
+   * a row that was marked valid a minute ago is not taken at its word.
+   */
+  import(rows: ImportRowValues[], onExisting: ExistingPolicy): Observable<ImportResult> {
+    return this.api.post<ImportResult>(Endpoints.users.import, { rows, onExisting });
   }
 
   /** What this person can do, derived from the courses they have finished. */

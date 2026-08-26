@@ -1,0 +1,266 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
+      <div>
+        <h4 class="fw-bold mb-0"><i class="bi bi-upload me-2"></i>Import People</h4>
+        <small class="text-muted">Read the file, check what it would do, then import</small>
+      </div>
+    </div>
+
+    <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+      <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+      <div class="flex-grow-1">{{ error }}</div>
+      <button type="button" class="btn-close" (click)="error = null"></button>
+    </div>
+
+    <!-- Step 1: the file -->
+    <div class="row g-4" *ngIf="step === 'choose'">
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <div class="drop-zone text-center py-5" [class.dragging]="dragging"
+                 (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
+                 (click)="fileInput.click()">
+              <div *ngIf="!working">
+                <i class="bi bi-file-earmark-spreadsheet display-4 text-muted d-block mb-2"></i>
+                <p class="mb-1 fw-medium">Drop a CSV here, or choose one</p>
+                <small class="text-muted">Nothing is written until you have seen what it would do.</small>
+              </div>
+              <div *ngIf="working">
+                <div class="spinner-border text-primary mb-2"></div>
+                <p class="mb-0 text-muted">Reading {{ file?.name }}</p>
+              </div>
+            </div>
+            <input #fileInput type="file" accept=".csv,text/csv" class="d-none" (change)="onFileSelected($event)">
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white fw-semibold">
+            <i class="bi bi-list-columns me-2"></i>Columns it understands
+          </div>
+          <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-start py-1" *ngFor="let c of columns">
+              <div>
+                <code class="mono">{{ c.name }}</code>
+                <span class="badge bg-danger-subtle text-danger ms-1" *ngIf="c.required">required</span>
+                <small class="d-block text-muted" *ngIf="c.note">{{ c.note }}</small>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer bg-white small text-muted">
+            Column names are matched loosely — "E-mail Address" and "first_name" both work. Anything else
+            in the file is ignored, and you will be told which.
+            <strong class="d-block mt-2">There is no password column.</strong>
+            Imported people are invited and set their own.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: what it would do -->
+    <ng-container *ngIf="step === 'check' && preview">
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0 text-success">{{ preview.summary.create }}</h4>
+              <small class="text-muted">To create</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0 text-info">{{ preview.summary.existing }}</h4>
+              <small class="text-muted">Already here</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0" [class.text-danger]="preview.summary.error">{{ preview.summary.error }}</h4>
+              <small class="text-muted">Cannot import</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0" [class.text-warning]="preview.summary.warnings">{{ preview.summary.warnings }}</h4>
+              <small class="text-muted">With a warning</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-warning py-2 small" *ngIf="preview.truncated">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        Only the first {{ preview.maxRows }} rows were read. Split the file and import the rest after this one.
+      </div>
+
+      <!-- How it read the file -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2">
+          <div class="d-flex flex-wrap gap-3 align-items-center">
+            <span class="small text-muted">Read as:</span>
+            <span class="badge bg-light text-black border" *ngFor="let field of preview.mapping | keyvalue">
+              <code class="mono">{{ field.value }}</code>
+              <i class="bi bi-arrow-right mx-1"></i>{{ field.key }}
+            </span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 align-items-center mt-2" *ngIf="preview.ignored.length">
+            <span class="small text-muted">Ignored:</span>
+            <span class="badge bg-secondary-subtle text-secondary" *ngFor="let c of preview.ignored">{{ c }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- The rows -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <span class="fw-semibold">{{ preview.summary.total }} rows</span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn" [class]="showOnly === 'all' ? 'btn-primary' : 'btn-secondary'"
+                    (click)="showOnly = 'all'">All</button>
+            <button class="btn" [class]="showOnly === 'error' ? 'btn-primary' : 'btn-secondary'"
+                    (click)="showOnly = 'error'" [disabled]="!preview.summary.error">Problems</button>
+            <button class="btn" [class]="showOnly === 'warning' ? 'btn-primary' : 'btn-secondary'"
+                    (click)="showOnly = 'warning'" [disabled]="!preview.summary.warnings">Warnings</button>
+          </div>
+        </div>
+        <div class="table-responsive" style="max-height: 480px; overflow-y: auto">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+              <th style="width:60px">Line</th>
+              <th>Person</th>
+              <th style="width:130px">What happens</th>
+              <th>Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let row of visibleRows; trackBy: trackByLine">
+              <td><small class="text-muted">{{ row.line }}</small></td>
+              <td>
+                <div class="fw-medium small">{{ row.name || '(no name)' }}</div>
+                <small class="text-muted mono">{{ row.email || '(no address)' }}</small>
+              </td>
+              <td><span class="badge" [class]="actionClass(row.action)">{{ actionLabel(row) }}</span></td>
+              <td>
+                <div class="small text-danger" *ngIf="row.action === 'error'">
+                  <i class="bi bi-x-circle me-1"></i>{{ firstViolation(row) }}
+                </div>
+                <div class="small text-warning" *ngFor="let w of row.warnings">
+                  <i class="bi bi-exclamation-triangle me-1"></i>{{ w }}
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!visibleRows.length">
+              <td colspan="4" class="text-center text-muted py-4">Nothing to show here</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer bg-white">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-5" *ngIf="preview.summary.existing">
+              <label class="form-label small fw-semibold mb-1">People already here</label>
+              <select class="form-select form-select-sm" [(ngModel)]="onExisting">
+                <option value="skip">Leave them alone</option>
+                <option value="update">Update them from the file</option>
+              </select>
+            </div>
+            <div class="col text-end">
+              <button class="btn btn-secondary me-2" (click)="startOver()">Choose another file</button>
+              <button class="btn btn-primary" (click)="runImport()" [disabled]="working || !importable.length">
+                <span *ngIf="working" class="spinner-border spinner-border-sm me-1"></span>
+                Import {{ importable.length }} {{ importable.length === 1 ? 'person' : 'people' }}
+              </button>
+            </div>
+          </div>
+          <p class="text-muted small mt-3 mb-0" *ngIf="preview.summary.error">
+            The {{ preview.summary.error }} rows that cannot be imported are left out. Fix them in the file
+            and run it again — the ones imported now will be recognised and left alone.
+          </p>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Step 3: what happened -->
+    <ng-container *ngIf="step === 'done' && result">
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0 text-success">{{ result.created }}</h4>
+              <small class="text-muted">Created</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0 text-primary">{{ result.updated }}</h4>
+              <small class="text-muted">Updated</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0">{{ result.skipped }}</h4>
+              <small class="text-muted">Skipped</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body py-3 text-center">
+              <h4 class="fw-bold mb-0" [class.text-danger]="result.failed">{{ result.failed }}</h4>
+              <small class="text-muted">Failed</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm" *ngIf="result.failed">
+        <div class="card-header bg-white fw-semibold text-danger">
+          <i class="bi bi-x-circle me-2"></i>What did not go in
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+            <tr><th style="width:60px">Line</th><th>Person</th><th>Why</th></tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let row of result.rows; trackBy: trackByLine">
+              <ng-container *ngIf="row.outcome === 'error'">
+                <td><small class="text-muted">{{ row.line }}</small></td>
+                <td><small>{{ row.name }} <span class="mono text-muted">{{ row.email }}</span></small></td>
+                <td><small class="text-danger">{{ row.reason }}</small></td>
+              </ng-container>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="alert alert-success mt-3" *ngIf="!result.failed">
+        <i class="bi bi-check-circle me-2"></i>
+        Everything went in. The new accounts are <strong>invited</strong> — they set their own password
+        the first time they sign in.
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-primary" (click)="done()">Back to people</button>
+        <button class="btn btn-secondary" (click)="startOver()">Import another file</button>
+      </div>
+    </ng-container>
+  </div>
+</main>

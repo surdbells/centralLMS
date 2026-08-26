@@ -10,9 +10,7 @@ import { permissionGuard } from './guards/role.guard';
  * so `checkPermission` returned false for all of them and the guard sent
  * everybody to /unauthorized. It was never noticed because the guard swallowed
  * its own failure and let the route through.
- *
- * Importing people is still not here: it has no API yet, and a screen that
- * cannot work is worse than an absent one.
+
  */
 export const usersRoutes: Routes = [
   {
@@ -41,6 +39,14 @@ export const usersRoutes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'user.view' },
         title: 'Roles & Permissions',
+      },
+      {
+        path: 'import',
+        loadComponent: () =>
+          import('./components/user-import/user-import.component').then((m) => m.UserImportComponent),
+        canActivate: [permissionGuard],
+        data: { permission: 'user.manage' },
+        title: 'Import People',
       },
       {
         path: 'activity',

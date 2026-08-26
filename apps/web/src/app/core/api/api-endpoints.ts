@@ -39,6 +39,15 @@ export const Endpoints = {
     delete: (id: string) => `/users/${id}`,
     password: (id: string) => `/users/${id}/password`,
     skills: (id: string) => `/users/${id}/skills`,
+
+    /**
+     * Adding a lot of people at once.
+     *
+     * Nothing is kept on the server between the two: the client sends back
+     * the rows the preview showed it, and the commit revalidates them.
+     */
+    importPreview: '/users/import/preview',
+    import: '/users/import',
     /** A colleague's picture, served through the API rather than storage. */
     avatar: (id: string) => `/users/${id}/avatar`,
   },
