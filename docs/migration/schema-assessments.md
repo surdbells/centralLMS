@@ -8,6 +8,39 @@ extension gated by entitlement.
 This replaces ~50 legacy tables (`assessments` + `questions` + `proc_*`) with
 one core of 9 tables plus a 5-table proctoring extension.
 
+> ## Correction — 2026-08-26
+>
+> **Two claims in this document were wrong, and the build corrected them.**
+>
+> **1. The `proc_*` tables are empty.** This document called the proctored side
+> "the actively developed one" and planned the merge around `proc_*` as the
+> source of truth. That was a count of *files* (26 vs 14), not of rows. Every
+> one of the fourteen `proc_*` tables has zero rows: no proctored assessment
+> has ever been created. All the live data is in the generic tables — 19
+> assessments, 21 questions, 72 options, 14 attempts, 40 answers.
+>
+> The *schema* conclusion still holds: `proc_*` is the better shape, and the
+> unified core follows it. But the data migration is only from the generic
+> side, which makes it far smaller than "step 6 will bite" suggested.
+>
+> **2. The answer store is `question_answers`, a table this document never
+> mentioned.** It worried about reconciling `user_answers` against the
+> `assessment_attempts.answers` JSON blob. Neither is real:
+>
+> | Source | Rows |
+> | --- | --- |
+> | `user_answers` | 0 |
+> | `proc_attempt_answers` | 0 |
+> | `assessment_attempts.answers` (longtext) | NULL in 8 of 14, the string `'0'` in the other 6 |
+> | **`question_answers`** | **40** |
+>
+> There is nothing to reconcile. The blob has never held an answer.
+>
+> Both corrections came from counting rows in `legacy/db/central_lxp.sql`
+> before writing the migration, which is the check this document should have
+> made in the first place.
+
+
 ## Why this merge is safe
 
 The legacy schema already argues for it:
@@ -128,7 +161,7 @@ Proctoring is a paid module, so it needs a gate at three levels:
 - **API** — `GET /v1/assessments` returns the proctoring block only when the
   tenant is entitled, so the UI cannot offer a control that would fail on save.
 
-## Blocked on
+## Blocked on *(core landed 2026-08-26; this section applied to it)*
 
 The unified core references `tenants`, `users`, `courses` and `live_trainings`,
 none of which are migrated yet. Build order:

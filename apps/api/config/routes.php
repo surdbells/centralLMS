@@ -37,6 +37,21 @@ use Central\Api\Application\Action\Catalog\ShowModuleAction;
 use Central\Api\Application\Action\Catalog\UpdateCourseAction;
 use Central\Api\Application\Action\Catalog\UpdateLessonAction;
 use Central\Api\Application\Action\Catalog\UpdateModuleAction;
+use Central\Api\Application\Action\Assessment\DeleteBankAction;
+use Central\Api\Application\Action\Assessment\GradeAnswerAction;
+use Central\Api\Application\Action\Assessment\ListAssessmentsAction;
+use Central\Api\Application\Action\Assessment\ListBanksAction;
+use Central\Api\Application\Action\Assessment\ListQuestionsAction;
+use Central\Api\Application\Action\Assessment\ManageAssessmentQuestionsAction;
+use Central\Api\Application\Action\Assessment\SaveAnswerAction;
+use Central\Api\Application\Action\Assessment\SaveAssessmentAction;
+use Central\Api\Application\Action\Assessment\SaveBankAction;
+use Central\Api\Application\Action\Assessment\SaveQuestionAction;
+use Central\Api\Application\Action\Assessment\SetAssessmentStatusAction;
+use Central\Api\Application\Action\Assessment\ShowAssessmentAction;
+use Central\Api\Application\Action\Assessment\ShowBankAction;
+use Central\Api\Application\Action\Assessment\StartAttemptAction;
+use Central\Api\Application\Action\Assessment\SubmitAttemptAction;
 use Central\Api\Application\Action\Enrollment\AssignEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\CourseEnrollmentStatsAction;
 use Central\Api\Application\Action\Enrollment\EnrollmentHistoryAction;
@@ -188,6 +203,61 @@ return static function (App $app): void {
                 $l->get('/{id:' . $uuid . '}', ShowLookupAction::class)->setName('lookups.show');
                 $l->put('/{id:' . $uuid . '}', UpdateLookupAction::class)->setName('lookups.update');
                 $l->patch('/{id:' . $uuid . '}/status', SetLookupStatusAction::class)->setName('lookups.status');
+            });
+
+            // Reusable questions. There is no learner-facing route onto a
+            // bank at all: a learner meets a question only through an attempt,
+            // where the answer key is stripped.
+            $secure->group('/question-banks', function (RouteCollectorProxy $b) use ($uuid): void {
+                $b->get('', ListBanksAction::class)->setName('banks.list');
+                $b->post('', SaveBankAction::class)->setName('banks.create');
+                $b->get('/{id:' . $uuid . '}', ShowBankAction::class)->setName('banks.show');
+                $b->put('/{id:' . $uuid . '}', SaveBankAction::class)->setName('banks.update');
+                $b->delete('/{id:' . $uuid . '}', DeleteBankAction::class)->setName('banks.delete');
+
+                $b->group('/{bankId:' . $uuid . '}/questions', function (RouteCollectorProxy $q) use ($uuid): void {
+                    $q->get('', ListQuestionsAction::class)->setName('questions.list');
+                    $q->post('', SaveQuestionAction::class)->setName('questions.create');
+                    $q->put('/{id:' . $uuid . '}', SaveQuestionAction::class)->setName('questions.update');
+                });
+            });
+
+            $secure->group('/assessments', function (RouteCollectorProxy $a) use ($uuid): void {
+                $a->get('', ListAssessmentsAction::class)->setName('assessments.list');
+                $a->post('', SaveAssessmentAction::class)->setName('assessments.create');
+                $a->get('/{id:' . $uuid . '}', ShowAssessmentAction::class)->setName('assessments.show');
+                $a->put('/{id:' . $uuid . '}', SaveAssessmentAction::class)->setName('assessments.update');
+                $a->patch('/{id:' . $uuid . '}/status', SetAssessmentStatusAction::class)
+                    ->setName('assessments.status');
+
+                $a->group('/{id:' . $uuid . '}', function (RouteCollectorProxy $s) use ($uuid): void {
+                    // Before `/questions`, or `order` is read as a question id.
+                    $s->put('/questions/order', [ManageAssessmentQuestionsAction::class, 'reorder'])
+                        ->setName('assessments.questions.reorder');
+                    $s->post('/questions', [ManageAssessmentQuestionsAction::class, 'attach'])
+                        ->setName('assessments.questions.attach');
+                    $s->delete('/questions/{questionId:' . $uuid . '}', [
+                        ManageAssessmentQuestionsAction::class, 'detach',
+                    ])->setName('assessments.questions.detach');
+
+                    // Starting a sitting. Needs only `assessment.take`.
+                    $s->post('/attempts', StartAttemptAction::class)->setName('attempts.start');
+
+                    // The marking queue. Needs `assessment.grade`.
+                    $s->get('/attempts', [GradeAnswerAction::class, 'queue'])->setName('attempts.queue');
+                });
+            });
+
+            $secure->group('/attempts/{id:' . $uuid . '}', function (RouteCollectorProxy $t) use ($uuid): void {
+                $t->get('', [GradeAnswerAction::class, 'show'])->setName('attempts.show');
+                $t->post('/submit', SubmitAttemptAction::class)->setName('attempts.submit');
+
+                // Grading is declared before the plain answer route so
+                // `/grade` is not read as part of the question id.
+                $t->put('/answers/{questionId:' . $uuid . '}/grade', GradeAnswerAction::class)
+                    ->setName('attempts.grade');
+                $t->put('/answers/{questionId:' . $uuid . '}', SaveAnswerAction::class)
+                    ->setName('attempts.answer');
             });
 
             $secure->group('/ilt', function (RouteCollectorProxy $ilt): void {

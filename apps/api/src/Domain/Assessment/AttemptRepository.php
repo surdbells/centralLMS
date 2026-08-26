@@ -1,0 +1,104 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Central\Api\Domain\Assessment;
+
+/**
+ * Storage for attempts and the answers within them.
+ */
+interface AttemptRepository
+{
+    /**
+     * Every attempt this learner has made at this assessment, newest first.
+     *
+     * @return list<Attempt>
+     */
+    public function forLearner(string $tenantId, string $assessmentId, string $userId): array;
+
+    /**
+     * Attempts across learners, for the marking queue and reporting.
+     *
+     * @return array{items: list<Attempt>, total: int}
+     */
+    public function forAssessment(
+        string $tenantId,
+        string $assessmentId,
+        int $page,
+        int $perPage,
+        ?AttemptStatus $status = null,
+    ): array;
+
+    public function find(string $tenantId, string $id): ?Attempt;
+
+    /**
+     * The learner's open sitting, if they have one.
+     */
+    public function findOpen(string $tenantId, string $assessmentId, string $userId): ?Attempt;
+
+    /**
+     * Opens a new attempt.
+     *
+     * The attempt number is chosen inside the same statement that inserts the
+     * row, so two simultaneous starts cannot both become attempt 3 — the
+     * unique index would reject the second, which is the point.
+     */
+    public function start(
+        string $tenantId,
+        string $assessmentId,
+        string $userId,
+        ?\DateTimeImmutable $expiresAt,
+    ): Attempt;
+
+    /**
+     * Saves one answer, replacing any previous answer to that question.
+     *
+     * @param array<string, mixed> $answer
+     */
+    public function saveAnswer(
+        string $tenantId,
+        Attempt $attempt,
+        string $questionId,
+        array $answer,
+        GradeResult $grade,
+        int $secondsSpent,
+    ): void;
+
+    /**
+     * Answers so far, keyed by question id.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function answersFor(string $tenantId, string $attemptId): array;
+
+    /**
+     * Closes an attempt and records its result.
+     *
+     * The totals are computed from `attempt_answers` inside the transaction
+     * rather than passed in, so a submitted score is always the sum of the
+     * answers actually stored.
+     *
+     * @param bool $autoSubmitted true when the clock ran out rather than the learner submitting
+     */
+    public function submit(string $tenantId, Attempt $attempt, Assessment $assessment, bool $autoSubmitted): Attempt;
+
+    /**
+     * Records a marker's decision on one answer and re-totals the attempt.
+     *
+     * @return array{attempt: Attempt, remaining: int} how many answers still await marking
+     */
+    public function gradeAnswer(
+        string $tenantId,
+        Attempt $attempt,
+        Assessment $assessment,
+        string $questionId,
+        float $pointsEarned,
+        ?string $feedback,
+        string $markerId,
+    ): array;
+
+    /**
+     * How many answers on this attempt still need a human.
+     */
+    public function ungradedCount(string $tenantId, string $attemptId): int;
+}

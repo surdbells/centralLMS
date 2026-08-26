@@ -32,6 +32,8 @@ enum Permission: string
     case IltAttendanceMark = 'ilt.attendance.mark';
 
     // --- assessment -------------------------------------------------------
+    // Sitting one. Held by learners; authoring and marking are not.
+    case AssessmentTake    = 'assessment.take';
     case AssessmentManage  = 'assessment.manage';
     case AssessmentGrade   = 'assessment.grade';
     case CertificateIssue  = 'certificate.issue';

@@ -62,6 +62,7 @@ enum SystemRole: string
                 Permission::LookupView,
                 Permission::CourseView,
                 Permission::EnrollmentSelf,
+                Permission::AssessmentTake,
                 Permission::ProgressView,
                 Permission::IltSessionView,
             ],

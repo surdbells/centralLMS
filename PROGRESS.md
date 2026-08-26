@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue and enrolments complete. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue, enrolments and the assessment core complete. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — assessments are next |
-| **API quality gate** | ✅ 239 unit + 82 integration tests / 837 assertions · PHPStan level 8 clean · 0 style errors · 154 live checks |
+| **Blocking the next slice** | Nothing — the proctoring extension, or ILT |
+| **API quality gate** | ✅ 283 unit + 106 integration tests / 1,033 assertions · PHPStan level 8 clean · 0 style errors · 221 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -97,7 +97,7 @@ foundations above it.
 | 4 | dictionary | ✅ | **36** | 52 legacy PHP files → **6 routes**; tenant isolation fixed |
 | 5 | courses + modules + lessons | ✅ | **19** | 6 course + 13 structure routes; 20 duplicate legacy files → 10 |
 | 6 | enrolments + progress | ✅ | **9** | Bulk assign by department/team/branch; progress derived in-transaction |
-| 7 | assessments core | ⬜ | 3 | Design done — [`schema-assessments.md`](docs/migration/schema-assessments.md) |
+| 7 | assessments core | ✅ | **20** | Banks, questions, attempts, marking; pure `Grader` |
 | 8 | proctoring extension | ⬜ | 1 | Advanced module, entitlement-gated |
 | 9 | ILT | 🟡 | 1 | Provider layer ✅; scheduling + attendance wiring ⬜ |
 | 10 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
@@ -203,6 +203,98 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-26 — Assessments (core)
+
+Twenty routes: reusable question banks, assessments assembled from them, the
+attempt lifecycle, and marking. Seven tables replace the parts of ~50 legacy
+ones that carry data.
+
+**The reuse win.** Legacy `questions.assessment_id` bound a question to one
+assessment, so the same question was retyped for every quiz that wanted it.
+Questions now live in banks; an assessment attaches them, optionally with a
+`points_override`. The same question is worth 1 in a practice quiz and 10 in
+the final without being copied.
+
+**Two corrections to
+[`schema-assessments.md`](docs/migration/schema-assessments.md)**, both found
+by counting rows before writing the migration:
+
+- **Every `proc_*` table is empty.** That document called the proctored side
+  "the actively developed one" — a count of files (26 vs 14), not of rows. No
+  proctored assessment has ever been created. The `proc_*` *schema* is still
+  the better shape and the core follows it, but the data migration is only
+  from the generic tables.
+- **The answer store is `question_answers` (40 rows)**, which the document
+  never mentioned. It planned to reconcile `user_answers` (0 rows) against
+  `assessment_attempts.answers` — a longtext column that is NULL in 8 of 14
+  rows and the string `'0'` in the other 6. There is nothing to reconcile.
+
+**Grading is a pure function.** `Domain\Assessment\Grader` takes a question and
+an answer and returns points — no database, no clock, no randomness. Every
+rule is exercised in isolation, because grading is where being quietly wrong
+costs the most:
+
+- Selecting two options on a single-choice question earns nothing. It is not a
+  partial answer; it is not an answer to the question asked.
+- Multiple-choice credit is right-answers-found minus wrong-answers-chosen,
+  floored at zero. Without the penalty, ticking every box scores full marks on
+  every multiple-answer question ever written.
+- Ordering and matching give credit per item in place. Fill-in-the-blanks
+  marks each blank separately, and two options sharing a `sortOrder` are two
+  acceptable answers to the same blank.
+- Short answers match on case- and whitespace-insensitive equality and nothing
+  cleverer. The legacy code used `similar_text()`: a near-miss marked wrong is
+  a complaint, a wrong answer marked right is a certificate issued in error.
+- Essays, file uploads and hotspots go to a human rather than being marked
+  zero.
+
+**Fixed while writing it — a floating-point bug in tolerance checks.** An
+answer of 3.13 to "3.14 ± 0.01" produces a difference of 0.010000000000000231
+and was marked wrong for being exactly right. Now compared with an epsilon
+scaled to the magnitudes involved. Caught by a test written before the code.
+
+**Duplication removed, from evidence.** `total_questions` disagrees with
+reality in **16 of the 19** live assessments — rows claim 10, 20 or 25
+questions when only 21 questions exist in the whole database. It, along with
+`total_points`, `total_attempts`, `total_completions`, `avg_score` and
+`pass_rate`, is now a subquery. `has_time_limit` is gone (`NULL` already meant
+no limit, as its own comment said), as are the dead `answers` blob and
+`attempt_number`, which was NULL in all 14 rows.
+
+**Kept deliberately: `attempts.passed`.** It looks like the enrolments
+`is_completed` mistake and is not. `is_completed` duplicated `status` — both
+described the same instant, so recomputing always agreed. `passed` depends on
+the pass mark, which an author can change afterwards; recomputing would turn
+last year's pass into a fail. It is stamped once, at grading, and a live check
+proves an earlier attempt survives the bar being raised to 100.
+
+**Access control.** Added `Permission::AssessmentTake`, held by learners, so
+sitting an assessment is distinct from authoring one. The paper a learner
+receives is built by `toArrayForLearner()`, which omits `isCorrect`,
+`explanation`, `modelAnswer` and `numericAnswer` — two serialisers rather than
+one, because a single one is how the answer key ends up in the browser of the
+person being tested. A live check asserts the key is absent.
+
+**Verification**
+
+- 33 unit tests over the grader alone, including that every enum case is
+  handled and that no type can earn more than it is worth.
+- 23 integration tests against real PostgreSQL: submission totals from stored
+  answers, essays holding an attempt at `grading` with no score, marking the
+  last answer totalling the attempt, and points-based versus percentage passes.
+- 67 live checks: the full author-to-learner-to-marker path, every validation
+  refusal, attempt limits, and every cross-tenant call.
+- 14 constraint probes run directly against the database.
+
+Gate: 389 tests / 1,033 assertions, PHPStan level 8, no style errors.
+
+**Not built:** `assessment_sections` and `assessment_random_rules` — both
+empty in the legacy data with no generic equivalent, so there is nothing to
+port and no caller to serve. `question_selection` is constrained to `manual`
+until the rules table exists, rather than accepting a value the engine cannot
+honour. The proctoring extension is next; `proctoring_level` is already on
+`assessments`, defaulting to `none`.
 
 ### 2026-08-26 — Enrolments and progress
 

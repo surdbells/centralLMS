@@ -20,13 +20,20 @@ use Central\Api\Application\Middleware\RateLimitMiddleware;
 use Central\Api\Domain\Authz\RoleRepository;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
+use Central\Api\Domain\Assessment\AssessmentRepository;
+use Central\Api\Domain\Assessment\AttemptRepository;
+use Central\Api\Domain\Assessment\Grader;
+use Central\Api\Domain\Assessment\QuestionRepository;
 use Central\Api\Domain\Catalog\CourseRepository;
 use Central\Api\Domain\Catalog\LessonRepository;
 use Central\Api\Domain\Enrollment\EnrollmentRepository;
 use Central\Api\Domain\Enrollment\LessonProgressRepository;
 use Central\Api\Domain\Catalog\ModuleRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
+use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
+use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
+use Central\Api\Infrastructure\Persistence\DbalQuestionRepository;
 use Central\Api\Infrastructure\Persistence\DbalEnrollmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonProgressRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonRepository;
@@ -309,6 +316,23 @@ return [
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
+    ),
+
+    Grader::class => factory(static fn (): Grader => new Grader()),
+
+    QuestionRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalQuestionRepository($c->get(Connection::class)),
+    ),
+
+    AssessmentRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalAssessmentRepository(
+            $c->get(Connection::class),
+            $c->get(QuestionRepository::class),
+        ),
+    ),
+
+    AttemptRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalAttemptRepository($c->get(Connection::class)),
     ),
 
     EnrollmentRepository::class => factory(
