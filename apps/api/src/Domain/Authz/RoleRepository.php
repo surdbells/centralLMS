@@ -42,6 +42,18 @@ interface RoleRepository
     public function find(?string $tenantId, string $identifier): ?Role;
 
     /**
+     * How many people in this tenant hold each role, keyed by role id.
+     *
+     * Counted on demand rather than kept as a column on `roles`: the legacy
+     * stored `user_count` there and never decremented it, so its role list
+     * claimed holders for roles nobody had. A role with nobody in it is
+     * simply absent from the map.
+     *
+     * @return array<string, int>
+     */
+    public function holderCounts(string $tenantId): array;
+
+    /**
      * @throws \RuntimeException if a built-in role would be modified
      */
     public function save(Role $role): void;

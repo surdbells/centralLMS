@@ -78,6 +78,7 @@ use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
+use Central\Api\Application\Action\People\ManageRolesAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
 use Central\Api\Application\Action\Notification\InboxAction;
 use Central\Api\Application\Action\Notification\PreferencesAction;
@@ -573,6 +574,28 @@ return static function (App $app): void {
                 // for the current password in the second case.
                 $u->post('/{id:' . $uuid . '}/password', [ManagePeopleAction::class, 'setPassword'])
                     ->setName('users.password');
+            });
+
+            // --- roles ----------------------------------------------------
+            //
+            // Assigning a role is not here: a person's roles are set as a set
+            // by `PUT /users/{id}`. The legacy had `assign-role` and
+            // `remove-role` as well, and the three disagreed about whether
+            // somebody could be left with none.
+            //
+            // `permissions` is declared before `/{id}` so it is not read as a
+            // role id.
+            $secure->group('/roles', function (RouteCollectorProxy $r) use ($uuid): void {
+                $r->get('', [ManageRolesAction::class, 'list'])->setName('roles.list');
+                $r->post('', [ManageRolesAction::class, 'create'])->setName('roles.create');
+
+                $r->get('/permissions', [ManageRolesAction::class, 'permissions'])
+                    ->setName('roles.permissions');
+
+                $r->get('/{id:' . $uuid . '}', [ManageRolesAction::class, 'show'])->setName('roles.show');
+                $r->put('/{id:' . $uuid . '}', [ManageRolesAction::class, 'update'])->setName('roles.update');
+                $r->delete('/{id:' . $uuid . '}', [ManageRolesAction::class, 'delete'])
+                    ->setName('roles.delete');
             });
             // --- reporting ----------------------------------------------
             //

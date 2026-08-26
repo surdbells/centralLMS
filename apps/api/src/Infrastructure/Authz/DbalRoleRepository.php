@@ -92,6 +92,29 @@ final class DbalRoleRepository implements RoleRepository
         return array_map(fn (array $row): Role => $this->hydrate($row), $rows);
     }
 
+    public function holderCounts(string $tenantId): array
+    {
+        // Scoped through `users` rather than `user_roles` alone: a built-in
+        // role is shared by every tenant, so counting its rows unscoped would
+        // report another organisation's headcount.
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT ur.role_id, COUNT(*) AS holders
+               FROM user_roles ur
+               JOIN users u ON u.id = ur.user_id
+              WHERE u.tenant_id = :tenant AND u.deleted_at IS NULL
+              GROUP BY ur.role_id',
+            ['tenant' => $tenantId],
+        );
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $counts[(string) $row['role_id']] = (int) $row['holders'];
+        }
+
+        return $counts;
+    }
+
     public function save(Role $role): void
     {
         if ($role->isSystem) {

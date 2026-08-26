@@ -54,6 +54,15 @@ final class SystemRoleRepository implements RoleRepository
         return $role !== null && $role->isAvailableTo($tenantId) ? $role : null;
     }
 
+    /**
+     * Nobody holds anything here: this implementation has no users table to
+     * count against.
+     */
+    public function holderCounts(string $tenantId): array
+    {
+        return [];
+    }
+
     public function save(Role $role): void
     {
         throw new \RuntimeException(

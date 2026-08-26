@@ -224,6 +224,11 @@ final class TokenAuthenticatorTest extends TestCase
                 return $role !== null && $role->isAvailableTo($tenantId) ? $role : null;
             }
 
+            public function holderCounts(string $tenantId): array
+            {
+                return [];
+            }
+
             public function save(Role $role): void
             {
                 $this->roles[$role->id] = $role;

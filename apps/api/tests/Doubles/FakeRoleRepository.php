@@ -36,6 +36,11 @@ final class FakeRoleRepository implements RoleRepository
         return SystemRole::tryFrom($identifier)?->toRole();
     }
 
+    public function holderCounts(string $tenantId): array
+    {
+        return [];
+    }
+
     public function save(Role $role): void
     {
     }

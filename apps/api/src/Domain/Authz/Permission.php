@@ -88,6 +88,74 @@ enum Permission: string
     case AuditLogView = 'audit.view';
 
     /**
+     * The module this permission belongs to, taken from its own name.
+     *
+     * Derived rather than listed: a second list would be one more thing to
+     * forget when a case is added.
+     */
+    public function group(): string
+    {
+        return explode(".", $this->value)[0];
+    }
+
+    /**
+     * What ticking this box lets somebody do, in a sentence.
+     *
+     * An exhaustive match with no default, so adding a case without saying
+     * what it means is a static analysis failure rather than a blank row in
+     * the role editor.
+     */
+    public function describe(): string
+    {
+        return match ($this) {
+            self::CourseView    => "See the course catalogue.",
+            self::CourseManage  => "Create and edit courses, modules and lessons.",
+            self::CoursePublish => "Publish a course, making it visible to learners.",
+
+            self::EnrollmentSelf   => "Enrol themselves on courses that allow it.",
+            self::EnrollmentManage => "Enrol and unenrol other people.",
+            self::ProgressView     => "See other people's progress.",
+            self::ProgressManage   => "Change other people's progress and completion.",
+
+            self::IltSessionView    => "See scheduled classroom and virtual sessions.",
+            self::IltSessionManage  => "Schedule, edit and cancel sessions.",
+            self::IltAttendanceMark => "Mark who attended a session.",
+
+            self::AssessmentTake   => "Sit assessments.",
+            self::AssessmentManage => "Author assessments and question banks.",
+            self::AssessmentGrade  => "Mark submitted answers.",
+            self::CertificateIssue => "Issue and revoke certificates.",
+
+            self::ProctoringConfigure => "Configure proctoring, including webcam and screen capture.",
+            self::ProctoringReview    => "Review proctoring recordings and violations.",
+
+            self::SettingsManage => "Change this organisation's settings and branding.",
+
+            self::MediaView   => "View and play files in the media library.",
+            self::MediaManage => "Upload, replace and delete media.",
+
+            self::LookupView   => "See reference data: branches, departments, teams, skills.",
+            self::LookupManage => "Edit reference data.",
+
+            self::UserView   => "See the people in this organisation.",
+            self::UserManage => "Create, edit, suspend and delete people.",
+            self::RoleManage => "Create roles and decide what they may do.",
+
+            self::TenantView       => "See tenant records in the back office.",
+            self::TenantManage     => "Provision, rename and suspend tenants.",
+            self::BillingManage    => "Manage subscriptions and invoices.",
+            self::IntegrationManage => "Configure third-party integrations.",
+
+            self::NotificationSend  => "Send announcements to other people.",
+            self::NotificationAudit => "Read the notification delivery log.",
+
+            self::ReportView   => "Run reports.",
+            self::ReportExport => "Export report results.",
+            self::AuditLogView => "Read the audit trail.",
+        };
+    }
+
+    /**
      * @return list<string>
      */
     public static function values(): array
