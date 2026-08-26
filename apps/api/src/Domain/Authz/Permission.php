@@ -46,6 +46,14 @@ enum Permission: string
     case ProctoringConfigure = 'proctoring.configure';
     case ProctoringReview    = 'proctoring.review';
 
+    // --- organisation settings --------------------------------------------
+    // Distinct from `tenant.manage`, which is the platform's control over a
+    // tenant record — provisioning it, renaming it, suspending it. This one is
+    // an organisation configuring itself: its colours, what a lesson is worth,
+    // what a password must look like. An org admin holds it; a tenant admin
+    // holds it by inheritance.
+    case SettingsManage = 'settings.manage';
+
     // --- media library ----------------------------------------------------
     // Viewing is separate from managing because a learner has to be able to
     // play the video a lesson embeds, and must not be able to replace it.

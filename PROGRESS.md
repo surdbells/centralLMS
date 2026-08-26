@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media, both dashboards and notes are built. Tenant settings, skills, learning paths and messaging still to come |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media, both dashboards, notes and tenant settings are built. Skills, learning paths and messaging still to come |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — four API modules remain before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 559 unit + 383 integration tests / 3,082 assertions · PHPStan level 8 clean · 0 style errors · 738 live checks |
+| **Blocking the next slice** | Nothing — three API modules remain before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 586 unit + 396 integration tests / 3,378 assertions · PHPStan level 8 clean · 0 style errors · 785 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -24,6 +24,7 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 | 0 | 🔴 **Authentication is bypassed on the entire legacy API.** `Database::verify_user()` hardcodes `return 100`; every caller checks `!= 100`, so the check never fails. 248 live files. Also SQL-injectable on `user_id`. → **Fix written and tested: [`infra/legacy-bridge/`](infra/legacy-bridge/README.md). Awaiting deployment to the live host.** | — | 🟡 ready to deploy |
 | 0b | 🔴 **Cross-tenant data leak in the live reference-data endpoints.** `dictionary/*/list.php` runs `SELECT * FROM branches` with no tenant filter, and `Branches::update()` / `setStatus()` run `WHERE branch_id = ?` with no tenant column — so any caller can read every organisation's structure and edit or deactivate another's records by id. Affects branches, departments, job titles, levels, teams. Only the `active` dropdown query is scoped. Fixed in the new API; **the live PHP still has it.** | — | ⬜ |
 | 0c | 🔴 **The reporting API trusts the caller for which organisation to report on.** `api/reports.php` reads `tenant_id` straight from the request body and passes it to `setTenant()`; nothing ties it to the authenticated user. All 190 report queries scope correctly — to the tenant they were handed. So one valid user can read another organisation's entire reporting surface: every learner's name, email, scores and completion, across 84 reports. Action 0 does not close this — it restores authentication, and this needs the tenant to come from the session instead. Separately, the `audience` field on each report is a display filter on the catalogue listing and is **never checked when a report runs**, so any authenticated user can run the executive and audit reports. Both are fixed in the new API. | — | ⬜ |
+| 0d | 🟠 **One organisation can rewrite another's settings.** `user/tenant-settings.php` reads `tenant_id` from the request body, hands it to `setTenant()`, and checks only `is_admin()` — whether the caller administers *something*, not whether they administer the organisation they just named. The endpoint writes: `update-setting`, `update-tenant-info` and `import` are all reachable this way, so any tenant administrator can repaint another organisation's branding, rename it, or replace its whole settings file. The same shape as 0c, on the write side. Fixed in the new API; **the live PHP still has it.** | — | ⬜ |
 | 1 | 🔴 **Delete `webhooks/noon-payments.php` from the live backend.** A payment webhook we do not use and never will — removed from this repo. If it is still deployed it is a reachable endpoint that writes to `orders` and holds a second database's credentials, so deleting the file is the fix; rotating its secret is not. | — | ⬜ |
 | 2 | Rotate **three** database passwords found hardcoded in legacy source: `central_lxp` (`config/Database.php`), `sql_ifitness_cen` (`codebase/public/config.php`), and `sql_3bayti_com` — that last one came from the payment webhook in action 1. Deleting the file removes our copy, not the credential: rotate it too. | — | ✅ done 2026-08-26 |
 | 3 | Rotate the Zoom API key — it appears in `environment.ts`, `environment.development.ts` **and** hardcoded as a fallback in `video-integration.service.ts` | — | ✅ done 2026-08-26 |
@@ -116,7 +117,7 @@ foundations above it.
 | 17 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
 | 18 | messaging | ⬜ | 1 | 9 tables, 9 messages |
 | 19 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
-| 20 | tenant settings | ⬜ | — | 16 rows, one key/value table |
+| 20 | tenant settings | ✅ | **6** | 4 categories of 8 kept — the other four were read by nothing |
 
 ---
 
@@ -213,6 +214,66 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-29 — Tenant settings
+
+Six routes, four categories of the legacy's eight, and the first time any of
+these values does anything.
+
+**Only branding was ever written, and nothing was ever read.**
+`TenantSettings.php` declared eight categories and around seventy keys. The
+table holds sixteen rows: eight branding keys, two tenants, saved once in
+January and never touched. Of the rest, `password_min_length` and its four
+neighbours are the clearest case — declared, offered on a settings screen, and
+consulted by no line of backend code. `change_password.php` accepts a single
+character.
+
+**A setting that nothing reads is a form field that lies to whoever fills it
+in.** So four categories are not carried, and the catalogue says why for each:
+`learning` is mostly per-assessment settings that belong where the assessment
+is authored, plus three behaviours that do not exist yet; `storage` is
+superseded by the per-kind limits in `MediaKind` and by `storage_limit_mb`,
+which the media module already enforces; `notifications` would duplicate the
+per-person preferences already kept, and needs the resolver to take a second
+layer first; `integrations` configures SSO and webhooks that are not built.
+Every remaining key carries a line naming what consults it, and a test asserts
+that line is not empty.
+
+**The four that stayed now do something.** Branding and the general display
+settings are read by the web app. The gamification values are read by the
+`Awarder`: `points_per_lesson` and its neighbours finally decide what an award
+is worth, and turning gamification off stops new points without touching
+anything already earned. The security keys drive a new `PasswordPolicy`, which
+replaces the rule that was hardcoded in `PersonInput::checkPassword` — the
+default is exactly what that rule was, so nothing changed for a tenant that
+configures nothing.
+
+Two gamification keys were dropped for the same honesty rule:
+`points_per_session` and `points_per_streak` have nothing granting them.
+Attendance would need the ILT register to call the `Awarder`; a streak needs
+something to notice one.
+
+**Lesson completions now award points.** `lesson_completion` is one of the
+eight spellings in the legacy's 122 point events, and this port had defined the
+reason with nothing granting it — found by writing a setting for it and having
+nothing to point at.
+
+**One organisation could rewrite another's settings.** `user/tenant-settings.php`
+reads `tenant_id` from the body and checks only `is_admin()`, which asks whether
+the caller administers *something*. It writes. Recorded as action 0d. Here the
+tenant comes from the token, and a body key that is not a declared setting is a
+422 rather than a row.
+
+A new permission, `settings.manage`, sits with the org admin. `tenant.manage`
+stays what it is: the platform's control over a tenant record, not an
+organisation configuring its own colours.
+
+`/v1/settings/public` is deliberately unauthenticated and deliberately narrow —
+the sign-in page needs a logo and the password rules before there is a token,
+and it returns those two things and nothing else.
+
+- 27 unit + 13 integration tests; **47 live checks**
+- 982 tests / 3,378 assertions · PHPStan level 8 clean · 0 style errors
 
 ### 2026-08-29 — Notes
 

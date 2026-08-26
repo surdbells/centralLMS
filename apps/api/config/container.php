@@ -69,6 +69,9 @@ use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
 use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Note\NoteRepository;
+use Central\Api\Domain\Settings\SettingCatalogue;
+use Central\Api\Domain\Settings\SettingsRepository;
+use Central\Api\Infrastructure\Persistence\DbalSettingsRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
@@ -563,6 +566,7 @@ return [
 
     Awarder::class => factory(static fn (ContainerInterface $c) => new Awarder(
         $c->get(GamificationRepository::class),
+        $c->get(SettingsRepository::class),
         $c->get(LoggerInterface::class),
     )),
     PersonRepository::class => factory(
@@ -576,6 +580,13 @@ return [
     NoteRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalNoteRepository($c->get(Connection::class)),
     ),
+
+    SettingCatalogue::class => autowire(),
+
+    SettingsRepository::class => factory(static fn (ContainerInterface $c) => new DbalSettingsRepository(
+        $c->get(Connection::class),
+        $c->get(SettingCatalogue::class),
+    )),
 
     DashboardRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalDashboardRepository($c->get(Connection::class)),

@@ -84,6 +84,21 @@ final class RecordProgressAction extends EnrollmentAction
 
         $result = $this->progress->record($tenantId, $enrollment, $lesson->id, $report);
 
+        // Finishing a lesson is worth something too. The legacy granted these
+        // — `lesson_completion` is one of the eight spellings in its 122 point
+        // events — and this port had left the reason defined with nothing
+        // granting it. Idempotent on `(user, reason, subject)`, so replaying a
+        // lesson cannot pay twice.
+        if ($result['progress']->status->isComplete()) {
+            $this->awarder->award(
+                $tenantId,
+                $enrollment->userId,
+                PointReason::LessonCompleted,
+                $lesson->id,
+                $lesson->title,
+            );
+        }
+
         // On the transition only. `record()` returns the recalculated
         // enrolment, so comparing it with the one read before the write is
         // what makes this fire once rather than on every lesson replayed

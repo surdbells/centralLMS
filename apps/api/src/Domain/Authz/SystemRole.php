@@ -99,6 +99,10 @@ enum SystemRole: string
                 // permissions that see across people rather than with the
                 // one that merely sends.
                 Permission::NotificationAudit,
+                // Configuring the organisation — colours, points, password
+                // rules — is an org admin's job. `tenant.manage` above is the
+                // platform's control over the tenant record and stays there.
+                Permission::SettingsManage,
             ],
             self::TenantAdmin => [
                 Permission::RoleManage,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Domain\People;
 
 use Central\Api\Domain\Identity\UserStatus;
+use Central\Api\Domain\Settings\PasswordPolicy;
 
 /**
  * Turns a request body into a {@see Person}, or into a list of reasons why not.
@@ -118,27 +119,29 @@ final readonly class PersonInput
      *
      * @param array<string, string> $violations
      */
-    public static function checkPassword(string $password, array &$violations, string $field = 'password'): void
-    {
-        if (mb_strlen($password) < 12) {
-            // Length first: it does more for strength than any character class
-            // rule, and a 12-character passphrase is easier to remember than
-            // eight characters of punctuation.
-            $violations[$field] = 'Use at least 12 characters.';
-
-            return;
-        }
-
+    public static function checkPassword(
+        string $password,
+        array &$violations,
+        string $field = 'password',
+        ?PasswordPolicy $policy = null,
+    ): void {
         if (mb_strlen($password) > 4096) {
-            // An unbounded password is a way to make the hashing function burn
+            // Not part of the policy, and not a tenant's to relax: an
+            // unbounded password is a way to make the hashing function burn
             // CPU on request.
             $violations[$field] = 'That is too long.';
 
             return;
         }
 
-        if (preg_match('/[a-zA-Z]/', $password) !== 1 || preg_match('/\d/', $password) !== 1) {
-            $violations[$field] = 'Include at least one letter and one number.';
+        // The tenant's rules where there are any, and otherwise the same rule
+        // this method enforced before they became configurable.
+        $reasons = ($policy ?? PasswordPolicy::default())->reasonsToRefuse($password);
+
+        if ($reasons !== []) {
+            // All of them at once. Told one at a time, somebody submits three
+            // times and gives up on the second.
+            $violations[$field] = implode(' ', $reasons);
         }
     }
 

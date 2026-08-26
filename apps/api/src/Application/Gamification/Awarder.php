@@ -8,6 +8,8 @@ use Central\Api\Domain\Gamification\Badge;
 use Central\Api\Domain\Gamification\GamificationRepository;
 use Central\Api\Domain\Gamification\PointEvent;
 use Central\Api\Domain\Gamification\PointReason;
+use Central\Api\Domain\Settings\SettingKey;
+use Central\Api\Domain\Settings\SettingsRepository;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -31,6 +33,7 @@ final readonly class Awarder
 {
     public function __construct(
         private GamificationRepository $gamification,
+        private SettingsRepository $settings,
         private LoggerInterface $logger,
     ) {
     }
@@ -49,8 +52,29 @@ final readonly class Awarder
         ?string $description = null,
     ): ?PointEvent {
         try {
+            $settings = $this->settings->forTenant($tenantId);
+
+            if (!$settings->bool(SettingKey::GamificationEnabled)) {
+                // Off means off from here on. Nothing already earned is
+                // touched — a switch that deleted somebody's points would be
+                // a very surprising switch.
+                return null;
+            }
+
             return $this->gamification->award(
-                PointEvent::earn($tenantId, $userId, $reason, $subjectId, description: $description),
+                PointEvent::earn(
+                    $tenantId,
+                    $userId,
+                    $reason,
+                    $subjectId,
+                    // What the tenant says a lesson is worth, falling back to
+                    // the reason's own figure. The settings screen finally has
+                    // something behind it: `points_per_lesson` and its four
+                    // neighbours were declared in the legacy and read by
+                    // nothing.
+                    points: $settings->pointsFor($reason),
+                    description: $description,
+                ),
             );
         } catch (\Throwable $e) {
             $this->logger->error('Could not award points', [
@@ -74,6 +98,10 @@ final readonly class Awarder
     public function checkCourseBadges(string $tenantId, string $userId, string $courseId): array
     {
         try {
+            if (!$this->settings->forTenant($tenantId)->bool(SettingKey::BadgesEnabled)) {
+                return [];
+            }
+
             $awarded = [];
 
             foreach ($this->gamification->badges($tenantId, 1, 200)['items'] as $badge) {

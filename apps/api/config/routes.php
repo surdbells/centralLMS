@@ -72,6 +72,7 @@ use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Note\MyNotesAction;
+use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
@@ -124,6 +125,14 @@ return static function (App $app): void {
 
     $app->group('/v1', function (RouteCollectorProxy $v1) use ($uuid): void {
         // --- public -------------------------------------------------------
+        //
+        // Branding and the password rules, for a page nobody has signed in to
+        // yet. Unauthenticated by necessity — the sign-in form needs a logo
+        // and a colour before there is a token — and therefore deliberately
+        // narrow: it returns those two things and nothing else.
+        $v1->get('/settings/public', [TenantSettingsAction::class, 'publicSettings'])
+            ->setName('settings.public');
+
         $v1->group('/auth', function (RouteCollectorProxy $auth): void {
             $auth->post('/login', LoginAction::class)->setName('auth.login');
 
@@ -312,6 +321,23 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- tenant settings ------------------------------------------
+            //
+            // The tenant comes from the token. `user/tenant-settings.php` read
+            // it from the request body and checked only that the caller
+            // administers *something* — see action 0d.
+            $secure->group('/settings', function (RouteCollectorProxy $s): void {
+                $s->get('', [TenantSettingsAction::class, 'show'])->setName('settings.show');
+                $s->put('', [TenantSettingsAction::class, 'update'])->setName('settings.update');
+
+                $s->get('/catalogue', [TenantSettingsAction::class, 'catalogue'])
+                    ->setName('settings.catalogue');
+                $s->get('/history', [TenantSettingsAction::class, 'history'])
+                    ->setName('settings.history');
+                $s->post('/{category}/reset', [TenantSettingsAction::class, 'reset'])
+                    ->setName('settings.reset');
+            });
+
             // --- notes ----------------------------------------------------
             //
             // Under `/me`, because a note is always the caller's own. There is

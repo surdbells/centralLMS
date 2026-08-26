@@ -16,6 +16,8 @@ use Central\Api\Domain\People\Person;
 use Central\Api\Domain\People\PersonFilters;
 use Central\Api\Domain\People\PersonInput;
 use Central\Api\Domain\People\PersonRepository;
+use Central\Api\Domain\Settings\PasswordPolicy;
+use Central\Api\Domain\Settings\SettingsRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -49,8 +51,22 @@ final class ManagePeopleAction extends PeopleAction
         PersonRepository $people,
         private readonly RoleRepository $roles,
         private readonly PasswordHasher $hasher,
+        private readonly SettingsRepository $settings,
     ) {
         parent::__construct($people);
+    }
+
+    /**
+     * The password rules this organisation has set.
+     *
+     * The legacy declared five `password_*` settings and enforced none of
+     * them: nothing in the backend read `password_min_length`, and
+     * `change_password.php` accepted a single character. This is the first
+     * place any of them does anything.
+     */
+    private function policyFor(ServerRequestInterface $request): PasswordPolicy
+    {
+        return PasswordPolicy::from($this->settings->forTenant($this->tenantId($request)));
     }
 
     public function list(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -168,7 +184,7 @@ final class ManagePeopleAction extends PeopleAction
         $password = isset($body['password']) ? (string) $body['password'] : null;
 
         if ($password !== null && $password !== '') {
-            PersonInput::checkPassword($password, $violations);
+            PersonInput::checkPassword($password, $violations, policy: $this->policyFor($request));
         }
 
         if ($violations !== []) {
@@ -352,7 +368,7 @@ final class ManagePeopleAction extends PeopleAction
         $password   = (string) ($body['password'] ?? '');
         $violations = [];
 
-        PersonInput::checkPassword($password, $violations);
+        PersonInput::checkPassword($password, $violations, policy: $this->policyFor($request));
 
         if ($violations !== []) {
             throw ValidationFailed::fromArray($violations);
