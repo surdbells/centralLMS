@@ -14,8 +14,8 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 | **Current focus** | Frontend cutover. **The backend is complete** — every module the legacy had, ported and tested |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
 | **Blocking the next slice** | Nothing. The frontend can now drop the legacy backend entirely |
-| **API quality gate** | ✅ 639 unit + 477 integration tests / 3,685 assertions · PHPStan level 8 clean · 0 style errors · 968 live checks |
-| **Web quality gate** | ✅ 75 / 75 specs · production build passes |
+| **API quality gate** | ✅ 1,122 tests / 3,780 assertions · PHPStan level 8 clean · 0 style errors · 1,064 live checks |
+| **Web quality gate** | ✅ 83 / 83 specs · production build passes |
 
 ### ⚠ Outstanding actions
 
@@ -217,6 +217,49 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-31 — Skills, roles, profiles: the frontend starts leaving the legacy
+
+Three slices of `apps/web` now speak only to the new API, and two gaps in the
+backend that were blocking them are filled.
+
+**Skills.** The service lost ten of twenty-six methods, almost all of it one
+collapse: `my-skills`, `my-skills-by-category`, `my-skill-progress`,
+`user-skills` and `user-skill-progress` were five near-identical queries that
+disagreed about whether a half-finished course counted, so the learner page
+could show a skill as acquired in one panel and 60% complete in another. One
+call now. The admin screen reached into other modules through the Skills class
+(`Skills::getUsers()`, `Skills::getCourses()`); those became `UsersService` and
+`CoursesService`.
+
+**Roles have an API.** The repository has been able to save and delete custom
+roles since the identity slice; nothing was routed to it, so only the nine
+built-ins existed. Six routes replace the legacy's eleven — assigning a role is
+not a role operation, and the permission catalogue is now derived from the
+`Permission` enum rather than served from a 61-row table the authorisation code
+never read. Four new refusals: an undefined permission, a permission the caller
+does not hold themselves, editing a built-in, and deleting a role somebody
+still holds.
+
+**Self-service profile.** `users.consents`, `users.avatar_url` and
+`refresh_tokens.user_agent` / `.ip_address` have been in the schema since the
+identity slice with nothing reading them. `/me/profile`, `/me/consents`,
+`/me/avatar` and `/me/sessions` join them up. No route in `MyProfileAction`
+checks a permission or reads an id: every one acts on whoever the token says is
+calling. `update-profile` took a `user_id` from the request body and checked
+nothing.
+
+**People screens.** Two duplicate user-detail screens became one. The route
+guard stopped making an HTTP request per navigation and started naming
+permissions the API actually enforces — the old list named four that have never
+existed, so every check returned false and nobody noticed because the guard
+swallowed its own failure. Sortable headers that sent parameters the server
+ignored are gone; "Reset Password" no longer prints a live credential on the
+page; bulk role assignment replaces the set instead of adding to it.
+
+Still to build before their screens come back: importing people, and the audit
+trail.
+
 
 ### 2026-08-30 — Messaging, and the backend is complete
 
