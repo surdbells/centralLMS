@@ -44,6 +44,19 @@ export const Endpoints = {
   },
 
   /**
+   * The audit trail: who did what, to what, and from where.
+   *
+   * Read-only. There is no route that writes an entry — they come from the
+   * API's own middleware, from what the router matched — and none that
+   * deletes one.
+   */
+  audit: {
+    list: '/audit',
+    /** The actions this organisation's trail actually contains. */
+    actions: '/audit/actions',
+  },
+
+  /**
    * Roles, and what each may do.
    *
    * Assigning one is not here: a person's roles are set as a set by

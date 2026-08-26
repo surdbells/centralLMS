@@ -11,8 +11,8 @@ import { permissionGuard } from './guards/role.guard';
  * everybody to /unauthorized. It was never noticed because the guard swallowed
  * its own failure and let the route through.
  *
- * Importing people and the audit trail are not here: neither has an API yet.
- * They are the next thing to build rather than screens that cannot work.
+ * Importing people is still not here: it has no API yet, and a screen that
+ * cannot work is worse than an absent one.
  */
 export const usersRoutes: Routes = [
   {
@@ -41,6 +41,15 @@ export const usersRoutes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'user.view' },
         title: 'Roles & Permissions',
+      },
+      {
+        path: 'activity',
+        loadComponent: () =>
+          import('./components/user-activity-log/user-activity-log.component')
+            .then((m) => m.UserActivityLogComponent),
+        canActivate: [permissionGuard],
+        data: { permission: 'audit.view' },
+        title: 'Audit Trail',
       },
       {
         path: ':id/edit',

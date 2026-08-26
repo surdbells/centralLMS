@@ -1,0 +1,154 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
+        <div>
+          <h4 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Audit Trail</h4>
+          <small class="text-muted">Every change made in this organisation, refused attempts included</small>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-secondary" (click)="load()" [disabled]="loading">
+        <i class="bi bi-arrow-repeat me-1"></i>Refresh
+      </button>
+    </div>
+
+    <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+      <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+      <div class="flex-grow-1">{{ error }}</div>
+      <button type="button" class="btn-close" (click)="error = null"></button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+          <div class="col-md-3">
+            <select class="form-select form-select-sm" [(ngModel)]="filters.actorId" (change)="onFilterChange()">
+              <option [ngValue]="undefined">Anyone</option>
+              <option *ngFor="let p of people; trackBy: trackById" [ngValue]="p.id">{{ p.fullName }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select form-select-sm" [(ngModel)]="filters.action" (change)="onFilterChange()">
+              <option [ngValue]="undefined">Anything</option>
+              <optgroup label="By module">
+                <option *ngFor="let m of actionModules" [ngValue]="m">All {{ m }}</option>
+              </optgroup>
+              <optgroup label="Exactly">
+                <option *ngFor="let a of actions" [ngValue]="a">{{ a }}</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.from"
+                   (change)="onFilterChange()" title="From">
+          </div>
+          <div class="col-md-2">
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.until"
+                   (change)="onFilterChange()" title="Until">
+          </div>
+          <div class="col-md-1">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="failuresOnly"
+                     [(ngModel)]="filters.failuresOnly" (change)="onFilterChange()">
+              <label class="form-check-label small" for="failuresOnly">Refused</label>
+            </div>
+          </div>
+          <div class="col-md-1 text-end">
+            <button class="btn btn-sm btn-link text-muted p-0" (click)="resetFilters()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The trail -->
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+          <tr>
+            <th style="width:150px">When</th>
+            <th>What</th>
+            <th>Who</th>
+            <th style="width:90px">Method</th>
+            <th style="width:80px">Result</th>
+            <th style="width:130px">From</th>
+            <th style="width:40px"></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td>
+          </tr>
+          <tr *ngIf="!loading && !events.length">
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-clock-history display-4 d-block mb-2"></i>
+              Nothing matches these filters
+            </td>
+          </tr>
+
+          <ng-container *ngFor="let e of events; trackBy: trackById">
+            <tr class="cursor-pointer" (click)="toggle(e)">
+              <td><small class="text-muted">{{ e.createdAt | date:'dd MMM, HH:mm:ss' }}</small></td>
+              <td>
+                <div class="fw-medium">{{ e.description }}</div>
+                <code class="mono text-muted">{{ e.action }}</code>
+              </td>
+              <td>
+                <div class="small">{{ e.actorName || 'Unknown' }}</div>
+                <small class="text-muted" *ngIf="e.actorName && e.actorEmail && e.actorName !== e.actorEmail">
+                  {{ e.actorEmail }}
+                </small>
+                <small class="text-muted d-block" *ngIf="!e.actorId">no longer here</small>
+              </td>
+              <td><span class="badge" [class]="methodClass(e.method)">{{ e.method }}</span></td>
+              <td><span class="badge" [class]="statusClass(e.status)">{{ e.status }}</span></td>
+              <td><small class="mono text-muted">{{ e.ipAddress || '-' }}</small></td>
+              <td class="text-end">
+                <i class="bi" [class]="expanded === e.id ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+              </td>
+            </tr>
+            <tr *ngIf="expanded === e.id">
+              <td colspan="7" class="bg-light">
+                <div class="row g-3 py-2 px-1">
+                  <div class="col-md-4">
+                    <div class="text-muted small">Path</div>
+                    <code class="mono">{{ e.method }} {{ e.path }}</code>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="text-muted small">Acted on</div>
+                    <code class="mono">{{ e.subjectId || '-' }}</code>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="text-muted small">Device</div>
+                    <span class="small">{{ device(e.userAgent) }}</span>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="text-muted small">Request id</div>
+                    <code class="mono">{{ e.requestId || '-' }}</code>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2" *ngIf="meta.totalPages > 1">
+        <small class="text-muted">Page {{ meta.page }} of {{ meta.totalPages }} ({{ meta.total }} events)</small>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-secondary" [disabled]="meta.page <= 1" (click)="goPage(meta.page - 1)">&lsaquo;</button>
+          <button class="btn btn-sm btn-secondary" [disabled]="meta.page >= meta.totalPages" (click)="goPage(meta.page + 1)">&rsaquo;</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3 mb-0">
+      Reads are not recorded — if every list request were an event the writes would be impossible to find.
+      Request bodies are never stored: they carry passwords.
+    </p>
+  </div>
+</main>
