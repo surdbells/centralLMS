@@ -23,6 +23,10 @@ use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\Grader;
+use Central\Api\Domain\Ilt\AttendanceCalculator;
+use Central\Api\Domain\Ilt\MeetingProviderResolver;
+use Central\Api\Domain\Ilt\SessionScheduler;
+use Central\Api\Domain\Ilt\TrainingRepository;
 use Central\Api\Domain\Proctoring\ProctoringRepository;
 use Central\Api\Domain\Assessment\PaperBuilder;
 use Central\Api\Domain\Assessment\QuestionRepository;
@@ -37,6 +41,7 @@ use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
 use Central\Api\Infrastructure\Persistence\DbalQuestionRepository;
+use Central\Api\Infrastructure\Persistence\DbalTrainingRepository;
 use Central\Api\Infrastructure\Persistence\DbalEnrollmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonProgressRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonRepository;
@@ -322,6 +327,25 @@ return [
     ),
 
     Grader::class => factory(static fn (): Grader => new Grader()),
+
+    AttendanceCalculator::class => factory(static fn (): AttendanceCalculator => new AttendanceCalculator()),
+
+    // The infrastructure factory answers the domain-side interface, so
+    // SessionScheduler never reaches into Infrastructure\Ilt itself.
+    MeetingProviderResolver::class => factory(
+        static fn (ContainerInterface $c) => $c->get(MeetingProviderFactory::class),
+    ),
+
+    SessionScheduler::class => factory(
+        static fn (ContainerInterface $c) => new SessionScheduler($c->get(MeetingProviderResolver::class)),
+    ),
+
+    TrainingRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalTrainingRepository(
+            $c->get(Connection::class),
+            $c->get(AttendanceCalculator::class),
+        ),
+    ),
 
     ProctoringRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalProctoringRepository($c->get(Connection::class)),

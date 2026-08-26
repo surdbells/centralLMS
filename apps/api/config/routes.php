@@ -67,7 +67,12 @@ use Central\Api\Application\Action\Enrollment\RecordProgressAction;
 use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
 use Central\Api\Application\Action\HealthAction;
+use Central\Api\Application\Action\Ilt\AttendanceAction;
 use Central\Api\Application\Action\Ilt\ListMeetingProvidersAction;
+use Central\Api\Application\Action\Ilt\ManageSessionsAction;
+use Central\Api\Application\Action\Ilt\ManageTrainingsAction;
+use Central\Api\Application\Action\Ilt\TrainingEnrolmentAction;
+use Central\Api\Application\Action\Ilt\VideoIntegrationAction;
 use Central\Api\Application\Action\Lookup\ActiveLookupsAction;
 use Central\Api\Application\Action\Lookup\CreateLookupAction;
 use Central\Api\Application\Action\Lookup\ListLookupsAction;
@@ -319,9 +324,63 @@ return static function (App $app): void {
                 ReviewProctoringAction::class, 'review',
             ])->setName('proctoring.violations.review');
 
+            // Instructor-led training. Scheduling an online session books a
+            // real meeting through the provider layer — the wiring the legacy
+            // code never had; see SessionScheduler.
+            $secure->group('/trainings', function (RouteCollectorProxy $t) use ($uuid): void {
+                $t->get('', [ManageTrainingsAction::class, 'list'])->setName('trainings.list');
+                $t->post('', [ManageTrainingsAction::class, 'save'])->setName('trainings.create');
+                $t->get('/{id:' . $uuid . '}', [ManageTrainingsAction::class, 'show'])->setName('trainings.show');
+                $t->put('/{id:' . $uuid . '}', [ManageTrainingsAction::class, 'save'])->setName('trainings.update');
+                $t->patch('/{id:' . $uuid . '}/status', [ManageTrainingsAction::class, 'setStatus'])
+                    ->setName('trainings.status');
+                $t->delete('/{id:' . $uuid . '}', [ManageTrainingsAction::class, 'delete'])
+                    ->setName('trainings.delete');
+
+                $t->group('/{id:' . $uuid . '}', function (RouteCollectorProxy $one) use ($uuid): void {
+                    // Enrolment.
+                    $one->get('/roster', [TrainingEnrolmentAction::class, 'roster'])->setName('trainings.roster');
+                    $one->post('/roster', [TrainingEnrolmentAction::class, 'assign'])->setName('trainings.assign');
+                    $one->delete('/roster', [TrainingEnrolmentAction::class, 'withdraw'])
+                        ->setName('trainings.withdraw');
+                    $one->post('/enrol', [TrainingEnrolmentAction::class, 'selfEnrol'])
+                        ->setName('trainings.selfEnrol');
+
+                    // Sessions.
+                    $one->post('/sessions', [ManageSessionsAction::class, 'create'])->setName('sessions.create');
+
+                    $one->group('/sessions/{sessionId:' . $uuid . '}', function (RouteCollectorProxy $s): void {
+                        $s->put('', [ManageSessionsAction::class, 'update'])->setName('sessions.update');
+                        $s->patch('/status', [ManageSessionsAction::class, 'setStatus'])->setName('sessions.status');
+                        $s->post('/meeting', [ManageSessionsAction::class, 'meeting'])->setName('sessions.meeting');
+                        $s->post('/qr', [ManageSessionsAction::class, 'issueQr'])->setName('sessions.qr');
+
+                        // Attendance. `sync` reads it back from the provider
+                        // rather than trusting a learner's own browser.
+                        $s->get('/attendance', [AttendanceAction::class, 'register'])->setName('attendance.register');
+                        $s->put('/attendance', [AttendanceAction::class, 'mark'])->setName('attendance.mark');
+                        $s->post('/attendance/sync', [AttendanceAction::class, 'sync'])->setName('attendance.sync');
+                        $s->post('/check-in', [AttendanceAction::class, 'checkIn'])->setName('attendance.checkIn');
+                    });
+                });
+            });
+
             $secure->group('/ilt', function (RouteCollectorProxy $ilt): void {
                 $ilt->get('/providers', ListMeetingProvidersAction::class)
                     ->setName('ilt.providers');
+
+                // Each tenant connects its own Zoom, Google or Teams
+                // account, so meetings appear in their own console.
+                $ilt->get('/integrations', [VideoIntegrationAction::class, 'list'])
+                    ->setName('ilt.integrations');
+                $ilt->post('/integrations/{platform}/connect', [VideoIntegrationAction::class, 'connect'])
+                    ->setName('ilt.integrations.connect');
+                $ilt->post('/integrations/{platform}/callback', [VideoIntegrationAction::class, 'callback'])
+                    ->setName('ilt.integrations.callback');
+                $ilt->patch('/integrations/{platform}', [VideoIntegrationAction::class, 'update'])
+                    ->setName('ilt.integrations.update');
+                $ilt->delete('/integrations/{platform}', [VideoIntegrationAction::class, 'disconnect'])
+                    ->setName('ilt.integrations.disconnect');
 
                 // Session CRUD is added here once the ILT domain lands. Each
                 // route declares its own permission, e.g.

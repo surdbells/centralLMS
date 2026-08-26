@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue, enrolments and assessments complete, proctoring included. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue, enrolments, assessments and ILT complete. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — ILT is next |
-| **API quality gate** | ✅ 327 unit + 133 integration tests / 1,212 assertions · PHPStan level 8 clean · 0 style errors · 291 live checks |
+| **Blocking the next slice** | Nothing — certificates, reporting and notifications remain |
+| **API quality gate** | ✅ 341 unit + 160 integration tests / 1,337 assertions · PHPStan level 8 clean · 0 style errors · 360 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -56,7 +56,7 @@ Found by a pre-commit scan rather than by reading:
 | --- | --- | --- | --- |
 | 1 | Monorepo adoption | ✅ | pnpm + Turborepo, 4 apps, 5 packages, Docker stack, legacy drop zone |
 | 2 | Backend rewrite (Slim/PostgreSQL) | 🟡 | Foundation + identity + reference data; **36 of 96 live endpoints ported** |
-| 3 | ILT (Zoom / Meet / Teams) | 🟡 | Root cause found, provider layer built; needs wiring + live credentials |
+| 3 | ILT (Zoom / Meet / Teams) | ✅ | Wired and tested; needs a tenant to connect an account and platform credentials in settings |
 | 4 | Prevent repetition | 🟡 | 72% of backend files unreachable; reference data collapsed 52 files → 6 routes |
 | 5 | Frontend (keep + improve) | 🟡 | `apps/web` live with a strangler-ready API layer; 81 files still on `GlobalComponent` |
 
@@ -103,7 +103,7 @@ foundations above it.
 | 6 | enrolments + progress | ✅ | **9** | Bulk assign by department/team/branch; progress derived in-transaction |
 | 7 | assessments | ✅ | **34** | Banks, questions, sections, all 3 selection modes, attempts, marking |
 | 7b | proctoring (advanced module) | ✅ | **8** | Entitlement-gated; settings, sessions, violations, snapshots, review |
-| 8 | proctoring extension | ⬜ | 1 | Advanced module, entitlement-gated |
+| 8 | ILT + attendance | ✅ | **24** | Programmes, sessions, real meeting booking, QR check-in, provider attendance sync |
 | 9 | ILT | 🟡 | 1 | Provider layer ✅; scheduling + attendance wiring ⬜ |
 | 10 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
 | 11 | certificates | ⬜ | 1 | ⚠ confirm same unify decision as assessments |
@@ -208,6 +208,100 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-27 — Instructor-led training
+
+Twenty-four routes. This is the module the original brief named as not
+working, and the legacy data says exactly why.
+
+**The diagnosis, confirmed in the data.** `live_training_sessions` row 2 is
+marked `session_type = 'virtual'`, and every one of its meeting columns —
+`video_platform`, `meeting_id`, `meeting_url`, `join_url`, `host_url`,
+`external_meeting_id` — is NULL. No meeting was ever created for it, because
+`LiveTraining::createVirtualMeeting()` returned `https://meet.example.com/`
+plus random hex while a complete 896-line provider layer sat beside it with
+zero call sites.
+
+**`SessionScheduler` is the wiring that was missing.** Creating an online
+session now books a real meeting through the ported providers. It is
+deliberately allowed to fail *without failing the session*: a provider outage
+should not stop an organiser building next month's timetable, so the session
+saves with `meetingError` set, shows as needing attention, and can be retried.
+Refusing the whole operation is how one expired OAuth token blocks a day of
+planning. A live check proves both halves — the session is created, and the
+reason for the failed booking is recorded rather than lost.
+
+**Two live-data defects the schema now refuses**
+
+- The single generated QR token expires *before* it was generated: created
+  `2026-01-12 23:19:33`, expiring `2026-01-12 09:15:00`. It was born expired
+  and nothing noticed. There is now a check constraint, and the window is
+  derived from the session's own start time.
+- `reminder_channels` on training 1 holds
+  `"\"[\\\"email\\\", \\\"in_app\\\"]\""` — a JSON array encoded three times
+  over. Row 2 holds a clean array. `LiveTraining::channels()` unwraps until it
+  reaches a list rather than decoding once.
+
+**Resolved from the legacy shape.** `session_date` + `start_time` + `end_time`
++ `timezone` become two `timestamptz` columns — a date, two times and a zone
+name in four columns is how a session moves by an hour twice a year. The zone
+survives as its own column because it is still needed to *display* the session
+and to pass to the provider, but it no longer defines the instant. Dropped:
+`meeting_url` and `meeting_id` (duplicating `join_url` and
+`external_meeting_id`), `is_active` on both tables, the three cost columns
+(NULL everywhere, and `training_costs` is its own table), and `skills_count` —
+a stored count, the same mistake as the assessment `total_questions` that was
+wrong in 16 of 19 rows.
+
+**Deliberate design points**
+
+- **Attendance is a pure function.** `AttendanceCalculator` decides whether a
+  programme was attended, and it decides certification, so it is testable with
+  no database in the way. Late counts as attended — a rule that says otherwise
+  turns a traffic jam into a failed certification. An excused absence comes
+  out of the *denominator* rather than into the numerator: neither rewarded
+  nor punished. A cancelled session is not one anybody missed. A programme
+  with nothing to attend is met rather than failed, because dividing by
+  nothing and calling it 0% fails a learner for a programme that never ran.
+- **Completion waits for every session to happen.** Meeting the bar halfway
+  through is not finishing.
+- **Virtual attendance is read back from the provider**, not from the
+  learner's browser: a self-reported duration on something that decides a
+  certification is a number the learner controls. Records are merged by
+  participant first, because providers report one row per join and a dropped
+  connection otherwise appears three times.
+- **A hand-made mark must carry a reason** and is surfaced as an override.
+  Indistinguishable from a scan is exactly what an auditor asks about.
+- **The host URL is not in a learner's payload.** Whoever holds it can start
+  the meeting, admit strangers and end it.
+- **A wrong QR code and an expired one give the same message**, so nobody can
+  test codes until one is accepted.
+
+**Fixed while building:** a check constraint requiring `override_by` fought
+`ON DELETE SET NULL`, making the person who made a mark undeletable. The
+timestamp and reason carry the audit; the name may legitimately leave.
+
+Assessments can now hang off a training — the column the assessment core
+deliberately left out because the table did not exist yet.
+
+**Verification**
+
+- 14 unit tests over the attendance calculator, including the excused-absence
+  rule and the rounding boundary.
+- 27 integration tests against real PostgreSQL, covering the failed-booking
+  path, QR windows and the completion rule.
+- 69 live checks: the full organiser-to-learner path, meeting booking against
+  an unconnected provider, capacity and waitlist, QR check-in, overrides, and
+  every cross-tenant call.
+- 11 constraint probes, including the exact legacy row that was born expired.
+
+Gate: 501 tests / 1,337 assertions, PHPStan level 8, no style errors. All six
+live suites re-run together: 360 checks, none failing.
+
+**Still needed for ILT to run in production:** a tenant has to connect a Zoom,
+Google or Teams account through `/v1/ilt/integrations/{platform}/connect`, and
+the deployment needs client credentials for that platform in `settings.php`.
+Until then booking fails cleanly and says so, which the live checks exercise.
 
 ### 2026-08-26 — Sections, random selection, and the proctoring extension
 

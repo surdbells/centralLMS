@@ -7,6 +7,7 @@ namespace Central\Api\Infrastructure\Ilt;
 use Central\Api\Domain\Ilt\Exception\MeetingProviderError;
 use Central\Api\Domain\Ilt\MeetingProvider;
 use Central\Api\Domain\Ilt\MeetingProviderId;
+use Central\Api\Domain\Ilt\MeetingProviderResolver;
 use Central\Api\Domain\Ilt\VideoIntegration;
 use Central\Api\Domain\Ilt\VideoIntegrationRepository;
 use Central\Api\Domain\Ilt\VideoOAuthFlow;
@@ -22,7 +23,7 @@ use Psr\Log\LoggerInterface;
  * adapter class, so "which platform?" stays a per-tenant runtime choice with no
  * branching anywhere else in the codebase.
  */
-final class MeetingProviderFactory
+final class MeetingProviderFactory implements MeetingProviderResolver
 {
     /**
      * @param array<string, mixed> $appConfig the `ilt` section of settings.php —
