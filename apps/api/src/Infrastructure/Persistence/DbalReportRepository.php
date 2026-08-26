@@ -1,0 +1,2930 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Central\Api\Infrastructure\Persistence;
+
+use Central\Api\Domain\Report\ReportColumn;
+use Central\Api\Domain\Report\ReportCriteria;
+use Central\Api\Domain\Report\ReportDefinition;
+use Central\Api\Domain\Report\ReportKey;
+use Central\Api\Domain\Report\ReportRepository;
+use Central\Api\Domain\Report\ReportResult;
+use Central\Api\Domain\Report\ReportScope;
+use Doctrine\DBAL\Connection;
+
+/**
+ * The SQL behind every report.
+ *
+ * Long by nature — 57 reports are 57 questions — but each method is short and
+ * every one of them starts the same way: `ReportQuery::tenant($criteria, …)`,
+ * which is the only way to obtain a WHERE clause and always produces a tenant
+ * condition. See {@see ReportQuery} for why that is a class rather than a
+ * convention.
+ *
+ * Three things are deliberately consistent across all of them:
+ *
+ *   * **Dropped enrolments are excluded unless the report is about them.**
+ *     Someone taken off a course is not "not started"; counting them as such
+ *     makes every completion rate wrong in the pessimistic direction.
+ *   * **Rates are computed, never stored.** `COUNT(*) FILTER (WHERE …)` over
+ *     the rows, every time. The legacy kept `is_completed` beside `status` and
+ *     they disagreed in 16 of 159 rows.
+ *   * **Averages exclude the rows that have no value yet.** An average score
+ *     over people who have not sat the assessment is not a low average, it is
+ *     a wrong one.
+ */
+final class DbalReportRepository implements ReportRepository
+{
+    /**
+     * What makes a piece of training mandatory.
+     *
+     * Either the assignment said so, or the course requires it of everybody.
+     * Written once and referenced by every report that asks, because the
+     * legacy checked only the first and a course marked mandatory in the
+     * catalogue was invisible to compliance unless each enrolment happened to
+     * repeat the flag — so two reports over the same data gave two answers.
+     */
+    private const MANDATORY = '(e.is_mandatory OR c.is_mandatory)';
+
+    public function __construct(private readonly Connection $connection)
+    {
+    }
+
+    public function run(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        return match ($definition->key) {
+            // --- enrolment ------------------------------------------------
+            ReportKey::EnrollmentSummary  => $this->enrollmentSummary($definition, $criteria),
+            ReportKey::EnrollmentTrends   => $this->enrollmentTrends($definition, $criteria),
+            ReportKey::EnrollmentDetail   => $this->enrollmentDetail($definition, $criteria),
+            ReportKey::PendingEnrollments => $this->pendingEnrollments($definition, $criteria),
+            ReportKey::EnrollmentBySource => $this->enrollmentBySource($definition, $criteria),
+            ReportKey::DropOff            => $this->dropOff($definition, $criteria),
+            ReportKey::EnrollmentByCourse => $this->enrollmentByCourse($definition, $criteria),
+
+            // --- completion -----------------------------------------------
+            ReportKey::CompletionSummary      => $this->completionSummary($definition, $criteria),
+            ReportKey::IndividualProgress     => $this->individualProgress($definition, $criteria),
+            ReportKey::CompletionByDepartment => $this->completionByUnit($definition, $criteria, 'department'),
+            ReportKey::CompletionByTeam       => $this->completionByUnit($definition, $criteria, 'team'),
+            ReportKey::CompletionByBranch     => $this->completionByUnit($definition, $criteria, 'branch'),
+            ReportKey::OverdueTraining        => $this->overdueTraining($definition, $criteria),
+            ReportKey::TimeToCompletion       => $this->timeToCompletion($definition, $criteria),
+            ReportKey::CompletionTrend        => $this->completionTrend($definition, $criteria),
+
+            // --- compliance -----------------------------------------------
+            ReportKey::MandatoryCompliance    => $this->mandatoryCompliance($definition, $criteria),
+            ReportKey::NonCompliantUsers      => $this->nonCompliantUsers($definition, $criteria),
+            ReportKey::ComplianceByDepartment => $this->complianceByDepartment($definition, $criteria),
+            ReportKey::ComplianceGapAnalysis  => $this->complianceGapAnalysis($definition, $criteria),
+            ReportKey::CertificationExpiry    => $this->certificationExpiry($definition, $criteria),
+            ReportKey::RecertificationDue     => $this->recertificationDue($definition, $criteria),
+
+            // --- assessment -----------------------------------------------
+            ReportKey::AssessmentSummary    => $this->assessmentSummary($definition, $criteria),
+            ReportKey::AssessmentDetail     => $this->assessmentDetail($definition, $criteria),
+            ReportKey::IndividualAssessment => $this->individualAssessment($definition, $criteria),
+            ReportKey::FailedAssessments    => $this->failedAssessments($definition, $criteria),
+            ReportKey::QuestionAnalysis     => $this->questionAnalysis($definition, $criteria),
+            ReportKey::ScoreDistribution    => $this->scoreDistribution($definition, $criteria),
+            ReportKey::AssessmentAttempts   => $this->assessmentAttempts($definition, $criteria),
+            ReportKey::TopPerformers        => $this->topPerformers($definition, $criteria),
+            ReportKey::StrugglingLearners   => $this->strugglingLearners($definition, $criteria),
+            ReportKey::ProctoringViolations => $this->proctoringViolations($definition, $criteria),
+            // --- courses --------------------------------------------------
+            ReportKey::CourseCatalog       => $this->courseCatalog($definition, $criteria),
+            ReportKey::CourseEffectiveness => $this->courseEffectiveness($definition, $criteria),
+            ReportKey::CourseUsage         => $this->courseUsage($definition, $criteria),
+            ReportKey::ModulePerformance   => $this->modulePerformance($definition, $criteria),
+            ReportKey::ContentEngagement   => $this->contentEngagement($definition, $criteria),
+            ReportKey::UnusedCourses       => $this->unusedCourses($definition, $criteria),
+
+            // --- people ---------------------------------------------------
+            ReportKey::ActiveUsers         => $this->activeUsers($definition, $criteria),
+            ReportKey::InactiveUsers       => $this->inactiveUsers($definition, $criteria),
+            ReportKey::NewUsers            => $this->newUsers($definition, $criteria),
+            ReportKey::UserActivitySummary => $this->userActivitySummary($definition, $criteria),
+            ReportKey::DepartmentTraining  => $this->departmentTraining($definition, $criteria),
+            ReportKey::RoleBasedTraining   => $this->roleBasedTraining($definition, $criteria),
+
+            // --- time and engagement --------------------------------------
+            ReportKey::TimeSpent       => $this->timeSpent($definition, $criteria),
+            ReportKey::PeakUsage       => $this->peakUsage($definition, $criteria),
+            ReportKey::SessionDuration => $this->sessionDuration($definition, $criteria),
+            ReportKey::EngagementScore => $this->engagementScore($definition, $criteria),
+            ReportKey::ActivityReport  => $this->activityReport($definition, $criteria),
+            ReportKey::PlatformUsage   => $this->platformUsage($definition, $criteria),
+
+            // --- certificates ---------------------------------------------
+            ReportKey::CertificatesIssued   => $this->certificatesIssued($definition, $criteria),
+            ReportKey::VerificationLog      => $this->verificationLog($definition, $criteria),
+            ReportKey::ExpiringCertificates => $this->expiringCertificates($definition, $criteria),
+            ReportKey::ReprintHistory       => $this->reprintHistory($definition, $criteria),
+            ReportKey::TemplateUsage        => $this->templateUsage($definition, $criteria),
+
+            // --- executive ------------------------------------------------
+            ReportKey::ExecutiveDashboard => $this->executiveDashboard($definition, $criteria),
+            ReportKey::MonthlyTraining    => $this->monthlyTraining($definition, $criteria),
+            ReportKey::YearOverYear       => $this->yearOverYear($definition, $criteria),
+            // No default: the match covers every case of a closed enum, so
+            // adding a report without a query behind it stops compiling here
+            // rather than failing for somebody who ran it.
+        };
+    }
+
+    // --- enrolment --------------------------------------------------------
+
+    private function enrollmentSummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(*)                                                        AS total,
+                    COUNT(*) FILTER (WHERE e.status = 'not_started')                AS not_started,
+                    COUNT(*) FILTER (WHERE e.status = 'in_progress')                AS in_progress,
+                    COUNT(*) FILTER (WHERE e.status = 'completed')                  AS completed,
+                    COUNT(*) FILTER (WHERE e.status = 'dropped')                    AS dropped,
+                    COUNT(*) FILTER (WHERE " . self::MANDATORY . ")             AS mandatory,
+                    COUNT(DISTINCT e.user_id)                                       AS learners,
+                    COUNT(DISTINCT e.course_id)                                     AS courses,
+                    -- Dropped rows are excluded from the averages: their
+                    -- progress froze when they came off, and including it
+                    -- drags every figure down for a reason nobody can see.
+                    AVG(e.progress_percentage) FILTER (WHERE e.status <> 'dropped') AS avg_progress,
+                    AVG(e.final_score) FILTER (WHERE e.status = 'completed'
+                                                 AND e.final_score IS NOT NULL)     AS avg_score,
+                    COALESCE(SUM(e.time_spent_seconds), 0)                          AS total_seconds
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row   = $row === false ? [] : $row;
+        $total = (int) ($row['total'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'total'          => $total,
+                'learners'       => (int) ($row['learners'] ?? 0),
+                'courses'        => (int) ($row['courses'] ?? 0),
+                'mandatory'      => (int) ($row['mandatory'] ?? 0),
+                'completed'      => (int) ($row['completed'] ?? 0),
+                'completionRate' => $this->percent((int) ($row['completed'] ?? 0), $total),
+                'avgProgress'    => $this->round($row['avg_progress'] ?? null),
+                'avgScore'       => $this->round($row['avg_score'] ?? null),
+                'totalSeconds'   => (int) ($row['total_seconds'] ?? 0),
+            ],
+            [
+                ['label' => 'Not started', 'value' => (int) ($row['not_started'] ?? 0), 'percent' => $this->percent((int) ($row['not_started'] ?? 0), $total)],
+                ['label' => 'In progress', 'value' => (int) ($row['in_progress'] ?? 0), 'percent' => $this->percent((int) ($row['in_progress'] ?? 0), $total)],
+                ['label' => 'Completed',   'value' => (int) ($row['completed'] ?? 0),   'percent' => $this->percent((int) ($row['completed'] ?? 0), $total)],
+                ['label' => 'Dropped',     'value' => (int) ($row['dropped'] ?? 0),     'percent' => $this->percent((int) ($row['dropped'] ?? 0), $total)],
+            ],
+            $criteria,
+        );
+    }
+
+    private function enrollmentTrends(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT to_char(date_trunc('month', e.enrolled_at), 'YYYY-MM') AS period,
+                        COUNT(*)                                       AS enrolled,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 GROUP BY 1
+                 ORDER BY 1",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                static fn (array $r): array => [
+                    'label'     => (string) $r['period'],
+                    'value'     => (int) $r['enrolled'],
+                    'completed' => (int) $r['completed'],
+                ],
+                $rows,
+            ),
+            ['months' => count($rows), 'total' => array_sum(array_column($rows, 'enrolled'))],
+            $criteria,
+        );
+    }
+
+    private function enrollmentDetail(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $sort = $criteria->sortColumn(
+            ['learner', 'course', 'status', 'progress', 'score', 'enrolledAt', 'dueDate'],
+            'enrolledAt',
+        );
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::percent('progress', 'Progress'),
+            ReportColumn::number('score', 'Score'),
+            ReportColumn::duration('seconds', 'Time spent'),
+            ReportColumn::date('enrolledAt', 'Enrolled'),
+            ReportColumn::date('dueDate', 'Due'),
+            ReportColumn::date('completedAt', 'Completed'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             d.name                                   AS department,
+             c.title                                  AS course,
+             e.status                                 AS status,
+             e.progress_percentage                    AS progress,
+             e.final_score                            AS score,
+             e.time_spent_seconds                     AS seconds,
+             e.enrolled_at                            AS \"enrolledAt\",
+             e.due_date                               AS \"dueDate\",
+             e.completed_at                           AS \"completedAt\"",
+            // One expression, not a list: the direction is appended to what
+            // is passed, so `u.first_name, u.last_name` would sort the
+            // surname descending and the forename ascending.
+            [
+                'learner'    => "(u.first_name || ' ' || u.last_name)",
+                'course'     => 'c.title',
+                'status'     => 'e.status',
+                'progress'   => 'e.progress_percentage',
+                'score'      => 'e.final_score',
+                'enrolledAt' => 'e.enrolled_at',
+                'dueDate'    => 'e.due_date',
+            ][$sort] ?? 'e.enrolled_at',
+        );
+    }
+
+    private function pendingEnrollments(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL')
+            // `not_started` alone, and not `progress = 0`: someone who opened a
+            // lesson and closed it is in progress, and chasing them says
+            // something different from chasing someone who never looked.
+            ->where("e.status = 'not_started'");
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::date('enrolledAt', 'Enrolled'),
+            ReportColumn::date('dueDate', 'Due'),
+            ReportColumn::number('daysWaiting', 'Days waiting'),
+            ReportColumn::status('mandatory', 'Mandatory'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name)                  AS learner,
+             u.email                                                   AS email,
+             d.name                                                    AS department,
+             c.title                                                   AS course,
+             e.enrolled_at                                             AS \"enrolledAt\",
+             e.due_date                                                AS \"dueDate\",
+             EXTRACT(DAY FROM now() - e.enrolled_at)::int              AS \"daysWaiting\",
+             CASE WHEN e.is_mandatory THEN 'Mandatory' ELSE 'Optional' END AS mandatory",
+            'e.enrolled_at',
+        );
+    }
+
+    private function enrollmentBySource(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT e.source,
+                        COUNT(*)                                       AS total,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 GROUP BY e.source
+                 ORDER BY total DESC",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $total = array_sum(array_map(static fn (array $r): int => (int) $r['total'], $rows));
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                fn (array $r): array => [
+                    'label'          => $this->humanise((string) $r['source']),
+                    'value'          => (int) $r['total'],
+                    'percent'        => $this->percent((int) $r['total'], $total),
+                    // Worth showing beside the count: self-enrolment and
+                    // assignment produce very different completion rates, and
+                    // that is the actual finding in this report.
+                    'completionRate' => $this->percent((int) $r['completed'], (int) $r['total']),
+                ],
+                $rows,
+            ),
+            ['total' => $total],
+            $criteria,
+        );
+    }
+
+    private function dropOff(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $stale = (int) ($criteria->filters['inactiveDays'] ?? 14);
+        $stale = max(1, min(365, $stale));
+
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            // Two different things, both worth chasing: taken off the course,
+            // or started and gone quiet.
+            ->where(
+                "(e.status = 'dropped'
+                  OR (e.status = 'in_progress'
+                      AND e.last_activity_at IS NOT NULL
+                      AND e.last_activity_at < now() - make_interval(days => :staleDays)))",
+                'staleDays',
+                $stale,
+            );
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::percent('progress', 'Progress reached'),
+            ReportColumn::date('lastActivityAt', 'Last seen'),
+            ReportColumn::number('daysSince', 'Days since'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name)  AS learner,
+             u.email                                   AS email,
+             c.title                                   AS course,
+             CASE WHEN e.status = 'dropped' THEN 'Dropped' ELSE 'Gone quiet' END AS status,
+             e.progress_percentage                     AS progress,
+             e.last_activity_at                        AS \"lastActivityAt\",
+             EXTRACT(DAY FROM now() - COALESCE(e.last_activity_at, e.enrolled_at))::int AS \"daysSince\"",
+            'e.last_activity_at',
+        );
+    }
+
+    private function enrollmentByCourse(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::number('enrolled', 'Enrolled'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::percent('avgProgress', 'Average progress'),
+            ReportColumn::number('avgScore', 'Average score'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title AS course,
+             c.status AS status,
+             COUNT(*) FILTER (WHERE e.status <> 'dropped')                   AS enrolled,
+             COUNT(*) FILTER (WHERE e.status = 'completed')                  AS completed,
+             ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*) FILTER (WHERE e.status <> 'dropped'), 0), 1) AS \"completionRate\",
+             ROUND(AVG(e.progress_percentage) FILTER (WHERE e.status <> 'dropped'), 1) AS \"avgProgress\",
+             ROUND(AVG(e.final_score) FILTER (WHERE e.final_score IS NOT NULL), 1)     AS \"avgScore\"",
+            'c.id, c.title, c.status',
+            'enrolled DESC',
+        );
+    }
+
+    // --- completion -------------------------------------------------------
+
+    private function completionSummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status <> 'dropped'");
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(*)                                       AS total,
+                    COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                       AND e.due_date IS NOT NULL
+                                       AND e.due_date < CURRENT_DATE) AS overdue,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                       AND e.due_date IS NOT NULL
+                                       AND e.due_date >= CURRENT_DATE
+                                       AND e.due_date < CURRENT_DATE + 7) AS due_this_week,
+                    ROUND(AVG(e.progress_percentage), 1)           AS avg_progress,
+                    ROUND(AVG(e.final_score) FILTER (WHERE e.status = 'completed'), 1) AS avg_score,
+                    -- Only over people who actually finished: a median that
+                    -- counts the unfinished as taking forever is not a median
+                    -- of anything.
+                    ROUND(AVG(EXTRACT(EPOCH FROM e.completed_at - e.enrolled_at) / 86400)
+                          FILTER (WHERE e.status = 'completed' AND e.completed_at IS NOT NULL), 1) AS avg_days
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row   = $row === false ? [] : $row;
+        $total = (int) ($row['total'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'total'          => $total,
+                'completed'      => (int) ($row['completed'] ?? 0),
+                'completionRate' => $this->percent((int) ($row['completed'] ?? 0), $total),
+                'overdue'        => (int) ($row['overdue'] ?? 0),
+                'dueThisWeek'    => (int) ($row['due_this_week'] ?? 0),
+                'avgProgress'    => $this->round($row['avg_progress'] ?? null),
+                'avgScore'       => $this->round($row['avg_score'] ?? null),
+                'avgDays'        => $this->round($row['avg_days'] ?? null),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function individualProgress(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        // The subject is on the scope, not the filters: the right to see this
+        // person was settled at the edge, and re-reading a request parameter
+        // here would undo that.
+        $learnerId = $criteria->scope->subjectId ?? $criteria->learnerId ?? '';
+
+        $person = $this->connection->fetchAssociative(
+            "SELECT trim(u.first_name || ' ' || u.last_name) AS name, u.email,
+                    d.name AS department, t.name AS team, b.name AS branch,
+                    u.created_at, u.last_login_at
+             FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN lookups t ON t.id = u.team_id
+             LEFT JOIN lookups b ON b.id = u.branch_id
+             WHERE u.id = :id AND u.tenant_id = :tenant AND u.deleted_at IS NULL",
+            ['id' => $learnerId, 'tenant' => $criteria->scope->tenantId],
+        );
+
+        if ($person === false) {
+            return ReportResult::summary($definition, [], [], $criteria)
+                ->withNote('That person is not in this organisation.');
+        }
+
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.user_id = :learnerId', 'learnerId', $learnerId)
+            ->where('e.deleted_at IS NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT c.title AS course, e.status, e.progress_percentage AS progress,
+                        e.final_score AS score, e.time_spent_seconds AS seconds,
+                        e.enrolled_at AS \"enrolledAt\", e.due_date AS \"dueDate\",
+                        e.completed_at AS \"completedAt\",
+                        (e.status <> 'completed' AND e.due_date IS NOT NULL
+                         AND e.due_date < CURRENT_DATE) AS overdue
+                 FROM enrollments e
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 ORDER BY e.enrolled_at DESC",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $completed = count(array_filter($rows, static fn (array $r): bool => $r['status'] === 'completed'));
+        $active    = array_filter($rows, static fn (array $r): bool => $r['status'] !== 'dropped');
+
+        return new ReportResult(
+            definition: $definition,
+            columns: [
+                ReportColumn::text('course', 'Course'),
+                ReportColumn::status('status', 'Status'),
+                ReportColumn::percent('progress', 'Progress'),
+                ReportColumn::number('score', 'Score'),
+                ReportColumn::duration('seconds', 'Time spent'),
+                ReportColumn::date('enrolledAt', 'Enrolled'),
+                ReportColumn::date('dueDate', 'Due'),
+                ReportColumn::date('completedAt', 'Completed'),
+            ],
+            rows: $rows,
+            totals: [
+                'learner'        => (string) $person['name'],
+                'email'          => (string) $person['email'],
+                'department'     => (string) ($person['department'] ?? ''),
+                'team'           => (string) ($person['team'] ?? ''),
+                'branch'         => (string) ($person['branch'] ?? ''),
+                'enrolments'     => count($active),
+                'completed'      => $completed,
+                'completionRate' => $this->percent($completed, count($active)),
+                'overdue'        => count(array_filter($rows, static fn (array $r): bool => (bool) $r['overdue'])),
+                'totalSeconds'   => array_sum(array_map(static fn (array $r): int => (int) $r['seconds'], $rows)),
+            ],
+            criteria: $criteria,
+        );
+    }
+
+    /**
+     * Completion grouped by an organisational unit.
+     *
+     * One method for department, team and branch: the same query with a
+     * different column. Three near-identical copies is how the legacy's
+     * `completionByDepartment`, `completionByTeam` and `completionByBranch`
+     * came to differ from one another in small ways nobody intended.
+     */
+    private function completionByUnit(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+        string $unit,
+    ): ReportResult {
+        // Not interpolated from anything a caller sends — the report key
+        // chose it, and the three possibilities are written out here.
+        $column = match ($unit) {
+            'department' => 'department_id',
+            'team'       => 'team_id',
+            'branch'     => 'branch_id',
+            default      => throw new \LogicException('Unknown organisational unit.'),
+        };
+
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status <> 'dropped'");
+
+        $columns = [
+            ReportColumn::text('unit', ucfirst($unit)),
+            ReportColumn::number('people', 'People'),
+            ReportColumn::number('enrolled', 'Enrolments'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::number('overdue', 'Overdue'),
+            ReportColumn::percent('avgProgress', 'Average progress'),
+            ReportColumn::number('avgScore', 'Average score'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            sprintf(
+                'FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 LEFT JOIN lookups l ON l.id = u.%s',
+                $column,
+            ),
+            $q,
+            "COALESCE(l.name, 'Unassigned') AS unit,
+             COUNT(DISTINCT e.user_id)      AS people,
+             COUNT(*)                       AS enrolled,
+             COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+             ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1)                AS \"completionRate\",
+             COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                AND e.due_date IS NOT NULL
+                                AND e.due_date < CURRENT_DATE)  AS overdue,
+             ROUND(AVG(e.progress_percentage), 1)                AS \"avgProgress\",
+             ROUND(AVG(e.final_score) FILTER (WHERE e.final_score IS NOT NULL), 1) AS \"avgScore\"",
+            'l.id, l.name',
+            '"completionRate" DESC NULLS LAST',
+        );
+    }
+
+    private function overdueTraining(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status NOT IN ('completed', 'dropped')")
+            // A date, not an instant. Comparing a due date against `now()`
+            // makes everyone with a deadline today overdue from midnight.
+            ->where('e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('manager', 'Manager'),
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::date('dueDate', 'Due'),
+            ReportColumn::number('daysOverdue', 'Days overdue'),
+            ReportColumn::percent('progress', 'Progress'),
+            ReportColumn::status('urgency', 'Urgency'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN users m ON m.id = u.manager_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             d.name                                   AS department,
+             NULLIF(trim(COALESCE(m.first_name, '') || ' ' || COALESCE(m.last_name, '')), '') AS manager,
+             c.title                                  AS course,
+             e.due_date                               AS \"dueDate\",
+             (CURRENT_DATE - e.due_date)              AS \"daysOverdue\",
+             e.progress_percentage                    AS progress,
+             CASE
+                 WHEN CURRENT_DATE - e.due_date > 30 THEN 'Critical'
+                 WHEN CURRENT_DATE - e.due_date > 7  THEN 'High'
+                 ELSE 'Recent'
+             END AS urgency",
+            '(CURRENT_DATE - e.due_date)',
+            fixedDirection: 'DESC',
+        );
+    }
+
+    private function timeToCompletion(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.completed_at')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status = 'completed' AND e.completed_at IS NOT NULL");
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::number('completions', 'Completions'),
+            ReportColumn::number('avgDays', 'Average days'),
+            ReportColumn::number('medianDays', 'Median days'),
+            ReportColumn::number('fastestDays', 'Fastest'),
+            ReportColumn::number('slowestDays', 'Slowest'),
+            ReportColumn::duration('avgSeconds', 'Average time in the course'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            // Median alongside the mean, because one person who enrolled a
+            // year ago and finished last week takes the average with them.
+            'c.title AS course,
+             COUNT(*) AS completions,
+             ROUND(AVG(EXTRACT(EPOCH FROM e.completed_at - e.enrolled_at) / 86400), 1) AS "avgDays",
+             ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (
+                 ORDER BY EXTRACT(EPOCH FROM e.completed_at - e.enrolled_at) / 86400
+             )::numeric, 1) AS "medianDays",
+             ROUND(MIN(EXTRACT(EPOCH FROM e.completed_at - e.enrolled_at) / 86400), 1) AS "fastestDays",
+             ROUND(MAX(EXTRACT(EPOCH FROM e.completed_at - e.enrolled_at) / 86400), 1) AS "slowestDays",
+             ROUND(AVG(e.time_spent_seconds))::int AS "avgSeconds"',
+            'c.id, c.title',
+            'completions DESC',
+        );
+    }
+
+    private function completionTrend(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.completed_at')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status = 'completed' AND e.completed_at IS NOT NULL");
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT to_char(date_trunc('month', e.completed_at), 'YYYY-MM') AS period,
+                        COUNT(*) AS completed,
+                        ROUND(AVG(e.final_score) FILTER (WHERE e.final_score IS NOT NULL), 1) AS avg_score
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 GROUP BY 1
+                 ORDER BY 1",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                fn (array $r): array => [
+                    'label'    => (string) $r['period'],
+                    'value'    => (int) $r['completed'],
+                    'avgScore' => $this->round($r['avg_score'] ?? null),
+                ],
+                $rows,
+            ),
+            ['total' => array_sum(array_map(static fn (array $r): int => (int) $r['completed'], $rows))],
+            $criteria,
+        );
+    }
+
+    // --- compliance -------------------------------------------------------
+
+    private function mandatoryCompliance(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            // Mandatory means either the enrolment said so or the course is
+            // mandatory for everyone. The legacy checked only the first, so a
+            // course marked mandatory in the catalogue was invisible to
+            // compliance unless each enrolment repeated the flag.
+            ->where(self::MANDATORY)
+            ->where("e.status <> 'dropped'");
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(*)                                       AS total,
+                    COUNT(DISTINCT e.user_id)                      AS people,
+                    COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                       AND e.due_date IS NOT NULL
+                                       AND e.due_date < CURRENT_DATE) AS overdue,
+                    COUNT(DISTINCT e.user_id) FILTER (WHERE e.status <> 'completed') AS people_outstanding,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                       AND e.due_date IS NOT NULL
+                                       AND e.due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30) AS due_soon,
+                    ROUND(AVG(e.progress_percentage), 1)           AS avg_progress
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row   = $row === false ? [] : $row;
+        $total = (int) ($row['total'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'requirements'      => $total,
+                'people'            => (int) ($row['people'] ?? 0),
+                'completed'         => (int) ($row['completed'] ?? 0),
+                // The figure a regulator asks for, and the one nobody should
+                // have to compute from two others.
+                'complianceRate'    => $this->percent((int) ($row['completed'] ?? 0), $total),
+                'overdue'           => (int) ($row['overdue'] ?? 0),
+                'dueWithin30Days'   => (int) ($row['due_soon'] ?? 0),
+                'peopleOutstanding' => (int) ($row['people_outstanding'] ?? 0),
+                'avgProgress'       => $this->round($row['avg_progress'] ?? null),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function nonCompliantUsers(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status NOT IN ('completed', 'dropped')");
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('manager', 'Manager'),
+            ReportColumn::number('outstanding', 'Outstanding'),
+            ReportColumn::number('overdue', 'Overdue'),
+            ReportColumn::date('earliestDue', 'Earliest due'),
+            ReportColumn::percent('avgProgress', 'Average progress'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN users m ON m.id = u.manager_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             d.name                                   AS department,
+             NULLIF(trim(COALESCE(m.first_name, '') || ' ' || COALESCE(m.last_name, '')), '') AS manager,
+             COUNT(*)                                 AS outstanding,
+             COUNT(*) FILTER (WHERE e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE) AS overdue,
+             MIN(e.due_date)                          AS \"earliestDue\",
+             ROUND(AVG(e.progress_percentage), 1)     AS \"avgProgress\"",
+            'u.id, u.first_name, u.last_name, u.email, d.name, m.first_name, m.last_name',
+            'overdue DESC, outstanding DESC',
+        );
+    }
+
+    private function complianceByDepartment(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status <> 'dropped'");
+
+        $columns = [
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('people', 'People'),
+            ReportColumn::number('requirements', 'Requirements'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('complianceRate', 'Compliance rate'),
+            ReportColumn::number('overdue', 'Overdue'),
+            ReportColumn::number('peopleOutstanding', 'People outstanding'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "COALESCE(d.name, 'Unassigned') AS department,
+             COUNT(DISTINCT e.user_id)      AS people,
+             COUNT(*)                       AS requirements,
+             COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+             ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1)               AS \"complianceRate\",
+             COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                AND e.due_date IS NOT NULL
+                                AND e.due_date < CURRENT_DATE) AS overdue,
+             COUNT(DISTINCT e.user_id) FILTER (WHERE e.status <> 'completed') AS \"peopleOutstanding\"",
+            'd.id, d.name',
+            '"complianceRate" ASC NULLS FIRST',
+        );
+    }
+
+    private function complianceGapAnalysis(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status <> 'dropped'");
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::number('assigned', 'Assigned'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::number('outstanding', 'Outstanding'),
+            ReportColumn::percent('complianceRate', 'Compliance rate'),
+            ReportColumn::number('overdue', 'Overdue'),
+            ReportColumn::percent('avgProgress', 'Average progress'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title AS course,
+             COUNT(*) AS assigned,
+             COUNT(*) FILTER (WHERE e.status = 'completed')  AS completed,
+             COUNT(*) FILTER (WHERE e.status <> 'completed') AS outstanding,
+             ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1)                 AS \"complianceRate\",
+             COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                AND e.due_date IS NOT NULL
+                                AND e.due_date < CURRENT_DATE) AS overdue,
+             ROUND(AVG(e.progress_percentage), 1)             AS \"avgProgress\"",
+            'c.id, c.title',
+            // Widest gap first: this report exists to say where to start.
+            'outstanding DESC',
+        );
+    }
+
+    private function certificationExpiry(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $within = max(1, min(730, (int) ($criteria->filters['withinDays'] ?? 90)));
+
+        $q = ReportQuery::tenant($criteria, 'cert', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where("cert.status = 'active'")
+            ->where(
+                'cert.valid_until IS NOT NULL
+                 AND cert.valid_until BETWEEN CURRENT_DATE AND CURRENT_DATE + make_interval(days => :withinDays)',
+                'withinDays',
+                $within,
+            );
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('title', 'Certificate'),
+            ReportColumn::text('number', 'Number'),
+            ReportColumn::date('validUntil', 'Expires'),
+            ReportColumn::number('daysLeft', 'Days left'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificates cert
+             JOIN users u ON u.id = cert.user_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             d.name                                   AS department,
+             cert.title                               AS title,
+             cert.number                              AS number,
+             cert.valid_until                         AS \"validUntil\",
+             (cert.valid_until - CURRENT_DATE)        AS \"daysLeft\"",
+            'cert.valid_until',
+            tieBreak: 'cert.id',
+            fixedDirection: 'ASC',
+        );
+    }
+
+    private function recertificationDue(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'cert', 'u')
+            ->withScopeFilters($criteria, 'u')
+            // Lapsed, and nothing in flight to replace it. A person already
+            // re-enrolled on the course does not belong on a chase list.
+            ->where('cert.valid_until IS NOT NULL AND cert.valid_until < CURRENT_DATE')
+            ->where("cert.status IN ('active', 'expired')")
+            ->where(
+                "NOT EXISTS (
+                    SELECT 1 FROM certificates newer
+                    WHERE newer.tenant_id = cert.tenant_id
+                      AND newer.user_id = cert.user_id
+                      AND newer.course_id IS NOT DISTINCT FROM cert.course_id
+                      AND newer.status = 'active'
+                      AND (newer.valid_until IS NULL OR newer.valid_until >= CURRENT_DATE)
+                 )",
+            )
+            ->where(
+                "NOT EXISTS (
+                    SELECT 1 FROM enrollments again
+                    WHERE again.tenant_id = cert.tenant_id
+                      AND again.user_id = cert.user_id
+                      AND again.course_id = cert.course_id
+                      AND again.deleted_at IS NULL
+                      AND again.status IN ('not_started', 'in_progress')
+                 )",
+            );
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('title', 'Certificate'),
+            ReportColumn::date('validUntil', 'Lapsed on'),
+            ReportColumn::number('daysLapsed', 'Days lapsed'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificates cert
+             JOIN users u ON u.id = cert.user_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             d.name                                   AS department,
+             cert.title                               AS title,
+             cert.valid_until                         AS \"validUntil\",
+             (CURRENT_DATE - cert.valid_until)        AS \"daysLapsed\"",
+            'cert.valid_until',
+            tieBreak: 'cert.id',
+            fixedDirection: 'ASC',
+        );
+    }
+
+    // --- assessment -------------------------------------------------------
+
+    private function assessmentSummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = $this->attemptScope($criteria);
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(*)                                    AS attempts,
+                    COUNT(DISTINCT at.user_id)                  AS learners,
+                    COUNT(DISTINCT at.assessment_id)            AS assessments,
+                    COUNT(*) FILTER (WHERE at.passed)           AS passed,
+                    COUNT(*) FILTER (WHERE at.passed IS FALSE)  AS failed,
+                    -- Averages over graded attempts only: an abandoned
+                    -- attempt has no score, and counting it as nought turns
+                    -- a paper nobody finished into a paper everybody failed.
+                    ROUND(AVG(at.percentage) FILTER (WHERE at.percentage IS NOT NULL), 1) AS avg_score,
+                    ROUND(AVG(at.time_spent_seconds) FILTER (WHERE at.time_spent_seconds > 0))::int AS avg_seconds,
+                    COUNT(*) FILTER (WHERE at.status = 'in_progress') AS in_progress
+                 FROM attempts at
+                 JOIN users u ON u.id = at.user_id
+                 JOIN assessments a ON a.id = at.assessment_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row    = $row === false ? [] : $row;
+        $graded = (int) ($row['passed'] ?? 0) + (int) ($row['failed'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'attempts'    => (int) ($row['attempts'] ?? 0),
+                'learners'    => (int) ($row['learners'] ?? 0),
+                'assessments' => (int) ($row['assessments'] ?? 0),
+                'passed'      => (int) ($row['passed'] ?? 0),
+                'failed'      => (int) ($row['failed'] ?? 0),
+                // Over graded attempts, not over all of them.
+                'passRate'    => $this->percent((int) ($row['passed'] ?? 0), $graded),
+                'avgScore'    => $this->round($row['avg_score'] ?? null),
+                'avgSeconds'  => (int) ($row['avg_seconds'] ?? 0),
+                'inProgress'  => (int) ($row['in_progress'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function assessmentDetail(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = $this->attemptScope($criteria);
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('assessment', 'Assessment'),
+            ReportColumn::number('attemptNumber', 'Attempt'),
+            ReportColumn::number('score', 'Score'),
+            ReportColumn::percent('percentage', 'Percentage'),
+            ReportColumn::status('outcome', 'Outcome'),
+            ReportColumn::duration('seconds', 'Time taken'),
+            ReportColumn::date('submittedAt', 'Submitted'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM attempts at
+             JOIN users u ON u.id = at.user_id
+             JOIN assessments a ON a.id = at.assessment_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             a.title                                  AS assessment,
+             at.attempt_number                        AS \"attemptNumber\",
+             at.raw_score                             AS score,
+             at.percentage                            AS percentage,
+             CASE
+                 WHEN at.passed IS TRUE  THEN 'Passed'
+                 WHEN at.passed IS FALSE THEN 'Failed'
+                 ELSE 'Not marked'
+             END                                      AS outcome,
+             at.time_spent_seconds                    AS seconds,
+             at.submitted_at                          AS \"submittedAt\"",
+            'at.submitted_at',
+            tieBreak: 'at.id',
+        );
+    }
+
+    private function individualAssessment(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $learnerId = $criteria->scope->subjectId ?? $criteria->learnerId ?? '';
+
+        $person = $this->connection->fetchAssociative(
+            "SELECT trim(u.first_name || ' ' || u.last_name) AS name, u.email
+             FROM users u WHERE u.id = :id AND u.tenant_id = :tenant AND u.deleted_at IS NULL",
+            ['id' => $learnerId, 'tenant' => $criteria->scope->tenantId],
+        );
+
+        if ($person === false) {
+            return ReportResult::summary($definition, [], [], $criteria)
+                ->withNote('That person is not in this organisation.');
+        }
+
+        $q = ReportQuery::tenant($criteria, 'at')
+            ->where('at.user_id = :learnerId', 'learnerId', $learnerId);
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT a.title AS assessment, at.attempt_number AS \"attemptNumber\",
+                        at.raw_score AS score, at.percentage, a.passing_score AS \"passMark\",
+                        CASE
+                            WHEN at.passed IS TRUE  THEN 'Passed'
+                            WHEN at.passed IS FALSE THEN 'Failed'
+                            ELSE 'Not marked'
+                        END AS outcome,
+                        at.time_spent_seconds AS seconds,
+                        at.submitted_at AS \"submittedAt\"
+                 FROM attempts at
+                 JOIN assessments a ON a.id = at.assessment_id
+                 WHERE %s
+                 ORDER BY at.submitted_at DESC NULLS LAST, at.id",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $graded = array_filter($rows, static fn (array $r): bool => $r['outcome'] !== 'Not marked');
+        $passed = array_filter($rows, static fn (array $r): bool => $r['outcome'] === 'Passed');
+        $scores = array_filter(
+            array_map(static fn (array $r): mixed => $r['percentage'], $rows),
+            static fn (mixed $v): bool => $v !== null,
+        );
+
+        return new ReportResult(
+            definition: $definition,
+            columns: [
+                ReportColumn::text('assessment', 'Assessment'),
+                ReportColumn::number('attemptNumber', 'Attempt'),
+                ReportColumn::number('score', 'Score'),
+                ReportColumn::percent('percentage', 'Percentage'),
+                ReportColumn::number('passMark', 'Pass mark'),
+                ReportColumn::status('outcome', 'Outcome'),
+                ReportColumn::duration('seconds', 'Time taken'),
+                ReportColumn::date('submittedAt', 'Submitted'),
+            ],
+            rows: $this->normalise($rows),
+            totals: [
+                'learner'  => (string) $person['name'],
+                'email'    => (string) $person['email'],
+                'attempts' => count($rows),
+                'passed'   => count($passed),
+                'passRate' => $this->percent(count($passed), count($graded)),
+                'avgScore' => $scores === [] ? null : round(array_sum(array_map('floatval', $scores)) / count($scores), 1),
+                'bestScore' => $scores === [] ? null : round(max(array_map('floatval', $scores)), 1),
+            ],
+            criteria: $criteria,
+        );
+    }
+
+    private function failedAssessments(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = $this->attemptScope($criteria)->where('at.passed IS FALSE');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('assessment', 'Assessment'),
+            ReportColumn::number('attemptNumber', 'Attempt'),
+            ReportColumn::percent('percentage', 'Scored'),
+            ReportColumn::number('passMark', 'Needed'),
+            ReportColumn::number('shortBy', 'Short by'),
+            ReportColumn::date('submittedAt', 'Submitted'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM attempts at
+             JOIN users u ON u.id = at.user_id
+             JOIN assessments a ON a.id = at.assessment_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email                                  AS email,
+             a.title                                  AS assessment,
+             at.attempt_number                        AS \"attemptNumber\",
+             at.percentage                            AS percentage,
+             a.passing_score                          AS \"passMark\",
+             ROUND(a.passing_score - at.percentage, 1) AS \"shortBy\",
+             at.submitted_at                          AS \"submittedAt\"",
+            'at.submitted_at',
+            tieBreak: 'at.id',
+        );
+    }
+
+    private function questionAnalysis(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $assessmentId = $criteria->assessmentId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'aq')
+            ->where('aq.assessment_id = :assessmentId', 'assessmentId', $assessmentId);
+
+        $columns = [
+            ReportColumn::text('question', 'Question'),
+            ReportColumn::text('type', 'Type'),
+            ReportColumn::number('answered', 'Answered'),
+            ReportColumn::number('correct', 'Correct'),
+            ReportColumn::percent('correctRate', 'Correct rate'),
+            ReportColumn::status('verdict', 'Reads as'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM assessment_questions aq
+             JOIN questions qn ON qn.id = aq.question_id
+             LEFT JOIN attempt_answers aa ON aa.question_id = aq.question_id
+             LEFT JOIN attempts at ON at.id = aa.attempt_id AND at.assessment_id = aq.assessment_id',
+            $q,
+            "left(qn.text, 120)                          AS question,
+             qn.type                                     AS type,
+             COUNT(aa.id)                                AS answered,
+             COUNT(aa.id) FILTER (WHERE aa.is_correct)   AS correct,
+             ROUND(100.0 * COUNT(aa.id) FILTER (WHERE aa.is_correct)
+                   / NULLIF(COUNT(aa.id), 0), 1)         AS \"correctRate\",
+             -- The reason this report exists. A question everybody gets right
+             -- is not testing anything; one almost everybody gets wrong is
+             -- usually badly worded rather than hard.
+             CASE
+                 WHEN COUNT(aa.id) = 0 THEN 'Not yet answered'
+                 WHEN 100.0 * COUNT(aa.id) FILTER (WHERE aa.is_correct) / COUNT(aa.id) >= 95 THEN 'Too easy'
+                 WHEN 100.0 * COUNT(aa.id) FILTER (WHERE aa.is_correct) / COUNT(aa.id) <= 20 THEN 'Check the wording'
+                 ELSE 'Discriminating'
+             END                                         AS verdict",
+            'aq.id, qn.id, qn.text, qn.type',
+            '"correctRate" ASC NULLS LAST',
+        );
+    }
+
+    private function scoreDistribution(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = $this->attemptScope($criteria)->where('at.percentage IS NOT NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT width_bucket(at.percentage, 0, 100, 10) AS band, COUNT(*) AS total
+                 FROM attempts at
+                 JOIN users u ON u.id = at.user_id
+                 JOIN assessments a ON a.id = at.assessment_id
+                 WHERE %s
+                 GROUP BY band
+                 ORDER BY band',
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            // width_bucket puts exactly 100 into an eleventh bucket. It
+            // belongs in the top band, not in one of its own.
+            $band = min(10, max(1, (int) $row['band']));
+            $counts[$band] = ($counts[$band] ?? 0) + (int) $row['total'];
+        }
+
+        $total  = array_sum($counts);
+        $series = [];
+
+        for ($band = 1; $band <= 10; $band++) {
+            $count = $counts[$band] ?? 0;
+
+            $series[] = [
+                // Every band, including the empty ones: a distribution with
+                // gaps where nobody scored is a different picture from one
+                // drawn only through the bands that have somebody in them.
+                'label'   => sprintf('%d–%d%%', ($band - 1) * 10, $band * 10),
+                'value'   => $count,
+                'percent' => $this->percent($count, $total),
+            ];
+        }
+
+        return ReportResult::series($definition, $series, ['attempts' => $total], $criteria);
+    }
+
+    private function assessmentAttempts(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = $this->attemptScope($criteria);
+
+        $columns = [
+            ReportColumn::text('assessment', 'Assessment'),
+            ReportColumn::number('learners', 'Learners'),
+            ReportColumn::number('attempts', 'Attempts'),
+            ReportColumn::number('avgAttempts', 'Average attempts'),
+            ReportColumn::number('maxAllowed', 'Allowed'),
+            ReportColumn::number('exhausted', 'Out of attempts'),
+            ReportColumn::percent('passRate', 'Pass rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM attempts at
+             JOIN users u ON u.id = at.user_id
+             JOIN assessments a ON a.id = at.assessment_id',
+            $q,
+            "a.title                          AS assessment,
+             COUNT(DISTINCT at.user_id)       AS learners,
+             COUNT(*)                         AS attempts,
+             ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT at.user_id), 0), 1) AS \"avgAttempts\",
+             a.max_attempts                   AS \"maxAllowed\",
+             -- People who used every attempt and never passed. The figure
+             -- that says a paper is too hard or a cohort needs teaching.
+             COUNT(DISTINCT at.user_id) FILTER (
+                 WHERE a.max_attempts IS NOT NULL AND at.attempt_number >= a.max_attempts
+             )                                AS exhausted,
+             ROUND(100.0 * COUNT(*) FILTER (WHERE at.passed)
+                   / NULLIF(COUNT(*) FILTER (WHERE at.passed IS NOT NULL), 0), 1) AS \"passRate\"",
+            'a.id, a.title, a.max_attempts',
+            'attempts DESC',
+        );
+    }
+
+    private function topPerformers(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        return $this->performers($definition, $criteria, best: true);
+    }
+
+    private function strugglingLearners(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        return $this->performers($definition, $criteria, best: false);
+    }
+
+    /**
+     * Both ends of the same league table.
+     *
+     * One method because they are the same query ordered differently, and two
+     * copies is how they come to disagree about what counts as an attempt.
+     */
+    private function performers(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+        bool $best,
+    ): ReportResult {
+        $q = $this->attemptScope($criteria)
+            ->where('at.percentage IS NOT NULL')
+            // A single attempt is not a track record in either direction.
+            ->where('TRUE');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('attempts', 'Attempts'),
+            ReportColumn::percent('avgScore', 'Average score'),
+            ReportColumn::percent('bestScore', 'Best'),
+            ReportColumn::number('passed', 'Passed'),
+            ReportColumn::number('failed', 'Failed'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM attempts at
+             JOIN users u ON u.id = at.user_id
+             JOIN assessments a ON a.id = at.assessment_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name)      AS learner,
+             u.email                                       AS email,
+             d.name                                        AS department,
+             COUNT(*)                                      AS attempts,
+             ROUND(AVG(at.percentage), 1)                  AS \"avgScore\",
+             ROUND(MAX(at.percentage), 1)                  AS \"bestScore\",
+             COUNT(*) FILTER (WHERE at.passed)             AS passed,
+             COUNT(*) FILTER (WHERE at.passed IS FALSE)    AS failed",
+            'u.id, u.first_name, u.last_name, u.email, d.name',
+            $best
+                ? '"avgScore" DESC, passed DESC'
+                // Failures first, then the lowest average: someone who failed
+                // four times matters more than someone who scraped through.
+                : 'failed DESC, "avgScore" ASC',
+        );
+    }
+
+    private function proctoringViolations(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'v', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'v.occurred_at')
+            ->maybe($criteria->assessmentId, 'at.assessment_id = :assessmentId', 'assessmentId');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('assessment', 'Assessment'),
+            ReportColumn::text('type', 'Violation'),
+            ReportColumn::status('severity', 'Severity'),
+            ReportColumn::text('description', 'What was seen'),
+            ReportColumn::status('reviewStatus', 'Review'),
+            ReportColumn::date('occurredAt', 'When'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM proctoring_violations v
+             JOIN proctoring_sessions ps ON ps.id = v.session_id
+             JOIN attempts at ON at.id = ps.attempt_id
+             JOIN users u ON u.id = ps.user_id
+             JOIN assessments a ON a.id = at.assessment_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             a.title                                  AS assessment,
+             v.type                                   AS type,
+             v.severity                               AS severity,
+             v.description                            AS description,
+             v.review_status                          AS \"reviewStatus\",
+             v.occurred_at                            AS \"occurredAt\"",
+            'v.occurred_at',
+            tieBreak: 'v.id',
+        );
+    }
+
+    /**
+     * The scope shared by every assessment report.
+     *
+     * `submitted_at` rather than `started_at` for the date range: a report of
+     * "March results" means papers marked in March, and an attempt opened on
+     * the 31st and submitted in April is an April result.
+     */
+    private function attemptScope(ReportCriteria $criteria): ReportQuery
+    {
+        return ReportQuery::tenant($criteria, 'at', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'at.submitted_at')
+            ->maybe($criteria->assessmentId, 'at.assessment_id = :assessmentId', 'assessmentId')
+            ->maybe($criteria->courseId, 'a.course_id = :courseId', 'courseId')
+            ->where('a.deleted_at IS NULL');
+    }
+
+    // --- courses ----------------------------------------------------------
+
+    private function courseCatalog(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'c')
+            ->maybe($criteria->courseId, 'c.id = :courseId', 'courseId')
+            ->betweenDates($criteria, 'c.created_at')
+            ->where('c.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::text('category', 'Category'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::text('level', 'Level'),
+            ReportColumn::number('modules', 'Modules'),
+            ReportColumn::number('lessons', 'Lessons'),
+            ReportColumn::duration('durationSeconds', 'Length'),
+            ReportColumn::status('mandatory', 'Mandatory'),
+            ReportColumn::number('enrolled', 'Enrolled'),
+            ReportColumn::date('publishedAt', 'Published'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM courses c
+             LEFT JOIN lookups cat ON cat.id = c.category_id',
+            $q,
+            "c.title    AS course,
+             cat.name   AS category,
+             c.status   AS status,
+             c.level    AS level,
+             (SELECT COUNT(*) FROM course_modules m
+               WHERE m.course_id = c.id AND m.deleted_at IS NULL)  AS modules,
+             (SELECT COUNT(*) FROM lessons l
+               WHERE l.course_id = c.id AND l.deleted_at IS NULL)  AS lessons,
+             COALESCE(c.duration_minutes, 0) * 60                  AS \"durationSeconds\",
+             CASE WHEN c.is_mandatory THEN 'Mandatory' ELSE 'Optional' END AS mandatory,
+             (SELECT COUNT(*) FROM enrollments e
+               WHERE e.course_id = c.id AND e.deleted_at IS NULL
+                 AND e.status <> 'dropped')                        AS enrolled,
+             c.published_at AS \"publishedAt\"",
+            'c.title',
+            tieBreak: 'c.id',
+            fixedDirection: 'ASC',
+        );
+    }
+
+    private function courseEffectiveness(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status <> 'dropped'");
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::number('enrolled', 'Enrolled'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::number('avgScore', 'Average score'),
+            ReportColumn::duration('avgSeconds', 'Average time'),
+            ReportColumn::number('avgDays', 'Average days'),
+            ReportColumn::percent('dropRate', 'Drop rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title  AS course,
+             COUNT(*) AS enrolled,
+             ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1)                          AS \"completionRate\",
+             ROUND(AVG(e.final_score) FILTER (WHERE e.final_score IS NOT NULL), 1) AS \"avgScore\",
+             ROUND(AVG(e.time_spent_seconds) FILTER (WHERE e.status = 'completed'))::int AS \"avgSeconds\",
+             ROUND(AVG(EXTRACT(EPOCH FROM e.completed_at - e.enrolled_at) / 86400)
+                   FILTER (WHERE e.completed_at IS NOT NULL), 1)      AS \"avgDays\",
+             -- Dropped rows are excluded from the scope above, so the rate is
+             -- counted from the course rather than from this result set.
+             ROUND(100.0 * (SELECT COUNT(*) FROM enrollments dropped
+                             WHERE dropped.course_id = c.id
+                               AND dropped.deleted_at IS NULL
+                               AND dropped.status = 'dropped')
+                   / NULLIF((SELECT COUNT(*) FROM enrollments any_e
+                              WHERE any_e.course_id = c.id
+                                AND any_e.deleted_at IS NULL), 0), 1) AS \"dropRate\"",
+            'c.id, c.title',
+            'enrolled DESC',
+        );
+    }
+
+    private function courseUsage(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.last_activity_at')
+            ->where('e.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::number('learners', 'Learners'),
+            ReportColumn::number('active', 'Active in period'),
+            ReportColumn::duration('totalSeconds', 'Total time'),
+            ReportColumn::duration('avgSeconds', 'Average per learner'),
+            ReportColumn::date('lastActivityAt', 'Last touched'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title                                     AS course,
+             COUNT(DISTINCT e.user_id)                   AS learners,
+             COUNT(DISTINCT e.user_id) FILTER (
+                 WHERE e.last_activity_at > now() - interval '30 days'
+             )                                           AS active,
+             COALESCE(SUM(e.time_spent_seconds), 0)      AS \"totalSeconds\",
+             ROUND(AVG(e.time_spent_seconds))::int       AS \"avgSeconds\",
+             MAX(e.last_activity_at)                     AS \"lastActivityAt\"",
+            'c.id, c.title',
+            '"totalSeconds" DESC',
+        );
+    }
+
+    private function modulePerformance(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $courseId = $criteria->courseId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'm')
+            ->where('m.course_id = :courseId', 'courseId', $courseId)
+            ->where('m.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('module', 'Module'),
+            ReportColumn::number('position', 'Position'),
+            ReportColumn::number('lessons', 'Lessons'),
+            ReportColumn::number('started', 'Reached'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::duration('avgSeconds', 'Average time'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM course_modules m
+             LEFT JOIN lessons l ON l.module_id = m.id AND l.deleted_at IS NULL
+             LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id',
+            $q,
+            "m.title      AS module,
+             m.sort_order AS position,
+             COUNT(DISTINCT l.id) AS lessons,
+             -- Distinct people, not rows: a module of six lessons would
+             -- otherwise report six times its actual reach.
+             COUNT(DISTINCT lp.user_id)                                  AS started,
+             COUNT(DISTINCT lp.user_id) FILTER (WHERE lp.status = 'completed') AS completed,
+             ROUND(100.0 * COUNT(DISTINCT lp.user_id) FILTER (WHERE lp.status = 'completed')
+                   / NULLIF(COUNT(DISTINCT lp.user_id), 0), 1)           AS \"completionRate\",
+             ROUND(AVG(lp.time_spent_seconds))::int                      AS \"avgSeconds\"",
+            'm.id, m.title, m.sort_order',
+            'position ASC',
+        );
+    }
+
+    private function contentEngagement(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $courseId = $criteria->courseId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'l')
+            ->where('l.course_id = :courseId', 'courseId', $courseId)
+            ->where('l.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('lesson', 'Lesson'),
+            ReportColumn::text('module', 'Module'),
+            ReportColumn::text('contentType', 'Type'),
+            ReportColumn::number('viewers', 'Viewers'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::duration('avgSeconds', 'Average time'),
+            ReportColumn::duration('expectedSeconds', 'Expected'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM lessons l
+             LEFT JOIN course_modules m ON m.id = l.module_id
+             LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id',
+            $q,
+            "l.title        AS lesson,
+             m.title        AS module,
+             l.content_type AS \"contentType\",
+             COUNT(DISTINCT lp.user_id) AS viewers,
+             COUNT(DISTINCT lp.user_id) FILTER (WHERE lp.status = 'completed') AS completed,
+             ROUND(100.0 * COUNT(DISTINCT lp.user_id) FILTER (WHERE lp.status = 'completed')
+                   / NULLIF(COUNT(DISTINCT lp.user_id), 0), 1) AS \"completionRate\",
+             ROUND(AVG(lp.time_spent_seconds))::int            AS \"avgSeconds\",
+             -- Beside the actual time, so a lesson budgeted at ten minutes
+             -- that takes forty is visible without arithmetic.
+             COALESCE(l.duration_minutes, 0) * 60              AS \"expectedSeconds\"",
+            'l.id, l.title, m.title, l.content_type, l.duration_minutes, l.sort_order',
+            'l.sort_order ASC',
+        );
+    }
+
+    private function unusedCourses(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'c')
+            ->where('c.deleted_at IS NULL')
+            ->where("c.status = 'published'")
+            ->where(
+                "NOT EXISTS (
+                    SELECT 1 FROM enrollments e
+                    WHERE e.course_id = c.id AND e.deleted_at IS NULL AND e.status <> 'dropped'
+                 )",
+            );
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::text('category', 'Category'),
+            ReportColumn::number('lessons', 'Lessons'),
+            ReportColumn::date('publishedAt', 'Published'),
+            ReportColumn::number('daysPublished', 'Days published'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM courses c
+             LEFT JOIN lookups cat ON cat.id = c.category_id',
+            $q,
+            "c.title  AS course,
+             cat.name AS category,
+             (SELECT COUNT(*) FROM lessons l
+               WHERE l.course_id = c.id AND l.deleted_at IS NULL) AS lessons,
+             c.published_at AS \"publishedAt\",
+             EXTRACT(DAY FROM now() - c.published_at)::int        AS \"daysPublished\"",
+            'c.published_at',
+            tieBreak: 'c.id',
+            fixedDirection: 'ASC',
+        );
+    }
+
+    // --- people -----------------------------------------------------------
+
+    private function activeUsers(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where("u.status = 'active'")
+            ->where(
+                'u.last_login_at IS NOT NULL'
+                . ($criteria->from !== null ? ' AND u.last_login_at >= :activeSince' : ''),
+                $criteria->from !== null ? 'activeSince' : null,
+                $criteria->from?->format('Y-m-d H:i:s.uP'),
+            );
+
+        $columns = [
+            ReportColumn::text('name', 'Name'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::date('lastLoginAt', 'Last signed in'),
+            ReportColumn::number('logins', 'Sign-ins'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::duration('seconds', 'Time spent'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS name,
+             u.email          AS email,
+             d.name           AS department,
+             u.last_login_at  AS \"lastLoginAt\",
+             u.login_count    AS logins,
+             (SELECT COUNT(*) FROM enrollments e
+               WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status <> 'dropped') AS enrolments,
+             (SELECT COUNT(*) FROM enrollments e
+               WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status = 'completed') AS completed,
+             (SELECT COALESCE(SUM(e.time_spent_seconds), 0) FROM enrollments e
+               WHERE e.user_id = u.id AND e.deleted_at IS NULL) AS seconds",
+            'u.last_login_at',
+            tieBreak: 'u.id',
+        );
+    }
+
+    private function inactiveUsers(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $days = max(1, min(3650, (int) ($criteria->filters['inactiveDays'] ?? 60)));
+
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where("u.status = 'active'")
+            // Never signed in counts. Those are the accounts most worth
+            // chasing, and a plain `last_login_at < …` drops every one of
+            // them because NULL fails the comparison.
+            ->where(
+                '(u.last_login_at IS NULL OR u.last_login_at < now() - make_interval(days => :dormantDays))',
+                'dormantDays',
+                $days,
+            );
+
+        $columns = [
+            ReportColumn::text('name', 'Name'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::date('lastLoginAt', 'Last signed in'),
+            ReportColumn::number('daysDormant', 'Days dormant'),
+            ReportColumn::number('outstanding', 'Outstanding training'),
+            ReportColumn::date('createdAt', 'Joined'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS name,
+             u.email         AS email,
+             d.name          AS department,
+             u.last_login_at AS \"lastLoginAt\",
+             EXTRACT(DAY FROM now() - COALESCE(u.last_login_at, u.created_at))::int AS \"daysDormant\",
+             (SELECT COUNT(*) FROM enrollments e
+               WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                 AND e.status IN ('not_started', 'in_progress'))  AS outstanding,
+             u.created_at    AS \"createdAt\"",
+            'COALESCE(u.last_login_at, u.created_at)',
+            tieBreak: 'u.id',
+            fixedDirection: 'ASC',
+        );
+    }
+
+    private function newUsers(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'u.created_at')
+            ->where('u.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('name', 'Name'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::date('createdAt', 'Joined'),
+            ReportColumn::status('signedIn', 'Signed in yet'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::number('completed', 'Completed'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS name,
+             u.email      AS email,
+             d.name       AS department,
+             u.created_at AS \"createdAt\",
+             -- The number that matters about a joiner: whether onboarding
+             -- actually reached them.
+             CASE WHEN u.last_login_at IS NULL THEN 'Not yet' ELSE 'Yes' END AS \"signedIn\",
+             (SELECT COUNT(*) FROM enrollments e
+               WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status <> 'dropped') AS enrolments,
+             (SELECT COUNT(*) FROM enrollments e
+               WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status = 'completed') AS completed",
+            'u.created_at',
+            tieBreak: 'u.id',
+        );
+    }
+
+    private function userActivitySummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL');
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(*)                                              AS people,
+                    COUNT(*) FILTER (WHERE u.status = 'active')           AS active,
+                    COUNT(*) FILTER (WHERE u.last_login_at IS NULL)       AS never_signed_in,
+                    COUNT(*) FILTER (WHERE u.last_login_at > now() - interval '30 days') AS active_30d,
+                    COUNT(*) FILTER (WHERE u.created_at > now() - interval '30 days')    AS joined_30d
+                 FROM users u
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        // Enrolment figures come from their own scope, so the two never
+        // disagree about which people are in view.
+        $eq = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status <> 'dropped'");
+
+        $enrolments = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(*) AS total,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        COALESCE(SUM(e.time_spent_seconds), 0)         AS seconds
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 WHERE %s",
+                $eq->sql(),
+            ),
+            $eq->params(),
+            $eq->types(),
+        );
+
+        $row        = $row === false ? [] : $row;
+        $enrolments = $enrolments === false ? [] : $enrolments;
+        $people     = (int) ($row['people'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'people'         => $people,
+                'active'         => (int) ($row['active'] ?? 0),
+                'neverSignedIn'  => (int) ($row['never_signed_in'] ?? 0),
+                'activeLast30'   => (int) ($row['active_30d'] ?? 0),
+                'joinedLast30'   => (int) ($row['joined_30d'] ?? 0),
+                'enrolments'     => (int) ($enrolments['total'] ?? 0),
+                'completed'      => (int) ($enrolments['completed'] ?? 0),
+                'completionRate' => $this->percent(
+                    (int) ($enrolments['completed'] ?? 0),
+                    (int) ($enrolments['total'] ?? 0),
+                ),
+                'totalSeconds'   => (int) ($enrolments['seconds'] ?? 0),
+                'avgPerPerson'   => $people === 0
+                    ? 0
+                    : (int) round((int) ($enrolments['seconds'] ?? 0) / $people),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function departmentTraining(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where("u.status = 'active'");
+
+        $columns = [
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('people', 'People'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::duration('totalSeconds', 'Total time'),
+            ReportColumn::number('neverSignedIn', 'Never signed in'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN enrollments e ON e.user_id = u.id
+                  AND e.deleted_at IS NULL AND e.status <> \'dropped\'',
+            $q,
+            "COALESCE(d.name, 'Unassigned') AS department,
+             COUNT(DISTINCT u.id)           AS people,
+             COUNT(e.id)                    AS enrolments,
+             COUNT(e.id) FILTER (WHERE e.status = 'completed') AS completed,
+             ROUND(100.0 * COUNT(e.id) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(e.id), 0), 1)               AS \"completionRate\",
+             COALESCE(SUM(e.time_spent_seconds), 0)           AS \"totalSeconds\",
+             COUNT(DISTINCT u.id) FILTER (WHERE u.last_login_at IS NULL) AS \"neverSignedIn\"",
+            'd.id, d.name',
+            'people DESC',
+        );
+    }
+
+    private function roleBasedTraining(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where("u.status = 'active'");
+
+        $columns = [
+            ReportColumn::text('role', 'Role'),
+            ReportColumn::number('people', 'People'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::number('overdue', 'Overdue'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN user_roles ur ON ur.user_id = u.id
+             LEFT JOIN roles r ON r.id = ur.role_id
+             LEFT JOIN enrollments e ON e.user_id = u.id
+                  AND e.deleted_at IS NULL AND e.status <> 'dropped'",
+            $q,
+            "COALESCE(r.name, 'No role') AS role,
+             COUNT(DISTINCT u.id)        AS people,
+             COUNT(e.id)                 AS enrolments,
+             COUNT(e.id) FILTER (WHERE e.status = 'completed') AS completed,
+             ROUND(100.0 * COUNT(e.id) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(e.id), 0), 1)               AS \"completionRate\",
+             COUNT(e.id) FILTER (WHERE e.status <> 'completed'
+                                   AND e.due_date IS NOT NULL
+                                   AND e.due_date < CURRENT_DATE) AS overdue",
+            'r.id, r.name',
+            'people DESC',
+        );
+    }
+
+    // --- time and engagement ----------------------------------------------
+
+    private function timeSpent(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.last_activity_at')
+            ->where('e.deleted_at IS NULL')
+            ->where('e.time_spent_seconds > 0');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('courses', 'Courses'),
+            ReportColumn::duration('totalSeconds', 'Total time'),
+            ReportColumn::duration('avgSeconds', 'Average per course'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::date('lastActivityAt', 'Last active'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name                                   AS department,
+             COUNT(DISTINCT e.course_id)              AS courses,
+             SUM(e.time_spent_seconds)                AS \"totalSeconds\",
+             ROUND(AVG(e.time_spent_seconds))::int    AS \"avgSeconds\",
+             COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+             MAX(e.last_activity_at)                  AS \"lastActivityAt\"",
+            'u.id, u.first_name, u.last_name, d.name',
+            '"totalSeconds" DESC',
+        );
+    }
+
+    private function peakUsage(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'lp', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'lp.last_activity_at')
+            ->where('lp.last_activity_at IS NOT NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT EXTRACT(HOUR FROM lp.last_activity_at)::int AS hour,
+                        COUNT(*) AS total
+                 FROM lesson_progress lp
+                 JOIN users u ON u.id = lp.user_id
+                 WHERE %s
+                 GROUP BY hour',
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $byHour = [];
+
+        foreach ($rows as $row) {
+            $byHour[(int) $row['hour']] = (int) $row['total'];
+        }
+
+        $total  = array_sum($byHour);
+        $series = [];
+
+        // All twenty-four, including the quiet ones. A chart drawn only
+        // through the hours that had activity has no shape.
+        for ($hour = 0; $hour < 24; $hour++) {
+            $series[] = [
+                'label'   => sprintf('%02d:00', $hour),
+                'value'   => $byHour[$hour] ?? 0,
+                'percent' => $this->percent($byHour[$hour] ?? 0, $total),
+            ];
+        }
+
+        $peak = $byHour === [] ? null : array_search(max($byHour), $byHour, true);
+
+        return ReportResult::series(
+            $definition,
+            $series,
+            [
+                'events'   => $total,
+                'peakHour' => $peak === null || $peak === false ? null : sprintf('%02d:00', $peak),
+            ],
+            $criteria,
+        );
+    }
+
+    private function sessionDuration(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $courseId = $criteria->courseId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'lp', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('l.course_id = :courseId', 'courseId', $courseId)
+            ->where('lp.time_spent_seconds > 0');
+
+        $columns = [
+            ReportColumn::text('lesson', 'Lesson'),
+            ReportColumn::number('learners', 'Learners'),
+            ReportColumn::duration('avgSeconds', 'Average'),
+            ReportColumn::duration('medianSeconds', 'Median'),
+            ReportColumn::duration('expectedSeconds', 'Expected'),
+            ReportColumn::percent('overrun', 'Over expected by'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM lesson_progress lp
+             JOIN lessons l ON l.id = lp.lesson_id
+             JOIN users u ON u.id = lp.user_id',
+            $q,
+            "l.title                                  AS lesson,
+             COUNT(DISTINCT lp.user_id)               AS learners,
+             ROUND(AVG(lp.time_spent_seconds))::int   AS \"avgSeconds\",
+             PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lp.time_spent_seconds)::int AS \"medianSeconds\",
+             COALESCE(l.duration_minutes, 0) * 60     AS \"expectedSeconds\",
+             -- Negative means faster than budgeted, which is as useful to see
+             -- as the overruns.
+             ROUND(100.0 * (AVG(lp.time_spent_seconds) - COALESCE(l.duration_minutes, 0) * 60)
+                   / NULLIF(COALESCE(l.duration_minutes, 0) * 60, 0), 1) AS overrun",
+            'l.id, l.title, l.duration_minutes, l.sort_order',
+            'l.sort_order ASC',
+        );
+    }
+
+    private function engagementScore(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where("u.status = 'active'");
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('score', 'Engagement'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::percent('avgProgress', 'Average progress'),
+            ReportColumn::duration('totalSeconds', 'Time spent'),
+            ReportColumn::number('daysSinceActive', 'Days since active'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN enrollments e ON e.user_id = u.id
+                  AND e.deleted_at IS NULL AND e.status <> 'dropped'",
+            $q,
+            // Three parts out of a hundred: how recently they were here, how
+            // far through their courses they are, and how much time they have
+            // put in. Written out rather than hidden behind a magic number,
+            // because anyone reading the column will want to know what it
+            // means before they act on it.
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             LEAST(100, GREATEST(0, ROUND(
+                 -- Recency, up to 40.
+                 GREATEST(0, 40 - COALESCE(EXTRACT(DAY FROM now() - MAX(e.last_activity_at))::int, 90) * 1.0)
+                 -- Progress, up to 40.
+                 + COALESCE(AVG(e.progress_percentage), 0) * 0.4
+                 -- Time, up to 20: one point per hour, capped.
+                 + LEAST(20, COALESCE(SUM(e.time_spent_seconds), 0) / 3600.0)
+             )))::int AS score,
+             COUNT(e.id)                            AS enrolments,
+             ROUND(AVG(e.progress_percentage), 1)   AS \"avgProgress\",
+             COALESCE(SUM(e.time_spent_seconds), 0) AS \"totalSeconds\",
+             EXTRACT(DAY FROM now() - MAX(e.last_activity_at))::int AS \"daysSinceActive\"",
+            'u.id, u.first_name, u.last_name, d.name',
+            'score DESC',
+        );
+    }
+
+    private function activityReport(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'lp', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'lp.last_activity_at')
+            ->where('lp.last_activity_at IS NOT NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT to_char(date_trunc('day', lp.last_activity_at), 'YYYY-MM-DD') AS period,
+                        COUNT(*)                       AS events,
+                        COUNT(DISTINCT lp.user_id)     AS learners,
+                        COALESCE(SUM(lp.time_spent_seconds), 0) AS seconds
+                 FROM lesson_progress lp
+                 JOIN users u ON u.id = lp.user_id
+                 WHERE %s
+                 GROUP BY 1
+                 ORDER BY 1",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                static fn (array $r): array => [
+                    'label'    => (string) $r['period'],
+                    'value'    => (int) $r['events'],
+                    'learners' => (int) $r['learners'],
+                    'seconds'  => (int) $r['seconds'],
+                ],
+                $rows,
+            ),
+            [
+                'days'    => count($rows),
+                'events'  => array_sum(array_map(static fn (array $r): int => (int) $r['events'], $rows)),
+                'seconds' => array_sum(array_map(static fn (array $r): int => (int) $r['seconds'], $rows)),
+            ],
+            $criteria,
+        );
+    }
+
+    private function platformUsage(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.last_activity_at')
+            ->where('e.deleted_at IS NULL');
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(DISTINCT e.user_id)              AS learners,
+                    COUNT(DISTINCT e.course_id)            AS courses,
+                    COALESCE(SUM(e.time_spent_seconds), 0) AS seconds,
+                    COUNT(*)                               AS enrolments,
+                    COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                    COUNT(DISTINCT e.user_id) FILTER (
+                        WHERE e.last_activity_at > now() - interval '7 days'
+                    ) AS active_7d,
+                    COUNT(DISTINCT e.user_id) FILTER (
+                        WHERE e.last_activity_at > now() - interval '30 days'
+                    ) AS active_30d
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row      = $row === false ? [] : $row;
+        $learners = (int) ($row['learners'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'learners'      => $learners,
+                'courses'       => (int) ($row['courses'] ?? 0),
+                'enrolments'    => (int) ($row['enrolments'] ?? 0),
+                'completed'     => (int) ($row['completed'] ?? 0),
+                'totalSeconds'  => (int) ($row['seconds'] ?? 0),
+                'avgPerLearner' => $learners === 0
+                    ? 0
+                    : (int) round((int) ($row['seconds'] ?? 0) / $learners),
+                'activeLast7'   => (int) ($row['active_7d'] ?? 0),
+                'activeLast30'  => (int) ($row['active_30d'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    // --- certificates -----------------------------------------------------
+
+    private function certificatesIssued(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'cert', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'cert.issued_at')
+            ->maybe($criteria->courseId, 'cert.course_id = :courseId', 'courseId');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('number', 'Number'),
+            ReportColumn::text('title', 'For'),
+            ReportColumn::text('source', 'Earned through'),
+            ReportColumn::percent('percentage', 'Score'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::date('issuedAt', 'Issued'),
+            ReportColumn::date('validUntil', 'Valid until'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificates cert
+             JOIN users u ON u.id = cert.user_id',
+            $q,
+            "cert.learner_name AS learner,
+             cert.number       AS number,
+             cert.title        AS title,
+             cert.source       AS source,
+             cert.percentage   AS percentage,
+             cert.status       AS status,
+             cert.issued_at    AS \"issuedAt\",
+             cert.valid_until  AS \"validUntil\"",
+            'cert.issued_at',
+            tieBreak: 'cert.id',
+        );
+    }
+
+    private function verificationLog(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'ev')
+            ->betweenDates($criteria, 'ev.created_at')
+            ->where("ev.action = 'verified'");
+
+        $columns = [
+            ReportColumn::text('number', 'Certificate'),
+            ReportColumn::text('learner', 'Holder'),
+            ReportColumn::text('title', 'For'),
+            ReportColumn::number('checks', 'Times checked'),
+            ReportColumn::date('firstCheckedAt', 'First checked'),
+            ReportColumn::date('lastCheckedAt', 'Last checked'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificate_events ev
+             JOIN certificates cert ON cert.id = ev.certificate_id',
+            $q,
+            // Grouped rather than listed row by row: the useful signal is a
+            // certificate being checked unusually often, not each individual
+            // check. Verifier details are deliberately not shown — the
+            // employer checking a credential is not the subject of a report.
+            'cert.number       AS number,
+             cert.learner_name AS learner,
+             cert.title        AS title,
+             COUNT(*)          AS checks,
+             MIN(ev.created_at) AS "firstCheckedAt",
+             MAX(ev.created_at) AS "lastCheckedAt"',
+            'cert.id, cert.number, cert.learner_name, cert.title',
+            'checks DESC',
+        );
+    }
+
+    private function expiringCertificates(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        return $this->certificationExpiry($definition, $criteria);
+    }
+
+    private function reprintHistory(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'ev')
+            ->betweenDates($criteria, 'ev.created_at')
+            ->where("ev.action <> 'verified'");
+
+        $columns = [
+            ReportColumn::text('number', 'Certificate'),
+            ReportColumn::text('learner', 'Holder'),
+            ReportColumn::status('action', 'What happened'),
+            ReportColumn::text('actor', 'By'),
+            ReportColumn::text('notes', 'Notes'),
+            ReportColumn::date('at', 'When'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificate_events ev
+             JOIN certificates cert ON cert.id = ev.certificate_id
+             LEFT JOIN users actor ON actor.id = ev.actor_id',
+            $q,
+            "cert.number       AS number,
+             cert.learner_name AS learner,
+             ev.action         AS action,
+             NULLIF(trim(COALESCE(actor.first_name, '') || ' ' || COALESCE(actor.last_name, '')), '') AS actor,
+             ev.notes          AS notes,
+             ev.created_at     AS at",
+            'ev.created_at',
+            tieBreak: 'ev.id',
+        );
+    }
+
+    private function templateUsage(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 't')
+            ->where('t.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('template', 'Template'),
+            ReportColumn::status('isDefault', 'Default'),
+            ReportColumn::number('issued', 'Certificates issued'),
+            ReportColumn::number('active', 'Still valid'),
+            ReportColumn::date('firstUsedAt', 'First used'),
+            ReportColumn::date('lastUsedAt', 'Last used'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificate_templates t
+             LEFT JOIN certificates cert ON cert.template_id = t.id',
+            $q,
+            // Counted from the certificates, not from a `usage_count` column
+            // maintained by a trigger — which is what the legacy had, and the
+            // least visible form of a stored derived value.
+            "t.name AS template,
+             CASE WHEN t.is_default THEN 'Default' ELSE '' END AS \"isDefault\",
+             COUNT(cert.id)                                    AS issued,
+             COUNT(cert.id) FILTER (WHERE cert.status = 'active') AS active,
+             MIN(cert.issued_at)                               AS \"firstUsedAt\",
+             MAX(cert.issued_at)                               AS \"lastUsedAt\"",
+            't.id, t.name, t.is_default',
+            'issued DESC',
+        );
+    }
+
+    // --- executive --------------------------------------------------------
+
+    private function executiveDashboard(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $eq = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL');
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT
+                    COUNT(*) FILTER (WHERE e.status <> 'dropped')  AS enrolments,
+                    COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                    COUNT(DISTINCT e.user_id)                      AS learners,
+                    COUNT(DISTINCT e.course_id)                    AS courses,
+                    COALESCE(SUM(e.time_spent_seconds), 0)         AS seconds,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed'
+                                       AND e.status <> 'dropped'
+                                       AND e.due_date IS NOT NULL
+                                       AND e.due_date < CURRENT_DATE) AS overdue,
+                    COUNT(*) FILTER (WHERE " . self::MANDATORY . "
+                                       AND e.status <> 'dropped')  AS mandatory,
+                    COUNT(*) FILTER (WHERE " . self::MANDATORY . "
+                                       AND e.status = 'completed') AS mandatory_done,
+                    COUNT(*) FILTER (WHERE e.completed_at > now() - interval '30 days') AS completed_30d
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $eq->sql(),
+            ),
+            $eq->params(),
+            $eq->types(),
+        );
+
+        $uq = ReportQuery::tenant($criteria, 'u', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL');
+
+        $people = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(*) FILTER (WHERE u.status = 'active') AS active,
+                        COUNT(*) FILTER (WHERE u.last_login_at > now() - interval '30 days') AS active_30d
+                 FROM users u WHERE %s",
+                $uq->sql(),
+            ),
+            $uq->params(),
+            $uq->types(),
+        );
+
+        $cq = ReportQuery::tenant($criteria, 'cert', 'u')->withScopeFilters($criteria, 'u');
+
+        $certificates = (int) $this->connection->fetchOne(
+            sprintf(
+                "SELECT COUNT(*) FROM certificates cert
+                 JOIN users u ON u.id = cert.user_id
+                 WHERE %s AND cert.status = 'active'",
+                $cq->sql(),
+            ),
+            $cq->params(),
+            $cq->types(),
+        );
+
+        $row       = $row === false ? [] : $row;
+        $people    = $people === false ? [] : $people;
+        $enrolled  = (int) ($row['enrolments'] ?? 0);
+        $mandatory = (int) ($row['mandatory'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'people'          => (int) ($people['active'] ?? 0),
+                'activeLast30'    => (int) ($people['active_30d'] ?? 0),
+                'learners'        => (int) ($row['learners'] ?? 0),
+                'courses'         => (int) ($row['courses'] ?? 0),
+                'enrolments'      => $enrolled,
+                'completed'       => (int) ($row['completed'] ?? 0),
+                'completionRate'  => $this->percent((int) ($row['completed'] ?? 0), $enrolled),
+                'completedLast30' => (int) ($row['completed_30d'] ?? 0),
+                'overdue'         => (int) ($row['overdue'] ?? 0),
+                'complianceRate'  => $this->percent((int) ($row['mandatory_done'] ?? 0), $mandatory),
+                'certificates'    => $certificates,
+                'totalSeconds'    => (int) ($row['seconds'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function monthlyTraining(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT to_char(date_trunc('month', e.enrolled_at), 'YYYY-MM') AS period,
+                        COUNT(*)                                       AS enrolled,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        COUNT(DISTINCT e.user_id)                      AS learners,
+                        COALESCE(SUM(e.time_spent_seconds), 0)         AS seconds
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 GROUP BY 1
+                 ORDER BY 1",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                fn (array $r): array => [
+                    'label'     => (string) $r['period'],
+                    'value'     => (int) $r['enrolled'],
+                    'completed' => (int) $r['completed'],
+                    'learners'  => (int) $r['learners'],
+                    'seconds'   => (int) $r['seconds'],
+                    'completionRate' => $this->percent((int) $r['completed'], (int) $r['enrolled']),
+                ],
+                $rows,
+            ),
+            ['months' => count($rows)],
+            $criteria,
+        );
+    }
+
+    private function yearOverYear(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.enrolled_at >= date_trunc('year', now()) - interval '1 year'");
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT EXTRACT(YEAR FROM e.enrolled_at)::int  AS year,
+                        COUNT(*)                                       AS enrolled,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        COUNT(DISTINCT e.user_id)                      AS learners,
+                        COALESCE(SUM(e.time_spent_seconds), 0)         AS seconds,
+                        ROUND(AVG(e.final_score) FILTER (WHERE e.final_score IS NOT NULL), 1) AS avg_score
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 GROUP BY 1
+                 ORDER BY 1",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $byYear = [];
+
+        foreach ($rows as $row) {
+            $byYear[(int) $row['year']] = $row;
+        }
+
+        $thisYear = (int) date('Y');
+        $lastYear = $thisYear - 1;
+
+        $measures = [
+            'Enrolments'      => 'enrolled',
+            'Completions'     => 'completed',
+            'Learners'        => 'learners',
+            'Hours'           => 'seconds',
+            'Average score'   => 'avg_score',
+        ];
+
+        $out = [];
+
+        foreach ($measures as $label => $column) {
+            $now  = (float) ($byYear[$thisYear][$column] ?? 0);
+            $then = (float) ($byYear[$lastYear][$column] ?? 0);
+
+            if ($column === 'seconds') {
+                $now  = round($now / 3600, 1);
+                $then = round($then / 3600, 1);
+            }
+
+            $out[] = [
+                'measure'  => $label,
+                'thisYear' => $now,
+                'lastYear' => $then,
+                'change'   => round($now - $then, 1),
+                // Null rather than nought when there is nothing to compare
+                // against: "no change" and "no previous year" are different
+                // answers and a nought would read as the first.
+                'changePercent' => $then === 0.0 ? null : round(100 * ($now - $then) / $then, 1),
+            ];
+        }
+
+        return new ReportResult(
+            definition: $definition,
+            columns: [
+                ReportColumn::text('measure', 'Measure'),
+                ReportColumn::number('thisYear', (string) $thisYear),
+                ReportColumn::number('lastYear', (string) $lastYear),
+                ReportColumn::number('change', 'Change'),
+                ReportColumn::percent('changePercent', 'Change %'),
+            ],
+            rows: $out,
+            total: count($out),
+            criteria: $criteria,
+        );
+    }
+
+    // --- shared plumbing --------------------------------------------------
+
+    /**
+     * A paginated table: one count, one page.
+     *
+     * @param list<ReportColumn> $columns
+     */
+    private function paginated(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+        array $columns,
+        string $from,
+        ReportQuery $q,
+        string $select,
+        string $orderColumn,
+        string $tieBreak = 'e.id',
+        ?string $fixedDirection = null,
+    ): ReportResult {
+        $total = (int) $this->connection->fetchOne(
+            sprintf('SELECT COUNT(*) %s WHERE %s', $from, $q->sql()),
+            $q->params(),
+            $q->types(),
+        );
+
+        // Every page ends with a unique column. Without a tiebreaker, rows
+        // that tie on the sort column come back in whatever order the planner
+        // chose that time, so paging through a report shows one row twice and
+        // misses another — the kind of wrong that looks like missing data.
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s %s WHERE %s ORDER BY %s %s NULLS LAST, %s LIMIT :limit OFFSET :offset',
+                $select,
+                $from,
+                $q->sql(),
+                $orderColumn,
+                $fixedDirection ?? $criteria->sortOrder(),
+                $tieBreak,
+            ),
+            $q->paramsWith(['limit' => $criteria->perPage, 'offset' => $criteria->offset()]),
+            $q->types(),
+        );
+
+        return ReportResult::table($definition, $columns, $this->normalise($rows), $total, $criteria);
+    }
+
+    /**
+     * A grouped table, paginated over the groups.
+     *
+     * @param list<ReportColumn> $columns
+     */
+    private function grouped(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+        array $columns,
+        string $from,
+        ReportQuery $q,
+        string $select,
+        string $groupBy,
+        string $orderBy,
+    ): ReportResult {
+        $total = (int) $this->connection->fetchOne(
+            sprintf(
+                'SELECT COUNT(*) FROM (SELECT 1 %s WHERE %s GROUP BY %s) AS groups',
+                $from,
+                $q->sql(),
+                $groupBy,
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s %s WHERE %s GROUP BY %s ORDER BY %s, %s LIMIT :limit OFFSET :offset',
+                $select,
+                $from,
+                $q->sql(),
+                $groupBy,
+                $orderBy,
+                // The group key is unique by definition, so it is the
+                // tiebreaker that keeps paging stable.
+                $groupBy,
+            ),
+            $q->paramsWith(['limit' => $criteria->perPage, 'offset' => $criteria->offset()]),
+            $q->types(),
+        );
+
+        return ReportResult::table($definition, $columns, $this->normalise($rows), $total, $criteria);
+    }
+
+    /**
+     * Numbers come back from PDO as strings; a report is mostly numbers.
+     *
+     * Left as strings they serialise into JSON quoted, and every client has to
+     * remember to coerce before it can sort a column or draw a bar.
+     *
+     * @param  list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function normalise(array $rows): array
+    {
+        return array_map(
+            static function (array $row): array {
+                foreach ($row as $key => $value) {
+                    if (is_string($value) && is_numeric($value)) {
+                        $row[$key] = str_contains($value, '.') ? (float) $value : (int) $value;
+                    }
+                }
+
+                return $row;
+            },
+            $rows,
+        );
+    }
+
+    private function percent(int $part, int $whole): float
+    {
+        return $whole === 0 ? 0.0 : round(100 * $part / $whole, 1);
+    }
+
+    private function round(mixed $value): ?float
+    {
+        return $value === null ? null : round((float) $value, 1);
+    }
+
+    private function humanise(string $value): string
+    {
+        return ucfirst(str_replace('_', ' ', $value));
+    }
+
+    // --- scope ------------------------------------------------------------
+
+    public function selectableLearners(ReportScope $scope, ?string $search, int $page, int $perPage): array
+    {
+        $where  = ['u.tenant_id = :tenant', 'u.deleted_at IS NULL'];
+        $params = ['tenant' => $scope->tenantId];
+
+        if (!$scope->tenantWide) {
+            $where[]            = '(u.id = :viewerId OR u.manager_id = :viewerId)';
+            $params['viewerId'] = $scope->viewerId;
+        }
+
+        if ($search !== null && trim($search) !== '') {
+            $where[]          = "(u.first_name || ' ' || u.last_name ILIKE :search OR u.email ILIKE :search)";
+            $params['search'] = '%' . trim($search) . '%';
+        }
+
+        $clause = implode(' AND ', $where);
+
+        $total = (int) $this->connection->fetchOne(
+            sprintf('SELECT COUNT(*) FROM users u WHERE %s', $clause),
+            $params,
+        );
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT u.id, trim(u.first_name || ' ' || u.last_name) AS name, u.email,
+                        d.name AS department
+                 FROM users u
+                 LEFT JOIN lookups d ON d.id = u.department_id
+                 WHERE %s
+                 ORDER BY u.first_name, u.last_name
+                 LIMIT :limit OFFSET :offset",
+                $clause,
+            ),
+            [...$params, 'limit' => $perPage, 'offset' => ($page - 1) * $perPage],
+        );
+
+        return ['items' => $rows, 'total' => $total];
+    }
+
+    public function scopeCovers(ReportScope $scope, string $userId): bool
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT u.manager_id FROM users u
+             WHERE u.id = :id AND u.tenant_id = :tenant AND u.deleted_at IS NULL',
+            ['id' => $userId, 'tenant' => $scope->tenantId],
+        );
+
+        // Not in the tenant at all. Reported as "not covered" rather than as a
+        // separate answer, so probing ids cannot distinguish "no such person"
+        // from "not yours".
+        if ($row === false) {
+            return false;
+        }
+
+        return $scope->covers($userId, $row['manager_id'] === null ? null : (string) $row['manager_id']);
+    }
+}

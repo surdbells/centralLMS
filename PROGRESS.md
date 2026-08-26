@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue, enrolments, assessments, ILT, certificates and notifications complete. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | The backend is built. Every module ported, tested and running. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — reporting remains |
-| **API quality gate** | ✅ 418 unit + 229 integration tests / 1,762 assertions · PHPStan level 8 clean · 0 style errors · 503 live checks |
+| **Blocking the next slice** | Nothing — the API is feature-complete against what the legacy actually had |
+| **API quality gate** | ✅ 472 unit + 271 integration tests / 2,583 assertions · PHPStan level 8 clean · 0 style errors · 583 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -23,6 +23,7 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 | --- | --- | --- | --- |
 | 0 | 🔴 **Authentication is bypassed on the entire legacy API.** `Database::verify_user()` hardcodes `return 100`; every caller checks `!= 100`, so the check never fails. 248 live files. Also SQL-injectable on `user_id`. → **Fix written and tested: [`infra/legacy-bridge/`](infra/legacy-bridge/README.md). Awaiting deployment to the live host.** | — | 🟡 ready to deploy |
 | 0b | 🔴 **Cross-tenant data leak in the live reference-data endpoints.** `dictionary/*/list.php` runs `SELECT * FROM branches` with no tenant filter, and `Branches::update()` / `setStatus()` run `WHERE branch_id = ?` with no tenant column — so any caller can read every organisation's structure and edit or deactivate another's records by id. Affects branches, departments, job titles, levels, teams. Only the `active` dropdown query is scoped. Fixed in the new API; **the live PHP still has it.** | — | ⬜ |
+| 0c | 🔴 **The reporting API trusts the caller for which organisation to report on.** `api/reports.php` reads `tenant_id` straight from the request body and passes it to `setTenant()`; nothing ties it to the authenticated user. All 190 report queries scope correctly — to the tenant they were handed. So one valid user can read another organisation's entire reporting surface: every learner's name, email, scores and completion, across 84 reports. Action 0 does not close this — it restores authentication, and this needs the tenant to come from the session instead. Separately, the `audience` field on each report is a display filter on the catalogue listing and is **never checked when a report runs**, so any authenticated user can run the executive and audit reports. Both are fixed in the new API. | — | ⬜ |
 | 1 | 🔴 **Delete `webhooks/noon-payments.php` from the live backend.** A payment webhook we do not use and never will — removed from this repo. If it is still deployed it is a reachable endpoint that writes to `orders` and holds a second database's credentials, so deleting the file is the fix; rotating its secret is not. | — | ⬜ |
 | 2 | Rotate **three** database passwords found hardcoded in legacy source: `central_lxp` (`config/Database.php`), `sql_ifitness_cen` (`codebase/public/config.php`), and `sql_3bayti_com` — that last one came from the payment webhook in action 1. Deleting the file removes our copy, not the credential: rotate it too. | — | ✅ done 2026-08-26 |
 | 3 | Rotate the Zoom API key — it appears in `environment.ts`, `environment.development.ts` **and** hardcoded as a fallback in `video-integration.service.ts` | — | ✅ done 2026-08-26 |
@@ -35,7 +36,7 @@ Every file holding one was git-ignored and `legacy/` was untracked when found,
 so git history was clean throughout.
 
 Items 1 and 4 are **not** rotations and remain open — one is a file to delete
-from the live host, the other a firewall change. Items 0 and 0b are code
+from the live host, the other a firewall change. Items 0, 0b and 0c are code
 defects in the live PHP; rotating secrets does not touch them.
 
 Found by a pre-commit scan rather than by reading:
@@ -208,6 +209,111 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-28 — Reporting
+
+Fifty-seven reports, eleven routes, and the last backend module.
+
+Reporting is the one part of the legacy that was actually finished. All 84
+catalogued reports have a method behind them, all 190 queries name a tenant,
+and the code is organised sensibly. It also contains the worst security defect
+found in this port so far.
+
+**`class/report/` is dead.** Two complete forks of the reporting layer exist —
+`class/report/` and `class/reporting/` — around seven thousand lines each, and
+every one of the fifteen shared files differs between them. Only
+`class/reporting/` is reachable: `api/reports.php` requires it, and nothing in
+the codebase references the other. The fork is not ported.
+
+**The reporting API trusts the caller for which organisation to report on.**
+`api/reports.php` reads `tenant_id` from the request body and passes it to
+`setTenant()`. Nothing ties it to the authenticated user. Every one of the 190
+queries then scopes faithfully — to whichever organisation the caller named. One
+valid user can read another's entire reporting surface: every learner's name,
+email, score and completion, across 84 reports. Recorded as action 0c, and it
+survives action 0: restoring authentication does not connect the token to the
+tenant.
+
+**The `audience` field is never checked when a report runs.** Each catalogue
+entry carries one — `['admin', 'hr']` — which `getCatalog()` uses to filter the
+*listing*. `runReport()` does not consult it at all, so naming a key is enough
+to run the executive dashboard or the audit trail.
+
+Both are structural here rather than conventional.
+
+**The tenant is not a parameter.** It arrives inside a `ReportScope` built from
+the authenticated caller, and `ReportQuery::tenant()` is the only way to obtain
+a WHERE clause. There is no setter and nowhere to pass a different one. A live
+check POSTs another tenant's id and watches the figures not move.
+
+**The permission is on the definition and checked at run time**, and the
+catalogue listing is derived from the same field — so a report cannot appear in
+someone's list and then refuse to run, nor the reverse. `proctoring_violations`
+carries `proctoring.review` rather than `report.view`: its rows describe a named
+person suspected of cheating, sourced from webcam and screen monitoring, and the
+permission gating the recordings gates the report about them.
+
+**Row-level scope is the third tier the legacy did not have.** `setScope()` took
+`department_id` and `learner_id` from the request body and used them as
+conveniences for narrowing a view — nothing stopped a caller omitting them and
+seeing everybody. Here someone holding `report.view` alone sees themselves and
+their direct reports; `report.export`, `user.manage` or `enrollment.manage`
+widen it to the organisation. Without that middle tier the only choices are
+everything and nothing, and a line manager gets one of the two. The response
+says which they got, because a completion rate of 40% means something different
+over eleven people than over four hundred.
+
+**Three tables become two.** `saved_reports` carried a `schedule` JSON column,
+`scheduled_reports` was a separate table with the same job in columns, and
+`scheduled_report_runs` — the log for both — has a `saved_report_id` foreign
+key, so a row created by the second path points at an id from the first.
+
+**`next_run_at` is not stored**, for the same reason
+`live_training_reminders.scheduled_at` should not have been: it sat beside the
+frequency it derived from and nothing recomputed it, so a weekly report changed
+to monthly keeps arriving weekly. Nor are `last_run_at` and `last_run_status` —
+they are the newest row of `report_runs`, which is a join.
+
+**A manual run does not satisfy a schedule.** Somebody clicking "run now" on a
+Monday morning report must not cancel Monday's delivery, and without a trigger
+column the two runs are indistinguishable afterwards. Nor does a failed one: a
+provider outage on Monday would otherwise mean no report until the following
+Monday, with nobody told.
+
+**The CSV writer is its own class for two reasons.** A cell beginning `=`, `+`,
+`-` or `@` is executed as a formula when the file opens; report rows carry
+names and course titles typed by people, so `=HYPERLINK("http://…"&A1)` in a
+course title is a live exfiltration link in an administrator's spreadsheet.
+Every text cell is prefixed with a tab, which the spreadsheet strips on display
+and which stops the parse. And Excel on Windows reads a UTF-8 file without a
+byte-order mark as the local codepage, mangling every accented name.
+
+**Found by running it.** Paging had no tiebreaker, so rows tying on the sort
+column could appear twice across pages and others not at all — the kind of
+wrong that looks like missing data. Two reports disagreed about what
+"mandatory" means, one counting only the enrolment flag and the other the
+course's too; there is now one constant. And an unknown `category` filter was
+silently ignored and returned the whole catalogue, which is how somebody asks
+for "just compliance" and exports the lot.
+
+**Twenty-seven reports are not here**, each waiting on a module this port has
+not reached: gamification (6), audit (6), system (6), plus ratings, SCORM,
+versioning, login history and the four needing cost data. They are listed by
+name in `ReportCatalogue` with what each one waits for, rather than dropped
+silently.
+
+**Verification**
+
+- 54 unit tests over the catalogue, the criteria, the scope, the CSV writer and
+  the schedule arithmetic.
+- 42 integration tests against real PostgreSQL: every report run against a
+  schema, figures checked against a tenant worked out by hand, a second tenant
+  that must never appear in any of them, and a manager who must see three
+  people rather than five.
+- 80 live checks.
+
+Gate: 743 tests / 2,583 assertions, PHPStan level 8, no style errors. All nine
+live suites run together: **583 checks, none failing**.
 
 ### 2026-08-27 — Notifications
 

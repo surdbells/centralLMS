@@ -66,6 +66,8 @@ use Central\Api\Application\Action\Enrollment\MyEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\RecordProgressAction;
 use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
+use Central\Api\Application\Action\Report\RunReportAction;
+use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
 use Central\Api\Application\Action\Notification\InboxAction;
 use Central\Api\Application\Action\Notification\PreferencesAction;
@@ -265,6 +267,38 @@ return static function (App $app): void {
             $secure->get('/me/certificates', [ManageCertificatesAction::class, 'mine'])
                 ->setName('me.certificates');
 
+            // --- reporting ----------------------------------------------
+            //
+            // The tenant is never in a path or a body here: it comes from the
+            // token, inside a ReportScope. See ReportAction for what that
+            // fixes. `saved` and `learners` are declared before `{key}` so
+            // neither is read as a report key.
+            $secure->group('/reports', function (RouteCollectorProxy $r) use ($uuid): void {
+                $r->get('', [RunReportAction::class, 'catalogue'])->setName('reports.catalogue');
+                $r->get('/learners', [RunReportAction::class, 'learners'])->setName('reports.learners');
+
+                $r->group('/saved', function (RouteCollectorProxy $sv) use ($uuid): void {
+                    $sv->get('', [SavedReportAction::class, 'list'])->setName('reports.saved.list');
+                    $sv->post('', [SavedReportAction::class, 'create'])->setName('reports.saved.create');
+                    $sv->get('/{id:' . $uuid . '}', [SavedReportAction::class, 'show'])
+                        ->setName('reports.saved.show');
+                    $sv->put('/{id:' . $uuid . '}', [SavedReportAction::class, 'update'])
+                        ->setName('reports.saved.update');
+                    $sv->delete('/{id:' . $uuid . '}', [SavedReportAction::class, 'delete'])
+                        ->setName('reports.saved.delete');
+                    $sv->get('/{id:' . $uuid . '}/runs', [SavedReportAction::class, 'runs'])
+                        ->setName('reports.saved.runs');
+                });
+
+                // Report keys are lower-case words and underscores; the
+                // pattern keeps them from colliding with anything above.
+                $r->get('/{key:[a-z_]+}', [RunReportAction::class, 'run'])->setName('reports.run');
+                $r->post('/{key:[a-z_]+}', [RunReportAction::class, 'run'])->setName('reports.runPost');
+                $r->get('/{key:[a-z_]+}/about', [RunReportAction::class, 'describe'])
+                    ->setName('reports.describe');
+                $r->get('/{key:[a-z_]+}/export', [RunReportAction::class, 'export'])
+                    ->setName('reports.export');
+            });
             // --- notifications ------------------------------------------
             //
             // The inbox routes carry no permission and no user id: the caller

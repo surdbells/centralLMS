@@ -55,6 +55,12 @@ use Central\Api\Infrastructure\Notification\InAppTransport;
 use Central\Api\Infrastructure\Notification\LogTransport;
 use Central\Api\Infrastructure\Notification\TermiiSmsTransport;
 use Central\Api\Infrastructure\Notification\ZeptoMailTransport;
+use Central\Api\Domain\Report\CsvWriter;
+use Central\Api\Domain\Report\ReportCatalogue;
+use Central\Api\Domain\Report\ReportRepository;
+use Central\Api\Domain\Report\SavedReportRepository;
+use Central\Api\Infrastructure\Persistence\DbalReportRepository;
+use Central\Api\Infrastructure\Persistence\DbalSavedReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
@@ -514,6 +520,19 @@ return [
         $c->get(Clock::class),
         $c->get(LoggerInterface::class),
     )),
+    // --- reporting --------------------------------------------------------
+
+    ReportCatalogue::class => factory(static fn (): ReportCatalogue => new ReportCatalogue()),
+
+    CsvWriter::class => factory(static fn (): CsvWriter => new CsvWriter()),
+
+    ReportRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalReportRepository($c->get(Connection::class)),
+    ),
+
+    SavedReportRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalSavedReportRepository($c->get(Connection::class)),
+    ),
     PasswordHasher::class => autowire(),
 
     TokenAuthenticator::class => factory(static fn (ContainerInterface $c) => new TokenAuthenticator(
