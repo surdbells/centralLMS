@@ -1,253 +1,731 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-      <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-mortarboard me-2"></i>Course Management</h4>
-        <p class="text-muted small mb-0" *ngIf="statistics">
-          {{ statistics.total }} courses · {{ statistics.enrollments }} enrolments
-        </p>
-      </div>
-      <div class="d-flex gap-2">
-        <div class="btn-group btn-group-sm">
-          <button class="btn" [class]="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
-                  (click)="viewMode = 'grid'" title="Grid">
-            <i class="bi bi-grid"></i>
+<main class="main courses-dashboard">
+  <div class="admin-course-listing">
+    <div class="listing-header">
+      <div class="header-content">
+        <div class="header-title-section">
+          <div class="back-button" (click)="goBack()" role="button">
+            <tui-icon icon="@tui.chevron-left" />
+          </div>
+            <h1 class="page-title"> Courses </h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-refresh" (click)="confirmCreate()">
+            <i class="bi bi-plus-lg"></i> <span class="ps-4">Create</span>
           </button>
-          <button class="btn" [class]="viewMode === 'list' ? 'btn-primary' : 'btn-secondary'"
-                  (click)="viewMode = 'list'" title="List">
-            <i class="bi bi-list-ul"></i>
+          <button class="btn btn-refresh" (click)="list_course()" title="Refresh">
+            <i class="bi bi-arrow-clockwise"></i> <span class="ps-4">Refresh</span>
           </button>
         </div>
-        <button class="btn btn-primary btn-sm" (click)="createCourse()">
-          <i class="bi bi-plus-lg me-1"></i>New Course
-        </button>
       </div>
-    </div>
-
-    <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
-      <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
-      <div class="flex-grow-1">{{ error }}</div>
-      <button type="button" class="btn-close" (click)="error = null"></button>
-    </div>
-
-    <div class="alert alert-success d-flex align-items-start" *ngIf="notice">
-      <i class="bi bi-check-circle me-2 mt-1"></i>
-      <div class="flex-grow-1">{{ notice }}</div>
-      <button type="button" class="btn-close" (click)="notice = null"></button>
-    </div>
-
-    <!-- Headline counts -->
-    <div class="row g-3 mb-4" *ngIf="statistics">
-      <div class="col-6 col-md-3 col-lg" *ngFor="let card of [
-        { label: 'All', value: statistics.total,     status: '',          icon: 'bi-collection',       colour: 'text-primary' },
-        { label: 'Drafts', value: statistics.draft,  status: 'draft',     icon: 'bi-file-earmark',     colour: 'text-secondary' },
-        { label: 'Published', value: statistics.published, status: 'published', icon: 'bi-check-circle-fill', colour: 'text-success' },
-        { label: 'Archived', value: statistics.archived,  status: 'archived',  icon: 'bi-archive-fill', colour: 'text-warning' },
-        { label: 'Mandatory', value: statistics.mandatory, status: '',     icon: 'bi-exclamation-circle', colour: 'text-danger' }
-      ]">
-        <div class="card border-0 shadow-sm h-100"
-             [class.cursor-pointer]="card.status"
-             [class.border-primary]="card.status && filters.status === card.status"
-             [class.border-2]="card.status && filters.status === card.status"
-             (click)="filterByStatus($any(card.status))">
-          <div class="card-body py-3 text-center">
-            <i class="bi fs-4 d-block mb-1" [class]="card.icon + ' ' + card.colour"></i>
-            <h5 class="fw-bold mb-0">{{ card.value }}</h5>
-            <small class="text-muted">{{ card.label }}</small>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="card border-0 shadow-sm mb-3">
-      <div class="card-body py-2">
-        <div class="row g-2 align-items-center">
-          <div class="col-md-4">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" placeholder="Search courses..."
-                     [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()">
-              <button class="btn btn-secondary" *ngIf="searchQuery" (click)="clearSearch()">
-                <i class="bi bi-x"></i>
-              </button>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <select class="form-select form-select-sm" [(ngModel)]="filters.categoryId" (change)="onFilterChange()">
-              <option [ngValue]="undefined">All categories</option>
-              <option *ngFor="let c of categories; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <select class="form-select form-select-sm" [(ngModel)]="filters.instructorId" (change)="onFilterChange()">
-              <option [ngValue]="undefined">All instructors</option>
-              <option *ngFor="let i of instructors; trackBy: trackById" [ngValue]="i.id">{{ i.fullName }}</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <select class="form-select form-select-sm" [(ngModel)]="filters.level" (change)="onFilterChange()">
-              <option [ngValue]="undefined">All levels</option>
-              <option *ngFor="let l of levels" [ngValue]="l">{{ l | titlecase }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt-2" *ngIf="hasActiveFilters">
-          <button class="btn btn-sm btn-link text-muted p-0" (click)="clearFilters()">Clear filters</button>
-        </div>
-      </div>
-    </div>
-
-    <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
-
-    <div *ngIf="!loading && !courses.length" class="text-center py-5 text-muted">
-      <i class="bi bi-mortarboard display-4 d-block mb-2"></i>
-      <p class="mb-3">{{ hasActiveFilters ? 'No courses match these filters' : 'No courses yet' }}</p>
-      <button class="btn btn-primary btn-sm" *ngIf="!hasActiveFilters" (click)="createCourse()">
-        Create the first one
-      </button>
-    </div>
-
-    <!-- Grid -->
-    <div class="row g-4" *ngIf="!loading && courses.length && viewMode === 'grid'">
-      <div class="col-md-6 col-xl-4" *ngFor="let c of courses; trackBy: trackById">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <span class="badge" [class]="statusClass(c.status)">
-                <i class="me-1" [class]="statusIcon(c.status)"></i>{{ statusLabel(c.status) }}
-              </span>
-              <div class="dropdown">
-                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" role="button" (click)="editCourse(c)"><i class="bi bi-pencil me-2"></i>Edit details</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="manageContent(c)"><i class="bi bi-list-check me-2"></i>Modules &amp; lessons</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="viewEnrollees(c)"><i class="bi bi-people me-2"></i>Who is on it</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="viewInsights(c)"><i class="bi bi-graph-up me-2"></i>How it is going</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li *ngIf="c.status !== 'published'"><a class="dropdown-item" role="button" (click)="ask('publish', c)"><i class="bi bi-cloud-upload me-2 text-success"></i>Publish</a></li>
-                  <li *ngIf="c.status === 'published'"><a class="dropdown-item" role="button" (click)="ask('unpublish', c)"><i class="bi bi-cloud-slash me-2 text-warning"></i>Unpublish</a></li>
-                  <li *ngIf="c.status !== 'archived'"><a class="dropdown-item" role="button" (click)="ask('archive', c)"><i class="bi bi-archive me-2"></i>Archive</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="ask('duplicate', c)"><i class="bi bi-files me-2"></i>Duplicate</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" role="button" (click)="ask('delete', c)"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                </ul>
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-md-2">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <div>Total Courses</div>
+                  <div class="fw-bold fs-5 mt-1">{{ statistics.total }}</div>
+                </div>
+                <div class="text-success align-self-center">
+                  <tui-icon class="fs-1"  icon="@tui.rows-2"></tui-icon>
+                </div>
               </div>
             </div>
-
-            <h6 class="fw-bold mb-1">
-              <a role="button" class="text-decoration-none text-body" (click)="editCourse(c)">{{ c.title }}</a>
-            </h6>
-            <p class="text-muted small mb-3" *ngIf="c.summary">
-              {{ c.summary | slice:0:110 }}{{ c.summary.length > 110 ? '…' : '' }}
-            </p>
-
-            <div class="d-flex flex-wrap gap-2 mb-3">
-              <span class="badge bg-light text-black border" *ngIf="c.categoryId">{{ categoryName(c.categoryId) }}</span>
-              <span class="badge bg-light text-black border" *ngIf="c.level">{{ c.level | titlecase }}</span>
-              <span class="badge bg-danger-subtle text-danger" *ngIf="c.isMandatory">Mandatory</span>
-              <span class="badge bg-warning-subtle text-warning" *ngIf="c.isFeatured">Featured</span>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <div>Draft</div>
+                  <div class="fw-bold fs-5 mt-1">{{ statistics.draft }}</div>
+                </div>
+                <div class="text-success align-self-center">
+                  <tui-icon class="fs-1"  icon="@tui.square-pen"></tui-icon>
+                </div>
+              </div>
             </div>
-
-            <div class="d-flex justify-content-between text-muted small">
-              <span><i class="bi bi-person me-1"></i>{{ instructorName(c.instructorId) }}</span>
-              <span><i class="bi bi-clock me-1"></i>{{ duration(c.durationMinutes) }}</span>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <div>Archived</div>
+                  <div class="fw-bold fs-5 mt-1">{{ statistics.archived }}</div>
+                </div>
+                <div class="text-success align-self-center">
+                  <tui-icon class="fs-1"  icon="@tui.archive"></tui-icon>
+                </div>
+              </div>
             </div>
-            <div class="d-flex justify-content-between text-muted small mt-1" *ngIf="c.rating.count">
-              <span><i class="bi bi-star-fill text-warning me-1"></i>{{ c.rating.average | number:'1.1-1' }}</span>
-              <span>{{ c.rating.count }} rating(s)</span>
+          </div>
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <div>Published</div>
+                  <div class="fw-bold fs-5 mt-1">{{ statistics.published }}</div>
+                </div>
+                <div class="text-success align-self-center">
+                  <tui-icon class="fs-1"  icon="@tui.folder-check"></tui-icon>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+    <div class="filters-toolbar">
+      <div class="toolbar-row">
+        <div class="search-wrapper">
+          <input type="text" class="form-control search-input"  placeholder="Search courses..." [(ngModel)]="searchQuery" (input)="onSearchChange()">
+          <button *ngIf="searchQuery" class="btn-clear-search" (click)="clearSearch()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+        <div class="status-filter-pills">
+          <button class="status-pill" [class.active]="initial.status === 'published'" (click)="filterByStatus('published')">
+            <i class="bi bi-check-circle"></i>
+            <span>Published</span>
+          </button>
+          <button class="status-pill" [class.active]="initial.status === 'draft'" (click)="filterByStatus('draft')">
+            <i class="bi bi-file-earmark"></i>
+            <span>Draft</span>
+          </button>
+          <button class="status-pill" [class.active]="initial.status === 'archived'" (click)="filterByStatus('archived')">
+            <i class="bi bi-archive"></i>
+            <span>Archived</span>
+          </button>
+          <button class="status-pill" [class.active]="initial.status === ''" (click)="filterByStatus('')">
+            <i class="bi bi-collection"></i>
+            <span>All</span>
+          </button>
+        </div>
 
-    <!-- List -->
-    <div class="card border-0 shadow-sm" *ngIf="!loading && courses.length && viewMode === 'list'">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-          <tr>
-            <th>Course</th>
-            <th>Category</th>
-            <th>Instructor</th>
-            <th>Level</th>
-            <th class="text-center">Duration</th>
-            <th>Status</th>
-            <th style="width:100px"></th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr *ngFor="let c of courses; trackBy: trackById">
-            <td>
-              <div class="fw-medium">
-                <a role="button" class="text-decoration-none text-body" (click)="editCourse(c)">{{ c.title }}</a>
-              </div>
-              <small class="text-muted" *ngIf="c.isMandatory">Mandatory</small>
-            </td>
-            <td><small>{{ categoryName(c.categoryId) }}</small></td>
-            <td><small>{{ instructorName(c.instructorId) }}</small></td>
-            <td><small>{{ c.level ? (c.level | titlecase) : '-' }}</small></td>
-            <td class="text-center"><small>{{ duration(c.durationMinutes) }}</small></td>
-            <td>
-              <span class="badge" [class]="statusClass(c.status)">{{ statusLabel(c.status) }}</span>
-            </td>
-            <td class="text-end">
-              <div class="dropdown">
-                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" role="button" (click)="editCourse(c)"><i class="bi bi-pencil me-2"></i>Edit details</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="manageContent(c)"><i class="bi bi-list-check me-2"></i>Modules &amp; lessons</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="viewEnrollees(c)"><i class="bi bi-people me-2"></i>Who is on it</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="viewInsights(c)"><i class="bi bi-graph-up me-2"></i>How it is going</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li *ngIf="c.status !== 'published'"><a class="dropdown-item" role="button" (click)="ask('publish', c)"><i class="bi bi-cloud-upload me-2 text-success"></i>Publish</a></li>
-                  <li *ngIf="c.status === 'published'"><a class="dropdown-item" role="button" (click)="ask('unpublish', c)"><i class="bi bi-cloud-slash me-2 text-warning"></i>Unpublish</a></li>
-                  <li *ngIf="c.status !== 'archived'"><a class="dropdown-item" role="button" (click)="ask('archive', c)"><i class="bi bi-archive me-2"></i>Archive</a></li>
-                  <li><a class="dropdown-item" role="button" (click)="ask('duplicate', c)"><i class="bi bi-files me-2"></i>Duplicate</a></li>
-                  <li><hr class="dropdown-divider"></li>
-                  <li><a class="dropdown-item text-danger" role="button" (click)="ask('delete', c)"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                </ul>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Pagination -->
-    <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="meta.totalPages > 1">
-      <small class="text-muted">Page {{ meta.page }} of {{ meta.totalPages }} ({{ meta.total }} courses)</small>
-      <div class="d-flex gap-1">
-        <button class="btn btn-sm btn-secondary" [disabled]="meta.page <= 1" (click)="goPage(meta.page - 1)">&lsaquo;</button>
-        <button class="btn btn-sm btn-secondary" [disabled]="meta.page >= meta.totalPages" (click)="goPage(meta.page + 1)">&rsaquo;</button>
-      </div>
-    </div>
-
-    <!-- One dialog for every confirmation, so each one says what it will do -->
-    <div class="modal fade show d-block" *ngIf="pendingPrompt as prompt" style="background:rgba(0,0,0,.5)">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h6 class="modal-title" [class.text-danger]="prompt.danger">{{ prompt.title }}</h6>
-            <button type="button" class="btn-close" (click)="cancel()"></button>
+        <div class="toolbar-actions">
+          <div class="filter-dropdown">
+            <select class="form-select" [(ngModel)]="initial.category_id" (change)="list_course()">
+              <option [ngValue]="null">All Categories</option>
+              <option *ngFor="let c of category" [ngValue]="c.category_id">
+                {{ c.category_name }}
+              </option>
+            </select>
           </div>
-          <div class="modal-body">
-            <p class="mb-0 small">{{ prompt.body }}</p>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-sm btn-secondary" (click)="cancel()">Cancel</button>
-            <button class="btn btn-sm" [class]="prompt.danger ? 'btn-danger' : 'btn-primary'"
-                    [disabled]="working" (click)="confirm()">
-              <span *ngIf="working" class="spinner-border spinner-border-sm me-1"></span>
-              {{ prompt.confirm }}
+
+          <div class="view-toggle">
+            <button class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Grid View">
+              <i class="bi bi-grid-3x3-gap-fill"></i>
+            </button>
+            <button  class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="List View">
+              <i class="bi bi-list-ul"></i>
             </button>
           </div>
         </div>
       </div>
     </div>
+    <div class="loading-state" *ngIf="ui_controls.is_loading">
+      <div class="spinner-wrapper">
+        <tui-loader class="loader-custom" />
+        <p>Loading courses...</p>
+      </div>
+    </div>
+    <div class="empty-state" *ngIf="!ui_controls.is_loading && course.length === 0">
+      <div class="empty-icon">
+        <i class="bi bi-folder2-open"></i>
+      </div>
+      <h3>No courses found</h3>
+      <p *ngIf="hasActiveFilters()">
+        Try adjusting your filters or search query
+      </p>
+      <p *ngIf="!hasActiveFilters()">
+        Get started by creating your first course
+      </p>
+      <button class="btn btn-create-course" *ngIf="!hasActiveFilters()" (click)="open.set(true)">
+        <i class="bi bi-plus-lg"></i>
+        Create Course
+      </button>
+      <button class="btn btn-dark" *ngIf="hasActiveFilters()" (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- ============================================================
+         GRID VIEW
+         ============================================================ -->
+    <div class="courses-grid" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'grid'">
+      <div
+        class="course-card"
+        *ngFor="let c of course; let i = index">
+        <!-- Thumbnail -->
+        <div class="card-thumbnail">
+          <app-course-card [title]="c.title" [index]="i"> </app-course-card>
+          <div class="thumbnail-overlay">
+            <button class="btn-quick-action" (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" title="Insights">
+              <i class="bi bi-graph-up"></i>
+            </button>
+            <button class="btn-quick-action" (click)="edit_course(c.course_id, c.title)" title="Edit">
+              <i class="bi bi-pencil-fill"></i>
+            </button>
+          </div>
+
+          <!-- Status Badge -->
+          <span class="status-badge" [ngClass]="getStatusClass(c.status)">
+            <i [class]="getStatusIcon(c.status)"></i>
+            {{ getStatusLabel(c.status) }}
+          </span>
+
+          <!-- Featured Badge -->
+          <div class="special-badges" *ngIf="c.is_featured">
+            <span class="badge-featured" title="Featured Course">
+              <i class="bi bi-star-fill"></i>
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="card-body">
+          <!-- Category Tag -->
+          <span class="category-tag">{{ c.category_name }}</span>
+
+          <!-- Title -->
+          <h3 class="course-title" [title]="c.title">
+            {{ c.title }}
+          </h3>
+
+          <!-- Description -->
+          <p class="course-description">{{ c.description }}</p>
+
+          <!-- Stats Row -->
+          <div class="course-stats">
+            <div class="stat-item" title="Level">
+              <i class="bi bi-bar-chart-fill"></i>
+              <span>{{ c.level || 'Not set' }}</span>
+            </div>
+            <div class="stat-item" title="Duration">
+              <i class="bi bi-clock-fill"></i>
+              <span>{{ c.duration_minutes }}h</span>
+            </div>
+          </div>
+
+          <!-- Meta Info -->
+          <div class="card-meta">
+            <span class="meta-date" *ngIf="c.start_date">
+              <i class="bi bi-calendar-event"></i>
+              {{ formatDate(c.start_date) }}
+            </span>
+            <span class="meta-status" [ngClass]="c.is_active ? 'active' : 'inactive'">
+              {{ c.is_active ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Card Actions -->
+        <div class="card-actions">
+          <button class="btn btn-action-primary" (click)="manage_course(c.course_id, c.title)">
+            <i class="bi bi-sliders"></i>
+            Manage
+          </button>
+          <div class="dropdown">
+            <button
+              class="btn btn-action-more dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
+                  <i class="bi bi-graph-up"></i>
+                  Insights
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" (click)="duplicateCourse(c)">
+                  <i class="bi bi-copy"></i>
+                  Duplicate
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" (click)="edit_course(c.course_id, c.title)">
+                  <i class="bi bi-pencil"></i>
+                  Edit Course
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li *ngIf="c.status === 'draft' || c.status === 'archived'">
+                <button class="dropdown-item" (click)="confirmPublish(c)">
+                  <i class="bi bi-check-circle"></i>
+                  Publish
+                </button>
+              </li>
+              <li *ngIf="c.status === 'published'">
+                <button class="dropdown-item" (click)="confirmUnPublish(c)">
+                  <i class="bi bi-eye-slash"></i>
+                  Unpublish
+                </button>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li *ngIf="c.status != 'archived'">
+                <button class="dropdown-item text-danger" (click)="confirmArchive(c)">
+                  <i class="bi bi-archive"></i>
+                  Archive
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
+                  <i class="bi bi-trash"></i>
+                  Delete
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         LIST VIEW
+         ============================================================ -->
+    <div class="courses-list" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'list'">
+      <div class="list-header">
+        <div class="col-course">Course</div>
+        <div class="col-category">Category</div>
+        <div class="col-status">Status</div>
+        <div class="col-level">Level</div>
+        <div class="col-duration">Duration</div>
+        <div class="col-actions">Actions</div>
+      </div>
+      <div class="list-item" *ngFor="let c of course; let i = index">
+        <div class="col-course">
+          <div class="course-info">
+            <app-course-mini-card [title]="c.title" [index]="i"></app-course-mini-card>
+            <div class="course-details">
+              <h4 class="course-title-list">{{ c.title }}</h4>
+              <p class="course-desc-list">{{ c.description | slice:0:60 }}{{ (c.description?.length || 0) > 60 ? '...' : '' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-category">
+          <span class="category-tag-small">{{ c.category_name }}</span>
+        </div>
+
+        <div class="col-status">
+          <span class="status-badge-list" [ngClass]="getStatusClass(c.status)">
+            <i [class]="getStatusIcon(c.status)"></i>
+            {{ getStatusLabel(c.status) }}
+          </span>
+        </div>
+
+        <div class="col-level">
+          <span class="level-text">{{ c.level || '-' }}</span>
+        </div>
+
+        <div class="col-duration">
+          <span class="duration-text">
+            <i class="bi bi-clock"></i>
+            {{ c.duration_minutes }}h
+          </span>
+        </div>
+
+        <div class="col-actions">
+          <div class="action-buttons-list">
+            <button class="btn-icon" (click)="manage_course(c.course_id, c.title)" title="Manage">
+              <i class="bi bi-sliders"></i>
+            </button>
+            <button class="btn-icon" (click)="edit_course(c.course_id, c.title)" title="Preview">
+              <i class="bi bi-pencil"></i>
+            </button>
+
+            <div class="dropdown">
+              <button class="btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
+                    <i class="bi bi-graph-up"></i>
+                    Insights
+                  </button>
+                </li>
+                <li>
+                  <button class="dropdown-item" (click)="duplicateCourse(c)">
+                    <i class="bi bi bi-copy"></i>
+                    Duplicate
+                  </button>
+                </li>
+                <li *ngIf="c.status === 'draft'">
+                  <button class="dropdown-item" (click)="confirmPublish(c)">
+                    <i class="bi bi-check-circle"></i>
+                    Publish
+                  </button>
+                </li>
+                <li *ngIf="c.status === 'published'">
+                  <button class="dropdown-item" (click)="confirmUnPublish(c)">
+                    <i class="bi bi-eye-slash"></i>
+                    Unpublish
+                  </button>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li *ngIf="c.status != 'archived'">
+                  <button class="dropdown-item" (click)="confirmArchive(c)">
+                    <i class="bi bi-archive"></i>
+                    Archive
+                  </button>
+                </li>
+                <li>
+                  <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
+                    <i class="bi bi-trash"></i>
+                    Delete
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pagination-wrapper" *ngIf="!ui_controls.is_loading && course.length > 0">
+      <div class="pagination-info">
+        Showing page {{ meta.page }} of {{ meta.total_pages }} ({{ meta.total }} courses)
+      </div>
+
+      <div class="pagination-controls">
+        <select
+          class="form-select form-select-sm per-page-select"
+          [(ngModel)]="initial.per_page"
+          (change)="paginate()"
+        >
+          <option [ngValue]="4">4 per page</option>
+          <option [ngValue]="5">5 per page</option>
+          <option [ngValue]="10">10 per page</option>
+          <option [ngValue]="25">25 per page</option>
+          <option [ngValue]="50">50 per page</option>
+        </select>
+
+        <nav aria-label="Course pagination">
+          <ul class="pagination">
+            <li class="page-item" [class.disabled]="initial.page === 1">
+              <button class="page-link" (click)="list_course(1)" aria-label="First">
+                <i class="bi bi-chevron-double-left"></i>
+              </button>
+            </li>
+            <li class="page-item" [class.disabled]="initial.page === 1">
+              <button class="page-link" (click)="list_course(initial.page - 1)" aria-label="Previous">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+            </li>
+
+            <li class="page-item active">
+              <span class="page-link">{{ meta.page }}</span>
+            </li>
+
+            <li class="page-item" [class.disabled]="meta.page === meta.total_pages">
+              <button class="page-link" (click)="list_course(initial.page + 1)" aria-label="Next">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </li>
+            <li class="page-item" [class.disabled]="meta.page === meta.total_pages">
+              <button class="page-link" (click)="list_course(meta.total_pages)" aria-label="Last">
+                <i class="bi bi-chevron-double-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
   </div>
 </main>
+
+<!-- ============================================================
+     DELETE CONFIRMATION MODAL
+     ============================================================ -->
+<div class="modal-overlay" *ngIf="showDeleteModal" (click)="cancelDelete()">
+  <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+    <div class="modal-icon danger">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h3 class="modal-title">Delete Course?</h3>
+    <p class="modal-message">
+      Are you sure you want to delete <strong>"{{ courseToDelete?.title }}"</strong>?
+      This action cannot be undone and all associated data will be permanently removed.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" (click)="cancelDelete()">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-success"
+              (click)="executeDelete()"
+              [disabled]="ui_controls.is_loading">
+        <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
+        <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.trash" class="me-2"></tui-icon>
+        {{ ui_controls.is_loading ? 'Deleting...' : 'Delete Course' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PUBLISH CONFIRMATION MODAL
+     ============================================================ -->
+<div class="modal-overlay" *ngIf="showPublishModal" (click)="cancelPublish()">
+  <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+    <div class="modal-icon danger">
+      <i class="bi bi-check-all"></i>
+    </div>
+    <h3 class="modal-title">Publish Course?</h3>
+    <p class="modal-message">
+      Are you sure you want to publish <strong>"{{ courseToPublish?.title }}"</strong>?
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" (click)="cancelPublish()">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-success"
+              (click)="executePublish()"
+              [disabled]="ui_controls.is_loading">
+        <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
+        <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.check" class="me-2"></tui-icon>
+        {{ ui_controls.is_loading ? 'Publishing...' : 'Publish Course' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     UNPUBLISH CONFIRMATION MODAL
+     ============================================================ -->
+<div class="modal-overlay" *ngIf="showUnPublishModal" (click)="cancelUnPublish()">
+  <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+    <div class="modal-icon danger">
+      <i class="bi bi-check-all"></i>
+    </div>
+    <h3 class="modal-title">UnPublish Course?</h3>
+    <p class="modal-message">
+      Are you sure you want to Unpublish <strong>"{{ courseToUnPublish?.title }}"</strong>?
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" (click)="cancelUnPublish()">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-success"
+              (click)="executeUnPublish()"
+              [disabled]="ui_controls.is_loading">
+        <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
+        <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.x" class="me-2"></tui-icon>
+        {{ ui_controls.is_loading ? 'UnPublishing...' : 'UnPublish Course' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ARCHIVE CONFIRMATION MODAL
+============================================================ -->
+<div class="modal-overlay" *ngIf="showArchiveModal" (click)="cancelArchive()">
+  <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+    <div class="modal-icon danger">
+      <i class="bi bi-check-all"></i>
+    </div>
+    <h3 class="modal-title">Archive Course?</h3>
+    <p class="modal-message">
+      Are you sure you want to Archive <strong>"{{ courseToArchive?.title }}"</strong>?
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" (click)="cancelArchive()">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-success"
+              (click)="executeArchive()"
+              [disabled]="ui_controls.is_loading">
+        <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
+        <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.archive" class="me-2"></tui-icon>
+        {{ ui_controls.is_loading ? 'Archiving...' : 'Archive Course' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<ng-template let-observer  [tuiDialogOptions]="{label: duplicate.course_title, size: 'l'}" [(tuiDialog)]="openDuplicate">
+  <!-- Course Duplicate Card -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent border-0 py-3">
+      <div class="d-flex align-items-center">
+        <div class="rounded-3 p-2 bg-primary bg-opacity-10 me-3">
+          <tui-icon icon="@tui.copy" class="text-primary"></tui-icon>
+        </div>
+        <div>
+          <h5 class="mb-0 fw-semibold">Duplicate Course</h5>
+          <small class="text-muted">Create a copy of this course with selected content</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- New Title -->
+      <div class="mb-4">
+        <label class="form-label fw-medium">
+          <tui-icon icon="@tui.type" class="me-1"></tui-icon>
+          New Course Title
+        </label>
+        <input type="text" class="form-control" [(ngModel)]="duplicate.new_title" placeholder="Enter title for the duplicated course">
+        <div class="form-text">Leave empty to use original title with "(Copy)" suffix</div>
+      </div>
+
+      <!-- Copy Options -->
+      <div class="mb-4">
+        <label class="form-label fw-medium mb-3">
+          <tui-icon icon="@tui.copy" class="me-1"></tui-icon>
+          Content to Copy
+        </label>
+
+        <div class="d-flex flex-column gap-3">
+          <!-- Copy Modules -->
+          <div class="form-check form-switch d-flex align-items-center justify-content-between p-3 bg-light rounded-3">
+            <div class="d-flex align-items-center">
+              <div class="rounded-2 p-2 bg-white me-3 shadow-sm">
+                <tui-icon icon="@tui.folder" class="text-primary"></tui-icon>
+              </div>
+              <div>
+                <label class="form-check-label fw-medium mb-0" for="copyModules">Modules</label>
+                <small class="d-block text-muted">Copy all course modules</small>
+              </div>
+            </div>
+            <input (change)="duplicate.copy_modules = !duplicate.copy_modules" [checked]="duplicate.copy_modules" class="form-check-input ms-3" type="checkbox" id="copyModules" style="width: 3rem; height: 1.5rem;">
+          </div>
+
+          <!-- Copy Lessons -->
+          <div class="form-check form-switch d-flex align-items-center justify-content-between p-3 bg-light rounded-3" [class.opacity-50]="!duplicate.copy_modules">
+            <div class="d-flex align-items-center">
+              <div class="rounded-2 p-2 bg-white me-3 shadow-sm">
+                <tui-icon icon="@tui.play" class="text-info"></tui-icon>
+              </div>
+              <div>
+                <label class="form-check-label fw-medium mb-0" for="copyLessons">Lessons</label>
+                <small class="d-block text-muted">Copy all lessons within modules</small>
+              </div>
+            </div>
+            <input (change)="duplicate.copy_lessons = !duplicate.copy_lessons" [checked]="duplicate.copy_lessons"  class="form-check-input ms-3" type="checkbox" id="copyLessons" [disabled]="!duplicate.copy_modules" style="width: 3rem; height: 1.5rem;">
+          </div>
+
+          <!-- Copy Assessments -->
+          <div class="form-check form-switch d-flex align-items-center justify-content-between p-3 bg-light rounded-3">
+            <div class="d-flex align-items-center">
+              <div class="rounded-2 p-2 bg-white me-3 shadow-sm">
+                <tui-icon icon="@tui.clipboard-list" class="text-warning"></tui-icon>
+              </div>
+              <div>
+                <label class="form-check-label fw-medium mb-0" for="copyAssessments">Assessments</label>
+                <small class="d-block text-muted">Copy quizzes and exams</small>
+              </div>
+            </div>
+            <input
+              class="form-check-input ms-3" type="checkbox" id="copyAssessments"
+              (change)="duplicate.copy_assessments = !duplicate.copy_assessments" [checked]="duplicate.copy_assessments"
+              style="width: 3rem; height: 1.5rem;">
+          </div>
+
+          <!-- Copy Questions -->
+          <div class="form-check form-switch d-flex align-items-center justify-content-between p-3 bg-light rounded-3"
+               [class.opacity-50]="!duplicate.copy_assessments">
+            <div class="d-flex align-items-center">
+              <div class="rounded-2 p-2 bg-white me-3 shadow-sm">
+                <tui-icon icon="@tui.file-question-mark" class="text-success"></tui-icon>
+              </div>
+              <div>
+                <label class="form-check-label fw-medium mb-0" for="copyQuestions">Questions</label>
+                <small class="d-block text-muted">Copy all questions and options</small>
+              </div>
+            </div>
+            <input
+              class="form-check-input ms-3" type="checkbox" id="copyQuestions"
+              (change)="duplicate.copy_questions = !duplicate.copy_questions" [checked]="duplicate.copy_questions"
+              [disabled]="!duplicate.copy_assessments"
+              style="width: 3rem; height: 1.5rem;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Draft Option -->
+      <div class="mb-4">
+        <div class="form-check form-switch d-flex align-items-center justify-content-between p-3 border rounded-3">
+          <div class="d-flex align-items-center">
+            <div class="rounded-2 p-2 bg-secondary bg-opacity-10 me-3">
+              <tui-icon icon="@tui.file-text" class="text-secondary"></tui-icon>
+            </div>
+            <div>
+              <label class="form-check-label fw-medium mb-0" for="setAsDraft">Save as Draft</label>
+              <small class="d-block text-muted">New course will be unpublished</small>
+            </div>
+          </div>
+          <input class="form-check-input ms-3" type="checkbox" id="setAsDraft"  (change)="duplicate.set_as_draft = !duplicate.set_as_draft" [checked]="duplicate.set_as_draft"   style="width: 3rem; height: 1.5rem;">
+        </div>
+      </div>
+
+      <!-- Preview Result (shown after preview) -->
+      <div class="mb-4" *ngIf="previewData">
+        <div class="alert alert-info border-0 mb-0">
+          <div class="d-flex align-items-center mb-2">
+            <tui-icon icon="@tui.info" class="me-2"></tui-icon>
+            <strong>Preview Summary</strong>
+          </div>
+          <div class="row g-2 mt-2">
+            <div class="col-6 col-md-3">
+              <div class="bg-white rounded p-2 text-center">
+                <div class="fw-bold text-primary">{{ previewData.will_copy.modules }}</div>
+                <small class="text-muted">Modules</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="bg-white rounded p-2 text-center">
+                <div class="fw-bold text-info">{{ previewData.will_copy.lessons }}</div>
+                <small class="text-muted">Lessons</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="bg-white rounded p-2 text-center">
+                <div class="fw-bold text-warning">{{ previewData.will_copy.assessments }}</div>
+                <small class="text-muted">Assessments</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="bg-white rounded p-2 text-center">
+                <div class="fw-bold text-success">{{ previewData.will_copy.questions }}</div>
+                <small class="text-muted">Questions</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+      <div class="d-flex gap-2 justify-content-end">
+        <button
+          type="button"
+          class="btn btn-sm btn-dark"
+          (click)="onPreview()"
+          [disabled]="isLoading">
+          <tui-icon icon="@tui.eye" class="me-2"></tui-icon>
+          Preview
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-primary"
+          (click)="onDuplicate()"
+          [disabled]="isLoading">
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+          <tui-icon *ngIf="!isLoading" icon="@tui.copy" class="me-2"></tui-icon>
+          Duplicate Course
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>

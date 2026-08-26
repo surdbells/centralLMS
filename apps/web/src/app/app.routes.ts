@@ -7,7 +7,6 @@ import {UserComponent} from './learner/user/user.component';
 import {CerticatesComponent} from './learner/certicates/certicates.component';
 import {AdminComponent} from './admin/admin/admin.component';
 import {MediaComponent} from './admin/media/media.component';
-import {EnrollmentComponent} from './admin/enrollment/enrollment.component';
 import {SettingsComponent} from './admin/branding/settings.component';
 import {LearningComponent} from './learner/learning/learning.component';
 import {DictionaryComponent} from './admin/dictionary/dictionary.component';
@@ -99,8 +98,27 @@ export const routes: Routes = [
   },
   {
     path: 'enrollment',
-    component: EnrollmentComponent,
-    title: 'Course Enrollment'
+    loadComponent: () =>
+      import('./admin/courses/course-enrollment/course-enrollment.component')
+        .then(m => m.CourseEnrollmentComponent),
+    title: 'Course Enrollment',
+  },
+  {
+    // How one course is going. Composed from the reporting module rather than
+    // a second analytics store — see CourseInsightsComponent.
+    path: 'courses/:id/insights',
+    loadComponent: () =>
+      import('./admin/courses/course-insights/course-insights.component')
+        .then(m => m.CourseInsightsComponent),
+    title: 'Course Insights',
+  },
+  {
+    // Who is on one course, and how they are getting on.
+    path: 'courses/:id/enrollees',
+    loadComponent: () =>
+      import('./admin/courses/course-enrollment/enrollees/course-enrollees.component')
+        .then(m => m.CourseEnrolleesComponent),
+    title: 'Course Enrolments',
   },
   {
     path: 'settings',

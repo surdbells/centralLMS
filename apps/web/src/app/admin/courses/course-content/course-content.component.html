@@ -1,290 +1,895 @@
-<app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-      <div class="d-flex align-items-center gap-3">
-        <a routerLink="/courses" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-        <div>
-          <h4 class="fw-bold mb-0">{{ outline?.course?.title || 'Course content' }}</h4>
-          <small class="text-muted">
-            {{ modules.length }} module(s) · {{ lessonCount }} lesson(s)
-          </small>
+<!-- course-content/course-content.component.html -->
+
+<div class="course-content-manager">
+  <div class="content-header">
+    <div class="header-left">
+      <div class="row align-items-center">
+        <div (click)="goBack()" role="button" class="col-auto">
+          <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+            <i class="fs-5">
+              <tui-icon icon="@tui.chevron-left" />
+            </i>
+          </div>
+        </div>
+        <div class="col">
+          <h1 class="fs-4 mb-0" *ngIf="course">{{ course.title }} - Curriculum</h1>
         </div>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-secondary" (click)="backToCourse()">
-          <i class="bi bi-info-circle me-1"></i>Course details
-        </button>
-        <button class="btn btn-sm btn-primary" (click)="openModuleModal()">
-          <i class="bi bi-plus-lg me-1"></i>Add module
-        </button>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm me-2" (click)="collapseAllModules()">
+        <i class="bi bi-arrows-collapse"></i> Collapse All
+      </button>
+      <button class="btn btn-secondary btn-sm me-2" (click)="expandAllModules()">
+        <i class="bi bi-arrows-expand"></i> Expand All
+      </button>
+      <button class="btn btn-primary" (click)="openModuleModal()">
+        <i class="bi bi-plus-lg me-1"></i> Add Module
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <i class="bi bi-collection"></i>
+      <span class="stat-value">{{ stats.total_modules }}</span>
+      <span class="stat-label">Modules</span>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-play-circle"></i>
+      <span class="stat-value">{{ stats.total_lessons }}</span>
+      <span class="stat-label">Lessons</span>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-question-circle"></i>
+      <span class="stat-value">{{ stats.total_assessments }}</span>
+      <span class="stat-label">Assessments</span>
+    </div>
+    <div class="stat-item">
+      <i class="bi bi-clock"></i>
+      <span class="stat-value">{{ formatDuration(stats.total_duration_minutes) }}</span>
+      <span class="stat-label">Duration</span>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="alert alert-success alert-dismissible fade show" *ngIf="successMessage">
+    <i class="bi bi-check-circle me-2"></i>{{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = null"></button>
+  </div>
+  <div class="alert alert-danger alert-dismissible fade show" *ngIf="error">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+    <button type="button" class="btn-close" (click)="error = null"></button>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2 text-muted">Loading course content...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading && modules.length === 0">
+    <i class="bi bi-inbox"></i>
+    <h4>No Content Yet</h4>
+    <p class="text-muted">Start building your course by adding modules</p>
+    <button class="btn btn-primary" (click)="openModuleModal()">
+      <i class="bi bi-plus-lg me-1"></i> Add First Module
+    </button>
+  </div>
+
+  <!-- Module List with Drag & Drop -->
+  <div class="modules-container" cdkDropList [cdkDropListData]="modules" (cdkDropListDropped)="onModuleDrop($event)" *ngIf="!loading && modules.length > 0">
+      <div class="module-card"
+         *ngFor="let module of modules; let i = index; trackBy: trackByModuleId"
+         cdkDrag
+         [cdkDragData]="module">
+
+      <!-- Module Header -->
+      <div class="module-header" (click)="toggleModuleExpand(module)">
+        <div class="drag-handle" cdkDragHandle>
+          <i class="bi bi-grip-vertical"></i>
+        </div>
+
+        <div class="module-info">
+          <div class="module-number">Module {{ i + 1 }}</div>
+          <h4 class="module-title">{{ module.title }}</h4>
+          <div class="module-meta">
+            <span class="badge bg-black text-white">
+              <i class="bi bi-play-circle me-1"></i>
+              {{ module.lessons?.length || 0 }} lessons
+            </span>
+            <span class="badge bg-black text-white" *ngIf="(module.assessments?.length || 0) > 0">
+              <i class="bi bi-question-circle me-1"></i>
+              {{ module.assessments?.length }} assessments
+            </span>
+            <span class="badge" [class.bg-success]="module.is_active" [class.bg-secondary]="!module.is_active">
+              {{ module.is_active ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="module-actions" (click)="$event.stopPropagation()">
+          <button class="btn btn-sm btn-warning" (click)="openLessonModal(module.module_id)" title="Add Lesson">
+            <i class="bi bi-plus-lg"></i> Lesson
+          </button>
+          <button class="btn btn-sm btn-secondary" (click)="openAssessmentModal(module.module_id)" title="Add Assessment">
+            <i class="bi bi-plus-lg"></i> Quiz
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-ghost" data-bs-toggle="dropdown">
+              <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" (click)="openModuleModal(module)"><i class="bi bi-pencil me-2"></i>Edit Module</a></li>
+              <li><a class="dropdown-item" (click)="duplicateModule(module, $event)"><i class="bi bi-copy me-2"></i>Duplicate</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" (click)="confirmDelete('module', module.module_id, module.title)">
+                <i class="bi bi-trash me-2"></i>Delete
+              </a></li>
+            </ul>
+          </div>
+          <button class="btn btn-sm btn-ghost expand-btn">
+            <i class="bi" [class.bi-chevron-down]="module.expanded" [class.bi-chevron-right]="!module.expanded"></i>
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
-      <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
-      <div class="flex-grow-1">{{ error }}</div>
-      <button type="button" class="btn-close" (click)="error = null"></button>
-    </div>
+      <!-- Module Content (Expanded) -->
+      <div class="module-content" *ngIf="module.expanded">
+        <!-- Lessons Section -->
+        <div class="content-section">
+          <div class="section-header">
+            <h5><i class="bi bi-play-circle me-2"></i>Lessons</h5>
+          </div>
 
-    <div class="alert alert-success d-flex align-items-start" *ngIf="notice">
-      <i class="bi bi-check-circle me-2 mt-1"></i>
-      <div class="flex-grow-1">{{ notice }}</div>
-      <button type="button" class="btn-close" (click)="notice = null"></button>
-    </div>
+          <!-- Lessons Drag & Drop List -->
+          <div class="lessons-list"
+               cdkDropList
+               [id]="'lesson-list-' + module.module_id"
+               [cdkDropListData]="module.lessons || []"
+               [cdkDropListConnectedTo]="getConnectedLists()"
+               (cdkDropListDropped)="onLessonDrop($event, module)">
 
-    <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+            <div class="lesson-item"
+                 *ngFor="let lesson of module.lessons; let j = index; trackBy: trackByLessonId"
+                 cdkDrag
+                 [cdkDragData]="lesson">
 
-    <!-- Empty -->
-    <div *ngIf="!loading && !modules.length" class="text-center py-5 text-muted">
-      <i class="bi bi-list-check display-4 d-block mb-2"></i>
-      <p class="mb-1">This course has nothing in it yet</p>
-      <p class="small mb-3">A course with no lessons cannot be published — there would be nothing to complete.</p>
-      <button class="btn btn-primary btn-sm" (click)="openModuleModal()">Add the first module</button>
-    </div>
+              <div class="drag-handle" cdkDragHandle>
+                <i class="bi bi-grip-vertical"></i>
+              </div>
 
-    <!-- Modules -->
-    <div *ngIf="!loading && modules.length">
-      <div class="d-flex justify-content-end gap-2 mb-2">
-        <button class="btn btn-sm btn-link text-muted p-0" (click)="expandAll()">Expand all</button>
-        <span class="text-muted">·</span>
-        <button class="btn btn-sm btn-link text-muted p-0" (click)="collapseAll()">Collapse all</button>
-      </div>
+              <div class="lesson-icon" [ngClass]="'type-' + lesson.content_type">
+                <i class="bi" [class]="getContentTypeIcon(lesson.content_type)"></i>
+              </div>
 
-      <div cdkDropList (cdkDropListDropped)="onModuleDrop($event)">
-        <div class="card border-0 shadow-sm mb-3" *ngFor="let m of modules; trackBy: trackById" cdkDrag>
-          <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2 flex-grow-1">
-              <i class="bi bi-grip-vertical text-muted" cdkDragHandle style="cursor:grab"></i>
-              <button class="btn btn-sm btn-link text-body p-0 text-decoration-none" (click)="toggle(m)">
-                <i class="bi me-1" [class]="expanded.has(m.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-                <span class="fw-semibold">{{ m.title }}</span>
+              <div class="lesson-info">
+                <span class="lesson-order">{{ j + 1 }}.</span>
+                <span class="lesson-title">{{ lesson.title }}</span>
+                <span class="lesson-type badge bg-black text-white">{{ getContentTypeLabel(lesson.content_type) }}</span>
+                <span class="lesson-duration" *ngIf="lesson.duration_minutes">
+                  <i class="bi bi-clock"></i> {{ lesson.duration_minutes }}m
+                </span>
+                <span class="badge bg-warning-subtle text-warning" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
+                <span class="badge bg-danger-subtle text-danger" *ngIf="lesson.is_mandatory">Required</span>
+              </div>
+
+              <div class="lesson-status">
+                <span class="badge" [class.bg-success]="lesson.is_active" [class.bg-secondary]="!lesson.is_active">
+                  {{ lesson.is_active ? 'Active' : 'Draft' }}
+                </span>
+              </div>
+
+              <div class="lesson-actions">
+                <button class="btn btn-sm btn-ghost" (click)="openLessonModal(module.module_id, lesson)" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost" (click)="duplicateLesson(lesson, $event)" title="Duplicate">
+                  <i class="bi bi-copy"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost text-danger" (click)="confirmDelete('lesson', lesson.lesson_id, lesson.title)" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Empty Lessons -->
+            <div class="empty-lessons" *ngIf="!module.lessons || module.lessons.length === 0">
+              <i class="bi bi-inbox"></i>
+              <p>No lessons yet</p>
+              <button class="btn btn-sm btn-primary" (click)="openLessonModal(module.module_id)">
+                <i class="bi bi-plus-lg me-1"></i> Add Lesson
               </button>
-              <span class="badge bg-light text-black border">{{ m.lessons.length }} lesson(s)</span>
-              <span class="badge bg-secondary-subtle text-secondary" *ngIf="!m.isActive">Hidden</span>
-            </div>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" role="button" (click)="openLessonModal(m.id)"><i class="bi bi-plus-lg me-2"></i>Add lesson</a></li>
-                <li><a class="dropdown-item" role="button" (click)="openModuleModal(m)"><i class="bi bi-pencil me-2"></i>Rename</a></li>
-                <li *ngIf="m.isActive"><a class="dropdown-item" role="button" (click)="setModuleActive(m, false)"><i class="bi bi-eye-slash me-2"></i>Hide from learners</a></li>
-                <li *ngIf="!m.isActive"><a class="dropdown-item" role="button" (click)="setModuleActive(m, true)"><i class="bi bi-eye me-2"></i>Show again</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" role="button" (click)="askDelete('module', m.id, m.title)"><i class="bi bi-trash me-2"></i>Delete</a></li>
-              </ul>
             </div>
           </div>
+        </div>
 
-          <div class="card-body py-2" *ngIf="expanded.has(m.id)">
-            <p class="text-muted small" *ngIf="m.description">{{ m.description }}</p>
+        <!-- Assessments Section -->
+        <div class="content-section" *ngIf="module.assessments && module.assessments.length > 0">
+          <div class="section-header">
+            <h5><i class="bi bi-question-circle me-2"></i>Assessments</h5>
+          </div>
 
-            <div cdkDropList (cdkDropListDropped)="onLessonDrop(m, $event)">
-              <div class="d-flex align-items-center gap-2 py-2 border-bottom"
-                   *ngFor="let l of m.lessons; trackBy: trackById" cdkDrag>
-                <i class="bi bi-grip-vertical text-muted" cdkDragHandle style="cursor:grab"></i>
-                <i class="bi text-primary" [class]="contentIcon(l.contentType)"></i>
-                <div class="flex-grow-1">
-                  <div class="small fw-medium">
-                    {{ l.title }}
-                    <span class="badge bg-secondary-subtle text-secondary ms-1" *ngIf="!l.isActive">Hidden</span>
-                    <span class="badge bg-info-subtle text-info ms-1" *ngIf="l.isPreview">Preview</span>
-                    <span class="badge bg-light text-muted border ms-1" *ngIf="!l.isMandatory">Optional</span>
-                  </div>
-                  <small class="text-muted">
-                    {{ contentLabel(l.contentType) }}
-                    <span *ngIf="duration(l.durationMinutes)"> · {{ duration(l.durationMinutes) }}</span>
-                  </small>
-                </div>
-                <div class="dropdown">
-                  <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" role="button" (click)="openLessonModal(m.id, l)"><i class="bi bi-pencil me-2"></i>Edit</a></li>
-                    <li *ngIf="l.isActive"><a class="dropdown-item" role="button" (click)="setLessonActive(m, l, false)"><i class="bi bi-eye-slash me-2"></i>Hide from learners</a></li>
-                    <li *ngIf="!l.isActive"><a class="dropdown-item" role="button" (click)="setLessonActive(m, l, true)"><i class="bi bi-eye me-2"></i>Show again</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" role="button" (click)="askDelete('lesson', l.id, l.title, m.id)"><i class="bi bi-trash me-2"></i>Delete</a></li>
-                  </ul>
+          <div class="assessments-list">
+            <div class="assessment-item" *ngFor="let assessment of module.assessments; trackBy: trackByAssessmentId">
+              <div class="assessment-icon">
+                <i class="bi" [class]="getAssessmentTypeIcon(assessment.assessment_type)"></i>
+              </div>
+
+              <div class="assessment-info">
+                <span class="assessment-title">{{ assessment.title }}</span>
+                <div class="assessment-meta">
+                  <span class="badge bg-black text-white">{{ assessment.assessment_type | titlecase }}</span>
+                  <span *ngIf="assessment.time_limit_minutes">
+                    <i class="bi bi-clock"></i> {{ assessment.time_limit_minutes }}m
+                  </span>
+                  <span><i class="bi bi-bullseye"></i> {{ assessment.pass_percentage }}% to pass</span>
+                  <span *ngIf="assessment.question_count">
+                    <i class="bi bi-list-ol"></i> {{ assessment.question_count }} questions
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div class="text-center py-3" *ngIf="!m.lessons.length">
-              <small class="text-muted d-block mb-2">Nothing in this module yet</small>
-            </div>
+              <div class="assessment-status">
+                <span class="badge" [class.bg-success]="assessment.is_active" [class.bg-secondary]="!assessment.is_active">
+                  {{ assessment.is_active ? 'Active' : 'Draft' }}
+                </span>
+              </div>
 
-            <button class="btn btn-sm btn-link p-0 mt-2" (click)="openLessonModal(m.id)">
-              <i class="bi bi-plus-lg me-1"></i>Add a lesson
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="alert alert-secondary py-2 small mt-3">
-        <i class="bi bi-info-circle me-2"></i>
-        Quizzes and exams are not edited here — they have their own screens, their own permission and
-        their own question bank. Build one under <strong>Assessments</strong> and point it at this course.
-      </div>
-    </div>
-
-    <!-- Module -->
-    <div class="modal fade show d-block" *ngIf="showModuleModal" style="background:rgba(0,0,0,.5)">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h6 class="modal-title">{{ moduleForm.id ? 'Rename module' : 'New module' }}</h6>
-            <button type="button" class="btn-close" (click)="showModuleModal = false"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label small fw-semibold">Title <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" [(ngModel)]="moduleForm.title"
-                     [class.is-invalid]="violations['title']" placeholder="e.g. Getting started">
-              <div class="invalid-feedback">{{ violations['title'] }}</div>
-            </div>
-            <div class="mb-0">
-              <label class="form-label small fw-semibold">Description</label>
-              <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="moduleForm.description"></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-sm btn-secondary" (click)="showModuleModal = false">Cancel</button>
-            <button class="btn btn-sm btn-primary" (click)="saveModule()"
-                    [disabled]="saving || !moduleForm.title.trim()">
-              <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>Save
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lesson -->
-    <div class="modal fade show d-block" *ngIf="showLessonModal" style="background:rgba(0,0,0,.5)">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h6 class="modal-title">{{ lessonForm.id ? 'Edit lesson' : 'New lesson' }}</h6>
-            <button type="button" class="btn-close" (click)="showLessonModal = false"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label small fw-semibold">Title <span class="text-danger">*</span></label>
-              <input type="text" class="form-control form-control-sm" [(ngModel)]="lessonForm.title"
-                     [class.is-invalid]="violations['title']">
-              <div class="invalid-feedback">{{ violations['title'] }}</div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label small fw-semibold">What kind of lesson</label>
-              <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-sm"
-                        *ngFor="let t of contentTypes"
-                        [class]="lessonForm.contentType === t.value ? 'btn-primary' : 'btn-secondary'"
-                        (click)="lessonForm.contentType = t.value; onContentTypeChange()">
-                  <i class="bi me-1" [class]="t.icon"></i>{{ t.label }}
+              <div class="assessment-actions">
+                <button class="btn btn-sm btn-primary" (click)="manageQuestions(assessment)" title="Manage Questions">
+                  <i class="bi bi-list-ol me-1"></i> Questions
+                </button>
+                <button class="btn btn-sm btn-ghost" (click)="openAssessmentModal(module.module_id, assessment)" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost" (click)="duplicateAssessment(assessment, $event)" title="Duplicate">
+                  <i class="bi bi-copy"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost text-danger" (click)="confirmDelete('assessment', assessment.assessment_id, assessment.title)" title="Delete">
+                  <i class="bi bi-trash"></i>
                 </button>
               </div>
             </div>
-
-            <!-- From the library -->
-            <div class="mb-3" *ngIf="needsMedia">
-              <label class="form-label small fw-semibold">File</label>
-              <div class="input-group input-group-sm mb-2">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="Search the media library..."
-                       [(ngModel)]="mediaSearch">
-              </div>
-              <div class="border rounded" style="max-height:200px; overflow-y:auto">
-                <button type="button" class="list-group-item list-group-item-action border-0 w-100 text-start px-3 py-2"
-                        *ngFor="let item of filteredMedia; trackBy: trackById"
-                        [class.bg-primary-subtle]="lessonForm.contentUrl === null ? false : lessonForm.contentUrl.includes(item.id)"
-                        (click)="chooseMedia(item)">
-                  <div class="small fw-medium">{{ item.title }}</div>
-                  <small class="text-muted">
-                    {{ item.originalFilename }}
-                    <span *ngIf="item.duration"> · {{ item.duration }}</span>
-                  </small>
-                </button>
-                <div class="text-center text-muted py-3 small" *ngIf="!filteredMedia.length">
-                  Nothing in the library for this kind of lesson
-                </div>
-              </div>
-              <input type="text" class="form-control form-control-sm mt-2" [(ngModel)]="lessonForm.contentUrl"
-                     placeholder="…or paste a URL">
-              <div class="text-danger small mt-1" *ngIf="violations['contentUrl']">{{ violations['contentUrl'] }}</div>
-            </div>
-
-            <!-- Written -->
-            <div class="mb-3" *ngIf="!needsMedia">
-              <label class="form-label small fw-semibold">Content</label>
-              <textarea class="form-control form-control-sm" rows="6" [(ngModel)]="lessonForm.contentText"
-                        [class.is-invalid]="violations['contentText']"></textarea>
-              <div class="invalid-feedback">{{ violations['contentText'] }}</div>
-            </div>
-
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold">Duration (minutes)</label>
-                <input type="number" class="form-control form-control-sm" min="0"
-                       [(ngModel)]="lessonForm.durationMinutes">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label small fw-semibold">Description</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="lessonForm.description">
-              </div>
-            </div>
-
-            <div class="form-check form-switch mt-3">
-              <input class="form-check-input" type="checkbox" id="lessonMandatory" [(ngModel)]="lessonForm.isMandatory">
-              <label class="form-check-label small" for="lessonMandatory">
-                Required to complete the course
-              </label>
-            </div>
-            <div class="form-check form-switch mt-2">
-              <input class="form-check-input" type="checkbox" id="lessonPreview" [(ngModel)]="lessonForm.isPreview">
-              <label class="form-check-label small" for="lessonPreview">
-                Free preview
-                <span class="d-block text-muted">Anybody can watch this one without enrolling.</span>
-              </label>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-sm btn-secondary" (click)="showLessonModal = false">Cancel</button>
-            <button class="btn btn-sm btn-primary" (click)="saveLesson()"
-                    [disabled]="saving || !lessonForm.title.trim()">
-              <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>Save
-            </button>
           </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- Deleting -->
-    <div class="modal fade show d-block" *ngIf="pendingDelete" style="background:rgba(0,0,0,.5)">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h6 class="modal-title text-danger">Delete this {{ pendingDelete.kind }}?</h6>
-            <button type="button" class="btn-close" (click)="pendingDelete = null"></button>
+<!-- ==========================================
+QUESTION MANAGER MODAL
+========================================== -->
+<ng-template  let-observer  [tuiDialogOptions]="{label: '', size: 'l'}" [(tuiDialog)]="showQuestionManagerModal">
+  <div class="container-fluid p-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header">
+            <i class="bi bi-list-ol me-2"></i>
+            Manage Questions
+            <span class="badge bg-secondary ms-2" *ngIf="currentAssessmentForQuestions">
+          {{ currentAssessmentForQuestions.title }}
+        </span>
           </div>
-          <div class="modal-body">
-            <p class="small mb-0">
-              <strong>{{ pendingDelete.name }}</strong> will be removed.
-              <span *ngIf="pendingDelete.kind === 'module'">Its lessons go with it.</span>
-            </p>
-            <p class="text-muted small mt-2 mb-0">
-              If people have already worked through it, this is refused — hide it instead.
-            </p>
+        </div>
+        <div class="card-body">
+          <!-- Question Stats -->
+          <div class="question-stats mb-3" *ngIf="!loadingQuestions">
+        <span class="badge bg-primary me-2">
+          <i class="bi bi-list-ol me-1"></i>{{ questions.length }} Questions
+        </span>
+            <span class="badge bg-secondary me-2">
+          <i class="bi bi-star me-1"></i>{{ getTotalPoints() }} Total Points
+        </span>
+            <button class="btn btn-primary btn-sm float-end" (click)="openQuestionForm()">
+              <i class="bi bi-plus-lg me-1"></i> Add Question
+            </button>
           </div>
-          <div class="modal-footer">
-            <button class="btn btn-sm btn-secondary" (click)="pendingDelete = null">Cancel</button>
-            <button class="btn btn-sm btn-danger" [disabled]="saving" (click)="confirmDelete()">
-              <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>Delete
+          <!-- Loading -->
+          <div class="text-center py-4" *ngIf="loadingQuestions">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading questions...</p>
+          </div>
+          <!-- Empty State -->
+          <div class="empty-state py-4" *ngIf="!loadingQuestions && questions.length === 0">
+            <i class="bi bi-inbox"></i>
+            <h5>No Questions Yet</h5>
+            <p class="text-muted">Add questions to this assessment</p>
+            <button class="btn btn-primary" (click)="openQuestionForm()">
+              <i class="bi bi-plus-lg me-1"></i> Add First Question
+            </button>
+          </div>
+          <!-- Questions List with Drag & Drop -->
+          <div class="questions-list"
+               cdkDropList
+               [cdkDropListData]="questions"
+               (cdkDropListDropped)="onQuestionDrop($event)"
+               *ngIf="!loadingQuestions && questions.length > 0">
+
+            <div class="question-item"
+                 *ngFor="let question of questions; let i = index; trackBy: trackByQuestionId"
+                 cdkDrag
+                 [cdkDragData]="question">
+
+              <div class="drag-handle" cdkDragHandle>
+                <i class="bi bi-grip-vertical"></i>
+              </div>
+
+              <div class="question-number">{{ i + 1 }}</div>
+
+              <div class="question-type-icon">
+                <i class="bi" [class]="getQuestionTypeIcon(question.question_type)"></i>
+              </div>
+
+              <div class="question-content">
+                <div class="question-text">{{ question.question_text }}</div>
+                <div class="question-meta">
+                  <span class="badge bg-black text-white">{{ getQuestionTypeLabel(question.question_type) }}</span>
+                  <span class="badge bg-primary-subtle text-primary">{{ question.points }} pts</span>
+                  <span class="badge bg-success" *ngIf="question.is_active">Active</span>
+                  <span class="badge bg-secondary" *ngIf="!question.is_active">Inactive</span>
+                  <span class="text-muted small ms-2" *ngIf="question.options?.length">
+                {{ question.options?.length }} options
+              </span>
+                </div>
+              </div>
+
+              <div class="question-actions">
+                <button class="btn btn-sm btn-ghost" (click)="openQuestionForm(question)" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost" (click)="duplicateQuestion(question)" title="Duplicate">
+                  <i class="bi bi-copy"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost text-danger" (click)="deleteQuestion(question)" title="Delete">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+          <hr>
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" (click)="closeQuestionManager()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+<!-- ==========================================
+QUESTION FORM MODAL
+========================================== -->
+<ng-template  let-observer  [tuiDialogOptions]="{label: '', size: 'l'}" [(tuiDialog)]="showQuestionFormModal">
+  <div class="container-fluid p-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header">
+            <i class="bi bi-question-circle me-2"></i>
+            {{ questionEditMode === 'create' ? 'Add New Question' : 'Edit Question' }}
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Question Type -->
+          <div class="mb-3">
+            <label class="form-label">Question Type</label>
+            <div class="question-type-selector">
+              <div class="question-type-option"
+                   *ngFor="let type of questionTypes"
+                   [class.selected]="currentQuestion.question_type === type.value"
+                   (click)="onQuestionTypeChange(type.value)">
+                <i class="bi" [class]="getQuestionTypeIcon(type.value)"></i>
+                <span>{{ type.label }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Question Text -->
+          <div class="mb-3">
+            <label class="form-label">Question Text <span class="text-danger">*</span></label>
+            <textarea class="form-control"
+                      [(ngModel)]="currentQuestion.question_text"
+                      rows="3"
+                      placeholder="Enter your question here..."></textarea>
+          </div>
+
+          <!-- Points -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Points</label>
+              <input type="number"
+                     class="form-control"
+                     [(ngModel)]="currentQuestion.points"
+                     min="1"
+                     max="100">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Explanation (shown after answer)</label>
+              <input type="text"
+                     class="form-control"
+                     [(ngModel)]="currentQuestion.explanation"
+                     placeholder="Optional explanation">
+            </div>
+          </div>
+
+          <!-- Options (for choice question-banks) -->
+          <div class="options-section" *ngIf="['single_choice', 'multiple_choice', 'true_false'].includes(currentQuestion.question_type)">
+            <label class="form-label">
+              Answer Options
+              <span class="text-muted ms-1">
+            ({{ currentQuestion.question_type === 'multiple_choice' ? 'Select all correct' : 'Select one correct' }})
+          </span>
+            </label>
+
+            <!-- True/False preset -->
+            <div *ngIf="currentQuestion.question_type === 'true_false'" class="true-false-options">
+              <div class="option-row" *ngFor="let option of currentQuestion.options; let i = index; trackBy: trackByOptionIndex">
+                <div class="form-check">
+                  <input class="form-check-input"
+                         type="radio"
+                         [name]="'tf-option'"
+                         [id]="'tf-option-' + i"
+                         [checked]="option.is_correct"
+                         (change)="onCorrectOptionChange(i)">
+                  <label class="form-check-label" [for]="'tf-option-' + i">
+                    {{ i === 0 ? 'True' : 'False' }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Choice options -->
+            <div *ngIf="currentQuestion.question_type !== 'true_false'" class="choice-options">
+              <div class="option-row" *ngFor="let option of currentQuestion.options; let i = index; trackBy: trackByOptionIndex">
+                <div class="option-correct">
+                  <input *ngIf="currentQuestion.question_type === 'single_choice'"
+                         class="form-check-input"
+                         type="radio"
+                         [name]="'correct-option'"
+                         [checked]="option.is_correct"
+                         (change)="onCorrectOptionChange(i)"
+                         title="Mark as correct">
+                  <input *ngIf="currentQuestion.question_type === 'multiple_choice'"
+                         class="form-check-input"
+                         type="checkbox"
+                         [(ngModel)]="option.is_correct"
+                         title="Mark as correct">
+                </div>
+                <div class="option-text">
+                  <input type="text"
+                         class="form-control"
+                         [(ngModel)]="option.option_text"
+                         [placeholder]="'Option ' + (i + 1)">
+                </div>
+                <div class="option-actions">
+                  <button class="btn btn-sm btn-ghost text-danger"
+                          (click)="removeOption(i)"
+                          *ngIf="currentQuestion.options.length > 2"
+                          title="Remove option">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button class="btn btn-sm btn-secondary mt-2" (click)="addOption()">
+                <i class="bi bi-plus-lg me-1"></i> Add Option
+              </button>
+            </div>
+          </div>
+
+          <!-- Active toggle -->
+          <div class="form-check form-switch mt-3">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="questionActive"
+                   [(ngModel)]="currentQuestion.is_active">
+            <label class="form-check-label" for="questionActive">Active</label>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+          <hr>
+          <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" (click)="showQuestionFormModal = false">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveQuestion()" [disabled]="saving">
+              <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+              {{ questionEditMode === 'create' ? 'Create Question' : 'Save Changes' }}
             </button>
           </div>
         </div>
       </div>
     </div>
   </div>
-</main>
+</ng-template>
+<!-- ==========================================
+MODULE MODAL
+========================================== -->
+<ng-template  let-observer  [tuiDialogOptions]="{label: '', size: 'l'}" [(tuiDialog)]="showModuleModal">
+  <div class="container-fluid p-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header">
+            <i class="bi bi-collection me-2"></i>
+            {{ editMode === 'create' ? 'Add New Module' : 'Edit Module' }}
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Module Title <span class="text-danger">*</span></label>
+            <input type="text"
+                   class="form-control"
+                   [(ngModel)]="currentModule.title"
+                   placeholder="Enter module title">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control"
+                      [(ngModel)]="currentModule.description"
+                      rows="3"
+                      placeholder="Optional description for this module"></textarea>
+          </div>
+          <div class="form-check form-switch">
+            <input class="form-check-input"
+                   type="checkbox"
+                   id="moduleActive"
+                   [(ngModel)]="currentModule.is_active">
+            <label class="form-check-label" for="moduleActive">Active (visible to learners)</label>
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+          <div class="d-flex gap-2 justify-content-end">
+            <hr>
+          <button type="button" class="btn btn-secondary" (click)="showModuleModal = false">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="saveModule()" [disabled]="saving">
+            <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+            {{ editMode === 'create' ? 'Create Module' : 'Save Changes' }}
+          </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+<!-- ==========================================
+LESSON MODAL
+========================================== -->
+<ng-template  let-observer  [tuiDialogOptions]="{label: '', size: 'l'}" [(tuiDialog)]="showLessonModal">
+  <div class="container-fluid p-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header">
+            <i class="bi bi-play-circle me-2"></i>
+            {{ editMode === 'create' ? 'Add New Lesson' : 'Edit Lesson' }}
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label class="form-label">Lesson Title <span class="text-danger">*</span></label>
+                  <input type="text"
+                         class="form-control"
+                         [(ngModel)]="currentLesson.title"
+                         placeholder="Enter lesson title"
+                         autofocus>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Duration (minutes)</label>
+                  <input type="number"
+                         class="form-control"
+                         [(ngModel)]="currentLesson.duration_minutes"
+                         min="0"
+                         placeholder="0">
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control"
+                        [(ngModel)]="currentLesson.description"
+                        rows="2"
+                        placeholder="Brief description of this lesson"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Content Type</label>
+              <div class="content-type-selector">
+                <div class="content-type-option"
+                     *ngFor="let type of contentTypes"
+                     [class.selected]="currentLesson.content_type === type.value"
+                     (click)="onContentTypeChange(type.value)">
+                  <i class="bi" [class]="type.icon"></i>
+                  <span>{{ type.label }}</span>
+                </div>
+              </div>
+            </div>
+            <!-- Media Selection Dropdown (for video, audio, pdf, scorm) -->
+            <div class="mb-3" *ngIf="['video', 'audio', 'pdf', 'scorm'].includes(currentLesson.content_type)">
+              <label class="form-label">
+                Select Media
+                <span class="text-muted ms-1">(from Media Library)</span>
+              </label>
+              <div class="input-group">
+          <span class="input-group-text">
+            <i class="bi" [class]="getContentTypeIcon(currentLesson.content_type)"></i>
+          </span>
+                <select class="form-select"
+                        [ngModel]="selectedMedia?.media_id || ''"
+                        (ngModelChange)="onMediaSelect($event)"
+                        [disabled]="loadingMedia">
+                  <option value="">-- Select {{ currentLesson.content_type | titlecase }} --</option>
+                  <option *ngFor="let media of filteredMediaFiles" [value]="media.media_id">
+                    {{ getMediaDisplayName(media) }}
+                  </option>
+                </select>
+                <span class="input-group-text" *ngIf="loadingMedia">
+            <span class="spinner-border spinner-border-sm"></span>
+          </span>
+              </div>
+              <small class="text-muted" *ngIf="filteredMediaFiles.length === 0 && !loadingMedia">
+                No {{ currentLesson.content_type }} files found. Upload media in Media Library first.
+              </small>
+            </div>
+            <!-- Selected Media Info -->
+            <div class="selected-media-info mb-3" *ngIf="selectedMedia">
+              <div class="media-preview-card">
+                <div class="media-icon" [ngClass]="'type-' + currentLesson.content_type">
+                  <i class="bi" [class]="getContentTypeIcon(currentLesson.content_type)"></i>
+                </div>
+                <div class="media-details">
+                  <strong>{{ selectedMedia.title }}</strong>
+                  <small class="text-muted d-block" *ngIf="selectedMedia.duration_seconds">
+                    Duration: {{ formatDuration(Math.ceil(selectedMedia.duration_seconds / 60)) }}
+                  </small>
+                  <small class="text-success d-block text-truncate" style="max-width: 400px;">
+                    <i class="bi bi-link-45deg me-1"></i>{{ currentLesson.content_url }}
+                  </small>
+                </div>
+              </div>
+            </div>
+            <!-- Manual URL Input (for html or if no media selected) -->
+            <div class="mb-3" *ngIf="currentLesson.content_type === 'html' || ((['video', 'audio', 'pdf', 'scorm'].includes(currentLesson.content_type)) && !selectedMedia)">
+              <label class="form-label">
+                Content URL
+                <span class="text-muted ms-1" *ngIf="currentLesson.content_type === 'scorm'">(SCORM launch URL)</span>
+                <span class="text-muted ms-1" *ngIf="!selectedMedia">(or enter manually)</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                <input type="text"
+                       class="form-control"
+                       [(ngModel)]="currentLesson.content_url"
+                       placeholder="https://...">
+              </div>
+              <small class="text-muted" *ngIf="currentLesson.content_type === 'scorm'">
+                Full URL to SCORM package launch file (e.g., index_lms.html)
+              </small>
+            </div>
+            <!-- Text Content (for text type) -->
+            <div class="mb-3" *ngIf="currentLesson.content_type === 'text'">
+              <label class="form-label">Content</label>
+              <textarea class="form-control"
+                        [(ngModel)]="currentLesson.content_text"
+                        rows="6"
+                        placeholder="Enter text content (supports HTML)"></textarea>
+            </div>
+            <hr class="my-4">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         id="lessonMandatory"
+                         [(ngModel)]="currentLesson.is_mandatory">
+                  <label class="form-check-label" for="lessonMandatory">Required for completion</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         id="lessonActive"
+                         [(ngModel)]="currentLesson.is_active">
+                  <label class="form-check-label" for="lessonActive">Active (visible to learners)</label>
+                </div>
+              </div>
+            </div>
+            <!-- Pass percentage for SCORM -->
+            <div class="mb-3" *ngIf="currentLesson.content_type === 'scorm'">
+              <label class="form-label">Pass Percentage (for SCORM scoring)</label>
+              <div class="input-group" style="max-width: 200px;">
+                <input type="number"
+                       class="form-control"
+                       [(ngModel)]="currentLesson.pass_percentage"
+                       min="0"
+                       max="100">
+                <span class="input-group-text">%</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+            <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" (click)="showLessonModal = false">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveLesson()" [disabled]="saving">
+              <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+              {{ editMode === 'create' ? 'Create Lesson' : 'Save Changes' }}
+            </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</ng-template>
+<!-- ==========================================
+ASSESSMENT MODAL
+========================================== -->
+<ng-template  let-observer  [tuiDialogOptions]="{label: '', size: 'l'}" [(tuiDialog)]="showAssessmentModal">
+  <div class="container-fluid p-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="bi bi-question-circle me-2"></i>
+              {{ editMode === 'create' ? 'Add New Assessment' : 'Edit Assessment' }}
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label class="form-label">Assessment Title <span class="text-danger">*</span></label>
+                  <input type="text"
+                         class="form-control"
+                         [(ngModel)]="currentAssessment.title"
+                         placeholder="Enter assessment title"
+                         autofocus>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Type</label>
+                  <select class="form-select" [(ngModel)]="currentAssessment.assessment_type">
+                    <option *ngFor="let type of assessmentTypes" [value]="type.value">
+                      {{ type.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control"
+                        [(ngModel)]="currentAssessment.description"
+                        rows="2"
+                        placeholder="Instructions for learners"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Time Limit (minutes)</label>
+                  <input type="number"
+                         class="form-control"
+                         [(ngModel)]="currentAssessment.time_limit_minutes"
+                         min="0"
+                         placeholder="0 = no limit">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Pass Percentage</label>
+                  <div class="input-group">
+                    <input type="number"
+                           class="form-control"
+                           [(ngModel)]="currentAssessment.pass_percentage"
+                           min="0"
+                           max="100">
+                    <span class="input-group-text">%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">Max Attempts</label>
+                  <input type="number"
+                         class="form-control"
+                         [(ngModel)]="currentAssessment.max_attempts"
+                         min="1"
+                         placeholder="3">
+                </div>
+              </div>
+            </div>
+            <hr class="my-4">
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         id="shuffleQuestions"
+                         [(ngModel)]="currentAssessment.shuffle_questions">
+                  <label class="form-check-label" for="shuffleQuestions">Shuffle questions</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         id="showCorrect"
+                         [(ngModel)]="currentAssessment.show_correct_answers">
+                  <label class="form-check-label" for="showCorrect">Show correct answers</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-check form-switch mb-3">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         id="assessmentActive"
+                         [(ngModel)]="currentAssessment.is_active">
+                  <label class="form-check-label" for="assessmentActive">Active</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+            <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" (click)="showAssessmentModal = false">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="saveAssessment()" [disabled]="saving">
+              <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+              {{ editMode === 'create' ? 'Create Assessment' : 'Save Changes' }}
+            </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+<!-- ==========================================
+ DELETE CONFIRMATION MODAL
+========================================== -->
+<ng-template  let-observer  [tuiDialogOptions]="{label: '', size: 's'}" [(tuiDialog)]="showDeleteConfirm">
+  <div class="container-fluid p-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              Confirm Delete
+            </div>
+          </div>
+          <div class="card-body text-center">
+            <div class="delete-icon">
+              <i class="bi bi-trash"></i>
+            </div>
+            <p class="mb-1">Are you sure you want to delete this {{ deleteType }}?</p>
+            <p class="fw-bold">{{ deleteName }}</p>
+            <p class="text-danger small" *ngIf="deleteType === 'module'">
+              <i class="bi bi-exclamation-circle me-1"></i>
+              This will also delete all lessons and assessments in this module.
+            </p>
+          </div>
+          <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
+            <div class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm = false">Cancel</button>
+            <button type="button" class="btn btn-danger" (click)="executeDelete()" [disabled]="saving">
+              <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+              Delete
+            </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

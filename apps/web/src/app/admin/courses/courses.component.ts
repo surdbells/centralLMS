@@ -1,100 +1,172 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { TuiIcon, TuiLoader } from '@taiga-ui/core';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import {
   CoursesService,
-  type Course,
+  type Course as ApiCourse,
   type CourseFilters,
-  type CourseLevel,
   type CourseStatistics,
   type CourseStatus,
 } from '../../services/courses.service';
 import { LookupsService, type Lookup } from '../../services/lookups.service';
-import { UsersService, type UserOption } from '../../services/users.service';
 import { ApiError } from '../../core/api';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
-
-/** What a confirmation dialog is about to do. */
-type Pending =
-  | { kind: 'publish' | 'unpublish' | 'archive' | 'delete' | 'duplicate'; course: Course }
-  | null;
+import { CourseCardComponent } from '../../course-card.component';
+import { CourseMiniCardComponent } from '../../course-mini-card.component';
 
 /**
- * The course catalogue, for the people who build it.
+ * A course, in the shape this screen's template reads.
  *
- * The status buttons now say what the server will actually do. "Delete" is
- * refused while anybody is enrolled and the refusal names archiving instead —
- * the legacy deleted the row and left every enrolment, attempt and certificate
- * pointing at nothing.
+ * Kept as it was. The API answers in camelCase and the template speaks
+ * snake_case; translating here is a smaller change than rewriting a screen
+ * that already works, and it keeps the two independent — the next field the
+ * API renames is a line in {@link CourseComponent.adapt}, not a hunt through
+ * seven hundred lines of markup.
+ */
+export interface Course {
+  course_id: string;
+  title: string;
+  description: string;
+  summary: string;
+  category_name: string;
+  status: CourseStatus;
+  level: string | null;
+  duration_minutes: number | null;
+  is_featured: boolean;
+  is_active: boolean;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+export interface Category {
+  category_id: string;
+  category_name: string;
+}
+
+/** What a duplicate would bring across, shown before it runs. */
+interface PreviewData {
+  will_copy: { modules: number; lessons: number; assessments: number; questions: number };
+}
+
+/**
+ * Course management.
  *
- * There is no certificate-template picker. Templates are not attached to
- * courses in this system; a certificate carries the template it was issued
- * with, which is what makes an old certificate still render years later.
+ * The screen is unchanged; what sits behind it is not. `CrudService` posted a
+ * token, a user id and a tenant id in the body of every request and read a
+ * `response_code` out of the reply. This uses {@link CoursesService}, and the
+ * statistics are counted by the server rather than read from columns that
+ * never decremented.
+ *
+ * The methods the template calls keep their names — `list_course`,
+ * `edit_course`, `executeDelete` — because the template is the thing that was
+ * working.
  */
 @Component({
   selector: 'app-courses',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TuiIcon,
+    TuiLoader,
+    AdmintopComponent,
+    CourseCardComponent,
+    CourseMiniCardComponent,
+  ],
   templateUrl: './courses.component.html',
   styleUrls: ['./courses.component.css'],
 })
 export class CourseComponent implements OnInit, OnDestroy {
   private readonly coursesService = inject(CoursesService);
   private readonly lookupsService = inject(LookupsService);
-  private readonly usersService = inject(UsersService);
   private readonly router = inject(Router);
 
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<string>();
 
-  courses: Course[] = [];
-  statistics: CourseStatistics | null = null;
-  categories: Lookup[] = [];
-  instructors: UserOption[] = [];
+  course: Course[] = [];
+  category: Category[] = [];
 
-  filters: CourseFilters = { page: 1, perPage: 12 };
-  meta = { total: 0, page: 1, perPage: 12, totalPages: 0 };
+  /** Counted by the server on every read. */
+  statistics = { total: 0, draft: 0, published: 0, archived: 0 };
 
-  loading = true;
-  working = false;
-  error: string | null = null;
-  notice: string | null = null;
+  ui_controls = { is_loading: false };
+  protected readonly open = signal(false);
 
   viewMode: 'grid' | 'list' = 'grid';
   searchQuery = '';
 
-  pending: Pending = null;
+  /** The filters, under the name the template already uses. */
+  initial: { status: CourseStatus | ''; category_id: string | null; page: number; per_page: number } = {
+    status: '',
+    category_id: null,
+    page: 1,
+    per_page: 12,
+  };
 
-  readonly levels: CourseLevel[] = ['beginner', 'intermediate', 'professional'];
+  meta = { total: 0, page: 1, per_page: 12, total_pages: 0 };
+
+  isLoading = false;
+  previewData: PreviewData | null = null;
+
+  showDeleteModal = false;
+  courseToDelete: Course | null = null;
+
+  showPublishModal = false;
+  courseToPublish: Course | null = null;
+
+  showUnPublishModal = false;
+  courseToUnPublish: Course | null = null;
+
+  showArchiveModal = false;
+  courseToArchive: Course | null = null;
+
+  /** The duplicate dialog. `new_title` is advisory: the server picks a free one. */
+  /**
+   * The duplicate dialog.
+   *
+   * The tick-boxes are kept because the dialog has them, and they are honest
+   * about what the server actually does: modules and lessons always come
+   * across, assessments and their questions never do — an assessment belongs
+   * to a question bank now, and copying one would mean inventing a second
+   * bank nobody asked for.
+   */
+  duplicate = {
+    course_id: '',
+    course_title: '',
+    new_title: '',
+    copy_modules: true,
+    copy_lessons: true,
+    copy_assessments: false,
+    copy_questions: false,
+    // Always true, and not settable: a copy that arrived published would put
+    // an unreviewed course in the catalogue.
+    set_as_draft: true,
+  };
+
+  insights = { courseId: '', courseTitle: '' };
+
+  /**
+   * The last failure, in the server's own words.
+   *
+   * Deleting a course somebody is enrolled on comes back with the count and
+   * the suggestion to archive it. A toast saying "Failed to delete course"
+   * threw that away.
+   */
+  error: string | null = null;
+  notice: string | null = null;
 
   ngOnInit(): void {
     this.search$
       .pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe((term) => {
-        this.filters.search = term === '' ? undefined : term;
-        this.filters.page = 1;
-        this.load();
-      });
+      .subscribe(() => this.list_course(1));
 
-    // The pickers are reference data and the caller's own people, not fields
-    // scraped off whatever the course list happened to return.
-    forkJoin({
-      categories: this.lookupsService.active('category'),
-      instructors: this.usersService.instructors(),
-    })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: ({ categories, instructors }) => {
-          this.categories = categories;
-          this.instructors = instructors.items;
-        },
-        error: () => undefined,
-      });
-
-    this.load();
+    this.list_category();
+    this.list_course();
   }
 
   ngOnDestroy(): void {
@@ -104,260 +176,388 @@ export class CourseComponent implements OnInit, OnDestroy {
 
   // --- loading ------------------------------------------------------------
 
-  load(): void {
-    this.loading = true;
+  list_course(page: number = 1, per_page: number = this.initial.per_page): void {
+    this.initial.page = page;
+    this.initial.per_page = per_page;
+    this.ui_controls.is_loading = true;
+
+    const filters: CourseFilters = {
+      page,
+      perPage: per_page,
+      search: this.searchQuery.trim() || undefined,
+      status: this.initial.status || undefined,
+      categoryId: this.initial.category_id ?? undefined,
+    };
 
     forkJoin({
-      page: this.coursesService.list(this.filters),
+      page: this.coursesService.list(filters),
+      // Counted server-side. The legacy returned them inside the list payload,
+      // computed from the page it happened to be returning.
       statistics: this.coursesService.statistics().pipe(catchError(() => of(null))),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ page, statistics }) => {
-          this.courses = page.items;
-          this.meta = page.meta;
-          this.statistics = statistics;
-          this.loading = false;
+        next: ({ page: result, statistics }) => {
+          this.course = result.items.map((c) => this.adapt(c));
+          this.meta = {
+            total: result.meta.total,
+            page: result.meta.page,
+            per_page: result.meta.perPage,
+            total_pages: result.meta.totalPages,
+          };
+
+          if (statistics !== null) {
+            this.applyStatistics(statistics);
+          }
+
+          this.ui_controls.is_loading = false;
         },
-        error: (error: ApiError) => {
-          this.error = error.message;
-          this.loading = false;
+        error: (e: ApiError) => {
+          this.error = e.message;
+          this.ui_controls.is_loading = false;
         },
       });
   }
 
-  // --- narrowing ----------------------------------------------------------
+  list_category(): void {
+    this.lookupsService
+      .active('category')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (categories) => (this.category = categories.map((c) => this.adaptCategory(c))),
+        error: () => undefined,
+      });
+  }
+
+  private applyStatistics(statistics: CourseStatistics): void {
+    this.statistics = {
+      total: statistics.total,
+      draft: statistics.draft,
+      published: statistics.published,
+      archived: statistics.archived,
+    };
+  }
+
+  // --- filtering ----------------------------------------------------------
+
+  filterByStatus(status: CourseStatus | ''): void {
+    this.initial.status = status;
+    this.list_course(1);
+  }
 
   onSearchChange(): void {
-    this.search$.next(this.searchQuery.trim());
+    this.search$.next(this.searchQuery);
   }
 
   clearSearch(): void {
     this.searchQuery = '';
-    this.search$.next('');
-  }
-
-  filterByStatus(status: CourseStatus | ''): void {
-    this.filters.status = status === '' || this.filters.status === status ? undefined : status;
-    this.filters.page = 1;
-    this.load();
-  }
-
-  onFilterChange(): void {
-    this.filters.page = 1;
-    this.load();
+    this.list_course(1);
   }
 
   clearFilters(): void {
     this.searchQuery = '';
-    this.filters = { page: 1, perPage: this.filters.perPage };
-    this.load();
+    this.initial.status = '';
+    this.initial.category_id = null;
+    this.list_course(1);
   }
 
-  get hasActiveFilters(): boolean {
-    return this.filters.status !== undefined
-      || this.filters.categoryId !== undefined
-      || this.filters.instructorId !== undefined
-      || this.filters.level !== undefined
-      || (this.filters.search ?? '') !== '';
+  hasActiveFilters(): boolean {
+    return this.searchQuery !== '' || this.initial.status !== '' || this.initial.category_id !== null;
   }
 
-  goPage(page: number): void {
-    this.filters.page = page;
-    this.load();
+  // --- publishing ---------------------------------------------------------
+
+  confirmPublish(c: Course): void {
+    this.courseToPublish = c;
+    this.showPublishModal = true;
   }
 
-  // --- acting on one course ------------------------------------------------
-
-  ask(kind: Exclude<Pending, null>['kind'], course: Course): void {
-    this.pending = { kind, course };
+  cancelPublish(): void {
+    this.showPublishModal = false;
+    this.courseToPublish = null;
   }
 
-  cancel(): void {
-    this.pending = null;
-  }
+  executePublish(): void {
+    const course = this.courseToPublish;
 
-  confirm(): void {
-    const pending = this.pending;
-
-    if (pending === null) {
+    if (course === null) {
       return;
     }
 
-    const { kind, course } = pending;
-
-    this.working = true;
-    this.error = null;
-
-    const done = (message: string) => {
-      this.working = false;
-      this.pending = null;
-      this.notice = message;
-      this.load();
-    };
-
-    const failed = (error: ApiError) => {
-      this.working = false;
-      this.pending = null;
-      // The server's own words. "Nineteen people are enrolled on this — archive
-      // it instead" is worth reading; "Failed to delete course" is not.
-      this.error = error.message;
-    };
-
-    switch (kind) {
-      case 'publish':
-        this.coursesService.setStatus(course.id, 'published').pipe(takeUntil(this.destroy$))
-          .subscribe({ next: () => done(`"${course.title}" is now in the catalogue.`), error: failed });
-        break;
-
-      case 'unpublish':
-        this.coursesService.setStatus(course.id, 'draft').pipe(takeUntil(this.destroy$))
-          .subscribe({ next: () => done(`"${course.title}" is back to a draft.`), error: failed });
-        break;
-
-      case 'archive':
-        this.coursesService.setStatus(course.id, 'archived').pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: () => done(`"${course.title}" is archived. Anyone already on it can still finish.`),
-            error: failed,
-          });
-        break;
-
-      case 'delete':
-        this.coursesService.delete(course.id).pipe(takeUntil(this.destroy$))
-          .subscribe({ next: () => done(`"${course.title}" was deleted.`), error: failed });
-        break;
-
-      case 'duplicate':
-        this.coursesService.duplicate(course.id).pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: (copy) => done(
-              `"${copy.title}" was created as a draft, with ${copy.copiedModules} `
-              + `module(s) and ${copy.copiedLessons} lesson(s).`,
-            ),
-            error: failed,
-          });
-        break;
-    }
+    this.setStatus(course, 'published', () => {
+      this.cancelPublish();
+      this.notice = `"${course.title}" is in the catalogue.`;
+    });
   }
 
-  /** What the confirmation dialog says, per action. */
-  get pendingPrompt(): { title: string; body: string; confirm: string; danger: boolean } | null {
-    const pending = this.pending;
+  confirmUnPublish(c: Course): void {
+    this.courseToUnPublish = c;
+    this.showUnPublishModal = true;
+  }
 
-    if (pending === null) {
-      return null;
+  cancelUnPublish(): void {
+    this.showUnPublishModal = false;
+    this.courseToUnPublish = null;
+  }
+
+  executeUnPublish(): void {
+    const course = this.courseToUnPublish;
+
+    if (course === null) {
+      return;
     }
 
-    const name = pending.course.title;
+    this.setStatus(course, 'draft', () => {
+      this.cancelUnPublish();
+      this.notice = `"${course.title}" is back to a draft.`;
+    });
+  }
 
-    switch (pending.kind) {
-      case 'publish':
-        return {
-          title: 'Publish this course?',
-          body: `"${name}" goes into the catalogue and learners can enrol. A course with no lessons `
-            + 'cannot be published — there would be nothing to complete.',
-          confirm: 'Publish',
-          danger: false,
-        };
-      case 'unpublish':
-        return {
-          title: 'Take this course off the catalogue?',
-          body: `"${name}" becomes a draft. Nobody new can enrol; the people already on it keep their `
-            + 'progress.',
-          confirm: 'Unpublish',
-          danger: false,
-        };
-      case 'archive':
-        return {
-          title: 'Archive this course?',
-          body: `"${name}" leaves the catalogue for good. Everyone already on it can still finish, and `
-            + 'their certificates stay valid.',
-          confirm: 'Archive',
-          danger: false,
-        };
-      case 'delete':
-        return {
-          title: 'Delete this course?',
-          body: `"${name}" is removed. This is refused if anybody is enrolled or while it is published `
-            + '— archive it instead.',
-          confirm: 'Delete',
-          danger: true,
-        };
-      case 'duplicate':
-        return {
-          title: 'Duplicate this course?',
-          body: `A draft copy of "${name}" is made, with its modules and lessons. Enrolments, ratings `
-            + 'and the skills it teaches do not come across.',
-          confirm: 'Duplicate',
-          danger: false,
-        };
+  confirmArchive(c: Course): void {
+    this.courseToArchive = c;
+    this.showArchiveModal = true;
+  }
+
+  cancelArchive(): void {
+    this.showArchiveModal = false;
+    this.courseToArchive = null;
+  }
+
+  executeArchive(): void {
+    const course = this.courseToArchive;
+
+    if (course === null) {
+      return;
     }
+
+    this.setStatus(course, 'archived', () => {
+      this.cancelArchive();
+      this.notice = `"${course.title}" is archived. Anyone on it can still finish.`;
+    });
+  }
+
+  private setStatus(course: Course, status: CourseStatus, done: () => void): void {
+    this.ui_controls.is_loading = true;
+    this.error = null;
+
+    this.coursesService
+      .setStatus(course.course_id, status)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.ui_controls.is_loading = false;
+          done();
+          this.list_course(this.initial.page);
+        },
+        error: (e: ApiError) => {
+          this.ui_controls.is_loading = false;
+          // "This course has no lessons yet, so there would be nothing to
+          // complete" — worth reading, and previously replaced by a toast.
+          this.error = e.message;
+          this.cancelPublish();
+          this.cancelUnPublish();
+          this.cancelArchive();
+        },
+      });
+  }
+
+  // --- deleting -----------------------------------------------------------
+
+  confirmDelete(c: Course): void {
+    this.courseToDelete = c;
+    this.showDeleteModal = true;
+  }
+
+  cancelDelete(): void {
+    this.showDeleteModal = false;
+    this.courseToDelete = null;
+  }
+
+  executeDelete(): void {
+    const course = this.courseToDelete;
+
+    if (course === null) {
+      return;
+    }
+
+    this.ui_controls.is_loading = true;
+    this.error = null;
+
+    this.coursesService
+      .delete(course.course_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.ui_controls.is_loading = false;
+          this.cancelDelete();
+          this.notice = `"${course.title}" was deleted.`;
+          this.list_course(this.initial.page);
+        },
+        error: (e: ApiError) => {
+          this.ui_controls.is_loading = false;
+          this.cancelDelete();
+          this.error = e.message;
+        },
+      });
+  }
+
+  // --- duplicating --------------------------------------------------------
+
+  duplicateCourse(c: Course): void {
+    this.duplicate = {
+      ...this.duplicate,
+      course_id: c.course_id,
+      course_title: c.title,
+      new_title: `${c.title} (copy)`,
+    };
+    this.previewData = null;
+    this.onPreview();
+  }
+
+  /**
+   * What a duplicate would bring across.
+   *
+   * Read from the course's own outline rather than from a preview endpoint —
+   * the copy is exactly its modules and lessons, so the outline is the answer.
+   * Assessments and their questions are deliberately not copied, and the
+   * dialog shows zero rather than hiding the rows.
+   */
+  onPreview(): void {
+    this.isLoading = true;
+
+    this.coursesService
+      .outline(this.duplicate.course_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (outline) => {
+          this.previewData = {
+            will_copy: {
+              modules: outline.modules.length,
+              lessons: outline.modules.reduce((n, m) => n + m.lessons.length, 0),
+              assessments: 0,
+              questions: 0,
+            },
+          };
+          this.isLoading = false;
+        },
+        error: () => {
+          this.previewData = null;
+          this.isLoading = false;
+        },
+      });
+  }
+
+  onDuplicate(): void {
+    this.ui_controls.is_loading = true;
+    this.error = null;
+
+    this.coursesService
+      .duplicate(this.duplicate.course_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (copy) => {
+          this.ui_controls.is_loading = false;
+          this.previewData = null;
+          this.notice = `"${copy.title}" was created as a draft, with `
+            + `${copy.copiedModules} module(s) and ${copy.copiedLessons} lesson(s).`;
+          this.list_course(1);
+        },
+        error: (e: ApiError) => {
+          this.ui_controls.is_loading = false;
+          this.error = e.message;
+        },
+      });
   }
 
   // --- going elsewhere -----------------------------------------------------
 
-  createCourse(): void {
+  confirmCreate(): void {
     void this.router.navigate(['/courses/create']);
   }
 
-  editCourse(course: Course): void {
-    void this.router.navigate(['/courses', course.id, 'edit']);
+  edit_course(courseId: string, _title: string): void {
+    void this.router.navigate(['/courses', courseId, 'edit']);
   }
 
-  manageContent(course: Course): void {
-    void this.router.navigate(['/courses', course.id, 'content']);
+  manage_course(id: string, _title: string): void {
+    // Addressed by the course it edits. It was `/manageCourse?id=`, on a
+    // screen that is entirely about one course.
+    void this.router.navigate(['/courses', id, 'content']);
   }
 
-  viewEnrollees(course: Course): void {
-    void this.router.navigate(['/courses', course.id, 'enrollees']);
+  showCourseInsights(courseId: string, _courseTitle: string): void {
+    void this.router.navigate(['/courses', courseId, 'insights']);
   }
 
-  viewInsights(course: Course): void {
-    void this.router.navigate(['/courses', course.id, 'insights']);
+  courseEnrollees(c: Course): void {
+    void this.router.navigate(['/courses', c.course_id, 'enrollees']);
+  }
+
+  goBack(): void {
+    void this.router.navigate(['/account']);
   }
 
   // --- presentation --------------------------------------------------------
 
-  categoryName(id: string | null): string {
-    return id === null ? '-' : this.categories.find((c) => c.id === id)?.name ?? '-';
+  getStatusClass(status: string): string {
+    return ({
+      draft: 'status-draft',
+      published: 'status-published',
+      archived: 'status-archived',
+    } as Record<string, string>)[status] ?? 'status-draft';
   }
 
-  instructorName(id: string | null): string {
-    return id === null ? 'Unassigned' : this.instructors.find((i) => i.id === id)?.fullName ?? 'Unassigned';
-  }
-
-  statusClass(status: CourseStatus): string {
-    return { draft: 'status-draft', published: 'status-published', archived: 'status-archived' }[status];
-  }
-
-  statusIcon(status: CourseStatus): string {
-    return {
+  getStatusIcon(status: string): string {
+    return ({
       draft: 'bi bi-file-earmark',
       published: 'bi bi-check-circle-fill',
       archived: 'bi bi-archive-fill',
-    }[status];
+    } as Record<string, string>)[status] ?? 'bi bi-file-earmark';
   }
 
-  statusLabel(status: CourseStatus): string {
-    return { draft: 'Draft', published: 'Published', archived: 'Archived' }[status];
+  getStatusLabel(status: string): string {
+    return ({
+      draft: 'Draft',
+      published: 'Published',
+      archived: 'Archived',
+    } as Record<string, string>)[status] ?? status;
   }
 
-  duration(minutes: number | null): string {
-    if (minutes === null || minutes === 0) {
-      return '-';
-    }
-
-    return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  formatDate(dateString: string | null): string {
+    return dateString === null || dateString === ''
+      ? ''
+      : new Date(dateString).toLocaleDateString('en-GB', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
   }
 
-  formatDate(date: string | null): string {
-    return date === null
-      ? '-'
-      : new Date(date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' });
+  paginate(): void {
+    this.list_course(1, this.initial.per_page);
   }
 
-  trackById(_index: number, item: { id: string }): string {
-    return item.id;
+  // --- translation ---------------------------------------------------------
+
+  private adapt(course: ApiCourse): Course {
+    return {
+      course_id: course.id,
+      title: course.title,
+      description: course.description ?? course.summary ?? '',
+      summary: course.summary ?? '',
+      category_name: this.category.find((c) => c.category_id === course.categoryId)?.category_name ?? '',
+      status: course.status,
+      level: course.level,
+      duration_minutes: course.durationMinutes,
+      is_featured: course.isFeatured,
+      // A course is "active" to this screen when learners can reach it.
+      is_active: course.status === 'published',
+      start_date: course.startsOn,
+      end_date: course.endsOn,
+    };
+  }
+
+  private adaptCategory(lookup: Lookup): Category {
+    return { category_id: lookup.id, category_name: lookup.name };
   }
 }

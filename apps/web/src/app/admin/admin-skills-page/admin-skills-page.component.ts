@@ -8,7 +8,6 @@ import {Router} from '@angular/router';
 import {CrudService} from '../../services/crud.service';
 import {HotToastService} from '@ngneat/hot-toast';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
-import {CourseEnrollmentComponent} from '../courses/course-enrollment/course-enrollment.component';
 
 @Component({
   selector: 'app-admin-skills-page',
@@ -19,7 +18,6 @@ import {CourseEnrollmentComponent} from '../courses/course-enrollment/course-enr
     TuiIcon,
     AdminSkillsComponent,
     AdmintopComponent,
-    CourseEnrollmentComponent
   ],
   templateUrl: './admin-skills-page.component.html',
   styleUrl: './admin-skills-page.component.css'

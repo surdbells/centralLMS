@@ -67,6 +67,18 @@ export class ApiClient {
   }
 
   /**
+   * A DELETE that names what to remove in its body.
+   *
+   * Separate from {@link delete} so the common case cannot pass a body by
+   * accident, and so it is obvious at the call site that this one does. Taking
+   * forty people off a course is a list, and a list of forty ids does not
+   * belong in a query string.
+   */
+  deleteWith<T>(path: string, body: unknown): Observable<T> {
+    return this.request<T>('DELETE', path, body);
+  }
+
+  /**
    * A list endpoint together with its pagination metadata.
    *
    * `meta` is synthesised for the endpoints that return a plain array — a

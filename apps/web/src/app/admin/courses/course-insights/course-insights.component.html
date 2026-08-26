@@ -319,8 +319,13 @@
             </div>
           </div>
 
-          <!-- Engagement Score -->
-          <div class="col-md-6">
+          <!--
+               Engagement has no source here. The legacy read `learning_sessions`,
+               which held three rows across the whole platform; nothing has
+               replaced it, and filling this with zeros would read as "nobody
+               engaged" rather than "this was never measured".
+          -->
+          <div class="col-md-6" *ngIf="insights.engagement">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
                 <h5 class="mb-0"><tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>Engagement</h5>
@@ -348,8 +353,8 @@
             </div>
           </div>
 
-          <!-- Peak Activity -->
-          <div class="col-md-6">
+          <!-- Peak Activity — the same missing session data. -->
+          <div class="col-md-6" *ngIf="insights.engagement">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
                 <h5 class="mb-0"><tui-icon icon="@tui.clock" class="me-2 text-primary"></tui-icon>Peak Activity</h5>
@@ -605,8 +610,11 @@
             </div>
           </div>
 
-          <!-- Content Interactions -->
-          <div class="col-lg-4">
+          <!--
+               Content interactions have no source here either — the same missing
+               `learning_sessions` the engagement panel needs.
+          -->
+          <div class="col-lg-4" *ngIf="insights.engagement">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
                 <h5 class="mb-0"><tui-icon icon="@tui.mouse-pointer" class="me-2 text-primary"></tui-icon>Interactions</h5>
