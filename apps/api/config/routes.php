@@ -68,6 +68,7 @@ use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
 use Central\Api\Application\Action\Report\RunReportAction;
 use Central\Api\Application\Action\Report\SavedReportAction;
+use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
 use Central\Api\Application\Action\Notification\InboxAction;
@@ -268,6 +269,45 @@ return static function (App $app): void {
             $secure->get('/me/certificates', [ManageCertificatesAction::class, 'mine'])
                 ->setName('me.certificates');
 
+            // --- gamification ---------------------------------------------
+            //
+            // Reading your own standing needs no permission; granting
+            // anything needs `user.manage`, because points and badges are
+            // what the leaderboard ranks people by.
+            $secure->get('/me/gamification', [GamificationAction::class, 'mine'])
+                ->setName('gamification.mine');
+            $secure->get('/me/gamification/history', [GamificationAction::class, 'history'])
+                ->setName('gamification.history');
+            $secure->get('/leaderboard', [GamificationAction::class, 'leaderboard'])
+                ->setName('gamification.leaderboard');
+
+            $secure->group('/badges', function (RouteCollectorProxy $b) use ($uuid): void {
+                $b->get('', [GamificationAction::class, 'badges'])->setName('badges.list');
+                $b->post('', [GamificationAction::class, 'saveBadge'])->setName('badges.create');
+                $b->put('/{id:' . $uuid . '}', [GamificationAction::class, 'saveBadge'])
+                    ->setName('badges.update');
+                $b->delete('/{id:' . $uuid . '}', [GamificationAction::class, 'deleteBadge'])
+                    ->setName('badges.delete');
+            });
+
+            $secure->group('/gamification/levels', function (RouteCollectorProxy $l): void {
+                $l->get('', [GamificationAction::class, 'levels'])->setName('gamification.levels');
+                // The whole ladder at once: thresholds have to be consistent
+                // with each other, and editing them one at a time goes
+                // through states where two rungs need the same points.
+                $l->put('', [GamificationAction::class, 'saveLevels'])->setName('gamification.levels.save');
+            });
+
+            $secure->post('/users/{userId:' . $uuid . '}/points', [GamificationAction::class, 'awardPoints'])
+                ->setName('gamification.awardPoints');
+            $secure->post(
+                '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
+                [GamificationAction::class, 'awardBadge'],
+            )->setName('gamification.awardBadge');
+            $secure->delete(
+                '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
+                [GamificationAction::class, 'revokeBadge'],
+            )->setName('gamification.revokeBadge');
             // --- people ---------------------------------------------------
             //
             // `statistics`, `instructors` and `roles` are declared before

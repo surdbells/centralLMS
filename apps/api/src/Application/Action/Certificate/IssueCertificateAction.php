@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Certificate;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Gamification\Awarder;
 use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Gamification\PointReason;
 use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
@@ -53,6 +55,7 @@ final class IssueCertificateAction extends CertificateAction
         private readonly AssessmentRepository $assessments,
         private readonly AttemptRepository $attempts,
         private readonly UserRepository $users,
+        private readonly Awarder $awarder,
     ) {
         parent::__construct($certificates, $renderer, $notifier);
     }
@@ -135,6 +138,14 @@ final class IssueCertificateAction extends CertificateAction
                 ['notes' => 'Issued despite: ' . ($earned->reason ?? 'not eligible.')],
             );
         }
+
+        $this->awarder->award(
+            $tenantId,
+            $certificate->userId,
+            PointReason::CertificateEarned,
+            $certificate->id,
+            $certificate->title,
+        );
 
         // The whole point of issuing one is that the holder finds out.
         $this->notifier->notifyOne(

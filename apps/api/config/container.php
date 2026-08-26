@@ -61,6 +61,9 @@ use Central\Api\Domain\Report\ReportRepository;
 use Central\Api\Domain\Report\SavedReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalSavedReportRepository;
+use Central\Api\Application\Gamification\Awarder;
+use Central\Api\Domain\Gamification\GamificationRepository;
+use Central\Api\Infrastructure\Persistence\DbalGamificationRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
@@ -535,6 +538,14 @@ return [
     SavedReportRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalSavedReportRepository($c->get(Connection::class)),
     ),
+    GamificationRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalGamificationRepository($c->get(Connection::class)),
+    ),
+
+    Awarder::class => factory(static fn (ContainerInterface $c) => new Awarder(
+        $c->get(GamificationRepository::class),
+        $c->get(LoggerInterface::class),
+    )),
     PersonRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalPersonRepository($c->get(Connection::class)),
     ),

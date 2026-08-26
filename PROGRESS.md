@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | The backend is built. Every module ported, tested and running. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; people and gamification are built. Media, learning paths, skills, messaging and tenant settings still to come |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — the API is feature-complete against what the legacy actually had |
-| **API quality gate** | ✅ 472 unit + 271 integration tests / 2,583 assertions · PHPStan level 8 clean · 0 style errors · 583 live checks |
+| **Blocking the next slice** | Nothing — five API modules remain before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 504 unit + 327 integration tests / 2,754 assertions · PHPStan level 8 clean · 0 style errors · 583 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -59,7 +59,7 @@ Found by a pre-commit scan rather than by reading:
 | 2 | Backend rewrite (Slim/PostgreSQL) | 🟡 | Foundation + identity + reference data; **36 of 96 live endpoints ported** |
 | 3 | ILT (Zoom / Meet / Teams) | ✅ | Wired and tested; needs a tenant to connect an account and platform credentials in settings |
 | 4 | Prevent repetition | 🟡 | 72% of backend files unreachable; reference data collapsed 52 files → 6 routes |
-| 5 | Frontend (keep + improve) | 🟡 | `apps/web` live with a strangler-ready API layer; 81 files still on `GlobalComponent` |
+| 5 | Frontend (keep + improve) | 🟡 | Sign-in migrated; `ApiModule.Auth` on the new API. 81 files still on `GlobalComponent` |
 
 ---
 

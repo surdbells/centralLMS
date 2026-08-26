@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Central\Api\Application\Action\Assessment;
 
+use Central\Api\Application\Gamification\Awarder;
+use Central\Api\Domain\Assessment\AssessmentRepository;
+use Central\Api\Domain\Assessment\AttemptRepository;
+use Central\Api\Domain\Assessment\QuestionRepository;
 use Central\Api\Application\Http\Json;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\EntityNotFound;
+use Central\Api\Domain\Gamification\PointReason;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -21,6 +26,15 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class SubmitAttemptAction extends AssessmentAction
 {
+    public function __construct(
+        AssessmentRepository $assessments,
+        QuestionRepository $questions,
+        AttemptRepository $attempts,
+        private readonly Awarder $awarder,
+    ) {
+        parent::__construct($assessments, $questions, $attempts);
+    }
+
     /**
      * @param array<string, string> $args
      */
@@ -52,6 +66,18 @@ final class SubmitAttemptAction extends AssessmentAction
             $assessment,
             autoSubmitted: $attempt->hasExpired($now),
         );
+
+        // Only a pass earns points, and only once per assessment — the
+        // unique index on (user, reason, subject) settles the second part.
+        if ($submitted->passed === true) {
+            $this->awarder->award(
+                $tenantId,
+                $submitted->userId,
+                PointReason::AssessmentPassed,
+                $assessment->id,
+                $assessment->title,
+            );
+        }
 
         return Json::ok($response, $this->result($tenantId, $submitted, $assessment));
     }

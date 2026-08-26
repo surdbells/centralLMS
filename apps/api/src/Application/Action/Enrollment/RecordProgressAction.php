@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Enrollment;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Gamification\Awarder;
 use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Gamification\PointReason;
 use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Catalog\LessonRepository;
@@ -40,6 +42,7 @@ final class RecordProgressAction extends EnrollmentAction
         CourseRepository $courses,
         Notifier $notifier,
         private readonly LessonRepository $lessons,
+        private readonly Awarder $awarder,
     ) {
         parent::__construct($enrollments, $progress, $courses, $notifier);
     }
@@ -89,6 +92,17 @@ final class RecordProgressAction extends EnrollmentAction
             $course = $this->courses->find($tenantId, $courseId);
 
             if ($course !== null) {
+                // Points and any course badge ride with the completion. Both
+                // are idempotent, so a replayed lesson cannot pay twice.
+                $this->awarder->award(
+                    $tenantId,
+                    $enrollment->userId,
+                    PointReason::CourseCompleted,
+                    $course->id,
+                    $course->title,
+                );
+                $this->awarder->checkCourseBadges($tenantId, $enrollment->userId, $course->id);
+
                 $this->notifier->notifyOne(
                     $tenantId,
                     $enrollment->userId,
