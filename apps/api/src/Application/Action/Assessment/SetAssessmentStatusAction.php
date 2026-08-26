@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Assessment;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Domain\Assessment\Assessment;
 use Central\Api\Domain\Assessment\AssessmentStatus;
+use Central\Api\Domain\Assessment\QuestionSelectionMode;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\EntityNotFound;
@@ -44,16 +46,7 @@ final class SetAssessmentStatusAction extends AssessmentAction
         }
 
         if ($status === AssessmentStatus::Published) {
-            $questions = $this->assessments->questionsFor($tenantId, $assessment->id);
-
-            if ($questions === []) {
-                // An assessment with no questions scores everyone zero out of
-                // zero, which the pass rules then read as a pass.
-                throw new ConflictingState(
-                    'This assessment has no questions yet.',
-                    'assessment_empty',
-                );
-            }
+            $this->mustBePublishable($tenantId, $assessment);
         }
 
         $updated = $this->assessments->setStatus($tenantId, $assessment->id, $status);
@@ -61,5 +54,65 @@ final class SetAssessmentStatusAction extends AssessmentAction
         return $updated === null
             ? throw new EntityNotFound('Assessment', $assessment->id)
             : Json::ok($response, $updated->toArray());
+    }
+
+    /**
+     * Refuses to publish an assessment that could not produce a paper.
+     *
+     * Each mode fails differently, and each failure is silent at runtime:
+     * an empty assessment scores everyone zero out of zero, which the pass
+     * rules read as a pass; a random count larger than the pool quietly
+     * shortens every paper; a rule asking for more than its bank holds does
+     * the same. The author should hear about all three now, not from a
+     * learner afterwards.
+     */
+    private function mustBePublishable(string $tenantId, Assessment $assessment): void
+    {
+        if ($assessment->questionSelection === QuestionSelectionMode::Pool) {
+            $rules = $this->assessments->rulesFor($tenantId, $assessment->id);
+
+            if ($rules === []) {
+                throw new ConflictingState(
+                    'This assessment draws its questions by rule, but has no rules yet.',
+                    'assessment_no_rules',
+                );
+            }
+
+            foreach ($rules as $rule) {
+                if (!$rule->isSatisfiable()) {
+                    throw new ConflictingState(
+                        sprintf(
+                            'A rule asks for %d questions but only %d match it.',
+                            $rule->questionCount,
+                            $rule->availableCount,
+                        ),
+                        'rule_unsatisfiable',
+                    );
+                }
+            }
+
+            return;
+        }
+
+        $questions = $this->assessments->questionsFor($tenantId, $assessment->id);
+
+        if ($questions === []) {
+            throw new ConflictingState('This assessment has no questions yet.', 'assessment_empty');
+        }
+
+        if (
+            $assessment->questionSelection === QuestionSelectionMode::Random
+            && $assessment->randomQuestionCount !== null
+            && $assessment->randomQuestionCount > count($questions)
+        ) {
+            throw new ConflictingState(
+                sprintf(
+                    'It draws %d questions but only %d are attached.',
+                    $assessment->randomQuestionCount,
+                    count($questions),
+                ),
+                'not_enough_questions',
+            );
+        }
     }
 }

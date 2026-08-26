@@ -43,6 +43,8 @@ use Central\Api\Application\Action\Assessment\ListAssessmentsAction;
 use Central\Api\Application\Action\Assessment\ListBanksAction;
 use Central\Api\Application\Action\Assessment\ListQuestionsAction;
 use Central\Api\Application\Action\Assessment\ManageAssessmentQuestionsAction;
+use Central\Api\Application\Action\Assessment\ManageRulesAction;
+use Central\Api\Application\Action\Assessment\ManageSectionsAction;
 use Central\Api\Application\Action\Assessment\SaveAnswerAction;
 use Central\Api\Application\Action\Assessment\SaveAssessmentAction;
 use Central\Api\Application\Action\Assessment\SaveBankAction;
@@ -52,6 +54,9 @@ use Central\Api\Application\Action\Assessment\ShowAssessmentAction;
 use Central\Api\Application\Action\Assessment\ShowBankAction;
 use Central\Api\Application\Action\Assessment\StartAttemptAction;
 use Central\Api\Application\Action\Assessment\SubmitAttemptAction;
+use Central\Api\Application\Action\Proctoring\ConfigureProctoringAction;
+use Central\Api\Application\Action\Proctoring\ProctoringSessionAction;
+use Central\Api\Application\Action\Proctoring\ReviewProctoringAction;
 use Central\Api\Application\Action\Enrollment\AssignEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\CourseEnrollmentStatsAction;
 use Central\Api\Application\Action\Enrollment\EnrollmentHistoryAction;
@@ -236,9 +241,38 @@ return static function (App $app): void {
                         ->setName('assessments.questions.reorder');
                     $s->post('/questions', [ManageAssessmentQuestionsAction::class, 'attach'])
                         ->setName('assessments.questions.attach');
+                    $s->put('/questions/{questionId:' . $uuid . '}/section', [
+                        ManageSectionsAction::class, 'assignQuestion',
+                    ])->setName('assessments.questions.section');
                     $s->delete('/questions/{questionId:' . $uuid . '}', [
                         ManageAssessmentQuestionsAction::class, 'detach',
                     ])->setName('assessments.questions.detach');
+
+                    // Sections divide the paper into named parts; optional.
+                    $s->put('/sections/order', [ManageSectionsAction::class, 'reorder'])
+                        ->setName('assessments.sections.reorder');
+                    $s->get('/sections', [ManageSectionsAction::class, 'list'])
+                        ->setName('assessments.sections.list');
+                    $s->post('/sections', [ManageSectionsAction::class, 'save'])
+                        ->setName('assessments.sections.create');
+                    $s->put('/sections/{sectionId:' . $uuid . '}', [ManageSectionsAction::class, 'save'])
+                        ->setName('assessments.sections.update');
+                    $s->delete('/sections/{sectionId:' . $uuid . '}', [ManageSectionsAction::class, 'delete'])
+                        ->setName('assessments.sections.delete');
+
+                    // Proctoring configuration and the review queue.
+                    $s->get('/proctoring', [ConfigureProctoringAction::class, 'show'])
+                        ->setName('proctoring.settings.show');
+                    $s->put('/proctoring', [ConfigureProctoringAction::class, 'save'])
+                        ->setName('proctoring.settings.save');
+                    $s->get('/proctoring/queue', [ReviewProctoringAction::class, 'queue'])
+                        ->setName('proctoring.review.queue');
+
+                    // Rules drive `pool` selection.
+                    $s->get('/rules', [ManageRulesAction::class, 'list'])->setName('assessments.rules.list');
+                    $s->post('/rules', [ManageRulesAction::class, 'create'])->setName('assessments.rules.create');
+                    $s->delete('/rules/{ruleId:' . $uuid . '}', [ManageRulesAction::class, 'delete'])
+                        ->setName('assessments.rules.delete');
 
                     // Starting a sitting. Needs only `assessment.take`.
                     $s->post('/attempts', StartAttemptAction::class)->setName('attempts.start');
@@ -252,6 +286,27 @@ return static function (App $app): void {
                 $t->get('', [GradeAnswerAction::class, 'show'])->setName('attempts.show');
                 $t->post('/submit', SubmitAttemptAction::class)->setName('attempts.submit');
 
+                // The proctoring extension. Every route here is gated twice:
+                // the tenant must be entitled to the module, and the caller
+                // must hold the permission.
+                $t->group('/proctoring', function (RouteCollectorProxy $p): void {
+                    // Called by the browser of the person being examined, so
+                    // these need only `assessment.take` — but each is scoped
+                    // to that person's own attempt.
+                    $p->post('/session', [ProctoringSessionAction::class, 'open'])
+                        ->setName('proctoring.session.open');
+                    $p->post('/check', [ProctoringSessionAction::class, 'check'])
+                        ->setName('proctoring.session.check');
+                    $p->post('/violations', [ProctoringSessionAction::class, 'violation'])
+                        ->setName('proctoring.violations.record');
+                    $p->post('/snapshots', [ProctoringSessionAction::class, 'snapshot'])
+                        ->setName('proctoring.snapshots.record');
+
+                    // The reviewer's view, and the only route that returns
+                    // recordings. Needs `proctoring.review`.
+                    $p->get('', [ReviewProctoringAction::class, 'show'])->setName('proctoring.review.show');
+                });
+
                 // Grading is declared before the plain answer route so
                 // `/grade` is not read as part of the question id.
                 $t->put('/answers/{questionId:' . $uuid . '}/grade', GradeAnswerAction::class)
@@ -259,6 +314,10 @@ return static function (App $app): void {
                 $t->put('/answers/{questionId:' . $uuid . '}', SaveAnswerAction::class)
                     ->setName('attempts.answer');
             });
+
+            $secure->put('/proctoring/violations/{violationId:' . $uuid . '}', [
+                ReviewProctoringAction::class, 'review',
+            ])->setName('proctoring.violations.review');
 
             $secure->group('/ilt', function (RouteCollectorProxy $ilt): void {
                 $ilt->get('/providers', ListMeetingProvidersAction::class)

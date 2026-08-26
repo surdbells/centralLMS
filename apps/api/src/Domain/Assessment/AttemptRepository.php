@@ -51,6 +51,30 @@ interface AttemptRepository
     ): Attempt;
 
     /**
+     * Writes down the questions this attempt was dealt.
+     *
+     * Called once, at the start. Until random selection existed the paper
+     * could be re-derived from the assessment on demand; it cannot now, so the
+     * draw is persisted and every later read — resuming, scoring, marking —
+     * uses this rather than the assessment.
+     *
+     * @param list<array{question: Question, pointsPossible: float, sectionId: ?string, sortOrder: int}> $paper
+     */
+    public function dealPaper(string $tenantId, string $attemptId, array $paper): void;
+
+    /**
+     * The questions this attempt was dealt, in order.
+     *
+     * @return list<array{question: Question, pointsPossible: float, sectionId: ?string, sortOrder: int}>
+     */
+    public function paperFor(string $tenantId, string $attemptId): array;
+
+    /**
+     * What the attempt is being marked out of, from its own paper.
+     */
+    public function paperTotal(string $tenantId, string $attemptId): float;
+
+    /**
      * Saves one answer, replacing any previous answer to that question.
      *
      * @param array<string, mixed> $answer
@@ -74,9 +98,10 @@ interface AttemptRepository
     /**
      * Closes an attempt and records its result.
      *
-     * The totals are computed from `attempt_answers` inside the transaction
-     * rather than passed in, so a submitted score is always the sum of the
-     * answers actually stored.
+     * The totals are computed inside the transaction rather than passed in:
+     * marks earned from `attempt_answers`, and the denominator from
+     * `attempt_questions` — the paper this learner actually saw, which under
+     * random selection is not the same as the assessment's own total.
      *
      * @param bool $autoSubmitted true when the clock ran out rather than the learner submitting
      */

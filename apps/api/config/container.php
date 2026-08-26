@@ -23,6 +23,8 @@ use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\Grader;
+use Central\Api\Domain\Proctoring\ProctoringRepository;
+use Central\Api\Domain\Assessment\PaperBuilder;
 use Central\Api\Domain\Assessment\QuestionRepository;
 use Central\Api\Domain\Catalog\CourseRepository;
 use Central\Api\Domain\Catalog\LessonRepository;
@@ -33,6 +35,7 @@ use Central\Api\Domain\Lookup\LookupRepository;
 use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
+use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
 use Central\Api\Infrastructure\Persistence\DbalQuestionRepository;
 use Central\Api\Infrastructure\Persistence\DbalEnrollmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonProgressRepository;
@@ -320,6 +323,12 @@ return [
 
     Grader::class => factory(static fn (): Grader => new Grader()),
 
+    ProctoringRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalProctoringRepository($c->get(Connection::class)),
+    ),
+
+    PaperBuilder::class => factory(static fn (): PaperBuilder => new PaperBuilder()),
+
     QuestionRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalQuestionRepository($c->get(Connection::class)),
     ),
@@ -332,7 +341,10 @@ return [
     ),
 
     AttemptRepository::class => factory(
-        static fn (ContainerInterface $c) => new DbalAttemptRepository($c->get(Connection::class)),
+        static fn (ContainerInterface $c) => new DbalAttemptRepository(
+            $c->get(Connection::class),
+            $c->get(QuestionRepository::class),
+        ),
     ),
 
     EnrollmentRepository::class => factory(

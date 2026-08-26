@@ -56,35 +56,9 @@ final class SaveAssessmentAction extends AssessmentAction
         );
 
         if ($existing === null) {
-            $created = $this->assessments->create(new Assessment(
-                id: $assessment->id,
-                tenantId: $assessment->tenantId,
-                title: $assessment->title,
-                status: $assessment->status,
-                kind: $assessment->kind,
-                description: $assessment->description,
-                instructions: $assessment->instructions,
-                difficulty: $assessment->difficulty,
-                courseId: $assessment->courseId,
-                moduleId: $assessment->moduleId,
-                categoryId: $assessment->categoryId,
-                timeLimitMinutes: $assessment->timeLimitMinutes,
-                availableFrom: $assessment->availableFrom,
-                availableUntil: $assessment->availableUntil,
-                gracePeriodMinutes: $assessment->gracePeriodMinutes,
-                maxAttempts: $assessment->maxAttempts,
-                attemptsGapHours: $assessment->attemptsGapHours,
-                passingScore: $assessment->passingScore,
-                passingType: $assessment->passingType,
-                questionSelection: $assessment->questionSelection,
-                shuffleQuestions: $assessment->shuffleQuestions,
-                shuffleOptions: $assessment->shuffleOptions,
-                revealAnswers: $assessment->revealAnswers,
-                showScoreImmediately: $assessment->showScoreImmediately,
-                showExplanations: $assessment->showExplanations,
-                allowBackwardNavigation: $assessment->allowBackwardNavigation,
-                createdBy: $this->userId($request),
-            ));
+            // Passed through whole rather than rebuilt argument by argument:
+            // see Assessment::withCreatedBy().
+            $created = $this->assessments->create($assessment->withCreatedBy($this->userId($request)));
 
             return Json::created($response, $created->toArray(), '/v1/assessments/' . $created->id);
         }

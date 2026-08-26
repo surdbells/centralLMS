@@ -9,6 +9,8 @@ use Central\Api\Domain\Assessment\Attempt;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\AttemptStatus;
 use Central\Api\Domain\Assessment\GradeResult;
+use Central\Api\Domain\Assessment\Question;
+use Central\Api\Domain\Assessment\QuestionRepository;
 use Doctrine\DBAL\Connection;
 
 final class DbalAttemptRepository implements AttemptRepository
@@ -26,8 +28,10 @@ final class DbalAttemptRepository implements AttemptRepository
     private const EXTRA = "a.title AS assessment_title,
                            NULLIF(btrim(concat_ws(' ', u.first_name, u.last_name)), '') AS user_name";
 
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly QuestionRepository $questions,
+    ) {
     }
 
     public function forLearner(string $tenantId, string $assessmentId, string $userId): array
@@ -153,6 +157,79 @@ final class DbalAttemptRepository implements AttemptRepository
             ?? throw new \RuntimeException('Newly started attempt could not be read back.');
     }
 
+    public function dealPaper(string $tenantId, string $attemptId, array $paper): void
+    {
+        if ($paper === []) {
+            return;
+        }
+
+        $this->connection->transactional(function (Connection $tx) use ($tenantId, $attemptId, $paper): void {
+            foreach ($paper as $line) {
+                $tx->executeStatement(
+                    'INSERT INTO attempt_questions
+                         (tenant_id, attempt_id, question_id, section_id, points_possible, sort_order)
+                     VALUES (:tenant, :attempt, :question, :section, :points, :sortOrder)
+                     ON CONFLICT (attempt_id, question_id) DO NOTHING',
+                    [
+                        'tenant'    => $tenantId,
+                        'attempt'   => $attemptId,
+                        'question'  => $line['question']->id,
+                        'section'   => $line['sectionId'],
+                        'points'    => $line['pointsPossible'],
+                        'sortOrder' => $line['sortOrder'],
+                    ],
+                );
+            }
+        });
+    }
+
+    public function paperFor(string $tenantId, string $attemptId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT question_id, section_id, points_possible, sort_order
+             FROM attempt_questions
+             WHERE attempt_id = :attempt AND tenant_id = :tenant
+             ORDER BY sort_order ASC',
+            ['attempt' => $attemptId, 'tenant' => $tenantId],
+        );
+
+        // One query for every question on the paper, not one each.
+        $questions = $this->questions->findQuestionsByIds(
+            $tenantId,
+            array_map(static fn (array $r): string => (string) $r['question_id'], $rows),
+        );
+
+        $paper = [];
+
+        foreach ($rows as $row) {
+            $question = $questions[(string) $row['question_id']] ?? null;
+
+            if ($question === null) {
+                // Deleted from its bank mid-sitting. Skipped rather than
+                // fatal, exactly as on the assessment itself.
+                continue;
+            }
+
+            $paper[] = [
+                'question'       => $question,
+                'pointsPossible' => (float) $row['points_possible'],
+                'sectionId'      => is_string($row['section_id'] ?? null) ? $row['section_id'] : null,
+                'sortOrder'      => (int) $row['sort_order'],
+            ];
+        }
+
+        return $paper;
+    }
+
+    public function paperTotal(string $tenantId, string $attemptId): float
+    {
+        return (float) $this->connection->fetchOne(
+            'SELECT COALESCE(SUM(points_possible), 0) FROM attempt_questions
+             WHERE attempt_id = :attempt AND tenant_id = :tenant',
+            ['attempt' => $attemptId, 'tenant' => $tenantId],
+        );
+    }
+
     public function saveAnswer(
         string $tenantId,
         Attempt $attempt,
@@ -242,11 +319,18 @@ final class DbalAttemptRepository implements AttemptRepository
                 $earned = (float) ($totals['earned'] ?? 0);
                 $ungraded = (int) ($totals['ungraded'] ?? 0);
 
-                // The denominator is what the assessment is worth, not what
-                // was answered: skipping a question must cost its marks.
-                $possible = $assessment->totalPoints > 0
-                    ? $assessment->totalPoints
-                    : (float) ($totals['possible'] ?? 0);
+                // The denominator is the paper this learner was dealt, not
+                // the assessment's own total: under random selection they
+                // are different numbers, and skipping a question must
+                // still cost its marks.
+                $possible = $this->paperTotal($tenantId, $attempt->id);
+
+                if ($possible <= 0.0) {
+                    // No paper recorded — an attempt from before this
+                    // table existed, or one dealt nothing. Fall back to
+                    // what was answered rather than dividing by zero.
+                    $possible = (float) ($totals['possible'] ?? 0);
+                }
 
                 // An attempt with unmarked answers is not graded yet, so it
                 // gets no score and no pass — the check constraint enforces
@@ -361,7 +445,7 @@ final class DbalAttemptRepository implements AttemptRepository
                     );
 
                     $earned = (float) ($totals['earned'] ?? 0);
-                    $possible = $assessment->totalPoints;
+                    $possible = $this->paperTotal($tenantId, $attempt->id);
                     $percentage = $possible > 0 ? round($earned / $possible * 100, 2) : 0.0;
 
                     $tx->executeStatement(

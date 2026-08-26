@@ -73,16 +73,17 @@ final class SaveAnswerAction extends AssessmentAction
         }
 
         $questionId = $args['questionId'] ?? '';
-        $row = $this->questionOn($tenantId, $attempt->assessmentId, $questionId);
+        $line = $this->questionOnPaper($tenantId, $attempt->id, $questionId);
 
-        if ($row === null) {
-            // Not on this assessment, so not answerable here — whether it
-            // exists elsewhere is not this endpoint's business to reveal.
+        if ($line === null) {
+            // Not on *this learner's* paper. Under random selection that is a
+            // stricter test than "on the assessment", and the right one: it
+            // stops a learner answering a question they were never dealt.
             throw new EntityNotFound('Question', $questionId);
         }
 
         /** @var Question $question */
-        $question = $row['question'];
+        $question = $line['question'];
 
         $body = $this->body($request);
         $answer = $body['answer'] ?? null;
@@ -101,8 +102,10 @@ final class SaveAnswerAction extends AssessmentAction
             ]);
         }
 
-        $points = $question->pointsIn($row['pointsOverride']);
-        $grade = $this->grader->grade($question, $answer, $points);
+        // The worth frozen at the draw, not the question's current value:
+        // an author editing it mid-sitting must not change what the learner in
+        // front of it is being marked out of.
+        $grade = $this->grader->grade($question, $answer, $line['pointsPossible']);
 
         $this->attempts->saveAnswer($tenantId, $attempt, $question->id, $answer, $grade, $seconds);
 
@@ -117,13 +120,13 @@ final class SaveAnswerAction extends AssessmentAction
     }
 
     /**
-     * @return array{question: Question, pointsOverride: ?float, sortOrder: int, isRequired: bool}|null
+     * @return array{question: Question, pointsPossible: float, sectionId: ?string, sortOrder: int}|null
      */
-    private function questionOn(string $tenantId, string $assessmentId, string $questionId): ?array
+    private function questionOnPaper(string $tenantId, string $attemptId, string $questionId): ?array
     {
-        foreach ($this->assessments->questionsFor($tenantId, $assessmentId) as $row) {
-            if ($row['question']->id === $questionId) {
-                return $row;
+        foreach ($this->attempts->paperFor($tenantId, $attemptId) as $line) {
+            if ($line['question']->id === $questionId) {
+                return $line;
             }
         }
 

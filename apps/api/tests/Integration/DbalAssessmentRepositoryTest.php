@@ -8,6 +8,7 @@ use Central\Api\Domain\Assessment\Assessment;
 use Central\Api\Domain\Assessment\AssessmentStatus;
 use Central\Api\Domain\Assessment\Attempt;
 use Central\Api\Domain\Assessment\Grader;
+use Central\Api\Domain\Assessment\PaperBuilder;
 use Central\Api\Domain\Assessment\PassingType;
 use Central\Api\Domain\Assessment\Question;
 use Central\Api\Domain\Assessment\QuestionBank;
@@ -44,6 +45,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
     private DbalAssessmentRepository $assessments;
     private DbalAttemptRepository $attempts;
     private Grader $grader;
+    private PaperBuilder $papers;
 
     private string $tenantA;
     private string $tenantB;
@@ -64,8 +66,9 @@ final class DbalAssessmentRepositoryTest extends TestCase
 
         $this->questions = new DbalQuestionRepository(self::$connection);
         $this->assessments = new DbalAssessmentRepository(self::$connection, $this->questions);
-        $this->attempts = new DbalAttemptRepository(self::$connection);
+        $this->attempts = new DbalAttemptRepository(self::$connection, $this->questions);
         $this->grader = new Grader();
+        $this->papers = new PaperBuilder();
 
         $this->tenantA = $this->createTenant('asm-a');
         $this->tenantB = $this->createTenant('asm-b');
@@ -316,7 +319,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
     {
         $assessment = $this->publishedWithOneQuestion();
         $question = $this->assessments->questionsFor($this->tenantA, $assessment->id)[0]['question'];
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
 
         $wrong = $question->options[1]->id;
         $right = $question->options[0]->id;
@@ -342,7 +345,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $b, 5.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
 
         $this->save($attempt, $this->reload($a), ['optionIds' => [$this->correctOption($a)]], 10);
         $this->save($attempt, $this->reload($b), ['optionIds' => [$this->wrongOption($b)]], 10);
@@ -369,7 +372,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $b, 5.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
         $this->save($attempt, $this->reload($a), ['optionIds' => [$this->correctOption($a)]], 10);
 
         $submitted = $this->attempts->submit($this->tenantA, $attempt, $assessment, autoSubmitted: false);
@@ -397,7 +400,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $essay, 5.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
         $this->save($attempt, $this->reload($mcq), ['optionIds' => [$this->correctOption($mcq)]], 10);
         $this->save($attempt, $essay, ['text' => 'An essay.'], 60);
 
@@ -429,7 +432,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $essay, 5.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
         $this->save($attempt, $this->reload($mcq), ['optionIds' => [$this->correctOption($mcq)]], 10);
         $this->save($attempt, $essay, ['text' => 'An essay.'], 60);
         $submitted = $this->attempts->submit($this->tenantA, $attempt, $assessment, autoSubmitted: false);
@@ -466,7 +469,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $essay, 10.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
         $this->save($attempt, $essay, ['text' => 'Essay.'], 0);
         $submitted = $this->attempts->submit($this->tenantA, $attempt, $assessment, autoSubmitted: false);
 
@@ -487,7 +490,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $q, 10.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
         $this->save($attempt, $this->reload($q), ['optionIds' => [$this->correctOption($q)]], 5);
         $submitted = $this->attempts->submit($this->tenantA, $attempt, $assessment, autoSubmitted: false);
 
@@ -515,7 +518,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
         $this->attach($assessment, $b, 5.0);
         $assessment = $this->publish($assessment);
 
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
         $this->save($attempt, $this->reload($a), ['optionIds' => [$this->correctOption($a)]], 5);
         $this->save($attempt, $this->reload($b), ['optionIds' => [$this->wrongOption($b)]], 5);
 
@@ -532,7 +535,7 @@ final class DbalAssessmentRepositoryTest extends TestCase
     public function another_tenant_cannot_see_the_assessment_or_its_attempts(): void
     {
         $assessment = $this->publishedWithOneQuestion();
-        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+        $attempt = $this->begin($assessment);
 
         self::assertNull($this->assessments->find($this->tenantB, $assessment->id));
         self::assertNull($this->attempts->find($this->tenantB, $attempt->id));
@@ -606,6 +609,26 @@ final class DbalAssessmentRepositoryTest extends TestCase
     {
         return $this->assessments->setStatus($this->tenantA, $assessment->id, AssessmentStatus::Published)
             ?? self::fail('Could not publish.');
+    }
+
+    /**
+     * Starts an attempt and deals it a paper, as the action does.
+     *
+     * Splitting the two in the repository keeps the draw testable on its own;
+     * every caller must do both, and this helper is where that is encoded.
+     */
+    private function begin(Assessment $assessment): Attempt
+    {
+        $attempt = $this->attempts->start($this->tenantA, $assessment->id, $this->learner, null);
+
+        $this->attempts->dealPaper($this->tenantA, $attempt->id, $this->papers->build(
+            $assessment,
+            $attempt->id,
+            $this->assessments->questionsFor($this->tenantA, $assessment->id),
+            $this->assessments->sectionsFor($this->tenantA, $assessment->id),
+        ));
+
+        return $attempt;
     }
 
     private function publishedWithOneQuestion(): Assessment

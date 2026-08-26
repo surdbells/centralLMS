@@ -17,6 +17,8 @@ use Doctrine\DBAL\Connection;
 
 final class DbalAssessmentRepository implements AssessmentRepository
 {
+    use DbalSectionAndRuleTrait;
+
     private const COLUMNS = 'a.id, a.tenant_id, a.title, a.description, a.instructions, a.kind, a.status,
                              a.difficulty, a.course_id, a.module_id, a.category_id,
                              a.time_limit_minutes, a.available_from, a.available_until,
@@ -24,7 +26,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
                              a.passing_score, a.passing_type, a.question_selection,
                              a.shuffle_questions, a.shuffle_options, a.reveal_answers,
                              a.show_score_immediately, a.show_explanations, a.allow_backward_navigation,
-                             a.requires_manual_grading, a.proctoring_level, a.created_by,
+                             a.requires_manual_grading, a.proctoring_level, a.random_question_count, a.created_by,
                              a.published_at, a.created_at, a.updated_at';
 
     /**
@@ -125,14 +127,14 @@ final class DbalAssessmentRepository implements AssessmentRepository
                                       passing_score, passing_type, question_selection,
                                       shuffle_questions, shuffle_options, reveal_answers,
                                       show_score_immediately, show_explanations,
-                                      allow_backward_navigation, created_by)
+                                      allow_backward_navigation, random_question_count, created_by)
              VALUES (:tenant, :title, :description, :instructions, :kind, :status,
                      :difficulty, :course, :module, :category,
                      :timeLimit, :availableFrom, :availableUntil,
                      :grace, :maxAttempts, :gap,
                      :passingScore, :passingType, :selection,
                      :shuffleQuestions, :shuffleOptions, :reveal,
-                     :showScore, :showExplanations, :allowBack, :createdBy)
+                     :showScore, :showExplanations, :allowBack, :randomCount, :createdBy)
              RETURNING id',
             $this->writeParams($assessment) + ['createdBy' => $assessment->createdBy],
         );
@@ -154,7 +156,8 @@ final class DbalAssessmentRepository implements AssessmentRepository
                 question_selection = :selection, shuffle_questions = :shuffleQuestions,
                 shuffle_options = :shuffleOptions, reveal_answers = :reveal,
                 show_score_immediately = :showScore, show_explanations = :showExplanations,
-                allow_backward_navigation = :allowBack, updated_at = NOW()
+                allow_backward_navigation = :allowBack, random_question_count = :randomCount,
+                updated_at = NOW()
              WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
             // Status excluded: publishing goes through setStatus().
             array_diff_key($this->writeParams($assessment), ['status' => null]) + ['id' => $assessment->id],
@@ -193,7 +196,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
     public function questionsFor(string $tenantId, string $assessmentId): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT question_id, points_override, sort_order, is_required
+            'SELECT question_id, points_override, sort_order, is_required, section_id
              FROM assessment_questions
              WHERE assessment_id = :assessment AND tenant_id = :tenant
              ORDER BY sort_order ASC',
@@ -223,6 +226,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
                 'pointsOverride' => isset($row['points_override']) ? (float) $row['points_override'] : null,
                 'sortOrder'      => (int) $row['sort_order'],
                 'isRequired'     => (bool) $row['is_required'],
+                'sectionId'      => is_string($row['section_id'] ?? null) ? $row['section_id'] : null,
             ];
         }
 
@@ -362,6 +366,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
             'showScore'        => $a->showScoreImmediately ? 'true' : 'false',
             'showExplanations' => $a->showExplanations ? 'true' : 'false',
             'allowBack'        => $a->allowBackwardNavigation ? 'true' : 'false',
+            'randomCount'      => $a->randomQuestionCount,
         ];
     }
 
@@ -400,6 +405,9 @@ final class DbalAssessmentRepository implements AssessmentRepository
             passingType: PassingType::tryFrom((string) $row['passing_type']) ?? PassingType::Percentage,
             questionSelection: QuestionSelectionMode::tryFrom((string) $row['question_selection'])
                 ?? QuestionSelectionMode::Manual,
+            randomQuestionCount: isset($row['random_question_count'])
+                ? (int) $row['random_question_count']
+                : null,
             shuffleQuestions: (bool) $row['shuffle_questions'],
             shuffleOptions: (bool) $row['shuffle_options'],
             revealAnswers: RevealAnswers::tryFrom((string) $row['reveal_answers'])

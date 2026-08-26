@@ -34,6 +34,8 @@ final readonly class Assessment
         public float $passingScore = 70.0,
         public PassingType $passingType = PassingType::Percentage,
         public QuestionSelectionMode $questionSelection = QuestionSelectionMode::Manual,
+        /** How many to draw in `random` mode. An input, not a total. */
+        public ?int $randomQuestionCount = null,
         public bool $shuffleQuestions = false,
         public bool $shuffleOptions = false,
         public RevealAnswers $revealAnswers = RevealAnswers::AfterAllAttempts,
@@ -129,11 +131,13 @@ final readonly class Assessment
             strtolower(trim((string) ($input['questionSelection'] ?? 'manual'))),
         ) ?? QuestionSelectionMode::Manual;
 
-        if ($selection !== QuestionSelectionMode::Manual) {
-            // The rules table that random and pool selection need is not built
-            // yet; accepting the setting would promise an engine that cannot
-            // honour it.
-            $violations['questionSelection'] = 'Only manual question selection is available so far.';
+        $randomCount = self::positiveIntOrNull($input['randomQuestionCount'] ?? null);
+
+        if ($selection === QuestionSelectionMode::Random && $randomCount === null) {
+            // Drawing an unspecified number draws nothing, and an empty
+            // paper scores everyone zero out of zero — which the pass rules
+            // then read as a pass.
+            $violations['randomQuestionCount'] = 'Say how many questions each learner should be asked.';
         }
 
         $difficulty = null;
@@ -172,6 +176,7 @@ final readonly class Assessment
             passingScore: $passingScore,
             passingType: $passingType,
             questionSelection: $selection,
+            randomQuestionCount: $selection === QuestionSelectionMode::Random ? $randomCount : null,
             shuffleQuestions: filter_var($input['shuffleQuestions'] ?? false, FILTER_VALIDATE_BOOL),
             shuffleOptions: filter_var($input['shuffleOptions'] ?? false, FILTER_VALIDATE_BOOL),
             revealAnswers: RevealAnswers::tryFrom(
@@ -181,6 +186,22 @@ final readonly class Assessment
             showExplanations: filter_var($input['showExplanations'] ?? true, FILTER_VALIDATE_BOOL),
             allowBackwardNavigation: filter_var($input['allowBackwardNavigation'] ?? true, FILTER_VALIDATE_BOOL),
         );
+    }
+
+    /**
+     * The same assessment with its author recorded.
+     *
+     * A wither rather than a hand-written `new self(...)` at the call site.
+     * Restating twenty-odd constructor arguments to change one is how
+     * `randomQuestionCount` was silently dropped on create — the third time
+     * a hand-maintained field list has lost a field in this codebase.
+     */
+    public function withCreatedBy(?string $userId): self
+    {
+        $clone = get_object_vars($this);
+        $clone['createdBy'] = $userId;
+
+        return new self(...$clone);
     }
 
     /**
@@ -267,6 +288,8 @@ final readonly class Assessment
             'passingScore'       => $this->passingScore,
             'passingType'        => $this->passingType->value,
             'questionSelection'  => $this->questionSelection->value,
+            'questionSelectionLabel' => $this->questionSelection->label(),
+            'randomQuestionCount' => $this->randomQuestionCount,
             'shuffleQuestions'   => $this->shuffleQuestions,
             'shuffleOptions'     => $this->shuffleOptions,
             'revealAnswers'      => $this->revealAnswers->value,

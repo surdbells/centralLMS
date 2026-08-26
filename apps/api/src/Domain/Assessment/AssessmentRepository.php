@@ -44,7 +44,7 @@ interface AssessmentRepository
      * `Question::pointsIn()`; it is returned alongside rather than folded in,
      * so an author can still see the bank's own value.
      *
-     * @return list<array{question: Question, pointsOverride: ?float, sortOrder: int, isRequired: bool}>
+     * @return list<array{question: Question, pointsOverride: ?float, sortOrder: int, isRequired: bool, sectionId: ?string}>
      */
     public function questionsFor(string $tenantId, string $assessmentId): array;
 
@@ -87,4 +87,58 @@ interface AssessmentRepository
      * @return list<string>
      */
     public function assessmentIdsUsingQuestion(string $tenantId, string $questionId): array;
+
+    // --- sections ---------------------------------------------------------
+
+    /**
+     * @return list<AssessmentSection>
+     */
+    public function sectionsFor(string $tenantId, string $assessmentId): array;
+
+    public function findSection(string $tenantId, string $assessmentId, string $id): ?AssessmentSection;
+
+    public function createSection(AssessmentSection $section): AssessmentSection;
+
+    public function updateSection(AssessmentSection $section): AssessmentSection;
+
+    /**
+     * Removes a section. Its questions stay on the assessment, unfiled:
+     * deleting a heading should not delete the work beneath it.
+     */
+    public function deleteSection(string $tenantId, string $assessmentId, string $id): bool;
+
+    /**
+     * @param list<string> $orderedIds
+     */
+    public function reorderSections(string $tenantId, string $assessmentId, array $orderedIds): int;
+
+    /**
+     * Files a question under a section, or unfiles it when null.
+     */
+    public function setQuestionSection(
+        string $tenantId,
+        string $assessmentId,
+        string $questionId,
+        ?string $sectionId,
+    ): bool;
+
+    // --- random rules -----------------------------------------------------
+
+    /**
+     * The rules, each carrying how many questions actually match it.
+     *
+     * @return list<RandomRule>
+     */
+    public function rulesFor(string $tenantId, string $assessmentId): array;
+
+    public function createRule(RandomRule $rule): RandomRule;
+
+    public function deleteRule(string $tenantId, string $assessmentId, string $id): bool;
+
+    /**
+     * Every question matching a rule, for the draw to sample from.
+     *
+     * @return list<Question>
+     */
+    public function candidatesForRule(string $tenantId, RandomRule $rule): array;
 }

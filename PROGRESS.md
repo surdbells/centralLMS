@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue, enrolments and the assessment core complete. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue, enrolments and assessments complete, proctoring included. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — the proctoring extension, or ILT |
-| **API quality gate** | ✅ 283 unit + 106 integration tests / 1,033 assertions · PHPStan level 8 clean · 0 style errors · 221 live checks |
+| **Blocking the next slice** | Nothing — ILT is next |
+| **API quality gate** | ✅ 327 unit + 133 integration tests / 1,212 assertions · PHPStan level 8 clean · 0 style errors · 291 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -24,15 +24,19 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 | 0 | 🔴 **Authentication is bypassed on the entire legacy API.** `Database::verify_user()` hardcodes `return 100`; every caller checks `!= 100`, so the check never fails. 248 live files. Also SQL-injectable on `user_id`. → **Fix written and tested: [`infra/legacy-bridge/`](infra/legacy-bridge/README.md). Awaiting deployment to the live host.** | — | 🟡 ready to deploy |
 | 0b | 🔴 **Cross-tenant data leak in the live reference-data endpoints.** `dictionary/*/list.php` runs `SELECT * FROM branches` with no tenant filter, and `Branches::update()` / `setStatus()` run `WHERE branch_id = ?` with no tenant column — so any caller can read every organisation's structure and edit or deactivate another's records by id. Affects branches, departments, job titles, levels, teams. Only the `active` dropdown query is scoped. Fixed in the new API; **the live PHP still has it.** | — | ⬜ |
 | 1 | 🔴 **Delete `webhooks/noon-payments.php` from the live backend.** A payment webhook we do not use and never will — removed from this repo. If it is still deployed it is a reachable endpoint that writes to `orders` and holds a second database's credentials, so deleting the file is the fix; rotating its secret is not. | — | ⬜ |
-| 2 | Rotate **three** database passwords found hardcoded in legacy source: `central_lxp` (`config/Database.php`), `sql_ifitness_cen` (`codebase/public/config.php`), and `sql_3bayti_com` — that last one came from the payment webhook in action 1. Deleting the file removes our copy, not the credential: rotate it too. | — | ⬜ |
-| 3 | Rotate the Zoom API key — it appears in `environment.ts`, `environment.development.ts` **and** hardcoded as a fallback in `video-integration.service.ts` | — | ⬜ |
+| 2 | Rotate **three** database passwords found hardcoded in legacy source: `central_lxp` (`config/Database.php`), `sql_ifitness_cen` (`codebase/public/config.php`), and `sql_3bayti_com` — that last one came from the payment webhook in action 1. Deleting the file removes our copy, not the credential: rotate it too. | — | ✅ done 2026-08-26 |
+| 3 | Rotate the Zoom API key — it appears in `environment.ts`, `environment.development.ts` **and** hardcoded as a fallback in `video-integration.service.ts` | — | ✅ done 2026-08-26 |
 | 4 | Restrict the production MySQL host to known source IPs — all three databases sit on the same public address | — | ⬜ |
 | 5 | Commit redacted copies of the four excluded files so their structure stays available for the port | — | ⬜ |
 | 6 | Delete `legacy/backend/class/earningPathEnrollment.php` from the **live** backend — duplicate class name, one careless `require` from swapping the implementation | — | ⬜ |
 
-Items 1–4 are **contained but not fixed**. Every file holding a live credential
-is git-ignored and `legacy/` was untracked when found, so git history is clean —
-but the secrets are still valid in production.
+**Items 2 and 3 are closed**: the credentials were rotated on 2026-08-26.
+Every file holding one was git-ignored and `legacy/` was untracked when found,
+so git history was clean throughout.
+
+Items 1 and 4 are **not** rotations and remain open — one is a file to delete
+from the live host, the other a firewall change. Items 0 and 0b are code
+defects in the live PHP; rotating secrets does not touch them.
 
 Found by a pre-commit scan rather than by reading:
 
@@ -97,7 +101,8 @@ foundations above it.
 | 4 | dictionary | ✅ | **36** | 52 legacy PHP files → **6 routes**; tenant isolation fixed |
 | 5 | courses + modules + lessons | ✅ | **19** | 6 course + 13 structure routes; 20 duplicate legacy files → 10 |
 | 6 | enrolments + progress | ✅ | **9** | Bulk assign by department/team/branch; progress derived in-transaction |
-| 7 | assessments core | ✅ | **20** | Banks, questions, attempts, marking; pure `Grader` |
+| 7 | assessments | ✅ | **34** | Banks, questions, sections, all 3 selection modes, attempts, marking |
+| 7b | proctoring (advanced module) | ✅ | **8** | Entitlement-gated; settings, sessions, violations, snapshots, review |
 | 8 | proctoring extension | ⬜ | 1 | Advanced module, entitlement-gated |
 | 9 | ILT | 🟡 | 1 | Provider layer ✅; scheduling + attendance wiring ⬜ |
 | 10 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
@@ -203,6 +208,105 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-26 — Sections, random selection, and the proctoring extension
+
+Twenty-two more routes. The assessment module is now complete, and proctoring
+— the module the legacy system never finished — works end to end.
+
+**A correction to how I was reading the legacy data.** I skipped
+`assessment_sections` and `assessment_random_rules` in the previous slice
+because their legacy tables were empty, calling them features with "no caller
+to serve". That was wrong: the legacy proctored assessment was never finished,
+so an empty table means an *unbuilt* feature, not an unwanted one. Everything
+here follows from correcting that reading.
+
+**`attempt_questions` is the load-bearing addition.** As soon as two learners
+can be shown different questions, `assessment_questions` stops being "the
+paper" and becomes "what the paper may be drawn from". Three things break
+unless each attempt records its own draw: a learner reloading mid-sitting gets
+a fresh hand; `max_score` taken from the assessment does not match what they
+saw, so a perfect score can read as 60%; and marking has no way to know which
+questions were asked. The draw now happens once, at the start, and is written
+down. Manual assessments write the same rows every time, which keeps one code
+path for all three modes rather than a special case only the untested branch
+exercises.
+
+**`PaperBuilder`** decides what each learner is dealt — pure, like `Grader`,
+and seeded from the attempt id so the same attempt always produces the same
+paper. Manual asks everything; random draws N; pool draws per rule from banks.
+Sections are honoured in the first two, so "two from each topic" needs no rule
+at all. A random *selection* keeps the author's order — a random *ordering* is
+what `shuffleQuestions` is for. Overlapping rules never ask the same question
+twice, because asking it twice doubles its weight silently.
+
+**Publishing now refuses every way a paper can come out empty**: no questions;
+a random count larger than the pool; a rule asking for more than its bank
+holds; pool selection with no rules. Each of those failed silently at exam
+time before, and an empty paper scores everyone zero out of zero — which the
+pass rules read as a pass.
+
+**The proctoring extension** is an advanced module on the same core, gated
+twice: the tenant must be entitled (`tenants.entitlements`, a column of its
+own rather than a key in generic settings) and the caller must hold the
+permission. A missing entitlement is a 409, not a 403 — nothing is wrong with
+the caller, and "you lack permission" sends an administrator to the wrong
+person.
+
+- **Settings are one `jsonb` column, not thirty-five booleans.** They are
+  configuration, read as a unit, never filtered on; the legacy schema already
+  conceded this by storing the same fields as JSON in its presets table.
+  `ProctoringSettings` validates combinations that cannot work — face
+  detection without a webcam, recording audio without a microphone — because
+  each would fail silently at exam time.
+- **The counters are gone.** `proc_proctoring_sessions` cached
+  `total_violations`, `trust_score` and five per-type tallies alongside the
+  rows they summarised. `TrustScore` computes them, which also means a
+  reviewer marking something a false positive genuinely removes it from the
+  score — the point of reviewing at all.
+- **Severity is ours, not the client's.** A browser that could set its own
+  would report everything as trivial. A second person in frame is critical and
+  ends the sitting in the same transaction that records why; looking away is
+  not. Four minor events deliberately do not add up to one critical.
+- **The learner is warned about what they can fix and not about what they
+  would hide.** Telling them the camera saw a second person invites them to
+  fix the evidence. The trust score is never returned to them: a learner who
+  can watch it fall can find the threshold by experiment.
+- **`emotion_detected` is not ported.** Inferring a learner's emotional state
+  from a webcam frame is biometric profiling of a person under examination. No
+  violation type depends on it, and building it because a column existed would
+  be the wrong default.
+
+**A recurring bug, third occurrence.** `randomQuestionCount` was silently
+dropped on create, because `SaveAssessmentAction` rebuilt the entity by
+restating twenty-odd constructor arguments by hand. The same hand-maintained
+field list lost `durationMinutes` on lessons and reset the course pass mark
+earlier this week. Fixed the same way as the others — and this time the
+pattern is gone rather than patched: `Assessment::withCreatedBy()` copies the
+object, so nothing restates the constructor. **Any future action that writes
+an entity should use a wither, never `new self(...)` at the call site.**
+
+**Verification**
+
+- 18 unit tests over `PaperBuilder`, including that the same attempt always
+  draws the same questions, that different attempts do not, and that the
+  global random generator is left unseeded afterwards — a builder that left
+  `mt_srand` set would make everything downstream predictable, including token
+  generation.
+- 26 unit tests over proctoring settings, severity weighting and trust
+  scoring.
+- 27 integration tests against real PostgreSQL, including that the level on
+  `assessments` and on `proctoring_settings` are written together, and that
+  `updateSession()` writes only allow-listed columns.
+- 70 live checks covering sections, all three selection modes, the entitlement
+  gate, a full proctored sitting, review, and a critical event ending it.
+
+Gate: 460 tests / 1,212 assertions, PHPStan level 8, no style errors. All five
+live suites re-run together: 291 checks, none failing.
+
+**Credential rotations: done** (confirmed 2026-08-26) — outstanding actions 2
+and 3 are closed. Actions 1 and 4 are not rotations and stay open: one is a
+file to delete from the live host, the other a firewall change.
 
 ### 2026-08-26 — Assessments (core)
 

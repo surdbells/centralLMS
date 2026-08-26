@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Central\Api\Domain\Proctoring;
+
+use Central\Api\Domain\Assessment\ProctoringLevel;
+
+/**
+ * Storage for the proctoring extension.
+ *
+ * Deliberately one interface rather than four: settings, sessions, violations
+ * and snapshots are only ever used together, and splitting them would invite
+ * core code to depend on a piece of the module.
+ *
+ * Every method takes a tenant id and none omits it.
+ */
+interface ProctoringRepository
+{
+    // --- entitlement ------------------------------------------------------
+
+    public function entitlementsFor(string $tenantId): ModuleEntitlements;
+
+    /**
+     * Turns a module on or off for a tenant. Platform administration.
+     */
+    public function setEntitlement(string $tenantId, string $module, bool $enabled): ModuleEntitlements;
+
+    // --- settings ---------------------------------------------------------
+
+    /**
+     * @return array{level: ProctoringLevel, settings: ProctoringSettings}|null
+     */
+    public function settingsFor(string $tenantId, string $assessmentId): ?array;
+
+    /**
+     * Writes the settings and keeps `assessments.proctoring_level` in step.
+     *
+     * Both in one transaction: the level lives on the assessment so the core
+     * can read it without touching this module, and on the settings row so the
+     * module is self-describing. Two copies of one fact only stay equal if
+     * nothing can write one without the other.
+     */
+    public function saveSettings(
+        string $tenantId,
+        string $assessmentId,
+        ProctoringLevel $level,
+        ProctoringSettings $settings,
+    ): void;
+
+    // --- presets ----------------------------------------------------------
+
+    /**
+     * Presets available to a tenant: its own, plus the platform's.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function presetsFor(string $tenantId): array;
+
+    // --- sessions ---------------------------------------------------------
+
+    public function findSession(string $tenantId, string $id): ?ProctoringSession;
+
+    public function findSessionForAttempt(string $tenantId, string $attemptId): ?ProctoringSession;
+
+    /**
+     * Opens the session for an attempt, or returns the one already open.
+     *
+     * Idempotent: a learner reloading during the pre-flight checks must not
+     * start a second session, which would split the evidence in two.
+     */
+    public function openSession(string $tenantId, string $attemptId, string $userId): ProctoringSession;
+
+    /**
+     * @param array<string, mixed> $changes
+     */
+    public function updateSession(string $tenantId, string $sessionId, array $changes): ProctoringSession;
+
+    // --- violations -------------------------------------------------------
+
+    /**
+     * Records an event and returns it with the session's recomputed standing.
+     *
+     * @param array<string, mixed> $event
+     *
+     * @return array{violation: array<string, mixed>, trust: TrustScore, action: string}
+     */
+    public function recordViolation(
+        string $tenantId,
+        ProctoringSession $session,
+        ViolationType $type,
+        ViolationSeverity $severity,
+        ?string $description,
+        ?string $questionId,
+        array $event,
+    ): array;
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function violationsFor(string $tenantId, string $sessionId): array;
+
+    /**
+     * The trust score for a session, computed from its violations.
+     */
+    public function trustFor(string $tenantId, string $sessionId): TrustScore;
+
+    /**
+     * A reviewer's verdict on one event.
+     */
+    public function reviewViolation(
+        string $tenantId,
+        string $violationId,
+        string $status,
+        ?string $notes,
+        string $reviewerId,
+    ): bool;
+
+    // --- snapshots --------------------------------------------------------
+
+    /**
+     * @param array<string, mixed> $snapshot
+     */
+    public function recordSnapshot(string $tenantId, ProctoringSession $session, array $snapshot): string;
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function snapshotsFor(string $tenantId, string $sessionId, bool $flaggedOnly = false): array;
+
+    /**
+     * Sittings that a person should look at, worst first.
+     *
+     * @return array{items: list<array<string, mixed>>, total: int}
+     */
+    public function reviewQueue(string $tenantId, string $assessmentId, int $page, int $perPage): array;
+}

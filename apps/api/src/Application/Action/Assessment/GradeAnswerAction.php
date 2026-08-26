@@ -157,13 +157,15 @@ final class GradeAnswerAction extends AssessmentAction
             ?? throw new EntityNotFound('Attempt', $args['id'] ?? '');
 
         $answers = $this->attempts->answersFor($tenantId, $attempt->id);
-        $rows = $this->assessments->questionsFor($tenantId, $attempt->assessmentId);
+        // The paper this learner was dealt, which under random selection is
+        // not the assessment's full question list.
+        $rows = $this->attempts->paperFor($tenantId, $attempt->id);
 
         return Json::ok($response, $attempt->toArray([
             'answers' => array_map(
-                static function (array $row) use ($answers): array {
+                static function (array $line) use ($answers): array {
                     /** @var Question $question */
-                    $question = $row['question'];
+                    $question = $line['question'];
                     $given = $answers[$question->id] ?? null;
 
                     return [
@@ -172,7 +174,7 @@ final class GradeAnswerAction extends AssessmentAction
                         'answer'   => $given['answer'] ?? null,
                         'isCorrect' => $given['isCorrect'] ?? null,
                         'pointsEarned' => $given['pointsEarned'] ?? null,
-                        'pointsPossible' => $given['pointsPossible'] ?? $question->pointsIn($row['pointsOverride']),
+                        'pointsPossible' => $given['pointsPossible'] ?? $line['pointsPossible'],
                         'feedback' => $given['feedback'] ?? null,
                         'isGraded' => $given['isGraded'] ?? false,
                         'needsMarker' => !$question->type->isAutoGradable(),
