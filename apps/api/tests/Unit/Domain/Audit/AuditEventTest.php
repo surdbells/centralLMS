@@ -35,9 +35,15 @@ final class AuditEventTest extends TestCase
         yield 'an article'        => ['enrollments.create', 'Created an enrollment'];
         yield 'status'            => ['users.status', 'Changed the status of a user'];
         yield 'self-service'      => ['me.profile.update', 'Updated their own profile'];
+        yield 'their own avatar'  => ['me.avatar.set', 'Set their own avatar'];
+        yield 'and removing it'   => ['me.avatar.remove', 'Removed their own avatar'];
         yield 'a bare me route'   => ['me.avatar', 'Me avatar'];
         // Words that are already singular must not have a letter taken off.
         yield 'not a plural'      => ['settings.update', 'Updated a settings'];
+        // Verbs that already name what they act on: "Imported a user" is
+        // wrong twice over.
+        yield 'imports'           => ['users.import', 'Imported people from a file'];
+        yield 'previews'          => ['users.import.preview', 'Checked a file of people'];
         // And a verb nobody has named still says something true.
         yield 'an unknown verb'   => ['courses.skills', 'Courses skills'];
     }

@@ -55,6 +55,19 @@ final readonly class AuditEvent
         $verb   = array_pop($parts) ?? '';
         $module = implode(' ', $parts);
 
+        // Verbs that already name what they act on. "Imported a user" is
+        // wrong twice over — an import is people, plural, and the module it
+        // hangs off adds nothing to the sentence.
+        $whole = match ($verb) {
+            'import'  => 'Imported people from a file',
+            'preview' => 'Checked a file of people',
+            default   => null,
+        };
+
+        if ($whole !== null) {
+            return $whole;
+        }
+
         $said = match ($verb) {
             'create'      => 'Created',
             'update'      => 'Updated',
@@ -63,6 +76,9 @@ final readonly class AuditEvent
             'password'    => 'Set a password on',
             'reorder',
             'order'       => 'Reordered',
+            'set'         => 'Set',
+            'save'        => 'Saved',
+            'remove'      => 'Removed',
             'enroll'      => 'Enrolled somebody on',
             'unenroll'    => 'Removed somebody from',
             'upload'      => 'Uploaded to',

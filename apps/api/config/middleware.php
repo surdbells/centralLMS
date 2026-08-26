@@ -9,6 +9,7 @@
  *   RequestId   outermost — every log line and error response carries the id,
  *               including ones produced by the middleware beneath it
  *   Cors        answers preflight and returns, before anything can reject it
+ *   Error       turns a throwable into JSON
  *   RateLimit   rejects abuse before any parsing work is done
  *   Routing     resolves the route
  *   BodyParser  innermost — only reached by requests that will be handled
@@ -19,8 +20,16 @@
  * request that follows is then never sent, and every call from the SPA fails
  * with an opaque CORS error. Cors has to see OPTIONS first.
  *
- * The error handler is added last of all, so it wraps routing and can turn an
- * unmatched path into JSON.
+ * **Cors sits outside the error handler, and that is not cosmetic.** A response
+ * the error handler produces never travels back through the middleware beneath
+ * it, so with Cors underneath, every 401, 403, 404, 409 and 422 arrived at the
+ * browser with no `Access-Control-Allow-Origin` — which a browser reports not
+ * as the refusal it is but as an opaque network failure. Every validation
+ * message in the application read "could not reach the server". curl does not
+ * enforce CORS, so no amount of testing with it would have shown this.
+ *
+ * The error handler still sits outside routing, so an unmatched path is still
+ * turned into JSON.
  */
 
 declare(strict_types=1);
@@ -39,10 +48,9 @@ return static function (App $app, ContainerInterface $container): void {
     $app->add(JsonBodyParserMiddleware::class);
     $app->addRoutingMiddleware();
     $app->add(RateLimitMiddleware::class);
-    $app->add(CorsMiddleware::class);
-    $app->add(RequestIdMiddleware::class);
 
-    // Must be added after routing so that HttpNotFoundException reaches it.
+    // Added after routing so that HttpNotFoundException reaches it, and before
+    // Cors so that Cors ends up outside it — see above.
     $errorMiddleware = $app->addErrorMiddleware(
         displayErrorDetails: (bool) $settings['app']['debug'],
         logErrors: true,
@@ -51,4 +59,7 @@ return static function (App $app, ContainerInterface $container): void {
     );
 
     $errorMiddleware->setDefaultErrorHandler($container->get(JsonErrorHandler::class));
+
+    $app->add(CorsMiddleware::class);
+    $app->add(RequestIdMiddleware::class);
 };

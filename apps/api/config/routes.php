@@ -173,7 +173,7 @@ return static function (App $app): void {
                 $m->get('/consents', [MyProfileAction::class, 'consents'])->setName('me.consents');
                 $m->put('/consents', [MyProfileAction::class, 'saveConsents'])->setName('me.consents.save');
 
-                $m->post('/avatar', [MyProfileAction::class, 'uploadAvatar'])->setName('me.avatar');
+                $m->post('/avatar', [MyProfileAction::class, 'uploadAvatar'])->setName('me.avatar.set');
                 $m->delete('/avatar', [MyProfileAction::class, 'removeAvatar'])
                     ->setName('me.avatar.remove');
 
