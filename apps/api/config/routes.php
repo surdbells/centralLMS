@@ -71,6 +71,7 @@ use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
+use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
@@ -311,6 +312,24 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- notes ----------------------------------------------------
+            //
+            // Under `/me`, because a note is always the caller's own. There is
+            // no user id in any of these paths. `statistics` is declared
+            // before `/{id}` so it is not read as a note id.
+            $secure->group('/me/notes', function (RouteCollectorProxy $n) use ($uuid): void {
+                $n->get('', [MyNotesAction::class, 'list'])->setName('me.notes.list');
+                $n->post('', [MyNotesAction::class, 'create'])->setName('me.notes.create');
+
+                $n->get('/statistics', [MyNotesAction::class, 'statistics'])
+                    ->setName('me.notes.statistics');
+
+                $n->get('/{id:' . $uuid . '}', [MyNotesAction::class, 'show'])->setName('me.notes.show');
+                $n->put('/{id:' . $uuid . '}', [MyNotesAction::class, 'update'])->setName('me.notes.update');
+                $n->patch('/{id:' . $uuid . '}/pin', [MyNotesAction::class, 'pin'])->setName('me.notes.pin');
+                $n->delete('/{id:' . $uuid . '}', [MyNotesAction::class, 'delete'])->setName('me.notes.delete');
+            });
+
             // --- dashboards -----------------------------------------------
             //
             // `/me` takes no id: the learner dashboard is about whoever is

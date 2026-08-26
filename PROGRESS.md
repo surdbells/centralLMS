@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media and both dashboards are built. Notes, tenant settings, skills, learning paths and messaging still to come |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media, both dashboards and notes are built. Tenant settings, skills, learning paths and messaging still to come |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — five API modules remain before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 547 unit + 365 integration tests / 2,999 assertions · PHPStan level 8 clean · 0 style errors · 690 live checks |
+| **Blocking the next slice** | Nothing — four API modules remain before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 559 unit + 383 integration tests / 3,082 assertions · PHPStan level 8 clean · 0 style errors · 738 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -112,10 +112,10 @@ foundations above it.
 | 13 | gamification (points, badges, levels, streaks) | ✅ | **9** | Totals derived from the ledger; `user_level_progress` not ported |
 | 14 | media / SCORM | ✅ | **9** | Versions as rows; `is_latest_version` derived; bytes served through the API |
 | 15 | dashboards | ✅ | **2** | Assembled from the reports; the learner's own takes no id |
-| 16 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
-| 17 | messaging | ⬜ | 1 | 9 tables, 9 messages |
-| 18 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
-| 19 | notes | ⬜ | — | 5 rows, one table |
+| 16 | notes | ✅ | **7** | 11 legacy files, 8 of which could not run — the class writes columns the table lacks |
+| 17 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
+| 18 | messaging | ⬜ | 1 | 9 tables, 9 messages |
+| 19 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
 | 20 | tenant settings | ⬜ | — | 16 rows, one key/value table |
 
 ---
@@ -213,6 +213,55 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-29 — Notes
+
+Seven routes for eleven legacy files, eight of which could not run.
+
+**The notes feature was never connected to its own table.**
+`class/Note.php` — the class behind all eleven endpoints under `user/notes/` —
+inserts `title` and `lesson_timestamp`. The `notes` table has neither column.
+So `create`, `update` and `search_notes` fail against the shipped schema, every
+time, and always have. The Angular `Note` interface matches the broken class,
+down to both field names, so the notes screen was written against an API that
+cannot answer it.
+
+All five notes in the database came from somewhere else:
+`user/course-player.php` carries its own `saveNote()` and `getNotes()`, which
+write `content` and `video_timestamp` and do match the table. That half works
+and can only create and read — no edit, no delete, no pin, no search. Two
+implementations of one feature, and the one with the endpoints is the one that
+does not work.
+
+The new table carries both fields under one name each. `video_timestamp` and
+`lesson_timestamp` were the same thing under two names, and it is a position in
+a recording, so it is `position_seconds` — the same name `lesson_progress`
+already uses for a resume point.
+
+**`enrollment_id` is not carried.** The legacy kept it and queried by it, so a
+note lived and died with an enrolment: unenrol somebody and re-enrol them and
+their notes are orphaned from the course they are reading. A note belongs to a
+person and a lesson. "The notes for this enrolment" is the same set of rows as
+"this person's notes on this course", and it survives re-enrolment.
+
+**Everything is under `/me`.** All eleven legacy endpoints took `user_id` from
+the request body, which with `verify_user()` returning 100 is a note-reading
+API for the whole organisation. There is no user id in any of the new paths.
+
+**A note may only be written against a lesson the writer can open.** Checked
+against the enrolment, and a lesson that does not exist, one in another tenant
+and one on a course they are not taking are all the same 404 — telling them
+apart turns the endpoint into a catalogue enumerator.
+
+**An edit touches only what it mentioned.** A form that sends the one field it
+changed must not clear the other three; found by the live suite, which searched
+for a note by its title after an unrelated edit had silently wiped it. Pinning
+is set explicitly rather than `SET is_pinned = NOT is_pinned`, which is what
+`toggle_pin.php` did — two taps racing each other land wherever the second
+write computed, and neither client is told which.
+
+- 12 unit + 18 integration tests; **48 live checks**
+- 942 tests / 3,082 assertions · PHPStan level 8 clean · 0 style errors
 
 ### 2026-08-29 — Dashboards
 

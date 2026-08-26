@@ -68,9 +68,11 @@ use Central\Api\Application\Dashboard\AdminDashboardAssembler;
 use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
 use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\Media\MediaRepository;
+use Central\Api\Domain\Note\NoteRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
+use Central\Api\Infrastructure\Persistence\DbalNoteRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
@@ -569,6 +571,10 @@ return [
 
     MediaRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalMediaRepository($c->get(Connection::class)),
+    ),
+
+    NoteRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalNoteRepository($c->get(Connection::class)),
     ),
 
     DashboardRepository::class => factory(
