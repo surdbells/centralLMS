@@ -1,12 +1,10 @@
-<!-- skills/admin/admin-skills.component.html -->
-
 <div class="admin-skills-container">
   <!-- Header -->
   <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
-        <h1 class="h3 mb-1">Skills & Competencies</h1>
-        <p class="text-muted mb-0">Manage skills that learners can acquire through courses</p>
+        <h1 class="h3 mb-1">Skills &amp; Competencies</h1>
+        <p class="text-muted mb-0">Skills are acquired by completing the courses that teach them</p>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary" (click)="openNewCategoryModal()">
@@ -19,15 +17,21 @@
     </div>
   </div>
 
+  <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+    <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+    <div class="flex-grow-1">{{ error }}</div>
+    <button type="button" class="btn-close" (click)="error = null"></button>
+  </div>
+
   <!-- Summary Cards -->
-  <div class="row g-3 mb-4" *ngIf="summary">
+  <div class="row g-3 mb-4" *ngIf="statistics">
     <div class="col-6 col-md-4 col-xl-2">
       <div class="stat-card">
         <div class="stat-icon bg-primary-subtle text-primary">
           <i class="bi bi-star"></i>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ summary.total_skills }}</div>
+          <div class="stat-value">{{ statistics.skills }}</div>
           <div class="stat-label">Total Skills</div>
         </div>
       </div>
@@ -38,7 +42,7 @@
           <i class="bi bi-check-circle"></i>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ summary.active_skills }}</div>
+          <div class="stat-value">{{ statistics.activeSkills }}</div>
           <div class="stat-label">Active</div>
         </div>
       </div>
@@ -49,7 +53,7 @@
           <i class="bi bi-folder"></i>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ summary.total_categories }}</div>
+          <div class="stat-value">{{ statistics.categories }}</div>
           <div class="stat-label">Categories</div>
         </div>
       </div>
@@ -60,19 +64,19 @@
           <i class="bi bi-book"></i>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ summary.courses_with_skills }}</div>
-          <div class="stat-label">Courses</div>
+          <div class="stat-value">{{ statistics.coursesMapped }}</div>
+          <div class="stat-label">Mapped Courses</div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-xl-2">
       <div class="stat-card">
-        <div class="stat-icon bg-purple-subtle text-purple">
-          <i class="bi bi-people"></i>
+        <div class="stat-icon bg-danger-subtle text-danger">
+          <i class="bi bi-exclamation-triangle"></i>
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ summary.learners_with_skills }}</div>
-          <div class="stat-label">Learners</div>
+          <div class="stat-value">{{ statistics.untaught.length }}</div>
+          <div class="stat-label">Untaught</div>
         </div>
       </div>
     </div>
@@ -92,7 +96,7 @@
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'analytics'" (click)="onTabChange('analytics')">
-        <i class="bi bi-graph-up me-2"></i>Analytics & Reports
+        <i class="bi bi-graph-up me-2"></i>Analytics &amp; Reports
       </button>
     </li>
   </ul>
@@ -112,9 +116,7 @@
         <div class="col-md-3">
           <select class="form-select" [(ngModel)]="selectedCategoryId" (change)="onFilterChange()">
             <option [ngValue]="null">All Categories</option>
-            <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
-              {{ cat.name }}
-            </option>
+            <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
           </select>
         </div>
         <div class="col-md-2">
@@ -146,7 +148,7 @@
             <th class="text-center">Courses</th>
             <th class="text-center">Learners</th>
             <th class="text-center">Status</th>
-            <th class="text-end" style="width: 140px;">Actions</th>
+            <th class="text-end" style="width: 110px;">Actions</th>
           </tr>
           </thead>
           <tbody>
@@ -157,15 +159,15 @@
               </div>
             </td>
           </tr>
-          <tr *ngIf="!loading && filteredSkills.length === 0">
+          <tr *ngIf="!loading && skills.length === 0">
             <td colspan="8" class="text-center py-5 text-muted">
               <i class="bi bi-inbox display-4 d-block mb-2"></i>
               No skills found
             </td>
           </tr>
-          <tr *ngFor="let skill of filteredSkills; trackBy: trackBySkillId">
+          <tr *ngFor="let skill of skills; trackBy: trackById">
             <td>
-              <div class="skill-icon" [style.background]="skill.color + '20'" [style.color]="skill.color">
+              <div class="skill-icon" [style.background]="skill.colour + '20'" [style.color]="skill.colour">
                 <i [class]="skill.icon || 'bi-star'"></i>
               </div>
             </td>
@@ -176,41 +178,34 @@
               </small>
             </td>
             <td>
-              <a href="javascript:void(0)" class="badge text-decoration-none"
-                 [style.background]="skill.category_color || '#6c757d'"
-                 *ngIf="skill.category_name && skill.category_id"
-                 (click)="viewCategoryDetail(skill.category_id)">
-                {{ skill.category_name }}
-              </a>
-              <span class="text-muted" *ngIf="!skill.category_name">-</span>
+              <span class="badge" [style.background]="skill.categoryColour || '#6c757d'"
+                    *ngIf="skill.categoryName">
+                {{ skill.categoryName }}
+              </span>
+              <span class="text-muted" *ngIf="!skill.categoryName">-</span>
             </td>
             <td class="text-center">
-                <span class="badge" [ngClass]="getLevelBadgeClass(skill.level)">
-                  {{ skill.level | titlecase }}
-                </span>
+              <span class="badge" [ngClass]="getLevelBadgeClass(skill.level)">{{ skill.levelLabel }}</span>
             </td>
             <td class="text-center">
               <button class="btn btn-link btn-sm p-0" (click)="viewSkillCourses(skill)"
-                      [disabled]="skill.course_count === 0">
-                {{ skill.course_count }}
+                      [disabled]="skill.courseCount === 0">
+                {{ skill.courseCount }}
               </button>
             </td>
             <td class="text-center">
               <button class="btn btn-link btn-sm p-0" (click)="viewSkillLearners(skill)"
-                      [disabled]="skill.learners_acquired === 0">
-                {{ skill.learners_acquired }}
+                      [disabled]="skill.learnerCount === 0">
+                {{ skill.learnerCount }}
               </button>
             </td>
             <td class="text-center">
-                <span class="badge" [ngClass]="skill.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                  {{ skill.is_active ? 'Active' : 'Inactive' }}
-                </span>
+              <span class="badge" [ngClass]="skill.isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
+                {{ skill.isActive ? 'Active' : 'Inactive' }}
+              </span>
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
-                <button class="btn btn-secondary" (click)="viewSkillDetail(skill.skill_id)" title="View Details">
-                  <i class="bi bi-eye"></i>
-                </button>
                 <button class="btn btn-secondary" (click)="openEditSkillModal(skill)" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </button>
@@ -229,14 +224,14 @@
   <!-- Categories Tab -->
   <div *ngIf="activeTab === 'categories'">
     <div class="row g-4">
-      <div class="col-md-6 col-lg-4" *ngFor="let category of categories; trackBy: trackByCategoryId">
+      <div class="col-md-6 col-lg-4" *ngFor="let category of categories; trackBy: trackById">
         <div class="category-card">
-          <div class="category-color-bar" [style.background]="category.color"></div>
+          <div class="category-color-bar" [style.background]="category.colour"></div>
           <div class="category-content">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <h5 class="category-name mb-0">{{ category.name }}</h5>
-              <span class="badge" [ngClass]="category.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                {{ category.is_active ? 'Active' : 'Inactive' }}
+              <span class="badge" [ngClass]="category.isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
+                {{ category.isActive ? 'Active' : 'Inactive' }}
               </span>
             </div>
             <p class="text-muted small mb-3" *ngIf="category.description">
@@ -244,17 +239,13 @@
             </p>
             <div class="d-flex justify-content-between align-items-center">
               <span class="skill-count">
-                <i class="bi bi-star me-1"></i>{{ category.skill_count }} skill(s)
+                <i class="bi bi-star me-1"></i>{{ category.skillCount }} skill(s)
               </span>
               <div class="btn-group btn-group-sm">
-                <button class="btn btn-secondary" (click)="viewCategoryDetail(category.category_id)" title="View Details">
-                  <i class="bi bi-eye"></i>
-                </button>
-                <button class="btn btn-secondary" (click)="openEditCategoryModal(category)">
+                <button class="btn btn-secondary" (click)="openEditCategoryModal(category)" title="Edit">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-outline-danger" (click)="confirmDeleteCategory(category)"
-                        [disabled]="category.skill_count > 0">
+                <button class="btn btn-outline-danger" (click)="confirmDeleteCategory(category)" title="Delete">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -317,10 +308,11 @@
   <!-- Overview Sub-Tab -->
   <div *ngIf="analyticsSubTab === 'overview'">
     <div class="card">
-      <div class="card-header">
+      <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="bi bi-bar-chart me-2"></i>Skill Adoption Statistics
+          <i class="bi bi-bar-chart me-2"></i>Skill Adoption
         </h5>
+        <small class="text-muted">Follows the filters on the Skills tab</small>
       </div>
       <div class="card-body p-0">
         <div *ngIf="loading" class="text-center py-5">
@@ -328,7 +320,7 @@
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <div class="table-responsive" *ngIf="!loading && skillStats.length > 0">
+        <div class="table-responsive" *ngIf="!loading && skills.length > 0">
           <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
@@ -336,62 +328,47 @@
               <th>Category</th>
               <th>Level</th>
               <th class="text-center">Courses</th>
-              <th class="text-center">Acquired</th>
-              <th class="text-center">In Progress</th>
+              <th class="text-center">Learners</th>
               <th class="text-center">Adoption</th>
               <th>Status</th>
               <th></th>
             </tr>
             </thead>
             <tbody>
-            <tr *ngFor="let stat of skillStats; trackBy: trackBySkillId">
+            <tr *ngFor="let skill of skills; trackBy: trackById">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <div class="skill-icon-sm" [style.background-color]="stat.color + '20'" [style.color]="stat.color">
-                    <i class="bi" [ngClass]="stat.icon || 'bi-star'"></i>
+                  <div class="skill-icon-sm" [style.background-color]="skill.colour + '20'" [style.color]="skill.colour">
+                    <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
                   </div>
-                  <a href="javascript:void(0)" class="fw-medium text-decoration-none" (click)="viewSkillDetail(stat.skill_id)">
-                    {{ stat.name }}
-                  </a>
+                  <span class="fw-medium">{{ skill.name }}</span>
                 </div>
               </td>
               <td>
-                <a href="javascript:void(0)" class="badge bg-black text-white text-decoration-none"
-                   *ngIf="stat.category_name && stat.category_id"
-                   (click)="viewCategoryDetail(stat.category_id)">
-                  {{ stat.category_name }}
-                </a>
-                <span class="text-muted" *ngIf="!stat.category_name">-</span>
+                <span class="badge bg-black text-white" *ngIf="skill.categoryName">{{ skill.categoryName }}</span>
+                <span class="text-muted" *ngIf="!skill.categoryName">-</span>
               </td>
               <td>
-                  <span class="badge" [ngClass]="getLevelBadgeClass(stat.level)">
-                    {{ stat.level | titlecase }}
-                  </span>
+                <span class="badge" [ngClass]="getLevelBadgeClass(skill.level)">{{ skill.levelLabel }}</span>
               </td>
-              <td class="text-center">{{ stat.course_count }}</td>
+              <td class="text-center" [class.text-danger]="skill.courseCount === 0">{{ skill.courseCount }}</td>
               <td class="text-center">
-                <span class="fw-semibold text-success">{{ stat.learners_acquired }}</span>
+                <span class="fw-semibold text-success">{{ skill.learnerCount }}</span>
               </td>
               <td class="text-center">
-                <span class="text-warning">{{ stat.learners_in_progress }}</span>
-              </td>
-              <td class="text-center">
-                <span class="badge bg-black text-white">{{ getAdoptionPercentage(stat.learners_acquired) }}%</span>
+                <span class="badge bg-black text-white">{{ adoptionPercentage(skill.learnerCount) }}%</span>
               </td>
               <td>
-                  <span class="badge" [ngClass]="stat.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                    {{ stat.is_active ? 'Active' : 'Inactive' }}
-                  </span>
+                <span class="badge" [ngClass]="skill.isActive ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
+                  {{ skill.isActive ? 'Active' : 'Inactive' }}
+                </span>
               </td>
               <td>
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-secondary" (click)="viewSkillDetail(stat.skill_id)" title="View Details">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <button class="btn btn-secondary" (click)="viewSkillLearners(stat)" title="View Learners">
+                  <button class="btn btn-secondary" (click)="viewSkillLearners(skill)" title="View Learners">
                     <i class="bi bi-people"></i>
                   </button>
-                  <button class="btn btn-secondary" (click)="viewSkillCourses(stat)" title="View Courses">
+                  <button class="btn btn-secondary" (click)="viewSkillCourses(skill)" title="View Courses">
                     <i class="bi bi-book"></i>
                   </button>
                 </div>
@@ -400,12 +377,16 @@
             </tbody>
           </table>
         </div>
-        <div *ngIf="!loading && skillStats.length === 0" class="text-center py-5 text-muted">
+        <div *ngIf="!loading && skills.length === 0" class="text-center py-5 text-muted">
           <i class="bi bi-bar-chart display-4 mb-3 d-block"></i>
-          <p>No skill statistics available</p>
+          <p>No skills match the current filters</p>
         </div>
       </div>
     </div>
+    <p class="text-muted small mt-3 mb-0">
+      Adoption is a share of the most widely held skill, not of the workforce &mdash; this screen does
+      not know the headcount and will not guess at it.
+    </p>
   </div>
 
   <!-- Top Skills Sub-Tab -->
@@ -415,7 +396,7 @@
         <div class="card">
           <div class="card-header">
             <h5 class="card-title mb-0">
-              <i class="bi bi-trophy text-warning me-2"></i>Top 10 Skills by Adoption
+              <i class="bi bi-trophy text-warning me-2"></i>Most Widely Held Skills
             </h5>
           </div>
           <div class="card-body">
@@ -423,33 +404,30 @@
               <div class="spinner-border text-primary" role="status"></div>
             </div>
             <div *ngIf="!loading && topSkills.length > 0">
-              <div class="top-skill-item" *ngFor="let skill of topSkills; let i = index">
+              <div class="top-skill-item" *ngFor="let skill of topSkills; let i = index; trackBy: trackBySkillId">
                 <div class="top-skill-rank" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
                   {{ i + 1 }}
                 </div>
-                <div class="top-skill-icon" [style.background-color]="skill.color + '20'" [style.color]="skill.color">
-                  <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
+                <div class="top-skill-icon" [style.background-color]="skill.colour + '20'" [style.color]="skill.colour">
+                  <i class="bi bi-star"></i>
                 </div>
                 <div class="top-skill-info">
                   <div class="fw-medium">{{ skill.name }}</div>
-                  <small class="text-muted">{{ skill.category_name || 'Uncategorized' }}</small>
                 </div>
                 <div class="top-skill-count">
-                  <span class="fw-bold text-success">{{ skill.learners_acquired }}</span>
+                  <span class="fw-bold text-success">{{ skill.learners }}</span>
                   <small class="text-muted d-block">learners</small>
                 </div>
                 <div class="top-skill-bar">
                   <div class="progress" style="height: 6px;">
-                    <div class="progress-bar bg-success"
-                         [style.width.%]="topSkills[0]?.learners_acquired ? (skill.learners_acquired / topSkills[0].learners_acquired * 100) : 0">
-                    </div>
+                    <div class="progress-bar bg-success" [style.width.%]="adoptionPercentage(skill.learners)"></div>
                   </div>
                 </div>
               </div>
             </div>
             <div *ngIf="!loading && topSkills.length === 0" class="text-center py-4 text-muted">
               <i class="bi bi-trophy display-4 mb-3 d-block"></i>
-              <p>No skills have been acquired yet</p>
+              <p>Nobody has completed a course that teaches a skill yet</p>
             </div>
           </div>
         </div>
@@ -460,19 +438,19 @@
             <h6 class="text-muted mb-3">Quick Stats</h6>
             <div class="d-flex justify-content-between mb-2">
               <span>Total Skills:</span>
-              <strong>{{ summary?.total_skills || 0 }}</strong>
+              <strong>{{ statistics?.skills || 0 }}</strong>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Total Learners:</span>
-              <strong>{{ summary?.learners_with_skills || 0 }}</strong>
+              <span>Categories:</span>
+              <strong>{{ statistics?.categories || 0 }}</strong>
             </div>
             <div class="d-flex justify-content-between mb-2">
               <span>Mapped Courses:</span>
-              <strong>{{ summary?.courses_with_skills || 0 }}</strong>
+              <strong>{{ statistics?.coursesMapped || 0 }}</strong>
             </div>
             <hr>
             <p class="text-muted small mb-0">
-              Top skills represent the most acquired competencies across your learner base.
+              A skill is counted as held once a learner completes any course that teaches it.
             </p>
           </div>
         </div>
@@ -485,90 +463,52 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="bi bi-exclamation-triangle text-warning me-2"></i>Skill Gap Analysis
+          <i class="bi bi-exclamation-triangle text-warning me-2"></i>Untaught Skills
         </h5>
-        <small class="text-muted">Skills with lowest adoption rates</small>
+        <small class="text-muted">Declared, but no course teaches them</small>
       </div>
       <div class="card-body p-0">
         <div *ngIf="loading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status"></div>
         </div>
-        <div class="table-responsive" *ngIf="!loading && skillGaps.length > 0">
+        <div class="table-responsive" *ngIf="!loading && untaughtSkills.length > 0">
           <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
               <th>Skill</th>
-              <th>Category</th>
-              <th class="text-center">Courses</th>
-              <th class="text-center">Acquired</th>
-              <th class="text-center">Total Users</th>
-              <th>Adoption Rate</th>
-              <th></th>
+              <th class="text-end">Action</th>
             </tr>
             </thead>
             <tbody>
-            <tr *ngFor="let gap of skillGaps; trackBy: trackBySkillId">
+            <tr *ngFor="let gap of untaughtSkills; trackBy: trackBySkillId">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <div class="skill-icon-sm" [style.background-color]="gap.color + '20'" [style.color]="gap.color">
-                    <i class="bi" [ngClass]="gap.icon || 'bi-star'"></i>
+                  <div class="skill-icon-sm" [style.background-color]="gap.colour + '20'" [style.color]="gap.colour">
+                    <i class="bi bi-star"></i>
                   </div>
                   <span class="fw-medium">{{ gap.name }}</span>
                 </div>
               </td>
-              <td>
-                  <span class="badge bg-black text-white" *ngIf="gap.category_name">
-                    {{ gap.category_name }}
-                  </span>
-                <span class="text-muted" *ngIf="!gap.category_name">-</span>
-              </td>
-              <td class="text-center">
-                <span [class.text-danger]="gap.course_count === 0">{{ gap.course_count }}</span>
-              </td>
-              <td class="text-center">{{ gap.learners_acquired }}</td>
-              <td class="text-center">{{ gap.total_users }}</td>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="progress flex-grow-1" style="height: 8px; width: 100px;">
-                    <div class="progress-bar"
-                         [ngClass]="{
-                             'bg-danger': gap.adoption_rate < 20,
-                             'bg-warning': gap.adoption_rate >= 20 && gap.adoption_rate < 50,
-                             'bg-success': gap.adoption_rate >= 50
-                           }"
-                         [style.width.%]="gap.adoption_rate">
-                    </div>
-                  </div>
-                  <span class="fw-semibold"
-                        [ngClass]="{
-                            'text-danger': gap.adoption_rate < 20,
-                            'text-warning': gap.adoption_rate >= 20 && gap.adoption_rate < 50,
-                            'text-success': gap.adoption_rate >= 50
-                          }">
-                      {{ gap.adoption_rate }}%
-                    </span>
-                </div>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-primary" (click)="viewSkillCourses(gap)">
-                  <i class="bi bi-book me-1"></i>Courses
+              <td class="text-end">
+                <button class="btn btn-sm btn-primary" (click)="onAnalyticsSubTabChange('course-skills')">
+                  <i class="bi bi-link-45deg me-1"></i>Map a course
                 </button>
               </td>
             </tr>
             </tbody>
           </table>
         </div>
-        <div *ngIf="!loading && skillGaps.length === 0" class="text-center py-5 text-muted">
+        <div *ngIf="!loading && untaughtSkills.length === 0" class="text-center py-5 text-muted">
           <i class="bi bi-check-circle display-4 mb-3 d-block text-success"></i>
-          <p>No skill gaps identified</p>
+          <p>Every skill is taught by at least one course</p>
         </div>
       </div>
     </div>
 
     <div class="alert alert-info mt-4">
       <i class="bi bi-lightbulb me-2"></i>
-      <strong>Tip:</strong> Skills with low adoption rates may need more course mappings or promotional efforts.
-      Consider creating new courses or updating existing ones to include these skills.
+      <strong>Why this matters:</strong> a skill no course teaches can never be acquired. Either map it to
+      a course under <em>Course Skills</em>, or retire it.
     </div>
   </div>
 
@@ -579,13 +519,13 @@
         <h5 class="card-title mb-0">
           <i class="bi bi-link-45deg me-2"></i>Course Skills Assignment
         </h5>
-        <button class="btn btn-sm btn-primary" (click)="loadCourses()" *ngIf="courses.length === 0 && !coursesLoading">
-          <i class="bi bi-arrow-repeat me-2"></i>Load Courses
+        <button class="btn btn-sm btn-primary" (click)="loadCourses()" [disabled]="coursesLoading">
+          <i class="bi bi-arrow-repeat me-2"></i>Reload
         </button>
       </div>
       <div class="card-body">
         <p class="text-muted mb-4">
-          Assign skills to courses. Learners will acquire these skills upon course completion.
+          Learners acquire these skills by completing the course.
         </p>
 
         <div *ngIf="coursesLoading" class="text-center py-4">
@@ -594,13 +534,13 @@
         </div>
 
         <div class="course-grid" *ngIf="!coursesLoading && courses.length > 0">
-          <div class="course-skill-card" *ngFor="let course of courses">
+          <div class="course-skill-card" *ngFor="let course of courses; trackBy: trackById">
             <div class="course-skill-header">
               <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-book text-primary"></i>
                 <span class="fw-medium">{{ course.title }}</span>
               </div>
-              <span class="badge bg-black text-white" *ngIf="course.category_name">{{ course.category_name }}</span>
+              <span class="badge bg-black text-white">{{ course.status | titlecase }}</span>
             </div>
             <div class="course-skill-actions">
               <button class="btn btn-sm btn-primary" (click)="openCourseSkillsModal(course)">
@@ -612,7 +552,7 @@
 
         <div *ngIf="!coursesLoading && courses.length === 0" class="text-center py-5 text-muted">
           <i class="bi bi-book display-4 mb-3 d-block"></i>
-          <p>Click "Load Courses" to view available courses</p>
+          <p>No courses yet</p>
         </div>
       </div>
     </div>
@@ -642,23 +582,23 @@
               <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
               <span class="ms-2">Loading users...</span>
             </div>
-            <div class="user-select-list" *ngIf="!usersLoading && filteredUsers.length > 0">
+            <div class="user-select-list" *ngIf="!usersLoading && users.length > 0">
               <div class="user-select-item"
-                   *ngFor="let user of filteredUsers"
-                   [class.active]="targetUserId === user.user_id"
-                   (click)="onUserSelect(user.user_id)">
+                   *ngFor="let user of users; trackBy: trackById"
+                   [class.active]="targetUserId === user.id"
+                   (click)="onUserSelect(user.id)">
                 <div class="user-avatar">
-                  <img *ngIf="user.profile_image" [src]="user.profile_image" alt="">
-                  <span *ngIf="!user.profile_image">{{ user.first_name?.charAt(0) }}{{ user.last_name?.charAt(0) }}</span>
+                  <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" alt="">
+                  <span *ngIf="!user.avatarUrl">{{ user.firstName.charAt(0) }}{{ user.lastName.charAt(0) }}</span>
                 </div>
                 <div class="user-info">
-                  <div class="fw-medium">{{ user.first_name }} {{ user.last_name }}</div>
+                  <div class="fw-medium">{{ user.fullName }}</div>
                   <small class="text-muted">{{ user.email }}</small>
                 </div>
-                <i class="bi bi-check-circle-fill text-success" *ngIf="targetUserId === user.user_id"></i>
+                <i class="bi bi-check-circle-fill text-success" *ngIf="targetUserId === user.id"></i>
               </div>
             </div>
-            <div *ngIf="!usersLoading && filteredUsers.length === 0" class="text-center py-3 text-muted">
+            <div *ngIf="!usersLoading && users.length === 0" class="text-center py-3 text-muted">
               <i class="bi bi-person-x me-2"></i>No users found
             </div>
           </div>
@@ -667,7 +607,6 @@
               <div class="d-flex justify-content-between align-items-start">
                 <div>
                   <h6 class="mb-1">Selected: {{ selectedUserName }}</h6>
-                  <small class="text-muted">User ID: {{ targetUserId }}</small>
                 </div>
                 <button class="btn btn-sm btn-secondary" (click)="clearUserLookup()">
                   <i class="bi bi-x-lg me-1"></i>Clear
@@ -684,7 +623,7 @@
         </div>
 
         <!-- User Skills Results -->
-        <div *ngIf="!userLookupLoading && (userSkills.length > 0 || userSkillProgress.length > 0)">
+        <div *ngIf="!userLookupLoading && lookedUpSkills">
           <!-- Summary Cards -->
           <div class="row g-3 mb-4">
             <div class="col-md-3">
@@ -693,7 +632,7 @@
                   <i class="bi bi-check-circle"></i>
                 </div>
                 <div class="stat-content">
-                  <div class="stat-value">{{ getUserAcquiredCount() }}</div>
+                  <div class="stat-value">{{ userAcquiredCount }}</div>
                   <div class="stat-label">Acquired</div>
                 </div>
               </div>
@@ -704,7 +643,7 @@
                   <i class="bi bi-hourglass-split"></i>
                 </div>
                 <div class="stat-content">
-                  <div class="stat-value">{{ getUserInProgressCount() }}</div>
+                  <div class="stat-value">{{ userInProgressCount }}</div>
                   <div class="stat-label">In Progress</div>
                 </div>
               </div>
@@ -715,8 +654,8 @@
                   <i class="bi bi-collection"></i>
                 </div>
                 <div class="stat-content">
-                  <div class="stat-value">{{ userSkillProgress.length }}</div>
-                  <div class="stat-label">Total Available</div>
+                  <div class="stat-value">{{ lookedUpSkills.byCategory.length }}</div>
+                  <div class="stat-label">Categories</div>
                 </div>
               </div>
             </div>
@@ -724,29 +663,29 @@
 
           <!-- Acquired Skills -->
           <h6 class="mb-3"><i class="bi bi-check-circle text-success me-2"></i>Acquired Skills</h6>
-          <div class="row g-3 mb-4" *ngIf="userSkills.length > 0">
-            <div class="col-md-4" *ngFor="let skill of userSkills">
+          <div class="row g-3 mb-4" *ngIf="userAcquiredSkills.length > 0">
+            <div class="col-md-4" *ngFor="let skill of userAcquiredSkills; trackBy: trackBySkillId">
               <div class="skill-card-compact">
-                <div class="skill-icon" [style.background-color]="skill.color + '20'" [style.color]="skill.color">
+                <div class="skill-icon" [style.background-color]="skill.colour + '20'" [style.color]="skill.colour">
                   <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
                 </div>
                 <div class="skill-info">
-                  <div class="fw-medium">{{ skill.skill_name }}</div>
-                  <small class="text-muted">{{ skill.category_name || 'Uncategorized' }}</small>
+                  <div class="fw-medium">{{ skill.name }}</div>
+                  <small class="text-muted">{{ skill.categoryName || 'Uncategorised' }}</small>
                 </div>
-                <span class="badge" [ngClass]="getLevelBadgeClass(skill.highest_proficiency)">
-                  {{ skill.highest_proficiency | titlecase }}
+                <span class="badge" [ngClass]="getLevelBadgeClass(skill.proficiency)">
+                  {{ skill.proficiencyLabel }}
                 </span>
               </div>
             </div>
           </div>
-          <div class="text-muted mb-4" *ngIf="userSkills.length === 0">
-            <i class="bi bi-info-circle me-2"></i>This user hasn't acquired any skills yet.
+          <div class="text-muted mb-4" *ngIf="userAcquiredSkills.length === 0">
+            <i class="bi bi-info-circle me-2"></i>This learner has not acquired any skills yet.
           </div>
 
-          <!-- Skill Progress -->
-          <h6 class="mb-3"><i class="bi bi-list-check text-info me-2"></i>All Skill Progress</h6>
-          <div class="table-responsive">
+          <!-- In Progress -->
+          <h6 class="mb-3"><i class="bi bi-list-check text-info me-2"></i>On the Way</h6>
+          <div class="table-responsive" *ngIf="userInProgressSkills.length > 0">
             <table class="table table-sm">
               <thead class="table-light">
               <tr>
@@ -754,43 +693,39 @@
                 <th>Category</th>
                 <th class="text-center">Courses</th>
                 <th class="text-center">Completed</th>
+                <th class="text-center">In Progress</th>
                 <th>Progress</th>
-                <th>Status</th>
               </tr>
               </thead>
               <tbody>
-              <tr *ngFor="let progress of userSkillProgress">
+              <tr *ngFor="let skill of userInProgressSkills; trackBy: trackBySkillId">
                 <td>
                   <div class="d-flex align-items-center gap-2">
-                    <div class="skill-icon-xs" [style.background-color]="progress.color + '20'" [style.color]="progress.color">
-                      <i class="bi" [ngClass]="progress.icon || 'bi-star'"></i>
+                    <div class="skill-icon-xs" [style.background-color]="skill.colour + '20'" [style.color]="skill.colour">
+                      <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
                     </div>
-                    {{ progress.skill_name }}
+                    {{ skill.name }}
                   </div>
                 </td>
-                <td>{{ progress.category_name || '-' }}</td>
-                <td class="text-center">{{ progress.total_courses }}</td>
-                <td class="text-center">{{ progress.completed_courses }}</td>
+                <td>{{ skill.categoryName || '-' }}</td>
+                <td class="text-center">{{ skill.coursesAvailable }}</td>
+                <td class="text-center">{{ skill.coursesCompleted }}</td>
+                <td class="text-center">{{ skill.coursesInProgress }}</td>
                 <td>
-                  <div class="progress" style="height: 6px; width: 80px;">
-                    <div class="progress-bar bg-success" [style.width.%]="progress.progress_percentage"></div>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress" style="height: 6px; width: 80px;">
+                      <div class="progress-bar bg-success" [style.width.%]="skill.percentComplete"></div>
+                    </div>
+                    <small class="text-muted">{{ skill.percentComplete }}%</small>
                   </div>
-                </td>
-                <td>
-                  <span class="badge bg-success" *ngIf="progress.is_acquired">Acquired</span>
-                  <span class="badge bg-warning" *ngIf="!progress.is_acquired && progress.in_progress_courses > 0">In Progress</span>
-                  <span class="badge bg-secondary" *ngIf="!progress.is_acquired && progress.in_progress_courses === 0">Not Started</span>
                 </td>
               </tr>
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div *ngIf="!userLookupLoading && targetUserId && userSkills.length === 0 && userSkillProgress.length === 0"
-             class="text-center py-4 text-muted">
-          <i class="bi bi-person-x display-4 mb-3 d-block"></i>
-          <p>No skill data found for {{ selectedUserName }}</p>
+          <div class="text-muted" *ngIf="userInProgressSkills.length === 0">
+            <i class="bi bi-info-circle me-2"></i>No course in progress leads to a new skill.
+          </div>
         </div>
 
         <div *ngIf="!targetUserId" class="text-center py-4 text-muted">
@@ -820,11 +755,9 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">Category</label>
-            <select class="form-select" [(ngModel)]="editingSkill.category_id">
+            <select class="form-select" [(ngModel)]="editingSkill.categoryId">
               <option [ngValue]="null">No Category</option>
-              <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
-                {{ cat.name }}
-              </option>
+              <option *ngFor="let cat of categories" [ngValue]="cat.id">{{ cat.name }}</option>
             </select>
           </div>
           <div class="col-12">
@@ -841,32 +774,30 @@
           <div class="col-md-4">
             <label class="form-label">Icon</label>
             <select class="form-select" [(ngModel)]="editingSkill.icon">
-              <option *ngFor="let ico of iconOptions" [value]="ico">
-                {{ ico.replace('bi-', '') | titlecase }}
-              </option>
+              <option *ngFor="let ico of iconOptions" [value]="ico">{{ ico | slice:3 | titlecase }}</option>
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Color</label>
+            <label class="form-label">Colour</label>
             <div class="color-picker">
-              <button *ngFor="let color of colorPresets" type="button" class="color-swatch"
-                      [style.background]="color" [class.active]="editingSkill.color === color"
-                      (click)="editingSkill.color = color"></button>
-              <input type="color" class="color-input" [(ngModel)]="editingSkill.color">
+              <button *ngFor="let colour of colorPresets" type="button" class="color-swatch"
+                      [style.background]="colour" [class.active]="editingSkill.colour === colour"
+                      (click)="editingSkill.colour = colour"></button>
+              <input type="color" class="color-input" [(ngModel)]="editingSkill.colour">
             </div>
           </div>
           <div class="col-12">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="skillActive"
-                     [(ngModel)]="editingSkill.is_active">
+                     [(ngModel)]="editingSkill.isActive">
               <label class="form-check-label" for="skillActive">Active</label>
             </div>
           </div>
           <div class="col-12">
             <label class="form-label">Preview</label>
             <div class="skill-preview">
-              <div class="skill-icon-lg" [style.background]="(editingSkill.color || '#303234') + '20'"
-                   [style.color]="editingSkill.color || '#303234'">
+              <div class="skill-icon-lg" [style.background]="(editingSkill.colour || '#303234') + '20'"
+                   [style.color]="editingSkill.colour || '#303234'">
                 <i [class]="editingSkill.icon || 'bi-star'"></i>
               </div>
               <div class="skill-preview-info">
@@ -913,17 +844,17 @@
                     placeholder="Brief description"></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label">Color</label>
+          <label class="form-label">Colour</label>
           <div class="color-picker">
-            <button *ngFor="let color of colorPresets" type="button" class="color-swatch"
-                    [style.background]="color" [class.active]="editingCategory.color === color"
-                    (click)="editingCategory.color = color"></button>
-            <input type="color" class="color-input" [(ngModel)]="editingCategory.color">
+            <button *ngFor="let colour of colorPresets" type="button" class="color-swatch"
+                    [style.background]="colour" [class.active]="editingCategory.colour === colour"
+                    (click)="editingCategory.colour = colour"></button>
+            <input type="color" class="color-input" [(ngModel)]="editingCategory.colour">
           </div>
         </div>
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="categoryActive"
-                 [(ngModel)]="editingCategory.is_active">
+                 [(ngModel)]="editingCategory.isActive">
           <label class="form-check-label" for="categoryActive">Active</label>
         </div>
       </div>
@@ -955,7 +886,12 @@
         <p class="mb-0">
           Are you sure you want to delete <strong>{{ deleteName }}</strong>?
         </p>
-        <p class="text-muted small mt-2">This action cannot be undone.</p>
+        <p class="text-muted small mt-2" *ngIf="deleteType === 'category'">
+          The skills filed under it survive, uncategorised.
+        </p>
+        <p class="text-muted small mt-2" *ngIf="deleteType === 'skill'">
+          This action cannot be undone.
+        </p>
       </div>
       <div class="modal-footer border-0 justify-content-center">
         <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">Cancel</button>
@@ -988,19 +924,19 @@
         <div class="learner-list" *ngIf="skillLearners.length > 0">
           <div class="learner-item" *ngFor="let learner of skillLearners">
             <div class="learner-avatar">
-              <img *ngIf="learner.profile_image" [src]="learner.profile_image" alt="">
-              <span *ngIf="!learner.profile_image">{{ learner.first_name?.charAt(0) }}{{ learner.last_name?.charAt(0) }}</span>
+              <img *ngIf="learner.avatarUrl" [src]="learner.avatarUrl" alt="">
+              <span *ngIf="!learner.avatarUrl">{{ (learner.fullName || learner.email).charAt(0) }}</span>
             </div>
             <div class="learner-info">
-              <div class="fw-medium">{{ learner.full_name }}</div>
+              <div class="fw-medium">{{ learner.fullName || learner.email }}</div>
               <small class="text-muted">{{ learner.email }}</small>
             </div>
             <div class="learner-stats text-end">
-              <span class="badge" [ngClass]="getLevelBadgeClass(learner.highest_proficiency)">
-                {{ learner.highest_proficiency | titlecase }}
+              <span class="badge" [ngClass]="getLevelBadgeClass(learner.proficiency)">
+                {{ learner.proficiency | titlecase }}
               </span>
               <small class="text-muted d-block mt-1">
-                {{ learner.courses_completed }} course(s) · {{ formatDate(learner.skill_acquired_at) }}
+                {{ learner.courses }} course(s) · {{ formatDate(learner.acquiredAt) }}
               </small>
             </div>
           </div>
@@ -1030,22 +966,23 @@
         <div class="course-list" *ngIf="skillCourses.length > 0">
           <div class="course-item" *ngFor="let course of skillCourses">
             <div class="course-thumb">
-              <img *ngIf="course.thumbnail_url" [src]="course.thumbnail_url" alt="">
-              <i *ngIf="!course.thumbnail_url" class="bi bi-book"></i>
+              <img *ngIf="course.thumbnailUrl" [src]="course.thumbnailUrl" alt="">
+              <i *ngIf="!course.thumbnailUrl" class="bi bi-book"></i>
             </div>
             <div class="course-info">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="fw-medium">{{ course.title }}</span>
-                <span class="badge bg-warning-subtle text-warning" *ngIf="course.is_primary">Primary</span>
+                <span class="badge bg-warning-subtle text-warning" *ngIf="course.isPrimary">Primary</span>
               </div>
               <small class="text-muted">
-                {{ course.category_name || 'Uncategorized' }}
-                <span *ngIf="course.duration_minutes"> · {{ course.duration_minutes }}h</span>
+                {{ course.status | titlecase }}
+                <span *ngIf="course.durationMinutes"> · {{ course.durationMinutes }} min</span>
+                · {{ course.completions }} completion(s)
               </small>
             </div>
             <div class="text-end">
-              <span class="badge" [ngClass]="getLevelBadgeClass(course.proficiency_level)">
-                {{ course.proficiency_level | titlecase }}
+              <span class="badge" [ngClass]="getLevelBadgeClass(course.proficiency)">
+                {{ course.proficiency | titlecase }}
               </span>
             </div>
           </div>
@@ -1069,7 +1006,7 @@
       </div>
       <div class="modal-body">
         <p class="text-muted mb-4">
-          Select skills that learners will acquire by completing this course.
+          This is the whole set, not an addition: saving replaces what the course teaches.
         </p>
 
         <!-- Skill Assignments List -->
@@ -1078,26 +1015,26 @@
             <div class="row g-3 align-items-end">
               <div class="col-md-5">
                 <label class="form-label" *ngIf="i === 0">Skill</label>
-                <select class="form-select" [(ngModel)]="assignment.skill_id">
-                  <option [value]="0">-- Select Skill --</option>
+                <select class="form-select" [(ngModel)]="assignment.skillId">
+                  <option value="">-- Select Skill --</option>
                   <option *ngFor="let skill of availableSkillsForCourse"
-                          [value]="skill.skill_id"
-                          [disabled]="isSkillAlreadyAssigned(skill.skill_id, i)">
-                    {{ skill.name }} ({{ skill.category_name || 'Uncategorized' }})
+                          [value]="skill.id"
+                          [disabled]="isSkillAlreadyAssigned(skill.id, i)">
+                    {{ skill.name }}{{ skill.categoryName ? ' (' + skill.categoryName + ')' : '' }}
                   </option>
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label" *ngIf="i === 0">Proficiency Level</label>
-                <select class="form-select" [(ngModel)]="assignment.proficiency_level">
+                <label class="form-label" *ngIf="i === 0">Proficiency</label>
+                <select class="form-select" [(ngModel)]="assignment.proficiency">
                   <option *ngFor="let level of levels" [value]="level">{{ level | titlecase }}</option>
                 </select>
               </div>
               <div class="col-md-3">
                 <label class="form-label" *ngIf="i === 0">Primary Skill</label>
                 <div class="form-check mt-2">
-                  <input class="form-check-input" type="radio" [name]="'primary'"
-                         [checked]="assignment.is_primary" (change)="setPrimarySkill(i)">
+                  <input class="form-check-input" type="radio" name="primarySkill"
+                         [checked]="assignment.isPrimary" (change)="setPrimarySkill(i)">
                   <label class="form-check-label">Primary</label>
                 </div>
               </div>
@@ -1110,7 +1047,7 @@
           </div>
 
           <div class="text-center py-3" *ngIf="courseSkillAssignments.length === 0">
-            <p class="text-muted mb-2">No skills assigned to this course</p>
+            <p class="text-muted mb-2">This course teaches nothing yet</p>
           </div>
         </div>
 
@@ -1129,132 +1066,3 @@
   </div>
 </div>
 <div class="modal-backdrop fade show" *ngIf="showCourseSkillsModal"></div>
-
-<!-- Skill Detail Modal -->
-<div class="modal fade" [class.show]="showSkillDetailModal" [style.display]="showSkillDetailModal ? 'block' : 'none'"
-     tabindex="-1" *ngIf="showSkillDetailModal">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-info-circle me-2"></i>Skill Details
-        </h5>
-        <button type="button" class="btn-close" (click)="closeSkillDetailModal()"></button>
-      </div>
-      <div class="modal-body" *ngIf="selectedSkillDetail">
-        <div class="text-center mb-4">
-          <div class="skill-icon-lg mx-auto mb-3"
-               [style.background-color]="selectedSkillDetail.color + '20'"
-               [style.color]="selectedSkillDetail.color">
-            <i class="bi" [ngClass]="selectedSkillDetail.icon || 'bi-star'"></i>
-          </div>
-          <h4 class="mb-1">{{ selectedSkillDetail.name }}</h4>
-          <span class="badge" [ngClass]="getLevelBadgeClass(selectedSkillDetail.level)">
-            {{ selectedSkillDetail.level | titlecase }}
-          </span>
-        </div>
-
-        <div class="skill-detail-list">
-          <div class="detail-item" *ngIf="selectedSkillDetail.description">
-            <label>Description</label>
-            <p>{{ selectedSkillDetail.description }}</p>
-          </div>
-          <div class="detail-item">
-            <label>Category</label>
-            <span class="badge bg-black text-white">
-              {{ selectedSkillDetail.category_name || 'Uncategorized' }}
-            </span>
-          </div>
-          <div class="detail-item">
-            <label>Status</label>
-            <span class="badge" [ngClass]="selectedSkillDetail.is_active ? 'bg-success' : 'bg-secondary'">
-              {{ selectedSkillDetail.is_active ? 'Active' : 'Inactive' }}
-            </span>
-          </div>
-          <div class="row">
-            <div class="col-6">
-              <div class="detail-item">
-                <label>Courses</label>
-                <span class="fw-bold">{{ selectedSkillDetail.course_count }}</span>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="detail-item">
-                <label>Learners Acquired</label>
-                <span class="fw-bold text-success">{{ selectedSkillDetail.learners_acquired }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="detail-item">
-            <label>Created</label>
-            <span>{{ formatDate(selectedSkillDetail.created_at) }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeSkillDetailModal()">Close</button>
-        <button type="button" class="btn btn-primary" (click)="closeSkillDetailModal(); openEditSkillModal(selectedSkillDetail!)">
-          <i class="bi bi-pencil me-2"></i>Edit Skill
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal-backdrop fade show" *ngIf="showSkillDetailModal"></div>
-
-<!-- Category Detail Modal -->
-<div class="modal fade" [class.show]="showCategoryDetailModal" [style.display]="showCategoryDetailModal ? 'block' : 'none'"
-     tabindex="-1" *ngIf="showCategoryDetailModal">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-folder me-2"></i>Category Details
-        </h5>
-        <button type="button" class="btn-close" (click)="closeCategoryDetailModal()"></button>
-      </div>
-      <div class="modal-body" *ngIf="selectedCategoryDetail">
-        <div class="text-center mb-4">
-          <div class="category-icon-lg mx-auto mb-3"
-               [style.background-color]="selectedCategoryDetail.color + '20'"
-               [style.border-color]="selectedCategoryDetail.color">
-            <i class="bi bi-folder" [style.color]="selectedCategoryDetail.color"></i>
-          </div>
-          <h4 class="mb-1">{{ selectedCategoryDetail.name }}</h4>
-          <span class="badge" [ngClass]="selectedCategoryDetail.is_active ? 'bg-success' : 'bg-secondary'">
-            {{ selectedCategoryDetail.is_active ? 'Active' : 'Inactive' }}
-          </span>
-        </div>
-
-        <div class="skill-detail-list">
-          <div class="detail-item" *ngIf="selectedCategoryDetail.description">
-            <label>Description</label>
-            <p>{{ selectedCategoryDetail.description }}</p>
-          </div>
-          <div class="detail-item">
-            <label>Color</label>
-            <div class="d-flex align-items-center gap-2">
-              <div class="color-preview" [style.background-color]="selectedCategoryDetail.color"></div>
-              <span class="text-muted">{{ selectedCategoryDetail.color }}</span>
-            </div>
-          </div>
-          <div class="detail-item">
-            <label>Skills in Category</label>
-            <span class="fw-bold">{{ selectedCategoryDetail.skill_count }}</span>
-          </div>
-          <div class="detail-item">
-            <label>Created</label>
-            <span>{{ formatDate(selectedCategoryDetail.created_at) }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeCategoryDetailModal()">Close</button>
-        <button type="button" class="btn btn-primary" (click)="closeCategoryDetailModal(); openEditCategoryModal(selectedCategoryDetail!)">
-          <i class="bi bi-pencil me-2"></i>Edit Category
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal-backdrop fade show" *ngIf="showCategoryDetailModal"></div>
