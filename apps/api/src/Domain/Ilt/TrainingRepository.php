@@ -114,6 +114,17 @@ interface TrainingRepository
 
     public function countEnrolled(string $tenantId, string $trainingId): int;
 
+    /**
+     * Everyone who should be told about this programme's sessions.
+     *
+     * Enrolled, not dropped, not waitlisted. Someone on the waiting list has
+     * no place to be reminded about, and telling them to attend would be
+     * worse than telling them nothing.
+     *
+     * @return list<string>
+     */
+    public function enrolledUserIds(string $tenantId, string $trainingId): array;
+
     // --- attendance -------------------------------------------------------
 
     /**

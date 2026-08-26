@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Certificate;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Authz\Permission;
@@ -44,6 +46,7 @@ final class IssueCertificateAction extends CertificateAction
     public function __construct(
         CertificateRepository $certificates,
         CertificateRenderer $renderer,
+        Notifier $notifier,
         private readonly CourseRepository $courses,
         private readonly EnrollmentRepository $enrollments,
         private readonly TrainingRepository $trainings,
@@ -51,7 +54,7 @@ final class IssueCertificateAction extends CertificateAction
         private readonly AttemptRepository $attempts,
         private readonly UserRepository $users,
     ) {
-        parent::__construct($certificates, $renderer);
+        parent::__construct($certificates, $renderer, $notifier);
     }
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -132,6 +135,18 @@ final class IssueCertificateAction extends CertificateAction
                 ['notes' => 'Issued despite: ' . ($earned->reason ?? 'not eligible.')],
             );
         }
+
+        // The whole point of issuing one is that the holder finds out.
+        $this->notifier->notifyOne(
+            $tenantId,
+            $certificate->userId,
+            NotificationType::CertificateIssued,
+            [
+                'subjectTitle'      => $certificate->title,
+                'certificateNumber' => $certificate->identity->number,
+            ],
+            $certificate->id,
+        );
 
         return Json::created(
             $response,

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Enrollment;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Enrollment\AssignmentRequest;
 use Central\Api\Domain\Exception\ConflictingState;
@@ -55,6 +57,21 @@ final class AssignEnrollmentsAction extends EnrollmentAction
         );
 
         $changed = count($outcome['enrolled']) + count($outcome['reinstated']);
+
+        // Only the newly enrolled. Someone already on the course has already
+        // been told, and someone reinstated keeps the notification they got
+        // the first time — a second "you have been assigned" for a course
+        // they are halfway through reads as a mistake.
+        $this->notifier->notify(
+            $this->tenantId($request),
+            $outcome['enrolled'],
+            NotificationType::EnrollmentAssigned,
+            [
+                'subjectTitle' => $course->title,
+                'dueDate'      => $assignment->dueDate?->format('j M Y'),
+            ],
+            $course->id,
+        );
 
         return Json::ok($response, [
             'courseId'  => $course->id,

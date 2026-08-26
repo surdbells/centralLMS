@@ -32,4 +32,15 @@ interface UserRepository
      * rehash-on-login upgrade when the work factor changes.
      */
     public function updatePasswordHash(string $userId, string $hash): void;
+
+    /**
+     * Every active person in a tenant.
+     *
+     * Ids only. This exists for the whole-organisation announcement, where
+     * hydrating several thousand User objects to read one field off each
+     * would be the expensive way to build a list of ids.
+     *
+     * @return list<string>
+     */
+    public function activeIds(string $tenantId): array;
 }

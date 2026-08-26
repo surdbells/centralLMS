@@ -602,6 +602,20 @@ final class DbalTrainingRepository implements TrainingRepository
         );
     }
 
+    public function enrolledUserIds(string $tenantId, string $trainingId): array
+    {
+        return array_map(
+            static fn (mixed $id): string => (string) $id,
+            $this->connection->fetchFirstColumn(
+                "SELECT user_id FROM training_enrollments
+                 WHERE training_id = :training AND tenant_id = :tenant
+                   AND deleted_at IS NULL AND status <> 'dropped' AND NOT waitlisted
+                 ORDER BY user_id",
+                ['training' => $trainingId, 'tenant' => $tenantId],
+            ),
+        );
+    }
+
     // --- attendance -------------------------------------------------------
 
     public function mark(

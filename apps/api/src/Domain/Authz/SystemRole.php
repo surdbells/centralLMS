@@ -75,6 +75,9 @@ enum SystemRole: string
                 Permission::AssessmentGrade,
                 Permission::UserView,
                 Permission::ReportView,
+                // An instructor telling their own cohort a session has moved is
+                // the ordinary case, not an administrative act.
+                Permission::NotificationSend,
             ],
             self::OrgAdmin => [
                 Permission::LookupManage,
@@ -87,6 +90,11 @@ enum SystemRole: string
                 // lowest role trusted with them.
                 Permission::ProctoringConfigure,
                 Permission::ProctoringReview,
+                // The delivery log lists the titles of notifications sent to
+                // everybody in the organisation, so it sits with the other
+                // permissions that see across people rather than with the
+                // one that merely sends.
+                Permission::NotificationAudit,
             ],
             self::TenantAdmin => [
                 Permission::RoleManage,

@@ -66,6 +66,9 @@ use Central\Api\Application\Action\Enrollment\MyEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\RecordProgressAction;
 use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
+use Central\Api\Application\Action\Notification\AdminNotificationAction;
+use Central\Api\Application\Action\Notification\InboxAction;
+use Central\Api\Application\Action\Notification\PreferencesAction;
 use Central\Api\Application\Action\Certificate\IssueCertificateAction;
 use Central\Api\Application\Action\Certificate\ManageCertificatesAction;
 use Central\Api\Application\Action\Certificate\ManageTemplatesAction;
@@ -262,6 +265,41 @@ return static function (App $app): void {
             $secure->get('/me/certificates', [ManageCertificatesAction::class, 'mine'])
                 ->setName('me.certificates');
 
+            // --- notifications ------------------------------------------
+            //
+            // The inbox routes carry no permission and no user id: the caller
+            // comes from the token and goes straight into the WHERE clause,
+            // so there is no other inbox to address. The two admin routes
+            // underneath act on other people and do carry one.
+            //
+            // The static segments are declared before `/{id}` so that
+            // `/notifications/preferences` is not read as an id.
+            $secure->group('/notifications', function (RouteCollectorProxy $n) use ($uuid): void {
+                $n->get('', [InboxAction::class, 'list'])->setName('notifications.list');
+                $n->get('/unread-count', [InboxAction::class, 'unreadCount'])
+                    ->setName('notifications.unreadCount');
+                $n->post('/read-all', [InboxAction::class, 'markAllRead'])
+                    ->setName('notifications.readAll');
+
+                $n->get('/preferences', [PreferencesAction::class, 'show'])
+                    ->setName('notifications.preferences');
+                $n->put('/preferences', [PreferencesAction::class, 'save'])
+                    ->setName('notifications.preferences.save');
+
+                // Sending to other people, and seeing whether it arrived.
+                $n->post('/announcements', [AdminNotificationAction::class, 'announce'])
+                    ->setName('notifications.announce');
+                $n->get('/deliveries', [AdminNotificationAction::class, 'deliveries'])
+                    ->setName('notifications.deliveries');
+
+                $n->get('/{id:' . $uuid . '}', [AdminNotificationAction::class, 'show'])
+                    ->setName('notifications.show');
+                $n->post('/{id:' . $uuid . '}/read', [InboxAction::class, 'markRead'])
+                    ->setName('notifications.read');
+                $n->delete('/{id:' . $uuid . '}', [InboxAction::class, 'delete'])
+                    ->setName('notifications.delete');
+            });
+
             $secure->group('/question-banks', function (RouteCollectorProxy $b) use ($uuid): void {
                 $b->get('', ListBanksAction::class)->setName('banks.list');
                 $b->post('', SaveBankAction::class)->setName('banks.create');
@@ -398,6 +436,11 @@ return static function (App $app): void {
                         $s->patch('/status', [ManageSessionsAction::class, 'setStatus'])->setName('sessions.status');
                         $s->post('/meeting', [ManageSessionsAction::class, 'meeting'])->setName('sessions.meeting');
                         $s->post('/qr', [ManageSessionsAction::class, 'issueQr'])->setName('sessions.qr');
+
+                        // What reminders are planned, and whether they went
+                        // out. The legacy could not answer either question.
+                        $s->get('/reminders', [AdminNotificationAction::class, 'reminders'])
+                            ->setName('sessions.reminders');
 
                         // Attendance. `sync` reads it back from the provider
                         // rather than trusting a learner's own browser.

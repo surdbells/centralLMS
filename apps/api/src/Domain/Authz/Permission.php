@@ -61,6 +61,13 @@ enum Permission: string
     case BillingManage  = 'billing.manage';
     case IntegrationManage = 'integration.manage';
 
+    // --- notifications ----------------------------------------------------
+    // Reading your own inbox needs no permission — everyone has one. These
+    // two are for acting on other people: sending an announcement to the
+    // whole organisation, and reading the delivery log, which lists the
+    // titles of notifications addressed to everybody else.
+    case NotificationSend  = 'notification.send';
+    case NotificationAudit = 'notification.audit';
     // --- reporting --------------------------------------------------------
     case ReportView   = 'report.view';
     case ReportExport = 'report.export';

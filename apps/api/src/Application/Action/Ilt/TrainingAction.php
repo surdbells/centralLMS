@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Ilt;
 
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Notification\SessionNotifier;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\AccessDenied;
@@ -24,6 +25,7 @@ abstract class TrainingAction
     public function __construct(
         protected readonly TrainingRepository $trainings,
         protected readonly SessionScheduler $scheduler,
+        protected readonly SessionNotifier $notifier,
     ) {
     }
 

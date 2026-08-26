@@ -59,4 +59,18 @@ final class FakeUserRepository implements UserRepository
     {
         $this->rehashed[$userId] = $hash;
     }
+
+    /**
+     * @return list<string>
+     */
+    public function activeIds(string $tenantId): array
+    {
+        return array_values(array_map(
+            static fn (User $user): string => $user->id,
+            array_filter(
+                $this->byId,
+                static fn (User $user): bool => $user->tenantId === $tenantId,
+            ),
+        ));
+    }
 }

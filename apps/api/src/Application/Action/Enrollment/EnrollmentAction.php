@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Enrollment;
 
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Notification\Notifier;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Catalog\Course;
@@ -26,6 +27,7 @@ abstract class EnrollmentAction
         protected readonly EnrollmentRepository $enrollments,
         protected readonly LessonProgressRepository $progress,
         protected readonly CourseRepository $courses,
+        protected readonly Notifier $notifier,
     ) {
     }
 

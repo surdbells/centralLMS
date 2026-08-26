@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue, enrolments, assessments, ILT and certificates complete. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue, enrolments, assessments, ILT, certificates and notifications complete. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — reporting and notifications remain |
-| **API quality gate** | ✅ 363 unit + 186 integration tests / 1,550 assertions · PHPStan level 8 clean · 0 style errors · 415 live checks |
+| **Blocking the next slice** | Nothing — reporting remains |
+| **API quality gate** | ✅ 418 unit + 229 integration tests / 1,762 assertions · PHPStan level 8 clean · 0 style errors · 503 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -208,6 +208,123 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-27 — Notifications
+
+Nineteen routes, a console command, four transports, and the piece none of the
+four legacy queue tables ever had: something that reads them.
+
+The evidence this was designed and abandoned is unusually complete.
+`notifications` holds ten rows, all hand-seeded for one user, every `data`
+column NULL. `live_training_reminders` holds two, both `pending`, both due in
+January 2026, both `sent_at` NULL. `live_training_notification_queue` holds
+one, `pending`. `messaging_notification_queue` holds nineteen, all `pending`.
+Nothing has ever been sent by this system.
+
+**The bell has never worked, and it is worth saying why.** Both Angular top
+bars call `utility/shared/notifications.php` and `mark_notifications.php`. Both
+files do `new Notifications($db)` — plural — while `class/Notifications.php`
+defines `class Notification`, singular. They then call `user_notifications()`,
+`notification_count()` and `is_read_all()`, none of which exist on it, and read
+columns `notifications_id`, `notification_message` and `created` where the
+table has `notification_id`, `message` and `created_at`. Every request is a
+fatal error. The frontend even carries a `Notifications` model class shaped to
+match the response that endpoint would have returned had it worked.
+
+**Four tables replace six.** The two queues were the same table written twice
+with different enum members, and a third would have appeared the first time
+certificates wanted an email; they become `notification_deliveries`.
+`live_training_reminder_log` was a per-recipient send record with a channel and
+a status — which is what a delivery row is — and keeping it separate is
+precisely what forced `recipients_count`, `successful_count` and `failed_count`
+onto its parent: three columns holding what `GROUP BY status` already knew, and
+drifting the moment a retry succeeded.
+
+**Reminders do not store when they are due.** The point worth reading twice.
+`live_training_reminders.scheduled_at` was the session's start minus the
+offset, and nothing recomputed it — so moving a session left its reminders
+pointing at the old hour, and a learner would be told "starts in 1 hour" about
+something that finished the day before. Here a schedule stores the offset and
+the due time is computed from the session's *current* start every time it is
+asked for. Moving the session moves the reminder by construction. A unit test
+pins it, and the live suite moves a session and checks its reminders followed.
+
+**The decisions are all in one pure class.** `ChannelRouter` answers which
+channels a notification goes out on and when, with no clock, no database and no
+transport, so every rule is a case someone can read and disagree with:
+
+- SMS is in no type's defaults. It is billed per message and the tenant pays;
+  opting *in* is a decision someone should make on purpose. It stays off until
+  an entitlement says otherwise.
+- Four types cannot be silenced in-app — session cancelled, session moved,
+  certificate withdrawn, enrolment overdue. Each tells somebody that a
+  commitment they already hold has changed underneath them. A learner who muted
+  "cancelled" travels to a room nobody is in. What is protected is that they
+  are told, not how many times: the email can still be switched off.
+- Quiet hours apply to SMS and push only. Holding an in-app notification until
+  morning makes the bell lie about what has happened; an SMS at 3am wakes
+  someone up. Urgent overrides them, because a session cancelled at 06:00 for a
+  09:00 start has to arrive before the learner sets off.
+- Every candidate channel produces a decision, skips included, with the reason
+  on the row. "Why didn't I get the email" is the question a notification
+  system exists to answer.
+
+**`QuietHours` is a class because the obvious implementation is wrong.**
+22:00–07:00 is what people set, and `$now >= $start && $now <= $end` is false
+for every minute of it. That bug does nothing visible — quiet hours simply
+never apply — which is indistinguishable from working, to anyone testing during
+the day.
+
+**The claim is what makes two workers safe.** `FOR UPDATE SKIP LOCKED` in one
+statement, and not a theoretical concern: the compose file restarts the worker
+every five minutes and the old and new processes overlap. Without it that is a
+duplicate email every five minutes. The retry arithmetic is done in SQL from
+the row's own counters for the same reason. A worker that dies mid-send has its
+claim released rather than leaving the row in `sending` forever — without which
+notifications stop silently.
+
+**In-app deliveries are born sent.** There is nothing to transmit; the
+notification row is on the person's bell the instant it is written. This came
+out of running the live suite: recording it as `pending` puts a queue entry in
+the delivery log for something already delivered, and anyone reading that log
+to answer "did it go out" draws the wrong conclusion.
+
+**Two bugs found by running it.** Timestamps were being sent as
+`DateTimeInterface::ATOM`, which truncates to whole seconds while the columns
+are compared against `now()`, which does not — so a delivery written at
+07:28:13.9 was invisible to a dispatcher asking for everything due by
+07:28:13.0, for a whole second, on every run. And three bound parameters had no
+inferred type where the other side of the expression was a `timestamptz`.
+
+**Wired into what already existed.** Assigning a course, completing one,
+issuing a certificate, withdrawing one, scheduling a session, moving one,
+cancelling one. Each fires once and only on the transition — the live suite
+re-assigns a course and replays a completed lesson to prove it. Raising never
+throws: a course completion that cannot send an email is still a completed
+course.
+
+**Not built:** messaging. `messages`, `conversations`, reactions, mentions,
+drafts and read receipts are a chat feature, not a notification one, and
+`broadcast_messages` is covered by announcements.
+`user_messaging_settings.email_digest_frequency` waits for it — quiet hours
+came across because they belong to the person rather than to chat.
+
+**Verification**
+
+- 55 unit tests over the router, quiet hours, the schedule arithmetic and the
+  wording, including every type's message and the wrapping-midnight window.
+- 43 integration tests against real PostgreSQL: the claim, the retry, the
+  release, and `syncSchedules` staying idempotent across repeated saves.
+- 88 live checks, ending with a real `notifications:dispatch` run.
+- 35 constraint probes.
+
+Gate: 647 tests / 1,762 assertions, PHPStan level 8, no style errors. All eight
+live suites run together: **503 checks, none failing**.
+
+`MAIL_PROVIDER=log` and `SMS_PROVIDER=log` are the development setting: the
+whole path runs — route, queue, claim, send, mark sent — with no account
+anywhere, and a message that would have been wrong is visible in the log rather
+than in somebody's inbox.
 
 ### 2026-08-27 — Certificates
 

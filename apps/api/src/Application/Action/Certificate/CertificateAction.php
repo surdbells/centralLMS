@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Certificate;
 
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Notification\Notifier;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Certificate\Certificate;
@@ -22,6 +23,7 @@ abstract class CertificateAction
     public function __construct(
         protected readonly CertificateRepository $certificates,
         protected readonly CertificateRenderer $renderer,
+        protected readonly Notifier $notifier,
     ) {
     }
 

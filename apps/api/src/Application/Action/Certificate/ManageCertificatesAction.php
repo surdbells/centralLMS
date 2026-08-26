@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Certificate;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Certificate\Certificate;
 use Central\Api\Domain\Certificate\CertificateStatus;
@@ -158,9 +159,22 @@ final class ManageCertificatesAction extends CertificateAction
 
         $revoked = $this->certificates->revoke($tenantId, $id, $reason, $this->userId($request));
 
-        return $revoked === null
-            ? throw new ConflictingState('This certificate is already withdrawn.', 'already_revoked')
-            : Json::ok($response, $revoked->toArray());
+        if ($revoked === null) {
+            throw new ConflictingState('This certificate is already withdrawn.', 'already_revoked');
+        }
+
+        // Not optional and not silenceable: someone still presenting a
+        // withdrawn certificate to an employer needs to know it no longer
+        // verifies. See NotificationType::isOptional().
+        $this->notifier->notifyOne(
+            $tenantId,
+            $revoked->userId,
+            NotificationType::CertificateRevoked,
+            ['subjectTitle' => $revoked->title, 'reason' => $reason],
+            $revoked->id,
+        );
+
+        return Json::ok($response, $revoked->toArray());
     }
 
     /**

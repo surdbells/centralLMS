@@ -42,7 +42,11 @@ final class Json
      * Paginated collection. `meta` carries everything a client needs to render
      * pagination without a second request.
      *
-     * @param list<mixed> $items
+     * @param list<mixed>          $items
+     * @param array<string, mixed> $extraMeta anything else the page needs alongside
+     *                                        it — the unread count with an inbox,
+     *                                        so a badge and its list cannot
+     *                                        disagree
      */
     public static function page(
         ResponseInterface $response,
@@ -50,6 +54,7 @@ final class Json
         int $total,
         int $page,
         int $perPage,
+        array $extraMeta = [],
     ): ResponseInterface {
         return self::write($response, [
             'data' => $items,
@@ -58,6 +63,7 @@ final class Json
                 'page'       => $page,
                 'perPage'    => $perPage,
                 'totalPages' => $perPage > 0 ? (int) ceil($total / $perPage) : 0,
+                ...$extraMeta,
             ],
         ], 200);
     }

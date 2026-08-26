@@ -58,6 +58,13 @@ final class ManageSessionsAction extends TrainingAction
         // Booked immediately, and allowed to fail without failing the session.
         $created = $this->bookMeeting($request, $created) ?? $created;
 
+        // The reminders the programme asks for, and a note to the enrolled
+        // that there is now something in their diary. Both are best-effort:
+        // a session that exists but was not announced beats one that was not
+        // created because the mail provider was down.
+        $this->notifier->syncReminders($training, $created);
+        $this->notifier->announceScheduled($training, $created);
+
         return Json::created(
             $response,
             $created->toArray(includeHostUrl: true),
@@ -106,6 +113,16 @@ final class ManageSessionsAction extends TrainingAction
 
         $updated = $this->trainings->updateSession($session);
         $moved = $updated->startsAt != $existing->startsAt || $updated->endsAt != $existing->endsAt;
+
+        if ($moved) {
+            // Nobody has to recompute a reminder time: the schedules hold an
+            // offset, so they follow the session. This tells the enrolled.
+            $this->notifier->announceMoved($training, $updated);
+        } else {
+            // Still re-synced, because the programme's offsets may have been
+            // edited even when the session's own times were not.
+            $this->notifier->syncReminders($training, $updated);
+        }
 
         // Only when it actually moved: rescheduling on every save would churn
         // the provider and re-notify every attendee for a typo fix.
@@ -205,9 +222,22 @@ final class ManageSessionsAction extends TrainingAction
 
         // Cancelling takes the meeting down with it, so the link in everyone's
         // calendar stops working rather than quietly admitting people.
-        if ($status === SessionStatus::Cancelled && $session->hasMeeting()) {
-            $error = $this->scheduler->cancel($session);
-            $updated = $this->trainings->saveMeeting($tenantId, $session->id, null, null, $error) ?? $updated;
+        if ($status === SessionStatus::Cancelled) {
+            if ($session->hasMeeting()) {
+                $error = $this->scheduler->cancel($session);
+                $updated = $this->trainings->saveMeeting($tenantId, $session->id, null, null, $error) ?? $updated;
+            }
+
+            // Pending reminders are stopped first, then everyone is told.
+            // A learner who is not told may still turn up; one who is
+            // reminded to attend a cancelled session certainly will.
+            $this->notifier->announceCancelled(
+                $this->requireTraining($request, $trainingId),
+                $updated,
+                is_string($this->body($request)['reason'] ?? null)
+                    ? (string) $this->body($request)['reason']
+                    : null,
+            );
         }
 
         return Json::ok($response, $updated->toArray(includeHostUrl: true));

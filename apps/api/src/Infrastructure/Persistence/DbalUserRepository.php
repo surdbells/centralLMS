@@ -163,6 +163,25 @@ final class DbalUserRepository implements UserRepository
         ));
     }
 
+    /**
+     * @return list<string>
+     */
+    /**
+     * @return list<string>
+     */
+    public function activeIds(string $tenantId): array
+    {
+        return array_map(
+            static fn (mixed $id): string => (string) $id,
+            $this->connection->fetchFirstColumn(
+                "SELECT id FROM users
+                 WHERE tenant_id = :tenant AND deleted_at IS NULL AND status = 'active'
+                 ORDER BY id",
+                ['tenant' => $tenantId],
+            ),
+        );
+    }
+
     private function nullableString(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;

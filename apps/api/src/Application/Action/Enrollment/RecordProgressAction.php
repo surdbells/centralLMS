@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Enrollment;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Catalog\LessonRepository;
 use Central\Api\Domain\Catalog\CourseRepository;
@@ -36,9 +38,10 @@ final class RecordProgressAction extends EnrollmentAction
         EnrollmentRepository $enrollments,
         LessonProgressRepository $progress,
         CourseRepository $courses,
+        Notifier $notifier,
         private readonly LessonRepository $lessons,
     ) {
-        parent::__construct($enrollments, $progress, $courses);
+        parent::__construct($enrollments, $progress, $courses, $notifier);
     }
 
     /**
@@ -77,6 +80,27 @@ final class RecordProgressAction extends EnrollmentAction
         $report = LessonProgress::reportFromInput($this->body($request));
 
         $result = $this->progress->record($tenantId, $enrollment, $lesson->id, $report);
+
+        // On the transition only. `record()` returns the recalculated
+        // enrolment, so comparing it with the one read before the write is
+        // what makes this fire once rather than on every lesson replayed
+        // afterwards.
+        if (!$enrollment->status->isComplete() && $result['enrollment']->status->isComplete()) {
+            $course = $this->courses->find($tenantId, $courseId);
+
+            if ($course !== null) {
+                $this->notifier->notifyOne(
+                    $tenantId,
+                    $enrollment->userId,
+                    NotificationType::CourseCompleted,
+                    [
+                        'subjectTitle' => $course->title,
+                        'percentage'   => $result['enrollment']->progressPercentage,
+                    ],
+                    $course->id,
+                );
+            }
+        }
 
         return Json::ok($response, [
             'lesson'     => $result['progress']->toArray(),

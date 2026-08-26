@@ -40,6 +40,22 @@ use Central\Api\Domain\Catalog\ModuleRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
 use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
+use Central\Api\Application\Notification\NotificationDispatcher;
+use Central\Api\Application\Notification\Notifier;
+use Central\Api\Application\Notification\ReminderExpander;
+use Central\Api\Application\Notification\SessionNotifier;
+use Central\Api\Domain\Notification\NotificationChannel;
+use Central\Api\Domain\Notification\NotificationComposer;
+use Central\Api\Domain\Notification\NotificationRepository;
+use Central\Api\Domain\Notification\NotificationTransport;
+use Central\Api\Infrastructure\Notification\AccessTokenProvider;
+use Central\Api\Infrastructure\Notification\FcmPushTransport;
+use Central\Api\Infrastructure\Notification\HttpSender;
+use Central\Api\Infrastructure\Notification\InAppTransport;
+use Central\Api\Infrastructure\Notification\LogTransport;
+use Central\Api\Infrastructure\Notification\TermiiSmsTransport;
+use Central\Api\Infrastructure\Notification\ZeptoMailTransport;
+use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
@@ -403,6 +419,101 @@ return [
         static fn (ContainerInterface $c) => new DbalLookupRepository($c->get(Connection::class)),
     ),
 
+    // --- notifications ----------------------------------------------------
+
+    NotificationComposer::class => factory(static fn (): NotificationComposer => new NotificationComposer()),
+
+    NotificationRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalNotificationRepository($c->get(Connection::class)),
+    ),
+
+    Notifier::class => factory(static fn (ContainerInterface $c) => new Notifier(
+        $c->get(NotificationRepository::class),
+        $c->get(NotificationComposer::class),
+        $c->get(Clock::class),
+        $c->get(LoggerInterface::class),
+    )),
+
+    /**
+     * One transport per channel, keyed by channel value.
+     *
+     * The provider name `log` is what development and the test suite use: the
+     * whole path runs — route, queue, claim, send, mark sent — and the message
+     * lands in the log rather than in somebody's inbox. Anything unrecognised
+     * falls back to it too, because a typo in MAIL_PROVIDER should not send
+     * mail through a provider nobody meant.
+     */
+    'notification.transports' => factory(static function (ContainerInterface $c): array {
+        $settings = $c->get('settings');
+        $logger   = $c->get(LoggerInterface::class);
+        $http     = new HttpSender($c->get(HttpClientInterface::class));
+
+        $transports = [
+            NotificationChannel::InApp->value => new InAppTransport(),
+        ];
+
+        $mail = $settings['mail'];
+
+        $transports[NotificationChannel::Email->value] = $mail['provider'] === 'zeptomail'
+            ? new ZeptoMailTransport(
+                $http,
+                (string) $mail['zeptomail']['token'],
+                (string) $mail['zeptomail']['base_url'],
+                (string) $mail['from']['address'],
+                (string) $mail['from']['name'],
+                $logger,
+            )
+            : new LogTransport(NotificationChannel::Email, $logger);
+
+        $sms = $settings['sms'];
+
+        $transports[NotificationChannel::Sms->value] = $sms['provider'] === 'termii'
+            ? new TermiiSmsTransport(
+                $http,
+                (string) $sms['termii']['api_key'],
+                (string) $sms['termii']['sender_id'],
+                (string) $sms['termii']['base_url'],
+                $logger,
+            )
+            : new LogTransport(NotificationChannel::Sms, $logger);
+
+        $fcm = $settings['push']['fcm'];
+
+        $transports[NotificationChannel::Push->value] = (string) $fcm['project_id'] !== ''
+            ? new FcmPushTransport(
+                $http,
+                (string) $fcm['project_id'],
+                new AccessTokenProvider(
+                    $http,
+                    (string) $fcm['credentials_path'],
+                    $c->get(Clock::class),
+                ),
+                $logger,
+            )
+            : new LogTransport(NotificationChannel::Push, $logger);
+
+        return $transports;
+    }),
+
+    NotificationDispatcher::class => factory(static fn (ContainerInterface $c) => new NotificationDispatcher(
+        $c->get(NotificationRepository::class),
+        $c->get('notification.transports'),
+        $c->get(Clock::class),
+        $c->get(LoggerInterface::class),
+    )),
+
+    SessionNotifier::class => factory(static fn (ContainerInterface $c) => new SessionNotifier(
+        $c->get(NotificationRepository::class),
+        $c->get(TrainingRepository::class),
+        $c->get(Notifier::class),
+    )),
+
+    ReminderExpander::class => factory(static fn (ContainerInterface $c) => new ReminderExpander(
+        $c->get(NotificationRepository::class),
+        $c->get(Notifier::class),
+        $c->get(Clock::class),
+        $c->get(LoggerInterface::class),
+    )),
     PasswordHasher::class => autowire(),
 
     TokenAuthenticator::class => factory(static fn (ContainerInterface $c) => new TokenAuthenticator(
