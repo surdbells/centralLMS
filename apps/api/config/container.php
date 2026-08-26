@@ -23,6 +23,8 @@ use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\Grader;
+use Central\Api\Domain\Certificate\CertificateRenderer;
+use Central\Api\Domain\Certificate\CertificateRepository;
 use Central\Api\Domain\Ilt\AttendanceCalculator;
 use Central\Api\Domain\Ilt\MeetingProviderResolver;
 use Central\Api\Domain\Ilt\SessionScheduler;
@@ -38,6 +40,7 @@ use Central\Api\Domain\Catalog\ModuleRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
 use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
+use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
 use Central\Api\Infrastructure\Persistence\DbalQuestionRepository;
@@ -327,6 +330,12 @@ return [
     ),
 
     Grader::class => factory(static fn (): Grader => new Grader()),
+
+    CertificateRenderer::class => factory(static fn (): CertificateRenderer => new CertificateRenderer()),
+
+    CertificateRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalCertificateRepository($c->get(Connection::class)),
+    ),
 
     AttendanceCalculator::class => factory(static fn (): AttendanceCalculator => new AttendanceCalculator()),
 

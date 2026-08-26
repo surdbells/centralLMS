@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue, enrolments, assessments and ILT complete. Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue, enrolments, assessments, ILT and certificates complete. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — certificates, reporting and notifications remain |
-| **API quality gate** | ✅ 341 unit + 160 integration tests / 1,337 assertions · PHPStan level 8 clean · 0 style errors · 360 live checks |
+| **Blocking the next slice** | Nothing — reporting and notifications remain |
+| **API quality gate** | ✅ 363 unit + 186 integration tests / 1,550 assertions · PHPStan level 8 clean · 0 style errors · 415 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -208,6 +208,93 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-27 — Certificates
+
+Sixteen routes, closing the loop on three modules that already promised a
+certificate and could not produce one: `courses.issues_certificate`,
+`live_trainings.issues_certificate` and the assessment core's
+`certificate_template_id`.
+
+Same story as proctoring and ILT. `certificate_templates` holds 3 rows and
+`proc_certificate_templates` 1, while **`certificates` and `proc_certificates`
+are both empty**. Templates were designed; issuance never was.
+
+**One table, three sources.** The legacy had two families describing the same
+object — one bound to a course, one to an assessment attempt. They merge, with
+`source` naming what earned it and a check constraint making exactly one of
+`course_id`, `training_id` and `assessment_id` present.
+
+**Eligibility is the substance of issuing.** `POST /v1/certificates` does not
+write what the caller sends: it goes back to the owning module and asks whether
+the learner actually earned it — enrolment complete, attendance met, assessment
+passed. A certificate that can be conjured by POSTing an id and a name is not
+evidence of anything, and a verification endpoint that vouches for one is worse
+than having none. `force: true` allows an override for paper records and
+exemptions, and the history records it as an override rather than leaving it
+indistinguishable from an earned one.
+
+**The learner's name and the title are copied onto the row, deliberately.** The
+one place in this schema where denormalisation is the requirement rather than a
+shortcut: a certificate is a record of a moment. If the holder marries or an
+author retitles the course, what was issued last year must still read as it did.
+A test pins it — renaming the user does not rewrite the certificate.
+
+**The public verification endpoints are the only unauthenticated ones**, and
+that is the point: an employer checking a certificate has no account here. That
+makes them the most exposed surface in the codebase, so:
+
+- Three identifiers, not one. The **number** is printed and quoted, the
+  **code** is short enough to read down a phone line — both readable and
+  therefore guessable — and the **hash** is 32 random bytes and the only one a
+  URL carries. A verification endpoint keyed on a sequential number lets anyone
+  walk the register by adding one.
+- The payload is name, title, and whether it stands. No email, no score, no
+  ids — a verification endpoint must not become a directory. A live check
+  asserts each of those absences.
+- A malformed reference is rejected before the database is touched, and every
+  miss returns the same 200 with the same shape: different statuses or
+  messages would teach a scanner the format.
+- Every check is logged, which is what lets an issuer notice one of their
+  certificates being verified unusually often.
+
+**Escaping.** `CertificateRenderer` escapes every substituted value. A learner's
+name comes from a registration form, and a certificate is rendered and then
+shown to third parties who trust it — an unescaped name is stored XSS with the
+most credulous possible audience. The template's own HTML is the author's and is
+left alone. A typo in a placeholder is a save-time error, not a literal
+`{{leaner_name}}` printed on somebody's certificate.
+
+**Duplication removed.** `is_active` and `expired` both duplicated `status`
+(and `expired` also duplicated `valid_until`); `download_count`,
+`verification_count` and their `last_*` partners were counters beside the log
+recording the same events; and `proc_certificate_templates.usage_count` was
+maintained by an `AFTER INSERT` trigger — the least visible form of the mistake,
+since nothing in the application code shows the number exists.
+`certificate_reprint_history` and `certificate_verification_log` become one
+`certificate_events` table.
+
+**Not built:** `proc_certificate_fields`, which positions each field by absolute
+millimetre coordinates for a drag-and-drop designer. The HTML template covers
+rendering; the designer is a product decision, not a porting one.
+
+**Verification**
+
+- 22 unit tests over the renderer and the identity scheme, including the
+  escaping and that the hash is not derived from the number.
+- 26 integration tests against real PostgreSQL: superseding, the public
+  lookup without a tenant, revocation and reinstatement clearing together.
+- 55 live checks, including every field the public payload must *not* contain.
+- 11 constraint probes.
+
+Gate: 549 tests / 1,550 assertions, PHPStan level 8, no style errors. All seven
+live suites re-run together: **415 checks, none failing**.
+
+**Worth knowing about the harness.** Running the suites back to back tripped the
+rate limiter — 120 requests per minute, and each suite fires 60–90 — which
+surfaced as clustered empty responses that looked like a bug in whichever module
+ran second. It was not; the limiter was working. The suites now run against a
+locally raised limit, and the limiter's real behaviour is unchanged.
 
 ### 2026-08-27 — Instructor-led training
 

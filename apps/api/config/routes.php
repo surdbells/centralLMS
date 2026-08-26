@@ -66,6 +66,10 @@ use Central\Api\Application\Action\Enrollment\MyEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\RecordProgressAction;
 use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
+use Central\Api\Application\Action\Certificate\IssueCertificateAction;
+use Central\Api\Application\Action\Certificate\ManageCertificatesAction;
+use Central\Api\Application\Action\Certificate\ManageTemplatesAction;
+use Central\Api\Application\Action\Certificate\VerifyCertificateAction;
 use Central\Api\Application\Action\HealthAction;
 use Central\Api\Application\Action\Ilt\AttendanceAction;
 use Central\Api\Application\Action\Ilt\ListMeetingProvidersAction;
@@ -99,6 +103,13 @@ return static function (App $app): void {
     // --- operational, unauthenticated -------------------------------------
     $app->get('/health', HealthAction::class)->setName('health');
     $app->get('/version', VersionAction::class)->setName('version');
+
+    // Certificate verification. Unauthenticated on purpose: the point of a
+    // certificate is that a stranger can check it without an account here,
+    // so the identifier itself is the credential. See
+    // VerifyCertificateAction for what that costs and how it is contained.
+    $app->get('/verify/{hash}', [VerifyCertificateAction::class, 'byHash'])->setName('certificates.verify');
+    $app->post('/verify', [VerifyCertificateAction::class, 'byCode'])->setName('certificates.verifyByCode');
 
     $app->group('/v1', function (RouteCollectorProxy $v1) use ($uuid): void {
         // --- public -------------------------------------------------------
@@ -218,6 +229,39 @@ return static function (App $app): void {
             // Reusable questions. There is no learner-facing route onto a
             // bank at all: a learner meets a question only through an attempt,
             // where the answer key is stripped.
+            $secure->group('/certificate-templates', function (RouteCollectorProxy $t) use ($uuid): void {
+                $t->get('', [ManageTemplatesAction::class, 'list'])->setName('certificateTemplates.list');
+                $t->post('', [ManageTemplatesAction::class, 'save'])->setName('certificateTemplates.create');
+                $t->get('/{id:' . $uuid . '}', [ManageTemplatesAction::class, 'show'])
+                    ->setName('certificateTemplates.show');
+                $t->put('/{id:' . $uuid . '}', [ManageTemplatesAction::class, 'save'])
+                    ->setName('certificateTemplates.update');
+                $t->delete('/{id:' . $uuid . '}', [ManageTemplatesAction::class, 'delete'])
+                    ->setName('certificateTemplates.delete');
+                $t->post('/{id:' . $uuid . '}/preview', [ManageTemplatesAction::class, 'preview'])
+                    ->setName('certificateTemplates.preview');
+            });
+
+            $secure->group('/certificates', function (RouteCollectorProxy $c) use ($uuid): void {
+                $c->get('', [ManageCertificatesAction::class, 'list'])->setName('certificates.list');
+                // Issuance asks the owning module whether it was earned;
+                // see IssueCertificateAction.
+                $c->post('', IssueCertificateAction::class)->setName('certificates.issue');
+                $c->get('/{id:' . $uuid . '}', [ManageCertificatesAction::class, 'show'])
+                    ->setName('certificates.show');
+                $c->get('/{id:' . $uuid . '}/render', [ManageCertificatesAction::class, 'render'])
+                    ->setName('certificates.render');
+                $c->get('/{id:' . $uuid . '}/history', [ManageCertificatesAction::class, 'history'])
+                    ->setName('certificates.history');
+                $c->post('/{id:' . $uuid . '}/revoke', [ManageCertificatesAction::class, 'revoke'])
+                    ->setName('certificates.revoke');
+                $c->post('/{id:' . $uuid . '}/reinstate', [ManageCertificatesAction::class, 'reinstate'])
+                    ->setName('certificates.reinstate');
+            });
+
+            $secure->get('/me/certificates', [ManageCertificatesAction::class, 'mine'])
+                ->setName('me.certificates');
+
             $secure->group('/question-banks', function (RouteCollectorProxy $b) use ($uuid): void {
                 $b->get('', ListBanksAction::class)->setName('banks.list');
                 $b->post('', SaveBankAction::class)->setName('banks.create');
