@@ -11,7 +11,6 @@ import {EnrollmentComponent} from './admin/enrollment/enrollment.component';
 import {SettingsComponent} from './admin/branding/settings.component';
 import {LearningComponent} from './learner/learning/learning.component';
 import {DictionaryComponent} from './admin/dictionary/dictionary.component';
-import {ManageUsersComponent} from './admin/users/manage-users/manage-users.component';
 import {CourseComponent} from './admin/courses/courses.component';
 import {NotesComponent} from './learner/notes/notes.component';
 import {ManageCourseComponent} from './admin/courses/manage-course/manage-course.component';
@@ -95,9 +94,12 @@ export const routes: Routes = [
     title: 'Learning'
   },
   {
+    // Was a second user-detail screen, reached with `?id=`. It and
+    // `/admin/users/:id` showed the same person from two different services
+    // and disagreed about their roles. One survives.
     path: 'manageUsers',
-    component: ManageUsersComponent,
-    title: 'Manage users'
+    redirectTo: 'admin/users',
+    pathMatch: 'full',
   },
   {
     path: 'manageCourse',

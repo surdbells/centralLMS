@@ -62,6 +62,42 @@ final class FakeRefreshTokenRepository implements RefreshTokenRepository
         }
     }
 
+    public function sessionsFor(string $userId, \DateTimeImmutable $now, int $limit = 20): array
+    {
+        $sessions = [];
+
+        foreach ($this->tokens as $key => $record) {
+            if ($record['userId'] !== $userId) {
+                continue;
+            }
+
+            $sessions[] = [
+                'id'        => $key,
+                'issuedAt'  => $now->format(\DateTimeInterface::ATOM),
+                'expiresAt' => $record['expiresAt']->format(\DateTimeInterface::ATOM),
+                'revokedAt' => $record['revokedAt']?->format(\DateTimeInterface::ATOM),
+                'userAgent' => null,
+                'ipAddress' => null,
+                'active'    => $record['revokedAt'] === null && $record['expiresAt'] > $now,
+            ];
+        }
+
+        return array_slice($sessions, 0, $limit);
+    }
+
+    public function revokeSession(string $userId, string $sessionId, \DateTimeImmutable $now): bool
+    {
+        $record = $this->tokens[$sessionId] ?? null;
+
+        if ($record === null || $record['userId'] !== $userId || $record['revokedAt'] !== null) {
+            return false;
+        }
+
+        $this->tokens[$sessionId]['revokedAt'] = $now;
+
+        return true;
+    }
+
     public function revokeAllForUser(string $userId, \DateTimeImmutable $now): int
     {
         $count = 0;

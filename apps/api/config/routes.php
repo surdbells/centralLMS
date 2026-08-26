@@ -78,6 +78,8 @@ use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
+use Central\Api\Application\Action\People\MyProfileAction;
+use Central\Api\Application\Action\People\StreamAvatarAction;
 use Central\Api\Application\Action\People\ManageRolesAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
 use Central\Api\Application\Action\Notification\InboxAction;
@@ -156,6 +158,26 @@ return static function (App $app): void {
         // --- authenticated ------------------------------------------------
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
+
+            // What somebody may change about themselves. No permission is
+            // checked and no id is read from the request — every one of these
+            // acts on whoever the token says is calling. `update-profile` took
+            // a `user_id` from the body and checked nothing.
+            $secure->group('/me', function (RouteCollectorProxy $m) use ($uuid): void {
+                $m->get('/profile', [MyProfileAction::class, 'show'])->setName('me.profile');
+                $m->put('/profile', [MyProfileAction::class, 'update'])->setName('me.profile.update');
+
+                $m->get('/consents', [MyProfileAction::class, 'consents'])->setName('me.consents');
+                $m->put('/consents', [MyProfileAction::class, 'saveConsents'])->setName('me.consents.save');
+
+                $m->post('/avatar', [MyProfileAction::class, 'uploadAvatar'])->setName('me.avatar');
+                $m->delete('/avatar', [MyProfileAction::class, 'removeAvatar'])
+                    ->setName('me.avatar.remove');
+
+                $m->get('/sessions', [MyProfileAction::class, 'sessions'])->setName('me.sessions');
+                $m->delete('/sessions/{id:' . $uuid . '}', [MyProfileAction::class, 'revokeSession'])
+                    ->setName('me.sessions.revoke');
+            });
 
             // The learner's own view. Scoped to the caller by construction —
             // there is no user id in any of these paths, so there is nothing
@@ -574,6 +596,13 @@ return static function (App $app): void {
                 // for the current password in the second case.
                 $u->post('/{id:' . $uuid . '}/password', [ManagePeopleAction::class, 'setPassword'])
                     ->setName('users.password');
+
+                // A colleague's picture. Any signed-in member of the same
+                // tenant may fetch one — a face beside a message is the
+                // ordinary case — but it is served through the API rather
+                // than from a storage URL that would work for anybody.
+                $u->get('/{id:' . $uuid . '}/avatar', StreamAvatarAction::class)
+                    ->setName('users.avatar');
             });
 
             // --- roles ----------------------------------------------------

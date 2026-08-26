@@ -33,13 +33,29 @@ export const Endpoints = {
     create: '/users',
     statistics: '/users/statistics',
     instructors: '/users/instructors',
-    roles: '/users/roles',
     show: (id: string) => `/users/${id}`,
     update: (id: string) => `/users/${id}`,
     status: (id: string) => `/users/${id}/status`,
     delete: (id: string) => `/users/${id}`,
     password: (id: string) => `/users/${id}/password`,
     skills: (id: string) => `/users/${id}/skills`,
+  },
+
+  /**
+   * Roles, and what each may do.
+   *
+   * Assigning one is not here: a person's roles are set as a set by
+   * `users.update`. The legacy had `assign-role` and `remove-role` as well,
+   * and the three disagreed about whether somebody could be left with none.
+   */
+  roles: {
+    list: '/roles',
+    create: '/roles',
+    /** Every permission a role may grant, grouped for the editor. */
+    permissions: '/roles/permissions',
+    show: (id: string) => `/roles/${id}`,
+    update: (id: string) => `/roles/${id}`,
+    delete: (id: string) => `/roles/${id}`,
   },
 
   /**

@@ -70,15 +70,6 @@ export interface UserOption {
   email: string;
 }
 
-export interface Role {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  isSystem: boolean;
-  permissions: string[];
-}
-
 export interface UserFilters {
   search?: string;
   status?: UserStatus;
@@ -190,10 +181,6 @@ export class UsersService {
 
   statistics(): Observable<UserStatistics> {
     return this.api.get<UserStatistics>(Endpoints.users.statistics);
-  }
-
-  roles(): Observable<Role[]> {
-    return this.api.get<Role[]>(Endpoints.users.roles);
   }
 
   /** What this person can do, derived from the courses they have finished. */

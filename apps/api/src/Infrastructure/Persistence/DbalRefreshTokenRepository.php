@@ -6,6 +6,7 @@ namespace Central\Api\Infrastructure\Persistence;
 
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 
 final class DbalRefreshTokenRepository implements RefreshTokenRepository
 {
@@ -94,6 +95,42 @@ final class DbalRefreshTokenRepository implements RefreshTokenRepository
             'UPDATE refresh_tokens SET revoked_at = :now WHERE token_hash = :hash AND revoked_at IS NULL',
             ['now' => $now->format('c'), 'hash' => self::hash($token)],
         );
+    }
+
+    public function sessionsFor(string $userId, \DateTimeImmutable $now, int $limit = 20): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id, issued_at, expires_at, revoked_at, user_agent, host(ip_address) AS ip_address,
+                    (revoked_at IS NULL AND expires_at > :now) AS active
+               FROM refresh_tokens
+              WHERE user_id = :user
+              ORDER BY issued_at DESC
+              LIMIT :limit',
+            ['user' => $userId, 'now' => $now->format(\DateTimeInterface::ATOM), 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(
+            static fn (array $row): array => [
+                'id'        => (string) $row['id'],
+                'issuedAt'  => (string) $row['issued_at'],
+                'expiresAt' => (string) $row['expires_at'],
+                'revokedAt' => $row['revoked_at'] === null ? null : (string) $row['revoked_at'],
+                'userAgent' => $row['user_agent'] === null ? null : (string) $row['user_agent'],
+                'ipAddress' => $row['ip_address'] === null ? null : (string) $row['ip_address'],
+                'active'    => (bool) $row['active'],
+            ],
+            $rows,
+        );
+    }
+
+    public function revokeSession(string $userId, string $sessionId, \DateTimeImmutable $now): bool
+    {
+        return $this->connection->executeStatement(
+            'UPDATE refresh_tokens SET revoked_at = :now
+              WHERE id = :id AND user_id = :user AND revoked_at IS NULL',
+            ['id' => $sessionId, 'user' => $userId, 'now' => $now->format(\DateTimeInterface::ATOM)],
+        ) > 0;
     }
 
     public function revokeAllForUser(string $userId, \DateTimeImmutable $now): int

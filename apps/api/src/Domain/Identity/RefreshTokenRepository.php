@@ -46,6 +46,32 @@ interface RefreshTokenRepository
     public function revoke(string $token, \DateTimeImmutable $now): void;
 
     /**
+     * Where somebody is currently signed in, newest first.
+     *
+     * The rows have carried `user_agent` and `ip_address` since the identity
+     * slice and nothing has ever read them, so "you are signed in on three
+     * devices" was unanswerable. Revoked and expired sessions are included, up
+     * to the limit: "a sign-in from an address I do not recognise" is exactly
+     * what somebody checking this is looking for, and hiding the ones that
+     * have since ended would hide it.
+     *
+     * @return list<array{
+     *     id: string, issuedAt: string, expiresAt: string, revokedAt: string|null,
+     *     userAgent: string|null, ipAddress: string|null, active: bool
+     * }>
+     */
+    public function sessionsFor(string $userId, \DateTimeImmutable $now, int $limit = 20): array;
+
+    /**
+     * Ends one session by its id.
+     *
+     * Scoped by user so an id from somebody else's list does nothing.
+     *
+     * @return bool whether a live session was actually ended
+     */
+    public function revokeSession(string $userId, string $sessionId, \DateTimeImmutable $now): bool;
+
+    /**
      * Ends every session for a user — password change, admin suspension, or a
      * suspected compromise.
      *

@@ -207,6 +207,47 @@ final class DbalPersonRepository implements PersonRepository
         ) > 0;
     }
 
+    public function consentsFor(string $tenantId, string $id): array
+    {
+        $raw = $this->connection->fetchOne(
+            'SELECT consents FROM users WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['id' => $id, 'tenant' => $tenantId],
+        );
+
+        if (!is_string($raw)) {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $consents = [];
+
+        foreach ($decoded as $name => $given) {
+            // Coerced rather than trusted: the column is free-form JSON, and a
+            // consent that reads as the string "false" must not count as given.
+            $consents[(string) $name] = filter_var($given, FILTER_VALIDATE_BOOL);
+        }
+
+        return $consents;
+    }
+
+    public function saveConsents(string $tenantId, string $id, array $consents): bool
+    {
+        return $this->connection->executeStatement(
+            'UPDATE users SET consents = :consents::jsonb, updated_at = now()
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            [
+                'id'       => $id,
+                'tenant'   => $tenantId,
+                'consents' => json_encode($consents, JSON_THROW_ON_ERROR),
+            ],
+        ) > 0;
+    }
+
     public function setPasswordHash(string $tenantId, string $id, string $hash): bool
     {
         // Status moves off `invited` in the same statement: somebody who has

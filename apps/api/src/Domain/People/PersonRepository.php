@@ -53,6 +53,24 @@ interface PersonRepository
     public function setPasswordHash(string $tenantId, string $id, string $hash): bool;
 
     /**
+     * The consents somebody has given, and the record of when.
+     *
+     * Stored as JSON on `users.consents`, which the schema has carried since
+     * the identity slice and nothing has ever written. Kept apart from
+     * {@see update()} on purpose: consent is the person's own to give, and an
+     * administrator saving somebody's department must not be able to tick it
+     * on their behalf.
+     *
+     * @return array<string, bool>
+     */
+    public function consentsFor(string $tenantId, string $id): array;
+
+    /**
+     * @param array<string, bool> $consents
+     */
+    public function saveConsents(string $tenantId, string $id, array $consents): bool;
+
+    /**
      * The stored hash, for verifying somebody's current password.
      *
      * Returned rather than compared here so the hashing algorithm stays in one
