@@ -39,6 +39,8 @@ export const Endpoints = {
     delete: (id: string) => `/users/${id}`,
     password: (id: string) => `/users/${id}/password`,
     skills: (id: string) => `/users/${id}/skills`,
+    /** A colleague's picture, served through the API rather than storage. */
+    avatar: (id: string) => `/users/${id}/avatar`,
   },
 
   /**
@@ -139,6 +141,16 @@ export const Endpoints = {
     gamification: '/me/gamification',
     gamificationHistory: '/me/gamification/history',
     skills: '/me/skills',
+
+    /**
+     * Self-service. No id in any of these paths, so there is nothing to
+     * tamper with — the server acts on whoever the token says is calling.
+     */
+    profile: '/me/profile',
+    consents: '/me/consents',
+    avatar: '/me/avatar',
+    sessions: '/me/sessions',
+    revokeSession: (id: string) => `/me/sessions/${id}`,
     dashboard: '/dashboards/me',
   },
 

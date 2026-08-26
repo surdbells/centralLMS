@@ -1,0 +1,315 @@
+<app-top></app-top>
+<main class="main">
+  <div class="container-fluid py-4">
+    <div class="row align-items-center mb-4">
+      <div (click)="goBack()" role="button" class="col-auto">
+        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+          <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
+        </div>
+      </div>
+      <div class="col">
+        <h1 class="fs-4 mb-0">My Account</h1>
+        <small class="text-muted">Your details, your sign-ins, your preferences</small>
+      </div>
+    </div>
+
+    <div class="my-account">
+      <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+      <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+        <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+        <div class="flex-grow-1">{{ error }}</div>
+        <button type="button" class="btn-close" (click)="error = null"></button>
+      </div>
+
+      <div *ngIf="profile && !loading">
+        <!-- Banner -->
+        <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+          <div class="profile-banner"></div>
+          <div class="card-body position-relative pt-0">
+            <div class="d-flex align-items-end gap-3" style="margin-top:-40px">
+              <div class="position-relative">
+                <div class="avatar-xl rounded-circle border border-4 border-white shadow-sm overflow-hidden"
+                     [style.background-color]="avatarSrc ? 'transparent' : avatarColour(profile.fullName)">
+                  <img *ngIf="avatarSrc" [src]="avatarSrc" class="w-100 h-100 object-fit-cover" alt="">
+                  <span *ngIf="!avatarSrc" class="avatar-letter">
+                    {{ profile.fullName.charAt(0).toUpperCase() }}
+                  </span>
+                </div>
+                <button class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow"
+                        style="width:32px; height:32px; padding:0"
+                        (click)="avatarInput.click()" title="Change photo">
+                  <i class="bi bi-camera-fill" style="font-size:14px"></i>
+                </button>
+                <input #avatarInput type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+                       class="d-none" (change)="onAvatarSelected($event)">
+              </div>
+              <div class="pb-1">
+                <h5 class="fw-bold mb-0">{{ profile.fullName }}</h5>
+                <p class="text-muted mb-0 small">{{ profile.email }}</p>
+                <span class="badge bg-primary-subtle text-primary small mt-1">{{ profile.status | titlecase }}</span>
+              </div>
+            </div>
+            <div class="alert alert-danger py-1 small mt-3 mb-0" *ngIf="avatarError">{{ avatarError }}</div>
+          </div>
+        </div>
+
+        <!-- Picture preview -->
+        <div class="modal fade show d-block" *ngIf="avatarPreview" style="background:rgba(0,0,0,.6)">
+          <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header py-2">
+                <h6 class="modal-title">Update Profile Picture</h6>
+                <button class="btn-close" (click)="cancelAvatarUpload()"></button>
+              </div>
+              <div class="modal-body text-center">
+                <img [src]="avatarPreview" class="rounded-circle mb-3"
+                     style="width:200px; height:200px; object-fit:cover" alt="">
+                <p class="small text-muted mb-0">{{ avatarFile?.name }}</p>
+              </div>
+              <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" (click)="cancelAvatarUpload()">Cancel</button>
+                <button class="btn btn-sm btn-danger" *ngIf="profile.avatarUrl" (click)="removeAvatar()">
+                  <i class="bi bi-trash me-1"></i>Remove
+                </button>
+                <button class="btn btn-sm btn-primary" (click)="uploadAvatar()" [disabled]="uploadingAvatar">
+                  <span *ngIf="uploadingAvatar" class="spinner-border spinner-border-sm me-1"></span>Upload
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4">
+          <li class="nav-item" *ngFor="let tab of tabs">
+            <a class="nav-link" [class.active]="activeTab === tab.key" role="button" (click)="onTabChange(tab.key)">
+              <i class="bi me-1" [class]="tab.icon"></i>{{ tab.label }}
+            </a>
+          </li>
+        </ul>
+
+        <!-- Profile -->
+        <div *ngIf="activeTab === 'profile'">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                  <span class="fw-semibold"><i class="bi bi-person me-2"></i>Personal Information</span>
+                  <button class="btn btn-sm" [class]="editingProfile ? 'btn-secondary' : 'btn-primary'"
+                          (click)="editingProfile ? cancelProfileEdit() : (editingProfile = true)">
+                    <i class="bi me-1" [class]="editingProfile ? 'bi-x' : 'bi-pencil'"></i>
+                    {{ editingProfile ? 'Cancel' : 'Edit' }}
+                  </button>
+                </div>
+
+                <div class="card-body" *ngIf="!editingProfile">
+                  <div class="row mb-2" *ngFor="let f of personalInfo">
+                    <div class="col-5 text-muted small">{{ f.label }}</div>
+                    <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+                  </div>
+                  <div class="alert alert-success py-1 small mt-2 mb-0" *ngIf="profileSuccess">{{ profileSuccess }}</div>
+                </div>
+
+                <div class="card-body" *ngIf="editingProfile">
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">First Name</label>
+                    <input type="text" class="form-control form-control-sm"
+                           [class.is-invalid]="profileViolations['firstName']" [(ngModel)]="form.firstName">
+                    <div class="invalid-feedback">{{ profileViolations['firstName'] }}</div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">Last Name</label>
+                    <input type="text" class="form-control form-control-sm"
+                           [class.is-invalid]="profileViolations['lastName']" [(ngModel)]="form.lastName">
+                    <div class="invalid-feedback">{{ profileViolations['lastName'] }}</div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">Phone</label>
+                    <input type="text" class="form-control form-control-sm" [(ngModel)]="form.phone">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">Language</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="form.locale">
+                      <option value="en">English</option>
+                      <option value="fr">French</option>
+                      <option value="ar">Arabic</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-sm btn-primary" (click)="saveProfile()" [disabled]="savingProfile">
+                    <span *ngIf="savingProfile" class="spinner-border spinner-border-sm me-1"></span>Save
+                  </button>
+                  <p class="text-muted small mt-2 mb-0">
+                    Your email, roles and where you sit in the organisation are set by an administrator.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>Organisation</div>
+                <div class="card-body">
+                  <div class="row mb-2" *ngFor="let f of orgInfo">
+                    <div class="col-5 text-muted small">{{ f.label }}</div>
+                    <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-clock me-2"></i>Account</div>
+                <div class="card-body">
+                  <div class="row mb-2" *ngFor="let f of accountInfo">
+                    <div class="col-5 text-muted small">{{ f.label }}</div>
+                    <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security -->
+        <div *ngIf="activeTab === 'security'">
+          <div class="row g-4">
+            <div class="col-md-5">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-key me-2"></i>Change Password</div>
+                <div class="card-body">
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">Current password</label>
+                    <div class="input-group input-group-sm">
+                      <input [type]="showCurrent ? 'text' : 'password'" class="form-control"
+                             [(ngModel)]="password.current" autocomplete="current-password">
+                      <button class="btn btn-secondary" type="button" (click)="showCurrent = !showCurrent">
+                        <i class="bi" [class]="showCurrent ? 'bi-eye-slash' : 'bi-eye'"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">New password</label>
+                    <div class="input-group input-group-sm">
+                      <input [type]="showNext ? 'text' : 'password'" class="form-control"
+                             [(ngModel)]="password.next" (ngModelChange)="gradePassword()"
+                             autocomplete="new-password">
+                      <button class="btn btn-secondary" type="button" (click)="showNext = !showNext">
+                        <i class="bi" [class]="showNext ? 'bi-eye-slash' : 'bi-eye'"></i>
+                      </button>
+                    </div>
+                    <div class="mt-2" *ngIf="password.next">
+                      <div class="progress" style="height:4px">
+                        <div class="progress-bar" [style.width.%]="strength.score * 25"
+                             [style.background-color]="strength.colour"></div>
+                      </div>
+                      <small [style.color]="strength.colour">{{ strength.label }}</small>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">Confirm new password</label>
+                    <input type="password" class="form-control form-control-sm"
+                           [(ngModel)]="password.confirm" autocomplete="new-password">
+                    <small class="text-danger" *ngIf="password.confirm && password.confirm !== password.next">
+                      These do not match.
+                    </small>
+                  </div>
+                  <button class="btn btn-sm btn-primary" (click)="changePassword()"
+                          [disabled]="changingPassword || !canChangePassword">
+                    <span *ngIf="changingPassword" class="spinner-border spinner-border-sm me-1"></span>
+                    Change password
+                  </button>
+                  <div class="alert alert-success py-1 small mt-3 mb-0" *ngIf="passwordSuccess">{{ passwordSuccess }}</div>
+                  <div class="alert alert-danger py-1 small mt-3 mb-0" *ngIf="passwordError">{{ passwordError }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-7">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                  <span class="fw-semibold"><i class="bi bi-laptop me-2"></i>Where you are signed in</span>
+                  <button class="btn btn-sm btn-secondary" (click)="loadSessions()" [disabled]="loadingSessions">
+                    <i class="bi bi-arrow-repeat"></i>
+                  </button>
+                </div>
+                <div class="card-body p-0">
+                  <div *ngIf="loadingSessions" class="text-center py-4">
+                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                  </div>
+                  <ul class="list-group list-group-flush" *ngIf="!loadingSessions">
+                    <li class="list-group-item d-flex justify-content-between align-items-center"
+                        *ngFor="let s of sessions; trackBy: trackById">
+                      <div>
+                        <div class="fw-medium small">
+                          {{ device(s.userAgent) }}
+                          <span class="badge bg-success ms-1" *ngIf="s.active">Active</span>
+                          <span class="badge bg-secondary ms-1" *ngIf="!s.active">Ended</span>
+                        </div>
+                        <small class="text-muted">
+                          {{ s.ipAddress || 'address not recorded' }} · {{ s.issuedAt | date:'medium' }}
+                        </small>
+                      </div>
+                      <button class="btn btn-sm btn-outline-danger" *ngIf="s.active" (click)="revokeSession(s)">
+                        Sign out
+                      </button>
+                    </li>
+                    <li class="list-group-item text-center text-muted py-3" *ngIf="!sessions.length">
+                      No sign-ins recorded
+                    </li>
+                  </ul>
+                </div>
+                <div class="card-footer bg-white small text-muted">
+                  Every sign-in is listed, ended ones included — a session from an address you do not
+                  recognise is exactly what this is for.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preferences -->
+        <div *ngIf="activeTab === 'preferences'">
+          <div class="row g-4">
+            <div class="col-md-7">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-shield-check me-2"></i>Consent</div>
+                <div class="card-body">
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="consentPrivacy" [(ngModel)]="consents.privacy">
+                    <label class="form-check-label" for="consentPrivacy">
+                      <span class="fw-semibold small">Privacy policy</span>
+                      <span class="d-block text-muted small">I have read and accept the privacy policy.</span>
+                    </label>
+                  </div>
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="consentMarketing" [(ngModel)]="consents.marketing">
+                    <label class="form-check-label" for="consentMarketing">
+                      <span class="fw-semibold small">Marketing</span>
+                      <span class="d-block text-muted small">Send me news about courses and features.</span>
+                    </label>
+                  </div>
+                  <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="consentData" [(ngModel)]="consents.dataProcessing">
+                    <label class="form-check-label" for="consentData">
+                      <span class="fw-semibold small">Data processing</span>
+                      <span class="d-block text-muted small">
+                        Use my learning activity to suggest what to study next.
+                      </span>
+                    </label>
+                  </div>
+                  <button class="btn btn-sm btn-primary" (click)="saveConsents()" [disabled]="savingConsents">
+                    <span *ngIf="savingConsents" class="spinner-border spinner-border-sm me-1"></span>Save
+                  </button>
+                  <div class="alert alert-success py-1 small mt-3 mb-0" *ngIf="consentSuccess">{{ consentSuccess }}</div>
+                  <p class="text-muted small mt-3 mb-0">
+                    Turning one off withdraws it. These are stored against your account and can be
+                    changed whenever you like.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
