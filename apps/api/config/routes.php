@@ -103,6 +103,8 @@ use Central\Api\Application\Action\Lookup\ShowLookupAction;
 use Central\Api\Application\Action\Lookup\UpdateLookupAction;
 use Central\Api\Application\Action\MeAction;
 use Central\Api\Application\Action\VersionAction;
+use Central\Api\Application\Action\Audit\AuditTrailAction;
+use Central\Api\Application\Middleware\AuditMiddleware;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
@@ -605,6 +607,16 @@ return static function (App $app): void {
                     ->setName('users.avatar');
             });
 
+            // --- the audit trail ------------------------------------------
+            //
+            // Read-only, and there is no route that writes one: entries come
+            // from AuditMiddleware, from what the router actually matched. An
+            // endpoint that let a client post its own entry would let a client
+            // post somebody else's.
+            $secure->get('/audit', [AuditTrailAction::class, 'list'])->setName('audit.list');
+            $secure->get('/audit/actions', [AuditTrailAction::class, 'actions'])
+                ->setName('audit.actions');
+
             // --- roles ----------------------------------------------------
             //
             // Assigning a role is not here: a person's roles are set as a set
@@ -866,6 +878,10 @@ return static function (App $app): void {
                 // route declares its own permission, e.g.
                 //   ->add(RequirePermissionMiddleware::of(Permission::IltSessionManage))
             });
-        })->add(AuthenticationMiddleware::class);
+            // Added before authentication, so it runs inside it — Slim
+            // executes the last-added middleware first. Audit therefore sees a
+            // request that has already been authenticated and a route that has
+            // already been matched, which is what it records.
+        })->add(AuditMiddleware::class)->add(AuthenticationMiddleware::class);
     });
 };

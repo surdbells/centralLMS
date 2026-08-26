@@ -41,6 +41,27 @@ final class JsonErrorHandler implements ErrorHandlerInterface
         ConflictingState::class      => 409,
     ];
 
+    /**
+     * The status a throwable will be answered with.
+     *
+     * Public because AuditMiddleware has to record the status of a request
+     * that failed, and it sits inside the error handler — the exception has
+     * not become a response yet when it passes through. One copy of the map,
+     * read from two places, rather than two copies that drift.
+     */
+    public static function statusFor(\Throwable $exception): int
+    {
+        if ($exception instanceof DomainException) {
+            return self::DOMAIN_STATUS[$exception::class] ?? 400;
+        }
+
+        return match (true) {
+            $exception instanceof HttpNotFoundException         => 404,
+            $exception instanceof HttpMethodNotAllowedException => 405,
+            default                                            => 500,
+        };
+    }
+
     public function __construct(
         private readonly LoggerInterface $logger,
         private readonly ResponseFactory $responseFactory,
@@ -116,7 +137,7 @@ final class JsonErrorHandler implements ErrorHandlerInterface
         DomainException $exception,
         string $requestId,
     ): ResponseInterface {
-        $status = self::DOMAIN_STATUS[$exception::class] ?? 400;
+        $status = self::statusFor($exception);
 
         // Failed auth is worth an audit trail even though it is not a bug.
         if ($exception instanceof AuthenticationFailed) {

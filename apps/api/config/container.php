@@ -70,6 +70,7 @@ use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\LearningPath\LearningPathRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Messaging\MessagingRepository;
+use Central\Api\Domain\Audit\AuditRepository;
 use Central\Api\Domain\Note\NoteRepository;
 use Central\Api\Domain\Settings\SettingCatalogue;
 use Central\Api\Domain\Skill\SkillRepository;
@@ -81,6 +82,7 @@ use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalLearningPathRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
 use Central\Api\Infrastructure\Persistence\DbalMessagingRepository;
+use Central\Api\Infrastructure\Persistence\DbalAuditRepository;
 use Central\Api\Infrastructure\Persistence\DbalNoteRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
@@ -586,6 +588,13 @@ return [
     NoteRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalNoteRepository($c->get(Connection::class)),
     ),
+
+    // Takes a logger because a failed audit write must be loud and must not
+    // reach the request it was describing — see DbalAuditRepository::record().
+    AuditRepository::class => factory(static fn (ContainerInterface $c) => new DbalAuditRepository(
+        $c->get(Connection::class),
+        $c->get(LoggerInterface::class),
+    )),
 
     MessagingRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalMessagingRepository($c->get(Connection::class)),

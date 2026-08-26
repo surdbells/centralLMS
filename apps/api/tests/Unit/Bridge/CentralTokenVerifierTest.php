@@ -160,7 +160,11 @@ final class CentralTokenVerifierTest extends TestCase
         // The original used similar_text(), a *fuzzy* similarity measure, so a
         // near-miss would have scored highly. Only an exact match passes.
         $stored = bin2hex(random_bytes(20));
-        $nearMiss = substr($stored, 0, -2) . 'ff';
+
+        // Flipped rather than overwritten: appending a fixed 'ff' matched the
+        // original outright whenever it happened to end in 'ff', which is one
+        // run in 256 and is how this test failed at random.
+        $nearMiss = substr($stored, 0, -1) . ($stored[-1] === 'f' ? '0' : 'f');
 
         self::assertSame(0.0, $this->verifier($stored)->verify($nearMiss, '42'));
     }
