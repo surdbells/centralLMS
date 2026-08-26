@@ -77,6 +77,7 @@ use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
+use Central\Api\Application\Action\People\ImportPeopleAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
 use Central\Api\Application\Action\People\StreamAvatarAction;
@@ -583,6 +584,16 @@ return static function (App $app): void {
                 $u->get('/instructors', [ManagePeopleAction::class, 'instructors'])
                     ->setName('users.instructors');
                 $u->get('/roles', [ManagePeopleAction::class, 'roles'])->setName('users.roles');
+
+                // Adding a lot of people at once. Nothing is kept between the
+                // two calls — the client sends back the rows it was shown, and
+                // the commit revalidates them from nothing. The legacy parsed
+                // the upload into the PHP session, so two administrators
+                // importing at once overwrote each other.
+                $u->post('/import/preview', [ImportPeopleAction::class, 'preview'])
+                    ->setName('users.import.preview');
+                $u->post('/import', [ImportPeopleAction::class, 'commit'])
+                    ->setName('users.import');
 
                 $u->get('/{id:' . $uuid . '}', [ManagePeopleAction::class, 'show'])
                     ->setName('users.show');

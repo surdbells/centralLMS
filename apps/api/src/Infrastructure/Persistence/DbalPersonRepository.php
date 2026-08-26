@@ -121,6 +121,27 @@ final class DbalPersonRepository implements PersonRepository
         return $this->withRoles($tenantId, [$this->hydrate($row)])[0];
     }
 
+    public function findByEmail(string $tenantId, string $email): ?Person
+    {
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                'SELECT %s, %s, %s FROM users u %s
+                 WHERE u.email = :email AND u.tenant_id = :tenant AND u.deleted_at IS NULL',
+                self::COLUMNS,
+                self::PLACEMENT,
+                self::ACTIVITY,
+                self::PLACEMENT_JOINS,
+            ),
+            ['email' => $email, 'tenant' => $tenantId],
+        );
+
+        if ($row === false) {
+            return null;
+        }
+
+        return $this->withRoles($tenantId, [$this->hydrate($row)])[0];
+    }
+
     public function emailExists(string $tenantId, string $email, ?string $exceptId = null): bool
     {
         return (int) $this->connection->fetchOne(

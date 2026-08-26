@@ -30,6 +30,16 @@ interface PersonRepository
     public function emailExists(string $tenantId, string $email, ?string $exceptId = null): bool;
 
     /**
+     * The person at this address, if this organisation has one.
+     *
+     * Distinct from {@see emailExists()} because an import has to decide
+     * whether to skip somebody or update them, and needs the record either
+     * way. Matching is case-insensitive: the column is `citext`, and "Ada@"
+     * and "ada@" are one person.
+     */
+    public function findByEmail(string $tenantId, string $email): ?Person;
+
+    /**
      * Creates a person and assigns their roles in one transaction.
      *
      * Both or neither: an account with no role can sign in and see nothing,
