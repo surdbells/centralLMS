@@ -14,7 +14,7 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 | **Current focus** | Frontend cutover. **The backend is complete** — every module the legacy had, ported and tested |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
 | **Blocking the next slice** | Nothing. The frontend can now drop the legacy backend entirely |
-| **API quality gate** | ✅ 1,122 tests / 3,780 assertions · PHPStan level 8 clean · 0 style errors · 1,064 live checks |
+| **API quality gate** | ✅ 1,149 tests / 3,828 assertions · PHPStan level 8 clean · 0 style errors · 1,154 live checks |
 | **Web quality gate** | ✅ 83 / 83 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -217,6 +217,43 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-31 — The people area, finished — and three bugs only a browser found
+
+Importing people and the audit trail both existed as screens with no API
+behind them. Both now have one, and the people area is complete.
+
+**The audit trail is derived from the router.** The legacy had a
+`user_activity_log` table and exactly one thing ever wrote to it: the login
+handler. Every other write would have had to remember to log itself, and none
+did — so "who suspended this account?" was unanswerable. `AuditMiddleware`
+records what the router matched, so an endpoint added tomorrow is audited the
+moment it is routed. Refusals are recorded too, which took catching the
+exception: the handler that turns a refusal into a response sits outside the
+middleware. Request bodies are never stored — they carry passwords.
+
+**Importing is two calls with nothing kept between them.** The preview reads
+the file and says what would happen to every row; the client sends back what it
+was shown; the commit revalidates from nothing. The legacy parsed the upload
+into the PHP session, so two administrators importing at once overwrote each
+other. Header mapping is separately tested, because that is where an import
+quietly goes wrong: "E-mail Address" silently becoming nothing is how a
+directory ends up with four hundred people with no address.
+
+**Then I opened it in a browser, and found three things eighteen shell suites
+had not.**
+
+  - Every 401, 403, 404, 409 and 422 arrived with no
+    `Access-Control-Allow-Origin`, so every validation message in the
+    application read *"Could not reach the server"*. Cors sat beneath the error
+    handler, and a response the error handler produces never travels back
+    through what is beneath it. curl does not enforce CORS.
+  - Every deep link served a blank page. `index.html` had no `<base href>`, so
+    Angular's own bundles were fetched relative to the route —
+    `/admin/users/main.js`, which the dev server answers with `index.html`.
+  - Route names ending in a noun read as "Me avatar" in the trail. Renamed, and
+    the trail learned three more verbs.
+
 
 ### 2026-08-31 — Skills, roles, profiles: the frontend starts leaving the legacy
 
