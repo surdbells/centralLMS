@@ -69,6 +69,8 @@ use Central\Api\Application\Action\Enrollment\UnenrollAction;
 use Central\Api\Application\Action\Report\RunReportAction;
 use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
+use Central\Api\Application\Action\Media\ManageMediaAction;
+use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
 use Central\Api\Application\Action\Notification\InboxAction;
@@ -308,6 +310,32 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- media library --------------------------------------------
+            //
+            // The bytes are served from `/{id}/file` rather than from a link
+            // to storage, so every fetch is checked against the token that
+            // asked for it. See StreamMediaAction.
+            $secure->group('/media', function (RouteCollectorProxy $m) use ($uuid): void {
+                $m->get('', [ManageMediaAction::class, 'list'])->setName('media.list');
+                $m->post('', [ManageMediaAction::class, 'upload'])->setName('media.upload');
+
+                $m->get('/statistics', [ManageMediaAction::class, 'statistics'])
+                    ->setName('media.statistics');
+
+                $m->get('/{id:' . $uuid . '}', [ManageMediaAction::class, 'show'])
+                    ->setName('media.show');
+                $m->put('/{id:' . $uuid . '}', [ManageMediaAction::class, 'update'])
+                    ->setName('media.update');
+                $m->delete('/{id:' . $uuid . '}', [ManageMediaAction::class, 'delete'])
+                    ->setName('media.delete');
+
+                $m->get('/{id:' . $uuid . '}/file', StreamMediaAction::class)
+                    ->setName('media.file');
+                $m->get('/{id:' . $uuid . '}/versions', [ManageMediaAction::class, 'versions'])
+                    ->setName('media.versions');
+                $m->post('/{id:' . $uuid . '}/versions', [ManageMediaAction::class, 'uploadVersion'])
+                    ->setName('media.uploadVersion');
+            });
             // --- people ---------------------------------------------------
             //
             // `statistics`, `instructors` and `roles` are declared before

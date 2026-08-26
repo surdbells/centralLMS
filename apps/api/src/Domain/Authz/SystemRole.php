@@ -65,6 +65,9 @@ enum SystemRole: string
                 Permission::AssessmentTake,
                 Permission::ProgressView,
                 Permission::IltSessionView,
+                // A lesson embeds a file; playing it is part of reading the
+                // lesson, not a separate privilege.
+                Permission::MediaView,
             ],
             self::Instructor => [
                 Permission::CourseManage,
@@ -73,6 +76,7 @@ enum SystemRole: string
                 Permission::IltAttendanceMark,
                 Permission::AssessmentManage,
                 Permission::AssessmentGrade,
+                Permission::MediaManage,
                 Permission::UserView,
                 Permission::ReportView,
                 // An instructor telling their own cohort a session has moved is
@@ -108,6 +112,7 @@ enum SystemRole: string
             self::ContentCreator => [
                 Permission::CourseManage,
                 Permission::AssessmentManage,
+                Permission::MediaManage,
             ],
             // "HR operations — view users, compliance reports".
             self::Hr => [

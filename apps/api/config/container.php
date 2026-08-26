@@ -64,8 +64,11 @@ use Central\Api\Infrastructure\Persistence\DbalSavedReportRepository;
 use Central\Api\Application\Gamification\Awarder;
 use Central\Api\Domain\Gamification\GamificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalGamificationRepository;
+use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\People\PersonRepository;
+use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
+use Central\Api\Infrastructure\Storage\MediaStorage;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
@@ -98,6 +101,7 @@ use Doctrine\ORM\ORMSetup;
 use GuzzleHttp\Client as GuzzleClient;
 use League\Flysystem\AwsS3V3\AwsS3V3Adapter;
 use League\Flysystem\Filesystem;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\FilesystemOperator;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\RotatingFileHandler;
@@ -264,7 +268,16 @@ return [
 
     // --- object storage ---------------------------------------------------
     FilesystemOperator::class => factory(static function (ContainerInterface $c): FilesystemOperator {
-        $s3 = $c->get('settings')['storage']['s3'];
+        $storage = $c->get('settings')['storage'];
+
+        // Anything but `s3` writes to disk. Defaulting that way round means a
+        // deployment with no object storage configured stores files somewhere
+        // real rather than failing every upload against an empty endpoint.
+        if ($storage['driver'] !== 's3') {
+            return new Filesystem(new LocalFilesystemAdapter((string) $storage['local']['root']));
+        }
+
+        $s3 = $storage['s3'];
 
         $client = new \Aws\S3\S3Client(array_filter([
             'version'                 => 'latest',
@@ -549,6 +562,15 @@ return [
     PersonRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalPersonRepository($c->get(Connection::class)),
     ),
+
+    MediaRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalMediaRepository($c->get(Connection::class)),
+    ),
+
+    MediaStorage::class => factory(static fn (ContainerInterface $c) => new MediaStorage(
+        $c->get(FilesystemOperator::class),
+        $c->get(LoggerInterface::class),
+    )),
 
     PasswordHasher::class => autowire(),
 

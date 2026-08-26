@@ -73,3 +73,6 @@ legacy/frontend/src/app/live-training/services/video-integration.service.ts
 
 # Claude Code session state
 .claude/
+
+# ---- uploaded files (local storage driver) ----
+apps/api/storage/uploads/

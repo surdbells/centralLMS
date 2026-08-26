@@ -109,6 +109,21 @@ return [
     ],
 
     'storage' => [
+        /**
+         * Where uploaded files go.
+         *
+         * `local` writes under `storage/uploads` and serves them back through
+         * the API; `s3` talks to object storage. Development has no S3 and
+         * should not need one to test an upload — the same reasoning as
+         * `MAIL_PROVIDER=log`.
+         */
+        'driver' => Env::get('STORAGE_DRIVER', 'local'),
+
+        'local' => [
+            'root'            => Env::get('STORAGE_LOCAL_ROOT', __DIR__ . '/../storage/uploads'),
+            'public_base_url' => Env::get('STORAGE_LOCAL_BASE_URL', '/v1/media/files'),
+        ],
+
         's3' => [
             'endpoint'        => Env::get('S3_ENDPOINT'),
             'region'          => Env::get('S3_REGION', 'us-east-1'),

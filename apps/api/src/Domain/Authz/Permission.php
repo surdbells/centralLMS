@@ -46,6 +46,12 @@ enum Permission: string
     case ProctoringConfigure = 'proctoring.configure';
     case ProctoringReview    = 'proctoring.review';
 
+    // --- media library ----------------------------------------------------
+    // Viewing is separate from managing because a learner has to be able to
+    // play the video a lesson embeds, and must not be able to replace it.
+    case MediaView   = 'media.view';
+    case MediaManage = 'media.manage';
+
     // --- reference data (branches, departments, teams, levels, …) ---------
     case LookupView   = 'lookup.view';
     case LookupManage = 'lookup.manage';

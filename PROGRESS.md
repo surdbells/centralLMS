@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; people and gamification are built. Media, learning paths, skills, messaging and tenant settings still to come |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification and the media library are built. Dashboards, notes, tenant settings, skills, learning paths and messaging still to come |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — five API modules remain before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 504 unit + 327 integration tests / 2,754 assertions · PHPStan level 8 clean · 0 style errors · 583 live checks |
+| **Blocking the next slice** | Nothing — six API modules remain before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 533 unit + 346 integration tests / 2,905 assertions · PHPStan level 8 clean · 0 style errors · 637 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -105,14 +105,17 @@ foundations above it.
 | 7 | assessments | ✅ | **34** | Banks, questions, sections, all 3 selection modes, attempts, marking |
 | 7b | proctoring (advanced module) | ✅ | **8** | Entitlement-gated; settings, sessions, violations, snapshots, review |
 | 8 | ILT + attendance | ✅ | **24** | Programmes, sessions, real meeting booking, QR check-in, provider attendance sync |
-| 9 | ILT | 🟡 | 1 | Provider layer ✅; scheduling + attendance wiring ⬜ |
-| 10 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
-| 11 | certificates | ⬜ | 1 | ⚠ confirm same unify decision as assessments |
-| 12 | media / SCORM | ⬜ | 8 | |
-| 13 | messaging | ⬜ | 1 | |
-| 14 | gamification (points, badges, levels, streaks) | ⬜ | — | |
-| 15 | skills | ⬜ | 1 | 25 ops |
-| 16 | reporting | ⬜ | 2 | **Last** — reads everything above |
+| 9 | certificates | ✅ | **12** | Templates, issuance, revocation, public verification |
+| 10 | notifications | ✅ | **11** | One delivery ledger; four legacy queues, all empty, not ported |
+| 11 | reporting | ✅ | **11** | 57 reports; tenant from the token, `audience` enforced |
+| 12 | people | ✅ | **9** | Placement and activity resolved in the list query, not per row |
+| 13 | gamification (points, badges, levels, streaks) | ✅ | **9** | Totals derived from the ledger; `user_level_progress` not ported |
+| 14 | media / SCORM | ✅ | **9** | Versions as rows; `is_latest_version` derived; bytes served through the API |
+| 15 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
+| 16 | messaging | ⬜ | 1 | 9 tables, 9 messages |
+| 17 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
+| 18 | notes | ⬜ | — | 5 rows, one table |
+| 19 | tenant settings | ⬜ | — | 16 rows, one key/value table |
 
 ---
 
@@ -209,6 +212,70 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-29 — Media library
+
+Nine routes, one table where the legacy had four, and the first module whose
+bytes never leave the API.
+
+**Three of the four legacy tables are not ported.** `media_thumbnails` and
+`media_processing_queue` hold zero rows between them: transcoding, thumbnailing
+and SCORM validation were designed and never run, the same story as the four
+notification queues. `media_version_history` is not a table at all — it is a
+view joining `media` to `users`, which is to say a query, and it lives in the
+repository as one. `media.is_processed` goes with them: a flag whose only
+writer never existed.
+
+**`is_latest_version` is derived.** It duplicated what `root_media_id` and
+`version_number` already say, and keeping it true took two writes on every
+upload — set the new row, clear the old one. A crash between them leaves a file
+with two current versions or none, and nothing in the legacy noticed. It is now
+a `MAX()` over the chain, computed in the same pass that counts the versions,
+and a partial unique index makes a duplicate version number impossible rather
+than merely unlikely.
+
+**A version number is allocated under a lock.** The first row of a chain is the
+lock for the whole chain; without it two people replacing the same file at the
+same moment both read two, both write three, and the second upload is rejected
+after its bytes are already stored.
+
+**The bytes are served through the API, never through a link to storage.** The
+legacy answered a media request with a `302` to a signed S3 URL — so the check
+on who was asking happened once, and produced a URL that then worked for
+anybody it was forwarded to, including somebody since removed from the
+organisation. `GET /v1/media/{id}/file` checks the token on every fetch. It
+also answers range requests, because a player seeking into a two-hour recording
+sends one and a server that ignores it makes the player download the whole file
+to skip five minutes.
+
+Getting that right needed `ByteRangeStream`: the emitter rewinds a seekable
+body before writing it, so a `206` built by seeking the underlying stream emits
+the right number of bytes from the wrong place — the beginning of the file,
+every time somebody drags the scrubber. Found by the live suite, not by the
+unit tests, which is the same lesson as the CORS preflight.
+
+**What may be uploaded is decided by the extension.** The legacy trusted the
+`Content-Type` the browser sends, which is chosen by whatever is doing the
+sending. `report.pdf.exe` is an exe, a filename carrying a path keeps only its
+last segment, and the storage key is built from the tenant, the kind and 16
+random bytes — never from anything the caller sent.
+
+**`tenants.storage_limit_mb` is read.** It has been on the table since the
+first schema and was never once consulted. An upload that would exceed the
+allowance is refused, and the size is measured as the bytes are written rather
+than taken from the `Content-Length` the client claimed.
+
+Storage is now swappable — local disk by default, S3 when `STORAGE_DRIVER=s3`,
+the same pattern as `MAIL_PROVIDER=log`. A deployment with no object storage
+configured stores files somewhere real instead of failing every upload against
+an empty endpoint.
+
+Two permissions added: `media.view` for playing what a lesson embeds,
+`media.manage` for replacing it.
+
+- 16 unit + 24 integration tests; **54 live checks** against real uploads,
+  real bytes on disk, and real range requests
+- 879 tests / 2,905 assertions · PHPStan level 8 clean · 0 style errors
 
 ### 2026-08-28 — Reporting
 
