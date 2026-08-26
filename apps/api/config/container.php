@@ -22,9 +22,13 @@ use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Catalog\CourseRepository;
 use Central\Api\Domain\Catalog\LessonRepository;
+use Central\Api\Domain\Enrollment\EnrollmentRepository;
+use Central\Api\Domain\Enrollment\LessonProgressRepository;
 use Central\Api\Domain\Catalog\ModuleRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
+use Central\Api\Infrastructure\Persistence\DbalEnrollmentRepository;
+use Central\Api\Infrastructure\Persistence\DbalLessonProgressRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonRepository;
 use Central\Api\Infrastructure\Persistence\DbalModuleRepository;
 use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
@@ -305,6 +309,17 @@ return [
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
+    ),
+
+    EnrollmentRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalEnrollmentRepository($c->get(Connection::class)),
+    ),
+
+    LessonProgressRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalLessonProgressRepository(
+            $c->get(Connection::class),
+            $c->get(EnrollmentRepository::class),
+        ),
     ),
 
     ModuleRepository::class => factory(

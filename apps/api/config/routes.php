@@ -37,6 +37,15 @@ use Central\Api\Application\Action\Catalog\ShowModuleAction;
 use Central\Api\Application\Action\Catalog\UpdateCourseAction;
 use Central\Api\Application\Action\Catalog\UpdateLessonAction;
 use Central\Api\Application\Action\Catalog\UpdateModuleAction;
+use Central\Api\Application\Action\Enrollment\AssignEnrollmentsAction;
+use Central\Api\Application\Action\Enrollment\CourseEnrollmentStatsAction;
+use Central\Api\Application\Action\Enrollment\EnrollmentHistoryAction;
+use Central\Api\Application\Action\Enrollment\ListCourseEnrollmentsAction;
+use Central\Api\Application\Action\Enrollment\MyCourseProgressAction;
+use Central\Api\Application\Action\Enrollment\MyEnrollmentsAction;
+use Central\Api\Application\Action\Enrollment\RecordProgressAction;
+use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
+use Central\Api\Application\Action\Enrollment\UnenrollAction;
 use Central\Api\Application\Action\HealthAction;
 use Central\Api\Application\Action\Ilt\ListMeetingProvidersAction;
 use Central\Api\Application\Action\Lookup\ActiveLookupsAction;
@@ -88,6 +97,19 @@ return static function (App $app): void {
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
 
+            // The learner's own view. Scoped to the caller by construction —
+            // there is no user id in any of these paths, so there is nothing
+            // to tamper with.
+            $secure->group('/me/enrollments', function (RouteCollectorProxy $m) use ($uuid): void {
+                $m->get('', MyEnrollmentsAction::class)->setName('me.enrollments');
+                $m->get('/{courseId:' . $uuid . '}', MyCourseProgressAction::class)
+                    ->setName('me.enrollments.show');
+                $m->put(
+                    '/{courseId:' . $uuid . '}/lessons/{lessonId:' . $uuid . '}/progress',
+                    RecordProgressAction::class,
+                )->setName('me.progress.record');
+            });
+
             // The course catalogue.
             $secure->group('/courses', function (RouteCollectorProxy $c) use ($uuid): void {
                 // The learner-facing catalogue is a distinct route, not a
@@ -107,6 +129,24 @@ return static function (App $app): void {
                     // Modules with their lessons, in two queries. The whole
                     // point of the endpoint — see CourseOutlineAction.
                     $s->get('/outline', CourseOutlineAction::class)->setName('courses.outline');
+
+                    // A learner putting themselves on the course. Distinct
+                    // from /enrollments below, which is an administrator
+                    // putting other people on it, and needs only
+                    // `enrollment.self`.
+                    $s->post('/enroll', SelfEnrollAction::class)->setName('courses.selfEnroll');
+
+                    $s->group('/enrollments', function (RouteCollectorProxy $e) use ($uuid): void {
+                        // Before `/{userId}`, or `stats` is read as a user id.
+                        $e->get('/stats', CourseEnrollmentStatsAction::class)->setName('enrollments.stats');
+
+                        $e->get('', ListCourseEnrollmentsAction::class)->setName('enrollments.list');
+                        $e->post('', AssignEnrollmentsAction::class)->setName('enrollments.assign');
+                        $e->delete('', UnenrollAction::class)->setName('enrollments.unenroll');
+
+                        $e->get('/{userId:' . $uuid . '}/history', EnrollmentHistoryAction::class)
+                            ->setName('enrollments.history');
+                    });
 
                     $s->group('/modules', function (RouteCollectorProxy $m) use ($uuid): void {
                         // Before `/{id}`, or `order` is read as a module id.

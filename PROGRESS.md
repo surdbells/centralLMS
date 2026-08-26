@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Catalogue complete (courses, modules, lessons). Phase 0 bridge still awaiting deployment; then the first module flip |
+| **Current focus** | Catalogue and enrolments complete. Phase 0 bridge still awaiting deployment; then the first module flip |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — enrolments are next |
-| **API quality gate** | ✅ 187 unit + 45 integration tests / 662 assertions · PHPStan level 8 clean · 0 style errors · 90 live checks |
+| **Blocking the next slice** | Nothing — assessments are next |
+| **API quality gate** | ✅ 239 unit + 82 integration tests / 837 assertions · PHPStan level 8 clean · 0 style errors · 154 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -96,7 +96,7 @@ foundations above it.
 | 3 | auth endpoints | 🟡 | 6 | login/refresh/logout/me ✅; register, reset, OTP ⬜ |
 | 4 | dictionary | ✅ | **36** | 52 legacy PHP files → **6 routes**; tenant isolation fixed |
 | 5 | courses + modules + lessons | ✅ | **19** | 6 course + 13 structure routes; 20 duplicate legacy files → 10 |
-| 6 | enrolments | ⬜ | 2 | |
+| 6 | enrolments + progress | ✅ | **9** | Bulk assign by department/team/branch; progress derived in-transaction |
 | 7 | assessments core | ⬜ | 3 | Design done — [`schema-assessments.md`](docs/migration/schema-assessments.md) |
 | 8 | proctoring extension | ⬜ | 1 | Advanced module, entitlement-gated |
 | 9 | ILT | 🟡 | 1 | Provider layer ✅; scheduling + attendance wiring ⬜ |
@@ -203,6 +203,101 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-26 — Enrolments and progress
+
+Nine routes. Administrators assign people to courses and see who is on them;
+learners see their own courses and report progress as they work through them.
+
+**Bulk assignment is the headline.** `POST /v1/courses/{id}/enrollments` takes
+a list of learners *or* a department, team or branch, and enrols everyone in
+one statement. The legacy `CourseEnrollment::enrollUsers()` looped one query
+per learner, so a 200-person branch was 200 round trips that could half-fail.
+Partial success is reported rather than hidden: already-enrolled learners are
+skipped, previously dropped ones are reinstated with their progress intact,
+and ids that are not users in this tenant come back under `notFound` instead
+of failing the batch.
+
+This required restoring the five organisational columns on `users` —
+`branch`, `department`, `team`, `level`, `job_title`. The legacy table had
+them, the identity slice dropped them, and without them there is nothing for a
+group assignment to resolve. They return as composite foreign keys into
+`lookups`, so a user's "department" cannot point at a job title.
+
+**Progress is derived, never asserted.** Recording a lesson report and
+recalculating the enrolment happen in one transaction. The percentage is
+`completed mandatory lessons / mandatory lessons`, computed in SQL; nothing
+else may write it. Optional lessons do not hold completion hostage, a course
+of only optional lessons still has a denominator rather than dividing by zero,
+and deactivating or adding a lesson moves everyone on the course.
+
+Reports are hardened against what players actually send: progress never goes
+backwards (30% after 80% is a re-watch, not a regression), the first
+completion date stands, the best score stands, time is an increment and
+accumulates, and a report with no position does not rewind the video. Status
+is derived from the percentage and a client-sent `status` is ignored.
+
+**Duplication removed, from evidence.** `is_started` and `is_completed` are
+dropped: 16 of the 159 live enrolments say `completed` while `is_completed` is
+0, so the booleans were never maintained. `last_accessed_at` duplicated
+`last_activity_at`. `time_spent_minutes` is 0 in all 116 progress rows while
+`time_spent_seconds` is populated in all 116. `last_position` duplicated
+`last_position_seconds`. `started_at` is NULL in all 116 rows including the
+completed ones. `attempts` is NULL everywhere. **`module_progress` is not
+ported at all** — every column in it is a `COUNT` over `lesson_progress`, so
+storing it is the `is_completed` mistake one level up.
+
+Check constraints now make the drift unrepresentable: a completed enrolment
+must have a completion date and 100%, anything else must have no completion
+date, and progress implies a start.
+
+**Two access-control and privacy bugs found by the live check**
+
+- **Any learner could read a course roster.** The roster, its figures and the
+  per-learner history were gated on `progress.view` — which every role holds,
+  because it is what lets someone see their *own* progress. A learner could
+  therefore list every colleague on a course with names, emails, completion
+  state and who was overdue. Now gated on holding any of `progress.manage`,
+  `enrollment.manage` or `report.view` — instructors, administrators, HR and
+  line managers, but not learners.
+- **A dropped course stayed in the learner's own list.** Being taken off a
+  course left it in "my courses" because the list applied no default status
+  filter.
+
+**One integrity gap found by writing a test**
+
+The test asserting that a tenant cannot assign its people to another tenant's
+course *passed the wrong way* — the row was created. `enrollments.course_id`
+referenced `courses (id)` alone, so a row with one tenant's `tenant_id` and
+another's `course_id` was legal. Unreachable through the API, which resolves
+the course within the caller's tenant first, but not unrepresentable — and an
+import script bypassing the action layer would not have been stopped. Fixed
+with composite keys: `(id, tenant_id)` is now unique on `courses`, `users` and
+`lessons`, and enrolments, progress and events all reference the pair.
+
+**Also fixed:** `composer migrate` invoked `doctrine:migrations:migrate`, which
+is not the command name; it has never worked. And `Enrollment::isOverdue()`
+compared instants rather than dates, so every learner was overdue for the whole
+of their last day — caught by a test written before the code.
+
+**Verification**
+
+- 52 unit tests over the enums, the assignment request and the progress report
+  contract.
+- 37 integration tests against real PostgreSQL, covering the recalculation
+  invariant directly: after every report, the course percentage is asserted to
+  equal its completed lessons and the status to agree with it.
+- 62 live checks against the running stack — assignment and its partial
+  outcomes, progress accumulating to completion, unenrolment preserving work,
+  reinstatement restoring it, the audit trail, self-enrolment gates, and every
+  cross-tenant call.
+- Ten constraint probes run directly against the database, each trying to
+  write the row the constraint forbids.
+
+Gate: 333 tests / 837 assertions, PHPStan level 8, no style errors.
+
+**Not included:** certificates on completion, and the reminder job for overdue
+work. Both belong to their own slices; the data they need is now in place.
 
 ### 2026-08-26 — Modules and lessons
 
@@ -342,6 +437,9 @@ the build, and phpcs was failing on it anyway.
 while `courses` and `lookups` do. Deleting a tenant with users still in it
 fails on the foreign key. That is arguably the safer behaviour, but it is an
 inconsistency worth a decision before the first production tenant is removed.
+
+*(Still open after the enrolments slice, which hit it again: every new table
+cascades from `tenants`, so `users` is now the only one that does not.)*
 
 ### 2026-08-25 — Legacy user import
 

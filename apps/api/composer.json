@@ -65,7 +65,7 @@
   "scripts": {
     "serve": "php -S 0.0.0.0:8080 -t public public/index.php",
     "console": "php bin/console",
-    "migrate": "php bin/console doctrine:migrations:migrate --no-interaction",
+    "migrate": "php bin/console migrations:migrate --no-interaction",
     "openapi": "php bin/console openapi:generate",
     "test": "phpunit",
     "stan": "phpstan analyse --memory-limit=512M",

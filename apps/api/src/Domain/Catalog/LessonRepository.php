@@ -31,6 +31,15 @@ interface LessonRepository
 
     public function find(string $tenantId, string $moduleId, string $id): ?Lesson;
 
+    /**
+     * Finds a lesson by its course rather than its module.
+     *
+     * The course player knows the course and the lesson it is showing; making
+     * it also track the module id would be bookkeeping for its own sake. The
+     * denormalised `course_id` column exists so this costs one query.
+     */
+    public function findInCourse(string $tenantId, string $courseId, string $id): ?Lesson;
+
     public function create(Lesson $lesson): Lesson;
 
     public function update(Lesson $lesson): Lesson;

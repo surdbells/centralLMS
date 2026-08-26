@@ -81,6 +81,20 @@ final class DbalLessonRepository implements LessonRepository
         return $row === false ? null : $this->hydrate($row);
     }
 
+    public function findInCourse(string $tenantId, string $courseId, string $id): ?Lesson
+    {
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                'SELECT %s FROM lessons
+                 WHERE id = :id AND course_id = :course AND tenant_id = :tenant AND deleted_at IS NULL',
+                self::COLUMNS,
+            ),
+            ['id' => $id, 'course' => $courseId, 'tenant' => $tenantId],
+        );
+
+        return $row === false ? null : $this->hydrate($row);
+    }
+
     public function create(Lesson $lesson): Lesson
     {
         $id = $this->connection->fetchOne(
