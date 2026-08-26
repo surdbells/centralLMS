@@ -1,32 +1,15 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { ApiBackend } from '../api/api-backend';
-import { ApiModule } from '../api/api-module';
 import { APP_ENVIRONMENT } from '../api/api-routing';
 import type { AppEnvironment } from '../../../environments/environment.model';
 import { AuthService } from './auth.service';
 import { SessionStore } from './session.store';
 
-const LEGACY_BASE = 'https://legacy.example.com';
 const V1_BASE = 'https://api.example.com/v1';
 
-function environment(
-  authBackend: ApiBackend,
-  others: Partial<Record<ApiModule, ApiBackend>> = {},
-): AppEnvironment {
-  return {
-    production: false,
-    api: { legacyBaseUrl: LEGACY_BASE, v1BaseUrl: V1_BASE },
-    moduleBackends: { [ApiModule.Auth]: authBackend, ...others },
-  };
-}
-
-/** Every module on the new API: the state after the migration finishes. */
-function allMigrated(): Partial<Record<ApiModule, ApiBackend>> {
-  return Object.fromEntries(
-    Object.values(ApiModule).map((module) => [module, ApiBackend.V1]),
-  ) as Partial<Record<ApiModule, ApiBackend>>;
+function environment(): AppEnvironment {
+  return { production: false, api: { baseUrl: V1_BASE } };
 }
 
 const V1_RESPONSE = {
@@ -49,39 +32,18 @@ const V1_RESPONSE = {
   },
 };
 
-const LEGACY_RESPONSE = {
-  response_code: 200,
-  status: 'success',
-  message: 'Login successful',
-  data: {
-    id: 119,
-    tenant_id: 1,
-    token: 'legacy-token',
-    email: 'ada@example.test',
-    first_name: 'Ada',
-    last_name: 'Lovelace',
-    is_active: true,
-    is_admin: true,
-    is_learner: true,
-    tenant: { id: 1, name: 'Acme', status: 'active' },
-  },
-};
-
 describe('AuthService', () => {
   let http: HttpTestingController;
   let store: SessionStore;
 
-  function configure(
-    backend: ApiBackend,
-    others: Partial<Record<ApiModule, ApiBackend>> = {},
-  ): AuthService {
+  function configure(): AuthService {
     TestBed.resetTestingModule();
 
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: APP_ENVIRONMENT, useValue: environment(backend, others) },
+        { provide: APP_ENVIRONMENT, useValue: environment() },
       ],
     });
 
@@ -104,11 +66,9 @@ describe('AuthService', () => {
     localStorage.clear();
   });
 
-  // --- the new API ------------------------------------------------------
-
-  describe('against the new API, with the migration finished', () => {
-    it('posts to /auth/login, not the legacy path', () => {
-      const auth = configure(ApiBackend.V1, allMigrated());
+  describe('signing in', () => {
+    it('posts the credentials to /auth/login', () => {
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
 
@@ -120,7 +80,7 @@ describe('AuthService', () => {
     });
 
     it('reads identity and permissions out of the response', () => {
-      const auth = configure(ApiBackend.V1, allMigrated());
+      const auth = configure();
       let signedIn: unknown;
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe((r) => (signedIn = r));
@@ -134,8 +94,8 @@ describe('AuthService', () => {
       expect(signedIn).toBeTruthy();
     });
 
-    it('keeps the refresh token, which the legacy never had', () => {
-      const auth = configure(ApiBackend.V1, allMigrated());
+    it('keeps the refresh token', () => {
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush(V1_RESPONSE);
@@ -144,9 +104,10 @@ describe('AuthService', () => {
     });
 
     it('leaves the legacy blob behind for the components still reading it', () => {
-      // Eighty-one components read sessionStorage.SESSION. Until they move,
-      // signing in through the new API has to write it or they all break.
-      const auth = configure(ApiBackend.V1, allMigrated());
+      // Sixty components still read sessionStorage.SESSION. Until they move,
+      // signing in has to write it or they all break. Delete this test with
+      // `writeLegacyBlob`.
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush(V1_RESPONSE);
@@ -166,7 +127,7 @@ describe('AuthService', () => {
 
     it('writes a blob a non-ascii name does not break', () => {
       // `btoa` throws above U+00FF, which would take the whole sign-in down.
-      const auth = configure(ApiBackend.V1, allMigrated());
+      const auth = configure();
 
       auth.signIn({ email: 'zoe@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush({
@@ -185,7 +146,7 @@ describe('AuthService', () => {
     });
 
     it('refreshes the access token without disturbing the identity', () => {
-      const auth = configure(ApiBackend.V1, allMigrated());
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush(V1_RESPONSE);
@@ -206,7 +167,7 @@ describe('AuthService', () => {
     it('signs out locally when the refresh token is rejected', () => {
       // Holding on to a token the server will not honour means retrying it on
       // every subsequent request.
-      const auth = configure(ApiBackend.V1, allMigrated());
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush(V1_RESPONSE);
@@ -224,7 +185,7 @@ describe('AuthService', () => {
     });
 
     it('tells the server about a sign-out', () => {
-      const auth = configure(ApiBackend.V1, allMigrated());
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush(V1_RESPONSE);
@@ -240,7 +201,7 @@ describe('AuthService', () => {
     it('signs out here even when the server cannot be reached', () => {
       // Leaving somebody signed in on a shared machine because the network
       // was down is the wrong way for this to fail.
-      const auth = configure(ApiBackend.V1, allMigrated());
+      const auth = configure();
 
       auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
       http.expectOne(`${V1_BASE}/auth/login`).flush(V1_RESPONSE);
@@ -251,115 +212,6 @@ describe('AuthService', () => {
       expect(sessionStorage.getItem('SESSION')).toBeNull();
 
       http.expectOne(`${V1_BASE}/auth/logout`).error(new ProgressEvent('network'));
-    });
-  });
-
-  // --- the legacy API ---------------------------------------------------
-
-  describe('against the legacy API', () => {
-    it('posts to the legacy path', () => {
-      const auth = configure(ApiBackend.Legacy);
-
-      auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
-
-      const request = http.expectOne(`${LEGACY_BASE}/authentication/login`);
-
-      expect(request.request.method).toBe('POST');
-      request.flush(LEGACY_RESPONSE);
-    });
-
-    it('reads the flat snake_case payload into the same session', () => {
-      const auth = configure(ApiBackend.Legacy);
-
-      auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush(LEGACY_RESPONSE);
-
-      expect(store.userId()).toBe('119');
-      expect(store.tenantId()).toBe('1');
-      expect(store.session()?.token).toBe('legacy-token');
-    });
-
-    it('maps the four role booleans onto role slugs', () => {
-      const auth = configure(ApiBackend.Legacy);
-      let roles: readonly string[] = [];
-
-      auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe((r) => (roles = r.roles));
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush(LEGACY_RESPONSE);
-
-      expect(roles).toEqual(['org_admin', 'learner']);
-    });
-
-    it('claims no permissions, because the legacy sends none', () => {
-      // Claiming any would let the UI offer something the API then refuses.
-      const auth = configure(ApiBackend.Legacy);
-
-      auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush(LEGACY_RESPONSE);
-
-      expect(store.permissions()).toEqual([]);
-    });
-
-    it('does not store a session for a deactivated account', () => {
-      // Otherwise a refresh walks straight back into a session the sign-in
-      // screen had just refused.
-      const auth = configure(ApiBackend.Legacy);
-      let signedIn: { isActive: boolean } | undefined;
-
-      auth
-        .signIn({ email: 'ada@example.test', password: 'secret' })
-        .subscribe((r) => (signedIn = r));
-
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush({
-        ...LEGACY_RESPONSE,
-        data: { ...LEGACY_RESPONSE.data, is_active: false },
-      });
-
-      expect(signedIn?.isActive).toBeFalse();
-      expect(store.isAuthenticated()).toBeFalse();
-      expect(sessionStorage.getItem('SESSION')).toBeNull();
-    });
-
-    it('does not store a session for a suspended organisation', () => {
-      const auth = configure(ApiBackend.Legacy);
-      let signedIn: { tenantIsActive: boolean } | undefined;
-
-      auth
-        .signIn({ email: 'ada@example.test', password: 'secret' })
-        .subscribe((r) => (signedIn = r));
-
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush({
-        ...LEGACY_RESPONSE,
-        data: { ...LEGACY_RESPONSE.data, tenant: { id: 1, name: 'Acme', status: 'suspended' } },
-      });
-
-      expect(signedIn?.tenantIsActive).toBeFalse();
-      expect(store.isAuthenticated()).toBeFalse();
-    });
-
-    it('does not attempt a refresh the legacy cannot serve', () => {
-      // Its tokens never rotated, so a 401 there means wrong credentials.
-      const auth = configure(ApiBackend.Legacy);
-
-      auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush(LEGACY_RESPONSE);
-
-      let refreshed: boolean | undefined;
-      auth.refresh().subscribe((r) => (refreshed = r));
-
-      expect(refreshed).toBeFalse();
-      http.expectNone(`${LEGACY_BASE}/authentication/login`);
-    });
-
-    it('signs out locally without calling a route that does not exist', () => {
-      const auth = configure(ApiBackend.Legacy);
-
-      auth.signIn({ email: 'ada@example.test', password: 'secret' }).subscribe();
-      http.expectOne(`${LEGACY_BASE}/authentication/login`).flush(LEGACY_RESPONSE);
-
-      auth.signOut().subscribe();
-
-      expect(store.isAuthenticated()).toBeFalse();
-      http.expectNone(`${LEGACY_BASE}/authentication/login`);
     });
   });
 });

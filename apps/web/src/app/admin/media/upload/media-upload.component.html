@@ -29,8 +29,8 @@
 
       <div class="accepted-types">
         <span class="type-badge" *ngFor="let type of acceptedTypes"
-              [style.--type-color]="getMediaTypeColor(type)">
-          <i [class]="getMediaTypeIcon(type)"></i>
+              [style.--type-color]="colourFor(type)">
+          <i [class]="iconFor(type)"></i>
           {{ type }}
         </span>
       </div>
@@ -111,9 +111,9 @@
         [class.error]="queuedFile.status === 'error'">
 
         <!-- File Preview/Icon -->
-        <div class="file-preview" [style.--type-color]="getMediaTypeColor(queuedFile.mediaType)">
+        <div class="file-preview" [style.--type-color]="colourFor(queuedFile.kind)">
           <img *ngIf="queuedFile.preview" [src]="queuedFile.preview" alt="Preview">
-          <i *ngIf="!queuedFile.preview" [class]="getMediaTypeIcon(queuedFile.mediaType)"></i>
+          <i *ngIf="!queuedFile.preview" [class]="iconFor(queuedFile.kind)"></i>
 
           <!-- Upload Progress Overlay -->
           <div class="progress-overlay" *ngIf="queuedFile.status === 'uploading'">
@@ -137,13 +137,13 @@
         <!-- File Info -->
         <div class="file-info">
           <div class="file-name" [title]="queuedFile.file.name">
-            {{ queuedFile.config.title || queuedFile.file.name }}
+            {{ queuedFile.details.title || queuedFile.file.name }}
           </div>
           <div class="file-meta">
-            <span class="media-type">{{ queuedFile.mediaType }}</span>
+            <span class="media-type">{{ mediaService.labelFor(queuedFile.kind) }}</span>
             <span class="file-size">{{ mediaService.formatFileSize(queuedFile.file.size) }}</span>
-            <span class="version-label" *ngIf="queuedFile.config.version_label">
-              {{ queuedFile.config.version_label }}
+            <span class="version-label" *ngIf="queuedFile.details.versionLabel">
+              {{ queuedFile.details.versionLabel }}
             </span>
           </div>
 
@@ -154,12 +154,12 @@
 
           <!-- Success Info -->
           <div class="success-info" *ngIf="queuedFile.response">
-            <a [href]="queuedFile.response.file_url" target="_blank" class="file-link">
+            <a [href]="mediaService.fileUrl(queuedFile.response)" target="_blank" class="file-link">
               <i class="bi bi-box-arrow-up-right"></i>
               View file
             </a>
-            <span *ngIf="queuedFile.response.version.version_number > 1" class="version-badge">
-              v{{ queuedFile.response.version.version_number }}
+            <span *ngIf="queuedFile.response.versionNumber > 1" class="version-badge">
+              v{{ queuedFile.response.versionNumber }}
             </span>
           </div>
         </div>
@@ -198,8 +198,8 @@
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>
-        <i [class]="getMediaTypeIcon(selectedFile?.mediaType || '')"
-           [style.color]="getMediaTypeColor(selectedFile?.mediaType || '')"></i>
+        <i [class]="iconFor(selectedFile?.kind ?? 'document')"
+           [style.color]="colourFor(selectedFile?.kind ?? 'document')"></i>
         File Settings
       </h3>
       <button class="btn-close" (click)="closeConfigModal()">
@@ -228,7 +228,7 @@
           placeholder="Enter file description (optional)"></textarea>
       </div>
 
-      <div class="form-row" *ngIf="parentMediaId">
+      <div class="form-row" *ngIf="replacesMediaId">
         <div class="form-group">
           <label for="versionLabel">Version Label</label>
           <input
@@ -240,7 +240,7 @@
         </div>
       </div>
 
-      <div class="form-group" *ngIf="parentMediaId">
+      <div class="form-group" *ngIf="replacesMediaId">
         <label for="versionNotes">Version Notes</label>
         <textarea
           id="versionNotes"

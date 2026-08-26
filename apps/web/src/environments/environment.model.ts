@@ -1,27 +1,20 @@
-import type { ApiBackend } from '../app/core/api/api-backend';
-import type { ApiModule } from '../app/core/api/api-module';
-
 /**
  * The shape every environment file must satisfy.
  *
- * Typing this is the point: the old environment files were untyped object
+ * Typing this is the point: the original environment files were untyped object
  * literals that had silently drifted apart, so `environment.api.baseUrl`
  * existed in development and was `undefined` in production.
+ *
+ * There is one base URL. During the migration there were two, with a
+ * per-module switchboard deciding which served what; every module has now
+ * moved, so the switchboard and the second URL are gone. See
+ * `core/api/api-routing.ts`.
  */
 export interface AppEnvironment {
   readonly production: boolean;
 
   readonly api: {
-    /** Base URL of the legacy PHP backend, no trailing slash. */
-    readonly legacyBaseUrl: string;
-    /** Base URL of the Slim API, no trailing slash. */
-    readonly v1BaseUrl: string;
+    /** Base URL of the API, no trailing slash. */
+    readonly baseUrl: string;
   };
-
-  /**
-   * Per-module backend overrides. Anything absent falls back to
-   * {@link ApiBackend.Legacy}, so a newly added module keeps working against
-   * the old backend until it is deliberately migrated.
-   */
-  readonly moduleBackends: Partial<Record<ApiModule, ApiBackend>>;
 }

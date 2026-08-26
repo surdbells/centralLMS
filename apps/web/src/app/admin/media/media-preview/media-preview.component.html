@@ -32,15 +32,17 @@
     <div class="tab-pane fade show active" id="preview" role="tabpanel">
       <h3 class="title">{{ data.title }}</h3>
       <div class="ratio ratio-16x9">
-        <div [ngSwitch]="data.type" class="card-body">
-          <video *ngSwitchCase="'VIDEO'" controls autoplay>
+        <div [ngSwitch]="data.kind" class="card-body">
+          <video *ngSwitchCase="'video'" controls autoplay>
             <source [src]="data.url" type="video/mp4" />
           </video>
-          <audio *ngSwitchCase="'AUDIO'" controls autoplay>
+          <audio *ngSwitchCase="'audio'" controls autoplay>
             <source [src]="data.url" type="audio/mpeg" />
           </audio>
-          <iframe *ngSwitchCase="'PDF'" [src]="safeUrl"></iframe>
-          <iframe  *ngSwitchCase="'SCORM'" [src]="safeUrl" allowfullscreen ></iframe>
+          <img *ngSwitchCase="'image'" [src]="data.url" [alt]="data.title" />
+          <iframe *ngSwitchCase="'pdf'" [src]="safeUrl"></iframe>
+          <iframe *ngSwitchCase="'scorm'" [src]="safeUrl" allowfullscreen></iframe>
+          <iframe *ngSwitchDefault [src]="safeUrl"></iframe>
         </div>
       </div>
     </div>
@@ -55,13 +57,9 @@
               <p>Upload a new version of {{ data.title }}</p>
             </div>
             <app-media-upload
-              [token]="user_session.token"
-              [userId]="user_session.id"
-              [tenantId]="user_session.tenant_id"
-              [parentMediaId]="data.id"
-              [multiple]="true"
-              [acceptedTypes]="['VIDEO', 'AUDIO', 'PDF', 'SCORM']"
-              [maxFiles]="10"
+              [replacesMediaId]="data.id"
+              [multiple]="false"
+              [maxFiles]="1"
               (uploadComplete)="onFileUploaded($event)"
               (uploadError)="onUploadError($event)"
               (allUploadsComplete)="onAllUploadsComplete($event)">
@@ -82,38 +80,34 @@
 
               <div class="files-grid">
                 <div class="file-card" *ngFor="let file of uploadedFiles; let i = index">
-                  <div class="file-icon" [ngSwitch]="file.media_type">
-                    <i *ngSwitchCase="'VIDEO'" class="bi bi-camera-video-fill video"></i>
-                    <i *ngSwitchCase="'AUDIO'" class="bi bi-music-note-beamed audio"></i>
-                    <i *ngSwitchCase="'PDF'" class="bi bi-file-earmark-pdf-fill pdf"></i>
-                    <i *ngSwitchCase="'SCORM'" class="bi bi-box-seam-fill scorm"></i>
-                    <i *ngSwitchDefault class="bi bi-file-earmark"></i>
-                  </div>
+                  <div class="file-icon">
+                        <i [class]='"bi " + iconFor(file.kind)'></i>
+                      </div>
                   <div class="file-details">
                     <h4 class="file-title">{{ file.title }}</h4>
                     <div class="file-meta">
-                      <span class="type-badge">{{ file.media_type }}</span>
-                      <span class="file-size">{{ file.file_size_formatted }}</span>
-                      <span class="version" *ngIf="file.version.version_number > 1">
-                            v{{ file.version.version_number }}
+                      <span class="type-badge">{{ labelFor(file.kind) }}</span>
+                      <span class="file-size">{{ formatFileSize(file.fileSize) }}</span>
+                      <span class="version" *ngIf="file.versionNumber > 1">
+                            v{{ file.versionNumber }}
                           </span>
                     </div>
 
                     <!-- Media specific info -->
-                    <div class="media-info" *ngIf="file.metadata">
-                        <span *ngIf="file.metadata.duration_formatted">
-                          <i class="bi bi-clock"></i> {{ file.metadata.duration_formatted }}
+                    <div class="media-info">
+                        <span *ngIf="file.duration">
+                          <i class="bi bi-clock"></i> {{ file.duration }}
                         </span>
-                      <span *ngIf="file.metadata.resolution">
-                          <i class="bi bi-aspect-ratio"></i> {{ file.metadata.resolution }}
+                      <span *ngIf="file.width && file.height">
+                          <i class="bi bi-aspect-ratio"></i> {{ file.width }}&times;{{ file.height }}
                         </span>
-                      <span *ngIf="file.metadata.page_count">
-                          <i class="bi bi-file-text"></i> {{ file.metadata.page_count }} pages
+                      <span *ngIf="file.pageCount">
+                          <i class="bi bi-file-text"></i> {{ file.pageCount }} pages
                         </span>
                     </div>
                   </div>
                   <div class="file-actions">
-                    <a [href]="file.file_url" target="_blank" class="btn-action" title="View">
+                    <a [href]="fileUrl(file)" target="_blank" class="btn-action" title="View">
                       <i class="bi bi-eye"></i>
                     </a>
                     <button class="btn-action danger" (click)="removeUploadedFile(i)" title="Remove">

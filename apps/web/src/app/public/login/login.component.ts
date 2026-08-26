@@ -81,14 +81,10 @@ export class LoginComponent implements OnInit {
       next: (signedIn) => {
         this.loading = false;
 
-        if (!signedIn.tenantIsActive) {
-          this.error_notification(
-            'Your organization account is currently inactive, contact system administrator for support.',
-          );
-
-          return;
-        }
-
+        // A suspended organisation is refused a token at all, so reaching
+        // here means the organisation is fine and only the account can be at
+        // fault. The separate check this replaced existed because the legacy
+        // backend signed people in first and reported the tenant afterwards.
         if (!signedIn.isActive) {
           this.error_notification(
             'Your account is inactive, contact system administrator for support.',

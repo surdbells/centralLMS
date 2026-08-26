@@ -1,52 +1,433 @@
-import { ApiModule } from './api-module';
+/**
+ * Every path this application calls, in one place.
+ *
+ * Replaces `GlobalComponent`, which was 192 lines of string concatenation
+ * against a hardcoded production host — `public static baseURL =
+ * 'https://api.centrallms.com'` — with the base URL glued on at each of its
+ * ~130 constants. Two of them were malformed (`...comutility/shared/user`,
+ * `.../shared//mark_notifications`) and nothing noticed, because the strings
+ * were never checked against anything.
+ *
+ * Here a path is a path: no host, no credentials, no query string. {@link ApiRouter}
+ * makes it absolute and {@link ApiClient} sends it. Parameterised paths are
+ * functions, so an id cannot be forgotten or interpolated in the wrong place.
+ */
+export const Endpoints = {
+  // --- operational ------------------------------------------------------
+  platform: {
+    health: '/health',
+    version: '/version',
+  },
+
+  // --- identity ---------------------------------------------------------
+  auth: {
+    login: '/auth/login',
+    refresh: '/auth/refresh',
+    logout: '/auth/logout',
+    /** The signed-in person, with their resolved permissions. */
+    me: '/me',
+  },
+
+  users: {
+    list: '/users',
+    create: '/users',
+    statistics: '/users/statistics',
+    instructors: '/users/instructors',
+    roles: '/users/roles',
+    show: (id: string) => `/users/${id}`,
+    update: (id: string) => `/users/${id}`,
+    status: (id: string) => `/users/${id}/status`,
+    delete: (id: string) => `/users/${id}`,
+    password: (id: string) => `/users/${id}/password`,
+    skills: (id: string) => `/users/${id}/skills`,
+  },
+
+  /**
+   * Reference data — branches, departments, teams, levels, job titles,
+   * categories.
+   *
+   * Six routes parameterised by kind, where the legacy had six endpoints per
+   * kind across 52 files. `lookupPaths()` below gives one kind's set.
+   */
+  lookups: {
+    list: (kind: LookupKind) => `/lookups/${kind}`,
+    active: (kind: LookupKind) => `/lookups/${kind}/active`,
+    create: (kind: LookupKind) => `/lookups/${kind}`,
+    show: (kind: LookupKind, id: string) => `/lookups/${kind}/${id}`,
+    update: (kind: LookupKind, id: string) => `/lookups/${kind}/${id}`,
+    status: (kind: LookupKind, id: string) => `/lookups/${kind}/${id}/status`,
+  },
+
+  // --- catalogue --------------------------------------------------------
+  courses: {
+    /** What a learner may browse: published, and visible to them. */
+    catalogue: '/courses/catalogue',
+    list: '/courses',
+    create: '/courses',
+    show: (id: string) => `/courses/${id}`,
+    update: (id: string) => `/courses/${id}`,
+    status: (id: string) => `/courses/${id}/status`,
+    /** Modules and lessons in one call, for the player. */
+    outline: (id: string) => `/courses/${id}/outline`,
+    selfEnroll: (id: string) => `/courses/${id}/enroll`,
+    skills: (id: string) => `/courses/${id}/skills`,
+  },
+
+  modules: {
+    list: (courseId: string) => `/courses/${courseId}/modules`,
+    create: (courseId: string) => `/courses/${courseId}/modules`,
+    reorder: (courseId: string) => `/courses/${courseId}/modules/order`,
+    show: (courseId: string, id: string) => `/courses/${courseId}/modules/${id}`,
+    update: (courseId: string, id: string) => `/courses/${courseId}/modules/${id}`,
+    status: (courseId: string, id: string) => `/courses/${courseId}/modules/${id}/status`,
+    delete: (courseId: string, id: string) => `/courses/${courseId}/modules/${id}`,
+  },
+
+  lessons: {
+    list: (courseId: string, moduleId: string) => `/courses/${courseId}/modules/${moduleId}/lessons`,
+    create: (courseId: string, moduleId: string) =>
+      `/courses/${courseId}/modules/${moduleId}/lessons`,
+    reorder: (courseId: string, moduleId: string) =>
+      `/courses/${courseId}/modules/${moduleId}/lessons/order`,
+    show: (courseId: string, moduleId: string, id: string) =>
+      `/courses/${courseId}/modules/${moduleId}/lessons/${id}`,
+    update: (courseId: string, moduleId: string, id: string) =>
+      `/courses/${courseId}/modules/${moduleId}/lessons/${id}`,
+    status: (courseId: string, moduleId: string, id: string) =>
+      `/courses/${courseId}/modules/${moduleId}/lessons/${id}/status`,
+    delete: (courseId: string, moduleId: string, id: string) =>
+      `/courses/${courseId}/modules/${moduleId}/lessons/${id}`,
+  },
+
+  // --- learning ---------------------------------------------------------
+  enrollments: {
+    list: (courseId: string) => `/courses/${courseId}/enrollments`,
+    assign: (courseId: string) => `/courses/${courseId}/enrollments`,
+    unenroll: (courseId: string) => `/courses/${courseId}/enrollments`,
+    stats: (courseId: string) => `/courses/${courseId}/enrollments/stats`,
+    history: (courseId: string, userId: string) =>
+      `/courses/${courseId}/enrollments/${userId}/history`,
+  },
+
+  /**
+   * The learner's own view. No user id in any of these — the caller is the
+   * subject, which is what stops one person reading another's progress by
+   * changing a number.
+   */
+  me: {
+    enrollments: '/me/enrollments',
+    course: (courseId: string) => `/me/enrollments/${courseId}`,
+    recordProgress: (courseId: string, lessonId: string) =>
+      `/me/enrollments/${courseId}/lessons/${lessonId}/progress`,
+    certificates: '/me/certificates',
+    gamification: '/me/gamification',
+    gamificationHistory: '/me/gamification/history',
+    skills: '/me/skills',
+    dashboard: '/dashboards/me',
+  },
+
+  // --- assessment -------------------------------------------------------
+  assessments: {
+    list: '/assessments',
+    create: '/assessments',
+    show: (id: string) => `/assessments/${id}`,
+    update: (id: string) => `/assessments/${id}`,
+    status: (id: string) => `/assessments/${id}/status`,
+
+    sections: (id: string) => `/assessments/${id}/sections`,
+    createSection: (id: string) => `/assessments/${id}/sections`,
+    updateSection: (id: string, sectionId: string) =>
+      `/assessments/${id}/sections/${sectionId}`,
+    deleteSection: (id: string, sectionId: string) =>
+      `/assessments/${id}/sections/${sectionId}`,
+    reorderSections: (id: string) => `/assessments/${id}/sections/order`,
+
+    rules: (id: string) => `/assessments/${id}/rules`,
+    createRule: (id: string) => `/assessments/${id}/rules`,
+    deleteRule: (id: string, ruleId: string) => `/assessments/${id}/rules/${ruleId}`,
+
+    questions: (id: string) => `/assessments/${id}/questions`,
+    detachQuestion: (id: string, questionId: string) =>
+      `/assessments/${id}/questions/${questionId}`,
+    reorderQuestions: (id: string) => `/assessments/${id}/questions/order`,
+    setQuestionSection: (id: string, questionId: string) =>
+      `/assessments/${id}/questions/${questionId}/section`,
+  },
+
+  banks: {
+    list: '/question-banks',
+    create: '/question-banks',
+    show: (id: string) => `/question-banks/${id}`,
+    update: (id: string) => `/question-banks/${id}`,
+    delete: (id: string) => `/question-banks/${id}`,
+  },
+
+  questions: {
+    list: (bankId: string) => `/question-banks/${bankId}/questions`,
+    create: (bankId: string) => `/question-banks/${bankId}/questions`,
+    update: (bankId: string, id: string) => `/question-banks/${bankId}/questions/${id}`,
+  },
+
+  attempts: {
+    start: (assessmentId: string) => `/assessments/${assessmentId}/attempts`,
+    show: (id: string) => `/attempts/${id}`,
+    answer: (id: string, questionId: string) => `/attempts/${id}/answers/${questionId}`,
+    submit: (id: string) => `/attempts/${id}/submit`,
+    /** What a marker has waiting. */
+    queue: '/attempts/grading-queue',
+    grade: (id: string, questionId: string) => `/attempts/${id}/answers/${questionId}/grade`,
+  },
+
+  proctoring: {
+    settings: (assessmentId: string) => `/assessments/${assessmentId}/proctoring`,
+    openSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
+    checkSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
+    recordViolation: (attemptId: string) => `/attempts/${attemptId}/proctoring/violations`,
+    recordSnapshot: (attemptId: string) => `/attempts/${attemptId}/proctoring/snapshots`,
+    reviewQueue: '/proctoring/review',
+    review: (attemptId: string) => `/proctoring/review/${attemptId}`,
+    reviewViolation: (attemptId: string, violationId: string) =>
+      `/proctoring/review/${attemptId}/violations/${violationId}`,
+  },
+
+  // --- instructor-led training -----------------------------------------
+  trainings: {
+    list: '/trainings',
+    create: '/trainings',
+    show: (id: string) => `/trainings/${id}`,
+    update: (id: string) => `/trainings/${id}`,
+    status: (id: string) => `/trainings/${id}/status`,
+    delete: (id: string) => `/trainings/${id}`,
+    roster: (id: string) => `/trainings/${id}/enrollments`,
+    assign: (id: string) => `/trainings/${id}/enrollments`,
+    withdraw: (id: string, userId: string) => `/trainings/${id}/enrollments/${userId}`,
+    selfEnrol: (id: string) => `/trainings/${id}/enroll`,
+  },
+
+  sessions: {
+    create: (trainingId: string) => `/trainings/${trainingId}/sessions`,
+    update: (trainingId: string, id: string) => `/trainings/${trainingId}/sessions/${id}`,
+    status: (trainingId: string, id: string) => `/trainings/${trainingId}/sessions/${id}/status`,
+    /** Books the real meeting with Zoom, Meet or Teams. */
+    meeting: (trainingId: string, id: string) => `/trainings/${trainingId}/sessions/${id}/meeting`,
+    qr: (trainingId: string, id: string) => `/trainings/${trainingId}/sessions/${id}/qr`,
+    reminders: (trainingId: string, id: string) =>
+      `/trainings/${trainingId}/sessions/${id}/reminders`,
+  },
+
+  attendance: {
+    register: (trainingId: string, sessionId: string) =>
+      `/trainings/${trainingId}/sessions/${sessionId}/attendance`,
+    mark: (trainingId: string, sessionId: string) =>
+      `/trainings/${trainingId}/sessions/${sessionId}/attendance`,
+    checkIn: (trainingId: string, sessionId: string) =>
+      `/trainings/${trainingId}/sessions/${sessionId}/check-in`,
+    sync: (trainingId: string, sessionId: string) =>
+      `/trainings/${trainingId}/sessions/${sessionId}/attendance/sync`,
+  },
+
+  /**
+   * Conferencing accounts, connected per tenant.
+   *
+   * No key is ever shipped to the browser: the API holds the credentials
+   * encrypted and the OAuth exchange happens server-side. The original
+   * `environment.ts` had a live Zoom API key committed in it.
+   */
+  integrations: {
+    list: '/integrations/video',
+    connect: (provider: string) => `/integrations/video/${provider}/connect`,
+    callback: (provider: string) => `/integrations/video/${provider}/callback`,
+    update: (provider: string) => `/integrations/video/${provider}`,
+    disconnect: (provider: string) => `/integrations/video/${provider}`,
+    providers: '/integrations/video/providers',
+  },
+
+  // --- certificates -----------------------------------------------------
+  certificateTemplates: {
+    list: '/certificate-templates',
+    create: '/certificate-templates',
+    show: (id: string) => `/certificate-templates/${id}`,
+    update: (id: string) => `/certificate-templates/${id}`,
+    delete: (id: string) => `/certificate-templates/${id}`,
+    preview: (id: string) => `/certificate-templates/${id}/preview`,
+  },
+
+  certificates: {
+    list: '/certificates',
+    issue: '/certificates',
+    show: (id: string) => `/certificates/${id}`,
+    /** The rendered document. */
+    render: (id: string) => `/certificates/${id}/render`,
+    history: (id: string) => `/certificates/${id}/history`,
+    revoke: (id: string) => `/certificates/${id}/revoke`,
+    reinstate: (id: string) => `/certificates/${id}/reinstate`,
+    /** Unauthenticated on purpose — a stranger checks a certificate. */
+    verify: (hash: string) => `/verify/${hash}`,
+    verifyByCode: '/verify',
+  },
+
+  // --- media ------------------------------------------------------------
+  media: {
+    list: '/media',
+    upload: '/media',
+    statistics: '/media/statistics',
+    show: (id: string) => `/media/${id}`,
+    update: (id: string) => `/media/${id}`,
+    delete: (id: string) => `/media/${id}`,
+    /** The bytes, served through the API so every fetch is checked. */
+    file: (id: string) => `/media/${id}/file`,
+    versions: (id: string) => `/media/${id}/versions`,
+    uploadVersion: (id: string) => `/media/${id}/versions`,
+  },
+
+  // --- notes ------------------------------------------------------------
+  notes: {
+    list: '/me/notes',
+    create: '/me/notes',
+    statistics: '/me/notes/statistics',
+    show: (id: string) => `/me/notes/${id}`,
+    update: (id: string) => `/me/notes/${id}`,
+    pin: (id: string) => `/me/notes/${id}/pin`,
+    delete: (id: string) => `/me/notes/${id}`,
+  },
+
+  // --- skills -----------------------------------------------------------
+  skills: {
+    list: '/skills',
+    create: '/skills',
+    statistics: '/skills/statistics',
+    categories: '/skills/categories',
+    createCategory: '/skills/categories',
+    updateCategory: (id: string) => `/skills/categories/${id}`,
+    deleteCategory: (id: string) => `/skills/categories/${id}`,
+    show: (id: string) => `/skills/${id}`,
+    update: (id: string) => `/skills/${id}`,
+    delete: (id: string) => `/skills/${id}`,
+    courses: (id: string) => `/skills/${id}/courses`,
+    learners: (id: string) => `/skills/${id}/learners`,
+  },
+
+  // --- learning paths ---------------------------------------------------
+  paths: {
+    list: '/paths',
+    create: '/paths',
+    statistics: '/paths/statistics',
+    catalogue: '/paths/catalogue',
+    show: (id: string) => `/paths/${id}`,
+    update: (id: string) => `/paths/${id}`,
+    status: (id: string) => `/paths/${id}/status`,
+    delete: (id: string) => `/paths/${id}`,
+
+    sections: (id: string) => `/paths/${id}/sections`,
+    createSection: (id: string) => `/paths/${id}/sections`,
+    updateSection: (id: string, sectionId: string) => `/paths/${id}/sections/${sectionId}`,
+    deleteSection: (id: string, sectionId: string) => `/paths/${id}/sections/${sectionId}`,
+
+    items: (id: string) => `/paths/${id}/items`,
+    createItem: (id: string) => `/paths/${id}/items`,
+    reorderItems: (id: string) => `/paths/${id}/items/order`,
+    updateItem: (id: string, itemId: string) => `/paths/${id}/items/${itemId}`,
+    deleteItem: (id: string, itemId: string) => `/paths/${id}/items/${itemId}`,
+
+    enrollments: (id: string) => `/paths/${id}/enrollments`,
+    enrol: (id: string) => `/paths/${id}/enrollments`,
+    withdraw: (id: string, userId: string) => `/paths/${id}/enrollments/${userId}`,
+
+    mine: '/me/paths',
+    mineShow: (id: string) => `/me/paths/${id}`,
+    selfEnrol: (id: string) => `/me/paths/${id}/enroll`,
+    completeItem: (id: string, itemId: string) => `/me/paths/${id}/items/${itemId}/complete`,
+  },
+
+  // --- messaging --------------------------------------------------------
+  conversations: {
+    list: '/me/conversations',
+    start: '/me/conversations',
+    unread: '/me/conversations/unread',
+    show: (id: string) => `/me/conversations/${id}`,
+    update: (id: string) => `/me/conversations/${id}`,
+    read: (id: string) => `/me/conversations/${id}/read`,
+    addParticipants: (id: string) => `/me/conversations/${id}/participants`,
+    removeParticipant: (id: string, userId: string) =>
+      `/me/conversations/${id}/participants/${userId}`,
+    messages: (id: string) => `/me/conversations/${id}/messages`,
+    send: (id: string) => `/me/conversations/${id}/messages`,
+    editMessage: (id: string, messageId: string) =>
+      `/me/conversations/${id}/messages/${messageId}`,
+    deleteMessage: (id: string, messageId: string) =>
+      `/me/conversations/${id}/messages/${messageId}`,
+  },
+
+  // --- gamification -----------------------------------------------------
+  gamification: {
+    mine: '/me/gamification',
+    history: '/me/gamification/history',
+    leaderboard: '/gamification/leaderboard',
+    levels: '/gamification/levels',
+    saveLevel: '/gamification/levels',
+    badges: '/gamification/badges',
+    createBadge: '/gamification/badges',
+    updateBadge: (id: string) => `/gamification/badges/${id}`,
+    deleteBadge: (id: string) => `/gamification/badges/${id}`,
+    awardPoints: (userId: string) => `/users/${userId}/points`,
+    awardBadge: (userId: string, badgeId: string) => `/users/${userId}/badges/${badgeId}`,
+    revokeBadge: (userId: string, badgeId: string) => `/users/${userId}/badges/${badgeId}`,
+  },
+
+  // --- notifications ----------------------------------------------------
+  notifications: {
+    list: '/me/notifications',
+    unreadCount: '/me/notifications/unread-count',
+    show: (id: string) => `/me/notifications/${id}`,
+    read: (id: string) => `/me/notifications/${id}/read`,
+    readAll: '/me/notifications/read-all',
+    delete: (id: string) => `/me/notifications/${id}`,
+    preferences: '/me/notification-preferences',
+    savePreferences: '/me/notification-preferences',
+    /** Sending to other people; needs `notification.send`. */
+    announce: '/notifications/announce',
+    deliveries: '/notifications/deliveries',
+  },
+
+  // --- reporting --------------------------------------------------------
+  reports: {
+    catalogue: '/reports',
+    describe: (key: string) => `/reports/${key}/describe`,
+    run: (key: string) => `/reports/${key}`,
+    export: (key: string) => `/reports/${key}/export`,
+    learners: '/reports/learners',
+    saved: '/reports/saved',
+    createSaved: '/reports/saved',
+    showSaved: (id: string) => `/reports/saved/${id}`,
+    updateSaved: (id: string) => `/reports/saved/${id}`,
+    deleteSaved: (id: string) => `/reports/saved/${id}`,
+    savedRuns: (id: string) => `/reports/saved/${id}/runs`,
+  },
+
+  // --- dashboards -------------------------------------------------------
+  dashboards: {
+    admin: '/dashboards/admin',
+    me: '/dashboards/me',
+  },
+
+  // --- organisation settings -------------------------------------------
+  settings: {
+    show: '/settings',
+    update: '/settings',
+    catalogue: '/settings/catalogue',
+    history: '/settings/history',
+    reset: (category: string) => `/settings/${category}/reset`,
+    /** Branding and the password rules, before anybody has signed in. */
+    public: '/settings/public',
+  },
+} as const;
 
 /**
- * Every API path this application calls, grouped by the module that owns it.
+ * The kinds of reference data.
  *
- * Replaces `GlobalComponent`, which held 97 flat `static` strings each
- * concatenating a hardcoded production URL. Paths here are *relative*: the
- * base URL comes from `ApiRouter`, so a module can be migrated without editing
- * this file at all.
- *
- * Three bugs the old constants shipped with, fixed by construction:
- *
- *  - `utility/shared/user` had no leading slash, producing
- *    `https://api.centrallms.comutility/shared/user`
- *  - `mark_notifications` had a doubled slash
- *  - `updateCourseStatus` and `deleteCourse` were declared and never assigned,
- *    so they were `undefined` at runtime
+ * A closed union, so `lookups/branchs` cannot be typed — which the legacy's
+ * 52 hand-written endpoint constants had no way to prevent.
  */
-
-/** The six operations every legacy dictionary resource exposes. */
-export interface CrudPaths {
-  readonly create: string;
-  readonly update: string;
-  readonly list: string;
-  readonly single: string;
-  readonly status: string;
-  readonly active: string;
-}
-
-/**
- * Builds the standard six paths for a dictionary resource.
- *
- * The seven dictionary resources are 42 of the 96 live endpoints and are
- * byte-for-byte identical apart from their segment — which is exactly why the
- * new API collapses them to one generic controller. Expressing that here makes
- * the duplication visible instead of copying it 42 times.
- */
-function crud(base: string): CrudPaths {
-  return {
-    create: `${base}/create`,
-    update: `${base}/update`,
-    list: `${base}/list`,
-    single: `${base}/single`,
-    status: `${base}/status`,
-    active: `${base}/active`,
-  };
-}
-
-/** The reference-data kinds the new API understands. */
 export type LookupKind =
   | 'branch'
   | 'department'
@@ -55,218 +436,23 @@ export type LookupKind =
   | 'job_title'
   | 'category';
 
-/** REST paths for one reference-data kind on the new API. */
+/** One kind's six paths, for a screen that manages a single kind. */
 export interface LookupPaths {
   readonly list: string;
   readonly active: string;
   readonly create: string;
-  readonly one: (id: string) => string;
-  readonly status: (id: string) => string;
+  show(id: string): string;
+  update(id: string): string;
+  status(id: string): string;
 }
 
-/**
- * Six routes replace the 36 legacy endpoints — the kind is a path parameter
- * rather than a separate set of files per resource.
- */
-function lookupPaths(kind: LookupKind): LookupPaths {
-  const base = `/lookups/${kind}`;
-
+export function lookupPaths(kind: LookupKind): LookupPaths {
   return {
-    list: base,
-    active: `${base}/active`,
-    create: base,
-    one: (id: string) => `${base}/${id}`,
-    status: (id: string) => `${base}/${id}/status`,
+    list: Endpoints.lookups.list(kind),
+    active: Endpoints.lookups.active(kind),
+    create: Endpoints.lookups.create(kind),
+    show: (id: string) => Endpoints.lookups.show(kind, id),
+    update: (id: string) => Endpoints.lookups.update(kind, id),
+    status: (id: string) => Endpoints.lookups.status(kind, id),
   };
 }
-
-export const Endpoints = {
-  platform: {
-    module: ApiModule.Platform,
-
-    /**
-     * `me` is inside the version prefix; `health` and `version` are not — a
-     * load balancer probing them should not have to know about `/v1`. So the
-     * first two resolve to `/v1/health` here and would 404.
-     *
-     * Left as-is because nothing calls them: no screen in this application
-     * shows a health check. A diagnostics page that wants one should call the
-     * host directly rather than through a module base that assumes a version.
-     */
-    health: '/health',
-    version: '/version',
-    me: '/me',
-  },
-
-  auth: {
-    module: ApiModule.Auth,
-
-    /**
-     * The new API renamed the segment and split refresh out of login, so both
-     * spellings are declared and `ApiRouter` picks. A caller writes the same
-     * line either side of the migration.
-     */
-    login: { legacy: '/authentication/login', v1: '/auth/login' },
-
-    /**
-     * No legacy equivalent: the old backend issued one long-lived token and
-     * never rotated it. Pointed at the legacy login so a mis-flip fails
-     * loudly with a 4xx rather than silently signing somebody out.
-     */
-    refresh: { legacy: '/authentication/login', v1: '/auth/refresh' },
-
-    /**
-     * Also new. The legacy had no logout at all — a token stayed valid until
-     * it expired, which is why signing out only cleared the browser.
-     */
-    logout: { legacy: '/authentication/login', v1: '/auth/logout' },
-
-    register: '/authentication/register',
-    validate: '/authentication/validate',
-    validateEmail: '/authentication/validate-email',
-    reset: '/authentication/reset',
-    confirm: '/authentication/confirm',
-  },
-
-  users: {
-    module: ApiModule.Users,
-    list: '/user/user_list',
-    collection: '/user/users',
-    single: '/user/single',
-    create: '/user/create',
-    update: '/user/update',
-    status: '/user/status',
-    changePassword: '/user/change_password',
-    statistics: '/user/statistics',
-    instructors: '/user/instructor',
-    notes: '/user/notes/list',
-  },
-
-  /**
-   * Reference data.
-   *
-   * The only module so far whose **path shape** changes on migration, not just
-   * its host. The legacy backend has six endpoints per resource; the new API
-   * has six routes in total, parameterised by kind.
-   *
-   * Both shapes live here. A service picks between them with
-   * `ApiRouter.isMigrated(ApiModule.Dictionary)` — see `lookupPaths()`.
-   */
-  dictionary: {
-    module: ApiModule.Dictionary,
-
-    /** Legacy: `/dictionary/branches/create`, `/dictionary/branches/list`, … */
-    legacy: {
-      branches: crud('/dictionary/branches'),
-      categories: crud('/dictionary/categories'),
-      departments: crud('/dictionary/departments'),
-      jobTitles: crud('/dictionary/jobtitles'),
-      levels: crud('/dictionary/levels'),
-      teams: crud('/dictionary/team'),
-    },
-
-    /** New API: `/lookups/{kind}` with real HTTP verbs. */
-    v1: (kind: LookupKind) => lookupPaths(kind),
-
-    /**
-     * Certificate templates are served under `/dictionary/` by the legacy
-     * backend but are not reference data — 12 columns including template
-     * bodies. They move with the certificates module, so they keep the legacy
-     * shape only.
-     */
-    certificateTemplates: crud('/dictionary/templates'),
-  },
-
-  courses: {
-    module: ApiModule.Courses,
-    ...crud('/user/courses'),
-    root: '/user/courses',
-    insights: '/user/courses/insights',
-    duplicate: '/user/courses/duplicate',
-    content: '/user/course-content',
-    player: '/user/course-player',
-  },
-
-  enrollments: {
-    module: ApiModule.Enrollments,
-    course: '/user/course-enrollment',
-    training: '/user/training-enrollment',
-    learningPath: '/user/learning-path-enrollment',
-  },
-
-  assessments: {
-    module: ApiModule.Assessments,
-    assessment: '/user/assessment',
-    attempt: '/user/attempt',
-    questionBank: '/user/question-bank',
-    grading: '/user/grading',
-  },
-
-  proctoring: {
-    module: ApiModule.Proctoring,
-    proctoring: '/user/proctoring',
-  },
-
-  ilt: {
-    module: ApiModule.Ilt,
-    liveTraining: '/user/live-training',
-    integrationCallback: '/user/integration-callback',
-    /** New API only — lists the platforms this tenant has connected. */
-    providers: '/ilt/providers',
-  },
-
-  learningPaths: {
-    module: ApiModule.LearningPaths,
-    paths: '/user/learning-paths',
-    enrollment: '/user/learning-path-enrollment',
-  },
-
-  certificates: {
-    module: ApiModule.Certificates,
-    certificate: '/user/certificate',
-  },
-
-  media: {
-    module: ApiModule.Media,
-    upload: '/user/media/upload',
-    storage: '/user/media/storage',
-    versions: '/user/media/versions',
-    read: '/user/media/read',
-    delete: '/user/media/delete',
-    uploads: '/user/uploads',
-  },
-
-  messaging: {
-    module: ApiModule.Messaging,
-    messaging: '/user/messaging',
-  },
-
-  skills: {
-    module: ApiModule.Skills,
-    skills: '/user/skills',
-  },
-
-  reports: {
-    module: ApiModule.Reports,
-    /**
-     * The live reporting surface. `/api/reports` and `/user/procreports` are
-     * deliberately absent — both were declared in `GlobalComponent` and never
-     * called, and they are backed by two abandoned parallel implementations.
-     * See docs/migration/live-surface.md.
-     */
-    admin: '/user/reports',
-    learner: '/user/learner-report',
-  },
-
-  dashboards: {
-    module: ApiModule.Dashboards,
-    admin: '/user/admin/dashboard',
-    learner: '/user/learner/dashboard',
-    myLearning: '/user/my-learning',
-  },
-
-  tenantSettings: {
-    module: ApiModule.TenantSettings,
-    settings: '/user/tenant-settings',
-  },
-} as const;

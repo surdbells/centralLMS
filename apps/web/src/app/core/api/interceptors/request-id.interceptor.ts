@@ -1,24 +1,17 @@
 import type { HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import type { Observable } from 'rxjs';
-import { ApiBackend } from '../api-backend';
-import { API_BACKEND } from '../api-response';
 
 /**
- * Tags each request to the new API with a correlation id.
+ * Tags each request with a correlation id.
  *
  * The API echoes it back in `X-Request-Id` and stamps it on every log line and
  * error response, so an id from the browser console traces straight through to
- * the server logs and Sentry. The legacy backend ignores unknown headers, so
- * this is skipped there rather than sending noise.
+ * the server logs and Sentry.
  */
 export function requestIdInterceptor(
   request: HttpRequest<unknown>,
   next: HttpHandlerFn,
 ): Observable<HttpEvent<unknown>> {
-  if (request.context.get(API_BACKEND) !== ApiBackend.V1) {
-    return next(request);
-  }
-
   return next(request.clone({ setHeaders: { 'X-Request-Id': newRequestId() } }));
 }
 

@@ -2,20 +2,18 @@ import type { HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http
 import { inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { SessionStore } from '../../auth/session.store';
-import { ApiBackend } from '../api-backend';
-import { API_BACKEND } from '../api-response';
 
 /**
- * Attaches credentials in whichever form the target backend expects.
+ * Attaches the bearer token.
  *
- * The two are genuinely different protocols, not just different URLs:
+ * One line, because there is one way to authenticate. It used to also merge
+ * `token`, `id` and `tenant_id` into the request *body* for the legacy
+ * backend, whose 248 endpoints read credentials from `$_REQUEST` — including
+ * the tenant, which is why one signed-in user could read another
+ * organisation's data by changing a number in a JSON payload.
  *
- *  - **New API** — `Authorization: Bearer <jwt>`.
- *  - **Legacy** — `token`, `id` and `tenant_id` merged into the request
- *    *body*, because that is what its 248 endpoints read.
- *
- * Doing this once here is what lets a module migrate without a single caller
- * changing. It was previously done by hand, per call, in every service.
+ * Doing this here at all is what stopped it being done by hand, per call, in
+ * every service.
  */
 export function authInterceptor(
   request: HttpRequest<unknown>,
@@ -27,56 +25,5 @@ export function authInterceptor(
     return next(request);
   }
 
-  const backend = request.context.get(API_BACKEND);
-
-  if (backend === ApiBackend.V1) {
-    return next(
-      request.clone({
-        setHeaders: { Authorization: `Bearer ${session.token}` },
-      }),
-    );
-  }
-
-  return next(applyLegacyCredentials(request, session.token, session.userId, session.tenantId));
-}
-
-/**
- * Merges legacy credentials into the request.
- *
- * GET and DELETE carry no body, so they take query parameters instead — the
- * legacy endpoints read `$_REQUEST`, which covers both.
- */
-function applyLegacyCredentials(
-  request: HttpRequest<unknown>,
-  token: string,
-  userId: string,
-  tenantId: string,
-): HttpRequest<unknown> {
-  const credentials = { token, id: userId, tenant_id: tenantId };
-
-  if (request.method === 'GET' || request.method === 'DELETE') {
-    return request.clone({
-      setParams: { token, id: userId, tenant_id: tenantId },
-    });
-  }
-
-  // FormData uploads: append rather than replace, or the file is lost.
-  if (request.body instanceof FormData) {
-    const body = request.body;
-
-    for (const [key, value] of Object.entries(credentials)) {
-      if (!body.has(key)) {
-        body.append(key, value);
-      }
-    }
-
-    return request;
-  }
-
-  const body =
-    request.body !== null && typeof request.body === 'object'
-      ? { ...credentials, ...(request.body as Record<string, unknown>) }
-      : credentials;
-
-  return request.clone({ body });
+  return next(request.clone({ setHeaders: { Authorization: `Bearer ${session.token}` } }));
 }

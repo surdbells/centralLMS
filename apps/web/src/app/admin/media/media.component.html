@@ -44,7 +44,7 @@
             <div class="d-flex justify-content-between">
               <div>
                 <div>Storage Usage</div>
-                <div class="fw-bold fs-5 mt-1"><span class="progress-percentage unlimited">{{ tenant_storage_response.data.storage.total_used_formatted }}</span> of <span class="progress-percentage unlimited">{{tenant_storage_response.data.storage.storage_limit_formatted}}</span>  </div>
+                <div class="fw-bold fs-5 mt-1"><span class="progress-percentage unlimited">{{ formatFileSize(statistics?.bytesUsed ?? 0) }}</span> of <span class="progress-percentage unlimited">{{statistics?.limitBytes === null ? 'unlimited' : formatFileSize(statistics?.limitBytes ?? 0)}}</span>  </div>
               </div>
               <div class="text-success align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.server"></tui-icon>
@@ -52,7 +52,7 @@
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ tenant_storage_response.data.storage.total_files }} Total Files</div>
+            <div class="text-success small">{{ statistics?.total ?? 0 }} Total Files</div>
           </div>
         </div>
       </div>
@@ -62,7 +62,7 @@
             <div class="d-flex justify-content-between">
               <div>
                 <div>Videos</div>
-                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.video.used_formatted }}</div>
+                <div class="fw-bold fs-5 mt-1">{{ countOf('video') + ' files' }}</div>
               </div>
               <div class="text-success align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.video"></tui-icon>
@@ -70,7 +70,7 @@
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.video.count }} Files</div>
+            <div class="text-success small">{{ countOf('video') }} Files</div>
           </div>
         </div>
       </div>
@@ -80,7 +80,7 @@
             <div class="d-flex justify-content-between">
               <div>
                 <div>AUDIO</div>
-                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.audio.used_formatted }}</div>
+                <div class="fw-bold fs-5 mt-1">{{ countOf('audio') + ' files' }}</div>
               </div>
               <div class="text-success align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.file-music"></tui-icon>
@@ -88,7 +88,7 @@
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.audio.count }} Files</div>
+            <div class="text-success small">{{ countOf('audio') }} Files</div>
           </div>
         </div>
       </div>
@@ -98,7 +98,7 @@
             <div class="d-flex justify-content-between">
               <div>
                 <div>PDFS</div>
-                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.pdf.used_formatted }}</div>
+                <div class="fw-bold fs-5 mt-1">{{ countOf('pdf') + ' files' }}</div>
               </div>
               <div class="text-success align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.files"></tui-icon>
@@ -106,7 +106,7 @@
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.pdf.count }} Files</div>
+            <div class="text-success small">{{ countOf('pdf') }} Files</div>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@
             <div class="d-flex justify-content-between">
               <div>
                 <div>SCORM</div>
-                <div class="fw-bold fs-5 mt-1">{{ tenant_storage_response.data.storage.breakdown.scorm.used_formatted }}</div>
+                <div class="fw-bold fs-5 mt-1">{{ countOf('scorm') + ' files' }}</div>
               </div>
               <div class="text-success align-self-center">
                 <tui-icon class="fs-1" icon="@tui.package-2"></tui-icon>
@@ -124,7 +124,7 @@
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ tenant_storage_response.data.storage.breakdown.scorm.count }} Files</div>
+            <div class="text-success small">{{ countOf('scorm') }} Files</div>
           </div>
         </div>
       </div>
@@ -140,12 +140,7 @@
                   <p>Upload videos, audio files, PDFs, and SCORM packages</p>
                 </div>
                 <app-media-upload
-                  [token]="user_session.token"
-                  [userId]="user_session.id"
-                  [tenantId]="user_session.tenant_id"
-                  [parentMediaId]="parentMediaId"
                   [multiple]="true"
-                  [acceptedTypes]="['VIDEO', 'AUDIO', 'PDF', 'SCORM']"
                   [maxFiles]="10"
                   (uploadComplete)="onFileUploaded($event)"
                   (uploadError)="onUploadError($event)"
@@ -162,38 +157,34 @@
 
                   <div class="files-grid">
                     <div class="file-card" *ngFor="let file of uploadedFiles; let i = index">
-                      <div class="file-icon" [ngSwitch]="file.media_type">
-                        <i *ngSwitchCase="'VIDEO'" class="bi bi-camera-video-fill video"></i>
-                        <i *ngSwitchCase="'AUDIO'" class="bi bi-music-note-beamed audio"></i>
-                        <i *ngSwitchCase="'PDF'" class="bi bi-file-earmark-pdf-fill pdf"></i>
-                        <i *ngSwitchCase="'SCORM'" class="bi bi-box-seam-fill scorm"></i>
-                        <i *ngSwitchDefault class="bi bi-file-earmark"></i>
+                      <div class="file-icon">
+                        <i [class]='"bi " + iconFor(file.kind)'></i>
                       </div>
                       <div class="file-details">
                         <h4 class="file-title">{{ file.title }}</h4>
                         <div class="file-meta">
-                          <span class="type-badge">{{ file.media_type }}</span>
-                          <span class="file-size">{{ file.file_size_formatted }}</span>
-                          <span class="version" *ngIf="file.version.version_number > 1">
-                            v{{ file.version.version_number }}
+                          <span class="type-badge">{{ labelFor(file.kind) }}</span>
+                          <span class="file-size">{{ formatFileSize(file.fileSize) }}</span>
+                          <span class="version" *ngIf="file.versionNumber > 1">
+                            v{{ file.versionNumber }}
                           </span>
                         </div>
 
                         <!-- Media specific info -->
-                        <div class="media-info" *ngIf="file.metadata">
-                        <span *ngIf="file.metadata.duration_formatted">
-                          <i class="bi bi-clock"></i> {{ file.metadata.duration_formatted }}
+                        <div class="media-info">
+                        <span *ngIf="file.duration">
+                          <i class="bi bi-clock"></i> {{ file.duration }}
                         </span>
-                          <span *ngIf="file.metadata.resolution">
-                          <i class="bi bi-aspect-ratio"></i> {{ file.metadata.resolution }}
+                          <span *ngIf="file.width && file.height">
+                          <i class="bi bi-aspect-ratio"></i> {{ file.width }}&times;{{ file.height }}
                         </span>
-                          <span *ngIf="file.metadata.page_count">
-                          <i class="bi bi-file-text"></i> {{ file.metadata.page_count }} pages
+                          <span *ngIf="file.pageCount">
+                          <i class="bi bi-file-text"></i> {{ file.pageCount }} pages
                         </span>
                         </div>
                       </div>
                       <div class="file-actions">
-                        <a [href]="file.file_url" target="_blank" class="btn-action" title="View">
+                        <a [href]="fileUrl(file)" target="_blank" class="btn-action" title="View">
                           <i class="bi bi-eye"></i>
                         </a>
                         <button class="btn-action danger" (click)="removeUploadedFile(i)" title="Remove">
@@ -216,12 +207,14 @@
     <!-- Filters + search -->
     <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="row mb-5 align-items-center">
       <div class="col-md-2 mb-2 mb-md-0">
-        <select [(ngModel)]="request.media_type" (change)="list_media()" class="form-select form-select-sm">
-          <option value="">Select media type</option>
-          <option [value]="'AUDIO'">AUDIO</option>
-          <option [value]="'VIDEO'">VIDEO</option>
-          <option [value]="'SCORM'">SCORM</option>
-          <option [value]="'PDF'">FILE [ PDF ]</option>
+        <select [(ngModel)]="kind" (change)="list_media()" class="form-select form-select-sm">
+          <option value="">Every media type</option>
+          <option [value]="'video'">Video</option>
+          <option [value]="'audio'">Audio</option>
+          <option [value]="'scorm'">SCORM package</option>
+          <option [value]="'pdf'">PDF</option>
+          <option [value]="'image'">Image</option>
+          <option [value]="'document'">Document</option>
         </select>
       </div>
     </div>
@@ -239,9 +232,9 @@
         <tbody>
         <tr role="button" *ngFor="let mL of mediaList; let i = index">
           <td>{{mL.title}}</td>
-          <td>{{mL.media_type}}</td>
-          <td>{{mL.file_size_formatted}}</td>
-          <td>{{mL.version_label}}</td>
+          <td>{{ labelFor(mL.kind) }}</td>
+          <td>{{ formatFileSize(mL.fileSize) }}</td>
+          <td>{{ mL.versionLabel ?? ('v' + mL.versionNumber) }}</td>
           <td>
 
             <div class="dropdown">
@@ -249,12 +242,12 @@
                 Actions
               </button>
               <ul class="dropdown-menu">
-                @if(mL.media_type == 'SCORM'){
-                  <li><a class="dropdown-item" role="link" (click)="openPreview({ type: mL.media_type, title: mL.title, url: mL.file_url.replace('.zip', '/story.html'), id: mL.media_id})">Manage</a></li>
+                @if(mL.kind === 'scorm'){
+                  <li><a class="dropdown-item" role="link" (click)="openPreview(mL)">Manage</a></li>
                 } @else {
-                  <li><a class="dropdown-item" role="link" (click)="openPreview({ type: mL.media_type, title: mL.title, url: mL.file_url, id: mL.media_id})">Manage</a></li>
+                  <li><a class="dropdown-item" role="link" (click)="openPreview(mL)">Manage</a></li>
                 }
-                <li><a class="dropdown-item" role="link" (click)="confirmDelete(mL.media_id, mL.title)">Delete</a></li>
+                <li><a class="dropdown-item" role="link" (click)="confirmDelete(mL.id, mL.title)">Delete</a></li>
 
               </ul>
             </div>
@@ -268,9 +261,9 @@
     </div>
     <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="card card-body my-5 shadow-sm border-0 rounded-3">
       <div class="d-flex align-items-center justify-content-between">
-        <div class="small text-muted">Showing {{ pagination.page }} of {{ pagination.total_pages }}</div>
+        <div class="small text-muted">Showing {{ meta.page }} of {{ meta.totalPages }}</div>
         <div class="d-flex gap-2 align-items-center">
-          <select class="form-select form-select-sm" style="width:80px" [(ngModel)]="pagination.per_page" (change)="paginate()">
+          <select class="form-select form-select-sm" style="width:80px" [(ngModel)]="meta.perPage" (change)="paginate()">
             <option [ngValue]="5">5</option>
             <option [ngValue]="10">10</option>
             <option [ngValue]="25">25</option>
@@ -278,9 +271,9 @@
           </select>
           <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm mb-0">
-              <li class="page-item" [class.disabled]="this.pagination.page === 1"><a role="button" class="page-link" (click)="list_media(this.pagination.page-1)">Prev</a></li>
-              <li class="page-item active"><a class="page-link">{{ pagination.page }}</a></li>
-              <li class="page-item" [class.disabled]="pagination.page === pagination.total_pages"><a role="button" class="page-link" (click)="list_media(this.pagination.page+1)">Next</a></li>
+              <li class="page-item" [class.disabled]="meta.page === 1"><a role="button" class="page-link" (click)="list_media(meta.page - 1)">Prev</a></li>
+              <li class="page-item active"><a class="page-link">{{ meta.page }}</a></li>
+              <li class="page-item" [class.disabled]="meta.page === meta.totalPages"><a role="button" class="page-link" (click)="list_media(meta.page + 1)">Next</a></li>
             </ul>
           </nav>
         </div>
@@ -293,7 +286,7 @@
       This action cannot be undone.
     </p>
     <div class="form-check mb-3">
-      <input class="form-check-input" type="checkbox" id="deleteAllVersions" [(ngModel)]="delete.delete_all_versions" />
+      <input class="form-check-input" type="checkbox" id="deleteAllVersions" [(ngModel)]="deleteAllVersions" />
       <label class="form-check-label" for="deleteAllVersions">
         Delete all versions
       </label>

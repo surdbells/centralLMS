@@ -1,29 +1,11 @@
-import { HttpContextToken } from '@angular/common/http';
-import { ApiBackend } from './api-backend';
-
-/**
- * Carries the backend serving a request through the interceptor chain, so the
- * auth interceptor knows whether to send a bearer header or legacy body
- * credentials without re-deriving the module from the URL.
- */
-export const API_BACKEND = new HttpContextToken<ApiBackend>(() => ApiBackend.Legacy);
-
-/** Legacy PHP envelope: `{ response_code, status, message, data }`. */
-export interface LegacyEnvelope<T> {
-  response_code?: number;
-  status?: string;
-  message?: string;
-  data?: T;
-}
-
-/** New API success envelope: `{ data, meta? }`. */
-export interface V1Success<T> {
+/** Success envelope: `{ data, meta? }`. */
+export interface ApiSuccess<T> {
   data: T;
   meta?: PageMeta & Record<string, unknown>;
 }
 
-/** New API failure envelope: `{ error: { code, message, details? } }`. */
-export interface V1Failure {
+/** Failure envelope: `{ error: { code, message, details? } }`. */
+export interface ApiFailure {
   error: {
     code: string;
     message: string;
@@ -45,12 +27,12 @@ export interface Paged<T> {
 }
 
 /**
- * A failed API call, normalised across both backends.
+ * A failed API call.
  *
- * `code` is the thing to branch on. The new API returns stable identifiers
- * (`validation_failed`, `unauthenticated`, …); legacy responses are mapped
- * onto the same vocabulary so that a component's error handling does not have
- * to change when its module migrates.
+ * `code` is the thing to branch on: the API returns stable identifiers
+ * (`validation_failed`, `unauthenticated`, `conflict`, …) rather than leaving
+ * a component to parse a message. Transport failures are mapped onto the same
+ * vocabulary so there is one kind of error to handle.
  */
 export class ApiError extends Error {
   constructor(
@@ -83,6 +65,10 @@ export class ApiError extends Error {
     return this.code === 'not_found' || this.code === 'route_not_found';
   }
 
+  get isConflict(): boolean {
+    return this.status === 409;
+  }
+
   /** Whether retrying the identical request could plausibly succeed. */
   get isRetryable(): boolean {
     return this.status === 0 || this.status === 429 || this.status >= 500;
@@ -97,11 +83,16 @@ export class ApiError extends Error {
 
     return typeof raw === 'object' && raw !== null ? (raw as Record<string, string[]>) : {};
   }
+
+  /** The first message for a field, for a control's error text. */
+  violation(field: string): string | null {
+    return this.violations[field]?.[0] ?? null;
+  }
 }
 
 /**
- * HTTP status → stable error code, for legacy responses that carry no code of
- * their own. Keeps both backends speaking the same error vocabulary.
+ * HTTP status → stable error code, for transport failures that carry no
+ * envelope of their own.
  */
 export function codeForStatus(status: number): string {
   switch (status) {

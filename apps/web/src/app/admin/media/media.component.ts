@@ -1,21 +1,43 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
-import {Component, inject, Inject, OnInit, TemplateRef, ViewChild} from '@angular/core';
-import {SideComponent} from "../../partials/side/side.component";
-import {TopComponent} from "../../partials/top/top.component";
-import {TuiButton, TuiDialogService, TuiIcon, TuiLoader} from "@taiga-ui/core";
-import {Router} from '@angular/router';
-import {CrudService} from '../../services/crud.service';
-import {HotToastService} from '@ngneat/hot-toast';
-import {CommonModule} from '@angular/common';
-import {FormsModule} from '@angular/forms';
-import {MediaUploadComponent} from './upload/media-upload.component';
-import {MediaData} from '../../services/media.service';
-import {GlobalComponent} from '../../global-component';
-import {MediaReadRequest, MediaItem, Pagination} from '../../media.interfaces';
-import {MediaPreviewDialogComponent} from './media-preview/media-preview.component';
-import {PolymorpheusComponent} from '@taiga-ui/polymorpheus';
-import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
-import {TUI_CONFIRM, TuiConfirmData} from '@taiga-ui/kit';
+import { Component, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { SideComponent } from '../../partials/side/side.component';
+import { TopComponent } from '../../partials/top/top.component';
+import { TuiButton, TuiDialogService, TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { Router } from '@angular/router';
+import { HotToastService } from '@ngneat/hot-toast';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MediaUploadComponent } from './upload/media-upload.component';
+import {
+  MediaService,
+  type MediaItem,
+  type MediaKind,
+  type MediaStatistics,
+} from '../../services/media.service';
+import { MediaPreviewDialogComponent } from './media-preview/media-preview.component';
+import { PolymorpheusComponent } from '@taiga-ui/polymorpheus';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { ApiError, type PageMeta } from '../../core/api';
+
+/**
+ * The media library.
+ *
+ * First screen off `GlobalComponent` and `CrudService`, and the pattern for
+ * the rest. Four things went:
+ *
+ *  1. **The session blob.** It read `atob(sessionStorage.SESSION)` and copied
+ *     `id`, `tenant_id` and `token` into three separate request objects. The
+ *     token is attached by the auth interceptor and the tenant comes from it,
+ *     so none of that is the component's business.
+ *  2. **The URL constants.** `GlobalComponent.MediaList` and friends were
+ *     absolute production URLs pasted into a service that took `any`.
+ *  3. **The envelope checks.** Every call tested
+ *     `response.response_code === 200 && response.status === 'success'` and
+ *     silently did nothing otherwise — so a failure left the spinner running
+ *     for ever. Failures are now an `ApiError` with a message worth showing.
+ *  4. **The mirrored storage figures.** `tenant_storage_response` declared a
+ *     twenty-line nested literal with the shape of the legacy response,
+ *     defaulting `total_files` to 5.
+ */
 @Component({
   selector: 'app-media',
   standalone: true,
@@ -28,239 +50,192 @@ import {TUI_CONFIRM, TuiConfirmData} from '@taiga-ui/kit';
     MediaUploadComponent,
     TuiLoader,
     AdmintopComponent,
-    TuiButton
+    TuiButton,
   ],
   templateUrl: './media.component.html',
-  styleUrl: './media.component.css'
+  styleUrl: './media.component.css',
 })
 export class MediaComponent implements OnInit {
   private readonly dialogs = inject(TuiDialogService);
-  @ViewChild('deleteDialog')
-  deleteDialog!: TemplateRef<any>;
-  mediaList: MediaItem[] = [];
-  pagination: Pagination = { total: 0, page: 1, per_page: 0, total_pages: 0 };
-  constructor(
-    private router: Router,
-    private crudService: CrudService,
-    private toast: HotToastService,
-    private readonly dialogService: TuiDialogService
+  private readonly media = inject(MediaService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(HotToastService);
 
-  ) {
-  }
+  @ViewChild('deleteDialog') deleteDialog!: TemplateRef<unknown>;
+
+  mediaList: MediaItem[] = [];
+  meta: PageMeta = { total: 0, page: 1, perPage: 8, totalPages: 0 };
+  statistics: MediaStatistics | null = null;
+
+  /** Set to upload a replacement rather than a new file. */
+  replacesMediaId: string | null = null;
+  uploadedFiles: MediaItem[] = [];
+  isUploading = false;
+
   ui_controls = {
     is_loading: false,
     no_recent: false,
     viewing_dashboard: true,
     viewing_recent_orders: false,
-    viewing_upload: false
+    viewing_upload: false,
   };
-  initial = {
-    user_id: 0,
-    tenant_id: 0,
-    token: ""
-  }
-  delete = {
-    user_id: 0,
-    tenant_id: 0,
-    token: "",
-    media_id: 0,
-    delete_all_versions: false
-  }
-  request: MediaReadRequest = {
-    token: '',
-    user_id: 0,
-    tenant_id: 0,
-    page: 0,
-    per_page: 0,
-    media_type: '',
-    latest_only: true,
-    sort_by: 'created_at',
-    sort_order: 'DESC'
-  };
-  tenant_storage_response = {
-    code: 0,
-    status: "",
-    data: {
-      storage: {
-        tenant_id: 0,
-        storage_limit: 0,
-        storage_limit_formatted: "",
-        total_used: 0,
-        total_used_formatted: "",
-        total_files: 5,
-        usage_percentage: 0,
-        breakdown: {
-          video: { used: 0, used_formatted: "", count: 0 },
-          audio: { used: 0, used_formatted: "", count: 0 },
-          pdf: { used: 0, used_formatted: "", count: 0 },
-          scorm: { used: 0, used_formatted: "", count: 0 }
-        }
-      }
-    }
-  };
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
+
+  /** Whether a delete takes the whole version chain or just this one. */
+  deleteAllVersions = false;
+
+  /** The kind filter, empty for everything. */
+  kind: MediaKind | '' = '';
+
   ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
     this.storageStatistics();
     this.list_media();
   }
-  error_notification(message: string) {
-    this.toast.error(message);
-  }
-  success_notification(message: string) {
-    this.toast.success(message);
-  }
-  sign_out(): void {
-    this.success_notification("User logged out successfully.");
-    this.router.navigate(['/']).then(r => console.log(r));
-  }
-  goBack() {
-    this.router.navigate(['/administration']).then(r => console.log(r));
-  }
-  // Optional: for uploading new versions
-  parentMediaId: number | null = null;
 
-  // Uploaded files list
-  uploadedFiles: MediaData[] = [];
+  // --- reading ------------------------------------------------------------
 
-  // Loading state
-  isUploading: boolean = false;
-
-  /**
-   * Called when a single file upload completes successfully
-   */
-  onFileUploaded(media: MediaData): void {
-    console.log('File uploaded successfully:', media);
-    this.uploadedFiles.push(media);
+  storageStatistics(): void {
+    this.media.statistics().subscribe({
+      next: (statistics) => (this.statistics = statistics),
+      // Worth saying rather than leaving the header blank: the figure is the
+      // storage somebody is paying for.
+      error: (error: ApiError) => this.error_notification(error.message),
+    });
   }
 
-  /**
-   * Called when a file upload fails
-   */
-  onUploadError(error: { file: File; error: string }): void {
-    console.error('Upload failed:', error.file.name, error.error);
-    this.error_notification(`Failed to upload ${error.file.name}: ${error.error}`)
-  }
-
-  /**
-   * Called when all files in the queue have been processed
-   */
-  onAllUploadsComplete(mediaList: MediaData[]): void {
-    console.log('All uploads complete:', mediaList);
-    this.isUploading = false;
-    if (mediaList.length > 0) {
-      this.success_notification(`Media uploaded successfully " ${mediaList.length} file(s)`);
-    }
-  }
-
-  /**
-   * Remove a file from the uploaded list
-   */
-  removeUploadedFile(index: number): void {
-    this.uploadedFiles.splice(index, 1);
-  }
-  clearUploadedFiles(): void {
-    this.uploadedFiles = [];
-  }
-
-
-  storageStatistics() {
-    this.initial.user_id = this.user_session.id;
-    this.initial.tenant_id = this.user_session.tenant_id;
-    this.initial.token = this.user_session.token;
-
+  list_media(page = 1, perPage = this.meta.perPage): void {
     this.ui_controls.is_loading = true;
-    this.crudService.post_request(this.initial, GlobalComponent.MediaStorage)
-      .subscribe(({ next: (response) => {
-          if (response.response_code === 200 && response.status === "success") {
-            this.tenant_storage_response = response;
-            this.ui_controls.is_loading = false;
-          }
-        }
-      }))
-  }
-  list_media(page: number =  1, per_page: number = 8) {
-    this.request.user_id = this.user_session.id;
-    this.request.token = this.user_session.token;
-    this.request.tenant_id = this.user_session.tenant_id;
-    this.request.per_page = per_page;
-    this.request.page = page;
-    this.ui_controls.is_loading = true;
-    this.crudService.post_request(this.request, GlobalComponent.MediaList)
-      .subscribe(({ next: (response) => {
-          if (response.status === "success") {
-            this.mediaList = response.data.media;
-            this.pagination = response.data.meta;
-            this.ui_controls.is_loading = false;
-          }
-        }
-      }))
-  }
-  delete_media(media: number) {
-    this.delete.user_id = this.user_session.id;
-    this.delete.token = this.user_session.token;
-    this.delete.tenant_id = this.user_session.tenant_id;
-    this.delete.media_id = media;
-    this.crudService.post_request(this.delete, GlobalComponent.deleteMedia)
-      .subscribe(({ next: (response) => {
-          if (response.status === "success") {
-            this.success_notification(response.message);
-            this.list_media();
-          }
-        }
-      }))
-  }
-  openPreview(media: {
-    type: 'VIDEO' | 'AUDIO' | 'PDF' | 'SCORM' | '';
-    title: string;
-    url: string;
-    id: number;
-  }) {
-    this.dialogService.open(
-      new PolymorpheusComponent(MediaPreviewDialogComponent),
-      { data: media, size: 'page', closeable: true}
-    ).subscribe();
-    console.log(media);
-  }
-  paginate() {
-    this.list_media(1, this.request.per_page)
+
+    this.media.list({ page, perPage, kind: this.kind === '' ? undefined : this.kind }).subscribe({
+      next: ({ items, meta }) => {
+        this.mediaList = items;
+        this.meta = meta;
+        this.ui_controls.is_loading = false;
+      },
+      error: (error: ApiError) => {
+        // The spinner stops either way. It used to run for ever on a failure.
+        this.ui_controls.is_loading = false;
+        this.error_notification(error.message);
+      },
+    });
   }
 
-  confirmDelete(media_id: number, media_name: string): void {
+  paginate(): void {
+    this.list_media(1, this.meta.perPage);
+  }
+
+  goToPage(page: number): void {
+    this.list_media(page, this.meta.perPage);
+  }
+
+  // --- writing ------------------------------------------------------------
+
+  delete_media(id: string): void {
+    this.media.delete(id, this.deleteAllVersions).subscribe({
+      next: () => {
+        this.success_notification('The file was deleted.');
+        this.list_media(this.meta.page);
+        this.storageStatistics();
+      },
+      error: (error: ApiError) => this.error_notification(error.message),
+    });
+  }
+
+  confirmDelete(id: string, title: string): void {
     this.dialogs
-      .open<boolean>(this.deleteDialog, { label: 'Are you sure you want to delete: ' + media_name })
+      .open<boolean>(this.deleteDialog, { label: `Are you sure you want to delete: ${title}` })
       .subscribe((confirmed: boolean) => {
         if (confirmed) {
-          this.delete_media(media_id);
+          this.delete_media(id);
         }
       });
   }
 
-  private deleteItem(): void {
-    console.log('Item deleted');
-    // call API here
+  // --- uploads ------------------------------------------------------------
+
+  onFileUploaded(item: MediaItem): void {
+    this.uploadedFiles.push(item);
+  }
+
+  onUploadError(failure: { file: File; error: string }): void {
+    this.error_notification(`Failed to upload ${failure.file.name}: ${failure.error}`);
+  }
+
+  onAllUploadsComplete(items: MediaItem[]): void {
+    this.isUploading = false;
+
+    if (items.length > 0) {
+      this.success_notification(`${items.length} file(s) uploaded.`);
+      // The library and the storage figure both moved.
+      this.list_media(this.meta.page);
+      this.storageStatistics();
+    }
+  }
+
+  removeUploadedFile(index: number): void {
+    this.uploadedFiles.splice(index, 1);
+  }
+
+  clearUploadedFiles(): void {
+    this.uploadedFiles = [];
+  }
+
+  // --- presentation -------------------------------------------------------
+
+  openPreview(item: MediaItem): void {
+    this.dialogs
+      .open(new PolymorpheusComponent(MediaPreviewDialogComponent), {
+        data: {
+          kind: item.kind,
+          title: item.title,
+          url: this.media.fileUrl(item),
+          id: item.id,
+        },
+        size: 'page',
+        closeable: true,
+      })
+      .subscribe();
+  }
+
+  iconFor(kind: MediaKind): string {
+    return this.media.iconFor(kind);
+  }
+
+  fileUrl(item: MediaItem): string {
+    return this.media.fileUrl(item);
+  }
+
+  labelFor(kind: MediaKind): string {
+    return this.media.labelFor(kind);
+  }
+
+  formatFileSize(bytes: number): string {
+    return this.media.formatFileSize(bytes);
+  }
+
+  /** How much of the allowance is gone, or null when there is no limit. */
+  get usagePercentage(): number | null {
+    const statistics = this.statistics;
+
+    if (statistics === null || statistics.limitBytes === null || statistics.limitBytes === 0) {
+      return null;
+    }
+
+    return Math.min(100, Math.round((statistics.bytesUsed / statistics.limitBytes) * 100));
+  }
+
+  countOf(kind: MediaKind): number {
+    return this.statistics?.byKind[kind] ?? 0;
+  }
+
+  error_notification(message: string): void {
+    this.toast.error(message);
+  }
+
+  success_notification(message: string): void {
+    this.toast.success(message);
+  }
+
+  goBack(): void {
+    void this.router.navigate(['/administration']);
   }
 }

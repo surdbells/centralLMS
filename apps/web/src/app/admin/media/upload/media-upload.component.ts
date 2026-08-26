@@ -3,19 +3,26 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { MediaService, MediaData, UploadConfig, UploadProgress } from '../../../services/media.service';
+import {
+  MediaService,
+  type MediaItem,
+  type MediaKind,
+  type MediaStatistics,
+  type UploadDetails,
+  type UploadProgress,
+} from '../../../services/media.service';
 import { ApiError } from '../../../core/api';
 
 interface QueuedFile {
   id: string;
   file: File;
-  mediaType: string;
+  kind: MediaKind;
   preview?: string;
   progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error';
-  response?: MediaData;
+  response?: MediaItem;
   error?: string;
-  config: UploadConfig;
+  details: UploadDetails;
 }
 
 @Component({
@@ -28,19 +35,21 @@ interface QueuedFile {
 export class MediaUploadComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  // Inputs from parent
-  @Input() token: string = '';
-  @Input() userId: number = 0;
-  @Input() tenantId: number = 0;
-  @Input() parentMediaId: number | null = null; // For uploading new versions
+  // No credentials here any more: the auth interceptor attaches the bearer
+  // token. This component used to be handed `token`, `userId` and `tenantId`
+  // by its parent and paste them into the FormData.
+
+  /** Set to replace an existing file rather than add a new one. */
+  @Input() replacesMediaId: string | null = null;
   @Input() multiple: boolean = true;
-  @Input() acceptedTypes: string[] = ['VIDEO', 'AUDIO', 'PDF', 'SCORM'];
+  /** Narrow what this particular picker accepts. Empty means anything the API takes. */
+  @Input() acceptedTypes: MediaKind[] = [];
   @Input() maxFiles: number = 10;
 
   // Outputs
-  @Output() uploadComplete = new EventEmitter<MediaData>();
+  @Output() uploadComplete = new EventEmitter<MediaItem>();
   @Output() uploadError = new EventEmitter<{ file: File; error: string }>();
-  @Output() allUploadsComplete = new EventEmitter<MediaData[]>();
+  @Output() allUploadsComplete = new EventEmitter<MediaItem[]>();
 
   // Component state
   isDragOver = false;
@@ -59,7 +68,15 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
 
   constructor(public mediaService: MediaService) {}
 
-  ngOnInit(): void {}
+  /** What the API will accept, fetched from the code that enforces it. */
+  accepts: MediaStatistics['accepts'] = {} as MediaStatistics['accepts'];
+
+  ngOnInit(): void {
+    this.mediaService
+      .acceptedTypes()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((accepts) => (this.accepts = accepts));
+  }
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -127,35 +144,41 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
     }
 
     for (const file of files) {
-      // Validate file
-      const validation = this.mediaService.validateFile(file);
+      // Checked against the rules the API just gave us. It checks again, from
+      // the extension rather than the mime type the browser reports.
+      const validation = this.mediaService.validate(file, this.accepts);
 
-      if (!validation.valid) {
-        this.uploadError.emit({ file, error: validation.error! });
+      if (!validation.valid || validation.kind === undefined) {
+        this.uploadError.emit({ file, error: validation.error ?? 'That file cannot be uploaded.' });
         continue;
       }
 
-      // Check if type is accepted
-      if (!this.acceptedTypes.includes(validation.type!)) {
-        this.uploadError.emit({ file, error: `${validation.type} files are not accepted here` });
+      const kind = validation.kind;
+
+      // A picker may be narrowed further than the API allows — a course
+      // thumbnail wants an image, not a SCORM package.
+      if (this.acceptedTypes.length > 0 && !this.acceptedTypes.includes(kind)) {
+        this.uploadError.emit({
+          file,
+          error: `${this.mediaService.labelFor(kind)} files are not accepted here.`,
+        });
         continue;
       }
 
-      // Add to queue
       const queuedFile: QueuedFile = {
         id: this.generateId(),
         file,
-        mediaType: validation.type!,
+        kind,
         progress: 0,
         status: 'pending',
-        config: {
-          title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
-          parent_media_id: this.parentMediaId || undefined
-        }
+        details: {
+          // The filename without its extension, which is what somebody
+          // uploading twenty files at once would have typed anyway.
+          title: file.name.replace(/\.[^/.]+$/, ''),
+        },
       };
 
-      // Generate preview for images/videos if needed
-      if (validation.type === 'VIDEO') {
+      if (kind === 'video') {
         this.generateVideoThumbnail(file).then(preview => {
           queuedFile.preview = preview;
         });
@@ -200,10 +223,10 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
    */
   openConfig(queuedFile: QueuedFile): void {
     this.selectedFile = queuedFile;
-    this.fileTitle = queuedFile.config.title || '';
-    this.fileDescription = queuedFile.config.description || '';
-    this.versionLabel = queuedFile.config.version_label || '';
-    this.versionNotes = queuedFile.config.version_notes || '';
+    this.fileTitle = queuedFile.details.title || '';
+    this.fileDescription = queuedFile.details.description || '';
+    this.versionLabel = queuedFile.details.versionLabel || '';
+    this.versionNotes = queuedFile.details.versionNotes || '';
     this.showConfigModal = true;
   }
 
@@ -212,12 +235,12 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
    */
   saveConfig(): void {
     if (this.selectedFile) {
-      this.selectedFile.config = {
-        ...this.selectedFile.config,
+      this.selectedFile.details = {
+        ...this.selectedFile.details,
         title: this.fileTitle,
         description: this.fileDescription,
-        version_label: this.versionLabel,
-        version_notes: this.versionNotes
+        versionLabel: this.versionLabel,
+        versionNotes: this.versionNotes,
       };
     }
     this.closeConfigModal();
@@ -283,12 +306,15 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
 
     nextFile.status = 'uploading';
 
-    // Credentials are no longer passed in: the auth interceptor supplies them
-    // in whichever form the backend serving the media module expects.
-    this.mediaService.upload(nextFile.file, nextFile.config)
+    // Credentials are not passed in: the auth interceptor attaches the token.
+    const upload = this.replacesMediaId === null
+      ? this.mediaService.upload(nextFile.file, nextFile.details)
+      : this.mediaService.uploadVersion(this.replacesMediaId, nextFile.file, nextFile.details);
+
+    upload
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (event: UploadProgress<{ media: MediaData }>) => {
+        next: (event: UploadProgress<MediaItem>) => {
           if (event.state === 'uploading') {
             nextFile.progress = event.progress;
             return;
@@ -296,14 +322,13 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
 
           if (event.state === 'done' && event.result) {
             nextFile.status = 'success';
-            nextFile.response = event.result.media;
+            nextFile.response = event.result;
             nextFile.progress = 100;
-            this.uploadComplete.emit(event.result.media);
+            this.uploadComplete.emit(event.result);
             this.uploadNextFile();
           }
         },
-        // A failure envelope is already an ApiError by the time it arrives —
-        // including the legacy case, where it was an HTTP 200.
+        // A refusal is already an ApiError, with the reason the API gave.
         error: (error: ApiError) => {
           nextFile.status = 'error';
           nextFile.error = error.message || 'Upload failed';
@@ -326,32 +351,29 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Get icon for media type
-   */
-  getMediaTypeIcon(type: string): string {
-    return this.mediaService.allowedTypes[type as keyof typeof this.mediaService.allowedTypes]?.icon || 'bi-file-earmark';
+  iconFor(kind: MediaKind): string {
+    return this.mediaService.iconFor(kind);
   }
 
-  /**
-   * Get color for media type
-   */
-  getMediaTypeColor(type: string): string {
-    return this.mediaService.allowedTypes[type as keyof typeof this.mediaService.allowedTypes]?.color || '#6b7280';
+  colourFor(kind: MediaKind): string {
+    return this.mediaService.colourFor(kind);
   }
 
-  /**
-   * Get accepted file extensions string
-   */
+  /** The kinds this picker offers, which is what the API accepts unless narrowed. */
+  get offeredTypes(): MediaKind[] {
+    const available = Object.keys(this.accepts) as MediaKind[];
+
+    return this.acceptedTypes.length === 0
+      ? available
+      : available.filter((kind) => this.acceptedTypes.includes(kind));
+  }
+
+  /** The `accept` attribute for the file input, from the same rules. */
   getAcceptedExtensions(): string {
-    const extensions: string[] = [];
-    for (const type of this.acceptedTypes) {
-      const config = this.mediaService.allowedTypes[type as keyof typeof this.mediaService.allowedTypes];
-      if (config) {
-        extensions.push(...config.extensions.map(e => `.${e}`));
-      }
-    }
-    return extensions.join(',');
+    return this.offeredTypes
+      .flatMap((kind) => this.accepts[kind]?.extensions ?? [])
+      .map((extension) => `.${extension}`)
+      .join(',');
   }
 
   /**

@@ -1,129 +1,104 @@
-import { decodeSessionBlob } from '../../../core/utils/session-blob';
-import {Component, Inject, OnInit} from '@angular/core';
+import { Component, Inject, inject } from '@angular/core';
 import { TuiDialogContext } from '@taiga-ui/core';
-import {POLYMORPHEUS_CONTEXT} from '@taiga-ui/polymorpheus';
-import {CommonModule, NgSwitch, NgSwitchCase} from '@angular/common';
-import {DomSanitizer, SafeResourceUrl} from '@angular/platform-browser';
-import {ScormAPI} from '../../../scorm-api';
-import {MediaUploadComponent} from '../upload/media-upload.component';
-import {MediaData} from '../../../services/media.service';
-import {HotToastService} from '@ngneat/hot-toast';
-
-export type MediaType = 'VIDEO' | 'AUDIO' | 'PDF' | 'SCORM';
+import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
+import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ScormAPI } from '../../../scorm-api';
+import { MediaUploadComponent } from '../upload/media-upload.component';
+import { MediaService, type MediaItem, type MediaKind } from '../../../services/media.service';
+import { HotToastService } from '@ngneat/hot-toast';
 
 export interface MediaPreviewData {
-  type: MediaType;
+  kind: MediaKind;
   title: string;
   url: string;
-  id: number;
+  id: string;
 }
 
+/**
+ * Plays or shows one file, and takes a replacement for it.
+ *
+ * The session blob is gone: this read `atob(sessionStorage.SESSION)` purely to
+ * hand `token`, `id` and `tenant_id` down to the upload component as inputs,
+ * which no longer wants them — the auth interceptor attaches the token.
+ */
 @Component({
   selector: 'app-media-preview-component',
   templateUrl: './media-preview.component.html',
   styleUrls: ['./media-preview.component.css'],
   imports: [CommonModule, MediaUploadComponent],
-  standalone: true
+  standalone: true,
 })
-export class MediaPreviewDialogComponent implements OnInit{
+export class MediaPreviewDialogComponent {
+  private readonly media = inject(MediaService);
+  private readonly toast = inject(HotToastService);
+
   public data!: MediaPreviewData;
   public safeUrl!: SafeResourceUrl;
 
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-
-  ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-  }
+  uploadedFiles: MediaItem[] = [];
+  isUploading = false;
 
   constructor(
     @Inject(POLYMORPHEUS_CONTEXT)
     private readonly context: TuiDialogContext<void, MediaPreviewData>,
     private readonly sanitizer: DomSanitizer,
-    private toast: HotToastService,
-
   ) {
     this.data = this.context.data;
-    // 🔥 Inject BOTH APIs
+
+    // Both SCORM dialects, because a package may target either.
     const api = new ScormAPI();
-    (window as any).API = api;            // SCORM 1.2
-    (window as any).API_1484_11 = api;    // SCORM 2004
-    // Trust iframe URL
-    this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-      this.data.url
-    );
+    (window as unknown as Record<string, unknown>)['API'] = api; // SCORM 1.2
+    (window as unknown as Record<string, unknown>)['API_1484_11'] = api; // SCORM 2004
+
+    this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.data.url);
   }
 
-  // Optional: for uploading new versions
-  parentMediaId: number | null = null;
-
-  // Uploaded files list
-  uploadedFiles: MediaData[] = [];
-
-  // Loading state
-  isUploading: boolean = false;
-  error_notification(message: string) {
-    this.toast.error(message);
-  }
-  success_notification(message: string) {
-    this.toast.success(message);
-  }
-  /**
-   * Called when a single file upload completes successfully
-   */
-  onFileUploaded(media: MediaData): void {
-    console.log('File uploaded successfully:', media);
-    this.uploadedFiles.push(media);
+  iconFor(kind: MediaKind): string {
+    return this.media.iconFor(kind);
   }
 
-  /**
-   * Called when a file upload fails
-   */
-  onUploadError(error: { file: File; error: string }): void {
-    console.error('Upload failed:', error.file.name, error.error);
-    this.error_notification(`Failed to upload ${error.file.name}: ${error.error}`)
+  labelFor(kind: MediaKind): string {
+    return this.media.labelFor(kind);
   }
 
-  /**
-   * Called when all files in the queue have been processed
-   */
-  onAllUploadsComplete(mediaList: MediaData[]): void {
-    console.log('All uploads complete:', mediaList);
+  formatFileSize(bytes: number): string {
+    return this.media.formatFileSize(bytes);
+  }
+
+  fileUrl(item: MediaItem): string {
+    return this.media.fileUrl(item);
+  }
+
+  onFileUploaded(item: MediaItem): void {
+    this.uploadedFiles.push(item);
+  }
+
+  onUploadError(failure: { file: File; error: string }): void {
+    this.error_notification(`Failed to upload ${failure.file.name}: ${failure.error}`);
+  }
+
+  onAllUploadsComplete(items: MediaItem[]): void {
     this.isUploading = false;
-    if (mediaList.length > 0) {
-      this.success_notification(`Media uploaded successfully " ${mediaList.length} file(s)`);
+
+    if (items.length > 0) {
+      this.success_notification(`${items.length} file(s) uploaded.`);
     }
   }
 
-  /**
-   * Remove a file from the uploaded list
-   */
   removeUploadedFile(index: number): void {
     this.uploadedFiles.splice(index, 1);
   }
+
   clearUploadedFiles(): void {
     this.uploadedFiles = [];
+  }
+
+  error_notification(message: string): void {
+    this.toast.error(message);
+  }
+
+  success_notification(message: string): void {
+    this.toast.success(message);
   }
 }

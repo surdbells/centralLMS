@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { ApiClient, Endpoints, type UploadProgress } from '../core/api';
+import { Observable, map, of, shareReplay } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { ApiClient, Endpoints, type Paged, type UploadProgress } from '../core/api';
 
 export type { UploadProgress };
 
@@ -8,227 +9,252 @@ export type { UploadProgress };
 // Types
 // ---------------------------------------------------------------------------
 
-export type MediaType = 'VIDEO' | 'AUDIO' | 'PDF' | 'SCORM';
+/** What a file is. Decided by the API from the extension, never from the browser's mime type. */
+export type MediaKind = 'video' | 'audio' | 'pdf' | 'scorm' | 'image' | 'document';
 
-export interface MediaVersion {
-  version_number: number;
-  version_label: string;
-  is_latest: boolean;
-  parent_media_id: number | null;
-  version_notes: string | null;
-}
-
-export interface MediaMetadata {
-  original_name: string;
-  file_size: number;
-  mime_type: string;
+export interface MediaItem {
+  id: string;
+  kind: MediaKind;
+  title: string;
+  description: string | null;
+  originalFilename: string;
+  fileSize: number;
+  mimeType: string;
   extension: string;
-  duration?: number;
-  duration_formatted?: string;
-  width?: number;
-  height?: number;
-  resolution?: string;
-  page_count?: number;
-  scorm_version?: string;
-  launch_url?: string;
+  durationSeconds: number | null;
+  /** `M:SS` or `H:MM:SS`, already formatted. */
+  duration: string | null;
+  width: number | null;
+  height: number | null;
+  pageCount: number | null;
+  scormVersion: string | null;
+  metadata: Record<string, unknown>;
+  rootMediaId: string | null;
+  versionNumber: number;
+  versionLabel: string | null;
+  versionNotes: string | null;
+  versionCount: number;
+  isLatest: boolean;
+  courseId: string | null;
+  courseTitle: string | null;
+  uploadedBy: string | null;
+  uploaderName: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  /** Where to fetch the bytes — always through the API, never a storage URL. */
+  url: string;
 }
 
-export interface MediaData {
-  media_id: number;
-  tenant_id: number;
-  media_type: MediaType | '';
-  title: string;
-  file_name: string;
-  file_path: string;
-  file_url: string;
-  file_size: number;
-  file_size_formatted: string;
-  mime_type: string;
-  version: MediaVersion;
-  metadata: MediaMetadata;
-  uploaded_at: string;
+export interface MediaStatistics {
+  total: number;
+  byKind: Record<MediaKind, number>;
+  bytesUsed: number;
+  /** Null when the organisation has no storage limit set. */
+  limitBytes: number | null;
+  bytesRemaining: number | null;
+  accepts: Record<MediaKind, { extensions: string[]; maxSize: number }>;
 }
 
-export interface VersionInfo {
-  media_id: number;
-  title: string;
-  version: { number: number; label: string; notes: string | null; is_latest: boolean };
-  file: { size: number; size_formatted: string; url: string };
-  uploaded_by: { user_id: number; name: string; email: string };
-  uploaded_at: string;
+export interface MediaFilters {
+  search?: string;
+  kind?: MediaKind;
+  courseId?: string;
+  uploadedBy?: string;
+  includeOldVersions?: boolean;
+  page?: number;
+  perPage?: number;
 }
 
-export interface VersionHistory {
-  root_media_id: number;
-  total_versions: number;
-  versions: VersionInfo[];
-}
-
-export interface UploadConfig {
+export interface UploadDetails {
   title?: string;
   description?: string;
-  parent_media_id?: number;
-  version_label?: string;
-  version_notes?: string;
+  kind?: MediaKind;
+  courseId?: string;
+  versionLabel?: string;
+  versionNotes?: string;
+  /** Read from the file by the browser; the API stores them as display hints. */
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+  pageCount?: number;
 }
 
 export interface FileValidation {
   valid: boolean;
   error?: string;
-  type?: MediaType;
+  kind?: MediaKind;
 }
 
-interface TypeConfig {
-  readonly extensions: readonly string[];
-  readonly mimes: readonly string[];
-  readonly maxSize: number;
-  readonly icon: string;
-  readonly color: string;
-}
+/** Presentation only — an icon and a colour per kind. */
+const APPEARANCE: Readonly<Record<MediaKind, { icon: string; colour: string; label: string }>> = {
+  video: { icon: 'bi-camera-video-fill', colour: '#6366f1', label: 'Video' },
+  audio: { icon: 'bi-music-note-beamed', colour: '#10b981', label: 'Audio' },
+  pdf: { icon: 'bi-file-earmark-pdf-fill', colour: '#ef4444', label: 'PDF' },
+  scorm: { icon: 'bi-box-seam-fill', colour: '#f59e0b', label: 'SCORM package' },
+  image: { icon: 'bi-image-fill', colour: '#0ea5e9', label: 'Image' },
+  document: { icon: 'bi-file-earmark-text-fill', colour: '#64748b', label: 'Document' },
+};
 
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
 
 /**
- * Media upload and versioning.
+ * The media library.
  *
- * Reference migration off `GlobalComponent`. Three things changed, and they
- * are the pattern for every remaining service:
+ * Two things worth knowing.
  *
- *  1. **No base URL.** It named a module; `ApiRouter` decides the host, so
- *     migrating media to the new API needs no change here.
- *  2. **No credential parameters.** Every method used to take
- *     `(token, userId, tenantId)` and paste them into the payload. The auth
- *     interceptor does that now, in the form the target backend expects.
- *  3. **Unwrapped, typed results.** Callers get `MediaData`, not
- *     `{ code, status, data: { media } }` — so the envelope change at
- *     migration is invisible to them.
+ * **The upload rules come from the server.** `accepts` on the statistics
+ * endpoint is generated from the same code that enforces them, so the
+ * extensions and size limits shown to somebody choosing a file cannot drift
+ * from the ones that will refuse it. This service used to carry its own copy
+ * of that table.
+ *
+ * **A file's URL is an API path.** `item.url` is `/media/{id}/file`, served
+ * with the caller's token checked on every fetch. The original service
+ * redirected to a signed storage link, which then worked for anybody it was
+ * forwarded to.
  */
 @Injectable({ providedIn: 'root' })
 export class MediaService {
   private readonly api = inject(ApiClient);
 
-  /** Upload limits and presentation, by media type. */
-  readonly allowedTypes: Readonly<Record<MediaType, TypeConfig>> = {
-    VIDEO: {
-      extensions: ['mp4', 'webm', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'm4v'],
-      mimes: ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'],
-      maxSize: 2_147_483_648, // 2 GB
-      icon: 'bi-camera-video-fill',
-      color: '#6366f1',
-    },
-    AUDIO: {
-      extensions: ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac', 'wma'],
-      mimes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/x-m4a'],
-      maxSize: 524_288_000, // 500 MB
-      icon: 'bi-music-note-beamed',
-      color: '#10b981',
-    },
-    PDF: {
-      extensions: ['pdf'],
-      mimes: ['application/pdf'],
-      maxSize: 104_857_600, // 100 MB
-      icon: 'bi-file-earmark-pdf-fill',
-      color: '#ef4444',
-    },
-    SCORM: {
-      extensions: ['zip'],
-      mimes: ['application/zip', 'application/x-zip-compressed'],
-      maxSize: 1_073_741_824, // 1 GB
-      icon: 'bi-box-seam-fill',
-      color: '#f59e0b',
-    },
-  };
+  /** Cached because it is fetched to render a file picker and never changes. */
+  private acceptances$?: Observable<MediaStatistics['accepts']>;
+
+  list(filters: MediaFilters = {}): Observable<Paged<MediaItem>> {
+    return this.api.getPaged<MediaItem>(Endpoints.media.list, { ...filters });
+  }
+
+  show(id: string): Observable<MediaItem> {
+    return this.api.get<MediaItem>(Endpoints.media.show(id));
+  }
+
+  statistics(): Observable<MediaStatistics> {
+    return this.api.get<MediaStatistics>(Endpoints.media.statistics);
+  }
 
   /** Uploads a file, reporting progress. */
-  upload(file: File, config: UploadConfig = {}): Observable<UploadProgress<{ media: MediaData }>> {
-    const form = new FormData();
-    form.append('file', file);
+  upload(file: File, details: UploadDetails = {}): Observable<UploadProgress<MediaItem>> {
+    return this.api.upload<MediaItem>(Endpoints.media.upload, this.formFor(file, details));
+  }
 
-    for (const [key, value] of Object.entries(config)) {
-      if (value !== undefined && value !== null && value !== '') {
-        form.append(key, String(value));
-      }
-    }
+  /**
+   * Replaces a file, keeping the old one.
+   *
+   * The previous version stays readable, so a course pointing at it is not
+   * broken by somebody uploading a revision.
+   */
+  uploadVersion(id: string, file: File, details: UploadDetails = {}): Observable<UploadProgress<MediaItem>> {
+    return this.api.upload<MediaItem>(Endpoints.media.uploadVersion(id), this.formFor(file, details));
+  }
 
-    return this.api.upload<{ media: MediaData }>(
-      Endpoints.media.module,
-      Endpoints.media.upload,
-      form,
+  /** Every version of a file, newest first. */
+  versions(id: string): Observable<MediaItem[]> {
+    return this.api.get<MediaItem[]>(Endpoints.media.versions(id));
+  }
+
+  /** Title, description, course and version notes. Never the file itself. */
+  update(id: string, changes: Partial<Pick<MediaItem, 'title' | 'description' | 'courseId' | 'versionLabel' | 'versionNotes'>>): Observable<MediaItem> {
+    return this.api.put<MediaItem>(Endpoints.media.update(id), changes);
+  }
+
+  delete(id: string, allVersions = false): Observable<void> {
+    return this.api.delete<void>(Endpoints.media.delete(id), { allVersions });
+  }
+
+  /** An absolute URL for an `<img>`, a `<video>` or a link. */
+  fileUrl(item: MediaItem): string {
+    return this.api.urlFor(Endpoints.media.file(item.id));
+  }
+
+  // --- what may be uploaded ------------------------------------------------
+
+  /**
+   * The extensions and size limits the API will accept.
+   *
+   * Fetched rather than hardcoded — see the class docblock.
+   */
+  acceptedTypes(): Observable<MediaStatistics['accepts']> {
+    this.acceptances$ ??= this.statistics().pipe(
+      map((statistics) => statistics.accepts),
+      // A picker that cannot reach the server still has to open. The upload
+      // itself is refused by the API either way, so the cost of guessing wrong
+      // here is a late error message rather than a bad file.
+      catchError(() => of({} as MediaStatistics['accepts'])),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+
+    return this.acceptances$;
   }
 
-  getVersionHistory(mediaId: number): Observable<VersionHistory> {
-    return this.api.post<VersionHistory>(Endpoints.media.module, Endpoints.media.versions, {
-      media_id: mediaId,
-      action: 'history',
-    });
-  }
+  /**
+   * Checks a file against the rules the server just gave us.
+   *
+   * Advisory: it saves somebody a two-gigabyte upload that was always going to
+   * be refused. The API checks again, from the extension rather than the mime
+   * type the browser reports, because the browser is told that by whatever is
+   * doing the sending.
+   */
+  validate(file: File, accepts: MediaStatistics['accepts']): FileValidation {
+    const kind = this.kindOf(file, accepts);
 
-  getLatestVersion(mediaId: number): Observable<MediaData> {
-    return this.api.post<MediaData>(Endpoints.media.module, Endpoints.media.versions, {
-      media_id: mediaId,
-      action: 'latest',
-    });
-  }
+    if (kind === null) {
+      const allowed = Object.values(accepts).flatMap((a) => a.extensions);
 
-  revertToVersion(mediaId: number): Observable<MediaData> {
-    return this.api.post<MediaData>(Endpoints.media.module, Endpoints.media.versions, {
-      media_id: mediaId,
-      action: 'revert',
-    });
-  }
-
-  list(): Observable<MediaData[]> {
-    return this.api.get<MediaData[]>(Endpoints.media.module, Endpoints.media.read);
-  }
-
-  delete(mediaId: number): Observable<void> {
-    return this.api.post<void>(Endpoints.media.module, Endpoints.media.delete, {
-      media_id: mediaId,
-    });
-  }
-
-  // --- pure helpers, unchanged in behaviour ---------------------------------
-
-  /** Checks extension and size before a file is sent anywhere. */
-  validateFile(file: File): FileValidation {
-    const type = this.getMediaType(file);
-
-    if (type === null) {
       return {
         valid: false,
-        error: 'File type not allowed. Supported: VIDEO, AUDIO, PDF, SCORM',
+        error: allowed.length === 0
+          ? 'That file type is not accepted.'
+          : `That file type is not accepted. Try: ${allowed.slice(0, 12).join(', ')}.`,
       };
     }
 
-    const config = this.allowedTypes[type];
+    if (file.size === 0) {
+      return { valid: false, error: 'The file is empty.' };
+    }
 
-    if (file.size > config.maxSize) {
+    const limit = accepts[kind].maxSize;
+
+    if (file.size > limit) {
       return {
         valid: false,
-        error: `${type} files cannot exceed ${this.formatFileSize(config.maxSize)}`,
+        error: `${this.labelFor(kind)} files are limited to ${this.formatFileSize(limit)}.`,
       };
     }
 
-    return { valid: true, type };
+    return { valid: true, kind };
   }
 
-  getMediaType(file: File): MediaType | null {
+  kindOf(file: File, accepts: MediaStatistics['accepts']): MediaKind | null {
+    // The last extension, and only the last: `report.pdf.exe` is an exe.
     const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
 
     if (extension === '') {
       return null;
     }
 
-    for (const [type, config] of Object.entries(this.allowedTypes)) {
-      if (config.extensions.includes(extension)) {
-        return type as MediaType;
+    for (const [kind, rules] of Object.entries(accepts)) {
+      if (rules.extensions.includes(extension)) {
+        return kind as MediaKind;
       }
     }
 
     return null;
+  }
+
+  // --- presentation --------------------------------------------------------
+
+  iconFor(kind: MediaKind): string {
+    return APPEARANCE[kind]?.icon ?? 'bi-file-earmark';
+  }
+
+  colourFor(kind: MediaKind): string {
+    return APPEARANCE[kind]?.colour ?? '#64748b';
+  }
+
+  labelFor(kind: MediaKind): string {
+    return APPEARANCE[kind]?.label ?? kind;
   }
 
   formatFileSize(bytes: number): string {
@@ -242,17 +268,16 @@ export class MediaService {
     return `${parseFloat((bytes / Math.pow(1024, exponent)).toFixed(2))} ${units[exponent]}`;
   }
 
-  /** `MM:SS`, or `HH:MM:SS` once the duration passes an hour. */
-  formatDuration(seconds: number): string {
-    if (!Number.isFinite(seconds) || seconds <= 0) {
-      return '00:00';
+  private formFor(file: File, details: UploadDetails): FormData {
+    const form = new FormData();
+    form.append('file', file);
+
+    for (const [key, value] of Object.entries(details)) {
+      if (value !== undefined && value !== null && value !== '') {
+        form.append(key, String(value));
+      }
     }
 
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    const pad = (n: number): string => n.toString().padStart(2, '0');
-
-    return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(secs)}` : `${pad(minutes)}:${pad(secs)}`;
+    return form;
   }
 }
