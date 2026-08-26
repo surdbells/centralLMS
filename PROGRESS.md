@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification and the media library are built. Dashboards, notes, tenant settings, skills, learning paths and messaging still to come |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media and both dashboards are built. Notes, tenant settings, skills, learning paths and messaging still to come |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — six API modules remain before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 533 unit + 346 integration tests / 2,905 assertions · PHPStan level 8 clean · 0 style errors · 637 live checks |
+| **Blocking the next slice** | Nothing — five API modules remain before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 547 unit + 365 integration tests / 2,999 assertions · PHPStan level 8 clean · 0 style errors · 690 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -111,11 +111,12 @@ foundations above it.
 | 12 | people | ✅ | **9** | Placement and activity resolved in the list query, not per row |
 | 13 | gamification (points, badges, levels, streaks) | ✅ | **9** | Totals derived from the ledger; `user_level_progress` not ported |
 | 14 | media / SCORM | ✅ | **9** | Versions as rows; `is_latest_version` derived; bytes served through the API |
-| 15 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
-| 16 | messaging | ⬜ | 1 | 9 tables, 9 messages |
-| 17 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
-| 18 | notes | ⬜ | — | 5 rows, one table |
-| 19 | tenant settings | ⬜ | — | 16 rows, one key/value table |
+| 15 | dashboards | ✅ | **2** | Assembled from the reports; the learner's own takes no id |
+| 16 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
+| 17 | messaging | ⬜ | 1 | 9 tables, 9 messages |
+| 18 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
+| 19 | notes | ⬜ | — | 5 rows, one table |
+| 20 | tenant settings | ⬜ | — | 16 rows, one key/value table |
 
 ---
 
@@ -212,6 +213,57 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-29 — Dashboards
+
+Two routes and 1,877 lines of legacy SQL that mostly did not need porting.
+
+**The admin dashboard is assembled from reports that already exist.**
+`AdminDashboard.php` was 842 lines, and almost every figure in it had a twin in
+`class/reports/` — written separately and disagreeing in places. The clearest
+case is "mandatory": one report counted the enrolment's flag, the other the
+course's, and the dashboard was a third opinion. Nothing in the new one writes
+a query a report already answers. Eleven of its thirteen sections are report
+runs; what is left — the course and people mixes, the deadline queue and the
+activity feed — is a 400-line repository.
+
+The scope comes free with it. A line manager holding `report.view` and nothing
+else gets a dashboard covering themselves and their direct reports, because the
+report queries already narrow that way.
+
+**The learner dashboard takes no id.** `learner/dashboard.php` read `user_id`
+and `tenant_id` from the request body, and with `verify_user()` returning 100
+unconditionally that is two ids a caller picks for themselves. `/v1/dashboards/me`
+is about whoever holds the token. It does not go through the reporting layer
+either — a learner holds no report permission, and routing their own progress
+through it would mean granting one.
+
+**The streak is derived.** `user_streaks` stored `current_streak` and
+`longest_streak` as columns, kept up to date by whatever wrote
+`learning_sessions` — a table holding **three rows for the entire platform**.
+Eight people therefore carried a number nothing could decrement and almost
+nothing had incremented. A streak is a fact about a list of dates, and
+`LearningStreak` is that function: current run, longest run, and whether it
+survives today not having started yet, which the legacy's "activity today or
+yesterday" check got right and its stored counter did not.
+
+The resolution is honest rather than flattering: one progress row per lesson
+means the finest the schema carries is "the last day you touched each lesson",
+plus the day each attempt was submitted. Somebody re-reading one lesson every
+morning counts once. Finer would need an append-only activity log —
+`learning_sessions` was meant to be one, and never ran. Recorded on
+`DashboardRepository::activeDays()` rather than papered over.
+
+**Growth is null when there is nothing to grow from.** The legacy compared
+`MONTH(created_at) = MONTH(NOW()) - 1`, which is 0 every January, and divided by
+a previous month that was empty — so every tenant's first month showed +100%.
+The window here is the same length as the one before it and immediately
+preceding, and a comparison against nothing returns null for the client to draw
+as a dash.
+
+- 14 unit + 19 integration tests; **53 live checks**, including doing a lesson
+  and watching both dashboards move
+- 912 tests / 2,999 assertions · PHPStan level 8 clean · 0 style errors
 
 ### 2026-08-29 — Media library
 

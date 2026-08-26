@@ -69,6 +69,7 @@ use Central\Api\Application\Action\Enrollment\UnenrollAction;
 use Central\Api\Application\Action\Report\RunReportAction;
 use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
+use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
@@ -310,6 +311,15 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- dashboards -----------------------------------------------
+            //
+            // `/me` takes no id: the learner dashboard is about whoever is
+            // holding the token. The legacy took `user_id` from the body.
+            $secure->get('/dashboards/admin', [DashboardAction::class, 'forAdmin'])
+                ->setName('dashboards.admin');
+            $secure->get('/dashboards/me', [DashboardAction::class, 'forMe'])
+                ->setName('dashboards.me');
+
             // --- media library --------------------------------------------
             //
             // The bytes are served from `/{id}/file` rather than from a link

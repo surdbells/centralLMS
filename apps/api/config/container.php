@@ -64,8 +64,12 @@ use Central\Api\Infrastructure\Persistence\DbalSavedReportRepository;
 use Central\Api\Application\Gamification\Awarder;
 use Central\Api\Domain\Gamification\GamificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalGamificationRepository;
+use Central\Api\Application\Dashboard\AdminDashboardAssembler;
+use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
+use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\People\PersonRepository;
+use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
@@ -566,6 +570,26 @@ return [
     MediaRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalMediaRepository($c->get(Connection::class)),
     ),
+
+    DashboardRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalDashboardRepository($c->get(Connection::class)),
+    ),
+
+    // Assembled from the report definitions rather than from fresh SQL — see
+    // the class docblock for why the legacy's two copies disagreed.
+    AdminDashboardAssembler::class => factory(static fn (ContainerInterface $c) => new AdminDashboardAssembler(
+        $c->get(ReportRepository::class),
+        $c->get(DashboardRepository::class),
+        $c->get(ReportCatalogue::class),
+    )),
+
+    LearnerDashboardAssembler::class => factory(static fn (ContainerInterface $c) => new LearnerDashboardAssembler(
+        $c->get(DashboardRepository::class),
+        $c->get(EnrollmentRepository::class),
+        $c->get(CertificateRepository::class),
+        $c->get(GamificationRepository::class),
+        $c->get(Clock::class),
+    )),
 
     MediaStorage::class => factory(static fn (ContainerInterface $c) => new MediaStorage(
         $c->get(FilesystemOperator::class),
