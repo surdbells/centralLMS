@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; everything but messaging is built |
+| **Current focus** | Frontend cutover. **The backend is complete** — every module the legacy had, ported and tested |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — one API module remains before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 621 unit + 449 integration tests / 3,576 assertions · PHPStan level 8 clean · 0 style errors · 908 live checks |
+| **Blocking the next slice** | Nothing. The frontend can now drop the legacy backend entirely |
+| **API quality gate** | ✅ 639 unit + 477 integration tests / 3,685 assertions · PHPStan level 8 clean · 0 style errors · 968 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -57,17 +57,20 @@ Found by a pre-commit scan rather than by reading:
 | # | Workstream | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Monorepo adoption | ✅ | pnpm + Turborepo, 4 apps, 5 packages, Docker stack, legacy drop zone |
-| 2 | Backend rewrite (Slim/PostgreSQL) | 🟡 | Foundation + identity + reference data; **36 of 96 live endpoints ported** |
+| 2 | Backend rewrite (Slim/PostgreSQL) | ✅ | Every module ported. **232 routes** covering the 96 live legacy endpoints, and finishing what they never did |
 | 3 | ILT (Zoom / Meet / Teams) | ✅ | Wired and tested; needs a tenant to connect an account and platform credentials in settings |
-| 4 | Prevent repetition | 🟡 | 72% of backend files unreachable; reference data collapsed 52 files → 6 routes |
-| 5 | Frontend (keep + improve) | 🟡 | Sign-in migrated; `ApiModule.Auth` on the new API. 81 files still on `GlobalComponent` |
+| 4 | Prevent repetition | ✅ | 72% of backend files unreachable. Reference data 52 files → 6 routes; skills 25 actions → 16; notes 11 files → 7; messaging 11 tables → 3 |
+| 5 | Frontend (keep + improve) | 🟡 | Sign-in migrated. **Next up**: 81 files still on `GlobalComponent`, 29 on `CrudService` |
 
 ---
 
 ## Backend port
 
-**36 of 96 live endpoints ported.** Scope measured against the frontend, not
-guessed — see [`live-surface.md`](docs/migration/live-surface.md).
+**All 96 live endpoints ported, as 232 routes.** Scope measured against the
+frontend, not guessed — see [`live-surface.md`](docs/migration/live-surface.md).
+The route count is higher than the endpoint count because a legacy endpoint
+that switched on an `action` field in its body becomes one route per thing it
+did.
 
 | | Files | LOC |
 | --- | --- | --- |
@@ -115,7 +118,7 @@ foundations above it.
 | 15 | dashboards | ✅ | **2** | Assembled from the reports; the learner's own takes no id |
 | 16 | notes | ✅ | **7** | 11 legacy files, 8 of which could not run — the class writes columns the table lacks |
 | 17 | learning paths | ✅ | **24** | 5 tables of 10 + 2 views; progress derived from the courses, not stored |
-| 18 | messaging | ⬜ | 1 | 9 tables, 9 messages |
+| 18 | messaging | ✅ | **12** | 3 tables of 11 + a view; one content column where there were three |
 | 19 | skills | ✅ | **16** | Derived from completed courses; the two acquisition tables were empty *and* unread |
 | 20 | tenant settings | ✅ | **6** | 4 categories of 8 kept — the other four were read by nothing |
 
@@ -214,6 +217,63 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-30 — Messaging, and the backend is complete
+
+Twelve routes, three tables where the legacy had eleven plus a view, and one
+content column where it had three.
+
+**`content`, `content_html` and `content_plain`** hold the same string,
+character for character, in all nine messages. Nothing ever rendered one
+differently from another and nothing decided which to read. One column.
+
+**Eight tables with nothing in them**, and the reason matters in each case.
+`message_attachments` is a real feature that belongs on the media module — an
+attachment is an uploaded file, and there is now one place that stores those.
+`message_read_receipts` is a row per person per message, where what anybody
+wants from a conversation is "what have I not read", which is one timestamp per
+participant. `broadcast_messages` **is** `notification.send`, which the
+notification module already does with delivery tracking and per-person
+preferences. The rest — reactions, mentions, drafts, saved messages, reports —
+each need a screen that does not exist.
+
+**A pair can no longer end up with two conversations.** The legacy had four
+direct conversations and nothing stopping a fifth between a pair that already
+had one, which splits a conversation in half and hides the older one. A sorted
+pair key under a unique index makes it impossible, and starting a chat is
+find-or-create, so two taps produce one conversation.
+
+**The six `can_*` flags on a participant are zero on every row, including every
+owner's.** A permission model that says an owner may not post is not one
+anybody consulted. The role decides.
+
+**Counters gone:** `conversations.message_count`, `last_message_id`,
+`last_message_at`, and `conversation_participants.unread_count` — one write per
+participant, per message, to say what the messages already say. Unread is now
+"since I last looked", from one timestamp.
+
+Also not carried, all null or zero in every row: threads, forwarding, pinning
+messages, priorities and scheduling. `reply_to_id` **is** used, so replies stay
+— and a reply to a message since deleted shows the same placeholder the message
+itself would, rather than the words that were taken down.
+
+Every route is under `/me` and resolves the conversation through the caller's
+own membership. A conversation that is not theirs answers 404 rather than 403:
+saying one exists but is not yours says who is talking.
+
+- 18 unit + 28 integration tests; **60 live checks**
+- 1,116 tests / 3,685 assertions · PHPStan level 8 clean · 0 style errors
+
+---
+
+**That is the last module.** Every part of the legacy backend now has a ported
+equivalent, and the frontend can drop it entirely. What the port removed along
+the way, module by module: 19 stored counters on learning paths, 6 more on its
+enrolments, 3 on conversations, 2 notification queues, 4 legacy delivery
+queues, `user_level_progress`, `user_streaks`, `media.is_latest_version`,
+certificate template `usage_count`, `scheduled_reports.next_run_at`,
+`live_training_reminders` — every one of them a value stored beside the rows it
+summarised, and every one of them found to have drifted.
 
 ### 2026-08-30 — Learning paths
 

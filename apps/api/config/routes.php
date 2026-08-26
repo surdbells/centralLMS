@@ -72,6 +72,7 @@ use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\LearningPath\ManagePathsAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
+use Central\Api\Application\Action\Messaging\MessagingAction;
 use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Skill\ManageSkillsAction;
@@ -323,6 +324,46 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- messaging ------------------------------------------------
+            //
+            // Every route resolves the conversation through the caller's own
+            // membership, and one that is not theirs answers 404 rather than
+            // 403 — saying a conversation exists but is not yours says who is
+            // talking. `unread` is declared before `/{id}`.
+            $secure->group('/me/conversations', function (RouteCollectorProxy $m) use ($uuid): void {
+                $m->get('', [MessagingAction::class, 'inbox'])->setName('me.conversations');
+                $m->post('', [MessagingAction::class, 'start'])->setName('me.conversations.start');
+
+                $m->get('/unread', [MessagingAction::class, 'unread'])->setName('me.conversations.unread');
+
+                $m->get('/{id:' . $uuid . '}', [MessagingAction::class, 'show'])
+                    ->setName('me.conversations.show');
+                $m->patch('/{id:' . $uuid . '}', [MessagingAction::class, 'update'])
+                    ->setName('me.conversations.update');
+                $m->post('/{id:' . $uuid . '}/read', [MessagingAction::class, 'markRead'])
+                    ->setName('me.conversations.read');
+
+                $m->post('/{id:' . $uuid . '}/participants', [MessagingAction::class, 'addParticipants'])
+                    ->setName('me.conversations.participants.add');
+                $m->delete(
+                    '/{id:' . $uuid . '}/participants/{userId:' . $uuid . '}',
+                    [MessagingAction::class, 'removeParticipant'],
+                )->setName('me.conversations.participants.remove');
+
+                $m->get('/{id:' . $uuid . '}/messages', [MessagingAction::class, 'messages'])
+                    ->setName('me.conversations.messages');
+                $m->post('/{id:' . $uuid . '}/messages', [MessagingAction::class, 'send'])
+                    ->setName('me.conversations.messages.send');
+                $m->put(
+                    '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}',
+                    [MessagingAction::class, 'edit'],
+                )->setName('me.conversations.messages.edit');
+                $m->delete(
+                    '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}',
+                    [MessagingAction::class, 'delete'],
+                )->setName('me.conversations.messages.delete');
+            });
+
             // --- learning paths -------------------------------------------
             //
             // Nothing under here writes progress: a learner's position is
