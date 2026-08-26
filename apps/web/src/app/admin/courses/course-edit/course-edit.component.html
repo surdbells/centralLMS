@@ -1,0 +1,216 @@
+<app-admintop></app-admintop>
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+      <div class="d-flex align-items-center gap-3">
+        <a routerLink="/courses" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
+        <div>
+          <h4 class="fw-bold mb-0">{{ isEdit ? 'Edit Course' : 'New Course' }}</h4>
+          <small class="text-muted">Details only — modules and lessons are next door</small>
+        </div>
+      </div>
+      <span class="badge fs-6 align-self-center" [class]="statusBadge(status)" *ngIf="isEdit">
+        {{ status | titlecase }}
+      </span>
+    </div>
+
+    <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+    <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+      <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+      <div class="flex-grow-1">{{ error }}</div>
+      <button type="button" class="btn-close" (click)="error = null"></button>
+    </div>
+
+    <div class="alert alert-success d-flex align-items-start" *ngIf="notice">
+      <i class="bi bi-check-circle me-2 mt-1"></i>
+      <div class="flex-grow-1">{{ notice }}</div>
+      <button type="button" class="btn-close" (click)="notice = null"></button>
+    </div>
+
+    <form *ngIf="!loading" (ngSubmit)="save()" class="row g-4">
+      <!-- What it is -->
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white fw-semibold"><i class="bi bi-info-circle me-2"></i>About the course</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="title" [(ngModel)]="form.title"
+                     [class.is-invalid]="violations['title']" placeholder="e.g. Introduction to Fire Safety">
+              <div class="invalid-feedback">{{ violations['title'] }}</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Summary</label>
+              <textarea class="form-control form-control-sm" rows="2" name="summary" [(ngModel)]="form.summary"
+                        [class.is-invalid]="violations['summary']"
+                        placeholder="One or two lines, shown on the course card"></textarea>
+              <div class="invalid-feedback">{{ violations['summary'] }}</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Description</label>
+              <textarea class="form-control form-control-sm" rows="5" name="description" [(ngModel)]="form.description"
+                        placeholder="What the course covers"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Objectives</label>
+              <textarea class="form-control form-control-sm" rows="3" name="objectives" [(ngModel)]="form.objectives"
+                        placeholder="One per line"></textarea>
+              <small class="text-muted">What somebody will be able to do afterwards.</small>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Thumbnail URL</label>
+              <input type="url" class="form-control form-control-sm" name="thumbnailUrl"
+                     [(ngModel)]="form.thumbnailUrl" placeholder="https://…">
+              <div class="mt-2" *ngIf="form.thumbnailUrl">
+                <img [src]="form.thumbnailUrl" class="rounded" style="max-height:120px; max-width:200px" alt=""
+                     (error)="form.thumbnailUrl = ''">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>How it runs</div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Pass mark (%)</label>
+                <input type="number" class="form-control form-control-sm" name="passPercentage" min="0" max="100"
+                       [class.is-invalid]="violations['passPercentage']" [(ngModel)]="form.passPercentage">
+                <div class="invalid-feedback">{{ violations['passPercentage'] }}</div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Duration (minutes)</label>
+                <input type="number" class="form-control form-control-sm" name="durationMinutes" min="0"
+                       [(ngModel)]="form.durationMinutes">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Enrolment limit</label>
+                <input type="number" class="form-control form-control-sm" name="enrollmentLimit" min="0"
+                       [(ngModel)]="form.enrollmentLimit" placeholder="Leave empty for no limit">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Starts on</label>
+                <input type="date" class="form-control form-control-sm" name="startsOn" [(ngModel)]="form.startsOn">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Ends on</label>
+                <input type="date" class="form-control form-control-sm" name="endsOn"
+                       [class.is-invalid]="violations['endsOn']" [(ngModel)]="form.endsOn">
+                <div class="invalid-feedback">{{ violations['endsOn'] }}</div>
+              </div>
+
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="selfEnrol" name="allowSelfEnrollment"
+                         [(ngModel)]="form.allowSelfEnrollment">
+                  <label class="form-check-label small" for="selfEnrol">
+                    Learners may enrol themselves
+                    <span class="d-block text-muted">Otherwise somebody has to put them on it.</span>
+                  </label>
+                </div>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="mandatory" name="isMandatory"
+                         [(ngModel)]="form.isMandatory">
+                  <label class="form-check-label small" for="mandatory">
+                    Mandatory
+                    <span class="d-block text-muted">Appears in compliance reporting.</span>
+                  </label>
+                </div>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="onboarding" name="isOnboarding"
+                         [(ngModel)]="form.isOnboarding">
+                  <label class="form-check-label small" for="onboarding">
+                    Part of onboarding
+                    <span class="d-block text-muted">Assigned to new starters.</span>
+                  </label>
+                </div>
+                <div class="form-check form-switch mt-2">
+                  <input class="form-check-input" type="checkbox" id="featured" name="isFeatured"
+                         [(ngModel)]="form.isFeatured">
+                  <label class="form-check-label small" for="featured">
+                    Featured
+                    <span class="d-block text-muted">Promoted on the catalogue.</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Where it belongs, and what to do next -->
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white fw-semibold"><i class="bi bi-tags me-2"></i>Classification</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Category</label>
+              <select class="form-select form-select-sm" name="categoryId" [(ngModel)]="form.categoryId">
+                <option [ngValue]="null">Not set</option>
+                <option *ngFor="let c of categories; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Level</label>
+              <select class="form-select form-select-sm" name="level" [(ngModel)]="form.level">
+                <option [ngValue]="null">Not set</option>
+                <option *ngFor="let l of levels" [ngValue]="l">{{ l | titlecase }}</option>
+              </select>
+            </div>
+            <div class="mb-0">
+              <label class="form-label small fw-semibold">Instructor</label>
+              <select class="form-select form-select-sm" name="instructorId" [(ngModel)]="form.instructorId">
+                <option [ngValue]="null">Unassigned</option>
+                <option *ngFor="let i of instructors; trackBy: trackById" [ngValue]="i.id">{{ i.fullName }}</option>
+              </select>
+              <small class="text-muted">Anyone holding the instructor role.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <button type="submit" class="btn btn-primary w-100 mb-2" [disabled]="saving || !form.title.trim()">
+              <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+              <i *ngIf="!saving" class="bi bi-check-lg me-1"></i>
+              {{ isEdit ? 'Save changes' : 'Create and add content' }}
+            </button>
+
+            <ng-container *ngIf="isEdit">
+              <button type="button" class="btn btn-secondary w-100 mb-3" (click)="manageContent()">
+                <i class="bi bi-list-check me-1"></i>Modules &amp; lessons
+              </button>
+
+              <hr>
+
+              <button type="button" class="btn btn-success w-100 mb-2" *ngIf="status !== 'published'"
+                      [disabled]="publishing" (click)="setStatus('published')">
+                <span *ngIf="publishing" class="spinner-border spinner-border-sm me-1"></span>
+                <i *ngIf="!publishing" class="bi bi-cloud-upload me-1"></i>Publish
+              </button>
+              <button type="button" class="btn btn-warning w-100 mb-2" *ngIf="status === 'published'"
+                      [disabled]="publishing" (click)="setStatus('draft')">
+                <i class="bi bi-cloud-slash me-1"></i>Unpublish
+              </button>
+              <button type="button" class="btn btn-outline-secondary w-100" *ngIf="status !== 'archived'"
+                      [disabled]="publishing" (click)="setStatus('archived')">
+                <i class="bi bi-archive me-1"></i>Archive
+              </button>
+
+              <p class="text-muted small mt-3 mb-0">
+                A course with no lessons cannot be published — a learner would enrol and find nothing to do.
+              </p>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>

@@ -1,149 +1,116 @@
-// course-content/course-content.component.ts
-
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import {
-  CdkDragDrop,
-  moveItemInArray,
-  transferArrayItem,
-  DragDropModule
-} from '@angular/cdk/drag-drop';
-import { CourseContentService, MediaFile } from './course-content.service';
-import {
-  Course,
-  Module,
-  Lesson,
-  Assessment,
-  Question,
-  QuestionOption,
-  ModuleForm,
-  LessonForm,
-  AssessmentForm,
-  QuestionForm,
-  QuestionOptionForm,
-  LessonContentType,
-  AssessmentType,
-  QuestionType
-} from './course-content.interfaces';
-import {TuiDialog, TuiIcon} from '@taiga-ui/core';
-import {HotToastService} from '@ngneat/hot-toast';
-import {ActivatedRoute, Router} from '@angular/router';
-import {CrudService} from '../../../services/crud.service';
+  CoursesService,
+  type CourseModule,
+  type CourseOutline,
+  type Lesson,
+  type LessonContentType,
+} from '../../../services/courses.service';
+import { MediaService, type MediaItem } from '../../../services/media.service';
+import { ApiError } from '../../../core/api';
+import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 
+type OutlineModule = CourseModule & { lessons: Lesson[] };
+
+interface ContentTypeOption {
+  value: LessonContentType;
+  label: string;
+  icon: string;
+  /** Which kind of media file this lesson type plays, if any. */
+  media?: MediaItem['kind'];
+}
+
+/**
+ * The structure of one course: its modules, and the lessons inside them.
+ *
+ * **Assessments are not edited here.** They have their own screens, their own
+ * permission and their own question bank; a second editor for them inside this
+ * one is how the two ended up disagreeing about what a passing score was. The
+ * course's assessments are listed with a link out to the real editor.
+ *
+ * The whole outline arrives in one request. The screen this replaces fetched
+ * the course, then its modules, then the lessons of each module — sixteen
+ * requests for a course with fifteen modules, every time anything changed.
+ */
 @Component({
   selector: 'app-course-content',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, TuiDialog, TuiIcon],
+  imports: [CommonModule, FormsModule, DragDropModule, RouterLink, AdmintopComponent],
   templateUrl: './course-content.component.html',
-  styleUrls: ['./course-content.component.scss']
+  styleUrls: ['./course-content.component.scss'],
 })
 export class CourseContentComponent implements OnInit, OnDestroy {
-  @Input() courseId!: number;
+  private readonly coursesService = inject(CoursesService);
+  private readonly mediaService = inject(MediaService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly destroy$ = new Subject<void>();
 
-  private destroy$ = new Subject<void>();
+  courseId = '';
+  outline: CourseOutline | null = null;
 
-  // Math for template usage
-  Math = Math;
+  media: MediaItem[] = [];
+  mediaSearch = '';
 
-  // Data
-  course: Course | null = null;
-  modules: Module[] = [];
-  mediaFiles: MediaFile[] = [];
-  filteredMediaFiles: MediaFile[] = [];
-
-  // UI State
-  loading = false;
+  loading = true;
   saving = false;
   error: string | null = null;
-  successMessage: string | null = null;
+  notice: string | null = null;
 
-  // Modal states
+  expanded = new Set<string>();
+
+  // Module editing
   showModuleModal = false;
-  showLessonModal = false;
-  showAssessmentModal = false;
-  showQuestionModal = false;
-  showDeleteConfirm = false;
-
-  // Edit mode
-  editMode: 'create' | 'edit' = 'create';
-
-  // Current editing items
-  currentModule: ModuleForm = this.getEmptyModuleForm();
-  currentLesson: LessonForm = this.getEmptyLessonForm();
-  currentAssessment: AssessmentForm = this.getEmptyAssessmentForm();
-  currentQuestion: QuestionForm = this.getEmptyQuestionForm();
-
-  // Parent context for modals
-  selectedModuleId: number | null = null;
-  selectedAssessmentId: number | null = null;
-
-  // Delete confirmation
-  deleteType: 'module' | 'lesson' | 'assessment' | 'question' = 'module';
-  deleteId: number = 0;
-  deleteName: string = '';
-
-  // Content type options with media type mapping
-  contentTypes: { value: LessonContentType; label: string; icon: string; mediaType?: string }[] = [
-    { value: 'video', label: 'Video', icon: 'bi-play-circle', mediaType: 'VIDEO' },
-    { value: 'audio', label: 'Audio', icon: 'bi-music-note-beamed', mediaType: 'AUDIO' },
-    { value: 'pdf', label: 'PDF Document', icon: 'bi-file-pdf', mediaType: 'PDF' },
-    { value: 'html', label: 'HTML/Web Content', icon: 'bi-code-slash' },
-    { value: 'scorm', label: 'SCORM Package', icon: 'bi-box', mediaType: 'SCORM' },
-    { value: 'text', label: 'Text Content', icon: 'bi-file-text' }
-  ];
-
-  // Selected media for lesson
-  selectedMedia: MediaFile | null = null;
-  loadingMedia = false;
-
-  // Question management
-  showQuestionManagerModal = false;
-  currentAssessmentForQuestions: Assessment | null = null;
-  questions: Question[] = [];
-  loadingQuestions = false;
-  showQuestionFormModal = false;
-  questionEditMode: 'create' | 'edit' = 'create';
-
-  assessmentTypes: { value: AssessmentType; label: string; icon: string }[] = [
-    { value: 'quiz', label: 'Quiz', icon: 'bi-question-circle' },
-    { value: 'exam', label: 'Exam', icon: 'bi-journal-check' },
-    { value: 'survey', label: 'Survey', icon: 'bi-clipboard-data' },
-    { value: 'assignment', label: 'Assignment', icon: 'bi-file-earmark-text' }
-  ];
-
-  questionTypes: { value: QuestionType; label: string }[] = [
-    { value: 'single_choice', label: 'Single Choice' },
-    { value: 'multiple_choice', label: 'Multiple Choice' },
-    { value: 'true_false', label: 'True/False' },
-    { value: 'short_answer', label: 'Short Answer' },
-    { value: 'essay', label: 'Essay' },
-    { value: 'fill_blank', label: 'Fill in the Blank' }
-  ];
-
-  // Stats
-  stats = {
-    total_modules: 0,
-    total_lessons: 0,
-    total_assessments: 0,
-    total_questions: 0,
-    total_duration_minutes: 0
+  moduleForm: { id: string | null; title: string; description: string } = {
+    id: null, title: '', description: '',
   };
 
-  constructor(
-    private contentService: CourseContentService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private crudService: CrudService,
-    private toast: HotToastService
-    ) {}
+  // Lesson editing
+  showLessonModal = false;
+  lessonModuleId: string | null = null;
+  lessonForm: {
+    id: string | null;
+    title: string;
+    description: string;
+    contentType: LessonContentType;
+    contentUrl: string | null;
+    contentText: string | null;
+    durationMinutes: number | null;
+    isMandatory: boolean;
+    isPreview: boolean;
+  } = this.emptyLesson();
+
+  violations: Record<string, string> = {};
+
+  // Deleting
+  pendingDelete: { kind: 'module' | 'lesson'; id: string; moduleId?: string; name: string } | null = null;
+
+  readonly contentTypes: ContentTypeOption[] = [
+    { value: 'video', label: 'Video', icon: 'bi-camera-video', media: 'video' },
+    { value: 'audio', label: 'Audio', icon: 'bi-music-note-beamed', media: 'audio' },
+    { value: 'pdf', label: 'PDF', icon: 'bi-file-earmark-pdf', media: 'pdf' },
+    { value: 'scorm', label: 'SCORM package', icon: 'bi-box-seam', media: 'scorm' },
+    { value: 'text', label: 'Text', icon: 'bi-file-text' },
+    { value: 'html', label: 'Rich content', icon: 'bi-code-slash' },
+  ];
 
   ngOnInit(): void {
-    if (this.courseId) {
-      this.loadContent();
+    this.courseId = this.route.snapshot.paramMap.get('id') ?? '';
+
+    if (this.courseId === '') {
+      this.error = 'No course was named in the address.';
+      this.loading = false;
+
+      return;
     }
+
+    this.load();
   }
 
   ngOnDestroy(): void {
@@ -151,824 +118,347 @@ export class CourseContentComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ==========================================
-  // DATA LOADING
-  // ==========================================
-
-  loadContent(): void {
+  load(): void {
     this.loading = true;
-    this.error = null;
 
-    this.contentService.loadCourseContent(this.courseId)
+    this.coursesService
+      .outline(this.courseId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data) => {
-          this.course = data.course;
-          this.modules = data.modules.map(m => ({ ...m, expanded: true }));
-          this.stats = data.stats;
+        next: (outline) => {
+          this.outline = outline;
+          this.loading = false;
+
+          // Everything open on a first visit, so an empty course is visibly
+          // empty rather than looking like a list that has not loaded.
+          if (this.expanded.size === 0) {
+            this.expanded = new Set(outline.modules.map((m) => m.id));
+          }
+        },
+        error: (error: ApiError) => {
+          this.error = error.message;
           this.loading = false;
         },
-        error: (err) => {
-          this.error = 'Failed to load course content';
-          this.loading = false;
-          console.error(err);
-        }
       });
   }
 
-  refreshModules(): void {
-    this.contentService.refreshModules(this.courseId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (modules) => {
-          this.modules = modules.map(m => ({ ...m, expanded: true }));
-          this.updateStats();
-        },
-        error: (err) => console.error(err)
-      });
+  get modules(): OutlineModule[] {
+    return this.outline?.modules ?? [];
   }
 
-  // ==========================================
-  // MODULE OPERATIONS
-  // ==========================================
+  get lessonCount(): number {
+    return this.modules.reduce((total, m) => total + m.lessons.length, 0);
+  }
 
-  openModuleModal(module?: Module): void {
-    this.editMode = module ? 'edit' : 'create';
-    this.currentModule = module ? {
-      module_id: module.module_id,
-      title: module.title,
-      description: module.description || '',
-      is_active: module.is_active
-    } : this.getEmptyModuleForm();
+  // --- modules ------------------------------------------------------------
+
+  toggle(module: OutlineModule): void {
+    this.expanded.has(module.id) ? this.expanded.delete(module.id) : this.expanded.add(module.id);
+  }
+
+  expandAll(): void {
+    this.expanded = new Set(this.modules.map((m) => m.id));
+  }
+
+  collapseAll(): void {
+    this.expanded = new Set();
+  }
+
+  openModuleModal(module?: OutlineModule): void {
+    this.violations = {};
+    this.moduleForm = module === undefined
+      ? { id: null, title: '', description: '' }
+      : { id: module.id, title: module.title, description: module.description ?? '' };
     this.showModuleModal = true;
   }
 
   saveModule(): void {
-    if (!this.currentModule.title.trim()) {
-      this.error_notification('Module title is required');
+    const title = this.moduleForm.title.trim();
+
+    if (title === '') {
       return;
     }
 
     this.saving = true;
+    this.violations = {};
 
-    const operation = this.editMode === 'create'
-      ? this.contentService.createModule(this.courseId, this.currentModule)
-      : this.contentService.updateModule(this.currentModule.module_id!, this.currentModule);
+    const input = { title, description: this.moduleForm.description || null };
+    const saved = this.moduleForm.id === null
+      ? this.coursesService.createModule(this.courseId, input)
+      : this.coursesService.updateModule(this.courseId, this.moduleForm.id, input);
 
-    operation.pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.success_notification(`Module ${this.editMode === 'create' ? 'created' : 'updated'} successfully`);
+    saved.pipe(takeUntil(this.destroy$)).subscribe({
+      next: (module) => {
+        this.saving = false;
         this.showModuleModal = false;
-        this.refreshModules();
-        this.saving = false;
+        this.expanded.add(module.id);
+        this.load();
       },
-      error: (err) => {
-        this.error_notification(`Failed to ${this.editMode} module`);
-        this.saving = false;
-      }
+      error: (error: ApiError) => this.failed(error),
     });
   }
 
-  toggleModuleExpand(module: Module): void {
-    module.expanded = !module.expanded;
-  }
-
-  expandAllModules(): void {
-    this.modules.forEach(m => m.expanded = true);
-  }
-
-  collapseAllModules(): void {
-    this.modules.forEach(m => m.expanded = false);
-  }
-
-  duplicateModule(module: Module, event: Event): void {
-    event.stopPropagation();
-    this.saving = true;
-
-    this.contentService.duplicateModule(module.module_id)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.success_notification('Module duplicated successfully');
-          this.refreshModules();
-          this.saving = false;
-        },
-        error: (err) => {
-          this.error_notification('Failed to duplicate module');
-          this.saving = false;
-        }
-      });
-  }
-
-  // ==========================================
-  // LESSON OPERATIONS
-  // ==========================================
-
-  openLessonModal(moduleId: number, lesson?: Lesson): void {
-    this.selectedModuleId = moduleId;
-    this.editMode = lesson ? 'edit' : 'create';
-    this.selectedMedia = null;
-    this.filteredMediaFiles = [];
-
-    this.currentLesson = lesson ? {
-      lesson_id: lesson.lesson_id,
-      module_id: lesson.module_id,
-      title: lesson.title,
-      description: lesson.description || '',
-      content_type: lesson.content_type,
-      content_url: lesson.content_url || '',
-      content_text: lesson.content_text || '',
-      duration_minutes: lesson.duration_minutes || 0,
-      is_mandatory: lesson.is_mandatory,
-      is_active: lesson.is_active,
-      pass_percentage: lesson.pass_percentage || 70
-    } : this.getEmptyLessonForm(moduleId);
-
-    // Load media for the current content type
-    this.onContentTypeChange(this.currentLesson.content_type);
-
-    this.showLessonModal = true;
+  setModuleActive(module: OutlineModule, isActive: boolean): void {
+    this.run(
+      this.coursesService.setModuleStatus(this.courseId, module.id, isActive),
+      isActive ? `"${module.title}" is back on.` : `"${module.title}" is hidden from learners.`,
+    );
   }
 
   /**
-   * Handle content type change - load appropriate media files
+   * The new order is sent as one list, not as a position per row.
+   *
+   * Dragging one module used to mean an update per module it moved past; a
+   * failure halfway through left two modules claiming the same position.
    */
-  onContentTypeChange(contentType: LessonContentType): void {
-    this.currentLesson.content_type = contentType;
-    this.selectedMedia = null;
-    this.filteredMediaFiles = [];
-
-    // Find the media type for this content type
-    const typeConfig = this.contentTypes.find(t => t.value === contentType);
-    if (typeConfig?.mediaType) {
-      this.loadMediaForType(typeConfig.mediaType);
-    }
-  }
-
-  /**
-   * Load media files for a specific type
-   */
-  private loadMediaForType(mediaType: string): void {
-    this.loadingMedia = true;
-
-    this.contentService.getMediaByType(mediaType)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (files) => {
-          this.filteredMediaFiles = files;
-          this.loadingMedia = false;
-
-          // If editing and there's a content_url, try to find matching media
-          if (this.currentLesson.content_url) {
-            this.selectedMedia = files.find(f => {
-              const builtUrl = this.contentService.buildContentUrl(f);
-              return builtUrl === this.currentLesson.content_url || f.file_url === this.currentLesson.content_url;
-            }) || null;
-          }
-        },
-        error: (err) => {
-          console.error('Failed to load media:', err);
-          this.loadingMedia = false;
-        }
-      });
-  }
-
-  /**
-   * Handle media selection from dropdown
-   */
-  onMediaSelect(mediaId: number | string): void {
-    if (!mediaId || mediaId === '') {
-      this.selectedMedia = null;
-      this.currentLesson.content_url = '';
+  onModuleDrop(event: CdkDragDrop<OutlineModule[]>): void {
+    if (event.previousIndex === event.currentIndex || this.outline === null) {
       return;
     }
 
-    const media = this.filteredMediaFiles.find(f => f.media_id === +mediaId);
-    if (media) {
-      this.selectedMedia = media;
-      // Build the content URL based on media type
-      this.currentLesson.content_url = this.contentService.buildContentUrl(media);
+    moveItemInArray(this.outline.modules, event.previousIndex, event.currentIndex);
 
-      // Auto-fill title if empty
-      if (!this.currentLesson.title.trim()) {
-        this.currentLesson.title = media.title;
-      }
+    this.run(
+      this.coursesService.reorderModules(this.courseId, this.modules.map((m) => m.id)),
+      'Order saved.',
+      // The screen already shows the new order; reloading would make it jump.
+      false,
+    );
+  }
 
-      // Auto-fill duration for video/audio
-      if (media.duration_seconds && (media.media_type === 'VIDEO' || media.media_type === 'AUDIO')) {
-        this.currentLesson.duration_minutes = Math.ceil(media.duration_seconds / 60);
-      }
+  // --- lessons ------------------------------------------------------------
+
+  openLessonModal(moduleId: string, lesson?: Lesson): void {
+    this.violations = {};
+    this.lessonModuleId = moduleId;
+    this.lessonForm = lesson === undefined
+      ? this.emptyLesson()
+      : {
+        id: lesson.id,
+        title: lesson.title,
+        description: lesson.description ?? '',
+        contentType: lesson.contentType,
+        contentUrl: lesson.contentUrl,
+        contentText: lesson.contentText,
+        durationMinutes: lesson.durationMinutes,
+        isMandatory: lesson.isMandatory,
+        isPreview: lesson.isPreview,
+      };
+
+    this.showLessonModal = true;
+    this.loadMediaFor(this.lessonForm.contentType);
+  }
+
+  onContentTypeChange(): void {
+    // A video's URL is not a PDF's. Keeping the old one would leave a lesson
+    // pointing at a file its player cannot open.
+    this.lessonForm.contentUrl = null;
+    this.loadMediaFor(this.lessonForm.contentType);
+  }
+
+  private loadMediaFor(contentType: LessonContentType): void {
+    const kind = this.contentTypes.find((t) => t.value === contentType)?.media;
+
+    if (kind === undefined) {
+      this.media = [];
+
+      return;
+    }
+
+    this.mediaService
+      .list({ kind, perPage: 100 })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (page) => (this.media = page.items),
+        error: () => (this.media = []),
+      });
+  }
+
+  get filteredMedia(): MediaItem[] {
+    const term = this.mediaSearch.trim().toLowerCase();
+
+    return term === ''
+      ? this.media
+      : this.media.filter((m) => m.title.toLowerCase().includes(term));
+  }
+
+  chooseMedia(item: MediaItem): void {
+    this.lessonForm.contentUrl = this.mediaService.fileUrl(item);
+
+    // The library knows how long the file runs; asking somebody to type it
+    // again is how a course's advertised duration drifts from its content.
+    if (this.lessonForm.durationMinutes === null && item.durationSeconds !== null) {
+      this.lessonForm.durationMinutes = Math.max(1, Math.round(item.durationSeconds / 60));
     }
   }
 
-  /**
-   * Get display name for media in dropdown
-   */
-  getMediaDisplayName(media: MediaFile): string {
-    let name = media.title;
-    if (media.duration_seconds) {
-      const mins = Math.floor(media.duration_seconds / 60);
-      const secs = media.duration_seconds % 60;
-      name += ` (${mins}:${secs.toString().padStart(2, '0')})`;
-    }
-    return name;
+  get needsMedia(): boolean {
+    return this.contentTypes.find((t) => t.value === this.lessonForm.contentType)?.media !== undefined;
   }
 
   saveLesson(): void {
-    if (!this.currentLesson.title.trim()) {
-      this.error_notification('Lesson title is required');
+    const moduleId = this.lessonModuleId;
+    const title = this.lessonForm.title.trim();
+
+    if (moduleId === null || title === '') {
       return;
     }
 
     this.saving = true;
+    this.violations = {};
 
-    const operation = this.editMode === 'create'
-      ? this.contentService.createLesson(this.courseId,this.currentLesson)
-      : this.contentService.updateLesson(this.currentLesson.lesson_id!, this.currentLesson);
+    const input: Partial<Lesson> = {
+      title,
+      description: this.lessonForm.description || null,
+      contentType: this.lessonForm.contentType,
+      contentUrl: this.lessonForm.contentUrl,
+      contentText: this.lessonForm.contentText,
+      durationMinutes: this.lessonForm.durationMinutes,
+      isMandatory: this.lessonForm.isMandatory,
+      isPreview: this.lessonForm.isPreview,
+    };
 
-    operation.pipe(takeUntil(this.destroy$)).subscribe({
+    const saved = this.lessonForm.id === null
+      ? this.coursesService.createLesson(this.courseId, moduleId, input)
+      : this.coursesService.updateLesson(this.courseId, moduleId, this.lessonForm.id, input);
+
+    saved.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.success_notification(`Lesson ${this.editMode === 'create' ? 'created' : 'updated'} successfully`);
+        this.saving = false;
         this.showLessonModal = false;
-        this.refreshModules();
-        this.saving = false;
+        this.load();
       },
-      error: (err) => {
-        this.error_notification(`Failed to ${this.editMode} lesson`);
-        this.saving = false;
-      }
+      error: (error: ApiError) => this.failed(error),
     });
   }
 
-  duplicateLesson(lesson: Lesson, event: Event): void {
-    event.stopPropagation();
-    this.saving = true;
-
-    this.contentService.duplicateLesson(lesson.lesson_id)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.success_notification('Lesson duplicated successfully');
-          this.refreshModules();
-          this.saving = false;
-        },
-        error: (err) => {
-          this.error_notification('Failed to duplicate lesson');
-          this.saving = false;
-        }
-      });
+  setLessonActive(module: OutlineModule, lesson: Lesson, isActive: boolean): void {
+    this.run(
+      this.coursesService.setLessonStatus(this.courseId, module.id, lesson.id, isActive),
+      isActive ? `"${lesson.title}" is back on.` : `"${lesson.title}" is hidden from learners.`,
+    );
   }
 
-  // ==========================================
-  // ASSESSMENT OPERATIONS
-  // ==========================================
-
-  openAssessmentModal(moduleId?: number, assessment?: Assessment): void {
-    this.selectedModuleId = moduleId || null;
-    this.editMode = assessment ? 'edit' : 'create';
-    this.currentAssessment = assessment ? {
-      assessment_id: assessment.assessment_id,
-      module_id: assessment.module_id,
-      title: assessment.title,
-      description: assessment.description || '',
-      assessment_type: assessment.assessment_type,
-      time_limit_minutes: assessment.time_limit_minutes || 0,
-      pass_percentage: assessment.pass_percentage,
-      max_attempts: assessment.max_attempts || 3,
-      shuffle_questions: assessment.shuffle_questions,
-      show_correct_answers: assessment.show_correct_answers,
-      is_active: assessment.is_active
-    } : this.getEmptyAssessmentForm(moduleId);
-    this.showAssessmentModal = true;
-  }
-
-  saveAssessment(): void {
-    if (!this.currentAssessment.title.trim()) {
-      this.error_notification('Assessment title is required');
+  onLessonDrop(module: OutlineModule, event: CdkDragDrop<Lesson[]>): void {
+    if (event.previousIndex === event.currentIndex) {
       return;
     }
 
-    this.saving = true;
+    moveItemInArray(module.lessons, event.previousIndex, event.currentIndex);
 
-    const operation = this.editMode === 'create'
-      ? this.contentService.createAssessment(this.courseId, this.currentAssessment)
-      : this.contentService.updateAssessment(this.currentAssessment.assessment_id!, this.currentAssessment);
-
-    operation.pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.success_notification(`Assessment ${this.editMode === 'create' ? 'created' : 'updated'} successfully`);
-        this.showAssessmentModal = false;
-        this.refreshModules();
-        this.saving = false;
-      },
-      error: (err) => {
-        this.error_notification(`Failed to ${this.editMode} assessment`);
-        this.saving = false;
-      }
-    });
+    this.run(
+      this.coursesService.reorderLessons(this.courseId, module.id, module.lessons.map((l) => l.id)),
+      'Order saved.',
+      false,
+    );
   }
 
-  manageQuestions(assessment: Assessment): void {
-    this.currentAssessmentForQuestions = assessment;
-    this.selectedAssessmentId = assessment.assessment_id;
-    this.questions = [];
-    this.showQuestionManagerModal = true;
-    this.loadQuestions(assessment.assessment_id);
+  // --- deleting -----------------------------------------------------------
+
+  askDelete(kind: 'module' | 'lesson', id: string, name: string, moduleId?: string): void {
+    this.pendingDelete = { kind, id, name, moduleId };
   }
 
-  private loadQuestions(assessmentId: number): void {
-    this.loadingQuestions = true;
+  confirmDelete(): void {
+    const pending = this.pendingDelete;
 
-    this.contentService.getQuestions(assessmentId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (questions) => {
-          this.questions = questions;
-          this.loadingQuestions = false;
-        },
-        error: (err) => {
-          this.error_notification('Failed to load question-banks');
-          this.loadingQuestions = false;
-        }
-      });
-  }
-
-  openQuestionForm(question?: Question): void {
-    this.questionEditMode = question ? 'edit' : 'create';
-
-    if (question) {
-      this.currentQuestion = {
-        question_id: question.question_id,
-        question_text: question.question_text,
-        question_type: question.question_type,
-        points: question.points,
-        explanation: question.explanation || '',
-        is_active: question.is_active,
-        options: question.options?.map(o => ({
-          option_id: o.option_id,
-          option_text: o.option_text,
-          is_correct: o.is_correct,
-          feedback: o.feedback || ''
-        })) || this.getDefaultOptions()
-      };
-    } else {
-      this.currentQuestion = this.getEmptyQuestionForm();
-    }
-
-    this.showQuestionFormModal = true;
-  }
-
-  saveQuestion(): void {
-    if (!this.currentQuestion.question_text.trim()) {
-      this.error_notification('Question text is required');
+    if (pending === null) {
       return;
     }
 
-    // Validate at least one correct answer for choice question-banks
-    if (['single_choice', 'multiple_choice', 'true_false'].includes(this.currentQuestion.question_type)) {
-      const hasCorrect = this.currentQuestion.options.some(o => o.is_correct);
-      if (!hasCorrect) {
-        this.error_notification('Please mark at least one correct answer');
-        return;
-      }
-    }
+    const call = pending.kind === 'module'
+      ? this.coursesService.deleteModule(this.courseId, pending.id)
+      : this.coursesService.deleteLesson(this.courseId, pending.moduleId ?? '', pending.id);
 
     this.saving = true;
 
-    const operation = this.questionEditMode === 'create'
-      ? this.contentService.createQuestion(this.selectedAssessmentId!, this.currentQuestion)
-      : this.contentService.updateQuestion(this.currentQuestion.question_id!, this.currentQuestion);
-
-    operation.pipe(takeUntil(this.destroy$)).subscribe({
+    call.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.success_notification(`Question ${this.questionEditMode === 'create' ? 'created' : 'updated'} successfully`);
-        this.showQuestionFormModal = false;
-        this.loadQuestions(this.selectedAssessmentId!);
         this.saving = false;
+        this.pendingDelete = null;
+        this.notice = `"${pending.name}" was removed.`;
+        this.load();
       },
-      error: (err) => {
-        this.error_notification(`Failed to ${this.questionEditMode} question`);
+      error: (error: ApiError) => {
         this.saving = false;
-      }
+        this.pendingDelete = null;
+        // A lesson somebody has already completed cannot be removed, and the
+        // server says why rather than this guessing.
+        this.error = error.message;
+      },
     });
   }
 
-  deleteQuestion(question: Question): void {
-    this.deleteType = 'question';
-    this.deleteId = question.question_id;
-    this.deleteName = question.question_text.substring(0, 50) + (question.question_text.length > 50 ? '...' : '');
-    this.showDeleteConfirm = true;
-  }
+  // --- helpers ------------------------------------------------------------
 
-  duplicateQuestion(question: Question): void {
-    const newQuestion: QuestionForm = {
-      question_text: question.question_text + ' (Copy)',
-      question_type: question.question_type,
-      points: question.points,
-      explanation: question.explanation || '',
-      is_active: question.is_active,
-      options: question.options?.map(o => ({
-        option_text: o.option_text,
-        is_correct: o.is_correct,
-        feedback: o.feedback || ''
-      })) || []
-    };
+  private run(call: ReturnType<CoursesService['deleteModule']> | unknown, message: string, reload = true): void {
+    this.error = null;
 
-    this.saving = true;
-    this.contentService.createQuestion(this.selectedAssessmentId!, newQuestion)
+    (call as ReturnType<CoursesService['deleteModule']>)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.success_notification('Question duplicated');
-          this.loadQuestions(this.selectedAssessmentId!);
-          this.saving = false;
-        },
-        error: () => {
-          this.error_notification('Failed to duplicate question');
-          this.saving = false;
-        }
-      });
-  }
+          this.notice = message;
 
-  onQuestionDrop(event: CdkDragDrop<Question[]>): void {
-    if (event.previousIndex === event.currentIndex) return;
-
-    moveItemInArray(this.questions, event.previousIndex, event.currentIndex);
-
-    const questionIds = this.questions.map(q => q.question_id);
-    this.contentService.reorderQuestions(this.selectedAssessmentId!, questionIds)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        error: () => {
-          this.error_notification('Failed to reorder question-banks');
-          this.loadQuestions(this.selectedAssessmentId!);
-        }
-      });
-  }
-
-  private getDefaultOptions(): QuestionOptionForm[] {
-    return [
-      { option_text: '', is_correct: false, feedback: '' },
-      { option_text: '', is_correct: false, feedback: '' }
-    ];
-  }
-
-  getQuestionTypeLabel(type: QuestionType): string {
-    const found = this.questionTypes.find(t => t.value === type);
-    return found ? found.label : type;
-  }
-
-  getQuestionTypeIcon(type: QuestionType): string {
-    switch (type) {
-      case 'single_choice': return 'bi-circle';
-      case 'multiple_choice': return 'bi-check2-square';
-      case 'true_false': return 'bi-toggle-on';
-      case 'short_answer': return 'bi-input-cursor-text';
-      case 'essay': return 'bi-text-paragraph';
-      case 'fill_blank': return 'bi-input-cursor';
-      default: return 'bi-question';
-    }
-  }
-
-  getTotalPoints(): number {
-    return this.questions.reduce((sum, q) => sum + q.points, 0);
-  }
-
-  closeQuestionManager(): void {
-    this.showQuestionManagerModal = false;
-    this.currentAssessmentForQuestions = null;
-    this.questions = [];
-    // Refresh modules to update question counts
-    this.refreshModules();
-  }
-
-  duplicateAssessment(assessment: Assessment, event: Event): void {
-    event.stopPropagation();
-    this.saving = true;
-
-    this.contentService.duplicateAssessment(assessment.assessment_id)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.success_notification('Assessment duplicated successfully');
-          this.refreshModules();
-          this.saving = false;
-        },
-        error: (err) => {
-          this.error_notification('Failed to duplicate assessments');
-          this.saving = false;
-        }
-      });
-  }
-
-  // ==========================================
-  // DELETE OPERATIONS
-  // ==========================================
-
-  confirmDelete(type: 'module' | 'lesson' | 'assessment' | 'question', id: number, name: string): void {
-    this.deleteType = type;
-    this.deleteId = id;
-    this.deleteName = name;
-    this.showDeleteConfirm = true;
-  }
-
-  executeDelete(): void {
-    this.saving = true;
-
-    let operation;
-    switch (this.deleteType) {
-      case 'module':
-        operation = this.contentService.deleteModule(this.deleteId);
-        break;
-      case 'lesson':
-        operation = this.contentService.deleteLesson(this.deleteId);
-        break;
-      case 'assessment':
-        operation = this.contentService.deleteAssessment(this.deleteId);
-        break;
-      case 'question':
-        operation = this.contentService.deleteQuestion(this.deleteId);
-        break;
-    }
-
-    operation.pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.success_notification(`${this.deleteType.charAt(0).toUpperCase() + this.deleteType.slice(1)} deleted successfully`);
-        this.showDeleteConfirm = false;
-
-        // If deleting a question, refresh question-banks list
-        if (this.deleteType === 'question' && this.selectedAssessmentId) {
-          this.loadQuestions(this.selectedAssessmentId);
-        } else {
-          this.refreshModules();
-        }
-        this.saving = false;
-      },
-      error: (err) => {
-        this.error_notification(`Failed to delete ${this.deleteType}`);
-        this.saving = false;
-      }
-    });
-  }
-
-  // ==========================================
-  // DRAG & DROP
-  // ==========================================
-
-  onModuleDrop(event: CdkDragDrop<Module[]>): void {
-    if (event.previousIndex === event.currentIndex) return;
-
-    moveItemInArray(this.modules, event.previousIndex, event.currentIndex);
-
-    const moduleIds = this.modules.map(m => m.module_id);
-    this.contentService.reorderModules(this.courseId, moduleIds)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        error: (err) => {
-          this.error_notification('Failed to reorder modules');
-          this.refreshModules(); // Revert on error
-        }
-      });
-  }
-
-  onLessonDrop(event: CdkDragDrop<Lesson[]>, module: Module): void {
-    if (event.previousContainer === event.container) {
-      // Same container - reorder
-      if (event.previousIndex === event.currentIndex) return;
-
-      moveItemInArray(module.lessons!, event.previousIndex, event.currentIndex);
-
-      const lessonIds = module.lessons!.map(l => l.lesson_id);
-      this.contentService.reorderLessons(module.module_id, lessonIds)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          error: (err) => {
-            this.error_notification('Failed to reorder lessons');
-            this.refreshModules();
+          if (reload) {
+            this.load();
           }
-        });
-    } else {
-      // Different container - move between modules
-      transferArrayItem(
-        event.previousContainer.data,
-        event.container.data,
-        event.previousIndex,
-        event.currentIndex
-      );
-
-      const lesson = module.lessons![event.currentIndex];
-      this.contentService.moveLesson(lesson.lesson_id, module.module_id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            // Update lesson order in new module
-            const lessonIds = module.lessons!.map(l => l.lesson_id);
-            this.contentService.reorderLessons(module.module_id, lessonIds).subscribe();
-          },
-          error: (err) => {
-            this.error_notification('Failed to move lesson');
-            this.refreshModules();
-          }
-        });
-    }
-  }
-
-  getConnectedLists(): string[] {
-    return this.modules.map(m => `lesson-list-${m.module_id}`);
-  }
-
-  // ==========================================
-  // FORM HELPERS
-  // ==========================================
-
-  private getEmptyModuleForm(): ModuleForm {
-    return {
-      title: '',
-      description: '',
-      is_active: true
-    };
-  }
-
-  private getEmptyLessonForm(moduleId?: number): LessonForm {
-    return {
-      module_id: moduleId || 0,
-      title: '',
-      description: '',
-      content_type: 'video',
-      content_url: '',
-      content_text: '',
-      duration_minutes: 0,
-      is_mandatory: true,
-      is_active: true,
-      pass_percentage: 70
-    };
-  }
-
-  private getEmptyAssessmentForm(moduleId?: number): AssessmentForm {
-    return {
-      module_id: moduleId,
-      title: '',
-      description: '',
-      assessment_type: 'quiz',
-      time_limit_minutes: 30,
-      pass_percentage: 70,
-      max_attempts: 3,
-      shuffle_questions: true,
-      show_correct_answers: true,
-      is_active: true
-    };
-  }
-
-  private getEmptyQuestionForm(): QuestionForm {
-    return {
-      question_text: '',
-      question_type: 'single_choice',
-      points: 1,
-      explanation: '',
-      is_active: true,
-      options: [
-        { option_text: '', is_correct: false, feedback: '' },
-        { option_text: '', is_correct: false, feedback: '' }
-      ]
-    };
-  }
-
-  onQuestionTypeChange(type: QuestionType): void {
-    this.currentQuestion.question_type = type;
-
-    // Set default options based on type
-    if (type === 'true_false') {
-      this.currentQuestion.options = [
-        { option_text: 'True', is_correct: true, feedback: '' },
-        { option_text: 'False', is_correct: false, feedback: '' }
-      ];
-    } else if (['single_choice', 'multiple_choice'].includes(type)) {
-      // Keep existing options or create defaults
-      if (!this.currentQuestion.options || this.currentQuestion.options.length < 2) {
-        this.currentQuestion.options = this.getDefaultOptions();
-      }
-    } else {
-      // For essay, short_answer, fill_blank - no options needed
-      this.currentQuestion.options = [];
-    }
-  }
-
-  // ==========================================
-  // QUESTION OPTIONS HELPERS
-  // ==========================================
-
-  addOption(): void {
-    this.currentQuestion.options.push({
-      option_text: '',
-      is_correct: false,
-      feedback: ''
-    });
-  }
-
-  removeOption(index: number): void {
-    if (this.currentQuestion.options.length > 2) {
-      this.currentQuestion.options.splice(index, 1);
-    }
-  }
-
-  onCorrectOptionChange(index: number): void {
-    // For single choice, uncheck other options
-    if (this.currentQuestion.question_type === 'single_choice' ||
-      this.currentQuestion.question_type === 'true_false') {
-      this.currentQuestion.options.forEach((opt, i) => {
-        opt.is_correct = i === index;
+        },
+        error: (error: ApiError) => {
+          this.error = error.message;
+          // The screen showed the change optimistically; putting the server's
+          // version back is the only honest thing to do once it refused.
+          this.load();
+        },
       });
+  }
+
+  private failed(error: ApiError): void {
+    this.saving = false;
+    this.violations = Object.fromEntries(
+      Object.entries(error.violations).map(([field, messages]) => [field, messages[0]]),
+    );
+
+    if (Object.keys(this.violations).length === 0) {
+      this.error = error.message;
     }
   }
 
-  // ==========================================
-  // UI HELPERS
-  // ==========================================
-
-  getContentTypeIcon(type: LessonContentType): string {
-    const found = this.contentTypes.find(t => t.value === type);
-    return found ? found.icon : 'bi-file';
-  }
-
-  getContentTypeLabel(type: LessonContentType): string {
-    const found = this.contentTypes.find(t => t.value === type);
-    return found ? found.label : type;
-  }
-
-  getAssessmentTypeIcon(type: AssessmentType): string {
-    const found = this.assessmentTypes.find(t => t.value === type);
-    return found ? found.icon : 'bi-question-circle';
-  }
-
-  formatDuration(minutes: number): string {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  }
-
-  private updateStats(): void {
-    this.stats = {
-      total_modules: this.modules.length,
-      total_lessons: this.modules.reduce((sum, m) => sum + (m.lessons?.length || 0), 0),
-      total_assessments: this.modules.reduce((sum, m) => sum + (m.assessments?.length || 0), 0),
-      total_questions: 0, // Would need to sum from all assessments
-      total_duration_minutes: this.modules.reduce((sum, m) =>
-        sum + (m.lessons?.reduce((ls, l) => ls + (l.duration_minutes || 0), 0) || 0), 0)
+  private emptyLesson(): CourseContentComponent['lessonForm'] {
+    return {
+      id: null,
+      title: '',
+      description: '',
+      contentType: 'video',
+      contentUrl: null,
+      contentText: null,
+      durationMinutes: null,
+      isMandatory: true,
+      isPreview: false,
     };
   }
 
-  // ==========================================
-  // NOTIFICATIONS
-  // ==========================================
-
-  private showSuccess(message: string): void {
-    this.successMessage = message;
-    setTimeout(() => this.successMessage = null, 3000);
+  contentIcon(type: LessonContentType): string {
+    return this.contentTypes.find((t) => t.value === type)?.icon ?? 'bi-file-earmark';
   }
 
-  private showError(message: string): void {
-    this.error = message;
-    setTimeout(() => this.error = null, 5000);
+  contentLabel(type: LessonContentType): string {
+    return this.contentTypes.find((t) => t.value === type)?.label ?? type;
   }
 
-  closeAllModals(): void {
-    this.showModuleModal = false;
-    this.showLessonModal = false;
-    this.showAssessmentModal = false;
-    this.showQuestionModal = false;
-    this.showDeleteConfirm = false;
+  duration(minutes: number | null): string {
+    if (minutes === null || minutes === 0) {
+      return '';
+    }
+
+    return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
   }
 
-  // Track by functions
-  trackByModuleId(index: number, module: Module): number {
-    return module.module_id;
+  backToCourse(): void {
+    void this.router.navigate(['/courses', this.courseId, 'edit']);
   }
 
-  trackByLessonId(index: number, lesson: Lesson): number {
-    return lesson.lesson_id;
-  }
-
-  trackByAssessmentId(index: number, assessment: Assessment): number {
-    return assessment.assessment_id;
-  }
-
-  trackByQuestionId(index: number, question: Question): number {
-    return question.question_id;
-  }
-
-  trackByOptionIndex(index: number): number {
-    return index;
-  }
-
-  success_notification(message: string) {
-    this.toast.success(message);
-  }
-  error_notification(message: string) {
-    this.toast.error(message);
-  }
-
-  goBack() {
-    this.router.navigate(['/courses']).then(r => console.log(r));
+  trackById(_index: number, item: { id: string }): string {
+    return item.id;
   }
 }

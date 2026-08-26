@@ -8,20 +8,22 @@ import { ApiClient, Endpoints, type Paged } from '../core/api';
 
 export type CourseStatus = 'draft' | 'published' | 'archived';
 export type CourseLevel = 'beginner' | 'intermediate' | 'professional';
+export type LessonContentType = 'video' | 'text' | 'audio' | 'pdf' | 'scorm' | 'html' | 'quiz';
 
 export interface Course {
   id: string;
   title: string;
   summary: string | null;
   description: string | null;
-  objectives: string[];
+  /** Free text, one per line. It was never a list on the server. */
+  objectives: string | null;
   kind: string;
   status: CourseStatus;
   level: CourseLevel | null;
   categoryId: string | null;
   instructorId: string | null;
   thumbnailUrl: string | null;
-  passPercentage: number | null;
+  passPercentage: number;
   durationMinutes: number | null;
   enrollmentLimit: number | null;
   isMandatory: boolean;
@@ -30,10 +32,17 @@ export interface Course {
   allowSelfEnrollment: boolean;
   startsOn: string | null;
   endsOn: string | null;
+  /** Averaged from the ratings, never stored on the course. */
   rating: { average: number | null; count: number };
   publishedAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+}
+
+/** A duplicate, with what came across it. */
+export interface DuplicatedCourse extends Course {
+  copiedModules: number;
+  copiedLessons: number;
 }
 
 export interface CourseModule {
@@ -52,7 +61,7 @@ export interface Lesson {
   moduleId: string;
   title: string;
   description: string | null;
-  contentType: 'video' | 'text' | 'audio' | 'pdf' | 'scorm' | 'html' | 'quiz';
+  contentType: LessonContentType;
   contentUrl: string | null;
   contentText: string | null;
   durationMinutes: number | null;
@@ -62,10 +71,21 @@ export interface Lesson {
   isActive: boolean;
 }
 
-/** A course with its modules and lessons, for the player. */
+/** A course with its modules and lessons, for the player and the builder. */
 export interface CourseOutline {
   course: Course;
   modules: Array<CourseModule & { lessons: Lesson[] }>;
+}
+
+export interface CourseStatistics {
+  total: number;
+  draft: number;
+  published: number;
+  archived: number;
+  mandatory: number;
+  featured: number;
+  /** Across every course. Counted, never stored. */
+  enrollments: number;
 }
 
 export interface CourseFilters {
@@ -74,7 +94,6 @@ export interface CourseFilters {
   categoryId?: string;
   instructorId?: string;
   level?: CourseLevel;
-  mandatory?: boolean;
   page?: number;
   perPage?: number;
 }
@@ -83,12 +102,12 @@ export interface CourseInput {
   title: string;
   summary?: string | null;
   description?: string | null;
-  objectives?: string[];
+  objectives?: string | null;
   level?: CourseLevel | null;
   categoryId?: string | null;
   instructorId?: string | null;
   thumbnailUrl?: string | null;
-  passPercentage?: number | null;
+  passPercentage?: number;
   durationMinutes?: number | null;
   enrollmentLimit?: number | null;
   isMandatory?: boolean;
@@ -106,9 +125,11 @@ export interface CourseInput {
 /**
  * The course catalogue and its structure.
  *
- * `status` is not settable through {@link save}: publishing is its own call,
- * because it is a different act with a different permission and its own
- * refusal — a course with no lessons cannot be published.
+ * `status` is not settable through {@link create} or {@link update}, and the
+ * server ignores it if sent. Publishing is its own call because it is a
+ * different act with a different permission — an instructor may write a course
+ * and not release it — and its own refusal: a course with no lessons cannot be
+ * published, because a learner would enrol and find nothing to do.
  */
 @Injectable({ providedIn: 'root' })
 export class CoursesService {
@@ -126,11 +147,15 @@ export class CoursesService {
     return this.api.getPaged<Course>(Endpoints.courses.catalogue, { ...filters });
   }
 
+  statistics(): Observable<CourseStatistics> {
+    return this.api.get<CourseStatistics>(Endpoints.courses.statistics);
+  }
+
   show(id: string): Observable<Course> {
     return this.api.get<Course>(Endpoints.courses.show(id));
   }
 
-  /** Modules and lessons in one call, so a player does not fetch N+1 times. */
+  /** Modules and lessons in one call, so a builder does not fetch N+1 times. */
   outline(id: string): Observable<CourseOutline> {
     return this.api.get<CourseOutline>(Endpoints.courses.outline(id));
   }
@@ -145,6 +170,26 @@ export class CoursesService {
 
   setStatus(id: string, status: CourseStatus): Observable<Course> {
     return this.api.patch<Course>(Endpoints.courses.status(id), { status });
+  }
+
+  /**
+   * A copy, as a draft.
+   *
+   * Its modules and lessons come across; its enrolments, rating and the skills
+   * it teaches do not — see the API's DuplicateCourseAction for why each.
+   */
+  duplicate(id: string): Observable<DuplicatedCourse> {
+    return this.api.post<DuplicatedCourse>(Endpoints.courses.duplicate(id), {});
+  }
+
+  /**
+   * Refused while anybody is enrolled, and while it is published.
+   *
+   * The error says how many people are on it and names archiving as the thing
+   * that was probably meant.
+   */
+  delete(id: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.courses.delete(id));
   }
 
   /** A learner putting themselves on an open course. */

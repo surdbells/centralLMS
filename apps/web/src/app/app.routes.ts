@@ -13,7 +13,6 @@ import {LearningComponent} from './learner/learning/learning.component';
 import {DictionaryComponent} from './admin/dictionary/dictionary.component';
 import {CourseComponent} from './admin/courses/courses.component';
 import {NotesComponent} from './learner/notes/notes.component';
-import {ManageCourseComponent} from './admin/courses/manage-course/manage-course.component';
 import {MyReportComponent} from './learner/my-report/my-report.component';
 import {LearnerSkillsPageComponent} from './learner/learner-skills-page/learner-skills-page.component';
 import {AdminSkillsPageComponent} from './admin/admin-skills-page/admin-skills-page.component';
@@ -76,8 +75,28 @@ export const routes: Routes = [
     title: 'Media & Learning Content'
   },
   { path: 'courses', component: CourseComponent, title: 'Course Management' },
-  { path: 'courses/create', loadComponent: () => import('./admin/courses/course-edit/course-edit.component').then(m => m.CourseEditComponent) },
-  { path: 'courses/:id/edit', loadComponent: () => import('./admin/courses/course-edit/course-edit.component').then(m => m.CourseEditComponent) },
+  {
+    path: 'courses/create',
+    loadComponent: () =>
+      import('./admin/courses/course-edit/course-edit.component').then(m => m.CourseEditComponent),
+    title: 'New Course',
+  },
+  {
+    path: 'courses/:id/edit',
+    loadComponent: () =>
+      import('./admin/courses/course-edit/course-edit.component').then(m => m.CourseEditComponent),
+    title: 'Edit Course',
+  },
+  {
+    // Modules and lessons. Was reached as `/manageCourse?id=`, which put the
+    // course id in a query string on a screen that is entirely about one
+    // course — and left a second copy of it inside a dialog on the list.
+    path: 'courses/:id/content',
+    loadComponent: () =>
+      import('./admin/courses/course-content/course-content.component')
+        .then(m => m.CourseContentComponent),
+    title: 'Course Content',
+  },
   {
     path: 'enrollment',
     component: EnrollmentComponent,
@@ -102,9 +121,12 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    // The content builder used to live here behind `?id=`, and a second copy
+    // of it lived in a dialog on the course list. One survives, addressed by
+    // the course it edits.
     path: 'manageCourse',
-    component: ManageCourseComponent,
-    title: 'Manage course'
+    redirectTo: 'courses',
+    pathMatch: 'full',
   },
   {
     path: 'dictionary',

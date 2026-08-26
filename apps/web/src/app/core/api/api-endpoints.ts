@@ -107,6 +107,11 @@ export const Endpoints = {
     show: (id: string) => `/courses/${id}`,
     update: (id: string) => `/courses/${id}`,
     status: (id: string) => `/courses/${id}/status`,
+    statistics: '/courses/statistics',
+    /** Soft, and refused while anybody is enrolled. */
+    delete: (id: string) => `/courses/${id}`,
+    /** The course, its modules and its lessons — as a draft. */
+    duplicate: (id: string) => `/courses/${id}/duplicate`,
     /** Modules and lessons in one call, for the player. */
     outline: (id: string) => `/courses/${id}/outline`,
     selfEnroll: (id: string) => `/courses/${id}/enroll`,
