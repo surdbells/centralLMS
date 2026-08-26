@@ -17,6 +17,9 @@ use Central\Api\Application\Action\Auth\LoginAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
 use Central\Api\Application\Action\Auth\RefreshAction;
 use Central\Api\Application\Action\Catalog\CourseCatalogueAction;
+use Central\Api\Application\Action\Catalog\CourseStatisticsAction;
+use Central\Api\Application\Action\Catalog\DeleteCourseAction;
+use Central\Api\Application\Action\Catalog\DuplicateCourseAction;
 use Central\Api\Application\Action\Catalog\CourseOutlineAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
@@ -201,11 +204,22 @@ return static function (App $app): void {
                 // filter on the admin list — see CourseCatalogueAction. It is
                 // declared first so `catalogue` is not swallowed by `/{id}`.
                 $c->get('/catalogue', CourseCatalogueAction::class)->setName('courses.catalogue');
+                $c->get('/statistics', CourseStatisticsAction::class)->setName('courses.statistics');
                 $c->get('', ListCoursesAction::class)->setName('courses.list');
                 $c->post('', CreateCourseAction::class)->setName('courses.create');
                 $c->get('/{id:' . $uuid . '}', ShowCourseAction::class)->setName('courses.show');
                 $c->put('/{id:' . $uuid . '}', UpdateCourseAction::class)->setName('courses.update');
                 $c->patch('/{id:' . $uuid . '}/status', SetCourseStatusAction::class)->setName('courses.status');
+
+                // Soft, and refused while anybody is enrolled — see
+                // DeleteCourseAction. Archiving is what retires a course that
+                // people are on.
+                $c->delete('/{id:' . $uuid . '}', DeleteCourseAction::class)->setName('courses.delete');
+
+                // The course, its modules and its lessons, as a draft. Not its
+                // enrolments, its rating or the skills it teaches.
+                $c->post('/{id:' . $uuid . '}/duplicate', DuplicateCourseAction::class)
+                    ->setName('courses.duplicate');
 
                 // Structure. Modules and lessons are addressed through their
                 // parent rather than by bare id, so an id from another course

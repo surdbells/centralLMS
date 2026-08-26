@@ -157,6 +157,54 @@ final class DbalCourseRepository implements CourseRepository
         ) > 0;
     }
 
+    public function statistics(string $tenantId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            "SELECT
+                COUNT(*)                                          AS total,
+                COUNT(*) FILTER (WHERE status = 'draft')          AS draft,
+                COUNT(*) FILTER (WHERE status = 'published')      AS published,
+                COUNT(*) FILTER (WHERE status = 'archived')       AS archived,
+                COUNT(*) FILTER (WHERE is_mandatory)              AS mandatory,
+                COUNT(*) FILTER (WHERE is_featured)               AS featured
+             FROM courses
+             WHERE tenant_id = :tenant AND deleted_at IS NULL",
+            ['tenant' => $tenantId],
+        );
+
+        $row = $row === false ? [] : $row;
+
+        $counts = array_map(static fn (mixed $v): int => (int) $v, [
+            'total'     => $row['total'] ?? 0,
+            'draft'     => $row['draft'] ?? 0,
+            'published' => $row['published'] ?? 0,
+            'archived'  => $row['archived'] ?? 0,
+            'mandatory' => $row['mandatory'] ?? 0,
+            'featured'  => $row['featured'] ?? 0,
+        ]);
+
+        // Enrolments are counted from `enrollments`, not from a column on the
+        // course. The legacy kept `total_enrollments` there and never
+        // decremented it: the one live course claimed 19 against 33 rows.
+        $counts['enrollments'] = (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM enrollments e
+               JOIN courses c ON c.id = e.course_id
+              WHERE e.tenant_id = :tenant AND e.deleted_at IS NULL AND c.deleted_at IS NULL',
+            ['tenant' => $tenantId],
+        );
+
+        return $counts;
+    }
+
+    public function enrollmentCount(string $tenantId, string $courseId): int
+    {
+        return (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM enrollments
+              WHERE course_id = :course AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['course' => $courseId, 'tenant' => $tenantId],
+        );
+    }
+
     public function existsWithTitle(string $tenantId, string $title, ?string $exceptId = null): bool
     {
         $sql = 'SELECT 1 FROM courses

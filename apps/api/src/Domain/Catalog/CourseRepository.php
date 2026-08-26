@@ -61,6 +61,23 @@ interface CourseRepository
     public function existsWithTitle(string $tenantId, string $title, ?string $exceptId = null): bool;
 
     /**
+     * Headline counts for the course screen.
+     *
+     * Counted on demand. The legacy kept `total_enrollments` on the course row
+     * and never decremented it, so a course that had been emptied still
+     * claimed nineteen learners.
+     *
+     * @return array<string, int>
+     */
+    public function statistics(string $tenantId): array;
+
+    /**
+     * How many people are enrolled, so a delete can refuse rather than
+     * quietly orphan them.
+     */
+    public function enrollmentCount(string $tenantId, string $courseId): int;
+
+    /**
      * Whether the course has at least one active lesson.
      *
      * Used to refuse publishing an empty course — a learner enrolling on one
