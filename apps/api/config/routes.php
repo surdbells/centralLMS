@@ -68,6 +68,7 @@ use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
 use Central\Api\Application\Action\Report\RunReportAction;
 use Central\Api\Application\Action\Report\SavedReportAction;
+use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
 use Central\Api\Application\Action\Notification\InboxAction;
 use Central\Api\Application\Action\Notification\PreferencesAction;
@@ -267,6 +268,35 @@ return static function (App $app): void {
             $secure->get('/me/certificates', [ManageCertificatesAction::class, 'mine'])
                 ->setName('me.certificates');
 
+            // --- people ---------------------------------------------------
+            //
+            // `statistics`, `instructors` and `roles` are declared before
+            // `/{id}` so none of them is read as a user id.
+            $secure->group('/users', function (RouteCollectorProxy $u) use ($uuid): void {
+                $u->get('', [ManagePeopleAction::class, 'list'])->setName('users.list');
+                $u->post('', [ManagePeopleAction::class, 'create'])->setName('users.create');
+
+                $u->get('/statistics', [ManagePeopleAction::class, 'statistics'])
+                    ->setName('users.statistics');
+                $u->get('/instructors', [ManagePeopleAction::class, 'instructors'])
+                    ->setName('users.instructors');
+                $u->get('/roles', [ManagePeopleAction::class, 'roles'])->setName('users.roles');
+
+                $u->get('/{id:' . $uuid . '}', [ManagePeopleAction::class, 'show'])
+                    ->setName('users.show');
+                $u->put('/{id:' . $uuid . '}', [ManagePeopleAction::class, 'update'])
+                    ->setName('users.update');
+                $u->patch('/{id:' . $uuid . '}/status', [ManagePeopleAction::class, 'setStatus'])
+                    ->setName('users.status');
+                $u->delete('/{id:' . $uuid . '}', [ManagePeopleAction::class, 'delete'])
+                    ->setName('users.delete');
+
+                // Both an administrator resetting an account and a person
+                // changing their own — the action tells them apart and asks
+                // for the current password in the second case.
+                $u->post('/{id:' . $uuid . '}/password', [ManagePeopleAction::class, 'setPassword'])
+                    ->setName('users.password');
+            });
             // --- reporting ----------------------------------------------
             //
             // The tenant is never in a path or a body here: it comes from the

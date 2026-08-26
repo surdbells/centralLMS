@@ -3,6 +3,7 @@ import { environment } from '../../../environments/environment';
 import type { AppEnvironment } from '../../../environments/environment.model';
 import { ApiBackend } from './api-backend';
 import { ApiModule } from './api-module';
+import { resolvePath, type EndpointPath } from './endpoint-path';
 
 /**
  * Injected environment, so tests can supply their own without touching the
@@ -45,9 +46,13 @@ export class ApiRouter {
    * broken URL — the old `GlobalComponent` had both bugs
    * (`...comutility/shared/user`, `.../shared//mark_notifications`).
    */
-  url(module: ApiModule, path: string): string {
+  url(module: ApiModule, path: EndpointPath): string {
     const base = this.baseUrlFor(module).replace(/\/+$/, '');
-    const suffix = path.replace(/^\/+/, '').replace(/\/{2,}/g, '/');
+    // A handful of endpoints were renamed by the new API and declare both
+    // spellings. Which one applies is a property of the module's backend, so
+    // it is settled here rather than at every call site.
+    const resolved = resolvePath(path, this.backendFor(module));
+    const suffix = resolved.replace(/^\/+/, '').replace(/\/{2,}/g, '/');
 
     return suffix === '' ? base : `${base}/${suffix}`;
   }

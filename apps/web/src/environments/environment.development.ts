@@ -14,7 +14,7 @@ export const environment: AppEnvironment = {
 
   api: {
     legacyBaseUrl: 'https://api.centrallms.com',
-    v1BaseUrl: 'http://localhost:8081/v1',
+    v1BaseUrl: 'http://127.0.0.1:8099/v1',
   },
 
   /**
@@ -25,7 +25,11 @@ export const environment: AppEnvironment = {
    * Everything not listed stays on the legacy backend.
    */
   moduleBackends: {
-    // Health and version exist on the new API today; nothing else does yet.
     [ApiModule.Platform]: ApiBackend.V1,
+
+    // Migrated. Sign-in, refresh and sign-out all come from the new API; the
+    // legacy session blob is still written for the components that have not
+    // moved yet. See core/auth/auth.service.ts.
+    [ApiModule.Auth]: ApiBackend.V1,
   },
 };

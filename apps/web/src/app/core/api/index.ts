@@ -14,6 +14,7 @@ export {
   type LookupPaths,
 } from './api-endpoints';
 export { ApiClient, type QueryParams, type UploadProgress } from './api.client';
+export { resolvePath, type EndpointPath } from './endpoint-path';
 export {
   API_BACKEND,
   ApiError,

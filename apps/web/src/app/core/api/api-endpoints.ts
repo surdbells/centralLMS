@@ -83,6 +83,16 @@ function lookupPaths(kind: LookupKind): LookupPaths {
 export const Endpoints = {
   platform: {
     module: ApiModule.Platform,
+
+    /**
+     * `me` is inside the version prefix; `health` and `version` are not — a
+     * load balancer probing them should not have to know about `/v1`. So the
+     * first two resolve to `/v1/health` here and would 404.
+     *
+     * Left as-is because nothing calls them: no screen in this application
+     * shows a health check. A diagnostics page that wants one should call the
+     * host directly rather than through a module base that assumes a version.
+     */
     health: '/health',
     version: '/version',
     me: '/me',
@@ -90,7 +100,27 @@ export const Endpoints = {
 
   auth: {
     module: ApiModule.Auth,
-    login: '/authentication/login',
+
+    /**
+     * The new API renamed the segment and split refresh out of login, so both
+     * spellings are declared and `ApiRouter` picks. A caller writes the same
+     * line either side of the migration.
+     */
+    login: { legacy: '/authentication/login', v1: '/auth/login' },
+
+    /**
+     * No legacy equivalent: the old backend issued one long-lived token and
+     * never rotated it. Pointed at the legacy login so a mis-flip fails
+     * loudly with a 4xx rather than silently signing somebody out.
+     */
+    refresh: { legacy: '/authentication/login', v1: '/auth/refresh' },
+
+    /**
+     * Also new. The legacy had no logout at all — a token stayed valid until
+     * it expired, which is why signing out only cleared the browser.
+     */
+    logout: { legacy: '/authentication/login', v1: '/auth/logout' },
+
     register: '/authentication/register',
     validate: '/authentication/validate',
     validateEmail: '/authentication/validate-email',

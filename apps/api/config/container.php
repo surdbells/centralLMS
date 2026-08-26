@@ -61,6 +61,8 @@ use Central\Api\Domain\Report\ReportRepository;
 use Central\Api\Domain\Report\SavedReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalSavedReportRepository;
+use Central\Api\Domain\People\PersonRepository;
+use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
@@ -533,6 +535,10 @@ return [
     SavedReportRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalSavedReportRepository($c->get(Connection::class)),
     ),
+    PersonRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalPersonRepository($c->get(Connection::class)),
+    ),
+
     PasswordHasher::class => autowire(),
 
     TokenAuthenticator::class => factory(static fn (ContainerInterface $c) => new TokenAuthenticator(

@@ -13,6 +13,7 @@ import { catchError } from 'rxjs/operators';
 import { ApiBackend } from './api-backend';
 import { ApiModule } from './api-module';
 import { ApiRouter } from './api-routing';
+import type { EndpointPath } from './endpoint-path';
 import {
   API_BACKEND,
   ApiError,
@@ -56,23 +57,23 @@ export class ApiClient {
   private readonly http = inject(HttpClient);
   private readonly router = inject(ApiRouter);
 
-  get<T>(module: ApiModule, path: string, params?: QueryParams): Observable<T> {
+  get<T>(module: ApiModule, path: EndpointPath, params?: QueryParams): Observable<T> {
     return this.request<T>('GET', module, path, undefined, params);
   }
 
-  post<T>(module: ApiModule, path: string, body?: unknown, params?: QueryParams): Observable<T> {
+  post<T>(module: ApiModule, path: EndpointPath, body?: unknown, params?: QueryParams): Observable<T> {
     return this.request<T>('POST', module, path, body, params);
   }
 
-  put<T>(module: ApiModule, path: string, body?: unknown): Observable<T> {
+  put<T>(module: ApiModule, path: EndpointPath, body?: unknown): Observable<T> {
     return this.request<T>('PUT', module, path, body);
   }
 
-  patch<T>(module: ApiModule, path: string, body?: unknown): Observable<T> {
+  patch<T>(module: ApiModule, path: EndpointPath, body?: unknown): Observable<T> {
     return this.request<T>('PATCH', module, path, body);
   }
 
-  delete<T>(module: ApiModule, path: string, params?: QueryParams): Observable<T> {
+  delete<T>(module: ApiModule, path: EndpointPath, params?: QueryParams): Observable<T> {
     return this.request<T>('DELETE', module, path, undefined, params);
   }
 
@@ -83,7 +84,7 @@ export class ApiClient {
    * `meta` is synthesised from the row count. Callers can therefore render
    * pagination identically either side of a migration.
    */
-  getPaged<T>(module: ApiModule, path: string, params?: QueryParams): Observable<Paged<T>> {
+  getPaged<T>(module: ApiModule, path: EndpointPath, params?: QueryParams): Observable<Paged<T>> {
     return this.raw<T[]>('GET', module, path, undefined, params).pipe(
       map(({ payload, meta }) => {
         const items = Array.isArray(payload) ? payload : [];
@@ -108,7 +109,7 @@ export class ApiClient {
    * switchboard as everything else. The old `MediaService` hardcoded the
    * production URL and appended credentials to the FormData by hand.
    */
-  upload<T>(module: ApiModule, path: string, form: FormData): Observable<UploadProgress<T>> {
+  upload<T>(module: ApiModule, path: EndpointPath, form: FormData): Observable<UploadProgress<T>> {
     const backend = this.router.backendFor(module);
 
     return this.http
@@ -145,7 +146,7 @@ export class ApiClient {
   private request<T>(
     method: string,
     module: ApiModule,
-    path: string,
+    path: EndpointPath,
     body?: unknown,
     params?: QueryParams,
   ): Observable<T> {
@@ -155,7 +156,7 @@ export class ApiClient {
   private raw<T>(
     method: string,
     module: ApiModule,
-    path: string,
+    path: EndpointPath,
     body?: unknown,
     params?: QueryParams,
   ): Observable<{ payload: T; meta?: PageMeta }> {
