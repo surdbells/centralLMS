@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media, both dashboards, notes and tenant settings are built. Skills, learning paths and messaging still to come |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media, both dashboards, notes, tenant settings and skills are built. Learning paths and messaging still to come |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — three API modules remain before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 586 unit + 396 integration tests / 3,378 assertions · PHPStan level 8 clean · 0 style errors · 785 live checks |
+| **Blocking the next slice** | Nothing — two API modules remain before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 595 unit + 421 integration tests / 3,456 assertions · PHPStan level 8 clean · 0 style errors · 844 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -116,7 +116,7 @@ foundations above it.
 | 16 | notes | ✅ | **7** | 11 legacy files, 8 of which could not run — the class writes columns the table lacks |
 | 17 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
 | 18 | messaging | ⬜ | 1 | 9 tables, 9 messages |
-| 19 | skills | ⬜ | 1 | 25 ops; `user_skills_acquired` and `user_skills_log` both empty |
+| 19 | skills | ✅ | **16** | Derived from completed courses; the two acquisition tables were empty *and* unread |
 | 20 | tenant settings | ✅ | **6** | 4 categories of 8 kept — the other four were read by nothing |
 
 ---
@@ -214,6 +214,52 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-29 — Skills
+
+Sixteen routes for twenty-five legacy actions, and two tables that are not
+carried because nothing wrote to them *or* read them.
+
+**`user_skills_acquired` and `user_skills_log` hold zero rows and were never
+read.** That second half is what makes them different from the other empty
+tables in this port. `Skills::getLearnerSkills()` derives a person's skills by
+joining their completed enrolments to `course_skills` — it never touches the
+acquisition table. So the feature was built at both ends and wired at neither,
+and the end that works is the derived one. Finishing the fire-safety course is
+what makes somebody fire-safety trained; a second table saying so can only
+disagree with it.
+
+Two things derivation cannot express, recorded in the migration with what each
+would need: a skill **granted by hand** (`source_type` allowed `manual` and
+`external`, and no endpoint ever granted one) and a skill that **expires**
+(`expires_at` was never written; expiry should follow the certificate that
+evidences the skill rather than a date typed into a second place). Instructor-led
+training teaching a skill is a third gap — `live_training` was an allowed
+source and `course_skills` links only courses.
+
+**Five endpoints collapsed into two.** `my-skills`, `my-skills-by-category`,
+`my-skill-progress`, `user-skills` and `user-skill-progress` were near-identical
+queries whose only real difference was `status = 'completed'` — and they
+disagreed about whether an in-progress course counted towards proficiency. One
+query with a flag now answers all five, and the grouping happens once.
+
+**An enrolment on an expert course does not make somebody an expert.** The
+proficiency is the highest level demonstrated by a course actually finished,
+worked out in SQL rather than by `GROUP_CONCAT`ing the levels and walking a
+hardcoded list of four strings in PHP, twice, in two places that disagreed.
+
+`Proficiency` is deliberately not `Difficulty`. They share two words and
+measure different things: difficulty describes the material, proficiency
+describes the person. A beginner course can leave somebody expert at the one
+narrow thing it covers.
+
+Two constraints the legacy had no equivalent of: a skill cannot be filed under
+another organisation's category (it joined on `category_id` alone), and a course
+can have only one primary skill (every row could set the flag, so a course could
+be "really about" four things).
+
+- 9 unit + 25 integration tests; **59 live checks**
+- 1,016 tests / 3,456 assertions · PHPStan level 8 clean · 0 style errors
 
 ### 2026-08-29 — Tenant settings
 

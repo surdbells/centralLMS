@@ -73,6 +73,7 @@ use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
+use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\Notification\AdminNotificationAction;
@@ -321,6 +322,45 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- skills ---------------------------------------------------
+            //
+            // `statistics` and `categories` are declared before `/{id}` so
+            // neither is read as a skill id.
+            $secure->group('/skills', function (RouteCollectorProxy $s) use ($uuid): void {
+                $s->get('', [ManageSkillsAction::class, 'list'])->setName('skills.list');
+                $s->post('', [ManageSkillsAction::class, 'create'])->setName('skills.create');
+
+                $s->get('/statistics', [ManageSkillsAction::class, 'statistics'])
+                    ->setName('skills.statistics');
+
+                $s->get('/categories', [ManageSkillsAction::class, 'categories'])
+                    ->setName('skills.categories');
+                $s->post('/categories', [ManageSkillsAction::class, 'createCategory'])
+                    ->setName('skills.categories.create');
+                $s->put('/categories/{id:' . $uuid . '}', [ManageSkillsAction::class, 'updateCategory'])
+                    ->setName('skills.categories.update');
+                $s->delete('/categories/{id:' . $uuid . '}', [ManageSkillsAction::class, 'deleteCategory'])
+                    ->setName('skills.categories.delete');
+
+                $s->get('/{id:' . $uuid . '}', [ManageSkillsAction::class, 'show'])->setName('skills.show');
+                $s->put('/{id:' . $uuid . '}', [ManageSkillsAction::class, 'update'])->setName('skills.update');
+                $s->delete('/{id:' . $uuid . '}', [ManageSkillsAction::class, 'delete'])->setName('skills.delete');
+
+                $s->get('/{id:' . $uuid . '}/courses', [ManageSkillsAction::class, 'coursesTeaching'])
+                    ->setName('skills.courses');
+                $s->get('/{id:' . $uuid . '}/learners', [ManageSkillsAction::class, 'learners'])
+                    ->setName('skills.learners');
+            });
+
+            // What a course teaches, and what somebody has learned.
+            $secure->get('/courses/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'forCourse'])
+                ->setName('courses.skills');
+            $secure->put('/courses/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'setCourseSkills'])
+                ->setName('courses.skills.set');
+            $secure->get('/me/skills', [ManageSkillsAction::class, 'mine'])->setName('me.skills');
+            $secure->get('/users/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'forUser'])
+                ->setName('users.skills');
+
             // --- tenant settings ------------------------------------------
             //
             // The tenant comes from the token. `user/tenant-settings.php` read

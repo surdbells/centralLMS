@@ -70,8 +70,10 @@ use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Note\NoteRepository;
 use Central\Api\Domain\Settings\SettingCatalogue;
+use Central\Api\Domain\Skill\SkillRepository;
 use Central\Api\Domain\Settings\SettingsRepository;
 use Central\Api\Infrastructure\Persistence\DbalSettingsRepository;
+use Central\Api\Infrastructure\Persistence\DbalSkillRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
@@ -579,6 +581,10 @@ return [
 
     NoteRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalNoteRepository($c->get(Connection::class)),
+    ),
+
+    SkillRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalSkillRepository($c->get(Connection::class)),
     ),
 
     SettingCatalogue::class => autowire(),
