@@ -70,6 +70,7 @@ use Central\Api\Application\Action\Report\RunReportAction;
 use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
+use Central\Api\Application\Action\LearningPath\ManagePathsAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
@@ -322,6 +323,78 @@ return static function (App $app): void {
                 '/users/{userId:' . $uuid . '}/badges/{id:' . $uuid . '}',
                 [GamificationAction::class, 'revokeBadge'],
             )->setName('gamification.revokeBadge');
+            // --- learning paths -------------------------------------------
+            //
+            // Nothing under here writes progress: a learner's position is
+            // derived from the course enrolments, assessment attempts and
+            // attendance records that already exist. See PathProgress.
+            $secure->group('/paths', function (RouteCollectorProxy $p) use ($uuid): void {
+                $p->get('', [ManagePathsAction::class, 'list'])->setName('paths.list');
+                $p->post('', [ManagePathsAction::class, 'create'])->setName('paths.create');
+
+                $p->get('/statistics', [ManagePathsAction::class, 'statistics'])
+                    ->setName('paths.statistics');
+                $p->get('/catalogue', [ManagePathsAction::class, 'catalogue'])
+                    ->setName('paths.catalogue');
+
+                $p->get('/{id:' . $uuid . '}', [ManagePathsAction::class, 'show'])->setName('paths.show');
+                $p->put('/{id:' . $uuid . '}', [ManagePathsAction::class, 'update'])->setName('paths.update');
+                $p->patch('/{id:' . $uuid . '}/status', [ManagePathsAction::class, 'setStatus'])
+                    ->setName('paths.status');
+                $p->delete('/{id:' . $uuid . '}', [ManagePathsAction::class, 'delete'])->setName('paths.delete');
+
+                $p->get('/{id:' . $uuid . '}/sections', [ManagePathsAction::class, 'sections'])
+                    ->setName('paths.sections');
+                $p->post('/{id:' . $uuid . '}/sections', [ManagePathsAction::class, 'saveSection'])
+                    ->setName('paths.sections.create');
+                $p->put(
+                    '/{id:' . $uuid . '}/sections/{sectionId:' . $uuid . '}',
+                    [ManagePathsAction::class, 'saveSection'],
+                )->setName('paths.sections.update');
+                $p->delete(
+                    '/{id:' . $uuid . '}/sections/{sectionId:' . $uuid . '}',
+                    [ManagePathsAction::class, 'deleteSection'],
+                )->setName('paths.sections.delete');
+
+                // `order` before `{itemId}`, or it is read as an item id.
+                $p->put('/{id:' . $uuid . '}/items/order', [ManagePathsAction::class, 'reorder'])
+                    ->setName('paths.items.reorder');
+                $p->get('/{id:' . $uuid . '}/items', [ManagePathsAction::class, 'items'])
+                    ->setName('paths.items');
+                $p->post('/{id:' . $uuid . '}/items', [ManagePathsAction::class, 'saveItem'])
+                    ->setName('paths.items.create');
+                $p->put(
+                    '/{id:' . $uuid . '}/items/{itemId:' . $uuid . '}',
+                    [ManagePathsAction::class, 'saveItem'],
+                )->setName('paths.items.update');
+                $p->delete(
+                    '/{id:' . $uuid . '}/items/{itemId:' . $uuid . '}',
+                    [ManagePathsAction::class, 'deleteItem'],
+                )->setName('paths.items.delete');
+
+                $p->get('/{id:' . $uuid . '}/enrollments', [ManagePathsAction::class, 'enrolments'])
+                    ->setName('paths.enrollments');
+                $p->post('/{id:' . $uuid . '}/enrollments', [ManagePathsAction::class, 'enrol'])
+                    ->setName('paths.enrollments.create');
+                $p->delete(
+                    '/{id:' . $uuid . '}/enrollments/{userId:' . $uuid . '}',
+                    [ManagePathsAction::class, 'withdraw'],
+                )->setName('paths.enrollments.withdraw');
+            });
+
+            // The learner's own. No user id in any of these paths.
+            $secure->group('/me/paths', function (RouteCollectorProxy $p) use ($uuid): void {
+                $p->get('', [ManagePathsAction::class, 'mine'])->setName('me.paths');
+                $p->get('/{id:' . $uuid . '}', [ManagePathsAction::class, 'mineShow'])
+                    ->setName('me.paths.show');
+                $p->post('/{id:' . $uuid . '}/enroll', [ManagePathsAction::class, 'selfEnrol'])
+                    ->setName('me.paths.enroll');
+                $p->post(
+                    '/{id:' . $uuid . '}/items/{itemId:' . $uuid . '}/complete',
+                    [ManagePathsAction::class, 'completeItem'],
+                )->setName('me.paths.items.complete');
+            });
+
             // --- skills ---------------------------------------------------
             //
             // `statistics` and `categories` are declared before `/{id}` so

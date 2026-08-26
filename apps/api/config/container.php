@@ -67,6 +67,7 @@ use Central\Api\Infrastructure\Persistence\DbalGamificationRepository;
 use Central\Api\Application\Dashboard\AdminDashboardAssembler;
 use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
 use Central\Api\Domain\Dashboard\DashboardRepository;
+use Central\Api\Domain\LearningPath\LearningPathRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Note\NoteRepository;
 use Central\Api\Domain\Settings\SettingCatalogue;
@@ -76,6 +77,7 @@ use Central\Api\Infrastructure\Persistence\DbalSettingsRepository;
 use Central\Api\Infrastructure\Persistence\DbalSkillRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
+use Central\Api\Infrastructure\Persistence\DbalLearningPathRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
 use Central\Api\Infrastructure\Persistence\DbalNoteRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
@@ -581,6 +583,10 @@ return [
 
     NoteRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalNoteRepository($c->get(Connection::class)),
+    ),
+
+    LearningPathRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalLearningPathRepository($c->get(Connection::class)),
     ),
 
     SkillRepository::class => factory(

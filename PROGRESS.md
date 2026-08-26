@@ -11,10 +11,10 @@ Living status for the Central LMS modernisation. Updated as work lands — see
 
 | | |
 | --- | --- |
-| **Current focus** | Frontend cutover. Sign-in is on the new API; people, gamification, media, both dashboards, notes, tenant settings and skills are built. Learning paths and messaging still to come |
+| **Current focus** | Frontend cutover. Sign-in is on the new API; everything but messaging is built |
 | **Blocking the team** | 🔴 Legacy API authentication is bypassed — see action 0 |
-| **Blocking the next slice** | Nothing — two API modules remain before the frontend can drop the legacy backend |
-| **API quality gate** | ✅ 595 unit + 421 integration tests / 3,456 assertions · PHPStan level 8 clean · 0 style errors · 844 live checks |
+| **Blocking the next slice** | Nothing — one API module remains before the frontend can drop the legacy backend |
+| **API quality gate** | ✅ 621 unit + 449 integration tests / 3,576 assertions · PHPStan level 8 clean · 0 style errors · 908 live checks |
 | **Web quality gate** | ✅ 75 / 75 specs · production build passes |
 
 ### ⚠ Outstanding actions
@@ -114,7 +114,7 @@ foundations above it.
 | 14 | media / SCORM | ✅ | **9** | Versions as rows; `is_latest_version` derived; bytes served through the API |
 | 15 | dashboards | ✅ | **2** | Assembled from the reports; the learner's own takes no id |
 | 16 | notes | ✅ | **7** | 11 legacy files, 8 of which could not run — the class writes columns the table lacks |
-| 17 | learning paths | ⬜ | 2 | **70 operations**, ~5,000 LOC, 7 classes — own slice |
+| 17 | learning paths | ✅ | **24** | 5 tables of 10 + 2 views; progress derived from the courses, not stored |
 | 18 | messaging | ⬜ | 1 | 9 tables, 9 messages |
 | 19 | skills | ✅ | **16** | Derived from completed courses; the two acquisition tables were empty *and* unread |
 | 20 | tenant settings | ✅ | **6** | 4 categories of 8 kept — the other four were read by nothing |
@@ -214,6 +214,64 @@ before it needs a sprint.
 ---
 
 ## Update log
+
+### 2026-08-30 — Learning paths
+
+Twenty-four routes, five tables where the legacy had ten plus two views, and
+one stored value in place of nineteen.
+
+**The counters disagreed with each other.** The single path in the database
+says `total_items = 2`. It has **three** item rows, all deactivated, so the
+true count is **zero**. Every one of its **thirty-three** enrolments carries
+`items_total = 4`, and the path's own `total_enrollments` says **19**. Three
+stored answers to one question and none of them right, on a path that is
+published with nothing in it. All nineteen counters on `learning_paths` and the
+six on the enrolment are gone.
+
+**An item's progress is the progress of the thing it points at.**
+`learning_path_item_progress` stored `status`, `progress_percentage`,
+`best_score`, `passed` and `attempts` *beside* the `course_enrollment_id` and
+`assessment_attempt_id` that already held all five — and every one of its
+fourteen rows says `locked` with both foreign keys null. Nothing ever advanced
+one.
+
+So a course item is finished when the learner's enrolment on that course is
+complete; an assessment item when they have a graded attempt that passed; a
+session item when the register says they attended. One query, four sources, no
+table to keep in step. It also means **a path credits work finished before
+somebody joined it**, which the legacy could not express at all: its item
+progress began at `locked` on enrolment.
+
+`learning_path_item_completions` remains for the two kinds that produce no
+evidence of their own — a link and a piece of media — and refuses to accept a
+course, because marking one done here would be a second opinion about the
+course.
+
+**A path enrols its members on its courses.** Joining a path now puts you on
+the courses in it, and adding a course to a path puts the existing members on
+that too — both idempotent, so somebody already taking one keeps the progress
+that makes the path credit it. Found by the live suite: a learner on a path
+could not open any of its steps.
+
+**Not carried:** `learning_path_reviews` (0 rows) with `avg_rating` and
+`total_ratings`; `learning_path_prerequisites` (0); `learning_path_section_progress`
+(0); `learning_path_activity_log` (3 rows, an audit trail of the progress the
+progress rows already carry); `learning_path_assignments` (1 row — an enrolment
+is how somebody is put on a path); both views; pricing, in a platform with no
+commerce, where the one path is free and priced in USD; and the per-item unlock
+engine — six `unlock_type` values, a JSON list of item ids, an unlock date and
+a minimum score, where every row in the database says `previous_item` with all
+four of the others null.
+
+Unlocking follows from the path's own pacing instead: one after another, any
+order, or section by section. Three rules, and they are the ones anybody used.
+
+Two things the legacy allowed that the schema now refuses: an item pointing at
+two things at once (it had five nullable ids and nothing stopping three being
+set), and a published path with nothing in it.
+
+- 26 unit + 28 integration tests; **64 live checks**
+- 1,070 tests / 3,576 assertions · PHPStan level 8 clean · 0 style errors
 
 ### 2026-08-29 — Skills
 
