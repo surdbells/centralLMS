@@ -52,6 +52,7 @@ use Central\Api\Domain\Notification\EmailTemplateRenderer;
 use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationRepository;
+use Central\Api\Application\Report\ScheduledReportDispatcher;
 use Central\Api\Domain\Notification\NotificationTransport;
 use Central\Api\Infrastructure\Notification\AccessTokenProvider;
 use Central\Api\Infrastructure\Notification\FcmPushTransport;
@@ -574,6 +575,20 @@ return [
 
         return $transports;
     }),
+
+    ScheduledReportDispatcher::class => factory(static fn (ContainerInterface $c) => new ScheduledReportDispatcher(
+        $c->get(SavedReportRepository::class),
+        $c->get(ReportRepository::class),
+        $c->get(ReportCatalogue::class),
+        $c->get(CsvWriter::class),
+        $c->get(UserRepository::class),
+        $c->get(RoleRepository::class),
+        // Email only. A spreadsheet has nowhere to go in an SMS, and a
+        // push notification is not where somebody reads a report.
+        $c->get('notification.transports')[NotificationChannel::Email->value],
+        $c->get(Clock::class),
+        $c->get(LoggerInterface::class),
+    )),
 
     NotificationDispatcher::class => factory(static fn (ContainerInterface $c) => new NotificationDispatcher(
         $c->get(NotificationRepository::class),

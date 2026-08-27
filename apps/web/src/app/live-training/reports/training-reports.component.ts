@@ -1,6 +1,6 @@
 // live-training/reports/training-reports.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
@@ -10,6 +10,7 @@ import {
   TrainingAnalytics
 } from '../live-training.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { Router } from '@angular/router';
 
 interface ReportData {
   training_id: number;
@@ -36,6 +37,8 @@ interface DateRange {
   styleUrls: ['./training-reports.component.scss']
 })
 export class TrainingReportsComponent implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+
   private destroy$ = new Subject<void>();
 
   // Date Range Options
@@ -98,6 +101,18 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /**
+   * Back to the live training screens.
+   *
+   * This page had no way out at all: it is reached from the training
+   * admin, sits under its own route, and offered nothing but the browser's
+   * own back button — which the rest of the application never asks anybody
+   * to use.
+   */
+  goBack(): void {
+    void this.router.navigate(['/live-training/admin']);
   }
 
   loadData(): void {

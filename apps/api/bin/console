@@ -8,6 +8,7 @@ use Central\Api\Application\Console\CheckIltProvidersCommand;
 use Central\Api\Application\Console\GenerateOpenApiCommand;
 use Central\Api\Application\Console\ConsumeMessagesCommand;
 use Central\Api\Application\Console\DispatchNotificationsCommand;
+use Central\Api\Application\Console\DispatchScheduledReportsCommand;
 use Central\Api\Application\Console\ImportLegacyUsersCommand;
 use Central\Api\Application\Console\ProvisionTenantCommand;
 use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
@@ -82,6 +83,7 @@ $app->addCommands([
     $container->get(CheckFrontendRoutesCommand::class),
     $container->get(ConsumeMessagesCommand::class),
     $container->get(DispatchNotificationsCommand::class),
+    $container->get(DispatchScheduledReportsCommand::class),
     $container->get(ProvisionTenantCommand::class),
     $container->get(ImportLegacyUsersCommand::class),
 ]);

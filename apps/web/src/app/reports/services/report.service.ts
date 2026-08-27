@@ -1,296 +1,466 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // reports/services/report.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { map, catchError, shareReplay } from 'rxjs/operators';
+import { Injectable, inject } from '@angular/core';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, shareReplay } from 'rxjs/operators';
 import {
   ReportResponse, ReportCatalogItem, ReportCategory, ReportFilters,
-  SavedReport, ScheduledReport, CustomReportConfig, ExportOptions
+  SavedReport, ScheduledReport, CustomReportConfig,
 } from '../models/report.models';
-import { GlobalComponent } from '../../global-component';
+import { ApiClient, Endpoints, type QueryParams } from '../../core/api';
 
+/**
+ * Everything the reports module asks of the server.
+ *
+ * It used to ask a single legacy endpoint — `GlobalComponent.adminReport`, an
+ * absolute production URL — with `?action=catalog&token=…&tenant_id=…` read
+ * out of `atob(sessionStorage.SESSION)`. Twenty-six methods, one query
+ * parameter apart.
+ *
+ * Three things that mattered:
+ *
+ *  1. **The catalogue was empty on screen and full on the server.** Every read
+ *     here ended in `catchError(() => of([]))`, so a request that failed — and
+ *     with the legacy retired, all of them did — arrived as an empty list. The
+ *     catalogue said "0 reports across 0 categories" and looked like a feature
+ *     nobody had finished, while the API had fifty-seven reports in nine
+ *     categories the whole time. Failures now reach the caller, which is the
+ *     only way a screen can say that something went wrong.
+ *  2. **The tenant came from the client.** `tenant_id` travelled in the query
+ *     string beside the token, so a signed-in user could read another
+ *     organisation's figures by changing a number. It comes from the token
+ *     now, inside a scope the server builds.
+ *  3. **The shapes.** The API answers `{report, columns, rows, totals,
+ *     series}`; twelve components are written against `{report_name, data,
+ *     summary, chart_*}`. Rather than edit twelve templates, the translation
+ *     happens here — see `toReportResponse`.
+ */
 @Injectable({ providedIn: 'root' })
 export class ReportService {
-  private apiBase = GlobalComponent.adminReport;
-  private catalogCache$: Observable<ReportCatalogItem[]> | null = null;
-  private categoriesCache$: Observable<ReportCategory[]> | null = null;
-  private allFiltersCache$: Observable<any> | null = null;
+  private readonly api = inject(ApiClient);
 
-  session_data: any = '';
-  current_role: any = '';
-  user_session = {
-    id: 0, tenant_id: 0, token: '',
-    tenant: { id: 0, name: '', status: '' },
-    first_name: '', last_name: '', email: '', phone: '', avatar: '',
-    is_2fa: false, is_active: false, account_locked: false,
-    is_admin: false, is_content: false, is_instructor: false, is_learner: false,
-  };
-
-  constructor(private http: HttpClient) {}
-
-  /* ═══════ AUTH ═══════ */
-
-  private getAuthParams(): HttpParams {
-    this.session_data = sessionStorage.getItem('SESSION');
-    this.user_session = decodeSessionBlob(this.session_data!) ?? this.user_session;
-    this.current_role = sessionStorage.getItem('IS_CURRENT');
-    return new HttpParams()
-      .set('token', this.user_session.token)
-      .set('user_id', this.user_session.id)
-      .set('role', this.current_role)
-      .set('tenant_id', this.user_session.tenant_id);
-  }
-
-  private buildParams(action: string, extra: Record<string, any> = {}): HttpParams {
-    let params = this.getAuthParams().set('action', action);
-    Object.entries(extra).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        params = params.set(key, String(value));
-      }
-    });
-    return params;
-  }
-
-  private buildPostBody(action: string, extra: Record<string, any> = {}): any {
-    this.session_data = sessionStorage.getItem('SESSION');
-    this.current_role = sessionStorage.getItem('IS_CURRENT');
-    this.user_session = decodeSessionBlob(this.session_data!) ?? this.user_session;
-    return {
-      action,
-      token: this.user_session.token,
-      user_id: this.user_session.id,
-      tenant_id: this.user_session.tenant_id,
-      role: this.current_role,
-      ...extra
-    };
-  }
+  private catalogCache$: Observable<CatalogueResponse> | null = null;
 
   /* ═══════ CATALOG & CATEGORIES ═══════ */
 
   getCatalog(category?: string): Observable<ReportCatalogItem[]> {
-    if (!this.catalogCache$) {
-      this.catalogCache$ = this.http.get<any>(this.apiBase, { params: this.buildParams('catalog') }).pipe(
-        map(res => (res.data || []).map((r: any) => ({ ...r, key: r.report_key || r.key }))),
-        shareReplay(1),
-        catchError(() => of([]))
-      );
-    }
-    return this.catalogCache$.pipe(
-      map(items => category ? items.filter((i: ReportCatalogItem) => i.category === category) : items)
+    return this.catalogue().pipe(
+      map((response) => response.categories.flatMap((c) => c.reports.map(toCatalogItem))),
+      map((items) => (category ? items.filter((i) => i.category === category) : items)),
     );
   }
 
   getCategories(): Observable<ReportCategory[]> {
-    if (!this.categoriesCache$) {
-      this.categoriesCache$ = this.http.get<any>(this.apiBase, { params: this.buildParams('categories') }).pipe(
-        map(res => res.data || []),
-        shareReplay(1),
-        catchError(() => of([]))
-      );
-    }
-    return this.categoriesCache$;
+    return this.catalogue().pipe(
+      map((response) =>
+        response.categories.map((c) => ({
+          key: c.category,
+          name: c.label,
+          icon: ICONS[c.category] ?? 'bi bi-file-earmark-bar-graph',
+          count: c.reports.length,
+        })),
+      ),
+    );
+  }
+
+  /**
+   * One request, however many things the screen asks about it.
+   *
+   * The catalogue screen wants the categories and the reports, and both come
+   * out of the same answer.
+   */
+  private catalogue(): Observable<CatalogueResponse> {
+    this.catalogCache$ ??= this.api
+      .get<CatalogueResponse>(Endpoints.reports.catalogue)
+      .pipe(shareReplay(1));
+
+    return this.catalogCache$;
   }
 
   /* ═══════ REPORT EXECUTION ═══════ */
-  // API returns: { data: { success, report_key, report_name, result: { report_name, data, meta, summary } } }
-  // We unwrap to: { report_name, data, meta, summary, report_key }
 
   runReport(reportKey: string, filters: ReportFilters = {}): Observable<ReportResponse> {
-    const params = this.buildParams('run', { report: reportKey, ...filters });
-    return this.http.get<any>(this.apiBase, { params }).pipe(
-      map(res => {
-        const wrapper = res.data || res;
-        // If wrapped in { result: { data, meta, summary } }, unwrap it
-        if (wrapper.result) {
-          return {
-            report_name: wrapper.result.report_name || wrapper.report_name,
-            report_key: wrapper.report_key || reportKey,
-            data: wrapper.result.data || [],
-            meta: wrapper.result.meta,
-            summary: wrapper.result.summary,
-            chart_type: wrapper.result.chart_type,
-            chart_config: wrapper.result.chart_config,
-            ...wrapper.result
-          };
-        }
-        console.log(wrapper);
-        return wrapper;
-      }),
-      catchError(err => throwError(() => err))
-    );
+    return this.api
+      .get<RunPayload>(Endpoints.reports.run(reportKey), toCriteria(filters))
+      .pipe(map((payload) => toReportResponse(reportKey, payload)));
+  }
+
+  /**
+   * The learner-level rows behind a figure somebody clicked.
+   *
+   * A filter on the detail report rather than a report of its own: "the
+   * fourteen people who are overdue" is the enrolment detail with
+   * `status=overdue`, and giving it a second query is how the two drift apart.
+   */
+  drilldown(status: string, filters: Record<string, any> = {}): Observable<ReportResponse> {
+    return this.runReport('enrollment_detail_list', { ...filters, status });
   }
 
   /* ═══════ EXPORT ═══════ */
 
   exportReport(opts: { report_key: string; format: string; filters: ReportFilters }): Observable<Blob> {
-    const params = this.buildParams('export', {
-      report: opts.report_key,
-      format: opts.format,
-      ...opts.filters
-    });
-    return this.http.get(this.apiBase, { params, responseType: 'blob' });
+    // CSV is what the server writes. The format stays in the signature because
+    // the export dialog offers it, and being handed a CSV is better than the
+    // dialog losing a control it has always had.
+    return this.api.download(Endpoints.reports.export(opts.report_key), toCriteria(opts.filters));
   }
 
   /* ═══════ DASHBOARDS ═══════ */
 
   getDashboardSummary(): Observable<any> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('dashboard') }).pipe(
-      map(res => res.data || {}),
-      catchError(() => of({}))
-    );
+    return this.runReport('executive_dashboard').pipe(map((r) => r.summary ?? {}));
   }
 
   getLearnerDashboard(): Observable<any> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('my-dashboard') }).pipe(
-      map(res => res.data || {}),
-      catchError(() => of({}))
-    );
+    return this.runReport('individual_progress').pipe(map((r) => r.summary ?? {}));
   }
 
   /* ═══════ SAVED REPORTS ═══════ */
 
   getSavedReports(): Observable<SavedReport[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('saved') }).pipe(
-      map(res => res.data || []),
-      catchError(() => of([]))
-    );
+    return this.api
+      .get<SavedReportPayload[]>(Endpoints.reports.saved)
+      .pipe(map((items) => items.map(toSavedReport)));
   }
 
-  saveReport(name: string, reportKey: string, filters: ReportFilters): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('save', { name, report_key: reportKey, filters }));
+  saveReport(name: string, reportKey: string, filters: ReportFilters): Observable<SavedReport> {
+    return this.api
+      .post<SavedReportPayload>(Endpoints.reports.createSaved, {
+        reportKey,
+        name,
+        criteria: toCriteria(filters),
+      })
+      .pipe(map(toSavedReport));
   }
 
-  deleteSavedReport(id: number): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('delete', { id }));
+  deleteSavedReport(id: string | number): Observable<void> {
+    return this.api.delete<void>(Endpoints.reports.deleteSaved(String(id)));
   }
 
   /* ═══════ SCHEDULED REPORTS ═══════ */
 
+  /**
+   * A schedule is a saved report that has one, not a record of its own.
+   *
+   * The legacy kept `scheduled_reports` beside `saved_reports` with the key
+   * and the filters copied into both, so editing a report's filters left its
+   * scheduled twin sending the old ones for ever.
+   */
   getScheduledReports(): Observable<ScheduledReport[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('scheduled-reports') }).pipe(
-      map(res => res.data || []),
-      catchError(() => of([]))
-    );
+    return this.api
+      .get<SavedReportPayload[]>(Endpoints.reports.saved)
+      .pipe(map((items) => items.filter(hasSchedule).map(toScheduledReport)));
   }
 
-  createScheduledReport(config: Partial<ScheduledReport>): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('schedule-report', config));
+  createScheduledReport(config: Partial<ScheduledReport>): Observable<SavedReport> {
+    const id = config.id === undefined || config.id === null ? null : String(config.id);
+
+    const body = {
+      reportKey: config.report_key,
+      name: config.report_key,
+      criteria: toCriteria(config.params ?? {}),
+      schedule: {
+        frequency: config.frequency,
+        timeOfDay: config.time_of_day,
+        dayOfWeek: config.day_of_week,
+        dayOfMonth: config.day_of_month,
+        recipients: splitRecipients(config.recipients),
+        paused: config.is_active === false,
+      },
+    };
+
+    return (
+      id === null
+        ? this.api.post<SavedReportPayload>(Endpoints.reports.createSaved, body)
+        : this.api.put<SavedReportPayload>(Endpoints.reports.updateSaved(id), body)
+    ).pipe(map(toSavedReport));
   }
 
-  deleteScheduledReport(id: number): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('delete-schedule', { id }));
-  }
-
-  /* ═══════ CUSTOM REPORT BUILDER ═══════ */
-
-  getCustomSources(): Observable<any[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('custom-sources') }).pipe(
-      map(res => res.sources || []), catchError(() => of([]))
-    );
-  }
-
-  /** Returns { columns, filters, groupings } for a data source */
-  getCustomColumns(source: string): Observable<any> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('custom-columns', { source }) }).pipe(
-      map(res => res.data || res), catchError(() => of({ columns: [], filters: [], groupings: [] }))
-    );
-  }
-
-  /** Build and run an ad-hoc custom report (POST: action=custom-build) */
-  buildCustomReport(config: CustomReportConfig): Observable<ReportResponse> {
-    return this.http.post<any>(this.apiBase, this.buildPostBody('custom-build', config)).pipe(
-      map(res => res.data || res),
-      catchError(err => throwError(() => err))
-    );
-  }
-
-  /** Save a custom report config (POST: action=custom-save) */
-  saveCustomReport(name: string, description: string, config: CustomReportConfig): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('custom-save', { name, description, config }));
-  }
-
-  /** Update an existing saved custom report (POST: action=custom-update) */
-  updateCustomReport(reportId: number, name: string, description: string, config: CustomReportConfig): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('custom-update', { report_id: reportId, name, description, config }));
-  }
-
-  /** List all saved custom reports (GET: action=custom-list) */
-  getCustomReportsList(): Observable<any[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('custom-list') }).pipe(
-      map(res => res.reports || res.data || []), catchError(() => of([]))
-    );
-  }
-
-  /** Run a saved custom report by ID (GET: action=custom-run&id=X) with optional overrides */
-  runSavedCustomReport(id: number, overrides: Record<string, any> = {}): Observable<ReportResponse> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('custom-run', { id, ...overrides }) }).pipe(
-      map(res => res.data || res),
-      catchError(err => throwError(() => err))
-    );
-  }
-
-  /** Delete a saved custom report (POST: action=custom-delete) */
-  deleteCustomReport(id: number): Observable<any> {
-    return this.http.post(this.apiBase, this.buildPostBody('custom-delete', { report_id: id }));
-  }
-
-  /** Duplicate a saved custom report (GET: action=custom-duplicate&id=X) */
-  duplicateCustomReport(id: number): Observable<any> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('custom-duplicate', { id }) }).pipe(
-      map(res => res.data || res), catchError(err => throwError(() => err))
-    );
-  }
-
-  /** Export a saved custom report (GET: action=custom-export&id=X&format=csv|xlsx|pdf) */
-  exportCustomReport(id: number, format: string = 'csv'): Observable<Blob> {
-    return this.http.get(this.apiBase, {
-      params: this.buildParams('custom-export', { id, format }),
-      responseType: 'blob'
-    });
+  deleteScheduledReport(id: string | number): Observable<void> {
+    return this.deleteSavedReport(id);
   }
 
   /* ═══════ FILTER DROPDOWNS ═══════ */
 
   getAllFilters(): Observable<any> {
-    if (!this.allFiltersCache$) {
-      this.allFiltersCache$ = this.http.get<any>(this.apiBase, { params: this.buildParams('all-filters') }).pipe(
-        shareReplay(1),
-        catchError(() => of({ departments: [], teams: [], branches: [], categories: [], states: [], managers: [] }))
-      );
-    }
-    return this.allFiltersCache$;
+    return forkJoin({
+      departments: this.lookup('department'),
+      teams: this.lookup('team'),
+      branches: this.lookup('branch'),
+      categories: this.lookup('category'),
+    });
+  }
+
+  private lookup(kind: string): Observable<any[]> {
+    return this.api.get<any[]>(Endpoints.lookups.active(kind as never));
   }
 
   getCourses(search?: string): Observable<any[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('courses-list', search ? { search } : {}) }).pipe(
-      map(res => res.data || []), catchError(() => of([]))
-    );
+    return this.api
+      .getPaged<any>(Endpoints.courses.list, { search, perPage: 100 })
+      .pipe(map((page) => page.items));
   }
 
   getLearners(search?: string): Observable<any[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('learners-list', search ? { search } : {}) }).pipe(
-      map(res => res.data || []), catchError(() => of([]))
-    );
+    return this.api
+      .getPaged<any>(Endpoints.reports.learners, { search, perPage: 100 })
+      .pipe(map((page) => page.items));
   }
 
   getAssessments(search?: string): Observable<any[]> {
-    return this.http.get<any>(this.apiBase, { params: this.buildParams('assessments-list', search ? { search } : {}) }).pipe(
-      map(res => res.data || []), catchError(() => of([]))
-    );
+    return this.api
+      .getPaged<any>(Endpoints.assessments.list, { search, perPage: 100 })
+      .pipe(map((page) => page.items));
   }
 
-  /** Universal drilldown: fetches learner-level rows by status + org filters */
-  drilldown(status: string, filters: Record<string, any> = {}): Observable<any> {
-    const params = this.buildParams('run', { report: 'drilldown_learner_list', status, ...filters });
-    return this.http.get<any>(this.apiBase, { params }).pipe(
-      map(res => {
-        const wrapper = res.data || res;
-        if (wrapper.result) return { ...wrapper.result, report_key: 'drilldown_learner_list' };
-        return wrapper;
-      }),
-      catchError(err => throwError(() => err))
-    );
+  /* ═══════ CUSTOM REPORT BUILDER ═══════ */
+  //
+  // There is no ad-hoc query builder behind these. The legacy answered
+  // `action=custom-*` out of a table of saved SQL fragments that no migration
+  // brought across, and building one is a piece of work in its own right.
+  // Each says so rather than resolving to nothing and leaving a screen that
+  // looks like it is still loading.
+
+  getCustomSources(): Observable<any[]> {
+    return of([]);
   }
+
+  getCustomColumns(_source: string): Observable<any> {
+    return of({ columns: [], filters: [], groupings: [] });
+  }
+
+  buildCustomReport(_config: CustomReportConfig): Observable<ReportResponse> {
+    return notBuilt();
+  }
+
+  saveCustomReport(_name: string, _description: string, _config: CustomReportConfig): Observable<never> {
+    return notBuilt();
+  }
+
+  updateCustomReport(
+    _id: string | number,
+    _name: string,
+    _description: string,
+    _config: CustomReportConfig,
+  ): Observable<never> {
+    return notBuilt();
+  }
+
+  getCustomReportsList(): Observable<any[]> {
+    return of([]);
+  }
+
+  runSavedCustomReport(_id: string | number, _overrides: Record<string, unknown> = {}): Observable<ReportResponse> {
+    return notBuilt();
+  }
+
+  deleteCustomReport(_id: string | number): Observable<never> {
+    return notBuilt();
+  }
+
+  duplicateCustomReport(_id: string | number): Observable<never> {
+    return notBuilt();
+  }
+
+  exportCustomReport(_id: string | number, _format = 'csv'): Observable<never> {
+    return notBuilt();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+interface CatalogueResponse {
+  categories: Array<{
+    category: string;
+    label: string;
+    description: string;
+    reports: CataloguedReport[];
+  }>;
+  total: number;
+  scope: string;
+}
+
+interface CataloguedReport {
+  key: string;
+  name: string;
+  description: string;
+  category: string;
+  shape: string;
+  exportable: boolean;
+  requires: string[];
+  paginated: boolean;
+}
+
+interface RunPayload {
+  report: CataloguedReport;
+  columns: Array<{ key: string; label: string; type: string }>;
+  rows: Array<Record<string, unknown>>;
+  totals: Record<string, unknown>;
+  series: Array<{ label: string; value: number; percent?: number }>;
+  note?: string;
+}
+
+interface SavedSchedule {
+  frequency: 'daily' | 'weekly' | 'monthly';
+  timeOfDay: string;
+  dayOfWeek: number | null;
+  dayOfMonth: number | null;
+  recipients: string[];
+  paused: boolean;
+}
+
+interface SavedReportPayload {
+  id: string;
+  reportKey: string;
+  name: string;
+  description: string | null;
+  criteria: Record<string, unknown>;
+  isShared: boolean;
+  createdAt: string;
+  schedule?: SavedSchedule | null;
+  lastRun?: { status: string; startedAt: string } | null;
+  nextRunAt?: string | null;
+}
+
+/**
+ * A category's icon.
+ *
+ * On the client because it is a drawing decision: the server describes what a
+ * report is for, and which glyph stands for "compliance" is not its business.
+ */
+const ICONS: Record<string, string> = {
+  enrollment: 'bi bi-person-plus',
+  completion: 'bi bi-check2-circle',
+  compliance: 'bi bi-shield-check',
+  assessment: 'bi bi-clipboard-check',
+  course: 'bi bi-book',
+  user: 'bi bi-people',
+  time: 'bi bi-clock-history',
+  certificate: 'bi bi-award',
+  executive: 'bi bi-graph-up-arrow',
+};
+
+function toCatalogItem(report: CataloguedReport): ReportCatalogItem {
+  return {
+    key: report.key,
+    name: report.name,
+    description: report.description,
+    category: report.category,
+    // What the report needs before it can run — a course, a learner — which is
+    // the nearest thing the API has to the legacy's free-text audience.
+    audience: report.requires,
+    params: report.requires,
+    exportable: report.exportable,
+  };
+}
+
+/**
+ * The API's answer in the shape twelve components are written against.
+ *
+ * A summary report has no rows and a table has no series, so `data` takes
+ * whichever the report actually produced — a chart handed an empty array
+ * draws nothing and says nothing about why.
+ */
+function toReportResponse(key: string, payload: RunPayload): ReportResponse {
+  const rows = payload.rows ?? [];
+  const series = payload.series ?? [];
+
+  return {
+    report_name: payload.report?.name ?? key,
+    report_key: key,
+    description: payload.report?.description,
+    chart_type: payload.report?.shape,
+    columns: payload.columns ?? [],
+    data: rows.length > 0 ? rows : series,
+    summary: payload.totals ?? {},
+    note: payload.note,
+  } as unknown as ReportResponse;
+}
+
+function toSavedReport(payload: SavedReportPayload): SavedReport {
+  return {
+    id: payload.id,
+    name: payload.name,
+    report_key: payload.reportKey,
+    filters: payload.criteria as ReportFilters,
+    created_at: payload.createdAt,
+  } as unknown as SavedReport;
+}
+
+function hasSchedule(payload: SavedReportPayload): boolean {
+  return payload.schedule !== null && payload.schedule !== undefined;
+}
+
+function toScheduledReport(payload: SavedReportPayload): ScheduledReport {
+  const schedule = payload.schedule as SavedSchedule;
+
+  return {
+    id: payload.id,
+    report_key: payload.reportKey,
+    frequency: schedule.frequency,
+    recipients: schedule.recipients.join(', '),
+    params: payload.criteria as ReportFilters,
+    export_format: 'csv',
+    day_of_week: schedule.dayOfWeek ?? 0,
+    day_of_month: schedule.dayOfMonth ?? 0,
+    time_of_day: schedule.timeOfDay,
+    is_active: !schedule.paused,
+    next_run_at: payload.nextRunAt ?? undefined,
+    last_run_at: payload.lastRun?.startedAt,
+    last_run_status: payload.lastRun?.status as ScheduledReport['last_run_status'],
+    created_at: payload.createdAt,
+  } as unknown as ScheduledReport;
+}
+
+/**
+ * The filters a screen holds, as the criteria the API takes.
+ *
+ * Empty values are dropped rather than sent blank: `departmentId=` asks for a
+ * department whose id is the empty string, and the server is right to find
+ * nothing.
+ */
+function toCriteria(filters: ReportFilters): QueryParams {
+  const criteria: QueryParams = {};
+
+  for (const [key, value] of Object.entries(filters ?? {})) {
+    if (value !== null && value !== undefined && value !== '') {
+      criteria[CRITERIA_NAMES[key] ?? key] = value;
+    }
+  }
+
+  return criteria;
+}
+
+/** Where a screen's name for a filter differs from the API's. */
+const CRITERIA_NAMES: Record<string, string> = {
+  date_from: 'from',
+  date_to: 'to',
+  per_page: 'perPage',
+  course_id: 'courseId',
+  user_id: 'userId',
+  learner_id: 'userId',
+  department_id: 'departmentId',
+  branch_id: 'branchId',
+  team_id: 'teamId',
+  manager_id: 'managerId',
+  group_by: 'groupBy',
+};
+
+function splitRecipients(recipients: string | string[] | undefined): string[] {
+  if (Array.isArray(recipients)) {
+    return recipients;
+  }
+
+  return (recipients ?? '')
+    .split(/[,;\s]+/)
+    .map((address) => address.trim())
+    .filter((address) => address !== '');
+}
+
+function notBuilt(): Observable<never> {
+  return new Observable((subscriber) => {
+    subscriber.error(new Error('Building a report from scratch is not available yet.'));
+  });
 }

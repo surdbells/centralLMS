@@ -111,6 +111,12 @@ final readonly class ZeptoMailTransport implements NotificationTransport
             $payload['reply_to'] = [['address' => $sender['replyTo']]];
         }
 
+        $attachments = $this->attachments($delivery);
+
+        if ($attachments !== []) {
+            $payload['attachments'] = $attachments;
+        }
+
         $response = $this->http->postJson(
             rtrim($this->baseUrl, '/') . '/email',
             $payload,
@@ -141,6 +147,49 @@ final readonly class ZeptoMailTransport implements NotificationTransport
             : TransportResult::failed($reason);
     }
 
+    /**
+     * Files travelling with the message.
+     *
+     * On the delivery's `data` rather than as a column of its own: only
+     * scheduled reports send one, and a table of attachment blobs beside every
+     * notification would be a schema change to serve a single sender. Anything
+     * malformed is dropped rather than raised — a report that arrives without
+     * its spreadsheet is better than one that does not arrive.
+     *
+     * @return list<array<string, string>>
+     */
+    private function attachments(PendingDelivery $delivery): array
+    {
+        $declared = $delivery->data['attachments'] ?? null;
+
+        if (!is_array($declared)) {
+            return [];
+        }
+
+        $attachments = [];
+
+        foreach ($declared as $attachment) {
+            if (!is_array($attachment)) {
+                continue;
+            }
+
+            $name    = $attachment['name'] ?? null;
+            $content = $attachment['content'] ?? null;
+            $type    = $attachment['mimeType'] ?? 'application/octet-stream';
+
+            if (!is_string($name) || !is_string($content) || $name === '' || $content === '') {
+                continue;
+            }
+
+            $attachments[] = [
+                'name'     => $name,
+                'content'  => $content,
+                'mime_type' => is_string($type) ? $type : 'application/octet-stream',
+            ];
+        }
+
+        return $attachments;
+    }
     /**
      * @param array<string, mixed> $decoded
      */

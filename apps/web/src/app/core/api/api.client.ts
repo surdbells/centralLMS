@@ -104,6 +104,20 @@ export class ApiClient {
   }
 
   /**
+   * A file the server writes, rather than JSON.
+   *
+   * Here rather than in each service that needs one, so a download goes
+   * through the same interceptor as everything else and carries the same
+   * token. The five places that reached for `HttpClient` directly to fetch
+   * a blob each rebuilt the URL and the credentials by hand.
+   */
+  download(path: string, params?: QueryParams): Observable<Blob> {
+    return this.http
+      .get(this.router.url(path), { params: toHttpParams(params), responseType: 'blob' })
+      .pipe(catchError((error: unknown) => throwError(() => this.toApiError(error))));
+  }
+
+  /**
    * Multipart upload with progress reporting.
    *
    * Kept on the client so uploads authenticate through the same interceptor as

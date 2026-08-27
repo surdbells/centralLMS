@@ -74,6 +74,8 @@ import { ReportMeta } from '../../models/report.models';
                 <span *ngIf="col.type === 'number'">{{ dp.transform(row[col.key], col.format || '1.0-0') }}</span>
                 <!-- Date -->
                 <span *ngIf="col.type === 'date'" class="text-muted small">{{ datePipe.transform(row[col.key], col.format || 'mediumDate') }}</span>
+                <!-- Duration -->
+                <span *ngIf="col.type === 'duration'" class="text-muted small">{{ formatDuration(row[col.key]) }}</span>
               </td>
             </tr>
             <tr *ngIf="!filteredData.length">
@@ -145,6 +147,29 @@ export class ReportTableComponent implements OnChanges {
       this.currentPage = 1;
       this.applySearch();
     }
+  }
+
+  /**
+   * Seconds, as somebody would say them.
+   *
+   * A time-spent column arrived as "5460", which nobody reads as an hour
+   * and a half.
+   */
+  formatDuration(seconds: unknown): string {
+    const total = Number(seconds);
+
+    if (!Number.isFinite(total) || total <= 0) {
+      return '—';
+    }
+
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.round((total % 3600) / 60);
+
+    if (hours === 0) {
+      return `${Math.max(1, minutes)}m`;
+    }
+
+    return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
   }
 
   onCellClick(row: any, col: TableColumn, event: Event): void {
@@ -297,7 +322,7 @@ export class ReportTableComponent implements OnChanges {
 export interface TableColumn {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'badge' | 'progress' | 'drilldown';
+  type?: 'text' | 'number' | 'date' | 'badge' | 'progress' | 'drilldown' | 'duration';
   format?: string;
   width?: string;
   badgeKey?: string;

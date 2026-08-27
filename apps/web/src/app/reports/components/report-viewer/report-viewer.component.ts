@@ -8,7 +8,7 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ReportService } from '../../services/report.service';
 import { ReportResponse, ReportCatalogItem, ReportFilters } from '../../models/report.models';
 import { ReportChartComponent } from '../report-chart/report-chart.component';
-import { ReportTableComponent } from '../report-table/report-table.component';
+import { ReportTableComponent, type TableColumn } from '../report-table/report-table.component';
 import { ReportFiltersComponent } from '../report-filters/report-filters.component';
 import { ReportExportComponent } from '../report-export/report-export.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
@@ -224,6 +224,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
         <!-- Single data table -->
         <app-report-table *ngIf="!sections.length && tableData?.length"
                           [data]="tableData" [meta]="report.meta"
+                          [customColumns]="tableColumns"
                           [title]="''" [searchable]="true" [sortable]="true"
                           [drilldownColumns]="tableDrilldownCols"
                           (cellClick)="onDrilldownClick($event)"
@@ -318,6 +319,17 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
   chartData: any = null;
   tableData: any[] = [];
   tableDrilldownCols: string[] = [];
+
+  /**
+   * The columns the report itself declares.
+   *
+   * The table guesses headers and types from the first row when nothing
+   * tells it better, and its guesses came out as ENROLLEDAT, DUEDATE and
+   * SECONDS with a timestamp printed raw. The report has always known
+   * they are "Enrolled", "Due" and "Time spent" and what each one is;
+   * nothing was passing that on.
+   */
+  tableColumns: TableColumn[] | undefined;
   sections: ReportSection[] = [];
 
   drilldown = { visible: false, loading: false, title: '', subtitle: '', data: [] as any[] };
@@ -402,6 +414,7 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     if (this.paramPickerType && !this.pickerSelectedId) return;
     this.loading = true; this.error = ''; this.sections = [];
     this.chartData = null; this.tableData = []; this.tableDrilldownCols = [];
+    this.tableColumns = undefined;
     this.report = null; this.closeDrilldown();
 
     this.reportService.runReport(this.reportKey, this.currentFilters).pipe(
@@ -421,6 +434,7 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     if (res.data && Array.isArray(res.data) && res.data.length) {
       this.tableData = res.data;
       this.chartData = res;
+      this.tableColumns = toTableColumns(res.columns);
       this.tableDrilldownCols = this.detectDrilldownCols(res.data[0]);
       return;
     }
@@ -609,3 +623,33 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
 
 interface SummaryCard { label: string; display: string; color: string; }
 interface ReportSection { key: string; title: string; data: any[]; drilldownCols: string[]; }
+
+/**
+ * The report's own columns, in the shape the table draws from.
+ *
+ * The two vocabularies for a column's type are close but not the same:
+ * the API says what a value *is* — a duration, a percentage, a status —
+ * and the table says how to *draw* it. Where there is no drawing for a
+ * kind, the column falls through to plain text, which is right: an
+ * unrecognised type should print the value, not hide it.
+ */
+function toTableColumns(columns: unknown): TableColumn[] | undefined {
+  if (!Array.isArray(columns) || columns.length === 0) {
+    return undefined;
+  }
+
+  const drawnAs: Record<string, TableColumn['type']> = {
+    number: 'number',
+    percent: 'progress',
+    date: 'date',
+    datetime: 'date',
+    status: 'badge',
+    duration: 'duration',
+  };
+
+  return columns.map((column: { key: string; label: string; type?: string }) => ({
+    key: column.key,
+    label: column.label,
+    type: drawnAs[column.type ?? ''] ?? 'text',
+  }));
+}
