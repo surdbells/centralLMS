@@ -8,6 +8,7 @@ use Central\Api\Application\Http\Json;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\AuthenticationFailed;
 use Central\Api\Domain\Exception\ConflictingState;
+use Central\Api\Domain\Sso\SsoFailed;
 use Central\Api\Domain\Exception\DomainException;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
@@ -39,6 +40,9 @@ final class JsonErrorHandler implements ErrorHandlerInterface
         AccessDenied::class          => 403,
         EntityNotFound::class        => 404,
         ConflictingState::class      => 409,
+        // The request was fine; the directory's answer was not. Nothing
+        // on this side is broken, so not a 500.
+        SsoFailed::class             => 400,
     ];
 
     /**

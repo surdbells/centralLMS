@@ -20,6 +20,7 @@ use Central\Api\Application\Middleware\CorsMiddleware;
 use Central\Api\Application\Middleware\RateLimitMiddleware;
 use Central\Api\Domain\Authz\RoleRepository;
 use Central\Api\Domain\Identity\PasswordTokenRepository;
+use Central\Api\Domain\Sso\SsoRepository;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
@@ -101,6 +102,7 @@ use Central\Api\Infrastructure\Persistence\DbalModuleRepository;
 use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
 use Central\Api\Infrastructure\Authz\DbalRoleRepository;
 use Central\Api\Infrastructure\Persistence\DbalPasswordTokenRepository;
+use Central\Api\Infrastructure\Persistence\DbalSsoRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
@@ -392,6 +394,13 @@ return [
     PasswordTokenRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalPasswordTokenRepository($c->get(Connection::class)),
     ),
+
+    // The client secrets are encrypted with the same cipher the
+    // conferencing credentials use.
+    SsoRepository::class => factory(static fn (ContainerInterface $c) => new DbalSsoRepository(
+        $c->get(Connection::class),
+        $c->get(Cipher::class),
+    )),
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),

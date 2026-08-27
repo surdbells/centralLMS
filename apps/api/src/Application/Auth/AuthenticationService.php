@@ -187,6 +187,46 @@ final class AuthenticationService
         return $this->timingDecoy ??= $this->passwords->hash(bin2hex(random_bytes(16)));
     }
 
+    /**
+     * A session for somebody already established as who they say they are.
+     *
+     * For sign-in from a directory, where a password was never involved:
+     * the provider has vouched for them and {@see SsoAction} has checked
+     * that it really did. The account is re-read here rather than trusted
+     * from the caller, and its status is checked the same way a password
+     * sign-in checks it — being in the directory is not the same as being
+     * allowed in here, and a suspended account stays suspended.
+     *
+     * @throws AuthenticationFailed
+     */
+    public function issueForUserId(
+        string $userId,
+        ?string $userAgent = null,
+        ?string $ipAddress = null,
+    ): AuthenticationResult {
+        $user = $this->users->find($userId);
+
+        if ($user === null) {
+            throw new AuthenticationFailed('That account is not available.', 'unknown_account');
+        }
+
+        if (!$user->status->canSignIn()) {
+            $this->logger->info('Directory sign-in refused for account state', [
+                'userId' => $user->id,
+                'status' => $user->status->value,
+            ]);
+
+            throw new AuthenticationFailed(
+                $user->status->signInRefusalReason(),
+                'account_' . $user->status->value,
+            );
+        }
+
+        $this->users->recordSuccessfulLogin($user->id, $this->clock->now());
+
+        return $this->issueFor($user, $userAgent, $ipAddress);
+    }
+
     private function issueFor(User $user, ?string $userAgent, ?string $ipAddress): AuthenticationResult
     {
         $pair = $this->tokens->issue($user->id, $user->email, $user->roleIds, $user->tenantId);

@@ -68,21 +68,26 @@
           <div class="social-login-section mt-3">
             <div class="text-center text-body-secondary small mb-2">Or continue with</div>
             <div class="d-grid gap-2">
-              <button class="btn btn-outline-secondary social-login-btn" type="button" disabled aria-disabled="true">
-                <span class="fw-semibold">Sign in with AD</span>
-                <span class="small text-muted">Not configured</span>
+              <button *ngFor="let p of ssoProviders"
+                      class="btn btn-outline-secondary social-login-btn" type="button"
+                      [disabled]="loading" (click)="signInWith(p.provider)">
+                <span class="fw-semibold">Sign in with {{ p.label }}</span>
               </button>
-              <button class="btn btn-outline-secondary social-login-btn" type="button" disabled aria-disabled="true">
-                <span class="fw-semibold">Sign in with Google</span>
-                <span class="small text-muted">Not configured</span>
-              </button>
-              <button class="btn btn-outline-secondary social-login-btn" type="button" disabled aria-disabled="true">
-                <span class="fw-semibold">Sign in with SSO</span>
+
+              <button *ngIf="ssoProviders.length === 0"
+                      class="btn btn-outline-secondary social-login-btn" type="button"
+                      disabled aria-disabled="true">
+                <span class="fw-semibold">Sign in with Google or Microsoft</span>
                 <span class="small text-muted">Not configured</span>
               </button>
             </div>
-            <p class="small text-muted text-center mt-2 mb-0">
-              These sign-in options are currently disabled until the identity provider is configured.
+            <p class="small text-muted text-center mt-2 mb-0" *ngIf="ssoProviders.length === 0">
+              <span *ngIf="!tenantId">
+                Your organisation may offer these. Use the sign-in link it gave you.
+              </span>
+              <span *ngIf="tenantId">
+                This organisation has not set up a directory sign-in yet.
+              </span>
             </p>
           </div>
 

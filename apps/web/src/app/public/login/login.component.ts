@@ -2,11 +2,12 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Meta, Title } from '@angular/platform-browser';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { TuiLoader } from '@taiga-ui/core';
 import { ApiError } from '../../core/api';
 import { AuthService } from '../../core/auth/auth.service';
+import { SsoService, type SsoProviderId, type SsoProviderOption } from '../../services/sso.service';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { environment } from '../../../environments/environment';
@@ -26,12 +27,27 @@ export class LoginComponent implements OnInit {
   readonly publicSiteUrl = environment.publicSiteUrl;
 
   private readonly auth = inject(AuthService);
+  private readonly sso = inject(SsoService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
 
   loading = false;
+
+  /**
+   * The directories this organisation accepts.
+   *
+   * Empty at `/login`, because there is no organisation to ask about yet —
+   * an email and a password identify one on their own, a Google account
+   * does not. An organisation hands out `/{tenantId}/login`, the same way
+   * it hands out its registration link, and there the buttons appear.
+   */
+  ssoProviders: SsoProviderOption[] = [];
+
+  /** The organisation this sign-in screen belongs to, if it belongs to one. */
+  tenantId = '';
   fieldTextType = false;
 
   login = {
@@ -55,6 +71,38 @@ export class LoginComponent implements OnInit {
     this.metaService.updateTag({
       name: 'keywords',
       content: 'LMS login Africa, eLearning login Nigeria, corporate training portal Africa, employee LMS login',
+    });
+
+    this.tenantId = this.route.snapshot.paramMap.get('tenantId') ?? '';
+
+    if (this.tenantId !== '') {
+      this.sso.providers(this.tenantId).subscribe({
+        next: (providers) => (this.ssoProviders = providers),
+        // A sign-in screen that will not draw because one optional
+        // request failed is worse than one without the extra buttons.
+        error: () => (this.ssoProviders = []),
+      });
+    }
+  }
+
+  /**
+   * Hands off to the directory.
+   *
+   * The URL is built server-side, because the state and nonce that tie the
+   * round trip together are written down there before it is handed out.
+   */
+  signInWith(provider: SsoProviderId): void {
+    this.loading = true;
+
+    this.sso.start(this.tenantId, provider).subscribe({
+      next: (url) => {
+        // Not `router.navigate`: this leaves the application.
+        window.location.href = url;
+      },
+      error: (failure: ApiError) => {
+        this.loading = false;
+        this.error_notification(failure.message);
+      },
     });
   }
 

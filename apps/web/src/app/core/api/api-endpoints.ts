@@ -37,6 +37,20 @@ export const Endpoints = {
   },
 
   /**
+   * Signing in from Google or Microsoft Entra. The first two are public;
+   * the rest need `settings.manage`, and none of them ever returns a
+   * client secret.
+   */
+  sso: {
+    providers: (tenantId: string) => `/tenants/${tenantId}/sso`,
+    start: '/auth/sso/start',
+    callback: '/auth/sso/callback',
+    list: '/sso',
+    save: (provider: string) => `/sso/${provider}`,
+    delete: (provider: string) => `/sso/${provider}`,
+  },
+
+  /**
    * Registering yourself. The organisation is in the path because an
    * account has to belong to one, and because the link is something an
    * administrator hands out for their own organisation.

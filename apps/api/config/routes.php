@@ -16,6 +16,8 @@ declare(strict_types=1);
 use Central\Api\Application\Action\Auth\LoginAction;
 use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Action\Auth\RegisterAction;
+use Central\Api\Application\Action\Auth\SsoAction;
+use Central\Api\Application\Action\Settings\ManageSsoAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
 use Central\Api\Application\Action\Auth\RefreshAction;
 use Central\Api\Application\Action\Catalog\CourseCatalogueAction;
@@ -171,6 +173,14 @@ return static function (App $app): void {
                 $pw->post('/reset', [PasswordResetAction::class, 'reset'])
                     ->setName('auth.password.reset');
             });
+
+            // Signing in from Google or Microsoft Entra. Public, because
+            // somebody signing in has nothing to authenticate with yet.
+            $auth->group('/sso', function (RouteCollectorProxy $sso): void {
+                $sso->post('/start', [SsoAction::class, 'start'])->setName('auth.sso.start');
+                $sso->post('/callback', [SsoAction::class, 'callback'])
+                    ->setName('auth.sso.callback');
+            });
         });
 
         // Registering yourself, in a named organisation.
@@ -184,11 +194,21 @@ return static function (App $app): void {
                 ->setName('registration.show');
             $t->post('/register', [RegisterAction::class, 'register'])
                 ->setName('registration.register');
+            $t->get('/sso', [SsoAction::class, 'providers'])->setName('registration.sso');
         });
 
         // --- authenticated ------------------------------------------------
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
+
+            // The organisation's own arrangements with Google and Entra.
+            // No route here returns a client secret; there is nowhere to
+            // read one back from.
+            $secure->get('/sso', [ManageSsoAction::class, 'list'])->setName('sso.list');
+            $secure->put('/sso/{provider:[a-z]+}', [ManageSsoAction::class, 'save'])
+                ->setName('sso.save');
+            $secure->delete('/sso/{provider:[a-z]+}', [ManageSsoAction::class, 'delete'])
+                ->setName('sso.delete');
 
             // What somebody may change about themselves. No permission is
             // checked and no id is read from the request — every one of these

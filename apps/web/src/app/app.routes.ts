@@ -52,6 +52,19 @@ export const routes: Routes = [
     title: 'Register'
   },
   {
+    /**
+     * Where Google and Microsoft send people back to.
+     *
+     * One address for the platform, registered once with each provider.
+     * Which organisation a sign-in belongs to is carried by the `state`,
+     * not by this path.
+     */
+    path: 'sso/callback',
+    loadComponent: () =>
+      import('./public/sso-callback/sso-callback.component').then((m) => m.SsoCallbackComponent),
+    title: 'Signing in'
+  },
+  {
     path: 'reset',
     component: ResetComponent,
     title: 'Reset password'
@@ -232,5 +245,18 @@ export const routes: Routes = [
     path: ':tenantId/register',
     component: RegisterComponent,
     title: 'Register'
+  },
+  {
+    /**
+     * An organisation's own sign-in link.
+     *
+     * The same screen as `/login`, and it adds the buttons for whichever
+     * directories that organisation accepts. `/login` cannot show them:
+     * an email and a password identify an organisation on their own, and
+     * a Google account does not.
+     */
+    path: ':tenantId/login',
+    component: LoginComponent,
+    title: 'Login'
   },
 ];
