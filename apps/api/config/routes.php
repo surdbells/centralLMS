@@ -17,7 +17,9 @@ use Central\Api\Application\Action\Auth\LoginAction;
 use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Action\Auth\RegisterAction;
 use Central\Api\Application\Action\Auth\SsoAction;
+use Central\Api\Application\Action\Settings\ManageEmailTemplatesAction;
 use Central\Api\Application\Action\Settings\ManageSsoAction;
+use Central\Api\Application\Action\Settings\TenantProfileAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
 use Central\Api\Application\Action\Auth\RefreshAction;
 use Central\Api\Application\Action\Catalog\CourseCatalogueAction;
@@ -204,6 +206,25 @@ return static function (App $app): void {
             // The organisation's own arrangements with Google and Entra.
             // No route here returns a client secret; there is nowhere to
             // read one back from.
+            // The organisation's own record — what it is called, how to
+            // reach it, what its mark looks like. Distinct from /settings,
+            // which is preferences with defaults.
+            $secure->get('/tenant', [TenantProfileAction::class, 'show'])->setName('tenant.show');
+            $secure->put('/tenant', [TenantProfileAction::class, 'update'])
+                ->setName('tenant.update');
+
+            // What this organisation's own mail says.
+            $secure->group('/email-templates', function (RouteCollectorProxy $t): void {
+                $t->get('', [ManageEmailTemplatesAction::class, 'list'])
+                    ->setName('email-templates.list');
+                $t->get('/{type:[a-z_]+}', [ManageEmailTemplatesAction::class, 'show'])
+                    ->setName('email-templates.show');
+                $t->put('/{type:[a-z_]+}', [ManageEmailTemplatesAction::class, 'save'])
+                    ->setName('email-templates.save');
+                $t->delete('/{type:[a-z_]+}', [ManageEmailTemplatesAction::class, 'delete'])
+                    ->setName('email-templates.delete');
+            });
+
             $secure->get('/sso', [ManageSsoAction::class, 'list'])->setName('sso.list');
             $secure->put('/sso/{provider:[a-z]+}', [ManageSsoAction::class, 'save'])
                 ->setName('sso.save');

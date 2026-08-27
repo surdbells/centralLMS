@@ -54,7 +54,10 @@ final readonly class Notification
      * Builds a notification for a recipient, with the wording composed and
      * the expiry derived from the type.
      *
-     * @param array<string, mixed> $data
+     * @param array<string, mixed>                $data
+     * @param array{title: string, body: string}|null $words wording already
+     *        decided by the caller — the organisation's own, where it has
+     *        written any. Absent, the platform default is composed here.
      */
     public static function raise(
         string $tenantId,
@@ -65,8 +68,9 @@ final readonly class Notification
         \DateTimeImmutable $now,
         ?string $subjectId = null,
         ?NotificationPriority $priority = null,
+        ?array $words = null,
     ): self {
-        $words = $composer->compose($type, $data);
+        $words ??= $composer->compose($type, $data);
 
         $lifetime  = $type->livesForDays();
         $expiresAt = $lifetime === null ? null : $now->modify(sprintf('+%d days', $lifetime));

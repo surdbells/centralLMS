@@ -7,10 +7,13 @@ namespace Central\Api\Application\Notification;
 use Central\Api\Domain\Notification\ChannelRouter;
 use Central\Api\Domain\Notification\Notification;
 use Central\Api\Domain\Notification\NotificationChannel;
+use Central\Api\Domain\Notification\EmailTemplateRenderer;
+use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationDelivery;
 use Central\Api\Domain\Notification\NotificationRepository;
 use Central\Api\Domain\Notification\NotificationType;
+use Central\Api\Domain\Tenant\TenantRepository;
 use Central\Api\Support\Clock;
 use Psr\Log\LoggerInterface;
 
@@ -33,6 +36,9 @@ final readonly class Notifier
     public function __construct(
         private NotificationRepository $repository,
         private NotificationComposer $composer,
+        private EmailTemplateRepository $templates,
+        private EmailTemplateRenderer $renderer,
+        private TenantRepository $tenants,
         private Clock $clock,
         private LoggerInterface $logger,
     ) {
@@ -95,6 +101,14 @@ final readonly class Notifier
 
         $router = new ChannelRouter($this->tenantChannels($tenantId));
 
+        // The organisation's own wording for this kind of message, where
+        // it has written any. Read once for the batch rather than once
+        // per recipient: assigning a course to two hundred people should
+        // not be two hundred lookups of the same row.
+        $template = $this->templates->find($tenantId, $type);
+        $default  = $this->composer->compose($type, $data);
+        $organisation = $template === null ? null : $this->tenants->nameOf($tenantId);
+
         foreach ($userIds as $userId) {
             $recipient = $recipients[$userId] ?? null;
 
@@ -118,6 +132,14 @@ final readonly class Notifier
                     $this->composer,
                     $now,
                     $subjectId,
+                    null,
+                    $this->renderer->render(
+                        $template,
+                        $default,
+                        $data,
+                        $organisation,
+                        $recipient->name,
+                    ),
                 );
 
                 $deliveries = array_map(

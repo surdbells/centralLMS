@@ -48,6 +48,8 @@ use Central\Api\Application\Notification\Notifier;
 use Central\Api\Application\Notification\ReminderExpander;
 use Central\Api\Application\Notification\SessionNotifier;
 use Central\Api\Domain\Notification\NotificationChannel;
+use Central\Api\Domain\Notification\EmailTemplateRenderer;
+use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationRepository;
 use Central\Api\Domain\Notification\NotificationTransport;
@@ -78,6 +80,7 @@ use Central\Api\Domain\Note\NoteRepository;
 use Central\Api\Domain\Settings\SettingCatalogue;
 use Central\Api\Domain\Skill\SkillRepository;
 use Central\Api\Domain\Settings\SettingsRepository;
+use Central\Api\Domain\Tenant\TenantRepository;
 use Central\Api\Infrastructure\Persistence\DbalSettingsRepository;
 use Central\Api\Infrastructure\Persistence\DbalSkillRepository;
 use Central\Api\Domain\People\PersonRepository;
@@ -89,7 +92,9 @@ use Central\Api\Infrastructure\Persistence\DbalAuditRepository;
 use Central\Api\Infrastructure\Persistence\DbalNoteRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
+use Central\Api\Infrastructure\Persistence\DbalEmailTemplateRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
+use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
@@ -491,9 +496,20 @@ return [
     Notifier::class => factory(static fn (ContainerInterface $c) => new Notifier(
         $c->get(NotificationRepository::class),
         $c->get(NotificationComposer::class),
+        $c->get(EmailTemplateRepository::class),
+        $c->get(EmailTemplateRenderer::class),
+        $c->get(TenantRepository::class),
         $c->get(Clock::class),
         $c->get(LoggerInterface::class),
     )),
+
+    EmailTemplateRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalEmailTemplateRepository($c->get(Connection::class)),
+    ),
+
+    TenantRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalTenantRepository($c->get(Connection::class)),
+    ),
 
     /**
      * One transport per channel, keyed by channel value.
