@@ -15,6 +15,8 @@ use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Gamification\Badge;
 use Central\Api\Domain\Gamification\GamificationLevel;
 use Central\Api\Domain\Gamification\GamificationRepository;
+use Central\Api\Domain\Settings\SettingKey;
+use Central\Api\Domain\Settings\SettingsRepository;
 use Central\Api\Domain\Gamification\LeaderboardEntry;
 use Central\Api\Domain\Gamification\LeaderboardPeriod;
 use Central\Api\Domain\Gamification\PointEvent;
@@ -47,6 +49,7 @@ final class GamificationAction
 {
     public function __construct(
         private readonly GamificationRepository $gamification,
+        private readonly SettingsRepository $settings,
         private readonly Clock $clock,
     ) {
     }
@@ -125,8 +128,27 @@ final class GamificationAction
             ]);
         }
 
-        $limit = max(1, min(100, (int) ($query['limit'] ?? 20)));
-        $now   = $this->clock->now();
+        $settings = $this->settings->forTenant($tenantId);
+
+        // Two settings named the leaderboard and nothing read either of
+        // them, which is the fault this catalogue was built to avoid: a
+        // form field that lies. An organisation that switched the
+        // leaderboard off still had one.
+        if (!$settings->bool(SettingKey::LeaderboardEnabled)) {
+            throw new ConflictingState(
+                'The leaderboard is switched off for this organisation.',
+                'leaderboard_disabled',
+            );
+        }
+
+        // The organisation's own size is the default; a caller may ask for
+        // fewer, and is capped at what the organisation chose.
+        $configured = max(1, $settings->int(SettingKey::LeaderboardSize));
+        $limit = isset($query['limit'])
+            ? max(1, min($configured, (int) $query['limit']))
+            : $configured;
+
+        $now = $this->clock->now();
 
         $entries = $this->gamification->leaderboard(
             $tenantId,

@@ -15,6 +15,7 @@ use Central\Api\Domain\Settings\SettingCatalogue;
 use Central\Api\Domain\Settings\SettingCategory;
 use Central\Api\Domain\Settings\SettingDefinition;
 use Central\Api\Domain\Settings\SettingsRepository;
+use Central\Api\Domain\Tenant\TenantRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -43,6 +44,7 @@ final class TenantSettingsAction
     public function __construct(
         private readonly SettingsRepository $settings,
         private readonly SettingCatalogue $catalogue,
+        private readonly TenantRepository $tenants,
     ) {
     }
 
@@ -163,6 +165,10 @@ final class TenantSettingsAction
         }
 
         return Json::ok($response, [
+            // The organisation's name and its own logo, so a sign-in or
+            // registration screen can carry them. Branding that stops at
+            // the door of the application is not branding.
+            'organisation'   => $this->tenants->nameOf($tenantId),
             'branding'       => $branding,
             'passwordPolicy' => PasswordPolicy::from($settings)->toArray(),
         ]);
