@@ -83,9 +83,15 @@
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_enrollments) }}</h3>
             <p class="text-muted small mb-1">Enrollments</p>
-            <small [ngClass]="dashboard.overview.enrollment_growth >= 0 ? 'text-success' : 'text-danger'">
-              <tui-icon [icon]="dashboard.overview.enrollment_growth >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
-              {{ formatPercentage(Math.abs(dashboard.overview.enrollment_growth)) }} this month
+            <small *ngIf="dashboard.overview.enrollment_growth !== null"
+                   [ngClass]="dashboard.overview.enrollment_growth! >= 0 ? 'text-success' : 'text-danger'">
+              <tui-icon [icon]="dashboard.overview.enrollment_growth! >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
+              {{ formatGrowth(Math.abs(dashboard.overview.enrollment_growth!)) }} this month
+            </small>
+            <!-- Nothing to compare against. Saying so beats an arrow
+                 pointing at a number that does not exist. -->
+            <small class="text-muted" *ngIf="dashboard.overview.enrollment_growth === null">
+              No earlier period to compare
             </small>
           </div>
         </div>
@@ -102,9 +108,15 @@
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_completions) }}</h3>
             <p class="text-muted small mb-1">Completions</p>
-            <small [ngClass]="dashboard.overview.completion_growth >= 0 ? 'text-success' : 'text-danger'">
-              <tui-icon [icon]="dashboard.overview.completion_growth >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
-              {{ formatPercentage(Math.abs(dashboard.overview.completion_growth)) }} this month
+            <small *ngIf="dashboard.overview.completion_growth !== null"
+                   [ngClass]="dashboard.overview.completion_growth! >= 0 ? 'text-success' : 'text-danger'">
+              <tui-icon [icon]="dashboard.overview.completion_growth! >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
+              {{ formatGrowth(Math.abs(dashboard.overview.completion_growth!)) }} this month
+            </small>
+            <!-- Nothing to compare against. Saying so beats an arrow
+                 pointing at a number that does not exist. -->
+            <small class="text-muted" *ngIf="dashboard.overview.completion_growth === null">
+              No earlier period to compare
             </small>
           </div>
         </div>
@@ -543,13 +555,14 @@
                     </div>
                   </td>
                   <td class="text-truncate" style="max-width: 200px;">{{ completion.course_title }}</td>
-                  <td>{{ formatRelativeTime(completion.completed_at) }}</td>
+                  <td>{{ formatRelativeTime(completion.completed_at ?? '') }}</td>
                   <td class="text-center">
-                      <span class="badge" [ngClass]="{
-                        'bg-success': completion.final_score >= 80,
-                        'bg-warning text-dark': completion.final_score >= 60 && completion.final_score < 80,
-                        'bg-danger': completion.final_score < 60
+                      <span class="badge" *ngIf="completion.final_score !== null" [ngClass]="{
+                        'bg-success': completion.final_score! >= 80,
+                        'bg-warning text-dark': completion.final_score! >= 60 && completion.final_score! < 80,
+                        'bg-danger': completion.final_score! < 60
                       }">{{ completion.final_score }}%</span>
+                      <span class="text-muted" *ngIf="completion.final_score === null">-</span>
                   </td>
                   <td class="text-center">
                     <tui-icon *ngIf="completion.has_certificate" icon="@tui.award" class="text-success"></tui-icon>
