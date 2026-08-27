@@ -13,6 +13,7 @@ use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Notification\EmailTemplate;
 use Central\Api\Domain\Notification\EmailTemplateRenderer;
 use Central\Api\Domain\Notification\EmailTemplateRepository;
+use Central\Api\Domain\Notification\NotificationChannel;
 use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Tenant\TenantRepository;
@@ -188,11 +189,7 @@ final class ManageEmailTemplatesAction
         $types = [];
 
         foreach (NotificationType::cases() as $type) {
-            if (in_array(
-                \Central\Api\Domain\Notification\NotificationChannel::Email,
-                $type->defaultChannels(),
-                true,
-            )) {
+            if (in_array(NotificationChannel::Email, $type->defaultChannels(), true)) {
                 $types[] = $type;
             }
         }
