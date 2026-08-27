@@ -1,3 +1,23 @@
+<app-admintop></app-admintop>
+
+<div class="enrollment-container">
+  <div class="page-header">
+    <div class="header-content">
+      <div (click)="goBack()" role="button" class="back-button">
+        <tui-icon icon="@tui.chevron-left"></tui-icon>
+      </div>
+      <div class="header-text">
+        <h1><i class="bi bi-person-plus-fill"></i> Course Enrollment</h1>
+        <p class="text-muted">Put a group of people on a course</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="error">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+    <button type="button" class="btn-close float-end" (click)="error = ''"></button>
+  </div>
+
   <div class="loading-state" *ngIf="loading">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
@@ -452,4 +472,4 @@
       </div>
     </div>
   </div>
-
+</div>
