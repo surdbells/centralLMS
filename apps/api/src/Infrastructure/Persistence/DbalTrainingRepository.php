@@ -592,6 +592,98 @@ final class DbalTrainingRepository implements TrainingRepository
         ];
     }
 
+    public function enrolmentsForUser(string $tenantId, string $userId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT e.id, e.training_id, e.user_id, e.status, e.source, e.waitlisted,
+                    e.attendance_percentage, e.sessions_attended, e.enrolled_at, e.completed_at,
+                    t.title AS training_title, t.delivery, t.min_attendance_percentage
+             FROM training_enrollments e
+             JOIN live_trainings t ON t.id = e.training_id
+             WHERE e.tenant_id = :tenant AND e.user_id = :user
+               AND e.deleted_at IS NULL AND t.deleted_at IS NULL
+             ORDER BY e.enrolled_at DESC',
+            ['tenant' => $tenantId, 'user' => $userId],
+        );
+
+        if ($rows === []) {
+            return [];
+        }
+
+        // The sessions of every one of those programmes, in one query rather
+        // than one per row — a learner on ten programmes should not cost ten
+        // round trips to the database to draw one screen.
+        $sessions = $this->sessionsForTrainings(
+            $tenantId,
+            array_map(static fn (array $r): string => (string) $r['training_id'], $rows),
+        );
+
+        return array_map(
+            function (array $r) use ($sessions): array {
+                $trainingId = (string) $r['training_id'];
+                $attended = (int) $r['sessions_attended'];
+                $counted = count($sessions[$trainingId] ?? []);
+                $required = (float) $r['min_attendance_percentage'];
+                $percentage = (float) $r['attendance_percentage'];
+
+                return [
+                    'id'            => (string) $r['id'],
+                    'trainingId'    => $trainingId,
+                    'trainingTitle' => (string) $r['training_title'],
+                    'delivery'      => (string) $r['delivery'],
+                    'userId'        => (string) $r['user_id'],
+                    'status'        => (string) $r['status'],
+                    'source'        => (string) $r['source'],
+                    'waitlisted'    => (bool) $r['waitlisted'],
+                    'attendancePercentage' => $percentage,
+                    'sessionsAttended'     => $attended,
+                    'sessionsCounted'      => $counted,
+                    // Worked out here rather than stored: a stored flag goes
+                    // stale the moment a session is added to the programme.
+                    'meetsRequirement'     => $percentage >= $required,
+                    'enrolledAt'  => (string) $r['enrolled_at'],
+                    'completedAt' => is_string($r['completed_at'] ?? null) ? $r['completed_at'] : null,
+                    'sessions'    => $sessions[$trainingId] ?? [],
+                ];
+            },
+            $rows,
+        );
+    }
+
+    /**
+     * The sessions of several programmes at once, keyed by programme.
+     *
+     * @param list<string> $trainingIds
+     *
+     * @return array<string, list<array<string, mixed>>>
+     */
+    private function sessionsForTrainings(string $tenantId, array $trainingIds): array
+    {
+        if ($trainingIds === []) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s FROM training_sessions
+                 WHERE tenant_id = :tenant AND training_id IN (:ids) AND deleted_at IS NULL
+                 ORDER BY starts_at',
+                self::SESSION_COLUMNS,
+            ),
+            ['tenant' => $tenantId, 'ids' => array_values(array_unique($trainingIds))],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $byTraining = [];
+
+        foreach ($rows as $row) {
+            $session = $this->hydrateSession($row);
+            $byTraining[$session->trainingId][] = $session->toArray();
+        }
+
+        return $byTraining;
+    }
+
     public function countEnrolled(string $tenantId, string $trainingId): int
     {
         return (int) $this->connection->fetchOne(

@@ -199,6 +199,8 @@ export const Endpoints = {
     certificates: '/me/certificates',
     /** The assessments this person has sat — not a marker's queue. */
     attempts: '/me/attempts',
+    /** The ILT programmes this person is booked on — not a roster. */
+    trainings: '/me/trainings',
     gamification: '/me/gamification',
     gamificationHistory: '/me/gamification/history',
     skills: '/me/skills',

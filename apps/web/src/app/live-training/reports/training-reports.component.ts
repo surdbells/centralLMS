@@ -13,7 +13,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import { Router } from '@angular/router';
 
 interface ReportData {
-  training_id: number;
+  training_id: string;
   title: string;
   type: string;
   sessions_count: number;
@@ -414,7 +414,7 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
-  trackByTrainingId(index: number, item: ReportData): number {
+  trackByTrainingId(index: number, item: ReportData): string {
     return item.training_id;
   }
 }

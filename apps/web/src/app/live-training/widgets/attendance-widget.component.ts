@@ -309,7 +309,7 @@ interface AttendanceStats {
 export class AttendanceWidgetComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  @Input() trainingId?: number;
+  @Input() trainingId?: string;
 
   stats: AttendanceStats | null = null;
   todaySessions: TrainingSession[] = [];

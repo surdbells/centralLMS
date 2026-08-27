@@ -1,49 +1,38 @@
 // live-training/services/video-integration.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
-import {GlobalComponent} from '../../global-component';
+import { map, tap } from 'rxjs/operators';
+import { ApiClient, Endpoints } from '../../core/api';
 
-// ==========================================
-// INTERFACES
-// ==========================================
-
-export interface VideoIntegrationConfig {
-  platform: 'zoom' | 'google_meet' | 'microsoft_teams';
-  clientId: string;
-  redirectUri: string;
-  scopes: string[];
-}
+export type Platform = 'zoom' | 'google_meet' | 'microsoft_teams';
 
 export interface OAuthToken {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  token_type: string;
-  scope?: string;
+  platform: string;
+  connected: boolean;
+  account_email?: string;
+  expires_at?: string;
 }
 
 export interface MeetingDetails {
+  /** The provider's own id for the meeting. `meeting_id` is an alias. */
   id: string;
+  meeting_id: string;
   topic: string;
-  start_time: string;
-  duration: number;
-  timezone: string;
   join_url: string;
-  host_url?: string;
   password?: string;
-  platform: string;
+  start_time?: string;
+  duration?: number;
+  duration_minutes?: number;
+  platform?: string;
+  timezone?: string;
 }
 
 export interface MeetingParticipant {
-  id: string;
   name: string;
   email: string;
-  join_time: string;
-  leave_time?: string;
+  joined_at: string | null;
+  left_at: string | null;
   duration_minutes: number;
 }
 
@@ -53,496 +42,278 @@ export interface IntegrationStatus {
   is_active: boolean;
   expires_at?: string;
   account_email?: string;
+  /** Whether this deployment has credentials for the platform at all. */
+  available?: boolean;
 }
 
-// ==========================================
-// SAFE ENVIRONMENT ACCESS
-// ==========================================
-
-// Type for environment with optional nested properties
-type EnvironmentType = typeof environment & {
-  api?: {
-    zoomAPIkey?: string;
-    teamsClientId?: string;
-    googleClientId?: string;
-  };
-  apiUrl?: string;
-  appUrl?: string;
-  zoomClientId?: string;
-  teamsClientId?: string;
-  googleClientId?: string;
-};
-
-const env = environment as EnvironmentType;
-
-// Conferencing client ids come from configuration, never from a literal.
-// This previously fell back to a hardcoded Zoom API key, which shipped the
-// credential in the browser bundle for anyone to read.
-//
-// These are being retired entirely: the API holds each tenant's OAuth
-// credentials server-side (see video_integrations), so the browser never
-// needs them. See docs/migration/ilt-rewrite.md.
-const getZoomClientId = (): string => {
-  return env.api?.zoomAPIkey || env.zoomClientId || '';
-};
-
-const getTeamsClientId = (): string => {
-  return env.api?.teamsClientId || env.teamsClientId || '';
-};
-
-const getGoogleClientId = (): string => {
-  return env.api?.googleClientId || env.googleClientId || '';
-};
-
-
-// ==========================================
-// ZOOM CONFIGURATION
-// ==========================================
-
-const ZOOM_CONFIG: VideoIntegrationConfig = {
-  platform: 'zoom',
-  clientId: getZoomClientId(),
-  redirectUri: GlobalComponent.integration_callback + '?platform=zoom',
-  scopes: [
-    'meeting:read',
-    'meeting:write',
-    'report:read:admin',
-    'user:read'
-  ]
-};
-
-// ==========================================
-// MICROSOFT TEAMS CONFIGURATION
-// ==========================================
-
-const TEAMS_CONFIG: VideoIntegrationConfig = {
-  platform: 'microsoft_teams',
-  clientId: getTeamsClientId(),
-  redirectUri: GlobalComponent.integration_callback + '?platform=teams',
-  scopes: [
-    'OnlineMeetings.ReadWrite',
-    'OnlineMeetingArtifact.Read.All',
-    'User.Read'
-  ]
-};
-
-// ==========================================
-// GOOGLE MEET CONFIGURATION
-// ==========================================
-
-const GOOGLE_CONFIG: VideoIntegrationConfig = {
-  platform: 'google_meet',
-  clientId: getGoogleClientId(),
-  redirectUri: GlobalComponent.integration_callback + '?platform=meet',
-  scopes: [
-    'https://www.googleapis.com/auth/calendar',
-    'https://www.googleapis.com/auth/calendar.events'
-  ]
-};
-
-// ==========================================
-// SERVICE
-// ==========================================
-
+/**
+ * Connecting a tenant's Zoom, Google or Teams account.
+ *
+ * **The OAuth flow moved to the server, and that is the point of this
+ * change.** This file used to hold three `VideoIntegrationConfig` literals
+ * with a `clientId` read out of `environment.ts`, build the provider's
+ * authorisation URL in the browser, and exchange the authorisation code for
+ * an access token from the browser as well. That means the client secret has
+ * to be reachable from the browser to complete the exchange, and the original
+ * `environment.ts` did indeed have a live Zoom API key committed in it.
+ *
+ * The API holds the credentials encrypted, builds the authorisation URL, and
+ * performs the exchange. Nothing here knows a client id, and no token ever
+ * reaches this code — which is also why `exchangeCode` returns a connection
+ * rather than a token.
+ *
+ * Meetings are booked by the API too, against the session they belong to:
+ * `POST /trainings/{id}/sessions/{sessionId}/meeting`. Creating one from the
+ * browser would need the access token in the browser.
+ */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class VideoIntegrationService {
-  private apiUrl = GlobalComponent.liveTraining;
-
-  // Connection status cache
-  private connectionStatusCache = new Map<string, { status: IntegrationStatus; timestamp: number }>();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-  constructor(private http: HttpClient) {}
-
-  // ==========================================
-  // OAUTH FLOW
-  // ==========================================
+  private readonly api = inject(ApiClient);
 
   /**
-   * Get OAuth authorization URL for a platform
+   * Where the provider sends the browser back to.
+   *
+   * Built from the running origin rather than configured, so a deployment
+   * cannot be pointed at somebody else's callback by editing a constant. The
+   * API refuses anything that is not https for the same reason — an http
+   * redirect would carry the authorisation code in clear.
    */
-  getAuthorizationUrl(platform: 'zoom' | 'google_meet' | 'microsoft_teams', state?: string): string {
-    const config = this.getConfig(platform);
-    const stateParam = state || this.generateState();
-
-    // Store state for verification
-    sessionStorage.setItem(`oauth_state_${platform}`, stateParam);
-
-    switch (platform) {
-      case 'zoom':
-        return this.getZoomAuthUrl(config, stateParam);
-      case 'google_meet':
-        return this.getGoogleAuthUrl(config, stateParam);
-      case 'microsoft_teams':
-        return this.getTeamsAuthUrl(config, stateParam);
-      default:
-        throw new Error(`Unsupported platform: ${platform}`);
-    }
-  }
-
-  private getZoomAuthUrl(config: VideoIntegrationConfig, state: string): string {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
-      state: state
-    });
-    return `https://zoom.us/oauth/authorize?${params.toString()}`;
-  }
-
-  private getGoogleAuthUrl(config: VideoIntegrationConfig, state: string): string {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
-      scope: config.scopes.join(' '),
-      state: state,
-      access_type: 'offline',
-      prompt: 'consent'
-    });
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  }
-
-  private getTeamsAuthUrl(config: VideoIntegrationConfig, state: string): string {
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: config.clientId,
-      redirect_uri: config.redirectUri,
-      scope: config.scopes.join(' '),
-      state: state,
-      response_mode: 'query'
-    });
-    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
-  }
-
-  /**
-   * Exchange authorization code for tokens
-   */
-  exchangeCode(platform: string, code: string): Observable<OAuthToken> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'exchange_oauth_code',
-      platform,
-      code
-    }).pipe(
-      map(response => {
-        if (response.success) {
-          return response.data;
-        }
-        throw new Error(response.message || 'Failed to exchange code');
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  /**
-   * Verify OAuth state parameter
-   */
-  verifyState(platform: string, state: string): boolean {
-    const storedState = sessionStorage.getItem(`oauth_state_${platform}`);
-    sessionStorage.removeItem(`oauth_state_${platform}`);
-    return storedState === state;
+  private redirectUri(): string {
+    return `${window.location.origin}/integrations/callback`;
   }
 
   // ==========================================
-  // CONNECTION MANAGEMENT
+  // CONNECTION
   // ==========================================
 
-  /**
-   * Get all integration statuses
-   */
   getAllIntegrationStatuses(): Observable<IntegrationStatus[]> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'get_all_integration_statuses'
-    }).pipe(
-      map(response => {
-        if (response.success && Array.isArray(response.data)) {
-          return response.data;
-        }
-        // Return default statuses for all platforms
-        return [
-          { platform: 'zoom', connected: false, is_active: false },
-          { platform: 'google_meet', connected: false, is_active: false },
-          { platform: 'microsoft_teams', connected: false, is_active: false }
-        ];
-      }),
-      catchError(() => of([
-        { platform: 'zoom', connected: false, is_active: false },
-        { platform: 'google_meet', connected: false, is_active: false },
-        { platform: 'microsoft_teams', connected: false, is_active: false }
-      ]))
-    );
+    return this.api
+      .get<Array<Record<string, unknown>>>(Endpoints.integrations.list)
+      .pipe(map((rows) => rows.map(toStatus)));
   }
 
-  /**
-   * Get integration status for a platform (single platform)
-   */
   getIntegrationStatus(platform: string): Observable<IntegrationStatus> {
-    // Check cache first
-    const cached = this.connectionStatusCache.get(platform);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      return of(cached.status);
-    }
-
-    return this.http.post<any>(this.apiUrl, {
-      action: 'get_integration_status',
-      platform
-    }).pipe(
-      map(response => {
-        const status: IntegrationStatus = response.success ? response.data : {
-          platform,
-          connected: false,
-          is_active: false
-        };
-        // Cache the result
-        this.connectionStatusCache.set(platform, { status, timestamp: Date.now() });
-        return status;
-      }),
-      catchError(() => of({
+    return this.getAllIntegrationStatuses().pipe(
+      map((all) => all.find((s) => s.platform === platform) ?? {
         platform,
         connected: false,
-        is_active: false
-      }))
+        is_active: false,
+      }),
     );
   }
 
-  /**
-   * Initiate OAuth connection flow for a platform
-   * Opens authorization URL in a popup/redirect
-   */
-  connect(platform: 'zoom' | 'google_meet' | 'microsoft_teams'): void {
-    const authUrl = this.getAuthorizationUrl(platform);
-    // Open in same window for proper OAuth redirect
-    window.location.href = authUrl;
-  }
-
-  /**
-   * Exchange authorization code for tokens (alias for exchangeCode)
-   */
-  exchangeCodeForTokens(platform: string, code: string, state: string): Observable<OAuthToken> {
-    // Verify state first
-    if (!this.verifyState(platform, state)) {
-      return throwError(() => new Error('Invalid OAuth state - possible CSRF attack'));
-    }
-    return this.exchangeCode(platform, code);
-  }
-
-  /**
-   * Check if platform is connected (with caching)
-   */
   isConnected(platform: string): Observable<boolean> {
-    return this.getIntegrationStatus(platform).pipe(
-      map(status => status.connected && status.is_active)
-    );
+    return this.getIntegrationStatus(platform).pipe(map((status) => status.connected));
   }
 
   /**
-   * Disconnect integration
+   * Starts the connection by sending the browser to the provider.
+   *
+   * The URL comes from the API, which knows the client id and signs the state
+   * value with the tenant so the callback can tell whose account came back.
    */
-  disconnect(platform: string): Observable<void> {
-    // Clear cache on disconnect
-    this.connectionStatusCache.delete(platform);
-
-    return this.http.post<any>(this.apiUrl, {
-      action: 'disconnect_integration',
-      platform
-    }).pipe(
-      map(response => {
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to disconnect');
-        }
-      }),
-      catchError(error => throwError(() => error))
-    );
+  connect(platform: Platform): void {
+    this.api
+      .post<{ authorizationUrl: string; state: string }>(
+        Endpoints.integrations.connect(platform),
+        { redirectUri: this.redirectUri() },
+      )
+      .subscribe({
+        next: (started) => {
+          // Kept so the callback can check that the state it was handed is
+          // the one we sent, which is what stops a replayed authorisation.
+          sessionStorage.setItem(`integration.state.${platform}`, started.state);
+          window.location.href = started.authorizationUrl;
+        },
+        error: (failure: { message?: string }) => {
+          alert(failure.message ?? 'That provider could not be reached.');
+        },
+      });
   }
 
-  /**
-   * Set default platform for meetings
-   */
-  setDefaultPlatform(platform: string): Observable<void> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'set_default_platform',
-      platform
-    }).pipe(
-      map(response => {
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to set default platform');
-        }
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  // ==========================================
-  // MEETING MANAGEMENT
-  // ==========================================
-
-  /**
-   * Create a meeting on the specified platform
-   */
-  createMeeting(platform: string, meetingData: {
-    topic: string;
-    start_time: string;
-    duration: number;
-    timezone?: string;
-    password?: string;
-    settings?: Record<string, any>;
-  }): Observable<MeetingDetails> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'create_meeting',
-      platform,
-      ...meetingData
-    }).pipe(
-      map(response => {
-        if (response.success) {
-          return response.data;
-        }
-        throw new Error(response.message || 'Failed to create meeting');
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  /**
-   * Get meeting details
-   */
-  getMeeting(platform: string, meetingId: string): Observable<MeetingDetails> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'get_meeting',
-      platform,
-      meeting_id: meetingId
-    }).pipe(
-      map(response => {
-        if (response.success) {
-          return response.data;
-        }
-        throw new Error(response.message || 'Failed to get meeting');
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  /**
-   * Update meeting
-   */
-  updateMeeting(platform: string, meetingId: string, meetingData: Partial<{
-    topic: string;
-    start_time: string;
-    duration: number;
-    timezone: string;
-    password: string;
-    settings: Record<string, any>;
-  }>): Observable<MeetingDetails> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'update_meeting',
-      platform,
-      meeting_id: meetingId,
-      ...meetingData
-    }).pipe(
-      map(response => {
-        if (response.success) {
-          return response.data;
-        }
-        throw new Error(response.message || 'Failed to update meeting');
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  /**
-   * Delete meeting
-   */
-  deleteMeeting(platform: string, meetingId: string): Observable<void> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'delete_meeting',
-      platform,
-      meeting_id: meetingId
-    }).pipe(
-      map(response => {
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to delete meeting');
-        }
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  /**
-   * Get meeting participants
-   */
-  getMeetingParticipants(platform: string, meetingId: string): Observable<MeetingParticipant[]> {
-    return this.http.post<any>(this.apiUrl, {
-      action: 'get_meeting_participants',
-      platform,
-      meeting_id: meetingId
-    }).pipe(
-      map(response => {
-        if (response.success) {
-          return response.data || [];
-        }
-        throw new Error(response.message || 'Failed to get participants');
-      }),
-      catchError(error => throwError(() => error))
-    );
-  }
-
-  // ==========================================
-  // HELPER METHODS
-  // ==========================================
-
-  private getConfig(platform: 'zoom' | 'google_meet' | 'microsoft_teams'): VideoIntegrationConfig {
-    switch (platform) {
-      case 'zoom':
-        return ZOOM_CONFIG;
-      case 'google_meet':
-        return GOOGLE_CONFIG;
-      case 'microsoft_teams':
-        return TEAMS_CONFIG;
-      default:
-        throw new Error(`Unknown platform: ${platform}`);
+  exchangeCodeForTokens(platform: string, code: string, state: string): Observable<OAuthToken> {
+    if (!this.verifyState(platform, state)) {
+      return throwError(() => new Error(
+        'That sign-in could not be verified. Start again from the integrations page.',
+      ));
     }
+
+    return this.api
+      .post<Record<string, unknown>>(Endpoints.integrations.callback(platform), {
+        code,
+        state,
+        redirectUri: this.redirectUri(),
+      })
+      .pipe(
+        tap(() => sessionStorage.removeItem(`integration.state.${platform}`)),
+        map((connection) => ({
+          platform,
+          connected: true,
+          account_email: connection['accountEmail'] as string | undefined,
+          expires_at: connection['expiresAt'] as string | undefined,
+        })),
+      );
   }
 
-  private generateState(): string {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  /** Kept for the callback page, which calls it by this name. */
+  exchangeCode(platform: string, code: string): Observable<OAuthToken> {
+    return this.exchangeCodeForTokens(
+      platform,
+      code,
+      sessionStorage.getItem(`integration.state.${platform}`) ?? '',
+    );
   }
 
   /**
-   * Get display name for platform
+   * Whether the state handed back is the one we sent.
+   *
+   * The API checks this too — it has to, since a callback can be forged — but
+   * checking here as well means a mismatched state never becomes a request.
    */
+  verifyState(platform: string, state: string): boolean {
+    const sent = sessionStorage.getItem(`integration.state.${platform}`);
+
+    return sent !== null && sent === state;
+  }
+
+  disconnect(platform: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.integrations.disconnect(platform))
+      .pipe(map(() => undefined));
+  }
+
+  setDefaultPlatform(platform: string): Observable<void> {
+    return this.api
+      .patch(Endpoints.integrations.update(platform), { isDefault: true })
+      .pipe(map(() => undefined));
+  }
+
+  // ==========================================
+  // MEETINGS
+  // ==========================================
+  //
+  // A meeting belongs to a session, and the API books it against that session
+  // so the join link lands where learners will look for it. Creating one from
+  // the browser would need the provider's access token in the browser, which
+  // is the thing this change is about not doing.
+
+  createMeeting(platform: string, meetingData: unknown): Observable<MeetingDetails> {
+    const data = meetingData as Record<string, unknown>;
+    const trainingId = String(data['trainingId'] ?? '');
+    const sessionId = String(data['sessionId'] ?? '');
+
+    if (trainingId === '' || sessionId === '') {
+      return throwError(() => new Error(
+        'A meeting is booked against a session. Open the session and use "Create meeting" there.',
+      ));
+    }
+
+    return this.api
+      .post<Record<string, unknown>>(Endpoints.sessions.meeting(trainingId, sessionId), {})
+      .pipe(map((booked) => ({ ...toMeeting(booked), platform })));
+  }
+
+  getMeeting(_platform: string, _meetingId: string): Observable<MeetingDetails> {
+    return notAvailable('Reading a meeting back from the provider');
+  }
+
+  updateMeeting(
+    _platform: string,
+    _meetingId: string,
+    _meetingData: Record<string, unknown>,
+  ): Observable<MeetingDetails> {
+    return notAvailable('Editing a meeting at the provider');
+  }
+
+  deleteMeeting(_platform: string, _meetingId: string): Observable<void> {
+    return notAvailable('Cancelling a meeting at the provider');
+  }
+
+  /**
+   * Who actually joined.
+   *
+   * Read back from the provider by the API, not from the learner's browser —
+   * a self-reported duration on something that decides a certification is a
+   * number the learner controls. It is per session, so the attendance sync
+   * endpoint is where it lives.
+   */
+  getMeetingParticipants(_platform: string, _meetingId: string): Observable<MeetingParticipant[]> {
+    return of([]);
+  }
+
+  // ==========================================
+  // PRESENTATION
+  // ==========================================
+
   getPlatformDisplayName(platform: string): string {
     const names: Record<string, string> = {
-      'zoom': 'Zoom',
-      'google_meet': 'Google Meet',
-      'microsoft_teams': 'Microsoft Teams'
+      zoom: 'Zoom',
+      google_meet: 'Google Meet',
+      microsoft_teams: 'Microsoft Teams',
     };
-    return names[platform] || platform;
+
+    return names[platform] ?? platform;
   }
 
-  /**
-   * Get icon class for platform
-   */
   getPlatformIcon(platform: string): string {
     const icons: Record<string, string> = {
-      'zoom': 'bi-camera-video',
-      'google_meet': 'bi-google',
-      'microsoft_teams': 'bi-microsoft-teams'
+      zoom: 'bi-camera-video',
+      google_meet: 'bi-google',
+      microsoft_teams: 'bi-microsoft',
     };
-    return icons[platform] || 'bi-camera-video';
+
+    return icons[platform] ?? 'bi-camera-video';
   }
 
-  /**
-   * Get color class for platform
-   */
   getPlatformColor(platform: string): string {
-    const colors: Record<string, string> = {
-      'zoom': '#2D8CFF',
-      'google_meet': '#00897B',
-      'microsoft_teams': '#6264A7'
+    const colours: Record<string, string> = {
+      zoom: '#2D8CFF',
+      google_meet: '#00897B',
+      microsoft_teams: '#6264A7',
     };
-    return colors[platform] || '#6c757d';
+
+    return colours[platform] ?? '#6c757d';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+function toStatus(row: Record<string, unknown>): IntegrationStatus {
+  return {
+    platform: String(row['platform'] ?? ''),
+    connected: row['connected'] === true,
+    is_active: row['isActive'] !== false,
+    expires_at: row['expiresAt'] as string | undefined,
+    account_email: row['accountEmail'] as string | undefined,
+    // The deployment may have no credentials for a platform at all, which is
+    // a different thing from a tenant not having connected it — and the
+    // difference decides whether "Connect" should be offered.
+    available: row['available'] !== false,
+  };
+}
+
+function toMeeting(row: Record<string, unknown>): MeetingDetails {
+  const meeting = (row['meeting'] ?? row) as Record<string, unknown>;
+
+  const id = String(meeting['id'] ?? '');
+
+  return {
+    id,
+    meeting_id: id,
+    topic: String(meeting['topic'] ?? row['title'] ?? ''),
+    join_url: String(meeting['joinUrl'] ?? ''),
+    password: meeting['password'] as string | undefined,
+    start_time: meeting['scheduledAt'] as string | undefined,
+    duration: meeting['durationMinutes'] as number | undefined,
+    duration_minutes: meeting['durationMinutes'] as number | undefined,
+    timezone: meeting['timezone'] as string | undefined,
+  };
+}
+
+function notAvailable(what: string): Observable<never> {
+  return throwError(() => new Error(`${what} is not available yet.`));
 }

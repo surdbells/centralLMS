@@ -322,7 +322,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
     }
   }
 
-  trackBySessionId(index: number, item: TrainingSession): number {
+  trackBySessionId(index: number, item: TrainingSession): string {
     return item.session_id;
   }
 
@@ -336,7 +336,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   // SINGLE ITEM LOADING
   // ==========================================
 
-  loadTrainingDetails(training_id: number): void {
+  loadTrainingDetails(training_id: string): void {
     this.loading = true;
     this.liveTrainingService.getTraining(training_id)
       .pipe(takeUntil(this.destroy$))
@@ -353,7 +353,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadSessionDetails(session_id: number): void {
+  loadSessionDetails(session_id: string): void {
     this.loading = true;
     this.liveTrainingService.getSession(session_id)
       .pipe(takeUntil(this.destroy$))
@@ -375,7 +375,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
     this.selectedSession = null;
   }
 
-  loadEnrollmentDetails(enrollment_id: number): void {
+  loadEnrollmentDetails(enrollment_id: string): void {
     this.liveTrainingService.getEnrollment(enrollment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -390,7 +390,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   // SELF ENROLLMENT
   // ==========================================
 
-  enrollInTraining(training_id: number): void {
+  enrollInTraining(training_id: string): void {
     this.enrolling = true;
     this.liveTrainingService.enrollLearner(training_id)
       .pipe(takeUntil(this.destroy$))
@@ -435,7 +435,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   // ADDITIONAL TRACK BY
   // ==========================================
 
-  trackByEnrollmentId(index: number, item: TrainingEnrollment): number {
+  trackByEnrollmentId(index: number, item: TrainingEnrollment): string {
     return item.enrollment_id;
   }
 }

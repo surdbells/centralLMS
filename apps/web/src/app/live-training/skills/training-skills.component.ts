@@ -21,7 +21,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
   styleUrls: ['./training-skills.component.scss']
 })
 export class TrainingSkillsComponent implements OnInit {
-  @Input() trainingId!: number;
+  @Input() trainingId!: string;
 
   // Assigned skills
   assignedSkills: TrainingSkill[] = [];
@@ -37,7 +37,7 @@ export class TrainingSkillsComponent implements OnInit {
 
   // Search/Filter
   skillSearchQuery = '';
-  selectedCategory: number | null = null;
+  selectedCategory: string | null = null;
 
   // State
   loading = false;

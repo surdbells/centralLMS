@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // training-enrollment/training-enrollment.component.ts
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -31,30 +30,6 @@ type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
-
-  session_data: any = "";
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
 
   // Data
   departments: Department[] = [];
@@ -359,18 +334,20 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * What to enrol, and whom.
+   *
+   * No `user_id`, `token` or `tenant_id`: those were decoded out of
+   * `atob(sessionStorage.SESSION)` and posted with the request, which let
+   * the client name the organisation being enrolled into. All three come
+   * from the bearer token now.
+   */
   private buildEnrollmentRequest(): EnrollmentRequest {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-
     const request: EnrollmentRequest = {
       training_id: this.selectedTraining!.training_id,
       enrollment_type: this.enrollmentType,
       is_mandatory: this.isMandatory,
       notify_users: this.notifyUsers,
-      user_id: this.user_session.id,
-      token: this.user_session.token,
-      tenant_id: this.user_session.tenant_id
     };
 
     switch (this.enrollmentType) {

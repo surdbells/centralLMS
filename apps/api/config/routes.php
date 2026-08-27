@@ -103,6 +103,7 @@ use Central\Api\Application\Action\HealthAction;
 use Central\Api\Application\Action\Ilt\AttendanceAction;
 use Central\Api\Application\Action\Ilt\ListMeetingProvidersAction;
 use Central\Api\Application\Action\Ilt\ManageSessionsAction;
+use Central\Api\Application\Action\Ilt\MyTrainingsAction;
 use Central\Api\Application\Action\Ilt\ManageTrainingsAction;
 use Central\Api\Application\Action\Ilt\TrainingEnrolmentAction;
 use Central\Api\Application\Action\Ilt\VideoIntegrationAction;
@@ -269,6 +270,10 @@ return static function (App $app): void {
             // The assessments this person has sat. Distinct from a marker's
             // queue at `/assessments/{id}/attempts` — see MyAttemptsAction.
             $secure->get('/me/attempts', MyAttemptsAction::class)->setName('me.attempts');
+
+            // What the caller is booked on. Distinct from a programme's
+            // roster, which is other people's names — see MyTrainingsAction.
+            $secure->get('/me/trainings', MyTrainingsAction::class)->setName('me.trainings');
 
             // Checking in by scanning the code at a venue.
             //

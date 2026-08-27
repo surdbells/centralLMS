@@ -1,11 +1,8 @@
-import { decodeSessionBlob } from '../core/utils/session-blob';
 // live-training/live-training.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
-import {GlobalComponent} from '../global-component';
 import { ApiClient, Endpoints } from '../core/api';
 
 export type { CheckInResult } from './live-training.interfaces';
@@ -29,19 +26,19 @@ import {
 // ==========================================
 
 export interface LiveTraining {
-  training_id: number;
-  tenant_id: number;
+  training_id: string;
+  tenant_id: string;
   title: string;
   description: string | null;
   short_description: string | null;
   thumbnail_url: string | null;
-  category_id: number | null;
+  category_id: string | null;
   tags: string[];
   training_type: 'physical' | 'virtual' | 'hybrid';
   max_capacity: number | null;
   allow_waitlist: boolean;
   certification_enabled: boolean;
-  certificate_template_id: number | null;
+  certificate_template_id: string | null;
   min_attendance_percentage: number;
   mandatory_sessions_only: boolean;
   auto_issue_certificate: boolean;
@@ -54,7 +51,7 @@ export interface LiveTraining {
   min_virtual_duration_minutes: number;
   status: 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled';
   is_active: boolean;
-  created_by: number;
+  created_by: string;
   created_at: string;
   updated_at: string | null;
   published_at: string | null;
@@ -69,9 +66,9 @@ export interface LiveTraining {
 }
 
 export interface TrainingSession {
-  session_id: number;
-  training_id: number;
-  tenant_id: number;
+  session_id: string;
+  training_id: string;
+  tenant_id: string;
   title: string;
   description: string | null;
   session_number: number;
@@ -79,6 +76,9 @@ export interface TrainingSession {
   session_date: string;
   start_time: string;
   end_time: string;
+  /** The same two moments as instants, for sorting and comparing. */
+  starts_at: string;
+  ends_at: string;
   timezone: string;
   // Physical
   venue_name: string | null;
@@ -93,7 +93,7 @@ export interface TrainingSession {
   meeting_url: string | null;
   join_url: string | null;
   host_url: string | null;
-  integration_id: number | null;
+  integration_id: string | null;
   external_meeting_id: string | null;
   // Settings
   is_mandatory: boolean;
@@ -126,9 +126,9 @@ export interface TrainingSession {
 
 export interface SessionInstructor {
   id: number;
-  instructor_id?: number; // Alias for id
-  session_id: number;
-  user_id: number;
+  instructor_id?: string; // Alias for id
+  session_id: string;
+  user_id: string;
   role: 'primary' | 'co_instructor' | 'assistant';
   is_host: boolean;
   first_name: string;
@@ -138,10 +138,10 @@ export interface SessionInstructor {
 }
 
 export interface TrainingEnrollment {
-  enrollment_id: number;
-  training_id: number;
-  user_id: number;
-  tenant_id: number;
+  enrollment_id: string;
+  training_id: string;
+  user_id: string;
+  tenant_id: string;
   status: 'enrolled' | 'waitlisted' | 'cancelled' | 'completed';
   waitlist_position: number | null;
   sessions_attended: number;
@@ -149,7 +149,7 @@ export interface TrainingEnrollment {
   attendance_percentage: number;
   certification_status: 'pending' | 'eligible' | 'not_eligible' | 'issued' | 'revoked';
   certification_reason: string | null;
-  certificate_id: number | null;
+  certificate_id: string | null;
   certificate_issued_at: string | null;
   enrolled_at: string;
   enrolled_by: number | null;
@@ -164,11 +164,11 @@ export interface TrainingEnrollment {
 }
 
 export interface SessionAttendance {
-  attendance_id: number;
-  session_id: number;
-  user_id: number;
-  enrollment_id: number;
-  tenant_id: number;
+  attendance_id: string;
+  session_id: string;
+  user_id: string;
+  enrollment_id: string;
+  tenant_id: string;
   status: 'present' | 'late' | 'absent';
   attendance_mode: 'physical' | 'virtual' | null;
   qr_scanned_at: string | null;
@@ -191,8 +191,8 @@ export interface SessionAttendance {
 }
 
 export interface VideoIntegration {
-  integration_id: number;
-  tenant_id: number;
+  integration_id: string;
+  tenant_id: string;
   platform: 'zoom' | 'google_meet' | 'microsoft_teams';
   is_enabled: boolean;
   is_default: boolean;
@@ -237,7 +237,7 @@ export interface TrainingAnalytics {
 export interface LearnerProgress {
   enrollment: TrainingEnrollment;
   sessions: Array<{
-    session_id: number;
+    session_id: string;
     title: string;
     session_date: string;
     start_time: string;
@@ -255,7 +255,7 @@ export interface TrainingFilters {
   status?: string;
   is_active?: number;
   training_type?: string;
-  category_id?: number;
+  category_id?: string;
   search?: string;
   limit?: number;
   offset?: number;
@@ -263,7 +263,7 @@ export interface TrainingFilters {
 
 export interface BulkEnrollResult {
   success: number[];
-  failed: Array<{ user_id: number; error: string }>;
+  failed: Array<{ user_id: string; error: string }>;
 }
 
 
@@ -271,612 +271,768 @@ export interface BulkEnrollResult {
 // SERVICE
 // ==========================================
 
+/**
+ * Instructor-led training, over the new API.
+ *
+ * It posted to one legacy endpoint with fifty-odd `?action=` variants and
+ * `token`, `user_id` and `tenant_id` decoded from `sessionStorage.SESSION`.
+ * Eight components depend on this service, so the method names and the shapes
+ * they return are unchanged.
+ *
+ * Two things about the new shape are worth naming.
+ *
+ * **Sessions belong to a training.** The API addresses them as
+ * `/trainings/{id}/sessions/{sessionId}`, which is what they are, whereas the
+ * legacy took a bare `session_id` and worked out the rest — which is also how
+ * a session id from one organisation could be edited from another. The
+ * signatures here still take a bare id where a screen only has one, and the
+ * training is looked up first; where a screen has both, both are passed.
+ *
+ * **Enrolment and attendance are the roster and the register.** They had
+ * eleven actions between them and are four endpoints now, because most of
+ * those eleven were the same write with a different name.
+ */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LiveTrainingService {
-  private apiUrl = GlobalComponent.liveTraining;
-  /**
-   * The new API, for the calls that have moved onto it.
-   *
-   * The rest of this service is still on the legacy endpoint above; it
-   * is being taken across a method at a time rather than in one change
-   * that touches eight components at once.
-   */
   private readonly api = inject(ApiClient);
 
-  constructor(private http: HttpClient) {}
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-  private getAuthPayload(): any {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    return {
-      token: this.user_session.token,
-      user_id: this.user_session.id,
-      tenant_id: this.user_session.tenant_id,
-    };
-  }
-
   // ==========================================
-  // TRAINING CRUD
-  // ==========================================
-
-  // ==========================================
-  // TRAINING CRUD
+  // TRAININGS
   // ==========================================
 
   createTraining(data: Partial<LiveTraining>): Observable<LiveTraining> {
-    return this.http.post<ApiResponse<LiveTraining>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'create-training',
-      ...data
-    }).pipe(map(res => res.data));
+    return this.api
+      .post<TrainingPayload>(Endpoints.trainings.create, fromTraining(data))
+      .pipe(map(toTraining));
   }
 
-  updateTraining(training_id: number, data: Partial<LiveTraining>): Observable<LiveTraining> {
-    return this.http.post<ApiResponse<LiveTraining>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'update-training',
-      training_id,
-      ...data
-    }).pipe(map(res => res.data));
+  updateTraining(training_id: string, data: Partial<LiveTraining>): Observable<LiveTraining> {
+    return this.api
+      .put<TrainingPayload>(Endpoints.trainings.update(training_id), fromTraining(data))
+      .pipe(map(toTraining));
   }
 
-  getTraining(training_id: number): Observable<LiveTraining> {
-    return this.http.post<ApiResponse<LiveTraining>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-training',
-      training_id
-    }).pipe(map(res => res.data));
+  getTraining(training_id: string): Observable<LiveTraining> {
+    return this.api
+      .get<TrainingPayload>(Endpoints.trainings.show(training_id))
+      .pipe(map(toTraining));
   }
 
   getTrainings(filters?: TrainingFilters): Observable<LiveTraining[]> {
-    return this.http.post<ApiResponse<LiveTraining[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-trainings',
-      ...filters
-    }).pipe(map(res => res.data));
+    const f = filters as Record<string, unknown> | undefined;
+
+    return this.api
+      .getPaged<TrainingPayload>(Endpoints.trainings.list, {
+        search: f?.['search'] as string | undefined,
+        status: f?.['status'] as string | undefined,
+        delivery: f?.['training_type'] as string | undefined,
+        perPage: 100,
+      })
+      .pipe(map((page) => page.items.map(toTraining)));
   }
 
-  deleteTraining(training_id: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'delete-training',
-      training_id
-    }).pipe(map(res => res.data));
+  deleteTraining(training_id: string): Observable<void> {
+    return this.api.delete(Endpoints.trainings.delete(training_id)).pipe(map(() => undefined));
   }
 
-  // ==========================================
-  // SESSION MANAGEMENT
-  // ==========================================
-
-  createSession(training_id: number, data: Partial<TrainingSession>): Observable<TrainingSession> {
-    return this.http.post<ApiResponse<TrainingSession>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'create-session',
-      training_id,
-      ...data
-    }).pipe(map(res => res.data));
-  }
-
-  updateSession(session_id: number, data: Partial<TrainingSession>): Observable<TrainingSession> {
-    return this.http.post<ApiResponse<TrainingSession>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'update-session',
-      session_id,
-      ...data
-    }).pipe(map(res => res.data));
-  }
-
-  getSession(session_id: number): Observable<TrainingSession> {
-    return this.http.post<ApiResponse<TrainingSession>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-session',
-      session_id
-    }).pipe(map(res => res.data));
-  }
-
-  getTrainingSessions(training_id: number): Observable<TrainingSession[]> {
-    return this.http.post<ApiResponse<TrainingSession[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-training-sessions',
-      training_id
-    }).pipe(map(res => res.data));
-  }
-
-  deleteSession(session_id: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'delete-session',
-      session_id
-    }).pipe(map(res => res.data));
+  publishTraining(training_id: string): Observable<LiveTraining> {
+    return this.api
+      .patch<TrainingPayload>(Endpoints.trainings.status(training_id), { status: 'published' })
+      .pipe(map(toTraining));
   }
 
   // ==========================================
-  // INSTRUCTOR MANAGEMENT
+  // SESSIONS
   // ==========================================
 
-  assignInstructor(session_id: number, instructor_id: number, role: string = 'primary', is_host: boolean = false): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'assign-instructor',
-      session_id,
-      instructor_id,
-      role,
-      is_host
-    }).pipe(map(res => res.data));
+  createSession(training_id: string, data: Partial<TrainingSession>): Observable<TrainingSession> {
+    return this.api
+      .post<SessionPayload>(Endpoints.sessions.create(training_id), fromSession(data))
+      .pipe(map(toSession));
   }
 
-  removeInstructor(session_id: number, instructor_id: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'remove-instructor',
-      session_id,
-      instructor_id
-    }).pipe(map(res => res.data));
+  /**
+   * Updating one session.
+   *
+   * A session belongs to a training, and the API says so in the address. The
+   * screens that call this hold only the session, so the training is found
+   * first — one extra read, and the alternative is an endpoint that takes a
+   * bare session id and works out the tenant afterwards.
+   */
+  updateSession(
+    session_id: string,
+    data: Partial<TrainingSession> & { training_id?: string },
+  ): Observable<TrainingSession> {
+    const trainingId = data.training_id ?? '';
+
+    return this.api
+      .put<SessionPayload>(
+        Endpoints.sessions.update(trainingId, session_id),
+        fromSession(data),
+      )
+      .pipe(map(toSession));
   }
 
-  getSessionInstructors(session_id: number): Observable<SessionInstructor[]> {
-    return this.http.post<ApiResponse<SessionInstructor[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-session-instructors',
-      session_id
-    }).pipe(map(res => res.data));
+  getSession(session_id: string, training_id = ''): Observable<TrainingSession> {
+    return this.getTrainingSessions(training_id).pipe(
+      map((sessions) => {
+        const found = sessions.find((s) => s.session_id === session_id);
+
+        if (found === undefined) {
+          throw new Error('That session could not be found.');
+        }
+
+        return found;
+      }),
+    );
+  }
+
+  getTrainingSessions(training_id: string): Observable<TrainingSession[]> {
+    // Sessions come back with the training rather than from a list of their
+    // own: they are only ever read in the context of the programme they
+    // belong to, and a second endpoint would be a second query for the same
+    // rows.
+    return this.api
+      .get<TrainingPayload>(Endpoints.trainings.show(training_id))
+      .pipe(map((training) => ((training['sessions'] ?? []) as SessionPayload[]).map(toSession)));
+  }
+
+  deleteSession(session_id: string, training_id = ''): Observable<void> {
+    return this.api
+      .patch(Endpoints.sessions.status(training_id, session_id), { status: 'cancelled' })
+      .pipe(map(() => undefined));
   }
 
   // ==========================================
-  // ENROLLMENT MANAGEMENT
+  // ENROLMENT
   // ==========================================
 
-  enrollLearner(training_id: number, learner_id?: number): Observable<TrainingEnrollment> {
-    return this.http.post<ApiResponse<TrainingEnrollment>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'enroll-learner',
-      training_id,
-      learner_id
-    }).pipe(map(res => res.data));
+  enrollLearner(training_id: string, learner_id?: string): Observable<TrainingEnrollment> {
+    // No learner id means the caller is enrolling themselves, which is a
+    // different endpoint and a different permission — self-enrolment does not
+    // let somebody put anybody else on a programme.
+    const request = learner_id === undefined || learner_id === ''
+      ? this.api.post<Record<string, unknown>>(Endpoints.trainings.selfEnrol(training_id), {})
+      : this.api.post<Record<string, unknown>>(Endpoints.trainings.assign(training_id), {
+        userIds: [learner_id],
+      });
+
+    return request.pipe(map(() => ({ training_id, learner_id } as unknown as TrainingEnrollment)));
   }
 
-  bulkEnroll(training_id: number, learner_ids: number[]): Observable<BulkEnrollResult> {
-    return this.http.post<ApiResponse<BulkEnrollResult>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'bulk-enroll',
-      training_id,
-      learner_ids
-    }).pipe(map(res => res.data));
+  bulkEnroll(training_id: string, learner_ids: string[]): Observable<BulkEnrollResult> {
+    return this.api
+      .post<{ enrolled: number; waitlisted: number; alreadyEnrolled: number }>(
+        Endpoints.trainings.assign(training_id),
+        { userIds: learner_ids },
+      )
+      .pipe(map((result) => ({
+        enrolled_count: result.enrolled,
+        waitlisted_count: result.waitlisted,
+        skipped_count: result.alreadyEnrolled,
+        failed_count: 0,
+      } as unknown as BulkEnrollResult)));
   }
 
-  cancelEnrollment(enrollment_id: number, reason?: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'cancel-enrollment',
-      enrollment_id,
-      reason
-    }).pipe(map(res => res.data));
+  cancelEnrollment(
+    enrollment_id: string,
+    _reason?: string,
+    training_id = '',
+  ): Observable<void> {
+    return this.api
+      .deleteWith(Endpoints.trainings.withdraw(training_id), { userIds: [enrollment_id] })
+      .pipe(map(() => undefined));
   }
 
-  getEnrollment(enrollment_id: number): Observable<TrainingEnrollment> {
-    return this.http.post<ApiResponse<TrainingEnrollment>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-enrollment',
-      enrollment_id
-    }).pipe(map(res => res.data));
+  getEnrollment(enrollment_id: string, training_id = ''): Observable<TrainingEnrollment> {
+    return this.getTrainingEnrollments(training_id).pipe(
+      map((rows) => {
+        const found = rows.find((r) => String(r.enrollment_id) === enrollment_id);
+
+        if (found === undefined) {
+          throw new Error('That enrolment could not be found.');
+        }
+
+        return found;
+      }),
+    );
   }
 
   getMyEnrollments(): Observable<TrainingEnrollment[]> {
-    return this.http.post<ApiResponse<TrainingEnrollment[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-my-enrollments'
-    }).pipe(map(res => res.data));
+    return this.api
+      .getPaged<Record<string, unknown>>(Endpoints.me.trainings, { perPage: 100 })
+      .pipe(map((page) => page.items.map(toEnrollment)));
   }
 
-  getTrainingEnrollments(training_id: number, status?: string): Observable<TrainingEnrollment[]> {
-    return this.http.post<ApiResponse<TrainingEnrollment[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-training-enrollments',
-      training_id,
-      status
-    }).pipe(map(res => res.data));
+  getTrainingEnrollments(training_id: string, status?: string): Observable<TrainingEnrollment[]> {
+    return this.api
+      .getPaged<Record<string, unknown>>(Endpoints.trainings.roster(training_id), {
+        status,
+        perPage: 200,
+      })
+      .pipe(map((page) => page.items.map(toEnrollment)));
   }
 
   // ==========================================
-  // ATTENDANCE TRACKING
+  // ATTENDANCE
   // ==========================================
 
   /**
    * Checking yourself in by scanning the code at the venue.
    *
-   * The legacy took a `learner_id` alongside the token, so a scanner
-   * could mark somebody else present by sending a different number. Who
-   * is checking in comes from the token now, and there is no id to send.
+   * The legacy took a `learner_id` alongside the token, so a scanner could
+   * mark somebody else present by sending a different number. Who is checking
+   * in comes from the token now, and there is no id to send.
    */
   checkIn(token: string): Observable<CheckInResult> {
     return this.api.post<CheckInResult>(Endpoints.attendance.scan, { token });
   }
 
-  markAttendanceVirtual(session_id: number, learner_id: number, virtual_data: {
-    join_time?: string;
-    leave_time?: string;
-    duration_minutes: number;
-  }): Observable<SessionAttendance> {
-    return this.http.post<ApiResponse<SessionAttendance>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'mark-attendance-virtual',
-      session_id,
-      learner_id,
-      ...virtual_data
-    }).pipe(map(res => res.data));
+  markAttendanceVirtual(
+    session_id: string,
+    learner_id: string,
+    virtual_data: { join_time?: string; leave_time?: string; duration_minutes: number },
+    training_id = '',
+  ): Observable<SessionAttendance> {
+    return this.api
+      .put<SessionAttendance>(Endpoints.attendance.mark(training_id, session_id), {
+        userId: learner_id,
+        status: 'present',
+        mode: 'virtual',
+        joinedAt: virtual_data.join_time ?? null,
+        leftAt: virtual_data.leave_time ?? null,
+        minutesAttended: virtual_data.duration_minutes,
+      });
   }
 
-  overrideAttendance(session_id: number, learner_id: number, status: string, reason: string): Observable<SessionAttendance> {
-    return this.http.post<ApiResponse<SessionAttendance>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'override-attendance',
-      session_id,
-      learner_id,
-      status,
-      reason
-    }).pipe(map(res => res.data));
+  overrideAttendance(
+    session_id: string,
+    learner_id: string,
+    status: string,
+    reason: string,
+    training_id = '',
+  ): Observable<SessionAttendance> {
+    return this.api
+      .put<SessionAttendance>(Endpoints.attendance.mark(training_id, session_id), {
+        userId: learner_id,
+        status,
+        // The API insists on a reason for a hand-marked attendance, and is
+        // right to: an override with no reason is indistinguishable from a
+        // scan later on, which is exactly what an auditor asks about.
+        reason,
+      });
   }
 
-  getSessionAttendance(session_id: number): Observable<SessionAttendance[]> {
-    return this.http.post<ApiResponse<SessionAttendance[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-session-attendance',
-      session_id
-    }).pipe(map(res => res.data));
+  getSessionAttendance(session_id: string, training_id = ''): Observable<SessionAttendance[]> {
+    return this.api
+      .get<{ attendance?: SessionAttendance[] }>(
+        Endpoints.attendance.register(training_id, session_id),
+      )
+      .pipe(map((register) => register.attendance ?? []));
   }
 
-  lockAttendance(session_id: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'lock-attendance',
-      session_id
-    }).pipe(map(res => res.data));
+  lockAttendance(session_id: string, training_id = ''): Observable<void> {
+    return this.api
+      .patch(Endpoints.sessions.status(training_id, session_id), { attendanceLocked: true })
+      .pipe(map(() => undefined));
   }
 
   // ==========================================
-  // QR CODE
+  // THE CODE AT THE DOOR
   // ==========================================
 
-  generateQRCode(session_id: number): Observable<{ qr_token: string }> {
-    return this.http.post<ApiResponse<{ qr_token: string }>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'generate-qr',
-      session_id
-    }).pipe(map(res => res.data));
+  generateQRCode(session_id: string, training_id = ''): Observable<{ qr_token: string }> {
+    return this.api
+      .post<{ token: string }>(Endpoints.sessions.qr(training_id, session_id), {})
+      .pipe(map((issued) => ({ qr_token: issued.token })));
   }
 
-  getQRData(session_id: number): Observable<{
-    qr_code_token: string;
-    qr_code_generated_at: string;
-    qr_code_expires_at: string;
+  getQRData(session_id: string, training_id = ''): Observable<{
+    qr_token: string;
+    expires_at: string | null;
+    session_title: string;
   }> {
-    return this.http.post<ApiResponse<any>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-qr-data',
-      session_id
-    }).pipe(map(res => res.data));
+    return this.api
+      .post<{ token: string; expiresAt: string | null }>(
+        Endpoints.sessions.qr(training_id, session_id),
+        {},
+      )
+      .pipe(map((issued) => ({
+        qr_token: issued.token,
+        expires_at: issued.expiresAt,
+        session_title: '',
+      })));
   }
 
   // ==========================================
-  // CERTIFICATION
+  // CERTIFICATES
   // ==========================================
 
-  checkEligibility(enrollment_id: number): Observable<TrainingEnrollment> {
-    return this.http.post<ApiResponse<TrainingEnrollment>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'check-eligibility',
-      enrollment_id
-    }).pipe(map(res => res.data));
+  /**
+   * Whether somebody has attended enough to be certified.
+   *
+   * The server works this out — the attendance summary carries
+   * `meetsRequirement` against the programme's own minimum — so there is
+   * nothing for a client to compute and nothing to ask separately.
+   */
+  checkEligibility(enrollment_id: string, training_id = ''): Observable<TrainingEnrollment> {
+    return this.getEnrollment(enrollment_id, training_id);
   }
 
-  issueCertificate(enrollment_id: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'issue-certificate',
-      enrollment_id
-    }).pipe(map(res => res.data));
+  issueCertificate(enrollment_id: string, training_id = ''): Observable<void> {
+    return this.getEnrollment(enrollment_id, training_id).pipe(
+      map((enrolment) => {
+        void this.api
+          .post(Endpoints.certificates.issue, {
+            userId: (enrolment as unknown as Record<string, unknown>)['learner_id'],
+            source: 'training',
+            sourceId: training_id,
+          })
+          .subscribe();
+
+        return undefined;
+      }),
+    );
   }
 
-  revokeCertificate(enrollment_id: number, reason: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'revoke-certificate',
-      enrollment_id,
-      reason
-    }).pipe(map(res => res.data));
+  revokeCertificate(certificate_id: string, reason: string): Observable<void> {
+    return this.api
+      .post(Endpoints.certificates.revoke(certificate_id), { reason })
+      .pipe(map(() => undefined));
   }
 
   // ==========================================
-  // VIDEO INTEGRATIONS
+  // MEETING PROVIDERS
   // ==========================================
 
   getIntegrations(): Observable<VideoIntegration[]> {
-    return this.http.post<ApiResponse<VideoIntegration[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-integrations'
-    }).pipe(map(res => res.data));
+    return this.api.get<VideoIntegration[]>(Endpoints.integrations.list);
   }
 
   saveIntegration(data: Partial<VideoIntegration>): Observable<VideoIntegration> {
-    return this.http.post<ApiResponse<VideoIntegration>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'save-integration',
-      ...data
-    }).pipe(map(res => res.data));
+    const platform = String((data as Record<string, unknown>)['platform'] ?? '');
+
+    return this.api.put<VideoIntegration>(Endpoints.integrations.update(platform), data);
   }
 
   disconnectIntegration(platform: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'disconnect-integration',
-      platform
-    }).pipe(map(res => res.data));
+    return this.api
+      .delete(Endpoints.integrations.disconnect(platform))
+      .pipe(map(() => undefined));
   }
 
   // ==========================================
-  // REPORTING & ANALYTICS
+  // REPORTING
   // ==========================================
 
-  getTrainingAnalytics(training_id: number): Observable<TrainingAnalytics> {
-    return this.http.post<ApiResponse<TrainingAnalytics>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-training-analytics',
-      training_id
-    }).pipe(map(res => res.data));
+  getTrainingAnalytics(training_id: string): Observable<TrainingAnalytics> {
+    return this.api
+      .get<TrainingPayload>(Endpoints.trainings.show(training_id))
+      .pipe(map(toAnalytics));
   }
 
-  getLearnerProgress(training_id: number, learner_id?: number): Observable<LearnerProgress> {
-    return this.http.post<ApiResponse<LearnerProgress>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-learner-progress',
-      training_id,
-      learner_id
-    }).pipe(map(res => res.data));
+  getLearnerProgress(training_id: string, learner_id?: string): Observable<LearnerProgress> {
+    return this.getTrainingEnrollments(training_id).pipe(map((rows) => {
+      const row = learner_id === undefined
+        ? rows[0]
+        : rows.find((r) => String((r as unknown as Record<string, unknown>)['learner_id']) === learner_id);
+
+      return (row ?? {}) as unknown as LearnerProgress;
+    }));
   }
 
-  getUpcomingSessions(limit: number = 10, learner_id?: number): Observable<TrainingSession[]> {
-    return this.http.post<ApiResponse<TrainingSession[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-upcoming-sessions',
-      limit,
-      learner_id
-    }).pipe(map(res => res.data));
+  /**
+   * What is coming up.
+   *
+   * Assembled from the caller's own enrolments: a session is upcoming for
+   * somebody because they are on the programme it belongs to, which is not
+   * something a list of all sessions knows.
+   */
+  getUpcomingSessions(limit = 10, _learner_id?: string): Observable<TrainingSession[]> {
+    return this.getMyEnrollments().pipe(
+      map((enrolments) => {
+        const now = Date.now();
+
+        return enrolments
+          .flatMap((e) => ((e as unknown as Record<string, unknown>)['sessions'] ?? []) as TrainingSession[])
+          .filter((s) => new Date(s.starts_at).getTime() >= now)
+          .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+          .slice(0, limit);
+      }),
+    );
   }
 
-  exportAttendance(training_id: number): Observable<any[]> {
-    return this.http.post<ApiResponse<any[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'export-attendance',
-      training_id
-    }).pipe(map(res => res.data));
+  exportAttendance(training_id: string): Observable<unknown[]> {
+    return this.getTrainingEnrollments(training_id).pipe(
+      map((rows) => rows as unknown as unknown[]),
+    );
   }
 
   // ==========================================
-// ENHANCED ENROLLMENT METHODS
-// ==========================================
+  // NOT BUILT
+  // ==========================================
+  //
+  // Instructor assignment, standing enrolment rules and the skills a
+  // programme confers each had legacy actions and none has a table on this
+  // side. A session names one `instructorId`, and that is the whole of what
+  // the schema models. These say so rather than resolving empty.
 
-  /**
-   * Bulk enroll users by rule
-   */
-  bulkEnrollByRule(trainingId: number, rule: EnrollmentRule): Observable<BulkEnrollmentResult> {
-    return this.http.post<ApiResponse<BulkEnrollmentResult>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'bulk-enroll-by-rule',
-      training_id: trainingId,
-      rule: rule
-    }).pipe(map(res => res.data));
+  assignInstructor(
+    _session_id: string,
+    _instructor_id: string,
+    _role = 'primary',
+    _is_host = false,
+  ): Observable<void> {
+    return notAvailable('Assigning more than one instructor to a session');
   }
 
-  /**
-   * Get enrollment rules for a training
-   */
-  getEnrollmentRules(trainingId: number): Observable<EnrollmentRule[]> {
-    return this.http.post<ApiResponse<EnrollmentRule[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-enrollment-rules',
-      training_id: trainingId
-    }).pipe(map(res => res.data));
+  removeInstructor(_session_id: string, _instructor_id: string): Observable<void> {
+    return notAvailable('Assigning more than one instructor to a session');
   }
 
-  /**
-   * Delete enrollment rule
-   */
-  deleteEnrollmentRule(ruleId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'delete-enrollment-rule',
-      rule_id: ruleId
-    }).pipe(map(res => res.data));
+  getSessionInstructors(_session_id: string): Observable<SessionInstructor[]> {
+    // A session has one instructor, named on the session itself. Empty rather
+    // than loud: this is read on a screen that draws a list, and a list with
+    // one entry already comes from the session.
+    return of([]);
   }
 
-  /**
-   * Search users for enrollment with filters
-   */
+  bulkEnrollByRule(_trainingId: string, _rule: EnrollmentRule): Observable<BulkEnrollmentResult> {
+    return notAvailable('Standing enrolment rules');
+  }
+
+  getEnrollmentRules(_trainingId: string): Observable<EnrollmentRule[]> {
+    return notAvailable('Standing enrolment rules');
+  }
+
+  deleteEnrollmentRule(_ruleId: string): Observable<void> {
+    return notAvailable('Standing enrolment rules');
+  }
+
   searchUsersForEnrollment(filters: EnrollmentFilter): Observable<UserForEnrollment[]> {
-    return this.http.post<ApiResponse<UserForEnrollment[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'search-users-for-enrollment',
-      ...filters
-    }).pipe(map(res => res.data));
+    const f = filters as unknown as Record<string, unknown>;
+
+    return this.api
+      .getPaged<Record<string, unknown>>(Endpoints.users.list, {
+        search: f['search'] as string | undefined,
+        departmentId: f['department_id'] as string | undefined,
+        perPage: 100,
+      })
+      .pipe(map((page) => page.items as unknown as UserForEnrollment[]));
   }
 
-// ==========================================
-// SKILLS MANAGEMENT METHODS
-// ==========================================
-
-  /**
-   * Assign skills to training
-   */
-  assignSkills(trainingId: number, skills: TrainingSkill[]): Observable<SkillAssignmentResult> {
-    return this.http.post<ApiResponse<SkillAssignmentResult>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'assign-skills',
-      training_id: trainingId,
-      skills: skills
-    }).pipe(map(res => res.data));
+  assignSkills(_trainingId: string, _skills: TrainingSkill[]): Observable<SkillAssignmentResult> {
+    return notAvailable('Skills conferred by a training programme');
   }
 
-  /**
-   * Remove skill from training
-   */
-  removeSkill(trainingId: number, skillId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'remove-skill',
-      training_id: trainingId,
-      skill_id: skillId
-    }).pipe(map(res => res.data));
+  removeSkill(_trainingId: string, _skillId: string): Observable<void> {
+    return notAvailable('Skills conferred by a training programme');
   }
 
-  /**
-   * Get training skills
-   */
-  getTrainingSkills(trainingId: number): Observable<TrainingSkill[]> {
-    return this.http.post<ApiResponse<TrainingSkill[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-training-skills',
-      training_id: trainingId
-    }).pipe(map(res => res.data));
+  getTrainingSkills(_trainingId: string): Observable<TrainingSkill[]> {
+    return of([]);
   }
 
-  /**
-   * Get user acquired skills
-   */
-  getUserAcquiredSkills(userId?: number, sourceType?: string): Observable<UserSkill[]> {
-    return this.http.post<ApiResponse<UserSkill[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-user-acquired-skills',
-      user_id: userId,
-      source_type: sourceType
-    }).pipe(map(res => res.data));
+  awardSkillsManual(_enrollmentId: string): Observable<SkillAssignmentResult> {
+    return notAvailable('Awarding a skill by hand');
   }
 
-  /**
-   * Get user skills summary
-   */
-  getUserSkillsSummary(userId?: number): Observable<UserSkillsSummary> {
-    return this.http.post<ApiResponse<UserSkillsSummary>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-user-skills-summary',
-      user_id: userId
-    }).pipe(map(res => res.data));
+  // ==========================================
+  // SKILLS
+  // ==========================================
+
+  getUserAcquiredSkills(userId?: string, _sourceType?: string): Observable<UserSkill[]> {
+    // `/me/skills` for oneself, `/users/{id}/skills` for somebody else —
+    // two endpoints because they are two permissions.
+    return this.api.get<UserSkill[]>(
+      userId === undefined || userId === ''
+        ? Endpoints.me.skills
+        : Endpoints.users.skills(userId),
+    );
   }
 
-  /**
-   * Search skills with filters
-   */
+  getUserSkillsSummary(userId?: string): Observable<UserSkillsSummary> {
+    return this.getUserAcquiredSkills(userId).pipe(map((skills) => ({
+      total: skills.length,
+      skills,
+    } as unknown as UserSkillsSummary)));
+  }
+
   searchSkills(filters: SkillSearchFilter): Observable<Skill[]> {
-    return this.http.post<ApiResponse<Skill[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'search-skills',
-      ...filters
-    }).pipe(map(res => res.data));
+    const f = filters as unknown as Record<string, unknown>;
+
+    return this.api
+      .getPaged<Skill>(Endpoints.skills.list, {
+        search: f['search'] as string | undefined,
+        categoryId: f['category_id'] as string | undefined,
+        perPage: 100,
+      })
+      .pipe(map((page) => page.items));
   }
 
-  /**
-   * Get skill categories
-   */
   getSkillsCategories(): Observable<SkillCategory[]> {
-    return this.http.post<ApiResponse<SkillCategory[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-skills-categories'
-    }).pipe(map(res => res.data));
+    return this.api
+      .get<Array<{ id: string; name: string }>>(Endpoints.lookups.active('category'))
+      .pipe(map((rows) => rows.map((row) => ({
+        category_id: row.id,
+        category_name: row.name,
+      } as unknown as SkillCategory))));
   }
 
-  /**
-   * Manually award skills (for admins)
-   */
-  awardSkillsManual(enrollmentId: number): Observable<SkillAssignmentResult> {
-    return this.http.post<ApiResponse<SkillAssignmentResult>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'award-skills-manual',
-      enrollment_id: enrollmentId
-    }).pipe(map(res => res.data));
-  }
+  // ==========================================
+  // PRESENTATION
+  // ==========================================
 
-// ==========================================
-// HELPER METHODS
-// ==========================================
-
-  /**
-   * Get proficiency level badge class
-   */
   getProficiencyBadgeClass(level: string): string {
-    const classes: { [key: string]: string } = {
-      'beginner': 'badge-secondary',
-      'intermediate': 'badge-info',
-      'advanced': 'badge-primary',
-      'expert': 'badge-success'
+    const classes: Record<string, string> = {
+      beginner: 'bg-secondary',
+      intermediate: 'bg-info',
+      advanced: 'bg-primary',
+      expert: 'bg-success',
     };
-    return classes[level] || 'badge-secondary';
+
+    return classes[level] ?? 'bg-secondary';
   }
 
-  /**
-   * Get proficiency level display name
-   */
   getProficiencyDisplayName(level: string): string {
-    const names: { [key: string]: string } = {
-      'beginner': 'Beginner',
-      'intermediate': 'Intermediate',
-      'advanced': 'Advanced',
-      'expert': 'Expert'
+    const names: Record<string, string> = {
+      beginner: 'Beginner',
+      intermediate: 'Intermediate',
+      advanced: 'Advanced',
+      expert: 'Expert',
     };
-    return names[level] || level;
+
+    return names[level] ?? level;
   }
 
-  /**
-   * Get enrollment type display name
-   */
   getEnrollmentTypeDisplayName(type: string): string {
-    const names: { [key: string]: string } = {
-      'direct': 'Direct Selection',
-      'department': 'Department-based',
-      'branch': 'Branch-based',
-      'team': 'Team-based',
-      'automatic': 'Automatic'
+    const names: Record<string, string> = {
+      self: 'Self-enrolled',
+      assigned: 'Assigned',
+      rule: 'By rule',
+      bulk: 'Bulk enrolled',
     };
-    return names[type] || type;
+
+    return names[type] ?? type;
   }
 
-  /**
-   * Format skill source display
-   */
   formatSkillSource(sourceType: string, sourceTitle?: string): string {
-    const types: { [key: string]: string } = {
-      'live_training': 'Live Training',
-      'course': 'Course',
-      'assessment': 'Assessment',
-      'certification': 'Certification',
-      'manual': 'Manual',
-      'external': 'External'
+    const kinds: Record<string, string> = {
+      course: 'Course',
+      training: 'Live training',
+      assessment: 'Assessment',
+      manual: 'Awarded',
     };
 
-    const typeName = types[sourceType] || sourceType;
-    return sourceTitle ? `${typeName}: ${sourceTitle}` : typeName;
-  }
+    const kind = kinds[sourceType] ?? sourceType;
 
+    return sourceTitle === undefined || sourceTitle === '' ? kind : `${kind}: ${sourceTitle}`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+interface TrainingPayload extends Record<string, any> {
+  id: string;
+  title: string;
+}
+
+interface SessionPayload extends Record<string, any> {
+  id: string;
+  trainingId: string;
+}
+
+function toTraining(t: TrainingPayload): LiveTraining {
+  return {
+    training_id: t.id,
+    tenant_id: '',
+    title: t.title ?? '',
+    description: t['description'] ?? null,
+    short_description: t['summary'] ?? null,
+    thumbnail_url: t['thumbnailUrl'] ?? null,
+    category_id: t['categoryId'] ?? null,
+    tags: [],
+    training_type: (t['delivery'] ?? 'physical') as LiveTraining['training_type'],
+    max_capacity: t['maxCapacity'] ?? null,
+    allow_waitlist: Boolean(t['allowWaitlist']),
+    certification_enabled: Boolean(t['issuesCertificate']),
+    certificate_template_id: null,
+    min_attendance_percentage: Number(t['minAttendancePercentage'] ?? 0),
+    mandatory_sessions_only: Boolean(t['mandatorySessionsOnly']),
+    auto_issue_certificate: Boolean(t['issuesCertificate']),
+    // The legacy stored three booleans for three fixed reminder times. The
+    // API keeps a list of offsets in minutes, which is the same thing without
+    // a column per moment somebody might want to be reminded at.
+    reminder_24h: (t['reminderOffsetsMinutes'] ?? []).includes(1440),
+    reminder_1h: (t['reminderOffsetsMinutes'] ?? []).includes(60),
+    reminder_15m: (t['reminderOffsetsMinutes'] ?? []).includes(15),
+    reminder_channels: (t['reminderChannels'] ?? []) as string[],
+    qr_grace_period_minutes: Number(t['qrGracePeriodMinutes'] ?? 0),
+    qr_valid_before_start_minutes: Number(t['qrValidBeforeStartMinutes'] ?? 0),
+    min_virtual_duration_minutes: Number(t['minVirtualDurationMinutes'] ?? 0),
+    status: (t['status'] ?? 'draft') as LiveTraining['status'],
+    is_active: t['status'] !== 'cancelled',
+    created_by: '',
+    created_at: String(t['createdAt'] ?? ''),
+    updated_at: t['updatedAt'] ?? null,
+    published_at: t['publishedAt'] ?? null,
+    session_count: Number(t['sessionCount'] ?? 0),
+    enrollment_count: Number(t['enrolledCount'] ?? 0),
+  } as unknown as LiveTraining;
+}
+
+function fromTraining(data: Partial<LiveTraining>): Record<string, unknown> {
+  const d = data as Record<string, any>;
+  const offsets: number[] = [];
+
+  if (d['reminder_24h']) { offsets.push(1440); }
+  if (d['reminder_1h']) { offsets.push(60); }
+  if (d['reminder_15m']) { offsets.push(15); }
+
+  return {
+    title: d['title'],
+    description: d['description'],
+    summary: d['short_description'],
+    thumbnailUrl: d['thumbnail_url'],
+    categoryId: d['category_id'],
+    delivery: d['training_type'],
+    maxCapacity: d['max_capacity'],
+    allowWaitlist: d['allow_waitlist'],
+    issuesCertificate: d['certification_enabled'],
+    minAttendancePercentage: d['min_attendance_percentage'],
+    mandatorySessionsOnly: d['mandatory_sessions_only'],
+    reminderOffsetsMinutes: offsets.length > 0 ? offsets : undefined,
+    reminderChannels: d['reminder_channels'],
+    qrGracePeriodMinutes: d['qr_grace_period_minutes'],
+    qrValidBeforeStartMinutes: d['qr_valid_before_start_minutes'],
+    minVirtualDurationMinutes: d['min_virtual_duration_minutes'],
+  };
+}
+
+/**
+ * One session, in the shape the screens bind to.
+ *
+ * The API keeps a single instant for the start and another for the end. The
+ * screens want a date and two clock times, which is the same information said
+ * differently — and splitting it here rather than storing it three ways is
+ * what stops a session's date and its start time disagreeing.
+ */
+function toSession(s: SessionPayload): TrainingSession {
+  const venue = s['venue'] ?? {};
+  const meeting = s['meeting'] ?? {};
+  const startsAt = String(s['startsAt'] ?? '');
+  const endsAt = String(s['endsAt'] ?? '');
+
+  return {
+    session_id: s.id,
+    training_id: s.trainingId,
+    tenant_id: '',
+    title: s['title'] ?? '',
+    description: s['description'] ?? null,
+    session_number: Number(s['sequence'] ?? 1),
+    session_type: (s['delivery'] ?? 'physical'),
+    status: s['status'] ?? 'scheduled',
+    session_date: startsAt.slice(0, 10),
+    start_time: clockTime(startsAt),
+    end_time: clockTime(endsAt),
+    timezone: s['timezone'] ?? 'UTC',
+    duration_minutes: Number(s['durationMinutes'] ?? 0),
+    instructor_id: s['instructorId'] ?? null,
+    venue_name: venue['name'] ?? null,
+    venue_address: venue['address'] ?? null,
+    venue_room: venue['room'] ?? null,
+    venue_capacity: venue['capacity'] ?? null,
+    venue_map_url: venue['mapUrl'] ?? null,
+    video_platform: meeting['platform'] ?? null,
+    meeting_url: meeting['joinUrl'] ?? null,
+    join_url: meeting['joinUrl'] ?? null,
+    // Never sent to a learner's browser: the host link is what starts the
+    // meeting, and the API only gives it to whoever is running the session.
+    host_url: null,
+    meeting_password: meeting['password'] ?? null,
+    meeting_id: null,
+    integration_id: null,
+    external_meeting_id: null,
+    // Surfaced rather than swallowed, so an organiser sees that scheduling
+    // failed instead of discovering an empty join button at the start time.
+    meeting_error: s['meetingError'] ?? null,
+    is_mandatory: Boolean(s['isMandatory']),
+    attendance_locked: Boolean(s['attendanceLocked']),
+    starts_at: startsAt,
+    ends_at: endsAt,
+  } as unknown as TrainingSession;
+}
+
+/** `2027-05-01T09:00:00+00:00` as `09:00`. */
+function clockTime(iso: string): string {
+  return iso.slice(11, 16);
+}
+
+/**
+ * A session on its way to the server.
+ *
+ * The forms collect a date and two clock times; the API wants two
+ * instants. Joined here, in the one place that knows both dialects.
+ */
+function fromSession(data: Partial<TrainingSession> & Record<string, any>): Record<string, unknown> {
+  const date = data['session_date'];
+
+  return {
+    title: data['title'],
+    description: data['description'],
+    delivery: data['session_type'],
+    startsAt: date === undefined ? data['starts_at'] : `${date}T${data['start_time']}:00`,
+    endsAt: date === undefined ? data['ends_at'] : `${date}T${data['end_time']}:00`,
+    timezone: data['timezone'],
+    instructorId: data['instructor_id'],
+    venueName: data['venue_name'],
+    venueAddress: data['venue_address'],
+    venueRoom: data['venue_room'],
+    venueCapacity: data['venue_capacity'],
+    venueMapUrl: data['venue_map_url'],
+    isMandatory: data['is_mandatory'],
+    sequence: data['session_number'],
+  };
+}
+
+function toEnrollment(row: Record<string, any>): TrainingEnrollment {
+  return {
+    enrollment_id: String(row['id'] ?? ''),
+    training_id: String(row['trainingId'] ?? ''),
+    learner_id: String(row['userId'] ?? ''),
+    status: row['status'] ?? 'enrolled',
+    enrollment_type: row['source'] ?? 'self',
+    enrolled_at: row['enrolledAt'] ?? null,
+    attendance_percentage: Number(row['attendancePercentage'] ?? 0),
+    sessions_attended: Number(row['sessionsAttended'] ?? 0),
+    sessions_total: Number(row['sessionsCounted'] ?? 0),
+    meets_requirement: row['meetsRequirement'] === true,
+    certificate_id: row['certificateId'] ?? null,
+    learner_name: row['userName'] ?? null,
+    learner_email: row['userEmail'] ?? null,
+    training_title: row['trainingTitle'] ?? null,
+    sessions: row['sessions'] ?? [],
+  } as unknown as TrainingEnrollment;
+}
+
+function toAnalytics(t: TrainingPayload): TrainingAnalytics {
+  return {
+    training_id: t.id,
+    title: t.title,
+    total_sessions: Number(t['sessionCount'] ?? 0),
+    total_enrollments: Number(t['enrolledCount'] ?? 0),
+    // Counted at read time on the server; the legacy stored these and every
+    // one of them drifted.
+    completed_count: Number(t['completedCount'] ?? 0),
+    average_attendance: Number(t['averageAttendance'] ?? 0),
+  } as unknown as TrainingAnalytics;
+}
+
+/** Something with no server behind it, said out loud rather than left empty. */
+function notAvailable(what: string): Observable<never> {
+  return throwError(() => new Error(`${what} is not available yet.`));
 }

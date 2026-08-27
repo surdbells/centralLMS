@@ -66,25 +66,25 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   qrCodeData: { qr_token: string; expires_at: string } | null = null;
 
   // Enrollment
-  selectedUsers: number[] = [];
-  availableUsers: Array<{user_id: number; first_name: string; last_name: string; email: string}> = [];
-  quickEnrollUserId = 0;
+  selectedUsers: string[] = [];
+  availableUsers: Array<{user_id: string; first_name: string; last_name: string; email: string}> = [];
+  quickEnrollUserId = '';
 
   // Attendance Override
-  overrideUserId: number | null = null;
+  overrideUserId: string | null = null;
   overrideStatus = '';
   overrideReason = '';
 
   // Delete
   deleteType: 'training' | 'session' = 'training';
-  deleteId = 0;
+  deleteId = '';
   deleteName = '';
 
   // Instructor Management
   showInstructorModal = false;
   sessionInstructors: SessionInstructor[] = [];
-  availableInstructors: Array<{user_id: number; first_name: string; last_name: string; email: string}> = [];
-  newInstructorId: number | null = null;
+  availableInstructors: Array<{user_id: string; first_name: string; last_name: string; email: string}> = [];
+  newInstructorId: string | null = null;
   newInstructorRole = 'primary';
   newInstructorIsHost = false;
 
@@ -100,7 +100,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // Virtual Attendance
   showVirtualAttendanceModal = false;
   virtualAttendanceData = {
-    learner_id: 0,
+    learner_id: '',
     join_time: '',
     leave_time: '',
     duration_minutes: 0
@@ -489,7 +489,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  toggleUserSelection(userId: number): void {
+  toggleUserSelection(userId: string): void {
     const index = this.selectedUsers.indexOf(userId);
     if (index > -1) {
       this.selectedUsers.splice(index, 1);
@@ -677,19 +677,19 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     this.selectedTraining = null;
   }
 
-  trackByTrainingId(index: number, item: LiveTraining): number {
+  trackByTrainingId(index: number, item: LiveTraining): string {
     return item.training_id;
   }
 
-  trackBySessionId(index: number, item: TrainingSession): number {
+  trackBySessionId(index: number, item: TrainingSession): string {
     return item.session_id;
   }
 
-  trackByEnrollmentId(index: number, item: TrainingEnrollment): number {
+  trackByEnrollmentId(index: number, item: TrainingEnrollment): string {
     return item.enrollment_id;
   }
 
-  trackByAttendanceId(index: number, item: SessionAttendance): number {
+  trackByAttendanceId(index: number, item: SessionAttendance): string {
     return item.attendance_id;
   }
 
@@ -719,7 +719,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // SINGLE ITEM LOADING
   // ==========================================
 
-  loadSingleTraining(training_id: number): void {
+  loadSingleTraining(training_id: string): void {
     this.loading = true;
     this.liveTrainingService.getTraining(training_id)
       .pipe(takeUntil(this.destroy$))
@@ -735,7 +735,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadSingleSession(session_id: number): void {
+  loadSingleSession(session_id: string): void {
     this.loading = true;
     this.liveTrainingService.getSession(session_id)
       .pipe(takeUntil(this.destroy$))
@@ -751,7 +751,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadSingleEnrollment(enrollment_id: number): void {
+  loadSingleEnrollment(enrollment_id: string): void {
     this.liveTrainingService.getEnrollment(enrollment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -781,7 +781,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     this.selectedSession = null;
   }
 
-  loadSessionInstructors(session_id: number): void {
+  loadSessionInstructors(session_id: string): void {
     this.liveTrainingService.getSessionInstructors(session_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -823,7 +823,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
     this.liveTrainingService.removeInstructor(
       this.selectedSession.session_id,
-      instructor.id
+      String(instructor.id)
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -837,7 +837,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // INDIVIDUAL ENROLLMENT
   // ==========================================
 
-  enrollSingleLearner(learner_id: number): void {
+  enrollSingleLearner(learner_id: string): void {
     if (!this.selectedTraining) return;
 
     this.saving = true;
@@ -912,7 +912,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   openVirtualAttendanceModal(session: TrainingSession): void {
     this.selectedSession = session;
     this.virtualAttendanceData = {
-      learner_id: 0,
+      learner_id: '',
       join_time: '',
       leave_time: '',
       duration_minutes: 0
@@ -961,8 +961,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       .subscribe({
         next: data => {
           this.qrCodeData = {
-            qr_token: data.qr_code_token,
-            expires_at: data.qr_code_expires_at
+            qr_token: data.qr_token,
+            expires_at: data.expires_at ?? '',
           };
           this.showQRModal = true;
         },
@@ -1025,11 +1025,11 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // TRACK BY FUNCTIONS
   // ==========================================
 
-  trackByInstructorId(index: number, item: SessionInstructor): number {
-    return item.id;
+  trackByInstructorId(index: number, item: SessionInstructor): string {
+    return String(item.id);
   }
 
-  trackByIntegrationId(index: number, item: VideoIntegration): number {
+  trackByIntegrationId(index: number, item: VideoIntegration): string {
     return item.integration_id;
   }
 }

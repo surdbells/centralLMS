@@ -335,11 +335,11 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
   }
 
-  trackBySessionId(index: number, item: InstructorSession): number {
+  trackBySessionId(index: number, item: InstructorSession): string {
     return item.session_id;
   }
 
-  trackByAttendanceId(index: number, item: SessionAttendance): number {
+  trackByAttendanceId(index: number, item: SessionAttendance): string {
     return item.attendance_id;
   }
 
@@ -347,7 +347,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   // LOAD SINGLE SESSION
   // ==========================================
 
-  loadSessionDetails(session_id: number): void {
+  loadSessionDetails(session_id: string): void {
     this.loading = true;
     this.liveTrainingService.getSession(session_id)
       .pipe(takeUntil(this.destroy$))
@@ -372,7 +372,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   // INSTRUCTOR MANAGEMENT
   // ==========================================
 
-  loadSessionInstructors(session_id: number): void {
+  loadSessionInstructors(session_id: string): void {
     this.liveTrainingService.getSessionInstructors(session_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -421,7 +421,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   // VIRTUAL ATTENDANCE
   // ==========================================
 
-  markVirtualAttendance(session_id: number, learner_id: number, durationMinutes: number): void {
+  markVirtualAttendance(session_id: string, learner_id: string, durationMinutes: number): void {
     this.liveTrainingService.markAttendanceVirtual(session_id, learner_id, {
       duration_minutes: durationMinutes
     })
@@ -443,7 +443,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
-          session.qr_code_token = data.qr_code_token;
+          session.qr_code_token = data.qr_token;
           this.qrSession = session;
           this.showQRModal = true;
         },
@@ -467,7 +467,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
-  trackByInstructorId(index: number, item: SessionInstructor): number {
-    return item.id;
+  trackByInstructorId(index: number, item: SessionInstructor): string {
+    return String(item.id);
   }
 }

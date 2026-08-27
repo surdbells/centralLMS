@@ -5,20 +5,20 @@
  * Enrollment Rule Interface
  */
 export interface EnrollmentRule {
-  rule_id?: number;
-  training_id: number;
-  tenant_id?: number;
+  rule_id?: string;
+  training_id: string;
+  tenant_id?: string;
   enrollment_type: 'direct' | 'department' | 'branch' | 'team' | 'automatic';
   target_criteria: {
     department_ids?: number[];
     branch_ids?: number[];
     team_ids?: number[];
-    user_ids?: number[];
+    user_ids?: string[];
   };
   auto_enroll_new_users?: boolean;
   auto_enroll_on_hire?: boolean;
   is_active?: boolean;
-  created_by?: number;
+  created_by?: string;
   created_by_first_name?: string;
   created_by_last_name?: string;
   created_at?: string;
@@ -36,7 +36,7 @@ export interface BulkEnrollmentResult {
   waitlisted: number;
   failed: number;
   errors: Array<{
-    user_id: number;
+    user_id: string;
     name: string;
     email: string;
     error: string;
@@ -49,16 +49,16 @@ export interface BulkEnrollmentResult {
  */
 export interface TrainingSkill {
   training_skill_id?: number;
-  training_id: number;
-  skill_id: number;
-  tenant_id?: number;
+  training_id: string;
+  skill_id: string;
+  tenant_id?: string;
   skill_name?: string;
-  category_id?: number;
+  category_id?: string;
   skill_category?: string;
   skill_description?: string;
   proficiency_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   is_required: boolean;
-  created_by?: number;
+  created_by?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -71,7 +71,7 @@ export interface SkillAssignmentResult {
   updated: number;
   skipped: number;
   errors: Array<{
-    skill_id: number | string;
+    skill_id: string | string;
     error: string;
   }>;
 }
@@ -81,15 +81,15 @@ export interface SkillAssignmentResult {
  */
 export interface UserSkill {
   user_skill_id: number;
-  user_id: number;
-  skill_id: number;
-  tenant_id: number;
+  user_id: string;
+  skill_id: string;
+  tenant_id: string;
   skill_name: string;
-  category_id: number;
+  category_id: string;
   skill_category: string;
   skill_description: string;
   source_type: 'course' | 'live_training' | 'assessment' | 'certification' | 'manual' | 'external';
-  source_id: number | null;
+  source_id: string | null;
   source_title?: string;
   proficiency_level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   verified_by: number | null;
@@ -119,9 +119,9 @@ export interface UserSkillsSummary {
  * Skill Interface (for selection)
  */
 export interface Skill {
-  skill_id: number;
+  skill_id: string;
   skill_name: string;
-  category_id: number;
+  category_id: string;
   skill_category: string;
   skill_description: string;
   is_active: boolean;
@@ -131,7 +131,7 @@ export interface Skill {
  * Skill Category Interface
  */
 export interface SkillCategory {
-  category_id: number;
+  category_id: string;
   category_name: string;
   description?: string;
 }
@@ -140,7 +140,7 @@ export interface SkillCategory {
  * User for Enrollment Interface
  */
 export interface UserForEnrollment {
-  user_id: number;
+  user_id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -185,7 +185,7 @@ export interface EnrollmentFilter {
   department_id?: number;
   branch_id?: number;
   team_id?: number;
-  training_id?: number;
+  training_id?: string;
   limit?: number;
 }
 
@@ -194,8 +194,8 @@ export interface EnrollmentFilter {
  */
 export interface SkillSearchFilter {
   search?: string;
-  category_id?: number;
-  training_id?: number;
+  category_id?: string;
+  training_id?: string;
 }
 
 /**
@@ -210,19 +210,19 @@ export interface ApiResponse<T> {
 
 
 export interface LiveTraining {
-  training_id: number;
-  tenant_id: number;
+  training_id: string;
+  tenant_id: string;
   title: string;
   description: string | null;
   short_description: string | null;
   thumbnail_url: string | null;
-  category_id: number | null;
+  category_id: string | null;
   tags: string[];
   training_type: 'physical' | 'virtual' | 'hybrid';
   max_capacity: number | null;
   allow_waitlist: boolean;
   certification_enabled: boolean;
-  certificate_template_id: number | null;
+  certificate_template_id: string | null;
   min_attendance_percentage: number;
   mandatory_sessions_only: boolean;
   auto_issue_certificate: boolean;
@@ -235,7 +235,7 @@ export interface LiveTraining {
   min_virtual_duration_minutes: number;
   status: 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled';
   is_active: boolean;
-  created_by: number;
+  created_by: string;
   created_at: string;
   updated_at: string | null;
   published_at: string | null;
@@ -250,9 +250,9 @@ export interface LiveTraining {
 }
 
 export interface TrainingSession {
-  session_id: number;
-  training_id: number;
-  tenant_id: number;
+  session_id: string;
+  training_id: string;
+  tenant_id: string;
   title: string;
   description: string | null;
   session_number: number;
@@ -274,7 +274,7 @@ export interface TrainingSession {
   meeting_url: string | null;
   join_url: string | null;
   host_url: string | null;
-  integration_id: number | null;
+  integration_id: string | null;
   external_meeting_id: string | null;
   // Settings
   is_mandatory: boolean;
@@ -307,9 +307,9 @@ export interface TrainingSession {
 
 export interface SessionInstructor {
   id: number;
-  instructor_id?: number; // Alias for id
-  session_id: number;
-  user_id: number;
+  instructor_id?: string; // Alias for id
+  session_id: string;
+  user_id: string;
   role: 'primary' | 'co_instructor' | 'assistant';
   is_host: boolean;
   first_name: string;
@@ -319,10 +319,10 @@ export interface SessionInstructor {
 }
 
 export interface TrainingEnrollment {
-  enrollment_id: number;
-  training_id: number;
-  user_id: number;
-  tenant_id: number;
+  enrollment_id: string;
+  training_id: string;
+  user_id: string;
+  tenant_id: string;
   status: 'enrolled' | 'waitlisted' | 'cancelled' | 'completed';
   waitlist_position: number | null;
   sessions_attended: number;
@@ -330,7 +330,7 @@ export interface TrainingEnrollment {
   attendance_percentage: number;
   certification_status: 'pending' | 'eligible' | 'not_eligible' | 'issued' | 'revoked';
   certification_reason: string | null;
-  certificate_id: number | null;
+  certificate_id: string | null;
   certificate_issued_at: string | null;
   enrolled_at: string;
   enrolled_by: number | null;
@@ -345,11 +345,11 @@ export interface TrainingEnrollment {
 }
 
 export interface SessionAttendance {
-  attendance_id: number;
-  session_id: number;
-  user_id: number;
-  enrollment_id: number;
-  tenant_id: number;
+  attendance_id: string;
+  session_id: string;
+  user_id: string;
+  enrollment_id: string;
+  tenant_id: string;
   status: 'present' | 'late' | 'absent';
   attendance_mode: 'physical' | 'virtual' | null;
   qr_scanned_at: string | null;
@@ -372,8 +372,8 @@ export interface SessionAttendance {
 }
 
 export interface VideoIntegration {
-  integration_id: number;
-  tenant_id: number;
+  integration_id: string;
+  tenant_id: string;
   platform: 'zoom' | 'google_meet' | 'microsoft_teams';
   is_enabled: boolean;
   is_default: boolean;
@@ -418,7 +418,7 @@ export interface TrainingAnalytics {
 export interface LearnerProgress {
   enrollment: TrainingEnrollment;
   sessions: Array<{
-    session_id: number;
+    session_id: string;
     title: string;
     session_date: string;
     start_time: string;
@@ -436,7 +436,7 @@ export interface TrainingFilters {
   status?: string;
   is_active?: number;
   training_type?: string;
-  category_id?: number;
+  category_id?: string;
   search?: string;
   limit?: number;
   offset?: number;
@@ -444,7 +444,7 @@ export interface TrainingFilters {
 
 export interface BulkEnrollResult {
   success: number[];
-  failed: Array<{ user_id: number; error: string }>;
+  failed: Array<{ user_id: string; error: string }>;
 }
 
 /** What `POST /me/trainings/check-in` answers with. */

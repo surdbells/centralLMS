@@ -112,6 +112,18 @@ interface TrainingRepository
      */
     public function findEnrolment(string $tenantId, string $trainingId, string $userId): ?array;
 
+    /**
+     * Every programme one person is on, with the sessions of each.
+     *
+     * {@see findEnrolment} answers for one programme at a time, which is no
+     * use to somebody asking what they are booked on — they do not have the
+     * list of programmes to ask about. The roster is the other direction and
+     * needs the organiser permission, because it is other people's names.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function enrolmentsForUser(string $tenantId, string $userId): array;
+
     public function countEnrolled(string $tenantId, string $trainingId): int;
 
     /**
