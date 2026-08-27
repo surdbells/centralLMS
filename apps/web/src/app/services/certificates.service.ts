@@ -87,6 +87,20 @@ export class CertificatesService {
     return this.api.get<Paged<Certificate>>(Endpoints.certificates.list, { ...filters });
   }
 
+  /**
+   * The signed-in person's own certificates.
+   *
+   * A separate endpoint from `list`, which needs `certificate.manage` —
+   * a learner has no business reading the whole tenant's certificates,
+   * and filtering the full list by user id on the client would mean
+   * fetching them all to hide most of them.
+   */
+  mine(): Observable<Certificate[]> {
+    return this.api
+      .getPaged<Certificate>(Endpoints.me.certificates, { perPage: 100 })
+      .pipe(map((page) => page.items));
+  }
+
   show(id: string): Observable<Certificate> {
     return this.api.get<Certificate>(Endpoints.certificates.show(id));
   }

@@ -1,4 +1,3 @@
-
 <app-top></app-top>
 <main class="main">
   <div class="container-lg">
@@ -18,7 +17,19 @@
     <!-- Page content -->
     <div class="row">
       <div class="col-12">
-        <section *ngIf="!ui_controls.is_loading" class="card py-5 mb-5">
+        <!-- Something went wrong. Said out loud, rather than shown as nothing. -->
+        <section *ngIf="error && !ui_controls.is_loading" class="card py-5 mb-5">
+          <div class="empty-state animate__animated animate__fadeInUp">
+            <tui-icon class="fs-1 mb-3" icon="@tui.alert-triangle" [style.color]="'var(--text)'"/>
+            <h4>Your certificates could not be loaded</h4>
+            <p>{{ error }}</p>
+            <button (click)="load()" class="btn btn-secondary abayti_primary_background text-black btn-note mt-2">
+              <i class="bi bi-arrow-clockwise me-2"></i> Try again
+            </button>
+          </div>
+        </section>
+
+        <section *ngIf="!ui_controls.is_loading && !error && earned.length === 0" class="card py-5 mb-5">
           <div class="empty-state animate__animated animate__fadeInUp">
             <tui-icon class="fs-1 mb-3" icon="@tui.folder-tree" [style.color]="'var(--text)'"/>
             <h4>No Certificates Earned Yet 🏅</h4>
@@ -31,6 +42,55 @@
             </button>
           </div>
         </section>
+
+        <div *ngIf="!ui_controls.is_loading && !error && earned.length > 0" class="row g-4 mb-5">
+          <div class="col-md-6 col-xl-4" *ngFor="let certificate of earned">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <tui-icon class="fs-3 text-warning" icon="@tui.award" />
+                  <span class="badge" [ngClass]="statusClass(certificate)">
+                    {{ certificate.statusLabel }}
+                  </span>
+                </div>
+
+                <h5 class="mb-1">{{ certificate.title }}</h5>
+                <p class="text-muted small mb-3">{{ certificate.sourceLabel }}</p>
+
+                <dl class="row small mb-0">
+                  <dt class="col-5 text-muted fw-normal">Number</dt>
+                  <dd class="col-7 mb-1">{{ certificate.number }}</dd>
+
+                  <dt class="col-5 text-muted fw-normal">Issued</dt>
+                  <dd class="col-7 mb-1">{{ certificate.issuedAt | date:'d MMM y' }}</dd>
+
+                  <ng-container *ngIf="certificate.percentage !== null">
+                    <dt class="col-5 text-muted fw-normal">Score</dt>
+                    <dd class="col-7 mb-1">{{ certificate.percentage }}%</dd>
+                  </ng-container>
+
+                  <!-- Only when there is one: most certificates do not expire. -->
+                  <ng-container *ngIf="certificate.validUntil">
+                    <dt class="col-5 text-muted fw-normal">Valid until</dt>
+                    <dd class="col-7 mb-1">{{ certificate.validUntil | date:'d MMM y' }}</dd>
+                  </ng-container>
+                </dl>
+
+                <p class="text-danger small mt-3 mb-0" *ngIf="certificate.revocationReason">
+                  {{ certificate.revocationReason }}
+                </p>
+              </div>
+              <div class="card-footer bg-transparent border-0 pt-0">
+                <button class="btn btn-sm btn-dark w-100"
+                        [disabled]="!certificate.isValid"
+                        (click)="download(certificate)">
+                  <i class="bi bi-download me-1"></i> Open
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <tui-loader *ngIf="ui_controls.is_loading" />
       </div>
     </div>
