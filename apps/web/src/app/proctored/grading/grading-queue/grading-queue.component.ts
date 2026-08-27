@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../../global-component';
+import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -73,8 +74,10 @@ interface GraderOption {
 @Component({
   selector: 'app-grading-queue',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="grading-queue-container">
       <!-- ==========================================
            HEADER

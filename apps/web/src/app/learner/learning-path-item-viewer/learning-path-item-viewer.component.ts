@@ -9,12 +9,15 @@ import {
   LearningPathItemProgress,
   ITEM_TYPES
 } from '../../interfaces/learning-path.interfaces';
+import { TopComponent } from '../../partials/top/top.component';
 
 @Component({
   selector: 'app-learning-path-item-viewer',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TopComponent],
   template: `
+    <app-top></app-top>
+
     <div class="item-viewer">
       @if (loading()) {
         <div class="loading-container">

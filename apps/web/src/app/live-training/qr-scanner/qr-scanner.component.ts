@@ -5,15 +5,18 @@ import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, CheckInResult } from '../live-training.service';
+import { TopComponent } from '../../partials/top/top.component';
 
 declare var Html5Qrcode: any;
 
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TopComponent],
   encapsulation: ViewEncapsulation.None,
   template: `
+    <app-top></app-top>
+
     <div class="qr-scanner-container">
       <!-- Scanner Header -->
       <div class="scanner-header">

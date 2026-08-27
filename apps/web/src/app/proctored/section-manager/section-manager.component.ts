@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 interface Section {
   id: number;
@@ -35,8 +36,10 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
 @Component({
   selector: 'app-section-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="section-manager">
       <!-- Header -->
       <div class="sm-header">

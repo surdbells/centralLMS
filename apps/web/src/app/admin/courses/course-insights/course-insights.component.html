@@ -1,4 +1,10 @@
 <!-- Course Insights Dashboard -->
+
+<!--
+  Only when this is its own page. Inside the dialog the navigation is
+  already on screen behind it, and a second copy would sit over the first.
+-->
+<app-admintop *ngIf="!isDialog"></app-admintop>
 <div class="container-fluid p-4">
   <!-- Loading State -->
   <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">

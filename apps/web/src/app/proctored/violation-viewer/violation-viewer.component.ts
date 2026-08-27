@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -60,8 +61,10 @@ interface ViolationType {
 @Component({
   selector: 'app-violation-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="violation-viewer-container">
       <!-- Header -->
       <div class="page-header" *ngIf="!sessionMode">

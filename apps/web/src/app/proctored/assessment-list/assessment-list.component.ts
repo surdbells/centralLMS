@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -75,8 +76,10 @@ interface Category {
 @Component({
   selector: 'app-assessment-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="assessment-list-container">
       <!-- Header -->
       <div class="page-header">

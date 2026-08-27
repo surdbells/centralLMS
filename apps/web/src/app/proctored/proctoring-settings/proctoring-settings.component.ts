@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -90,8 +91,10 @@ interface ProctoringConfig {
 @Component({
   selector: 'app-proctoring-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="proctoring-settings-container">
       <!-- Header -->
       <div class="settings-header" *ngIf="!embedded">

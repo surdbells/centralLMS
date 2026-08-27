@@ -4,12 +4,15 @@ import { RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { LearningPathService } from '../../services/learning-path.service';
 import { LearningPathEnrollment, SKILL_LEVELS } from '../../interfaces/learning-path.interfaces';
+import { TopComponent } from '../../partials/top/top.component';
 
 @Component({
   selector: 'app-my-learning-paths',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TopComponent],
   template: `
+    <app-top></app-top>
+
     <div class="my-learning-paths">
       <!-- Header -->
       <div class="page-header mb-4">

@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -69,8 +70,10 @@ interface SnapshotSessionInfo {
 @Component({
   selector: 'app-snapshot-gallery',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="snapshot-gallery-container">
       <!-- Header -->
       <div class="page-header">

@@ -13,6 +13,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
 interface QuestionBank { id: number; name: string; }
@@ -38,8 +39,10 @@ interface QuestionForm {
 @Component({
   selector: 'app-question-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="question-form-container">
       <div class="page-header">
         <button class="btn btn-ghost" (click)="goBack()"><tui-icon icon="@tui.arrow-left"></tui-icon> Back</button>

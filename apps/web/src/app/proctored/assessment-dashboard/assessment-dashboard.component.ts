@@ -14,6 +14,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
 
@@ -35,8 +36,10 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
 @Component({
   selector: 'app-assessment-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="admin-dash">
       <div class="dash-header">
         <div><h1>Assessment Dashboard</h1><p>Overview of assessment performance and activity</p></div>

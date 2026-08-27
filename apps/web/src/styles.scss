@@ -72,7 +72,16 @@
 .container-fluid {
   max-width: 1600px;
 }
-main {
+/*
+  The header now reserves its own space — see `.navbar-offset` in the two
+  navigation components. This rule put the offset on `<main>`, so whether a
+  screen cleared the fixed bar depended on whether its content happened to
+  be wrapped in one; around thirty were not, and sat underneath it.
+
+  The course player is the one screen with a `<main>` and no header, and it
+  keeps the gap it has always had.
+*/
+app-course-player main {
   margin-top: 87px;
 }
 

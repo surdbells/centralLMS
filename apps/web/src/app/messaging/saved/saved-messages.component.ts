@@ -6,12 +6,15 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MessagingService, SavedMessage } from '../messaging.service';
+import { TopComponent } from '../../partials/top/top.component';
 
 @Component({
   selector: 'app-saved-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TopComponent],
   template: `
+    <app-top></app-top>
+
     <div class="saved-messages">
       <!-- Header -->
       <div class="page-header mb-4">

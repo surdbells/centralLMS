@@ -14,11 +14,12 @@ import {
   LearnerProgress
 } from '../live-training.service';
 import {TuiDialog, TuiIcon} from '@taiga-ui/core';
+import { TopComponent } from '../../partials/top/top.component';
 
 @Component({
   selector: 'app-learner-live-training',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiDialog, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiDialog, TuiIcon, TopComponent],
   templateUrl: './learner-live-training.component.html',
   styleUrls: ['./learner-live-training.component.scss']
 })

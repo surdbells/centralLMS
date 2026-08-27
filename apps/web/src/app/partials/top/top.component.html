@@ -259,3 +259,15 @@
     </div>
   </div>
 </nav>
+
+<!--
+  The space the fixed navigation above would otherwise sit on top of.
+
+  It used to be a global `main { margin-top: 87px }`, which meant a screen
+  cleared the header only if its content happened to be wrapped in a
+  `<main>` element — and around thirty were not, so their first line sat
+  underneath the navigation. The offset belongs to the thing doing the
+  overlapping, and it is inside the same `*ngIf` as the bar, so a screen
+  shown to somebody the bar does not render for reserves nothing.
+-->
+<div *ngIf="user_session.is_learner" class="navbar-offset" aria-hidden="true"></div>

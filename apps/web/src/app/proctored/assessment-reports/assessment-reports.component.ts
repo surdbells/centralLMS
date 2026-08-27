@@ -14,6 +14,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
 interface Assessment { id: number; title: string; }
@@ -36,8 +37,10 @@ interface QuestionAnalytics {
 @Component({
   selector: 'app-assessment-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="reports-container">
       <div class="reports-header">
         <h1>Assessment Reports</h1>

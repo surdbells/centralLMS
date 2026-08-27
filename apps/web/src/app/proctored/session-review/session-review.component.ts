@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -95,8 +96,10 @@ interface SystemCheckResult {
 @Component({
   selector: 'app-session-review',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="session-review-container">
       <!-- Header -->
       <div class="page-header">

@@ -13,6 +13,7 @@ import {
 import { CoursesService, type Course as ApiCourse } from '../../../../services/courses.service';
 import { UsersService } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
+import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 
 /** A course, in the shape this screen's template already reads. */
 export interface Course {
@@ -64,7 +65,7 @@ export interface UnenrolledUser {
 @Component({
   selector: 'app-course-enrollees',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   templateUrl: './course-enrollees.component.html',
   styleUrls: ['./course-enrollees.component.scss'],
 })

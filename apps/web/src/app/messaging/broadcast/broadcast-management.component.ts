@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MessagingService, Broadcast } from '../messaging.service';
+import { TopComponent } from '../../partials/top/top.component';
 
 // Interface for form target criteria (non-nullable arrays)
 interface FormTargetCriteria {
@@ -17,8 +18,10 @@ interface FormTargetCriteria {
 @Component({
   selector: 'app-broadcast-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TopComponent],
   template: `
+    <app-top></app-top>
+
     <div class="broadcast-management">
       <!-- Header -->
       <div class="page-header mb-4">

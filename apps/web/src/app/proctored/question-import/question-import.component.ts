@@ -12,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
 interface QuestionBank { id: number; name: string; }
@@ -23,8 +24,10 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
 @Component({
   selector: 'app-question-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="import-overlay" (click)="close()">
       <div class="import-modal" (click)="$event.stopPropagation()">
         <div class="import-header">

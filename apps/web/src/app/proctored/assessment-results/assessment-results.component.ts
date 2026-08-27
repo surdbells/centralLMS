@@ -12,6 +12,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { TopComponent } from '../../partials/top/top.component';
 
 // ==========================================
 // INTERFACES
@@ -118,8 +119,10 @@ interface AttemptTimeline {
 @Component({
   selector: 'app-assessment-results',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent],
   template: `
+    <app-top></app-top>
+
     <!-- ==========================================
          LOADING STATE
          ========================================== -->

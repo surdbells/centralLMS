@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../../global-component';
+import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -55,8 +56,10 @@ interface RubricFormData {
 @Component({
   selector: 'app-rubric-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="rubric-form-container">
       <!-- Header -->
       <div class="form-header">

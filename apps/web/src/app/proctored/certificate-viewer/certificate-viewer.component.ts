@@ -12,6 +12,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { TopComponent } from '../../partials/top/top.component';
 
 // ==========================================
 // INTERFACES
@@ -116,8 +117,10 @@ interface VerificationResult {
 @Component({
   selector: 'app-certificate-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent],
   template: `
+    <app-top></app-top>
+
     <!-- ==========================================
          VIEW MODE: Certificate List
          ========================================== -->

@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
+import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import type { TuiDialogContext } from '@taiga-ui/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -219,7 +220,7 @@ interface CourseInsightsData {
 @Component({
   selector: 'app-course-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   templateUrl: './course-insights.component.html',
   styleUrls: ['./course-insights.component.css'],
 })

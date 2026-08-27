@@ -1,3 +1,8 @@
+.navbar-offset {
+  /* Matches the height the fixed navigation occupies. */
+  height: 87px;
+}
+
 /* ===========================================
    ADMIN TOP NAVIGATION - RESPONSIVE STYLES
    =========================================== */

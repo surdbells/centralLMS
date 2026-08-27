@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil, interval } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../global-component';
+import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 
 interface AssessmentDetail {
   id: number;
@@ -77,8 +78,10 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
 @Component({
   selector: 'app-assessment-preview',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <!-- Preview Banner -->
     <div class="preview-banner">
       <div class="banner-left">

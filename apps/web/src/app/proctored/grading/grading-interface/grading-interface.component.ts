@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { GlobalComponent } from '../../../global-component';
+import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 
 // ==========================================
 // INTERFACES
@@ -124,8 +125,10 @@ interface QuickFeedback {
 @Component({
   selector: 'app-grading-interface',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
   template: `
+    <app-admintop></app-admintop>
+
     <div class="grading-interface" *ngIf="!loading && details">
       <!-- ==========================================
            TOP BAR
