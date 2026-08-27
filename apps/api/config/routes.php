@@ -61,6 +61,7 @@ use Central\Api\Application\Action\Assessment\SaveQuestionAction;
 use Central\Api\Application\Action\Assessment\SetAssessmentStatusAction;
 use Central\Api\Application\Action\Assessment\ShowAssessmentAction;
 use Central\Api\Application\Action\Assessment\ShowBankAction;
+use Central\Api\Application\Action\Assessment\MyAttemptsAction;
 use Central\Api\Application\Action\Assessment\StartAttemptAction;
 use Central\Api\Application\Action\Assessment\SubmitAttemptAction;
 use Central\Api\Application\Action\Proctoring\ConfigureProctoringAction;
@@ -265,6 +266,10 @@ return static function (App $app): void {
             // The learner's own view. Scoped to the caller by construction —
             // there is no user id in any of these paths, so there is nothing
             // to tamper with.
+            // The assessments this person has sat. Distinct from a marker's
+            // queue at `/assessments/{id}/attempts` — see MyAttemptsAction.
+            $secure->get('/me/attempts', MyAttemptsAction::class)->setName('me.attempts');
+
             // Checking in by scanning the code at a venue.
             //
             // Outside `/trainings/{id}/sessions/{sessionId}` on purpose: a

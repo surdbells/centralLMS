@@ -12,6 +12,7 @@ use Central\Api\Domain\Assessment\GradeResult;
 use Central\Api\Domain\Assessment\Question;
 use Central\Api\Domain\Assessment\QuestionRepository;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 
 final class DbalAttemptRepository implements AttemptRepository
 {
@@ -46,6 +47,25 @@ final class DbalAttemptRepository implements AttemptRepository
                 self::JOINS,
             ),
             ['tenant' => $tenantId, 'assessment' => $assessmentId, 'user' => $userId],
+        );
+
+        return array_map(fn (array $r): Attempt => $this->hydrate($r), $rows);
+    }
+
+    public function mine(string $tenantId, string $userId, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s, %s FROM attempts at %s
+                 WHERE at.tenant_id = :tenant AND at.user_id = :user
+                 ORDER BY at.submitted_at DESC NULLS LAST, at.started_at DESC
+                 LIMIT :limit',
+                self::COLUMNS,
+                self::EXTRA,
+                self::JOINS,
+            ),
+            ['tenant' => $tenantId, 'user' => $userId, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
         );
 
         return array_map(fn (array $r): Attempt => $this->hydrate($r), $rows);

@@ -239,7 +239,7 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
   // NAVIGATION
   // ==========================================
 
-  playCourse(courseId: number): void {
+  playCourse(courseId: string): void {
     this.router.navigate(['/player', courseId]);
   }
 
@@ -322,7 +322,8 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
       'lesson': 'bi-play-circle',
       'course_completed': 'bi-check-circle',
       'certificate': 'bi-award',
-      'quiz': 'bi-question-circle'
+      'quiz': 'bi-question-circle',
+      'points': 'bi-star'
     };
     return icons[type] || 'bi-activity';
   }
@@ -337,6 +338,8 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
         return 'Earned certificate';
       case 'quiz':
         return 'Completed quiz';
+      case 'points':
+        return 'Points earned';
       default:
         return 'Activity';
     }

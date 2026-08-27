@@ -1,11 +1,20 @@
-import { decodeSessionBlob } from '../../../core/utils/session-blob';
 // learner-report/learner-report.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, forkJoin, of } from 'rxjs';
 import { map } from 'rxjs/operators';
-import {GlobalComponent} from '../../../global-component';
+import { ApiClient, Endpoints } from '../../../core/api';
+import {
+  DashboardsService,
+  type ActivityEntry,
+  type DayOfActivity,
+  type LearnerCertificate,
+  type LearnerDashboard,
+} from '../../../services/dashboards.service';
+import {
+  EnrollmentsService,
+  type Enrollment as ApiEnrollment,
+} from '../../../services/enrollments.service';
 
 // Interfaces
 export interface EnrollmentStats {
@@ -54,8 +63,8 @@ export interface LearningOverview {
 }
 
 export interface CourseProgress {
-  enrollment_id: number;
-  course_id: number;
+  enrollment_id: string;
+  course_id: string;
   status: 'not_started' | 'in_progress' | 'completed';
   progress_percentage: number;
   enrolled_at: string;
@@ -108,8 +117,8 @@ export interface CategoryBreakdown {
 }
 
 export interface QuizAttempt {
-  attempt_id: number;
-  quiz_id: number;
+  attempt_id: string;
+  quiz_id: string;
   score: number;
   passed: boolean;
   time_taken_seconds: number;
@@ -122,20 +131,21 @@ export interface QuizAttempt {
 }
 
 export interface Certificate {
-  certificate_id: number;
+  certificate_id: string;
   certificate_number: string;
   issue_date: string;
   expiry_date: string | null;
   pdf_url: string | null;
   course_title: string;
-  course_id: number;
+  course_id: string;
   category_name: string | null;
   status: 'valid' | 'expired' | 'expiring_soon';
 }
 
 export interface RecentActivity {
-  activity_type: 'lesson' | 'course_completed' | 'certificate' | 'quiz';
-  item_id: number;
+  /** The learner feed's kinds. `points` is one; it was not listed. */
+  activity_type: 'lesson' | 'course_completed' | 'certificate' | 'quiz' | 'points';
+  item_id: string;
   item_title: string;
   course_title: string;
   status: string;
@@ -144,7 +154,7 @@ export interface RecentActivity {
 }
 
 export interface Skill {
-  skill_id: number;
+  skill_id: string;
   skill_name: string;
   courses_count: number;
   last_acquired: string;
@@ -168,115 +178,104 @@ export interface ApiResponse<T> {
   message: string;
 }
 
+/**
+ * The learner's own report, over the new API.
+ *
+ * It posted to one legacy endpoint with `?action=overview|course-progress|
+ * quiz-performance|…` and the credentials decoded from
+ * `sessionStorage.SESSION`, tenant included.
+ *
+ * Almost all of it is one request now. The learner dashboard endpoint already
+ * assembles the overview, the streak, the activity window, the achievements,
+ * the certificates and the recent activity — the same figures this screen was
+ * asking for one action at a time, and computed once on the server rather than
+ * nine times from nine different angles.
+ *
+ * The one thing it could not answer was quiz performance: there was no way for
+ * a learner to read their own attempts. `/assessments/{id}/attempts` is a
+ * marker's queue and needs `assessment.grade`, and a learner looking at their
+ * record has neither that permission nor the list of assessments they have sat
+ * to ask about one at a time. `/me/attempts` is new and fills that in.
+ *
+ * Weekly activity is derived from the daily figures rather than fetched. It is
+ * the same numbers grouped differently, and asking a server to group them a
+ * second way is how two endpoints end up disagreeing about the same week.
+ */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LearnerReportService {
-  private apiUrl = GlobalComponent.myReport;
-  constructor(private http: HttpClient) {}
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-  private getAuthPayload(): any {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    return {
-      token: this.user_session.token,
-      user_id: this.user_session.id,
-      tenant_id: this.user_session.tenant_id,
-    };
-  }
+  private readonly api = inject(ApiClient);
+  private readonly dashboards = inject(DashboardsService);
+  private readonly enrollments = inject(EnrollmentsService);
+
   // ==========================================
   // OVERVIEW
   // ==========================================
 
   getOverview(): Observable<LearningOverview> {
-    return this.http.post<ApiResponse<LearningOverview>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'overview'
-    }).pipe(map(res => res.data));
+    return this.dashboards.forMe().pipe(map(toOverview));
   }
 
   // ==========================================
-  // COURSE PROGRESS
+  // COURSES
   // ==========================================
 
   getCourseProgress(): Observable<CourseProgress[]> {
-    return this.http.post<ApiResponse<CourseProgress[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'course-progress'
-    }).pipe(map(res => res.data));
+    return this.enrollments.mine().pipe(map((rows) => rows.map(toCourseProgress)));
   }
 
-  // ==========================================
-  // ACTIVITY CHARTS
-  // ==========================================
-
-  getDailyActivity(days: number = 30): Observable<DailyActivity[]> {
-    return this.http.post<ApiResponse<DailyActivity[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'daily-activity',
-      days
-    }).pipe(map(res => res.data));
-  }
-
-  getWeeklyActivity(weeks: number = 12): Observable<WeeklyActivity[]> {
-    return this.http.post<ApiResponse<WeeklyActivity[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'weekly-activity',
-      weeks
-    }).pipe(map(res => res.data));
-  }
-
-  getMonthlyActivity(months: number = 12): Observable<MonthlyActivity[]> {
-    return this.http.post<ApiResponse<MonthlyActivity[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'monthly-activity',
-      months
-    }).pipe(map(res => res.data));
-  }
-
-  // ==========================================
-  // CATEGORY BREAKDOWN
-  // ==========================================
-
+  /**
+   * How somebody is doing per category.
+   *
+   * Counted from their own enrolments rather than asked for. Every enrolment
+   * carries the course's category, so the grouping is already here — and a
+   * second server-side count of the same rows is a second answer that can
+   * disagree with the list beside it.
+   */
   getCategoryBreakdown(): Observable<CategoryBreakdown[]> {
-    return this.http.post<ApiResponse<CategoryBreakdown[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'category-breakdown'
-    }).pipe(map(res => res.data));
+    return this.enrollments.mine().pipe(map(toCategoryBreakdown));
   }
 
   // ==========================================
-  // QUIZ PERFORMANCE
+  // ACTIVITY
   // ==========================================
 
-  getQuizPerformance(limit: number = 20): Observable<QuizAttempt[]> {
-    return this.http.post<ApiResponse<QuizAttempt[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'quiz-performance',
-      limit
-    }).pipe(map(res => res.data));
+  getDailyActivity(days = 30): Observable<DailyActivity[]> {
+    return this.dashboards
+      .forMe({ days })
+      .pipe(map((mine) => mine.activity.map(toDailyActivity)));
+  }
+
+  getWeeklyActivity(weeks = 12): Observable<WeeklyActivity[]> {
+    return this.dashboards
+      .forMe({ days: weeks * 7 })
+      .pipe(map((mine) => groupIntoWeeks(mine.activity)));
+  }
+
+  getMonthlyActivity(months = 12): Observable<MonthlyActivity[]> {
+    // The window is clamped server-side to 92 days, which is the honest limit
+    // of what the activity series holds — a year of months cannot be drawn
+    // from it, and pretending otherwise fills a chart with zeroes.
+    return this.dashboards
+      .forMe({ days: Math.min(92, months * 31) })
+      .pipe(map((mine) => groupIntoMonths(mine.activity)));
+  }
+
+  getRecentActivities(limit = 20): Observable<RecentActivity[]> {
+    return this.dashboards
+      .forMe()
+      .pipe(map((mine) => mine.recentActivity.slice(0, limit).map(toRecentActivity)));
+  }
+
+  // ==========================================
+  // ASSESSMENTS
+  // ==========================================
+
+  getQuizPerformance(limit = 20): Observable<QuizAttempt[]> {
+    return this.api
+      .get<AttemptPayload[]>(Endpoints.me.attempts, { limit })
+      .pipe(map((rows) => rows.map(toQuizAttempt)));
   }
 
   // ==========================================
@@ -284,43 +283,327 @@ export class LearnerReportService {
   // ==========================================
 
   getCertificates(): Observable<Certificate[]> {
-    return this.http.post<ApiResponse<Certificate[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'certificates'
-    }).pipe(map(res => res.data));
+    return this.dashboards
+      .forMe()
+      .pipe(map((mine) => mine.certificates.map(toCertificate)));
   }
-
-  // ==========================================
-  // RECENT ACTIVITIES
-  // ==========================================
-
-  getRecentActivities(limit: number = 20): Observable<RecentActivity[]> {
-    return this.http.post<ApiResponse<RecentActivity[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'recent-activities',
-      limit
-    }).pipe(map(res => res.data));
-  }
-
-  // ==========================================
-  // SKILLS
-  // ==========================================
 
   getSkills(): Observable<Skill[]> {
-    return this.http.post<ApiResponse<Skill[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'skills'
-    }).pipe(map(res => res.data));
+    // Skills come from competencies, which this screen has no section for.
+    // Empty rather than a request that would only be discarded.
+    return of([]);
   }
 
   // ==========================================
-  // FULL REPORT
+  // EVERYTHING AT ONCE
   // ==========================================
 
+  /**
+   * The whole report in one go.
+   *
+   * Three requests rather than nine: the dashboard carries most of it, and
+   * the enrolments and the attempts are the two things it does not.
+   */
   getFullReport(): Observable<FullReport> {
-    return this.http.post<ApiResponse<FullReport>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'full-report'
-    }).pipe(map(res => res.data));
+    return forkJoin({
+      mine: this.dashboards.forMe(),
+      enrolments: this.enrollments.mine(),
+      attempts: this.api.get<AttemptPayload[]>(Endpoints.me.attempts, { limit: 50 }),
+    }).pipe(map(({ mine, enrolments, attempts }) => ({
+      generated_at: new Date().toISOString(),
+      overview: toOverview(mine),
+      course_progress: enrolments.map(toCourseProgress),
+      category_breakdown: toCategoryBreakdown(enrolments),
+      monthly_activity: groupIntoMonths(mine.activity),
+      certificates: mine.certificates.map(toCertificate),
+      quiz_performance: attempts.map(toQuizAttempt),
+      recent_activities: mine.recentActivity.map(toRecentActivity),
+      skills_acquired: [],
+    })));
   }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+interface AttemptPayload extends Record<string, any> {
+  id: string;
+  assessmentId: string;
+  assessmentTitle: string | null;
+  percentage: number | null;
+  passed: boolean | null;
+  timeSpentSeconds: number;
+  attemptNumber: number;
+  submittedAt: string | null;
+}
+
+function toOverview(mine: LearnerDashboard): LearningOverview {
+  const o = mine.overview;
+  const mandatory = mine.deadlines.length;
+
+  return {
+    enrollment_stats: {
+      total_enrolled: o.enrolled,
+      completed: o.completed,
+      in_progress: o.inProgress,
+      not_started: o.notStarted,
+      overdue: o.overdue,
+      mandatory_total: mandatory,
+      mandatory_completed: 0,
+      completion_rate: o.overallProgress,
+      mandatory_compliance_rate: o.overallProgress,
+      avg_completion_rate: o.overallProgress,
+    },
+    learning_time: {
+      total_minutes: Math.round(o.secondsSpent / 60),
+      total_hours: Math.round(o.secondsSpent / 3600),
+      this_week_minutes: minutesOverLast(mine.activity, 7),
+      this_month_minutes: minutesOverLast(mine.activity, 30),
+      avg_daily_minutes: mine.activity.length === 0
+        ? 0
+        : Math.round(minutesOverLast(mine.activity, mine.activity.length) / mine.activity.length),
+      active_days_last_30: mine.activity.filter((day) => day.seconds > 0).length,
+    },
+    performance: {
+      // The dashboard carries the average; how many were taken and how many
+      // passed belong to the attempts, which the caller fetches separately
+      // when it wants them.
+      quizzes_taken: 0,
+      quizzes_passed: 0,
+      average_score: o.averageScore ?? 0,
+      highest_score: 0,
+      pass_rate: 0,
+    },
+    achievements: {
+      certificates_earned: o.certificates,
+      badges_earned: o.badges,
+      total_points: o.points,
+    },
+    current_streak: mine.streak.current,
+    rank: mine.achievements.rank?.rank ?? null,
+  };
+}
+
+function toCourseProgress(e: ApiEnrollment): CourseProgress {
+  return {
+    enrollment_id: e.id,
+    course_id: e.courseId,
+    status: e.status as CourseProgress['status'],
+    progress_percentage: e.progressPercentage,
+    enrolled_at: e.enrolledAt ?? '',
+    started_at: e.startedAt,
+    completed_at: e.completedAt,
+    due_date: e.dueDate,
+    is_mandatory: e.isMandatory,
+    title: e.courseTitle ?? '',
+    duration_minutes: 0,
+    category_name: e.courseCategory,
+    // Lesson counts belong to a course's outline, which a list of enrolments
+    // does not carry — and one outline request per row is one request per
+    // course on the page.
+    total_lessons: 0,
+    completed_lessons: 0,
+    time_spent_minutes: Math.round(e.timeSpentSeconds / 60),
+    days_to_complete: daysBetween(e.startedAt, e.completedAt),
+    is_overdue: e.isOverdue,
+  };
+}
+
+function toCategoryBreakdown(rows: ApiEnrollment[]): CategoryBreakdown[] {
+  const byCategory = new Map<string, ApiEnrollment[]>();
+
+  for (const row of rows) {
+    const name = row.courseCategory ?? 'Uncategorised';
+    byCategory.set(name, [...(byCategory.get(name) ?? []), row]);
+  }
+
+  return [...byCategory.entries()].map(([category_name, held]) => {
+    const completed = held.filter((e) => e.status === 'completed').length;
+
+    return {
+      category_name,
+      total_courses: held.length,
+      completed_courses: completed,
+      in_progress_courses: held.filter((e) => e.status === 'in_progress').length,
+      avg_progress: Math.round(
+        held.reduce((total, e) => total + e.progressPercentage, 0) / held.length,
+      ),
+      completion_rate: Math.round((completed / held.length) * 100),
+    };
+  });
+}
+
+function toDailyActivity(day: DayOfActivity): DailyActivity {
+  return {
+    date: day.date,
+    lessons_accessed: day.lessons,
+    lessons_completed: day.lessons,
+    minutes_spent: Math.round(day.seconds / 60),
+  };
+}
+
+/**
+ * The same days, grouped by the week they fall in.
+ *
+ * Grouped here rather than fetched: it is the same series the daily chart
+ * draws, and a second endpoint counting the same seconds a second way is how
+ * two charts on one screen come to disagree about a week.
+ */
+function groupIntoWeeks(days: DayOfActivity[]): WeeklyActivity[] {
+  const weeks = new Map<string, DayOfActivity[]>();
+
+  for (const day of days) {
+    const date = new Date(day.date);
+    // Monday, so a week reads the way a working week does.
+    const offset = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - offset);
+    const key = date.toISOString().slice(0, 10);
+    weeks.set(key, [...(weeks.get(key) ?? []), day]);
+  }
+
+  return [...weeks.entries()].map(([week_start, inWeek]) => ({
+    week_start,
+    lessons_accessed: sum(inWeek, (d) => d.lessons),
+    lessons_completed: sum(inWeek, (d) => d.lessons),
+    minutes_spent: Math.round(sum(inWeek, (d) => d.seconds) / 60),
+    active_days: inWeek.filter((d) => d.seconds > 0).length,
+  }));
+}
+
+function groupIntoMonths(days: DayOfActivity[]): MonthlyActivity[] {
+  const months = new Map<string, DayOfActivity[]>();
+
+  for (const day of days) {
+    const key = day.date.slice(0, 7);
+    months.set(key, [...(months.get(key) ?? []), day]);
+  }
+
+  return [...months.entries()].map(([month, inMonth]) => {
+    const seconds = sum(inMonth, (d) => d.seconds);
+
+    return {
+      month,
+      month_label: new Date(`${month}-01T00:00:00Z`).toLocaleDateString(undefined, {
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }),
+      lessons_accessed: sum(inMonth, (d) => d.lessons),
+      lessons_completed: sum(inMonth, (d) => d.lessons),
+      minutes_spent: Math.round(seconds / 60),
+      hours_spent: Math.round(seconds / 3600),
+      active_days: inMonth.filter((d) => d.seconds > 0).length,
+    };
+  });
+}
+
+function toQuizAttempt(attempt: AttemptPayload): QuizAttempt {
+  const seconds = Number(attempt.timeSpentSeconds ?? 0);
+
+  return {
+    attempt_id: attempt.id,
+    quiz_id: attempt.assessmentId,
+    score: Number(attempt.percentage ?? 0),
+    passed: attempt.passed === true,
+    time_taken_seconds: seconds,
+    time_taken_minutes: Math.round(seconds / 60),
+    attempt_number: Number(attempt.attemptNumber ?? 1),
+    attempted_at: attempt.submittedAt ?? '',
+    quiz_title: attempt.assessmentTitle ?? '',
+    passing_score: Number(attempt['passingScore'] ?? 0),
+    course_title: String(attempt['courseTitle'] ?? ''),
+  };
+}
+
+function toCertificate(certificate: LearnerCertificate): Certificate {
+  return {
+    certificate_id: certificate.id,
+    certificate_number: certificate.number,
+    issue_date: certificate.issuedAt ?? '',
+    expiry_date: certificate.validUntil,
+    pdf_url: null,
+    course_title: certificate.title,
+    course_id: '',
+    category_name: null,
+    status: statusOf(certificate),
+  };
+}
+
+/**
+ * The three words this screen has for a certificate's state.
+ *
+ * "Expiring soon" is a month, which is roughly the notice somebody needs to
+ * book and sit a refresher.
+ */
+function statusOf(certificate: LearnerCertificate): Certificate['status'] {
+  if (!certificate.isValid) {
+    return 'expired';
+  }
+
+  const days = certificate.daysRemaining;
+
+  return days !== null && days <= 30 ? 'expiring_soon' : 'valid';
+}
+
+/**
+ * One line of the learner's own feed.
+ *
+ * The four kinds are the learner feed's — `lesson`, `course`,
+ * `certificate`, `points`. They are not the administrator dashboard's
+ * (`enrolled`, `completed`, `certified`), which is a different query over
+ * a whole tenant; using those here makes every line fall through to a
+ * default and read as something it is not.
+ */
+function toRecentActivity(entry: ActivityEntry): RecentActivity {
+  const kinds: Record<string, RecentActivity['activity_type']> = {
+    lesson: 'lesson',
+    course: 'course_completed',
+    certificate: 'certificate',
+    points: 'points',
+  };
+
+  return {
+    activity_type: kinds[entry.kind] ?? 'lesson',
+    item_id: '',
+    // A points event's subject is its reason code — `certificate_earned`,
+    // `assessment_passed` — which is a database value, not a sentence.
+    item_title: entry.kind === 'points' ? readable(entry.subject) : (entry.subject ?? ''),
+    course_title: entry.subject ?? '',
+    // Lessons in this feed are the completed ones — the query says so.
+    status: entry.kind === 'lesson' ? 'completed' : (entry.detail ?? ''),
+    progress_percentage: 0,
+    activity_at: entry.at ?? '',
+  };
+}
+
+/** `certificate_earned` as "Certificate earned". */
+function readable(reason: string | null): string {
+  if (reason === null || reason === '') {
+    return 'Points earned';
+  }
+
+  const words = reason.replace(/_/g, ' ');
+
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+// --- small helpers ----------------------------------------------------------
+
+function sum<T>(rows: T[], of_: (row: T) => number): number {
+  return rows.reduce((total, row) => total + of_(row), 0);
+}
+
+function minutesOverLast(days: DayOfActivity[], count: number): number {
+  return Math.round(sum(days.slice(-count), (day) => day.seconds) / 60);
+}
+
+function daysBetween(from: string | null, to: string | null): number | null {
+  if (from === null || to === null) {
+    return null;
+  }
+
+  const ms = new Date(to).getTime() - new Date(from).getTime();
+
+  return ms < 0 ? null : Math.round(ms / 86400000);
 }

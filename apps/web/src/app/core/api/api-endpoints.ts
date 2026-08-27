@@ -197,6 +197,8 @@ export const Endpoints = {
     recordProgress: (courseId: string, lessonId: string) =>
       `/me/enrollments/${courseId}/lessons/${lessonId}/progress`,
     certificates: '/me/certificates',
+    /** The assessments this person has sat — not a marker's queue. */
+    attempts: '/me/attempts',
     gamification: '/me/gamification',
     gamificationHistory: '/me/gamification/history',
     skills: '/me/skills',

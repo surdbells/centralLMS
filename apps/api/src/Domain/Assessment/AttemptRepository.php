@@ -17,6 +17,17 @@ interface AttemptRepository
     public function forLearner(string $tenantId, string $assessmentId, string $userId): array;
 
     /**
+     * Every attempt one person has made, newest first.
+     *
+     * Across all assessments, which {@see forLearner} cannot answer — it
+     * wants an assessment id, and a learner looking at their own record
+     * does not have a list of the ones they have sat.
+     *
+     * @return list<Attempt>
+     */
+    public function mine(string $tenantId, string $userId, int $limit): array;
+
+    /**
      * Attempts across learners, for the marking queue and reporting.
      *
      * @return array{items: list<Attempt>, total: int}
