@@ -79,7 +79,11 @@ final readonly class Notifier
         $notified  = 0;
 
         try {
-            $recipients = $this->repository->recipients($tenantId, $userIds);
+            $recipients = $this->repository->recipients(
+                $tenantId,
+                $userIds,
+                $type->reachesPendingAccounts(),
+            );
         } catch (\Throwable $e) {
             $this->logger->error('Could not load notification recipients', [
                 'type'  => $type->value,

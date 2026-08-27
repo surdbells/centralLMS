@@ -22,6 +22,8 @@ enum NotificationType: string
 {
     // --- account ----------------------------------------------------------
     case Welcome = 'welcome';
+    case Invitation = 'invitation';
+    case PasswordReset = 'password_reset';
 
     // --- enrolment --------------------------------------------------------
     case EnrollmentAssigned = 'enrollment_assigned';
@@ -83,6 +85,14 @@ enum NotificationType: string
             self::Welcome,
             self::CourseCompleted,
             self::AssessmentGraded => [NotificationChannel::InApp],
+
+            // Email and nothing else. Both carry a link that sets a
+            // password, and the in-app copy would leave that link sitting
+            // on the bell of the very account it opens. One place only.
+            // The invitation has a second reason: until it is redeemed the
+            // account cannot be signed into, so nobody could read it.
+            self::Invitation,
+            self::PasswordReset => [NotificationChannel::Email],
         };
     }
 
@@ -94,7 +104,8 @@ enum NotificationType: string
             self::CertificateRevoked => NotificationPriority::Urgent,
 
             self::SessionReminder,
-            self::EnrollmentOverdue  => NotificationPriority::High,
+            self::EnrollmentOverdue,
+            self::PasswordReset      => NotificationPriority::High,
 
             self::Welcome,
             self::CourseCompleted    => NotificationPriority::Low,
@@ -122,7 +133,11 @@ enum NotificationType: string
             self::SessionCancelled,
             self::SessionRescheduled,
             self::CertificateRevoked,
-            self::EnrollmentOverdue => false,
+            self::EnrollmentOverdue,
+            // Nobody may mute the email that lets them back into their own
+            // account, or the one that gives them an account at all.
+            self::Invitation,
+            self::PasswordReset     => false,
             default                 => true,
         };
     }
@@ -139,6 +154,10 @@ enum NotificationType: string
             self::SessionReminder   => 2,
             self::EnrollmentDueSoon => 30,
             self::Announcement      => 90,
+            // As long as the link they carry, so a dead one does not sit
+            // in a mailbox looking live.
+            self::PasswordReset     => 1,
+            self::Invitation        => 14,
             default                 => null,
         };
     }
@@ -165,14 +184,34 @@ enum NotificationType: string
             self::SessionCancelled   => 'training_session',
 
             self::Welcome,
+            self::Invitation,
+            self::PasswordReset,
             self::Announcement       => null,
         };
+    }
+
+    /**
+     * Whether this may be sent to an account that cannot yet be signed into.
+     *
+     * Recipients are otherwise restricted to active accounts, which is
+     * right for everything that pesters somebody about work: a suspended
+     * account should not be chased about an overdue course.
+     *
+     * The invitation is the one exception, and it is not a small one — it
+     * is the *only* thing that can turn an invited account into an active
+     * one, so excluding it made inviting anybody impossible.
+     */
+    public function reachesPendingAccounts(): bool
+    {
+        return $this === self::Invitation;
     }
 
     public function label(): string
     {
         return match ($this) {
             self::Welcome            => 'Welcome',
+            self::Invitation         => 'Invitation',
+            self::PasswordReset      => 'Password reset',
             self::EnrollmentAssigned => 'Assigned a course',
             self::EnrollmentDueSoon  => 'Course due soon',
             self::EnrollmentOverdue  => 'Course overdue',

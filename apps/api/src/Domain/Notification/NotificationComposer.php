@@ -34,6 +34,26 @@ final readonly class NotificationComposer
                 'body'  => 'Your account is ready. Everything assigned to you is on your dashboard.',
             ],
 
+            NotificationType::Invitation => [
+                'title' => 'You have been invited to ' . $this->text($data, 'organisation', 'Central LMS'),
+                'body'  => sprintf(
+                    'An account has been created for you. Choose a password to get started: %s '
+                    . 'The link works for %s.',
+                    $this->text($data, 'link', ''),
+                    $this->text($data, 'expiresIn', 'a limited time'),
+                ),
+            ],
+
+            NotificationType::PasswordReset => [
+                'title' => 'Reset your password',
+                'body'  => sprintf(
+                    'Someone asked to reset the password on this account. Choose a new one here: %s '
+                    . 'The link works for %s. If it was not you, ignore this — nothing has changed.',
+                    $this->text($data, 'link', ''),
+                    $this->text($data, 'expiresIn', 'a limited time'),
+                ),
+            ],
+
             NotificationType::EnrollmentAssigned => [
                 'title' => 'You have been assigned ' . $subject,
                 'body'  => $this->withDueDate($data, sprintf('%s has been added to your learning.', $subject)),
@@ -114,6 +134,10 @@ final readonly class NotificationComposer
     {
         return match ($type) {
             NotificationType::Welcome      => [],
+            // Without the link the email is an instruction to click
+            // nothing, so it is refused at the source rather than sent.
+            NotificationType::Invitation,
+            NotificationType::PasswordReset => ['link'],
             NotificationType::Announcement => ['title'],
             default                        => ['subjectTitle'],
         };

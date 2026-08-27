@@ -64,7 +64,11 @@ interface NotificationRepository
      * @param  list<string> $userIds
      * @return array<string, Recipient> keyed by user id
      */
-    public function recipients(string $tenantId, array $userIds): array;
+    public function recipients(
+        string $tenantId,
+        array $userIds,
+        bool $includePending = false,
+    ): array;
 
     // --- delivery ---------------------------------------------------------
 

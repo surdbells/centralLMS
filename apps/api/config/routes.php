@@ -14,6 +14,7 @@
 declare(strict_types=1);
 
 use Central\Api\Application\Action\Auth\LoginAction;
+use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
 use Central\Api\Application\Action\Auth\RefreshAction;
 use Central\Api\Application\Action\Catalog\CourseCatalogueAction;
@@ -156,6 +157,19 @@ return static function (App $app): void {
             // asks for the caller inside the action, which requires a valid
             // access token.
             $auth->post('/logout', LogoutAction::class)->setName('auth.logout');
+
+            // Setting a password without being signed in. Public by
+            // necessity — somebody who has forgotten theirs cannot
+            // authenticate — so each of the three is written to give
+            // nothing away about who holds an account here.
+            $auth->group('/password', function (RouteCollectorProxy $pw): void {
+                $pw->post('/forgot', [PasswordResetAction::class, 'forgot'])
+                    ->setName('auth.password.forgot');
+                $pw->get('/token', [PasswordResetAction::class, 'check'])
+                    ->setName('auth.password.check');
+                $pw->post('/reset', [PasswordResetAction::class, 'reset'])
+                    ->setName('auth.password.reset');
+            });
         });
 
         // Registration, password reset and OTP land here with the people

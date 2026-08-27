@@ -224,20 +224,28 @@ final class DbalNotificationRepository implements NotificationRepository
             ?? throw new \RuntimeException('The notification vanished immediately after being written.');
     }
 
-    public function recipients(string $tenantId, array $userIds): array
-    {
+    public function recipients(
+        string $tenantId,
+        array $userIds,
+        bool $includePending = false,
+    ): array {
         if ($userIds === []) {
             return [];
         }
+
+        // `invited` and nothing else when pending accounts are wanted.
+        // Suspended and locked accounts stay out either way: somebody an
+        // administrator has shut out should not go on receiving email.
+        $statuses = $includePending ? ['active', 'invited'] : ['active'];
 
         $rows = $this->connection->fetchAllAssociative(
             "SELECT u.id, u.email, u.phone, u.locale, u.first_name, u.last_name,
                     u.quiet_hours_start, u.quiet_hours_end
              FROM users u
              WHERE u.tenant_id = :tenant AND u.id IN (:ids) AND u.deleted_at IS NULL
-               AND u.status = 'active'",
-            ['tenant' => $tenantId, 'ids' => $userIds],
-            ['ids' => ArrayParameterType::STRING],
+               AND u.status IN (:statuses)",
+            ['tenant' => $tenantId, 'ids' => $userIds, 'statuses' => $statuses],
+            ['ids' => ArrayParameterType::STRING, 'statuses' => ArrayParameterType::STRING],
         );
 
         if ($rows === []) {

@@ -19,6 +19,7 @@ use Central\Api\Application\Middleware\AuthenticationMiddleware;
 use Central\Api\Application\Middleware\CorsMiddleware;
 use Central\Api\Application\Middleware\RateLimitMiddleware;
 use Central\Api\Domain\Authz\RoleRepository;
+use Central\Api\Domain\Identity\PasswordTokenRepository;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
@@ -99,6 +100,7 @@ use Central\Api\Infrastructure\Persistence\DbalLessonRepository;
 use Central\Api\Infrastructure\Persistence\DbalModuleRepository;
 use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
 use Central\Api\Infrastructure\Authz\DbalRoleRepository;
+use Central\Api\Infrastructure\Persistence\DbalPasswordTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
@@ -385,6 +387,10 @@ return [
 
     RefreshTokenRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalRefreshTokenRepository($c->get(Connection::class)),
+    ),
+
+    PasswordTokenRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalPasswordTokenRepository($c->get(Connection::class)),
     ),
 
     CourseRepository::class => factory(

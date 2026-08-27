@@ -11,6 +11,8 @@ use Central\Api\Domain\Authz\RoleRepository;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\ValidationFailed;
+use Central\Api\Application\Action\Auth\PasswordResetAction;
+use Central\Api\Domain\Identity\PasswordTokenPurpose;
 use Central\Api\Domain\Identity\UserStatus;
 use Central\Api\Domain\People\Person;
 use Central\Api\Domain\People\PersonFilters;
@@ -52,6 +54,7 @@ final class ManagePeopleAction extends PeopleAction
         private readonly RoleRepository $roles,
         private readonly PasswordHasher $hasher,
         private readonly SettingsRepository $settings,
+        private readonly PasswordResetAction $passwords,
     ) {
         parent::__construct($people);
     }
@@ -221,7 +224,26 @@ final class ManagePeopleAction extends PeopleAction
             $this->userId($request),
         );
 
-        return Json::created($response, $created->toArray(), '/v1/users/' . $created->id);
+        // The invitation `UserStatus::Invited` has always promised.
+        //
+        // Its own message tells the person to check their email for it, an
+        // administrator creating an account left them in exactly that
+        // state, and nothing ever sent one — so an invited account could
+        // not be signed into and had no way of becoming one that could.
+        $invited = $created->id !== null
+            && $created->status === UserStatus::Invited
+            && $this->passwords->send(
+                $request,
+                $created->id,
+                $tenantId,
+                PasswordTokenPurpose::Invitation,
+            );
+
+        return Json::created(
+            $response,
+            [...$created->toArray(), 'invitationSent' => $invited],
+            '/v1/users/' . $created->id,
+        );
     }
 
     /**
