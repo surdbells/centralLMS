@@ -33,7 +33,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
 
   // View state
   viewMode: ViewMode = 'dashboard';
-  selectedCourseId: number | null = null;
+  selectedCourseId: string | null = null;
 
   // Data
   stats: LearningStats | null = null;
@@ -47,7 +47,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // Filters
   statusFilter: StatusFilter = 'all';
   searchQuery = '';
-  selectedCategoryId: number | null = null;
+  selectedCategoryId: string | null = null;
 
   // UI State
   loading = false;
@@ -60,7 +60,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   errorMessage = '';
 
   // Expanded modules for course detail view
-  expandedModules: Set<number | null> = new Set();
+  expandedModules: Set<string | null> = new Set();
 
   constructor(
     private learningService: MyLearningService,
@@ -233,7 +233,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // COURSE DETAIL VIEW
   // ==========================================
 
-  viewCourseDetails(courseId: number): void {
+  viewCourseDetails(courseId: string): void {
     this.viewMode = 'course-detail';
     this.selectedCourseId = courseId;
     this.loadingDetails = true;
@@ -262,7 +262,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
       .subscribe();
   }
 
-  toggleModule(moduleId: number | null): void {
+  toggleModule(moduleId: string | null): void {
     if (this.expandedModules.has(moduleId)) {
       this.expandedModules.delete(moduleId);
     } else {
@@ -270,7 +270,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
     }
   }
 
-  isModuleExpanded(moduleId: number | null): boolean {
+  isModuleExpanded(moduleId: string | null): boolean {
     return this.expandedModules.has(moduleId);
   }
 
@@ -310,16 +310,16 @@ export class MyLearningComponent implements OnInit, OnDestroy {
     this.playCourse(course.course_id);
   }
 
-  playCourse(courseId: number): void {
+  playCourse(courseId: string): void {
     this.router.navigate(['/player', courseId]).then(r => console.log(r));
   }
 
-  goToLesson(courseId: number, lessonId: number): void {
+  goToLesson(courseId: string, lessonId: string): void {
     // Navigate to course player - it handles lesson navigation internally
     this.playCourse(courseId);
   }
 
-  viewCertificate(certificateId: number): void {
+  viewCertificate(certificateId: string): void {
     // Navigate to certificate view
     console.log(`View certificate: ${certificateId}`);
     // this.router.navigate(['/certificates', certificateId]);

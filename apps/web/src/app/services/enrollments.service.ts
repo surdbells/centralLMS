@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiClient, Endpoints, type Paged } from '../core/api';
 
 // ---------------------------------------------------------------------------
@@ -134,6 +135,20 @@ export class EnrollmentsService {
 
   list(courseId: string, filters: EnrollmentFilters = {}): Observable<Paged<Enrollment>> {
     return this.api.getPaged<Enrollment>(Endpoints.enrollments.list(courseId), { ...filters });
+  }
+
+  /**
+   * The signed-in person's own enrolments.
+   *
+   * Separate from `list`, which is one course's roster and needs
+   * `enrollment.manage`. A learner reading their own does not, and
+   * filtering a tenant-wide list in the browser would mean fetching
+   * everybody's in order to show one person's.
+   */
+  mine(filters: { status?: EnrollmentStatus; search?: string } = {}): Observable<Enrollment[]> {
+    return this.api
+      .getPaged<Enrollment>(Endpoints.me.enrollments, { ...filters, perPage: 100 })
+      .pipe(map((page) => page.items));
   }
 
   stats(courseId: string): Observable<EnrollmentStats> {
