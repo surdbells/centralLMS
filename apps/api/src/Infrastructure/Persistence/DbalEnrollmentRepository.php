@@ -27,9 +27,15 @@ final class DbalEnrollmentRepository implements EnrollmentRepository
     private const JOINS = "
         LEFT JOIN courses c ON c.id = e.course_id
         LEFT JOIN users   u ON u.id = e.user_id
+        LEFT JOIN lookups cat ON cat.id = c.category_id
     ";
 
+    // The course is already joined for the title, so the three things a
+    // course card shows come with it rather than costing a lookup each.
     private const EXTRA = "c.title AS course_title,
+                           c.thumbnail_url AS course_thumbnail,
+                           c.level AS course_level,
+                           cat.name AS course_category,
                            NULLIF(btrim(concat_ws(' ', u.first_name, u.last_name)), '') AS user_name,
                            u.email AS user_email";
 
@@ -513,6 +519,9 @@ final class DbalEnrollmentRepository implements EnrollmentRepository
             lastActivityAt: $this->date($row['last_activity_at'] ?? null),
             enrolledAt: $this->date($row['enrolled_at'] ?? null),
             courseTitle: $this->text($row['course_title'] ?? null),
+            courseThumbnailUrl: $this->text($row['course_thumbnail'] ?? null),
+            courseLevel: $this->text($row['course_level'] ?? null),
+            courseCategory: $this->text($row['course_category'] ?? null),
             userName: $this->text($row['user_name'] ?? null),
             userEmail: $this->text($row['user_email'] ?? null),
         );

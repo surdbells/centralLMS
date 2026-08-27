@@ -6,9 +6,33 @@ import {Router} from '@angular/router';
 import {CrudService} from '../../services/crud.service';
 import {HotToastService} from '@ngneat/hot-toast';
 import {GlobalComponent} from '../../global-component';
-import {Note, RecentBadge, UserGamificationResponse, UserLevel, UserStatistics} from '../user/user.component';
 import {NgIf} from '@angular/common';
 import {TuiIcon, TuiLoader} from '@taiga-ui/core';
+
+/**
+ * A note somebody made against a lesson.
+ *
+ * Declared here because this is the only screen that reads one. It used to
+ * live on the `/account` page's component, which never showed a note — and
+ * four of the five names imported from there were never used at all.
+ */
+export interface Note {
+  note_id: number;
+  tenant_id: number;
+  user_id: number;
+  lesson_id: number;
+  title: string;
+  content: string;
+  lesson_timestamp: number | null;
+  is_pinned: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  lesson_title?: string;
+  module_title?: string;
+  course_title?: string;
+  author_name?: string;
+}
 
 @Component({
   selector: 'app-notes',

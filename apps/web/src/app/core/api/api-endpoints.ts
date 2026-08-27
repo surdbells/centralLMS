@@ -228,8 +228,8 @@ export const Endpoints = {
     show: (id: string) => `/attempts/${id}`,
     answer: (id: string, questionId: string) => `/attempts/${id}/answers/${questionId}`,
     submit: (id: string) => `/attempts/${id}/submit`,
-    /** What a marker has waiting. */
-    queue: '/attempts/grading-queue',
+    /** What a marker has waiting on one assessment. */
+    queue: (assessmentId: string) => `/assessments/${assessmentId}/attempts`,
     grade: (id: string, questionId: string) => `/attempts/${id}/answers/${questionId}/grade`,
   },
 
@@ -239,10 +239,10 @@ export const Endpoints = {
     checkSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
     recordViolation: (attemptId: string) => `/attempts/${attemptId}/proctoring/violations`,
     recordSnapshot: (attemptId: string) => `/attempts/${attemptId}/proctoring/snapshots`,
-    reviewQueue: '/proctoring/review',
-    review: (attemptId: string) => `/proctoring/review/${attemptId}`,
-    reviewViolation: (attemptId: string, violationId: string) =>
-      `/proctoring/review/${attemptId}/violations/${violationId}`,
+    /** The queue is per assessment: a reviewer works through one sitting's flags. */
+    reviewQueue: (assessmentId: string) => `/assessments/${assessmentId}/proctoring/queue`,
+    review: (attemptId: string) => `/attempts/${attemptId}/proctoring`,
+    reviewViolation: (violationId: string) => `/proctoring/violations/${violationId}`,
   },
 
   // --- instructor-led training -----------------------------------------
@@ -253,10 +253,11 @@ export const Endpoints = {
     update: (id: string) => `/trainings/${id}`,
     status: (id: string) => `/trainings/${id}/status`,
     delete: (id: string) => `/trainings/${id}`,
-    roster: (id: string) => `/trainings/${id}/enrollments`,
-    assign: (id: string) => `/trainings/${id}/enrollments`,
-    withdraw: (id: string, userId: string) => `/trainings/${id}/enrollments/${userId}`,
-    selfEnrol: (id: string) => `/trainings/${id}/enroll`,
+    roster: (id: string) => `/trainings/${id}/roster`,
+    assign: (id: string) => `/trainings/${id}/roster`,
+    /** Takes the people to withdraw in the body, so several go at once. */
+    withdraw: (id: string) => `/trainings/${id}/roster`,
+    selfEnrol: (id: string) => `/trainings/${id}/enrol`,
   },
 
   sessions: {
@@ -289,12 +290,12 @@ export const Endpoints = {
    * `environment.ts` had a live Zoom API key committed in it.
    */
   integrations: {
-    list: '/integrations/video',
-    connect: (provider: string) => `/integrations/video/${provider}/connect`,
-    callback: (provider: string) => `/integrations/video/${provider}/callback`,
-    update: (provider: string) => `/integrations/video/${provider}`,
-    disconnect: (provider: string) => `/integrations/video/${provider}`,
-    providers: '/integrations/video/providers',
+    list: '/ilt/integrations',
+    connect: (provider: string) => `/ilt/integrations/${provider}/connect`,
+    callback: (provider: string) => `/ilt/integrations/${provider}/callback`,
+    update: (provider: string) => `/ilt/integrations/${provider}`,
+    disconnect: (provider: string) => `/ilt/integrations/${provider}`,
+    providers: '/ilt/providers',
   },
 
   // --- certificates -----------------------------------------------------
@@ -417,13 +418,13 @@ export const Endpoints = {
   gamification: {
     mine: '/me/gamification',
     history: '/me/gamification/history',
-    leaderboard: '/gamification/leaderboard',
+    leaderboard: '/leaderboard',
     levels: '/gamification/levels',
     saveLevel: '/gamification/levels',
-    badges: '/gamification/badges',
-    createBadge: '/gamification/badges',
-    updateBadge: (id: string) => `/gamification/badges/${id}`,
-    deleteBadge: (id: string) => `/gamification/badges/${id}`,
+    badges: '/badges',
+    createBadge: '/badges',
+    updateBadge: (id: string) => `/badges/${id}`,
+    deleteBadge: (id: string) => `/badges/${id}`,
     awardPoints: (userId: string) => `/users/${userId}/points`,
     awardBadge: (userId: string, badgeId: string) => `/users/${userId}/badges/${badgeId}`,
     revokeBadge: (userId: string, badgeId: string) => `/users/${userId}/badges/${badgeId}`,
@@ -451,7 +452,7 @@ export const Endpoints = {
   // --- reporting --------------------------------------------------------
   reports: {
     catalogue: '/reports',
-    describe: (key: string) => `/reports/${key}/describe`,
+    describe: (key: string) => `/reports/${key}/about`,
     run: (key: string) => `/reports/${key}`,
     export: (key: string) => `/reports/${key}/export`,
     learners: '/reports/learners',

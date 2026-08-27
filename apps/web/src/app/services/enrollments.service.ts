@@ -15,6 +15,10 @@ export interface Enrollment {
   id: string;
   courseId: string;
   courseTitle: string | null;
+  /** Joined with the title, so a course card needs no second request. */
+  courseThumbnailUrl: string | null;
+  courseLevel: string | null;
+  courseCategory: string | null;
   userId: string;
   userName: string | null;
   userEmail: string | null;

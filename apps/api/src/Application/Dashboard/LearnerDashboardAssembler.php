@@ -6,6 +6,7 @@ namespace Central\Api\Application\Dashboard;
 
 use Central\Api\Domain\Certificate\Certificate;
 use Central\Api\Domain\Certificate\CertificateRepository;
+use Central\Api\Domain\Dashboard\ActivityWindow;
 use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\Dashboard\LearningStreak;
 use Central\Api\Domain\Enrollment\Enrollment;
@@ -34,8 +35,6 @@ final readonly class LearnerDashboardAssembler
     /** How far back the streak looks. Longer than any streak worth drawing. */
     private const STREAK_WINDOW_DAYS = 400;
 
-    private const CHART_DAYS = 14;
-
     private const FEED_LENGTH = 15;
 
     public function __construct(
@@ -50,7 +49,7 @@ final readonly class LearnerDashboardAssembler
     /**
      * @return array<string, mixed>
      */
-    public function assemble(string $tenantId, string $userId): array
+    public function assemble(string $tenantId, string $userId, ActivityWindow $window): array
     {
         $totals = $this->dashboards->learnerTotals($tenantId, $userId);
         $points = $this->gamification->totalPoints($tenantId, $userId);
@@ -62,7 +61,12 @@ final readonly class LearnerDashboardAssembler
                 $this->clock->now(),
             )->toArray(),
             'courses'     => $this->courses($tenantId, $userId),
-            'activity'    => $this->dashboards->dailyActivity($tenantId, $userId, self::CHART_DAYS),
+            // The window comes from the caller so the chart's own controls
+            // can move it. It used to be a constant, which is why the
+            // Week/Month toggle above the chart drew the same fortnight
+            // whichever was chosen.
+            'activityWindow' => $window->toArray(),
+            'activity'    => $this->dashboards->dailyActivity($tenantId, $userId, $window),
             'achievements' => $this->achievements($tenantId, $userId, $points),
             'certificates' => array_map(
                 static fn (Certificate $c): array => $c->toArray(),

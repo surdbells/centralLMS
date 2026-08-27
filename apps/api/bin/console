@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Central\Api\Application\Console\CheckFrontendRoutesCommand;
 use Central\Api\Application\Console\CheckIltProvidersCommand;
 use Central\Api\Application\Console\GenerateOpenApiCommand;
 use Central\Api\Application\Console\ConsumeMessagesCommand;
@@ -78,6 +79,7 @@ ConsoleRunner::addCommands($app, new SingleManagerProvider($entityManager));
 $app->addCommands([
     $container->get(GenerateOpenApiCommand::class),
     $container->get(CheckIltProvidersCommand::class),
+    $container->get(CheckFrontendRoutesCommand::class),
     $container->get(ConsumeMessagesCommand::class),
     $container->get(DispatchNotificationsCommand::class),
     $container->get(ProvisionTenantCommand::class),

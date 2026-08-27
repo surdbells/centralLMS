@@ -33,7 +33,7 @@
         <div class="hero-card profile-card">
           <div class="profile-header">
             <div class="profile-avatar">
-              <img *ngIf="dashboard.user.avatar_url" [src]="'data:image/png;base64,'+dashboard.user.avatar_url" [alt]="dashboard.user.full_name">
+              <img *ngIf="dashboard.user.avatar_url" [src]="dashboard.user.avatar_url" [alt]="dashboard.user.full_name">
               <div *ngIf="!dashboard.user.avatar_url" class="avatar-initials">
                 {{ getInitials(dashboard.user.full_name) }}
               </div>
@@ -55,12 +55,13 @@
           <div class="level-progress">
             <div class="level-header">
               <span class="level-name">{{ getLevelName(dashboard.overview.total_points) }}</span>
-              <span class="level-points">{{ dashboard.overview.total_points }} / {{ getNextLevelTarget(dashboard.overview.total_points) }}</span>
+              <span class="level-points" *ngIf="hasNextLevel">{{ dashboard.overview.total_points }} / {{ getNextLevelTarget(dashboard.overview.total_points) }}</span>
+              <span class="level-points" *ngIf="!hasNextLevel">{{ dashboard.overview.total_points }} points</span>
             </div>
             <div class="level-bar">
               <div class="level-fill" [style.width.%]="getLevelProgress(dashboard.overview.total_points)"></div>
             </div>
-            <p class="level-remaining">
+            <p class="level-remaining" *ngIf="hasNextLevel">
               <strong>{{ getPointsToNextLevel(dashboard.overview.total_points) }}</strong> to reach new level
             </p>
           </div>
@@ -522,7 +523,7 @@
                     'bronze': learner.rank === 3
                   }">{{ learner.rank }}</div>
                   <div class="learner-avatar">
-                    <img *ngIf="learner.avatar_url" [src]="'data:image/png;base64,'+learner.avatar_url" [alt]="learner.full_name">
+                    <img *ngIf="learner.avatar_url" [src]="learner.avatar_url" [alt]="learner.full_name">
                     <span *ngIf="!learner.avatar_url">{{ getInitials(learner.full_name) }}</span>
                   </div>
                   <div class="learner-details">

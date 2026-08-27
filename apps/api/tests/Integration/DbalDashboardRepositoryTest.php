@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Central\Api\Tests\Integration;
 
+use Central\Api\Domain\Dashboard\ActivityWindow;
 use Central\Api\Domain\Dashboard\DashboardPeriod;
 use Central\Api\Domain\Report\ReportCriteria;
 use Central\Api\Domain\Report\ReportScope;
@@ -311,11 +312,55 @@ final class DbalDashboardRepositoryTest extends TestCase
 
         $this->recordLessonActivity($enrollment, $lesson, $this->ada, 0, seconds: 900);
 
-        $chart = $this->dashboards->dailyActivity($this->tenantA, $this->ada, 7);
+        $now   = new \DateTimeImmutable('today');
+        $chart = $this->dashboards->dailyActivity(
+            $this->tenantA,
+            $this->ada,
+            ActivityWindow::of(7, $now, $now),
+        );
 
         self::assertCount(7, $chart);
         self::assertSame(0, $chart[0]['seconds']);
         self::assertSame(900, $chart[6]['seconds']);
+    }
+
+    #[Test]
+    public function the_chart_can_be_asked_for_an_earlier_stretch(): void
+    {
+        $enrollment = $this->enrol($this->ada, $this->fire, 'in_progress', 50.0, null);
+        $lesson     = $this->createLesson($this->fire);
+
+        $this->recordLessonActivity($enrollment, $lesson, $this->ada, 0, seconds: 900);
+
+        // The window the chart's back arrow asks for: the seven days
+        // before the seven it is showing. Today's work is not in it.
+        $now  = new \DateTimeImmutable('today');
+        $back = $this->dashboards->dailyActivity(
+            $this->tenantA,
+            $this->ada,
+            ActivityWindow::of(7, $now->modify('-7 days'), $now),
+        );
+
+        self::assertCount(7, $back);
+        self::assertSame($now->modify('-13 days')->format('Y-m-d'), $back[0]['date']);
+        self::assertSame($now->modify('-7 days')->format('Y-m-d'), $back[6]['date']);
+        self::assertSame(0, array_sum(array_column($back, 'seconds')));
+    }
+
+    #[Test]
+    public function the_chart_never_runs_past_today(): void
+    {
+        $now = new \DateTimeImmutable('today');
+
+        // Otherwise the forward arrow walks into next month, drawing an
+        // ever-emptier chart of days nobody has lived through.
+        $chart = $this->dashboards->dailyActivity(
+            $this->tenantA,
+            $this->ada,
+            ActivityWindow::of(7, $now->modify('+30 days'), $now),
+        );
+
+        self::assertSame($now->format('Y-m-d'), $chart[6]['date']);
     }
 
     #[Test]

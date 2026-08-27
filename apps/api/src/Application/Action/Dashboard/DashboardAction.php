@@ -9,6 +9,7 @@ use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
 use Central\Api\Domain\Authz\Permission;
+use Central\Api\Domain\Dashboard\ActivityWindow;
 use Central\Api\Domain\Dashboard\DashboardPeriod;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\ValidationFailed;
@@ -22,7 +23,7 @@ use Psr\Http\Message\ServerRequestInterface;
  * The two dashboards.
  *
  * GET /v1/dashboards/admin?period=30
- * GET /v1/dashboards/me
+ * GET /v1/dashboards/me?activityDays=30&activityUntil=2026-08-27
  *
  * Both took `tenant_id` from the request body, and the learner one took
  * `user_id` too — with `verify_user()` returning 100 unconditionally, that is
@@ -81,6 +82,10 @@ final class DashboardAction
             throw new AccessDenied(Permission::EnrollmentSelf->value);
         }
 
-        return Json::ok($response, $this->learner->assemble($caller->tenantId, $caller->id));
+        return Json::ok($response, $this->learner->assemble(
+            $caller->tenantId,
+            $caller->id,
+            ActivityWindow::fromQuery($request->getQueryParams(), $this->clock->now()),
+        ));
     }
 }

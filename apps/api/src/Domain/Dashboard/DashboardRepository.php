@@ -108,9 +108,11 @@ interface DashboardRepository
     /**
      * Time spent and lessons finished, per day, oldest first.
      *
+     * Every day in the window comes back, including the quiet ones.
+     *
      * @return list<array{date: string, seconds: int, lessons: int}>
      */
-    public function dailyActivity(string $tenantId, string $userId, int $days): array;
+    public function dailyActivity(string $tenantId, string $userId, ActivityWindow $window): array;
 
     /**
      * @return list<array<string, mixed>>

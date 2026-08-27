@@ -35,6 +35,9 @@ final readonly class Enrollment
         public ?\DateTimeImmutable $enrolledAt = null,
         /** Denormalised for lists, so showing 50 enrolments is not 50 lookups. */
         public ?string $courseTitle = null,
+        public ?string $courseThumbnailUrl = null,
+        public ?string $courseLevel = null,
+        public ?string $courseCategory = null,
         public ?string $userName = null,
         public ?string $userEmail = null,
     ) {
@@ -86,6 +89,9 @@ final readonly class Enrollment
             'id'                 => $this->id,
             'courseId'           => $this->courseId,
             'courseTitle'        => $this->courseTitle,
+            'courseThumbnailUrl' => $this->courseThumbnailUrl,
+            'courseLevel'        => $this->courseLevel,
+            'courseCategory'     => $this->courseCategory,
             'userId'             => $this->userId,
             'userName'           => $this->userName,
             'userEmail'          => $this->userEmail,

@@ -12,6 +12,7 @@
 declare(strict_types=1);
 
 use Central\Api\Application\Action\VersionAction;
+use Central\Api\Application\Console\CheckFrontendRoutesCommand;
 use Central\Api\Application\Console\GenerateOpenApiCommand;
 use Central\Api\Application\Handler\JsonErrorHandler;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
@@ -348,6 +349,10 @@ return [
 
     GenerateOpenApiCommand::class => factory(
         static fn (ContainerInterface $c) => new GenerateOpenApiCommand($c->get('settings')),
+    ),
+
+    CheckFrontendRoutesCommand::class => factory(
+        static fn (ContainerInterface $c) => new CheckFrontendRoutesCommand($c, $c->get('settings')),
     ),
 
     JsonErrorHandler::class => factory(static fn (ContainerInterface $c) => new JsonErrorHandler(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Central\Api\Infrastructure\Persistence;
 
+use Central\Api\Domain\Dashboard\ActivityWindow;
 use Central\Api\Domain\Dashboard\DashboardPeriod;
 use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\Report\ReportCriteria;
@@ -371,7 +372,7 @@ final class DbalDashboardRepository implements DashboardRepository
         return array_values(array_map(strval(...), $rows));
     }
 
-    public function dailyActivity(string $tenantId, string $userId, int $days): array
+    public function dailyActivity(string $tenantId, string $userId, ActivityWindow $window): array
     {
         // Every day in the window, including the quiet ones — a chart drawn
         // only through the days with activity has no shape, and a week with
@@ -381,8 +382,8 @@ final class DbalDashboardRepository implements DashboardRepository
                     COALESCE(SUM(lp.time_spent_seconds), 0) AS seconds,
                     COUNT(lp.id) FILTER (WHERE lp.status = 'completed') AS lessons
              FROM generate_series(
-                      CURRENT_DATE - make_interval(days => :days::int - 1),
-                      CURRENT_DATE,
+                      :until::date - make_interval(days => :days::int - 1),
+                      :until::date,
                       interval '1 day'
                   ) d
              LEFT JOIN lesson_progress lp
@@ -391,7 +392,12 @@ final class DbalDashboardRepository implements DashboardRepository
                    AND date_trunc('day', lp.last_activity_at)::date = d::date
              GROUP BY d
              ORDER BY d",
-            ['tenant' => $tenantId, 'user' => $userId, 'days' => $days],
+            [
+                'tenant' => $tenantId,
+                'user'   => $userId,
+                'days'   => $window->days,
+                'until'  => $window->until->format('Y-m-d'),
+            ],
         );
 
         return array_map(
@@ -445,6 +451,7 @@ final class DbalDashboardRepository implements DashboardRepository
         // the field name is better than implying a model that does not exist.
         $rows = $this->connection->fetchAllAssociative(
             "SELECT c.id, c.title, c.level, c.duration_minutes, c.thumbnail_url,
+                    c.rating_average, c.rating_count,
                     COALESCE(cat.name, 'Uncategorised') AS category,
                     COUNT(e.id) AS enrolments
              FROM courses c
@@ -459,7 +466,8 @@ final class DbalDashboardRepository implements DashboardRepository
                      AND mine.user_id = :user
                      AND mine.deleted_at IS NULL
                )
-             GROUP BY c.id, c.title, c.level, c.duration_minutes, c.thumbnail_url, cat.name
+             GROUP BY c.id, c.title, c.level, c.duration_minutes, c.thumbnail_url,
+                      c.rating_average, c.rating_count, cat.name
              ORDER BY enrolments DESC, c.created_at DESC, c.id
              LIMIT :limit",
             ['tenant' => $tenantId, 'user' => $userId, 'limit' => $limit],
@@ -474,6 +482,11 @@ final class DbalDashboardRepository implements DashboardRepository
                 'durationMinutes' => $this->int($r['duration_minutes'] ?? null),
                 'thumbnailUrl'    => $this->text($r['thumbnail_url'] ?? null),
                 'enrolments'      => (int) $r['enrolments'],
+                // What other people made of it. A card that offers a
+                // course and cannot say whether anyone liked it is asking
+                // for a decision with the useful half withheld.
+                'rating'          => $r['rating_average'] === null ? null : (float) $r['rating_average'],
+                'ratingCount'     => (int) $r['rating_count'],
             ],
             $rows,
         );
