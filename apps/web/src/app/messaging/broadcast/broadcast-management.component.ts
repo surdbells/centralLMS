@@ -899,7 +899,7 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
     return new Date(datetime).toLocaleString();
   }
 
-  trackByBroadcastId(index: number, item: Broadcast): number {
+  trackByBroadcastId(index: number, item: Broadcast): string {
     return item.broadcast_id;
   }
 }

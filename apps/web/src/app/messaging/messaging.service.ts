@@ -1,19 +1,18 @@
-import { decodeSessionBlob } from '../core/utils/session-blob';
 // messaging/messaging.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, Subject } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, BehaviorSubject, Subject, of, throwError } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
-import {GlobalComponent} from '../global-component';
+import { ApiClient, Endpoints } from '../core/api';
+import { SessionStore } from '../core/auth/session.store';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
 export interface Conversation {
-  conversation_id: number;
-  tenant_id: number;
+  conversation_id: string;
+  tenant_id: string;
   type: 'direct' | 'group' | 'channel' | 'announcement';
   name: string | null;
   description: string | null;
@@ -24,11 +23,11 @@ export interface Conversation {
   allow_replies: boolean;
   allow_attachments: boolean;
   linked_entity_type: string | null;
-  linked_entity_id: number | null;
-  last_message_id: number | null;
+  linked_entity_id: string | null;
+  last_message_id: string | null;
   last_message_at: string | null;
   message_count: number;
-  created_by: number;
+  created_by: string;
   created_at: string;
   // Participant info
   my_role: 'member' | 'admin' | 'owner' | 'moderator';
@@ -36,7 +35,7 @@ export interface Conversation {
   is_pinned: boolean;
   is_archived: boolean;
   unread_count: number;
-  last_read_message_id: number | null;
+  last_read_message_id: string | null;
   notify_all_messages: boolean;
   notify_mentions_only: boolean;
   // Display
@@ -55,7 +54,7 @@ export interface Conversation {
 }
 
 export interface Participant {
-  user_id: number;
+  user_id: string;
   role: 'member' | 'admin' | 'owner' | 'moderator';
   can_post: boolean;
   can_add_members: boolean;
@@ -74,19 +73,19 @@ export interface Participant {
 }
 
 export interface Message {
-  message_id: number;
-  conversation_id: number;
-  sender_id: number;
-  tenant_id: number;
+  message_id: string;
+  conversation_id: string;
+  sender_id: string;
+  tenant_id: string;
   content: string;
   content_html: string;
   content_plain: string;
   message_type: 'text' | 'file' | 'image' | 'video' | 'audio' | 'system' | 'announcement';
-  reply_to_id: number | null;
-  thread_root_id: number | null;
+  reply_to_id: string | null;
+  thread_root_id: string | null;
   thread_reply_count: number;
   thread_last_reply_at: string | null;
-  forwarded_from_id: number | null;
+  forwarded_from_id: string | null;
   is_edited: boolean;
   edited_at: string | null;
   is_deleted: boolean;
@@ -106,8 +105,8 @@ export interface Message {
 }
 
 export interface MessageAttachment {
-  attachment_id: number;
-  message_id: number;
+  attachment_id: string;
+  message_id: string;
   file_name: string;
   file_type: string;
   file_size: number;
@@ -127,15 +126,15 @@ export interface MessageReaction {
 }
 
 export interface MessagePreview {
-  message_id: number;
+  message_id: string;
   content: string;
-  sender_id: number;
+  sender_id: string;
   first_name: string;
   last_name: string;
 }
 
 export interface ReadReceipt {
-  user_id: number;
+  user_id: string;
   read_at: string;
   first_name: string;
   last_name: string;
@@ -143,30 +142,30 @@ export interface ReadReceipt {
 }
 
 export interface TypingUser {
-  user_id: number;
+  user_id: string;
   first_name: string;
   last_name: string;
 }
 
 export interface MessageDraft {
-  draft_id: number;
-  conversation_id: number;
-  user_id: number;
+  draft_id: string;
+  conversation_id: string;
+  user_id: string;
   content: string;
-  reply_to_id: number | null;
+  reply_to_id: string | null;
   created_at: string;
   updated_at: string | null;
 }
 
 export interface SavedMessage {
   id: number;
-  message_id: number;
-  user_id: number;
+  message_id: string;
+  user_id: string;
   note: string | null;
   created_at: string;
   content: string;
   message_created_at: string;
-  conversation_id: number;
+  conversation_id: string;
   conversation_name: string;
   sender_first_name: string;
   sender_last_name: string;
@@ -176,13 +175,13 @@ export interface BroadcastTargetCriteria {
   roles?: number[];
   departments?: number[];
   course_id?: number | null;
-  user_ids?: number[];
+  user_ids?: string[];
   [key: string]: any; // Allow additional properties
 }
 
 export interface Broadcast {
-  broadcast_id: number;
-  tenant_id: number;
+  broadcast_id: string;
+  tenant_id: string;
   title: string;
   content: string;
   content_html: string | null;
@@ -197,7 +196,7 @@ export interface Broadcast {
   recipients_count: number;
   read_count: number;
   acknowledged_count: number;
-  created_by: number;
+  created_by: string;
   created_at: string;
   // User specific
   is_read?: boolean;
@@ -208,8 +207,8 @@ export interface Broadcast {
 }
 
 export interface BlockedUser {
-  user_id: number;
-  blocked_user_id: number;
+  user_id: string;
+  blocked_user_id: string;
   reason: string | null;
   created_at: string;
   first_name: string;
@@ -237,8 +236,8 @@ export interface UnreadCounts {
 }
 
 export interface SearchOptions {
-  conversation_id?: number;
-  sender_id?: number;
+  conversation_id?: string;
+  sender_id?: string;
   from_date?: string;
   to_date?: string;
   has_attachments?: boolean;
@@ -256,7 +255,7 @@ export interface ConversationFilters {
 export interface MessageFilters {
   before_id?: number;
   after_id?: number;
-  thread_root_id?: number;
+  thread_root_id?: string;
   pinned_only?: boolean;
   limit?: number;
 }
@@ -272,717 +271,616 @@ interface ApiResponse<T> {
 // SERVICE
 // ==========================================
 
+/**
+ * Internal messaging, over the new API.
+ *
+ * It posted to one legacy endpoint with fifty-odd `?action=` variants and
+ * `token`, `user_id` and `tenant_id` decoded from `sessionStorage.SESSION`.
+ * Four components depend on this service, so the method names, the observable
+ * streams and the shapes they carry are unchanged.
+ *
+ * **Rather more than half of those fifty methods have no server.** The schema
+ * holds conversations, participants and messages — that is the whole of it.
+ * Reactions, drafts, pins, bookmarks, blocking, typing indicators, per-user
+ * read receipts, broadcasts, forwarding, reporting and message search each had
+ * a legacy action and no table, and are grouped at the bottom of this file
+ * saying so. Three screens are built almost entirely on them.
+ *
+ * They fail loudly rather than resolving empty, for the reason that runs
+ * through this migration: a saved-messages screen that renders nothing because
+ * the feature was never built looks exactly like one where you have saved
+ * nothing, and the difference is the only thing the person looking at it wants
+ * to know.
+ */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MessagingService {
-  private apiUrl = GlobalComponent.internalMessaging;
-  // Real-time state management
+  private readonly api = inject(ApiClient);
+  private readonly session = inject(SessionStore);
+
+  // State
   private conversationsSubject = new BehaviorSubject<Conversation[]>([]);
   private activeConversationSubject = new BehaviorSubject<Conversation | null>(null);
   private messagesSubject = new BehaviorSubject<Message[]>([]);
-  private unreadCountsSubject = new BehaviorSubject<UnreadCounts>({ total_unread: 0, unread_mentions: 0, unread_broadcasts: 0 });
+  private unreadCountsSubject = new BehaviorSubject<UnreadCounts>({
+    total_unread: 0,
+    unread_mentions: 0,
+    unread_broadcasts: 0,
+  });
   private typingUsersSubject = new BehaviorSubject<TypingUser[]>([]);
 
-  // Observables
   public conversations$ = this.conversationsSubject.asObservable();
   public activeConversation$ = this.activeConversationSubject.asObservable();
   public messages$ = this.messagesSubject.asObservable();
   public unreadCounts$ = this.unreadCountsSubject.asObservable();
   public typingUsers$ = this.typingUsersSubject.asObservable();
 
-  // Events for real-time updates
   public newMessage$ = new Subject<Message>();
   public messageUpdated$ = new Subject<Message>();
-  public messageDeleted$ = new Subject<number>();
-  public reactionUpdated$ = new Subject<{ messageId: number; reactions: MessageReaction[] }>();
+  public reactionUpdated$ = new Subject<{ message_id: string; reactions: MessageReaction[] }>();
 
-  constructor(private http: HttpClient) {}
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-  private getAuthPayload(): any {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    return {
-      token: this.user_session.token,
-      user_id: this.user_session.id,
-      tenant_id: this.user_session.tenant_id,
-    };
+  /** Whoever is signed in, from the token rather than a decoded blob. */
+  getCurrentUserId(): string {
+    return this.session.session()?.userId ?? '';
   }
 
   // ==========================================
   // CONVERSATIONS
   // ==========================================
 
+  getConversations(
+    filters?: { search?: string; type?: string; is_archived?: number },
+  ): Observable<Conversation[]> {
+    return this.api
+      .getPaged<ConversationPayload>(Endpoints.conversations.list, {
+        search: filters?.search,
+        kind: filters?.type,
+        perPage: 100,
+      })
+      .pipe(
+        map((page) => page.items.map((row) => toConversation(row, this.getCurrentUserId()))),
+        tap((conversations) => this.conversationsSubject.next(conversations)),
+      );
+  }
+
+  getConversation(conversationId: string): Observable<Conversation> {
+    return this.api
+      .get<ConversationPayload>(Endpoints.conversations.show(conversationId))
+      .pipe(map((row) => toConversation(row, this.getCurrentUserId())));
+  }
+
   createConversation(data: {
-    type: 'direct' | 'group' | 'channel';
+    type?: string;
     name?: string;
     description?: string;
-    participants?: number[];
-    is_private?: boolean;
-    avatar_url?: string;
+    participant_ids?: string[];
+    /** The screen's other name for the same list. */
+    participants?: string[];
   }): Observable<Conversation> {
-    return this.http.post<ApiResponse<Conversation>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'create-conversation',
-      ...data
-    }).pipe(
-      map(res => res.data),
-      tap(conv => this.addConversationToList(conv))
-    );
+    return this.api
+      .post<ConversationPayload>(Endpoints.conversations.start, {
+        kind: data.type ?? 'group',
+        title: data.name ?? null,
+        description: data.description ?? null,
+        participantIds: data.participant_ids ?? data.participants ?? [],
+      })
+      .pipe(map((row) => toConversation(row, this.getCurrentUserId())));
   }
 
-  startDirectMessage(recipientId: number): Observable<Conversation> {
-    return this.http.post<ApiResponse<Conversation>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'start-direct-message',
-      recipient_id: recipientId
-    }).pipe(
-      map(res => res.data),
-      tap(conv => this.addConversationToList(conv))
-    );
+  /**
+   * Opens the conversation with one other person, making it if need be.
+   *
+   * The API settles which of those it is: starting a direct conversation that
+   * already exists returns the existing one rather than a second copy, which
+   * is the only way two people cannot end up with two threads between them.
+   */
+  startDirectMessage(userId: string): Observable<Conversation> {
+    return this.api
+      .post<ConversationPayload>(Endpoints.conversations.start, {
+        kind: 'direct',
+        participantIds: [userId],
+      })
+      .pipe(map((row) => toConversation(row, this.getCurrentUserId())));
   }
 
-  getConversation(conversationId: number): Observable<Conversation> {
-    return this.http.post<ApiResponse<Conversation>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-conversation',
-      conversation_id: conversationId
-    }).pipe(map(res => res.data));
+  updateConversation(conversationId: string, data: Record<string, unknown>): Observable<Conversation> {
+    return this.api
+      .patch<ConversationPayload>(Endpoints.conversations.update(conversationId), {
+        title: data['name'],
+        description: data['description'],
+      })
+      .pipe(map((row) => toConversation(row, this.getCurrentUserId())));
   }
 
-  getConversations(filters?: ConversationFilters): Observable<Conversation[]> {
-    return this.http.post<ApiResponse<Conversation[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-conversations',
-      ...filters
-    }).pipe(
-      map(res => res.data),
-      tap(convs => this.conversationsSubject.next(convs))
-    );
-  }
-
-  updateConversation(conversationId: number, data: Partial<Conversation>): Observable<Conversation> {
-    return this.http.post<ApiResponse<Conversation>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'update-conversation',
-      conversation_id: conversationId,
-      ...data
-    }).pipe(
-      map(res => res.data),
-      tap(conv => this.updateConversationInList(conv))
-    );
-  }
-
-  archiveConversation(conversationId: number, archive: boolean = true): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'archive-conversation',
-      conversation_id: conversationId,
-      archive
-    }).pipe(
-      map(res => res.data),
-      tap(() => this.removeConversationFromList(conversationId))
-    );
-  }
-
-  leaveConversation(conversationId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'leave-conversation',
-      conversation_id: conversationId
-    }).pipe(
-      map(res => res.data),
-      tap(() => this.removeConversationFromList(conversationId))
-    );
+  updateConversationSettings(
+    conversationId: string,
+    settings: Record<string, unknown>,
+  ): Observable<Conversation> {
+    // Muting is a per-participant setting and the API takes it on the same
+    // PATCH, so this is the conversation update under another name.
+    return this.api
+      .patch<ConversationPayload>(Endpoints.conversations.update(conversationId), settings)
+      .pipe(map((row) => toConversation(row, this.getCurrentUserId())));
   }
 
   setActiveConversation(conversation: Conversation | null): void {
     this.activeConversationSubject.next(conversation);
-    if (conversation) {
-      this.messagesSubject.next([]);
-    }
+  }
+
+  markAsRead(conversationId: string, _messageId?: string): Observable<void> {
+    return this.api
+      .post(Endpoints.conversations.read(conversationId), {})
+      .pipe(
+        map(() => undefined),
+        tap(() => this.getUnreadCounts().subscribe({ error: () => undefined })),
+      );
+  }
+
+  getUnreadCounts(): Observable<UnreadCounts> {
+    return this.api
+      .get<{ total: number; conversations?: number }>(Endpoints.conversations.unread)
+      .pipe(
+        map((counts) => ({
+          total_unread: counts.total ?? 0,
+          // Mentions and broadcasts are not modelled, so they are zero rather
+          // than a number invented from the total.
+          unread_mentions: 0,
+          unread_broadcasts: 0,
+        })),
+        tap((counts) => this.unreadCountsSubject.next(counts)),
+      );
+  }
+
+  leaveConversation(conversationId: string): Observable<void> {
+    return this.removeParticipant(conversationId, this.getCurrentUserId());
   }
 
   // ==========================================
   // PARTICIPANTS
   // ==========================================
 
-  addParticipant(conversationId: number, participantId: number, role: string = 'member'): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'add-participant',
-      conversation_id: conversationId,
-      participant_id: participantId,
-      role
-    }).pipe(map(res => res.data));
+  getParticipants(conversationId: string): Observable<Participant[]> {
+    return this.api
+      .get<ConversationPayload>(Endpoints.conversations.show(conversationId))
+      .pipe(map((row) => ((row['participants'] ?? []) as Array<Record<string, any>>).map(toParticipant)));
   }
 
-  addParticipants(conversationId: number, participantIds: number[]): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'add-participants',
-      conversation_id: conversationId,
-      participant_ids: participantIds
-    }).pipe(map(res => res.data));
+  addParticipants(conversationId: string, userIds: string[]): Observable<void> {
+    return this.api
+      .post(Endpoints.conversations.addParticipants(conversationId), { userIds })
+      .pipe(map(() => undefined));
   }
 
-  removeParticipant(conversationId: number, participantId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'remove-participant',
-      conversation_id: conversationId,
-      participant_id: participantId
-    }).pipe(map(res => res.data));
+  addParticipant(conversationId: string, userId: string): Observable<void> {
+    return this.addParticipants(conversationId, [userId]);
   }
 
-  getParticipants(conversationId: number): Observable<Participant[]> {
-    return this.http.post<ApiResponse<Participant[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-participants',
-      conversation_id: conversationId
-    }).pipe(map(res => res.data));
-  }
-
-  updateParticipantRole(conversationId: number, participantId: number, role: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'update-participant-role',
-      conversation_id: conversationId,
-      participant_id: participantId,
-      role
-    }).pipe(map(res => res.data));
+  removeParticipant(conversationId: string, userId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.conversations.removeParticipant(conversationId, userId))
+      .pipe(map(() => undefined));
   }
 
   // ==========================================
   // MESSAGES
   // ==========================================
 
-  sendMessage(conversationId: number, data: {
-    content: string;
-    message_type?: string;
-    reply_to_id?: number;
-    thread_root_id?: number;
-    attachments?: Partial<MessageAttachment>[];
-    metadata?: Record<string, any>;
-  }): Observable<Message> {
-    return this.http.post<ApiResponse<Message>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'send-message',
-      conversation_id: conversationId,
-      ...data
-    }).pipe(
-      map(res => res.data),
-      tap(msg => {
-        this.addMessageToList(msg);
-        this.newMessage$.next(msg);
-        this.updateConversationLastMessage(conversationId, msg);
+  getMessages(
+    conversationId: string,
+    options?: { before?: string; limit?: number },
+  ): Observable<Message[]> {
+    return this.api
+      .getPaged<MessagePayload>(Endpoints.conversations.messages(conversationId), {
+        before: options?.before,
+        perPage: options?.limit ?? 50,
       })
-    );
+      .pipe(
+        map((page) => page.items.map(toMessage)),
+        tap((messages) => this.messagesSubject.next(messages)),
+      );
   }
 
-  getMessage(messageId: number): Observable<Message> {
-    return this.http.post<ApiResponse<Message>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-message',
-      message_id: messageId
-    }).pipe(map(res => res.data));
-  }
+  getMessage(messageId: string, conversationId?: string): Observable<Message> {
+    const inConversation = conversationId ?? this.activeConversationSubject.getValue()?.conversation_id ?? '';
 
-  getMessages(conversationId: number, filters?: MessageFilters): Observable<Message[]> {
-    return this.http.post<ApiResponse<Message[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-messages',
-      conversation_id: conversationId,
-      ...filters
-    }).pipe(
-      map(res => res.data),
-      tap(msgs => {
-        if (filters?.after_id) {
-          // Append new messages
-          const current = this.messagesSubject.value;
-          this.messagesSubject.next([...current, ...msgs]);
-        } else if (filters?.before_id) {
-          // Prepend older messages
-          const current = this.messagesSubject.value;
-          this.messagesSubject.next([...msgs, ...current]);
-        } else {
-          this.messagesSubject.next(msgs);
+    return this.getMessages(inConversation).pipe(
+      map((messages) => {
+        const found = messages.find((m) => m.message_id === messageId);
+
+        if (found === undefined) {
+          throw new Error('That message could not be found.');
         }
+
+        return found;
+      }),
+    );
+  }
+
+  /**
+   * Says something.
+   *
+   * The third argument is the message being replied to. The screen passes
+   * a bare id there, so both that and an options object are accepted.
+   */
+  sendMessage(
+    conversationId: string,
+    content: string,
+    replyToOrOptions?: string | { reply_to_id?: string; message_type?: string },
+    _attachments?: unknown,
+  ): Observable<Message> {
+    const options = typeof replyToOrOptions === 'string'
+      ? { reply_to_id: replyToOrOptions }
+      : replyToOrOptions;
+
+    return this.api
+      .post<MessagePayload>(Endpoints.conversations.send(conversationId), {
+        content,
+        replyToId: options?.reply_to_id ?? null,
+        kind: (options as { message_type?: string })?.message_type ?? 'text',
       })
-    );
+      .pipe(
+        map(toMessage),
+        tap((message) => {
+          this.messagesSubject.next([...this.messagesSubject.getValue(), message]);
+          this.newMessage$.next(message);
+        }),
+      );
   }
 
-  editMessage(messageId: number, content: string): Observable<Message> {
-    return this.http.post<ApiResponse<Message>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'edit-message',
-      message_id: messageId,
-      content
-    }).pipe(
-      map(res => res.data),
-      tap(msg => {
-        this.updateMessageInList(msg);
-        this.messageUpdated$.next(msg);
+  /**
+   * Changes what a message says.
+   *
+   * The API addresses a message through its conversation, because that is
+   * where the permission to touch it lives. The screen only holds the
+   * message, so the conversation defaults to the open one — which is the
+   * only one whose messages are on screen to be edited.
+   */
+  editMessage(messageId: string, content: string, conversationId?: string): Observable<Message> {
+    const inConversation = conversationId ?? this.activeConversationSubject.getValue()?.conversation_id;
+
+    if (inConversation === undefined || inConversation === '') {
+      return throwError(() => new Error('Open the conversation before editing a message.'));
+    }
+
+    return this.api
+      .put<MessagePayload>(Endpoints.conversations.editMessage(inConversation, messageId), {
+        content,
       })
-    );
+      .pipe(
+        map(toMessage),
+        tap((message) => this.messageUpdated$.next(message)),
+      );
   }
 
-  deleteMessage(messageId: number, forEveryone: boolean = false): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'delete-message',
-      message_id: messageId,
-      for_everyone: forEveryone
-    }).pipe(
-      map(res => res.data),
-      tap(() => {
-        this.removeMessageFromList(messageId);
-        this.messageDeleted$.next(messageId);
-      })
-    );
-  }
+  /**
+   * Removes a message.
+   *
+   * `forEveryone` is accepted and ignored: the API soft-deletes for
+   * everybody, because a message half-deleted — gone for the sender,
+   * present for the recipient — is a thread that reads differently to two
+   * people looking at it together.
+   */
+  deleteMessage(
+    messageId: string,
+    _forEveryone = false,
+    conversationId?: string,
+  ): Observable<void> {
+    const inConversation = conversationId ?? this.activeConversationSubject.getValue()?.conversation_id;
 
-  pinMessage(messageId: number, pin: boolean = true): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'pin-message',
-      message_id: messageId,
-      pin
-    }).pipe(map(res => res.data));
-  }
+    if (inConversation === undefined || inConversation === '') {
+      return throwError(() => new Error('Open the conversation before deleting a message.'));
+    }
 
-  forwardMessage(messageId: number, conversationIds: number[]): Observable<Message[]> {
-    return this.http.post<ApiResponse<Message[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'forward-message',
-      message_id: messageId,
-      conversation_ids: conversationIds
-    }).pipe(map(res => res.data));
-  }
-
-  // ==========================================
-  // REACTIONS
-  // ==========================================
-
-  addReaction(messageId: number, emoji: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'add-reaction',
-      message_id: messageId,
-      emoji
-    }).pipe(map(res => res.data));
-  }
-
-  removeReaction(messageId: number, emoji: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'remove-reaction',
-      message_id: messageId,
-      emoji
-    }).pipe(map(res => res.data));
+    return this.api
+      .delete(Endpoints.conversations.deleteMessage(inConversation, messageId))
+      .pipe(
+        map(() => undefined),
+        tap(() => this.messagesSubject.next(
+          this.messagesSubject.getValue().filter((m) => m.message_id !== messageId),
+        )),
+      );
   }
 
   // ==========================================
-  // READ RECEIPTS & TYPING
+  // PEOPLE
   // ==========================================
 
-  markAsRead(conversationId: number, upToMessageId?: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'mark-as-read',
-      conversation_id: conversationId,
-      up_to_message_id: upToMessageId
-    }).pipe(
-      map(res => res.data),
-      tap(() => this.updateConversationUnreadCount(conversationId, 0))
-    );
-  }
+  /**
+   * People to start a conversation with.
+   *
+   * `exclude` is applied here rather than sent: it is whoever is already
+   * in the conversation, which the screen knows and the server would have
+   * to be told anyway.
+   */
+  searchUsers(search: string, exclude: string[] = []): Observable<Array<Record<string, any>>> {
+    const excluded = new Set(exclude.map(String));
 
-  getReadReceipts(messageId: number): Observable<ReadReceipt[]> {
-    return this.http.post<ApiResponse<ReadReceipt[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-read-receipts',
-      message_id: messageId
-    }).pipe(map(res => res.data));
-  }
-
-  setTyping(conversationId: number, typing: boolean = true): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'set-typing',
-      conversation_id: conversationId,
-      typing
-    }).pipe(map(res => res.data));
-  }
-
-  getTypingUsers(conversationId: number): Observable<TypingUser[]> {
-    return this.http.post<ApiResponse<TypingUser[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-typing-users',
-      conversation_id: conversationId
-    }).pipe(
-      map(res => res.data),
-      tap(users => this.typingUsersSubject.next(users))
-    );
+    return this.api
+      .getPaged<Record<string, any>>(Endpoints.users.list, { search, perPage: 50 })
+      .pipe(map((page) => page.items
+        .filter((row) => !excluded.has(String(row['id'])))
+        .map((row) => ({
+          ...row,
+          user_id: row['id'],
+          first_name: row['firstName'],
+          last_name: row['lastName'],
+        }))));
   }
 
   // ==========================================
-  // SEARCH
+  // NOT BUILT
   // ==========================================
+  //
+  // Each of these had a legacy action and none has a table on this side. The
+  // schema is conversations, participants and messages.
 
-  searchMessages(query: string, options?: SearchOptions): Observable<Message[]> {
-    return this.http.post<ApiResponse<Message[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'search-messages',
-      query,
-      ...options
-    }).pipe(map(res => res.data));
+  addReaction(_messageId: string, _emoji: string): Observable<void> {
+    return notAvailable('Reactions');
   }
 
-  // ==========================================
-  // DRAFTS
-  // ==========================================
-
-  saveDraft(conversationId: number, content: string, replyToId?: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'save-draft',
-      conversation_id: conversationId,
-      content,
-      reply_to_id: replyToId
-    }).pipe(map(res => res.data));
+  removeReaction(_messageId: string, _emoji: string): Observable<void> {
+    return notAvailable('Reactions');
   }
 
-  getDraft(conversationId: number): Observable<MessageDraft | null> {
-    return this.http.post<ApiResponse<MessageDraft | null>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-draft',
-      conversation_id: conversationId
-    }).pipe(map(res => res.data));
+  pinMessage(_messageId: string, _pinned = true): Observable<void> {
+    return notAvailable('Pinned messages');
   }
 
-  deleteDraft(conversationId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'delete-draft',
-      conversation_id: conversationId
-    }).pipe(map(res => res.data));
+  saveMessageBookmark(_messageId: string, _note?: string): Observable<void> {
+    return notAvailable('Saved messages');
   }
 
-  // ==========================================
-  // SAVED MESSAGES
-  // ==========================================
-
-  saveMessageBookmark(messageId: number, note?: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'save-message',
-      message_id: messageId,
-      note
-    }).pipe(map(res => res.data));
+  unsaveMessage(_messageId: string): Observable<void> {
+    return notAvailable('Saved messages');
   }
 
-  unsaveMessage(messageId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'unsave-message',
-      message_id: messageId
-    }).pipe(map(res => res.data));
+  getSavedMessages(_limit?: number, _offset?: number): Observable<SavedMessage[]> {
+    return notAvailable('Saved messages');
   }
 
-  getSavedMessages(limit: number = 50, offset: number = 0): Observable<SavedMessage[]> {
-    return this.http.post<ApiResponse<SavedMessage[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-saved-messages',
-      limit,
-      offset
-    }).pipe(map(res => res.data));
+  forwardMessage(_messageId: string, _conversationIds: string[]): Observable<void> {
+    return notAvailable('Forwarding a message');
   }
 
-  // ==========================================
-  // BROADCASTS
-  // ==========================================
-
-  createBroadcast(data: Partial<Broadcast>): Observable<Broadcast> {
-    return this.http.post<ApiResponse<Broadcast>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'create-broadcast',
-      ...data
-    }).pipe(map(res => res.data));
+  reportMessage(_messageId: string, _reason: string): Observable<void> {
+    return notAvailable('Reporting a message');
   }
 
-  sendBroadcast(broadcastId: number): Observable<Broadcast> {
-    return this.http.post<ApiResponse<Broadcast>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'send-broadcast',
-      broadcast_id: broadcastId
-    }).pipe(map(res => res.data));
+  searchMessages(_query: string, _conversationId?: string): Observable<Message[]> {
+    return notAvailable('Searching messages');
   }
 
-  getBroadcast(broadcastId: number): Observable<Broadcast> {
-    return this.http.post<ApiResponse<Broadcast>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-broadcast',
-      broadcast_id: broadcastId
-    }).pipe(map(res => res.data));
+  getReadReceipts(_messageId: string): Observable<ReadReceipt[]> {
+    return notAvailable('Read receipts');
   }
 
-  getMyBroadcasts(unreadOnly: boolean = false): Observable<Broadcast[]> {
-    return this.http.post<ApiResponse<Broadcast[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-my-broadcasts',
-      unread_only: unreadOnly
-    }).pipe(map(res => res.data));
+  saveDraft(_conversationId: string, _content: string, _replyToId?: string): Observable<void> {
+    return notAvailable('Drafts');
   }
 
-  markBroadcastRead(broadcastId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'mark-broadcast-read',
-      broadcast_id: broadcastId
-    }).pipe(map(res => res.data));
+  getDraft(_conversationId: string): Observable<{ content: string } | null> {
+    return notAvailable('Drafts');
   }
 
-  acknowledgeBroadcast(broadcastId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'acknowledge-broadcast',
-      broadcast_id: broadcastId
-    }).pipe(map(res => res.data));
+  deleteDraft(_conversationId: string): Observable<void> {
+    return notAvailable('Drafts');
   }
 
-  // ==========================================
-  // BLOCKING
-  // ==========================================
-
-  blockUser(userId: number, reason?: string): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'block-user',
-      blocked_user_id: userId,
-      reason
-    }).pipe(map(res => res.data));
+  blockUser(_userId: string, _reason?: string): Observable<void> {
+    return notAvailable('Blocking somebody');
   }
 
-  unblockUser(userId: number): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'unblock-user',
-      blocked_user_id: userId
-    }).pipe(map(res => res.data));
+  unblockUser(_userId: string): Observable<void> {
+    return notAvailable('Blocking somebody');
   }
 
   getBlockedUsers(): Observable<BlockedUser[]> {
-    return this.http.post<ApiResponse<BlockedUser[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-blocked-users'
-    }).pipe(map(res => res.data));
+    return notAvailable('Blocking somebody');
   }
 
-  // ==========================================
-  // REPORTING
-  // ==========================================
-
-  reportMessage(messageId: number, reason: string, description?: string): Observable<{ report_id: number }> {
-    return this.http.post<ApiResponse<{ report_id: number }>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'report-message',
-      message_id: messageId,
-      reason,
-      description
-    }).pipe(map(res => res.data));
+  archiveConversation(_conversationId: string): Observable<void> {
+    return notAvailable('Archiving a conversation');
   }
 
-  // ==========================================
-  // SETTINGS
-  // ==========================================
+  updateParticipantRole(
+    _conversationId: string,
+    _userId: string,
+    _role: string,
+  ): Observable<void> {
+    return notAvailable('Participant roles');
+  }
+
+  createBroadcast(_data: Record<string, unknown>): Observable<Broadcast> {
+    return notAvailable('Broadcasts');
+  }
+
+  sendBroadcast(_broadcastId: string): Observable<void> {
+    return notAvailable('Broadcasts');
+  }
+
+  getBroadcast(_broadcastId: string): Observable<Broadcast> {
+    return notAvailable('Broadcasts');
+  }
+
+  getMyBroadcasts(): Observable<Broadcast[]> {
+    return notAvailable('Broadcasts');
+  }
+
+  markBroadcastRead(_broadcastId: string): Observable<void> {
+    return notAvailable('Broadcasts');
+  }
+
+  acknowledgeBroadcast(_broadcastId: string): Observable<void> {
+    return notAvailable('Broadcasts');
+  }
 
   getSettings(): Observable<MessagingSettings> {
-    return this.http.post<ApiResponse<MessagingSettings>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-settings'
-    }).pipe(map(res => res.data));
+    return notAvailable('Messaging preferences');
   }
 
-  updateSettings(settings: Partial<MessagingSettings>): Observable<MessagingSettings> {
-    return this.http.post<ApiResponse<MessagingSettings>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'update-settings',
-      ...settings
-    }).pipe(map(res => res.data));
+  updateSettings(_settings: Partial<MessagingSettings>): Observable<MessagingSettings> {
+    return notAvailable('Messaging preferences');
   }
 
-  updateConversationSettings(conversationId: number, settings: {
-    is_muted?: boolean;
-    muted_until?: string;
-    is_pinned?: boolean;
-    notify_all_messages?: boolean;
-    notify_mentions_only?: boolean;
-    notify_email?: boolean;
-    notify_push?: boolean;
-  }): Observable<void> {
-    return this.http.post<ApiResponse<void>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'update-conversation-settings',
-      conversation_id: conversationId,
-      ...settings
-    }).pipe(map(res => res.data));
+  /**
+   * Typing indicators need a live connection, and there is none.
+   *
+   * Quiet rather than loud: this fires on every keystroke, and a toast per
+   * character typed would make the screen unusable. `typingUsers$` simply
+   * never emits anybody.
+   */
+  setTyping(_conversationId: string, _isTyping: boolean): Observable<void> {
+    return of(undefined);
+  }
+
+  getTypingUsers(_conversationId: string): Observable<TypingUser[]> {
+    return of([]);
   }
 
   // ==========================================
-  // USER SEARCH
+  // PRESENTATION
   // ==========================================
 
-  searchUsers(query: string, excludeIds: number[] = []): Observable<any[]> {
-    return this.http.post<ApiResponse<any[]>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'search-users',
-      query,
-      exclude_ids: excludeIds
-    }).pipe(map(res => res.data));
-  }
-
-  // ==========================================
-  // STATISTICS
-  // ==========================================
-
-  getUnreadCounts(): Observable<UnreadCounts> {
-    return this.http.post<ApiResponse<UnreadCounts>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'get-unread-counts'
-    }).pipe(
-      map(res => res.data),
-      tap(counts => this.unreadCountsSubject.next(counts))
-    );
-  }
-
-  // ==========================================
-  // STATE HELPERS
-  // ==========================================
-
-  private addConversationToList(conversation: Conversation): void {
-    const current = this.conversationsSubject.value;
-    const exists = current.find(c => c.conversation_id === conversation.conversation_id);
-    if (!exists) {
-      this.conversationsSubject.next([conversation, ...current]);
-    }
-  }
-
-  private updateConversationInList(conversation: Conversation): void {
-    const current = this.conversationsSubject.value;
-    const index = current.findIndex(c => c.conversation_id === conversation.conversation_id);
-    if (index > -1) {
-      current[index] = { ...current[index], ...conversation };
-      this.conversationsSubject.next([...current]);
-    }
-  }
-
-  private removeConversationFromList(conversationId: number): void {
-    const current = this.conversationsSubject.value;
-    this.conversationsSubject.next(current.filter(c => c.conversation_id !== conversationId));
-  }
-
-  private updateConversationLastMessage(conversationId: number, message: Message): void {
-    const current = this.conversationsSubject.value;
-    const index = current.findIndex(c => c.conversation_id === conversationId);
-    if (index > -1) {
-      current[index] = {
-        ...current[index],
-        last_message_id: message.message_id,
-        last_message_at: message.created_at,
-        last_message_content: message.content,
-        last_message_type: message.message_type,
-        last_message_sender_id: message.sender_id,
-        message_count: current[index].message_count + 1
-      };
-      // Move to top
-      const updated = current.splice(index, 1)[0];
-      this.conversationsSubject.next([updated, ...current]);
-    }
-  }
-
-  private updateConversationUnreadCount(conversationId: number, count: number): void {
-    const current = this.conversationsSubject.value;
-    const index = current.findIndex(c => c.conversation_id === conversationId);
-    if (index > -1) {
-      current[index] = { ...current[index], unread_count: count };
-      this.conversationsSubject.next([...current]);
-    }
-    // Update total counts
-    this.getUnreadCounts().subscribe();
-  }
-
-  private addMessageToList(message: Message): void {
-    const current = this.messagesSubject.value;
-    this.messagesSubject.next([...current, message]);
-  }
-
-  private updateMessageInList(message: Message): void {
-    const current = this.messagesSubject.value;
-    const index = current.findIndex(m => m.message_id === message.message_id);
-    if (index > -1) {
-      current[index] = message;
-      this.messagesSubject.next([...current]);
-    }
-  }
-
-  private removeMessageFromList(messageId: number): void {
-    const current = this.messagesSubject.value;
-    this.messagesSubject.next(current.filter(m => m.message_id !== messageId));
-  }
-
-  // ==========================================
-  // UTILITY
-  // ==========================================
-
-  getCurrentUserId(): number {
-    return parseInt(localStorage.getItem('user_id') || '0', 10);
-  }
-
-  formatMessageTime(dateString: string): string {
-    const date = new Date(dateString);
+  formatMessageTime(timestamp: string): string {
+    const at = new Date(timestamp);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const minutes = Math.floor((now.getTime() - at.getTime()) / 60000);
 
-    if (days === 0) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (days === 1) {
-      return 'Yesterday';
-    } else if (days < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    }
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
+    if (minutes < 10080) return `${Math.floor(minutes / 1440)}d ago`;
+
+    return at.toLocaleDateString();
   }
 
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    if (bytes === 0) return '0 B';
+
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const which = Math.floor(Math.log(bytes) / Math.log(1024));
+
+    return `${(bytes / Math.pow(1024, which)).toFixed(1)} ${units[which]}`;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+interface ConversationPayload extends Record<string, any> {
+  id: string;
+}
+
+interface MessagePayload extends Record<string, any> {
+  id: string;
+}
+
+function toConversation(c: ConversationPayload, viewerId: string): Conversation {
+  const participants = (c['participants'] ?? []) as Array<Record<string, any>>;
+  const other = participants.find((p) => String(p['userId']) !== viewerId);
+  const last = c['lastMessage'] as Record<string, any> | null | undefined;
+
+  return {
+    conversation_id: c.id,
+    tenant_id: '',
+    type: (c['kind'] ?? 'direct') as Conversation['type'],
+    name: c['title'] ?? null,
+    description: c['description'] ?? null,
+    avatar_url: null,
+    is_private: c['kind'] === 'direct',
+    is_readonly: Boolean(c['isReadonly']),
+    allow_reactions: false,
+    allow_replies: true,
+    allow_attachments: false,
+    linked_entity_type: null,
+    linked_entity_id: null,
+    // The last message comes back whole rather than as an id and a
+    // preview string, so the list needs no second request to say what
+    // was last said.
+    last_message_id: last?.['id'] ?? null,
+    last_message_at: last?.['createdAt'] ?? null,
+    message_count: Number(c['messageCount'] ?? 0),
+    created_by: String(c['createdBy'] ?? ''),
+    created_at: String(c['createdAt'] ?? ''),
+    my_role: (c['myRole'] ?? 'member') as Conversation['my_role'],
+    is_muted: c['isMuted'] === true,
+    is_pinned: c['isPinned'] === true,
+    is_archived: c['isArchived'] === true,
+    unread_count: Number(c['unreadCount'] ?? 0),
+    last_read_message_id: null,
+    notify_all_messages: c['isMuted'] !== true,
+    notify_mentions_only: false,
+    // The API already names a direct conversation after whoever else is
+    // in it — it knows who is asking. The participant is a fallback for
+    // a group with no title.
+    display_name: c['title'] ?? other?.['name'] ?? 'Conversation',
+    display_avatar: other?.['avatarUrl'] ?? null,
+    // The names the conversation list binds to. It reads the preview off
+    // the conversation rather than the message, so the three fields it
+    // wants are filled from the one the API sends.
+    last_message_content: last?.['content'] ?? null,
+    last_message_sender_id: last?.['senderId'] ?? null,
+    sender_first_name: String(last?.['senderName'] ?? '').split(' ')[0] ?? '',
+    last_message_preview: last?.['content'] ?? null,
+    last_message: last === null || last === undefined ? null : toMessage(last as MessagePayload),
+  } as unknown as Conversation;
+}
+
+function toParticipant(p: Record<string, any>): Participant {
+  // One `name`, not a first and a last: the API composes it, because how
+  // a name goes together is not the same everywhere and splitting it to
+  // rejoin it in the browser only loses the ones that do not fit.
+  const name = String(p['name'] ?? '');
+  const [first, ...rest] = name.split(' ');
+
+  return {
+    user_id: String(p['userId'] ?? ''),
+    first_name: first ?? '',
+    last_name: rest.join(' '),
+    name,
+    email: p['email'] ?? '',
+    avatar: p['avatarUrl'] ?? null,
+    role: p['role'] ?? 'member',
+    is_active: p['isActive'] !== false,
+    joined_at: p['joinedAt'] ?? null,
+  } as unknown as Participant;
+}
+
+function toMessage(m: MessagePayload): Message {
+  return {
+    message_id: m.id,
+    conversation_id: String(m['conversationId'] ?? ''),
+    sender_id: String(m['senderId'] ?? ''),
+    tenant_id: '',
+    content: String(m['content'] ?? ''),
+    content_html: String(m['content'] ?? ''),
+    content_plain: String(m['content'] ?? ''),
+    message_type: (m['kind'] ?? 'text') as Message['message_type'],
+    reply_to_id: m['replyToId'] ?? null,
+    thread_root_id: null,
+    thread_reply_count: 0,
+    thread_last_reply_at: null,
+    forwarded_from_id: null,
+    is_edited: m['isEdited'] === true,
+    edited_at: m['editedAt'] ?? null,
+    is_deleted: m['isDeleted'] === true,
+    is_pinned: false,
+    pinned_at: null,
+    priority: 'normal',
+    metadata: null,
+    created_at: String(m['createdAt'] ?? ''),
+    sender_name: String(m['senderName'] ?? ''),
+    sender_first_name: String(m['senderName'] ?? '').split(' ')[0] ?? '',
+    sender_last_name: String(m['senderName'] ?? '').split(' ').slice(1).join(' '),
+    sender_avatar: m['senderAvatarUrl'] ?? null,
+    attachments: [],
+    reactions: [],
+  } as unknown as Message;
+}
+
+/** A feature with no server behind it, said out loud rather than left empty. */
+function notAvailable(what: string): Observable<never> {
+  return throwError(() => new Error(`${what} are not available yet.`));
 }

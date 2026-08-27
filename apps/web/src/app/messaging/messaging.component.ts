@@ -94,7 +94,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
 
   // Forward
   forwardingMessage: Message | null = null;
-  forwardTargets: number[] = [];
+  forwardTargets: string[] = [];
 
   // Emoji
   commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🎉', '🔥', '✅', '👀'];
@@ -233,9 +233,9 @@ export class MessagingComponent implements OnInit, OnDestroy {
     // Subscribe to reactionUpdated$ observable
     this.messagingService.reactionUpdated$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(({ messageId, reactions }) => {
+      .subscribe(({ message_id, reactions }) => {
         // Update reactions in local message list
-        const message = this.messages.find(m => m.message_id === messageId);
+        const message = this.messages.find(m => m.message_id === message_id);
         if (message) {
           message.reactions = reactions;
         }
@@ -255,14 +255,23 @@ export class MessagingComponent implements OnInit, OnDestroy {
     }, 5000);
   }
 
+  /**
+   * Polls for anything said since the last poll.
+   *
+   * It used to ask for messages after the highest id it held, worked out
+   * with `Math.max` over the ids — which only means anything while ids are
+   * integers that increase. UUIDs do not, so the newest page is fetched and
+   * compared against what is already on screen.
+   */
   private checkForNewMessages(): void {
     if (!this.activeConversation || this.messages.length === 0) return;
 
-    const lastMessageId = Math.max(...this.messages.map(m => m.message_id));
-    this.messagingService.getMessages(this.activeConversation.conversation_id, { after_id: lastMessageId, limit: 50 })
+    const known = new Set(this.messages.map((m) => m.message_id));
+
+    this.messagingService.getMessages(this.activeConversation.conversation_id, { limit: 50 })
       .pipe(takeUntil(this.destroy$))
       .subscribe(newMessages => {
-        if (newMessages.length > 0) {
+        if (newMessages.some((m) => !known.has(m.message_id))) {
           this.scrollToBottom();
         }
       });
@@ -294,7 +303,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
   }
 
   loadBroadcasts(): void {
-    this.messagingService.getMyBroadcasts(true)
+    this.messagingService.getMyBroadcasts()
       .pipe(takeUntil(this.destroy$))
       .subscribe(broadcasts => {
         this.broadcasts = broadcasts;
@@ -347,10 +356,13 @@ export class MessagingComponent implements OnInit, OnDestroy {
   loadMoreMessages(): void {
     if (!this.activeConversation || this.loadingMoreMessages || !this.hasMoreMessages) return;
 
-    const firstMessageId = Math.min(...this.messages.map(m => m.message_id));
+    // The oldest message on screen, not the smallest id: ids are UUIDs
+    // and do not sort by age. The list is oldest-first, so it is the
+    // first one.
+    const oldest = this.messages[0]?.message_id;
     this.loadingMoreMessages = true;
 
-    this.messagingService.getMessages(this.activeConversation.conversation_id, { before_id: firstMessageId })
+    this.messagingService.getMessages(this.activeConversation.conversation_id, { before: oldest })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: msgs => {
@@ -619,7 +631,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
     this.forwardTargets = [];
   }
 
-  toggleForwardTarget(conversationId: number): void {
+  toggleForwardTarget(conversationId: string): void {
     const index = this.forwardTargets.indexOf(conversationId);
     if (index > -1) {
       this.forwardTargets.splice(index, 1);
@@ -1109,15 +1121,15 @@ export class MessagingComponent implements OnInit, OnDestroy {
     return (currentTime - prevTime) < 60000; // Within 1 minute
   }
 
-  trackByConversationId(_index: number, conversation: Conversation): number {
+  trackByConversationId(_index: number, conversation: Conversation): string {
     return conversation.conversation_id;
   }
 
-  trackByMessageId(_index: number, message: Message): number {
+  trackByMessageId(_index: number, message: Message): string {
     return message.message_id;
   }
 
-  trackByParticipantId(_index: number, participant: Participant): number {
+  trackByParticipantId(_index: number, participant: Participant): string {
     return participant.user_id;
   }
 

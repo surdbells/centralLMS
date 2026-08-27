@@ -1,10 +1,9 @@
 // shared/services/file-upload.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, from } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
-import { GlobalComponent } from '../global-component';
+import { Injectable, inject } from '@angular/core';
+import { Observable, forkJoin, throwError } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs/operators';
+import { MediaService } from '../services/media.service';
 
 export interface FileUploadResponse {
   success: boolean;
@@ -33,7 +32,20 @@ interface ApiResponse<T> {
   providedIn: 'root'
 })
 export class FileUploadService {
-  private uploadUrl = GlobalComponent.im_uploads;
+  /**
+   * Attachments go into the media library.
+   *
+   * There is no attachment table on a message — the schema is
+   * conversations, participants and messages — so a file sent in a
+   * conversation is stored the way every other file is, and the message
+   * carries its link. That is a real place for it to live rather than an
+   * upload endpoint writing into nothing.
+   *
+   * It also stops the credentials being posted in the form body: this used
+   * to append `token`, `user_id` and `tenant_id` from `localStorage` to
+   * every upload.
+   */
+  private readonly media = inject(MediaService);
   private maxFileSize = 10485760; // 10MB
   private allowedTypes = {
     images: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
@@ -45,32 +57,33 @@ export class FileUploadService {
     audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4']
   };
 
-  constructor(private http: HttpClient) {}
-
   /**
    * Upload single file for messaging attachments
    */
   uploadMessageAttachment(file: File): Observable<FileUploadResponse> {
-    // Validate file
     const validation = this.validateFile(file);
+
     if (!validation.valid) {
-      return from(Promise.reject({ error: validation.error }));
+      return throwError(() => new Error(validation.error ?? 'That file cannot be sent.'));
     }
 
-    const formData = new FormData();
-    formData.append('token', localStorage.getItem('token') || '');
-    formData.append('user_id', localStorage.getItem('user_id') || '');
-    formData.append('tenant_id', localStorage.getItem('tenant_id') || '');
-    formData.append('action', 'upload_message_attachment');
-    formData.append('file', file);
-    formData.append('upload_type', 'message');
-
-    return this.http.post<ApiResponse<FileUploadResponse>>(this.uploadUrl, formData).pipe(
-      map(response => response.data),
-      catchError(error => {
-        console.error('Upload error:', error);
-        throw error;
-      })
+    return this.media.upload(file, { title: file.name }).pipe(
+      // The upload reports progress as it goes; only the finished item is
+      // an answer to "where did the file go".
+      filter((progress) => progress.result !== undefined),
+      take(1),
+      // A link to a library file is a short-lived ticket rather than a
+      // permanent path, so that a URL pasted into a conversation does not
+      // become a way to read the file without being signed in.
+      switchMap((progress) => this.media.fileUrl(progress.result!).pipe(
+        map((url) => ({
+          success: true,
+          file_path: url,
+          file_name: progress.result!.title,
+          file_size: progress.result!.fileSize,
+          file_type: file.type,
+        })),
+      )),
     );
   }
 
@@ -78,39 +91,16 @@ export class FileUploadService {
    * Upload multiple files
    */
   uploadMessageAttachments(files: File[]): Observable<FileUploadResponse[]> {
-    const formData = new FormData();
-    formData.append('token', localStorage.getItem('token') || '');
-    formData.append('user_id', localStorage.getItem('user_id') || '');
-    formData.append('tenant_id', localStorage.getItem('tenant_id') || '');
-    formData.append('action', 'upload_message_attachments');
-    formData.append('upload_type', 'message');
+    const valid = files.filter((file) => this.validateFile(file).valid);
 
-    // Validate and add files
-    const validFiles: File[] = [];
-    for (const file of files) {
-      const validation = this.validateFile(file);
-      if (validation.valid) {
-        validFiles.push(file);
-      } else {
-        console.warn(`File ${file.name} skipped: ${validation.error}`);
-      }
+    if (valid.length === 0) {
+      return throwError(() => new Error('None of those files can be sent.'));
     }
 
-    if (validFiles.length === 0) {
-      return from(Promise.reject({ error: 'No valid files to upload' }));
-    }
-
-    validFiles.forEach((file, index) => {
-      formData.append(`files[${index}]`, file);
-    });
-
-    return this.http.post<ApiResponse<FileUploadResponse[]>>(this.uploadUrl, formData).pipe(
-      map(response => response.data),
-      catchError(error => {
-        console.error('Upload error:', error);
-        throw error;
-      })
-    );
+    // One upload each. The legacy posted them as `files[0]`, `files[1]`
+    // in a single request, which meant one oversized file failed all of
+    // them.
+    return forkJoin(valid.map((file) => this.uploadMessageAttachment(file)));
   }
 
   /**

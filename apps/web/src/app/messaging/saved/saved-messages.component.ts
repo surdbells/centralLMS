@@ -301,7 +301,7 @@ export class SavedMessagesComponent implements OnInit, OnDestroy {
     });
   }
 
-  trackById(index: number, item: SavedMessage): number {
+  trackById(index: number, item: SavedMessage): string {
     return item.message_id;
   }
 }
