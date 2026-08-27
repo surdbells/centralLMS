@@ -1,7 +1,9 @@
 // learner-live-training.component.scss
 
 // Variables
-$primary: #303234;
+// The organisation's colour when it has chosen one — see the admin
+// stylesheet for why this is a CSS variable rather than a Sass one.
+$primary: var(--brand-primary, #303234);
 $primary-light: #696969;
 $border-radius: 12px;
 $transition: all 0.2s ease;
@@ -356,10 +358,32 @@ $transition: all 0.2s ease;
 .btn-primary {
   background: $primary;
   border-color: $primary;
+  color: #fff;
 
-  &:hover {
-    background: darken($primary, 8%);
-    border-color: darken($primary, 8%);
+  &:hover,
+  &:focus,
+  &:active,
+  &.active,
+  &:first-child:active {
+    // Bootstrap's `:active` rule is more specific than a bare
+    // `.btn-primary`, so leaving these unstated let a pressed button
+    // flash Bootstrap's blue in the middle of a themed screen.
+    background: color-mix(in srgb, $primary 92%, black);
+    border-color: color-mix(in srgb, $primary 88%, black);
+    color: #fff;
+  }
+
+  &:focus,
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 25%, transparent);
+  }
+
+  &:disabled,
+  &.disabled {
+    background: $primary;
+    border-color: $primary;
+    color: #fff;
+    opacity: 0.55;
   }
 }
 

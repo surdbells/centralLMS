@@ -1,7 +1,16 @@
 // admin-live-training.component.scss
 
 // Variables
-$primary: #303234;
+//
+// The organisation's colour when it has chosen one, this grey when it
+// has not. `primary_color` has been in the settings catalogue since it
+// was written, describing itself as honoured by "the web app theme";
+// until now every stylesheet hardcoded its own and nothing honoured it.
+//
+// A CSS variable, not a Sass one, because the value arrives after this
+// file is compiled. That rules out `darken()` — see the button states
+// below, which mix towards black at run time instead.
+$primary: var(--brand-primary, #303234);
 $primary-light: #696969;
 $border-radius: 12px;
 $transition: all 0.2s ease;
@@ -371,7 +380,7 @@ $transition: all 0.2s ease;
 
   &:focus {
     border-color: $primary;
-    box-shadow: 0 0 0 3px rgba($primary, 0.15);
+    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 15%, transparent);
   }
 }
 
@@ -382,33 +391,67 @@ $transition: all 0.2s ease;
   }
 
   &:focus {
-    box-shadow: 0 0 0 3px rgba($primary, 0.15);
+    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 15%, transparent);
   }
 }
 
 // Buttons
+//
+// `.btn-primary` was declared twice, and the second declaration set
+// `color` to the same value as the first set `background`. Every primary
+// button on these screens was its own colour on its own colour: "Create
+// Training", "Save", "Add Session" — all of them blank rectangles with
+// the label invisible inside. The second block is an outline button that
+// was never renamed, and it is one below.
 .btn-primary {
   background: $primary;
   border-color: $primary;
+  color: #fff;
 
-  &:hover {
-    background: darken($primary, 8%);
-    border-color: darken($primary, 8%);
+  &:hover,
+  &:focus,
+  &:active,
+  &.active,
+  &:first-child:active {
+    // Bootstrap's own active state would repaint this its blue, so each
+    // state is stated rather than left to whichever rule loads last.
+    background: color-mix(in srgb, $primary 92%, black);
+    border-color: color-mix(in srgb, $primary 88%, black);
+    color: #fff;
   }
 
-  &:focus {
-    box-shadow: 0 0 0 3px rgba($primary, 0.25);
+  &:focus,
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 25%, transparent);
   }
-}
 
-.btn-primary {
-  color: $primary;
-  border-color: $primary;
-
-  &:hover {
+  &:disabled,
+  &.disabled {
     background: $primary;
     border-color: $primary;
     color: #fff;
+    opacity: 0.55;
+  }
+}
+
+.btn-outline-primary {
+  background: transparent;
+  color: $primary;
+  border-color: $primary;
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.active,
+  &:first-child:active {
+    background: $primary;
+    border-color: $primary;
+    color: #fff;
+  }
+
+  &:focus,
+  &:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 25%, transparent);
   }
 }
 
