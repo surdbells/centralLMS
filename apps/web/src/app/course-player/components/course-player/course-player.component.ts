@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../../core/utils/session-blob';
 // course-player/components/course-player/course-player.component.ts
 
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
@@ -111,8 +110,13 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      const courseId = +params['courseId'];
-      if (courseId) {
+      // A string, not `+params['courseId']`. Every link into this player —
+      // the dashboard, My Learning, a report row, a notification — passes a
+      // UUID, and `+uuid` is NaN, so the player asked the server for course
+      // "NaN" and showed a failure from every entry point it has.
+      const courseId = String(params['courseId'] ?? '');
+
+      if (courseId !== '') {
         this.loadCourse(courseId);
       }
     });
@@ -161,7 +165,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // COURSE LOADING
   // ==========================================
 
-  loadCourse(courseId: number): void {
+  loadCourse(courseId: string): void {
     this.loading = true;
     this.error = null;
 
@@ -169,11 +173,8 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.loading = false;
 
-        // Start session
-        this.playerService.startSession(
-          data.enrollment.enrollment_id,
-          data.course.course_id
-        ).subscribe();
+        // Begins counting time against whatever lesson is opened next.
+        this.playerService.startSession().subscribe();
 
         // Auto-select lesson
         this.autoSelectLesson(data);
@@ -193,9 +194,9 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
   private autoSelectLesson(data: CoursePlayerData): void {
     // Get resume position first
-    this.playerService.getResumePosition(data.enrollment.enrollment_id).subscribe({
+    this.playerService.getResumePosition().subscribe({
       next: (resume) => {
-        if (resume.lesson_id) {
+        if (resume !== null && resume.lesson_id) {
           // Find and select the lesson
           for (const module of data.modules) {
             const lesson = module.lessons.find(l => l.lesson_id === resume.lesson_id);
@@ -256,68 +257,42 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     console.log('[CoursePlayer] Initializing SCORM for lesson:', lesson.lesson_id);
 
     // Initialize SCORM adapter for tracking
-    this.scormAdapter.initialize(
-      this.courseData.enrollment.enrollment_id,
-      lesson.lesson_id
-    );
+    this.scormAdapter.initialize(this.courseData.course.course_id, lesson.lesson_id);
 
-    // Generate and cache the SCORM URL ONCE (prevents infinite loop)
-    this.currentScormUrl = this.buildScormUrl(lesson);
-
-    // Small delay to ensure everything is ready, then show iframe
-    setTimeout(() => {
-      this.scormReady = true;
-      console.log('[CoursePlayer] SCORM ready, iframe will load now');
-    }, 100);
+    // Asynchronous now: the content needs a ticket before an iframe can
+    // fetch it. `scormReady` flips when the URL arrives rather than after an
+    // arbitrary hundred milliseconds.
+    this.buildScormUrl(lesson);
   }
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    role: "superadmin",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
+  /**
+   * The package's own entry point, with a ticket that lets it be read.
+   *
+   * It used to be a URL to `${legacy}/user/scorm-wrapper` carrying the
+   * enrolment, the lesson, the user id and the user's name in the query
+   * string — a PHP page on a host that is being retired. The runtime the
+   * wrapper provided is `ScormAdapterService`, which is here and needs no
+   * page of its own; what remains is pointing an iframe at the content.
+   */
+  private buildScormUrl(lesson: Lesson): void {
+    this.currentScormUrl = null;
 
-  // Build SCORM wrapper URL (called once per lesson, cached)
-  private buildScormUrl(lesson: Lesson): SafeResourceUrl {
     if (!this.courseData || !lesson.content_url) {
-      return this.sanitizer.bypassSecurityTrustResourceUrl('');
+      return;
     }
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    const apiUrl = GlobalComponent.scormBaseURL;
-    const baseApiUrl = apiUrl.replace('/user', '');
-    const wrapperUrl = `${baseApiUrl}/user/scorm-wrapper`;
 
-    const params = new URLSearchParams({
-      content_url: lesson.content_url,
-      enrollment_id: this.courseData.enrollment.enrollment_id.toString(),
-      lesson_id: lesson.lesson_id.toString(),
-      user_id: this.user_session.id.toString(),
-      user_name: this.user_session.first_name + " " + this.user_session.last_name,
-    });
-
-    const fullUrl = `${wrapperUrl}?${params.toString()}`;
-    console.log('[CoursePlayer] SCORM wrapper URL:', fullUrl);
-
-    return this.sanitizer.bypassSecurityTrustResourceUrl(fullUrl);
+    this.playerService
+      .resolveContent(lesson.content_url)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (url) => {
+          this.currentScormUrl = url === null
+            ? null
+            : this.sanitizer.bypassSecurityTrustResourceUrl(url);
+          this.scormReady = this.currentScormUrl !== null;
+        },
+        error: (error: { message?: string }) =>
+          this.error_notification(error.message ?? 'That package could not be opened.'),
+      });
   }
 
   // Handle postMessage events from SCORM wrapper iframe
@@ -341,17 +316,12 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       case 'scorm_commit':
         // Save SCORM data to server (includes cmi data with scores, status, etc.)
         if (this.courseData && this.currentLesson) {
-          const enrollmentId = data.enrollmentId || this.courseData.enrollment.enrollment_id;
           const lessonId = data.lessonId || this.currentLesson.lesson_id;
-          const scorm_data = this.scormAdapter.getData();
-          console.log(scorm_data);
-
-
 
           this.playerService.saveScormData(
-            enrollmentId,
+            this.courseData.course.course_id,
             lessonId,
-            data.cmiData
+            data.cmiData ?? this.scormAdapter.getData(),
           ).subscribe({
             next: () => console.log('[CoursePlayer] SCORM data saved'),
             error: (err) => console.error('[CoursePlayer] Failed to save SCORM data:', err)
@@ -373,9 +343,9 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
         if (this.courseData && this.currentLesson) {
           // Save final SCORM data
           this.playerService.saveScormData(
-            this.courseData.enrollment.enrollment_id,
+            this.courseData.course.course_id,
             this.currentLesson.lesson_id,
-            data.cmiData || {}
+            data.cmiData || {},
           ).subscribe();
 
           // Mark complete only if passed or completed
@@ -396,10 +366,10 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
     // Call specific SCORM completion endpoint
     this.playerService.completeScormLesson(
-      this.courseData.enrollment.enrollment_id,
+      this.courseData.course.course_id,
       this.currentLesson.lesson_id,
       status,
-      score
+      score,
     ).subscribe({
       next: () => {
         console.log('[CoursePlayer] SCORM lesson marked complete');
@@ -458,9 +428,9 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.currentLesson.status = 'completed';
 
     this.playerService.completeLesson(
-      this.courseData.enrollment.enrollment_id,
+      this.courseData.course.course_id,
       this.currentLesson.lesson_id,
-      timeSpent
+      timeSpent,
     ).subscribe({
       next: (update) => {
         // Update module lesson status
@@ -495,17 +465,17 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   completeCourse(): void {
     if (!this.courseData) return;
 
-    this.playerService.completeCourse(
-      this.courseData.enrollment.enrollment_id
-    ).subscribe({
-      next: (result) => {
+    // The server marks an enrolment complete inside the transaction that
+    // records the last mandatory lesson, so there is nothing to declare —
+    // this reads back what it decided. The old endpoint let a client
+    // complete a course by asking.
+    this.playerService.completeCourse(this.courseData.course.course_id).subscribe({
+      next: () => {
         this.showCompletionModal = false;
-        this.showRatingModal = true;
-
-        if (result.certificate_id) {
-          // Show certificate info
-        }
-      }
+        this.router.navigate(['/courses', this.courseData!.course.course_id]);
+      },
+      error: (error: { message?: string }) =>
+        this.error_notification(error.message ?? 'That could not be finished.'),
     });
   }
 
@@ -577,15 +547,10 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   ): void {
     if (!this.courseData || !this.currentLesson) return;
 
-    this.playerService.trackContentInteraction(
-      this.courseData.course.course_id,
-      this.currentLesson.lesson_id,
-      type,
-      positionSeconds,
-      durationSeconds
-    ).subscribe({
-      error: (err) => console.error('[CoursePlayer] Failed to track interaction:', err)
-    });
+    // Per-interaction telemetry had a legacy endpoint and no table on
+    // this side. Kept as a call so the dozen places that fire it read
+    // the same, and it does nothing rather than erroring on every pause.
+    this.playerService.trackContentInteraction().subscribe();
   }
 
   togglePlay(): void {
@@ -620,17 +585,17 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // BOOKMARKS
   // ==========================================
 
+  /**
+   * Bookmarks have no server behind them.
+   *
+   * No table for them survived the migration. A note carries a position,
+   * which is the same thing with words attached, so that is where this
+   * sends somebody rather than silently dropping what they marked.
+   */
   addBookmark(): void {
     if (!this.courseData || !this.currentLesson) return;
 
-    const note = prompt('Add a note for this bookmark (optional):');
-
-    this.playerService.saveBookmark(
-      this.courseData.enrollment.enrollment_id,
-      this.currentLesson.lesson_id,
-      Math.floor(this.currentTime),
-      note || undefined
-    ).subscribe();
+    this.openNoteModal();
   }
 
   goToBookmark(position: number): void {
@@ -646,19 +611,16 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   loadNotes(): void {
     if (!this.courseData) return;
 
-    this.playerService.getNotes(this.courseData.enrollment.enrollment_id).subscribe({
-      next: (notes) => this.notes = notes
+    this.playerService.getNotes().subscribe({
+      next: (notes) => this.notes = notes,
     });
   }
 
-  loadLessonNotes(lessonId: number): void {
+  loadLessonNotes(lessonId: string): void {
     if (!this.courseData) return;
 
-    this.playerService.getNotes(
-      this.courseData.enrollment.enrollment_id,
-      lessonId
-    ).subscribe({
-      next: (notes) => this.notes = notes
+    this.playerService.getNotes(lessonId).subscribe({
+      next: (notes) => this.notes = notes,
     });
   }
 
@@ -682,10 +644,10 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     if (!this.courseData || !this.currentLesson || !this.newNote.trim()) return;
 
     this.playerService.saveNote(
-      this.courseData.enrollment.enrollment_id,
       this.currentLesson.lesson_id,
       this.newNote.trim(),
-      this.noteTimestamp
+      this.noteTimestamp,
+      this.currentLesson.title,
     ).subscribe({
       next: () => {
         this.newNote = '';
@@ -702,10 +664,10 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     if (!this.courseData || !this.currentLesson || !this.newNote.trim()) return;
 
     this.playerService.saveNote(
-      this.courseData.enrollment.enrollment_id,
       this.currentLesson.lesson_id,
       this.newNote.trim(),
-      Math.floor(this.currentTime)
+      Math.floor(this.currentTime),
+      this.currentLesson.title,
     ).subscribe({
       next: () => {
         this.newNote = '';
@@ -722,19 +684,17 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.userRating = rating;
   }
 
+  /**
+   * Rating a course has no server behind it either.
+   *
+   * `courses.rating` is a column the catalogue reads and nothing writes.
+   * Rather than post into the void, this says so and lets somebody leave.
+   */
   submitRating(): void {
     if (!this.courseData || this.userRating === 0) return;
 
-    this.playerService.rateCourse(
-      this.courseData.course.course_id,
-      this.userRating,
-      this.userReview
-    ).subscribe({
-      next: () => {
-        this.showRatingModal = false;
-        this.router.navigate(['/courses', this.courseData!.course.course_id]);
-      }
-    });
+    this.error_notification('Course ratings are not available yet.');
+    this.skipRating();
   }
 
   skipRating(): void {

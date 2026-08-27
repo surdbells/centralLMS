@@ -1,15 +1,26 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // course-player/services/scorm-adapter.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Subject, BehaviorSubject } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
-import {GlobalComponent} from '../../global-component';
+import { SessionStore } from '../../core/auth/session.store';
+import { CoursePlayerService } from './course-player.service';
 
 /**
  * SCORM 1.2 and SCORM 2004 API Adapter
- * Provides communication between SCORM content and the LMS
+ *
+ * The runtime a SCORM package looks for on `window` when it loads. It is
+ * here, in the application, rather than inside a `scorm-wrapper` PHP page on
+ * a host that is being retired — which is what the player used to point an
+ * iframe at, passing the enrolment, the lesson, the user id and the user's
+ * name in the query string.
+ *
+ * Committing goes through {@link CoursePlayerService}, so a SCORM lesson
+ * records progress the same way every other lesson does. The full CMI model
+ * is held here for the duration of the session and not sent: nothing reads
+ * it back, and a table to hold data nothing reads is storage for its own
+ * sake. What is sent is the part that decides anything — the status and the
+ * score.
  */
 
 export interface ScormData {
@@ -25,41 +36,18 @@ export interface ScormCommitResult {
   providedIn: 'root'
 })
 export class ScormAdapterService {
-  private apiUrl = GlobalComponent.coursePlayer;
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    role: "superadmin",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
+  private readonly session = inject(SessionStore);
+  private readonly player = inject(CoursePlayerService);
+
   // SCORM Data Store
   private cmiData: ScormData = {};
   private isDirty = false;
 
   // Context
-  private enrollmentId = 0;
-  private lessonId = 0;
-  private userId = 0;
-  private userName =" ";
-  private tenantId = 0;
+  private courseId = '';
+  private lessonId = '';
+  private userId = '';
+  private userName = ' ';
 
   // Auto-save
   private saveSubject = new Subject<void>();
@@ -73,7 +61,7 @@ export class ScormAdapterService {
   private completionSubject = new Subject<{ score?: number; status: string }>();
   completion$ = this.completionSubject.asObservable();
 
-  constructor(private http: HttpClient) {
+  constructor() {
     // Auto-save debounced
     this.saveSubject.pipe(
       debounceTime(2000)
@@ -81,24 +69,21 @@ export class ScormAdapterService {
 
     // Expose API immediately so SCORM content can find it when iframe loads
     this.exposeAPI();
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    console.log('[SCORM] API adapter initialized and exposed to window');
   }
 
   /**
    * Initialize SCORM session for a specific lesson
    */
-  initialize(enrollmentId: number, lessonId: number, existingData?: ScormData): boolean {
-    console.log('[SCORM] Initializing session for enrollment:', enrollmentId, 'lesson:', lessonId);
+  initialize(courseId: string, lessonId: string, existingData?: ScormData): boolean {
+    const signedIn = this.session.session();
 
-
-
-    this.enrollmentId = enrollmentId;
+    this.courseId = courseId;
     this.lessonId = lessonId;
-    this.userId = this.user_session.id;
-    this.tenantId = this.user_session.tenant_id;
-    this.userName = this.user_session.first_name + " " +  this.user_session.last_name;
+    // `cmi.student_id` and `cmi.student_name` are read by packages that
+    // print a name on a completion screen. They come from the session, not
+    // from a decoded blob the client could have edited.
+    this.userId = signedIn?.userId ?? '';
+    this.userName = signedIn?.email ?? '';
 
     // Initialize with default values
     this.cmiData = {
@@ -112,7 +97,7 @@ export class ScormAdapterService {
       'cmi.suspend_data': '',
       'cmi.core.exit': '',
       'cmi.core.entry': 'ab-initio',
-      'cmi.student_id': String(this.userId),
+      'cmi.student_id': this.userId,
       'cmi.student_name': this.userName,
       'cmi.core.credit': 'credit',
       'cmi.core.lesson_mode': 'normal',
@@ -143,8 +128,8 @@ export class ScormAdapterService {
     this.isInitialized = false;
     this.statusSubject.next('terminated');
     this.cmiData = {};
-    this.enrollmentId = 0;
-    this.lessonId = 0;
+    this.courseId = '';
+    this.lessonId = '';
     return true;
   }
 
@@ -260,27 +245,17 @@ export class ScormAdapterService {
    * Commit data to server
    */
   private commitData(): void {
-    if (!this.isDirty || !this.isInitialized || !this.enrollmentId || !this.lessonId) {
+    if (!this.isDirty || !this.isInitialized || this.courseId === '' || this.lessonId === '') {
       return;
     }
 
-    console.log('[SCORM] Committing data to server');
-
-    const auth = this.getAuthParams();
-
-    this.http.post<any>(`${this.apiUrl}?action=scorm-commit`, {
-      ...auth,
-      enrollment_id: this.enrollmentId,
-      lesson_id: this.lessonId,
-      scorm_data: this.cmiData
-    }).subscribe({
-      next: () => {
-        console.log('[SCORM] Data committed successfully');
-        this.isDirty = false;
-      },
-      error: (err) => {
-        console.error('[SCORM] Commit failed:', err);
-      }
+    this.player.saveScormData(this.courseId, this.lessonId, this.cmiData).subscribe({
+      next: () => (this.isDirty = false),
+      // Nothing on screen: a commit fires every couple of seconds while
+      // somebody works through a package, and a toast per failure would
+      // bury the lesson. The status change that matters is reported by the
+      // player, which does show a failure.
+      error: (err) => console.error('[SCORM] Commit failed:', err),
     });
   }
 
@@ -299,17 +274,6 @@ export class ScormAdapterService {
         score: score ? parseFloat(String(score)) : undefined
       });
     }
-  }
-
-  /**
-   * Get auth parameters
-   */
-  private getAuthParams(): { token: string; user_id: number; tenant_id: number } {
-    return {
-      token: localStorage.getItem('token') || '',
-      user_id: this.userId || parseInt(localStorage.getItem('user_id') || '0'),
-      tenant_id: this.tenantId || parseInt(localStorage.getItem('tenant_id') || '0')
-    };
   }
 
   /**

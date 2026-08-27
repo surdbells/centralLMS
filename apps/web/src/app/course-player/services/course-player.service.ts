@@ -1,12 +1,21 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // course-player/services/course-player.service.ts
 
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject, interval, Subscription } from 'rxjs';
-import { map, tap, takeUntil } from 'rxjs/operators';
-import {GlobalComponent} from '../../global-component';
-// Interfaces
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, Observable, Subject, Subscription, forkJoin, interval, of } from 'rxjs';
+import { map, switchMap, takeUntil, tap } from 'rxjs/operators';
+import { ApiClient, Endpoints } from '../../core/api';
+import { MediaService } from '../../services/media.service';
+
+// ---------------------------------------------------------------------------
+// What the player works with
+// ---------------------------------------------------------------------------
+//
+// Ids are strings. They used to be numbers, and the player took its course id
+// with `+params['courseId']` — which every caller in the application now feeds
+// a UUID, so it received NaN and asked the server for course "NaN". The player
+// has been unreachable from the dashboard, from My Learning, from a report and
+// from a notification, all four of which link to it.
+
 export interface CoursePlayerData {
   course: Course;
   enrollment: Enrollment;
@@ -18,21 +27,21 @@ export interface CoursePlayerData {
 }
 
 export interface Course {
-  course_id: number;
+  course_id: string;
   title: string;
   description: string;
   thumbnail_url: string;
   duration_minutes: number;
   difficulty_level: string;
   pass_mark: number;
-  certificate_template_id: number;
+  certificate_template_id: string | null;
   is_mandatory: boolean;
   category_name: string;
   instructor_name: string;
 }
 
 export interface Enrollment {
-  enrollment_id: number;
+  enrollment_id: string;
   status: 'not_started' | 'in_progress' | 'completed';
   progress_percentage: number;
   enrolled_at: string;
@@ -41,13 +50,13 @@ export interface Enrollment {
   due_date: string;
   time_spent_minutes: number;
   last_accessed_at: string;
-  last_lesson_id: number;
+  last_lesson_id: string | null;
   final_score: number;
   attempts: number;
 }
 
 export interface Module {
-  module_id: number;
+  module_id: string;
   title: string;
   description: string;
   sort_order: number;
@@ -59,12 +68,13 @@ export interface Module {
 }
 
 export interface Lesson {
-  lesson_id: number;
-  module_id: number;
+  lesson_id: string;
+  module_id: string;
   title: string;
   description: string;
-  content_type: 'video' | 'audio' | 'pdf' | 'scorm' | 'html' | 'quiz';
+  content_type: 'video' | 'audio' | 'pdf' | 'scorm' | 'html' | 'quiz' | 'text';
   content_url: string;
+  content_text: string;
   duration_minutes: number;
   sort_order: number;
   is_mandatory: boolean;
@@ -79,8 +89,8 @@ export interface Lesson {
 }
 
 export interface Assessment {
-  assessment_id: number;
-  module_id: number | null;
+  assessment_id: string;
+  module_id: string | null;
   title: string;
   description: string;
   assessment_type: 'quiz' | 'exam' | 'assignment';
@@ -97,8 +107,8 @@ export interface Assessment {
 }
 
 export interface Bookmark {
-  bookmark_id: number;
-  lesson_id: number;
+  bookmark_id: string;
+  lesson_id: string;
   position_seconds: number;
   note: string;
   created_at: string;
@@ -116,41 +126,20 @@ export interface CourseStats {
 }
 
 export interface Note {
-  note_id: number;
-  lesson_id: number;
+  note_id: string;
+  lesson_id: string;
+  title: string;
   content: string;
+  /** Where in the lesson it was taken. The template's name for it. */
   video_timestamp: number;
   is_pinned: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface QuizResult {
-  attempt_id: number;
-  score: number;
-  max_score: number;
-  percentage: number;
-  passed: boolean;
-  passing_score: number;
-  attempts_used: number;
-  max_attempts: number;
-  points_earned: number;
-  show_correct_answers: boolean;
-  results: QuestionResult[];
-}
-
-export interface QuestionResult {
-  question_id: number;
-  user_answer: any;
-  correct_answer: any;
-  is_correct: boolean;
-  points: number;
-  explanation?: string;
-}
-
 export interface QuizData {
   assessment: {
-    assessment_id: number;
+    assessment_id: string;
     title: string;
     description: string;
     assessment_type: 'quiz' | 'exam' | 'assignment';
@@ -168,7 +157,7 @@ export interface QuizData {
 }
 
 export interface QuizQuestion {
-  question_id: number;
+  question_id: string;
   question_text: string;
   question_type: 'single_choice' | 'multiple_choice' | 'true_false' | 'short_answer' | 'essay' | 'fill_blank';
   points: number;
@@ -177,58 +166,115 @@ export interface QuizQuestion {
 }
 
 export interface QuizQuestionOption {
-  option_id: number;
+  option_id: string;
   option_text: string;
   sequence_order: number;
 }
 
 export interface QuizAttemptStart {
-  attempt_id: number;
+  attempt_id: string;
   started_at: string;
   time_limit_minutes: number;
   questions: QuizQuestion[];
 }
 
+export interface QuestionResult {
+  question_id: string;
+  user_answer: unknown;
+  correct_answer: unknown;
+  is_correct: boolean;
+  points: number;
+  explanation?: string;
+}
+
+export interface QuizResult {
+  attempt_id: string;
+  score: number;
+  max_score: number;
+  percentage: number;
+  passed: boolean;
+  passing_score: number;
+  attempts_used: number;
+  max_attempts: number;
+  points_earned: number;
+  /**
+   * Whether the answer key may be shown.
+   *
+   * The assessment decides — `revealAnswers` — and it can depend on whether
+   * the deadline has passed or the attempts are used up. The client asks; it
+   * does not work it out, which is how an answer key leaks.
+   */
+  show_correct_answers: boolean;
+  results: QuestionResult[];
+}
 export interface ProgressUpdate {
   overall_progress: number;
   lessons_completed: number;
   total_lessons: number;
   points_earned?: number;
-  badges_earned?: any[];
+  badges_earned?: unknown[];
 }
 
 export interface ResumePosition {
-  lesson_id: number;
+  lesson_id: string;
   lesson_title: string;
   position: number;
   progress: number;
 }
 
-// API Response interface
-interface ApiResponse<T = any> {
-  response_code: number;
-  status: 'success' | 'error';
-  message: string;
-  data: T;
-}
-
+/**
+ * Everything the course player asks of the server.
+ *
+ * It used to ask one legacy endpoint, `GlobalComponent.coursePlayer`, with
+ * `?action=load|track|complete-lesson|…` and `token`, `user_id` and
+ * `tenant_id` read out of `atob(sessionStorage.SESSION)` and appended to every
+ * query string and body. Sixteen actions, one parameter apart, with the tenant
+ * supplied by the client.
+ *
+ * Four things worth naming:
+ *
+ *  1. **The player was unreachable.** It read its course id with
+ *     `+params['courseId']`, and every link into it — the learner dashboard,
+ *     My Learning, a report row, a notification — now passes a UUID. `+uuid`
+ *     is NaN. Ids are strings here, throughout.
+ *  2. **A course was one request; it is now two, in parallel.** The outline
+ *     (`/courses/{id}/outline`) says what the course contains; the enrolment
+ *     (`/me/enrollments/{id}`) says how far this person has got. Merging them
+ *     on the client is what lets the same outline serve an author previewing
+ *     and a learner working, without a second server-side assembly of the
+ *     same thing that drifts from the first.
+ *  3. **Sessions are gone, and nothing is lost.** `start-session`/`end-session`
+ *     existed to hold a row that time was accumulated against. Time is now an
+ *     increment sent with progress, which is one fewer thing to leak when a
+ *     browser is closed mid-lesson — the legacy's open sessions were never
+ *     closed by anything.
+ *  4. **Bookmarks, ratings and SCORM runtime data have no server.** No table
+ *     for any of them survived the migration, and the endpoints they called
+ *     are gone. Rather than fail silently — which is what a request to a
+ *     retired host does — each says so. The SCORM *outcome* (status, score)
+ *     is real and is recorded as lesson progress, which is the part that
+ *     decides whether somebody has completed the course.
+ */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CoursePlayerService {
-  private apiUrl = GlobalComponent.coursePlayer;
+  private readonly api = inject(ApiClient);
+  private readonly media = inject(MediaService);
 
   // State
   private courseDataSubject = new BehaviorSubject<CoursePlayerData | null>(null);
   private currentLessonSubject = new BehaviorSubject<Lesson | null>(null);
   private loadingSubject = new BehaviorSubject<boolean>(false);
-  private sessionIdSubject = new BehaviorSubject<number | null>(null);
 
   // Tracking
   private trackingInterval: Subscription | null = null;
-  private sessionStartTime: Date | null = null;
   private lessonStartTime: Date | null = null;
   private currentVideoPosition = 0;
+
+  /** Seconds already reported for this lesson, so time is sent once. */
+  private reportedSeconds = 0;
+
   private destroy$ = new Subject<void>();
 
   // Observables
@@ -236,85 +282,25 @@ export class CoursePlayerService {
   currentLesson$ = this.currentLessonSubject.asObservable();
   loading$ = this.loadingSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
-
-  // ==========================================
-  // AUTH HELPERS
-  // ==========================================
-
-  private getAuthParams(): { token: string; user_id: number; tenant_id: number } {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    return {
-      token: this.user_session.token,
-      user_id: this.user_session.id,
-      tenant_id: this.user_session.tenant_id,
-    };
-  }
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    role: "superadmin",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-  private buildParams(action: string, additionalParams?: Record<string, any>): HttpParams {
-    const auth = this.getAuthParams();
-
-    let params = new HttpParams()
-      .set('action', action)
-      .set('token', auth.token)
-      .set('user_id', auth.user_id)
-      .set('tenant_id', auth.tenant_id);
-
-    if (additionalParams) {
-      Object.entries(additionalParams).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params = params.set(key, String(value));
-        }
-      });
-    }
-
-    return params;
-  }
-
-  private buildBody(data: Record<string, any>): Record<string, any> {
-    const auth = this.getAuthParams();
-    return { ...auth, ...data };
-  }
-
   // ==========================================
   // COURSE LOADING
   // ==========================================
 
-  loadCourse(courseId: number): Observable<CoursePlayerData> {
+  loadCourse(courseId: string): Observable<CoursePlayerData> {
     this.loadingSubject.next(true);
 
-    const params = this.buildParams('load', { course_id: courseId });
-
-    return this.http.get<ApiResponse<CoursePlayerData>>(this.apiUrl, { params }).pipe(
-      map(response => response.data),
-      tap(data => {
+    return forkJoin({
+      outline: this.api.get<OutlinePayload>(Endpoints.courses.outline(courseId)),
+      mine: this.api.get<MyProgressPayload>(Endpoints.me.course(courseId)),
+      assessments: this.api
+        .getPaged<AssessmentPayload>(Endpoints.assessments.list, { courseId, perPage: 100 })
+        .pipe(map((page) => page.items)),
+    }).pipe(
+      map(({ outline, mine, assessments }) => assemble(outline, mine, assessments)),
+      tap((data) => {
         this.courseDataSubject.next(data);
         this.loadingSubject.next(false);
-      })
+      }),
     );
   }
 
@@ -322,44 +308,30 @@ export class CoursePlayerService {
   // SESSION MANAGEMENT
   // ==========================================
 
-  startSession(enrollmentId: number, courseId: number): Observable<number> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      course_id: courseId
-    });
+  /**
+   * Starts counting time against the lesson somebody is on.
+   *
+   * There is no session row on the server any more, so this takes no ids and
+   * asks for nothing. The signature is kept because the component calls it on
+   * open and the heartbeat it starts is the real work.
+   */
+  startSession(): Observable<void> {
+    this.startTrackingHeartbeat();
 
-    return this.http.post<ApiResponse<{ session_id: number }>>(
-      `${this.apiUrl}?action=start-session`,
-      body
-    ).pipe(
-      map(response => response.data.session_id),
-      tap(sessionId => {
-        this.sessionIdSubject.next(sessionId);
-        this.sessionStartTime = new Date();
-        this.startTrackingHeartbeat();
-      })
-    );
+    return of(undefined);
   }
 
+  /** Sends whatever time has accrued, and stops counting. */
   endSession(): Observable<void> {
-    const sessionId = this.sessionIdSubject.getValue();
-    if (!sessionId) {
-      return new Observable(observer => observer.complete());
-    }
-
     this.stopTrackingHeartbeat();
 
-    const body = this.buildBody({ session_id: sessionId });
+    const pending = this.elapsedSeconds();
 
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=end-session`,
-      body
-    ).pipe(
-      map(() => {
-        this.sessionIdSubject.next(null);
-        this.sessionStartTime = null;
-      })
-    );
+    if (pending <= 0) {
+      return of(undefined);
+    }
+
+    return this.sendHeartbeat().pipe(map(() => undefined));
   }
 
   // ==========================================
@@ -369,10 +341,9 @@ export class CoursePlayerService {
   private startTrackingHeartbeat(): void {
     this.stopTrackingHeartbeat();
 
-    // Send heartbeat every 30 seconds
     this.trackingInterval = interval(30000)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.sendHeartbeat());
+      .subscribe(() => this.sendHeartbeat().subscribe({ error: () => undefined }));
   }
 
   private stopTrackingHeartbeat(): void {
@@ -382,59 +353,68 @@ export class CoursePlayerService {
     }
   }
 
-  private sendHeartbeat(): void {
-    const courseData = this.courseDataSubject.getValue();
-    const currentLesson = this.currentLessonSubject.getValue();
-    const sessionId = this.sessionIdSubject.getValue();
+  /** Seconds on this lesson that have not been reported yet. */
+  private elapsedSeconds(): number {
+    if (this.lessonStartTime === null) {
+      return 0;
+    }
 
-    if (!courseData || !currentLesson) return;
+    const total = Math.floor((Date.now() - this.lessonStartTime.getTime()) / 1000);
 
-    const timeSpent = this.lessonStartTime
-      ? Math.floor((new Date().getTime() - this.lessonStartTime.getTime()) / 1000)
-      : 0;
-
-    this.trackProgress(
-      courseData.enrollment.enrollment_id,
-      currentLesson.lesson_id,
-      sessionId || 0,
-      currentLesson.progress,
-      timeSpent,
-      this.currentVideoPosition
-    ).subscribe();
+    return Math.max(0, total - this.reportedSeconds);
   }
 
-  trackProgress(
-    enrollmentId: number,
-    lessonId: number,
-    sessionId: number,
-    progress: number,
-    timeSpent: number,
-    videoPosition: number
-  ): Observable<ProgressUpdate> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      session_id: sessionId,
-      progress,
-      time_spent: timeSpent,
-      video_position: videoPosition
-    });
+  private sendHeartbeat(): Observable<ProgressUpdate | null> {
+    const courseData = this.courseDataSubject.getValue();
+    const currentLesson = this.currentLessonSubject.getValue();
 
-    return this.http.post<ApiResponse<ProgressUpdate>>(
-      `${this.apiUrl}?action=track`,
-      body
-    ).pipe(
-      map(response => response.data),
-      tap(update => {
-        // Update local state
-        const courseData = this.courseDataSubject.getValue();
-        if (courseData) {
-          courseData.enrollment.progress_percentage = update.overall_progress;
-          courseData.stats.completed_lessons = update.lessons_completed;
-          this.courseDataSubject.next({ ...courseData });
-        }
-      })
+    if (courseData === null || currentLesson === null) {
+      return of(null);
+    }
+
+    const seconds = this.elapsedSeconds();
+
+    if (seconds <= 0) {
+      return of(null);
+    }
+
+    this.reportedSeconds += seconds;
+
+    return this.trackProgress(
+      courseData.course.course_id,
+      currentLesson.lesson_id,
+      currentLesson.progress,
+      seconds,
+      this.currentVideoPosition,
     );
+  }
+
+  /**
+   * Records where somebody has got to.
+   *
+   * `secondsSpent` is an increment rather than a total — the server adds it —
+   * so two tabs open on the same lesson do not each overwrite the other's
+   * total with their own.
+   */
+  trackProgress(
+    courseId: string,
+    lessonId: string,
+    progress: number,
+    secondsSpent: number,
+    positionSeconds: number,
+    score?: number,
+  ): Observable<ProgressUpdate> {
+    return this.api
+      .put<ProgressPayload>(Endpoints.me.recordProgress(courseId, lessonId), {
+        progressPercentage: progress,
+        secondsSpent,
+        positionSeconds,
+        score,
+      })
+      .pipe(
+        map(toProgressUpdate),
+        tap((update) => this.applyProgress(update)),
+      );
   }
 
   updateVideoPosition(position: number): void {
@@ -446,60 +426,80 @@ export class CoursePlayerService {
   // ==========================================
 
   selectLesson(lesson: Lesson): void {
-    // Send heartbeat for previous lesson
-    this.sendHeartbeat();
+    // Whatever time is owed for the lesson being left.
+    this.sendHeartbeat().subscribe({ error: () => undefined });
 
-    // Reset lesson tracking
     this.lessonStartTime = new Date();
+    this.reportedSeconds = 0;
     this.currentVideoPosition = lesson.last_position || 0;
 
     this.currentLessonSubject.next(lesson);
   }
 
   completeLesson(
-    enrollmentId: number,
-    lessonId: number,
+    courseId: string,
+    lessonId: string,
     timeSpent: number,
-    score?: number
+    score?: number,
   ): Observable<ProgressUpdate> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      time_spent: timeSpent,
-      score
-    });
-
-    return this.http.post<ApiResponse<ProgressUpdate>>(
-      `${this.apiUrl}?action=complete-lesson`,
-      body
-    ).pipe(
-      map(response => response.data),
-      tap(update => {
-        // Update lesson status in local state
-        const courseData = this.courseDataSubject.getValue();
-        if (courseData) {
-          courseData.modules.forEach(module => {
-            const lesson = module.lessons.find(l => l.lesson_id === lessonId);
-            if (lesson) {
-              lesson.status = 'completed';
-              lesson.progress = 100;
-              module.completed_lessons++;
-            }
-          });
-          courseData.enrollment.progress_percentage = update.overall_progress;
-          courseData.stats.completed_lessons = update.lessons_completed;
-          this.courseDataSubject.next({ ...courseData });
-        }
-
-        // Update current lesson
-        const currentLesson = this.currentLessonSubject.getValue();
-        if (currentLesson && currentLesson.lesson_id === lessonId) {
-          currentLesson.status = 'completed';
-          currentLesson.progress = 100;
-          this.currentLessonSubject.next({ ...currentLesson });
-        }
+    return this.api
+      .put<ProgressPayload>(Endpoints.me.recordProgress(courseId, lessonId), {
+        completed: true,
+        secondsSpent: timeSpent,
+        score,
       })
+      .pipe(
+        map(toProgressUpdate),
+        tap((update) => {
+          const courseData = this.courseDataSubject.getValue();
+
+          if (courseData) {
+            courseData.modules.forEach((module) => {
+              const lesson = module.lessons.find((l) => l.lesson_id === lessonId);
+
+              if (lesson && lesson.status !== 'completed') {
+                lesson.status = 'completed';
+                lesson.progress = 100;
+                module.completed_lessons++;
+              }
+            });
+          }
+
+          this.applyProgress(update);
+
+          const currentLesson = this.currentLessonSubject.getValue();
+
+          if (currentLesson && currentLesson.lesson_id === lessonId) {
+            currentLesson.status = 'completed';
+            currentLesson.progress = 100;
+            this.currentLessonSubject.next({ ...currentLesson });
+          }
+        }),
+      );
+  }
+
+  private applyProgress(update: ProgressUpdate): void {
+    const courseData = this.courseDataSubject.getValue();
+
+    if (courseData === null) {
+      return;
+    }
+
+    // Counted from the outline rather than taken from the response: the
+    // server returns the enrolment's percentage, and how many lessons that
+    // is depends on the outline, which is here.
+    const completed = courseData.modules.reduce(
+      (total, module) => total + module.lessons.filter((l) => l.status === 'completed').length,
+      0,
     );
+
+    update.lessons_completed = completed;
+    update.total_lessons = courseData.stats.total_lessons;
+
+    courseData.enrollment.progress_percentage = update.overall_progress;
+    courseData.stats.completed_lessons = completed;
+    courseData.stats.completion_percentage = update.overall_progress;
+    this.courseDataSubject.next({ ...courseData });
   }
 
   getNextLesson(): Lesson | null {
@@ -509,9 +509,11 @@ export class CoursePlayerService {
     if (!courseData || !currentLesson) return null;
 
     let foundCurrent = false;
+
     for (const module of courseData.modules) {
       for (const lesson of module.lessons) {
         if (foundCurrent) return lesson;
+
         if (lesson.lesson_id === currentLesson.lesson_id) {
           foundCurrent = true;
         }
@@ -528,11 +530,13 @@ export class CoursePlayerService {
     if (!courseData || !currentLesson) return null;
 
     let previousLesson: Lesson | null = null;
+
     for (const module of courseData.modules) {
       for (const lesson of module.lessons) {
         if (lesson.lesson_id === currentLesson.lesson_id) {
           return previousLesson;
         }
+
         previousLesson = lesson;
       }
     }
@@ -540,59 +544,16 @@ export class CoursePlayerService {
     return null;
   }
 
-  // ==========================================
-  // COURSE COMPLETION
-  // ==========================================
-
-  completeCourse(enrollmentId: number, finalScore?: number): Observable<any> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      final_score: finalScore
-    });
-
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=complete-course`,
-      body
-    ).pipe(map(response => response.data));
-  }
-
-  // ==========================================
-  // BOOKMARKS
-  // ==========================================
-
-  saveBookmark(
-    enrollmentId: number,
-    lessonId: number,
-    position: number,
-    note?: string
-  ): Observable<number> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      position,
-      note
-    });
-
-    return this.http.post<ApiResponse<{ bookmark_id: number }>>(
-      `${this.apiUrl}?action=bookmark`,
-      body
-    ).pipe(
-      map(response => response.data.bookmark_id),
-      tap(bookmarkId => {
-        // Add to local state
-        const courseData = this.courseDataSubject.getValue();
-        if (courseData) {
-          courseData.bookmarks.unshift({
-            bookmark_id: bookmarkId,
-            lesson_id: lessonId,
-            position_seconds: position,
-            note: note || '',
-            created_at: new Date().toISOString()
-          });
-          this.courseDataSubject.next({ ...courseData });
-        }
-      })
-    );
+  /**
+   * Finishing the course.
+   *
+   * The server decides this: the enrolment is marked complete when the last
+   * mandatory lesson is, inside the same transaction that records it. There is
+   * nothing left for the client to declare, so this reloads rather than
+   * asserts — the old endpoint let a client mark a course complete by asking.
+   */
+  completeCourse(courseId: string): Observable<CoursePlayerData> {
+    return this.loadCourse(courseId);
   }
 
   // ==========================================
@@ -600,37 +561,25 @@ export class CoursePlayerService {
   // ==========================================
 
   saveNote(
-    enrollmentId: number,
-    lessonId: number,
+    lessonId: string,
     content: string,
-    timestamp: number = 0,
-    isPinned: boolean = false
-  ): Observable<number> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      content,
-      timestamp,
-      is_pinned: isPinned
-    });
-
-    return this.http.post<ApiResponse<{ note_id: number }>>(
-      `${this.apiUrl}?action=save-note`,
-      body
-    ).pipe(map(response => response.data.note_id));
+    positionSeconds?: number,
+    title?: string,
+  ): Observable<string> {
+    return this.api
+      .post<{ id: string }>(Endpoints.notes.create, {
+        lessonId,
+        title: title ?? '',
+        content,
+        positionSeconds: positionSeconds ?? null,
+      })
+      .pipe(map((note) => note.id));
   }
 
-  getNotes(enrollmentId: number, lessonId?: number): Observable<Note[]> {
-    const additionalParams: Record<string, any> = { enrollment_id: enrollmentId };
-    if (lessonId) {
-      additionalParams['lesson_id'] = lessonId;
-    }
-
-    const params = this.buildParams('get-notes', additionalParams);
-
-    return this.http.get<ApiResponse<Note[]>>(this.apiUrl, { params }).pipe(
-      map(response => response.data)
-    );
+  getNotes(lessonId?: string): Observable<Note[]> {
+    return this.api
+      .getPaged<NotePayload>(Endpoints.notes.list, { lessonId, perPage: 100 })
+      .pipe(map((page) => page.items.map(toNote)));
   }
 
   // ==========================================
@@ -638,98 +587,51 @@ export class CoursePlayerService {
   // ==========================================
 
   /**
-   * Load quiz/assessments question-banks
+   * The paper, and where this person stands on it.
+   *
+   * One request rather than two: starting an attempt returns the questions,
+   * and asking for a paper the learner is not going to sit is how the legacy
+   * ended up with abandoned attempt rows.
    */
-  loadQuiz(assessmentId: number): Observable<QuizData> {
-    const params = this.buildParams('load-quiz', { assessment_id: assessmentId });
+  loadQuiz(assessmentId: string): Observable<QuizData> {
+    return this.api
+      .get<AssessmentPayload>(Endpoints.assessments.show(assessmentId))
+      .pipe(map((assessment) => ({
+        assessment: toQuizAssessment(assessment),
+        questions: [],
+        attempts_used: assessment.attemptsUsed ?? 0,
+        best_score: assessment.bestScore ?? 0,
+        can_attempt:
+          assessment.maxAttempts === null
+          || (assessment.attemptsUsed ?? 0) < assessment.maxAttempts,
+      })));
+  }
 
-    return this.http.get<ApiResponse<QuizData>>(this.apiUrl, { params }).pipe(
-      map(response => response.data)
-    );
+  startQuizAttempt(assessmentId: string): Observable<QuizAttemptStart> {
+    return this.api
+      .post<AttemptPaper>(Endpoints.attempts.start(assessmentId), {})
+      .pipe(map(toAttemptStart));
   }
 
   /**
-   * Start quiz attempt
+   * Answers first, then submit.
+   *
+   * The API takes one answer at a time, deliberately: an attempt interrupted
+   * halfway keeps what was already put down, which a single all-or-nothing
+   * submission cannot do.
    */
-  startQuizAttempt(enrollmentId: number, assessmentId: number): Observable<QuizAttemptStart> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      assessment_id: assessmentId
-    });
-
-    return this.http.post<ApiResponse<QuizAttemptStart>>(
-      `${this.apiUrl}?action=start-quiz`,
-      body
-    ).pipe(map(response => response.data));
-  }
-
   submitQuiz(
-    enrollmentId: number,
-    assessmentId: number,
-    attemptId: number,
-    answers: Record<number, any>,
-    timeTaken: number
+    attemptId: string,
+    answers: Array<{ question_id: string; answer: unknown }>,
   ): Observable<QuizResult> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      assessment_id: assessmentId,
-      attempt_id: attemptId,
-      answers,
-      time_taken: timeTaken
-    });
+    const saved = answers.length === 0
+      ? of([])
+      : forkJoin(answers.map((a) =>
+        this.api.put(Endpoints.attempts.answer(attemptId, a.question_id), { answer: a.answer })));
 
-    return this.http.post<ApiResponse<QuizResult>>(
-      `${this.apiUrl}?action=submit-quiz`,
-      body
-    ).pipe(map(response => response.data));
-  }
-
-  // ==========================================
-  // INTERACTIONS
-  // ==========================================
-
-  logInteraction(
-    enrollmentId: number,
-    lessonId: number,
-    type: string,
-    data: any = {}
-  ): Observable<void> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      interaction_type: type,
-      interaction_data: data
-    });
-
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=log-interaction`,
-      body
-    ).pipe(map(() => {}));
-  }
-
-  // ==========================================
-  // RATING
-  // ==========================================
-
-  rateCourse(courseId: number, rating: number, review?: string): Observable<any> {
-    const body = this.buildBody({
-      course_id: courseId,
-      rating,
-      review
-    });
-
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=rate`,
-      body
-    ).pipe(
-      map(response => response.data),
-      tap(() => {
-        const courseData = this.courseDataSubject.getValue();
-        if (courseData) {
-          courseData.user_rating = { rating, review: review || '' };
-          this.courseDataSubject.next({ ...courseData });
-        }
-      })
+    return saved.pipe(
+      switchMap(() => this.api.post<AttemptResult>(Endpoints.attempts.submit(attemptId), {})),
+      map(toQuizResult),
     );
   }
 
@@ -737,83 +639,118 @@ export class CoursePlayerService {
   // RESUME
   // ==========================================
 
-  getResumePosition(enrollmentId: number): Observable<ResumePosition> {
-    const params = this.buildParams('resume', { enrollment_id: enrollmentId });
+  getResumePosition(): Observable<ResumePosition | null> {
+    const courseData = this.courseDataSubject.getValue();
 
-    return this.http.get<ApiResponse<ResumePosition>>(this.apiUrl, { params }).pipe(
-      map(response => response.data)
-    );
+    if (courseData === null) {
+      return of(null);
+    }
+
+    const lastId = courseData.enrollment.last_lesson_id;
+
+    if (lastId === null) {
+      return of(null);
+    }
+
+    // Already on the client: the enrolment names the last lesson touched and
+    // the outline holds its position. Asking the server for something both
+    // halves of the answer are already here for is a round trip for nothing.
+    for (const module of courseData.modules) {
+      for (const lesson of module.lessons) {
+        if (lesson.lesson_id === lastId) {
+          return of({
+            lesson_id: lesson.lesson_id,
+            lesson_title: lesson.title,
+            position: lesson.last_position,
+            progress: lesson.progress,
+          });
+        }
+      }
+    }
+
+    return of(null);
   }
 
   // ==========================================
   // SCORM
   // ==========================================
 
+  /**
+   * The part of a SCORM package's runtime that outlives the tab.
+   *
+   * Only the outcome. The full CMI model — every `cmi.interactions.n.id`, every
+   * suspend blob — had a legacy endpoint and no table on this side, and
+   * inventing one to hold data nothing reads would be storage for its own
+   * sake. What decides whether somebody has completed a course is the lesson
+   * status and the score, and those are lesson progress like any other.
+   */
   saveScormData(
-    enrollmentId: number,
-    lessonId: number,
-    scormData: Record<string, any>
+    courseId: string,
+    lessonId: string,
+    scormData: Record<string, unknown>,
   ): Observable<void> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      scorm_data: scormData
-    });
+    const score = Number(
+      scormData['cmi.score.raw'] ?? scormData['cmi.core.score.raw'] ?? NaN,
+    );
 
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=scorm-commit`,
-      body
-    ).pipe(map(() => {}));
+    const location = Number(
+      scormData['cmi.location'] ?? scormData['cmi.core.lesson_location'] ?? 0,
+    );
+
+    return this.trackProgress(
+      courseId,
+      lessonId,
+      progressFromScorm(scormData),
+      0,
+      Number.isFinite(location) ? location : 0,
+      Number.isFinite(score) ? score : undefined,
+    ).pipe(map(() => undefined));
   }
 
-  /**
-   * Complete SCORM lesson with status and score
-   */
   completeScormLesson(
-    enrollmentId: number,
-    lessonId: number,
+    courseId: string,
+    lessonId: string,
     status: string,
-    score?: number
+    score?: number,
   ): Observable<void> {
-    const body = this.buildBody({
-      enrollment_id: enrollmentId,
-      lesson_id: lessonId,
-      scorm_status: status,
-      scorm_score: score
-    });
+    const passed = ['completed', 'passed'].includes(status.toLowerCase());
 
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=complete-scorm-lesson`,
-      body
-    ).pipe(map(() => {}));
+    if (!passed) {
+      // "incomplete", "browsed", "failed" — real outcomes, and none of them
+      // finish the lesson. Recording them as completion is how a SCORM course
+      // reports everybody as trained.
+      return this.trackProgress(courseId, lessonId, 50, 0, 0, score).pipe(map(() => undefined));
+    }
+
+    return this.completeLesson(courseId, lessonId, 0, score).pipe(map(() => undefined));
   }
 
   // ==========================================
-  // CONTENT INTERACTION TRACKING
+  // NOT AVAILABLE
   // ==========================================
+  //
+  // Bookmarks, ratings and per-interaction telemetry each had a legacy action
+  // and no table that survived the migration. They fail loudly rather than
+  // resolving to nothing: a bookmark that silently does not save is worse than
+  // one that says it cannot.
 
-  /**
-   * Track content interaction (video play/pause, document view, etc.)
-   */
-  trackContentInteraction(
-    courseId: number,
-    lessonId: number,
-    interactionType: 'video_play' | 'video_pause' | 'video_complete' | 'document_view' | 'document_download' | 'scorm_launch',
-    positionSeconds?: number,
-    durationSeconds?: number
-  ): Observable<void> {
-    const body = this.buildBody({
-      course_id: courseId,
-      lesson_id: lessonId,
-      interaction_type: interactionType,
-      position_seconds: positionSeconds,
-      duration_seconds: durationSeconds
-    });
+  saveBookmark(): Observable<never> {
+    return notAvailable('Bookmarks');
+  }
 
-    return this.http.post<ApiResponse>(
-      `${this.apiUrl}?action=track-content-interaction`,
-      body
-    ).pipe(map(() => {}));
+  rateCourse(): Observable<never> {
+    return notAvailable('Course ratings');
+  }
+
+  logInteraction(): Observable<void> {
+    // The exception: this was fire-and-forget telemetry nobody read, called
+    // from a dozen places, and failing it loudly would put an error on screen
+    // every time somebody pressed pause.
+    return of(undefined);
+  }
+
+  trackContentInteraction(): Observable<void> {
+    return of(undefined);
   }
 
   // ==========================================
@@ -825,21 +762,347 @@ export class CoursePlayerService {
     this.stopTrackingHeartbeat();
     this.courseDataSubject.next(null);
     this.currentLessonSubject.next(null);
-    this.sessionIdSubject.next(null);
+    this.lessonStartTime = null;
+    this.reportedSeconds = 0;
   }
 
   // ==========================================
   // HELPERS
   // ==========================================
 
+  /** A URL a player can use for a lesson whose content is a library file. */
+  resolveContent(reference: string | null): Observable<string | null> {
+    return this.media.resolve(reference);
+  }
+
   formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
+
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+interface OutlinePayload {
+  course: Record<string, any>;
+  modules: Array<Record<string, any>>;
+  totals: { modules: number; lessons: number; durationMinutes: number };
+}
+
+interface MyProgressPayload {
+  enrollment: Record<string, any>;
+  /** Keyed by lesson id, so the player can merge without searching. */
+  lessons: Record<string, Record<string, any>>;
+  completedLessons: number;
+}
+
+interface AssessmentPayload extends Record<string, any> {
+  id: string;
+  title: string;
+  maxAttempts: number | null;
+  attemptsUsed?: number;
+  bestScore?: number;
+}
+
+interface NotePayload {
+  id: string;
+  lessonId: string | null;
+  title: string;
+  content: string;
+  positionSeconds: number | null;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ProgressPayload extends Record<string, any> {
+  lesson?: Record<string, any>;
+  enrollment?: Record<string, any>;
+}
+
+interface AttemptPaper {
+  attempt: Record<string, any>;
+  sections: Array<Record<string, any>>;
+  questions: Array<Record<string, any>>;
+}
+
+interface AttemptResult extends Record<string, any> {
+  score?: number;
+  passed?: boolean;
+}
+
+/**
+ * The outline and the learner's progress, merged.
+ *
+ * The two halves are kept apart on the server on purpose — one describes the
+ * course, the other describes one person on it — and joining them is the
+ * player's job because the player is the only thing that needs both.
+ */
+function assemble(
+  outline: OutlinePayload,
+  mine: MyProgressPayload,
+  assessments: AssessmentPayload[],
+): CoursePlayerData {
+  // Keyed by lesson id, deliberately — the endpoint says so in as many
+  // words — so this reads it as a map rather than iterating it as a list,
+  // which walks nothing and silently loses every lesson's progress.
+  const progressByLesson = new Map<string, Record<string, any>>(
+    Object.entries(mine.lessons ?? {}),
+  );
+
+  const modules: Module[] = (outline.modules ?? []).map((m) => {
+    const lessons = (m['lessons'] ?? []).map((l: Record<string, any>) =>
+      toLesson(l, progressByLesson.get(String(l['id']))));
+
+    return {
+      module_id: String(m['id']),
+      title: String(m['title'] ?? ''),
+      description: String(m['description'] ?? ''),
+      sort_order: Number(m['sortOrder'] ?? 0),
+      duration_minutes: lessons.reduce((total: number, l: Lesson) => total + l.duration_minutes, 0),
+      lessons,
+      assessments: assessments
+        .filter((a) => a['moduleId'] === m['id'])
+        .map(toAssessment),
+      completed_lessons: lessons.filter((l: Lesson) => l.status === 'completed').length,
+      total_lessons: lessons.length,
+    };
+  });
+
+  const totalLessons = modules.reduce((total, m) => total + m.total_lessons, 0);
+  const completed = modules.reduce((total, m) => total + m.completed_lessons, 0);
+
+  return {
+    course: toCourse(outline.course, outline.totals),
+    enrollment: toEnrollment(mine.enrollment),
+    modules,
+    assessments: assessments.map(toAssessment),
+    // No table survived the migration for either. Empty rather than absent, so
+    // the template's `*ngIf="bookmarks.length"` reads false instead of failing.
+    bookmarks: [],
+    user_rating: null,
+    stats: {
+      total_lessons: totalLessons,
+      completed_lessons: completed,
+      completion_percentage: Number(mine.enrollment?.['progressPercentage'] ?? 0),
+    },
+  };
+}
+
+function toCourse(course: Record<string, any>, totals: OutlinePayload['totals']): Course {
+  return {
+    course_id: String(course['id']),
+    title: String(course['title'] ?? ''),
+    description: String(course['description'] ?? course['summary'] ?? ''),
+    thumbnail_url: String(course['thumbnailUrl'] ?? ''),
+    duration_minutes: Number(course['durationMinutes'] ?? totals?.durationMinutes ?? 0),
+    difficulty_level: String(course['level'] ?? ''),
+    pass_mark: Number(course['passPercentage'] ?? 0),
+    certificate_template_id: course['certificateTemplateId'] ?? null,
+    is_mandatory: Boolean(course['isMandatory']),
+    category_name: String(course['categoryName'] ?? ''),
+    instructor_name: String(course['instructorName'] ?? ''),
+  };
+}
+
+function toEnrollment(enrollment: Record<string, any>): Enrollment {
+  return {
+    enrollment_id: String(enrollment?.['id'] ?? ''),
+    status: (enrollment?.['status'] ?? 'not_started') as Enrollment['status'],
+    progress_percentage: Number(enrollment?.['progressPercentage'] ?? 0),
+    enrolled_at: String(enrollment?.['enrolledAt'] ?? ''),
+    started_at: String(enrollment?.['startedAt'] ?? ''),
+    completed_at: String(enrollment?.['completedAt'] ?? ''),
+    due_date: String(enrollment?.['dueDate'] ?? ''),
+    time_spent_minutes: Math.round(Number(enrollment?.['timeSpentSeconds'] ?? 0) / 60),
+    last_accessed_at: String(enrollment?.['lastActivityAt'] ?? ''),
+    last_lesson_id: enrollment?.['lastLessonId'] ?? null,
+    final_score: Number(enrollment?.['finalScore'] ?? 0),
+    attempts: Number(enrollment?.['attempts'] ?? 0),
+  };
+}
+
+function toLesson(lesson: Record<string, any>, progress?: Record<string, any>): Lesson {
+  return {
+    lesson_id: String(lesson['id']),
+    module_id: String(lesson['moduleId']),
+    title: String(lesson['title'] ?? ''),
+    description: String(lesson['description'] ?? ''),
+    content_type: (lesson['contentType'] ?? 'text') as Lesson['content_type'],
+    content_url: String(lesson['contentUrl'] ?? ''),
+    content_text: String(lesson['contentText'] ?? ''),
+    duration_minutes: Number(lesson['durationMinutes'] ?? 0),
+    sort_order: Number(lesson['sortOrder'] ?? 0),
+    is_mandatory: Boolean(lesson['isMandatory']),
+    pass_mark: Number(lesson['passMark'] ?? 0),
+    status: (progress?.['status'] ?? 'not_started') as Lesson['status'],
+    progress: Number(progress?.['progressPercentage'] ?? 0),
+    completed_at: String(progress?.['completedAt'] ?? ''),
+    time_spent_seconds: Number(progress?.['timeSpentSeconds'] ?? 0),
+    score: Number(progress?.['score'] ?? 0),
+    last_position: Number(progress?.['lastPositionSeconds'] ?? 0),
+    attempts: Number(progress?.['attempts'] ?? 0),
+  };
+}
+
+function toAssessment(assessment: AssessmentPayload): Assessment {
+  return {
+    assessment_id: String(assessment['id']),
+    module_id: assessment['moduleId'] ?? null,
+    title: String(assessment['title'] ?? ''),
+    description: String(assessment['description'] ?? ''),
+    assessment_type: (assessment['kind'] ?? 'quiz') as Assessment['assessment_type'],
+    time_limit_minutes: Number(assessment['timeLimitMinutes'] ?? 0),
+    pass_percentage: Number(assessment['passingScore'] ?? 0),
+    max_attempts: Number(assessment['maxAttempts'] ?? 0),
+    shuffle_questions: Boolean(assessment['shuffleQuestions']),
+    show_correct_answers: assessment['revealAnswers'] !== 'never',
+    sequence_order: Number(assessment['sortOrder'] ?? 0),
+    total_questions: Number(assessment['questionCount'] ?? 0),
+    attempts_used: Number(assessment['attemptsUsed'] ?? 0),
+    best_score: assessment['bestScore'] ?? null,
+    has_passed: Boolean(assessment['hasPassed']),
+  };
+}
+
+function toQuizAssessment(assessment: AssessmentPayload): QuizData['assessment'] {
+  const mapped = toAssessment(assessment);
+
+  return {
+    assessment_id: mapped.assessment_id,
+    title: mapped.title,
+    description: mapped.description,
+    assessment_type: mapped.assessment_type,
+    time_limit_minutes: mapped.time_limit_minutes,
+    pass_percentage: mapped.pass_percentage,
+    max_attempts: mapped.max_attempts,
+    shuffle_questions: mapped.shuffle_questions,
+    show_correct_answers: mapped.show_correct_answers,
+    total_questions: mapped.total_questions,
+  };
+}
+
+function toAttemptStart(paper: AttemptPaper): QuizAttemptStart {
+  return {
+    attempt_id: String(paper.attempt?.['id'] ?? ''),
+    started_at: String(paper.attempt?.['startedAt'] ?? ''),
+    time_limit_minutes: Number(paper.attempt?.['timeLimitMinutes'] ?? 0),
+    questions: (paper.questions ?? []).map(toQuizQuestion),
+  };
+}
+
+function toQuizQuestion(question: Record<string, any>): QuizQuestion {
+  return {
+    question_id: String(question['id']),
+    question_text: String(question['prompt'] ?? question['text'] ?? ''),
+    question_type: (question['kind'] ?? 'single_choice') as QuizQuestion['question_type'],
+    points: Number(question['pointsPossible'] ?? question['points'] ?? 1),
+    sequence_order: Number(question['sortOrder'] ?? 0),
+    options: (question['options'] ?? []).map((option: Record<string, any>, index: number) => ({
+      option_id: String(option['id']),
+      option_text: String(option['text'] ?? option['label'] ?? ''),
+      sequence_order: Number(option['sortOrder'] ?? index),
+    })),
+  };
+}
+
+/**
+ * The submitted attempt, in the shape the quiz screen draws.
+ *
+ * `percentage`, `passed` and the two scores come back null when the
+ * assessment is set to withhold the mark — deliberately null rather than
+ * absent, so a client can tell "not shown to you" from "not marked yet". Zero
+ * is the honest reading for a screen that has nothing to display.
+ */
+function toQuizResult(result: AttemptResult): QuizResult {
+  const max = Number(result['maxScore'] ?? 0);
+  const used = Number(result['attemptNumber'] ?? 0);
+  const remaining = result['attemptsRemaining'];
+
+  return {
+    attempt_id: String(result['id'] ?? ''),
+    score: Number(result['rawScore'] ?? 0),
+    max_score: max,
+    percentage: Number(result['percentage'] ?? 0),
+    passed: result['passed'] === true,
+    passing_score: Number(result['passingScore'] ?? 0),
+    attempts_used: used,
+    // Zero is this screen's word for "as many as you like", which is what a
+    // null limit means.
+    max_attempts: remaining === null || remaining === undefined ? 0 : used + Number(remaining),
+    points_earned: Number(result['pointsEarned'] ?? 0),
+    show_correct_answers: result['answersRevealed'] === true,
+    results: ((result['answers'] ?? []) as Array<Record<string, any>>).map((answer) => ({
+      question_id: String(answer['questionId'] ?? ''),
+      user_answer: answer['answer'],
+      correct_answer: answer['correctAnswer'],
+      is_correct: answer['isCorrect'] === true,
+      points: Number(answer['pointsAwarded'] ?? 0),
+      explanation: answer['explanation'] ?? undefined,
+    })),
+  };
+}
+function toNote(note: NotePayload): Note {
+  return {
+    note_id: note.id,
+    lesson_id: String(note.lessonId ?? ''),
+    title: note.title ?? '',
+    content: note.content,
+    video_timestamp: note.positionSeconds ?? 0,
+    is_pinned: Boolean(note.isPinned),
+    created_at: note.createdAt,
+    updated_at: note.updatedAt ?? note.createdAt,
+  };
+}
+
+/**
+ * What changed, from the enrolment the server sent back.
+ *
+ * It returns the whole enrolment on every call precisely so the header can
+ * move without a second request. The lesson counts are not in it — they are
+ * the client's own outline, counted — so they are filled in by the caller
+ * from what it already holds.
+ */
+function toProgressUpdate(payload: ProgressPayload): ProgressUpdate {
+  const enrollment = payload['enrollment'] ?? payload;
+
+  return {
+    overall_progress: Number(enrollment?.['progressPercentage'] ?? 0),
+    lessons_completed: 0,
+    total_lessons: 0,
+  };
+}
+
+/**
+ * How far through a SCORM lesson its runtime says somebody is.
+ *
+ * SCORM has no percentage, only a status, so this is the nearest honest
+ * reading of one: started but unfinished counts as halfway, which is what the
+ * course percentage needs in order to move at all.
+ */
+function progressFromScorm(data: Record<string, unknown>): number {
+  const status = String(
+    data['cmi.completion_status'] ?? data['cmi.core.lesson_status'] ?? '',
+  ).toLowerCase();
+
+  if (['completed', 'passed'].includes(status)) {
+    return 100;
+  }
+
+  return status === 'not attempted' || status === '' ? 0 : 50;
+}
+
+function notAvailable(what: string): Observable<never> {
+  return new Observable((subscriber) => {
+    subscriber.error(new Error(`${what} are not available yet.`));
+  });
 }

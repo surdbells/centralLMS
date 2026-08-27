@@ -930,8 +930,16 @@ import {
   `]
 })
 export class QuizComponent implements OnInit, OnDestroy {
-  @Input() assessmentId!: number;
-  @Input() enrollmentId!: number;
+  @Input() assessmentId!: string;
+  /**
+   * Kept because the player binds it, and unused.
+   *
+   * An attempt belongs to a person and an assessment; which enrolment
+   * they happened to be sitting in when they took it is not the server's
+   * business, and passing it let a client claim an attempt against
+   * somebody else's enrolment.
+   */
+  @Input() enrollmentId: string | null = null;
 
   @Output() onComplete = new EventEmitter<QuizResult>();
   @Output() onClose = new EventEmitter<void>();
@@ -949,10 +957,10 @@ export class QuizComponent implements OnInit, OnDestroy {
   showSubmitConfirm = false;
   showReview = false;
 
-  attemptId: number | null = null;
+  attemptId: string | null = null;
   currentQuestionIndex = 0;
-  answers: Record<number, any> = {};
-  flaggedQuestions = new Set<number>();
+  answers: Record<string, any> = {};
+  flaggedQuestions = new Set<string>();
 
   timeRemaining = 0;
   timeTaken = 0;
@@ -1003,7 +1011,7 @@ export class QuizComponent implements OnInit, OnDestroy {
 
     this.loading = true;
 
-    this.playerService.startQuizAttempt(this.enrollmentId, this.assessmentId)
+    this.playerService.startQuizAttempt(this.assessmentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (attemptData) => {
@@ -1062,7 +1070,7 @@ export class QuizComponent implements OnInit, OnDestroy {
     this.currentQuestionIndex = index;
   }
 
-  isOptionSelected(questionId: number, optionId: number): boolean {
+  isOptionSelected(questionId: string, optionId: string): boolean {
     const answer = this.answers[questionId];
     if (Array.isArray(answer)) {
       return answer.includes(optionId);
@@ -1070,7 +1078,7 @@ export class QuizComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  toggleMultipleOption(questionId: number, optionId: number): void {
+  toggleMultipleOption(questionId: string, optionId: string): void {
     if (!this.answers[questionId]) {
       this.answers[questionId] = [];
     }
@@ -1083,7 +1091,7 @@ export class QuizComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleFlag(questionId: number): void {
+  toggleFlag(questionId: string): void {
     if (this.flaggedQuestions.has(questionId)) {
       this.flaggedQuestions.delete(questionId);
     } else {
@@ -1107,11 +1115,8 @@ export class QuizComponent implements OnInit, OnDestroy {
     }
 
     this.playerService.submitQuiz(
-      this.enrollmentId,
-      this.assessmentId,
       this.attemptId!,
-      this.answers,
-      this.timeTaken
+      Object.entries(this.answers).map(([question_id, answer]) => ({ question_id, answer })),
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {

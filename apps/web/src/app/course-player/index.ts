@@ -6,7 +6,6 @@ export { COURSE_PLAYER_ROUTES } from './course-player.routes';
 // Services
 export { CoursePlayerService } from './services/course-player.service';
 export { ScormAdapterService } from './services/scorm-adapter.service';
-export { AnalyticsService } from './services/analytics.service';
 
 // Components
 export { CoursePlayerComponent } from './components/course-player/course-player.component';
@@ -42,13 +41,6 @@ export type {
   Question,
   QuestionOption
 } from './components/quiz/quiz.component';
-
-// Analytics interfaces
-export type {
-  AnalyticsEvent,
-  EngagementMetrics,
-  VideoAnalytics
-} from './services/analytics.service';
 
 // SCORM interfaces
 export type {
