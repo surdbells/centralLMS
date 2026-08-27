@@ -38,7 +38,26 @@ final class DbalSkillRepository implements SkillRepository
                               AND e.status = 'completed'
                               AND e.deleted_at IS NULL
             WHERE cs.skill_id = s.id
-        ) AS learner_count";
+        ) AS learner_count,
+        -- On the way to it: enrolled on something that teaches it and not
+        -- yet finished any. The same reading the learner's own list uses,
+        -- so the two never disagree about one person.
+        (
+            SELECT COUNT(DISTINCT e.user_id)
+            FROM course_skills cs
+            JOIN enrollments e ON e.course_id = cs.course_id
+                              AND e.status NOT IN ('completed', 'dropped')
+                              AND e.deleted_at IS NULL
+            WHERE cs.skill_id = s.id
+              AND NOT EXISTS (
+                  SELECT 1 FROM course_skills cs2
+                  JOIN enrollments e2 ON e2.course_id = cs2.course_id
+                                     AND e2.user_id = e.user_id
+                                     AND e2.status = 'completed'
+                                     AND e2.deleted_at IS NULL
+                  WHERE cs2.skill_id = s.id
+              )
+        ) AS learners_in_progress";
 
     public function __construct(private readonly Connection $connection)
     {
@@ -475,7 +494,13 @@ final class DbalSkillRepository implements SkillRepository
                     AS active_skills,
                 (SELECT COUNT(*) FROM skill_categories WHERE tenant_id = :tenant AND deleted_at IS NULL)
                     AS categories,
-                (SELECT COUNT(DISTINCT course_id) FROM course_skills WHERE tenant_id = :tenant) AS courses_mapped',
+                (SELECT COUNT(DISTINCT course_id) FROM course_skills WHERE tenant_id = :tenant) AS courses_mapped,
+                (SELECT COUNT(DISTINCT e.user_id)
+                   FROM course_skills cs
+                   JOIN enrollments e ON e.course_id = cs.course_id
+                                     AND e.status = \'completed\'
+                                     AND e.deleted_at IS NULL
+                  WHERE cs.tenant_id = :tenant) AS learners_with_skills',
             ['tenant' => $tenantId],
         );
 
@@ -517,6 +542,7 @@ final class DbalSkillRepository implements SkillRepository
             'activeSkills'  => (int) ($totals['active_skills'] ?? 0),
             'categories'    => (int) ($totals['categories'] ?? 0),
             'coursesMapped' => (int) ($totals['courses_mapped'] ?? 0),
+            'learnersWithSkills' => (int) ($totals['learners_with_skills'] ?? 0),
             'untaught'      => array_map(
                 static fn (array $r): array => [
                     'skillId' => (string) $r['id'],
@@ -589,6 +615,7 @@ final class DbalSkillRepository implements SkillRepository
             categoryColour: $this->text($row['category_colour'] ?? null),
             courseCount: (int) ($row['course_count'] ?? 0),
             learnerCount: (int) ($row['learner_count'] ?? 0),
+            learnersInProgress: (int) ($row['learners_in_progress'] ?? 0),
         );
     }
 

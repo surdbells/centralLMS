@@ -30,6 +30,8 @@ final readonly class Skill
         public int $courseCount = 0,
         /** How many people have finished at least one of them. */
         public int $learnerCount = 0,
+        /** How many are enrolled on one and have not finished any yet. */
+        public int $learnersInProgress = 0,
     ) {
     }
 
@@ -39,20 +41,21 @@ final readonly class Skill
     public function toArray(): array
     {
         return [
-            'id'             => $this->id,
-            'name'           => $this->name,
-            'description'    => $this->description,
-            'level'          => $this->level->value,
-            'levelLabel'     => $this->level->label(),
-            'icon'           => $this->icon,
-            'colour'         => $this->colour,
-            'isActive'       => $this->isActive,
-            'categoryId'     => $this->categoryId,
-            'categoryName'   => $this->categoryName,
-            'categoryColour' => $this->categoryColour,
-            'courseCount'    => $this->courseCount,
-            'learnerCount'   => $this->learnerCount,
-            'createdAt'      => $this->createdAt?->format(\DateTimeInterface::ATOM),
+            'id'                 => $this->id,
+            'name'               => $this->name,
+            'description'        => $this->description,
+            'level'              => $this->level->value,
+            'levelLabel'         => $this->level->label(),
+            'icon'               => $this->icon,
+            'colour'             => $this->colour,
+            'isActive'           => $this->isActive,
+            'categoryId'         => $this->categoryId,
+            'categoryName'       => $this->categoryName,
+            'categoryColour'     => $this->categoryColour,
+            'courseCount'        => $this->courseCount,
+            'learnerCount'       => $this->learnerCount,
+            'learnersInProgress' => $this->learnersInProgress,
+            'createdAt'          => $this->createdAt?->format(\DateTimeInterface::ATOM),
         ];
     }
 }

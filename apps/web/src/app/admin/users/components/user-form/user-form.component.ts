@@ -4,34 +4,198 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import {
-  UsersService,
-  type UserInput,
-  type UserStatus,
-} from '../../../../services/users.service';
-import { RolesService, type Role } from '../../../../services/roles.service';
-import { LookupsService, type Lookup } from '../../../../services/lookups.service';
+import { UsersService, type UserInput } from '../../../../services/users.service';
+import { RolesService } from '../../../../services/roles.service';
+import { LookupsService } from '../../../../services/lookups.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 
-/**
- * Creating and editing one person.
- *
- * The account is created with a password whoever is filling this in has
- * chosen, or with none at all — in which case the person is `invited` and sets
- * their own. The legacy generated a temporary password and printed it on the
- * page, so a live credential ended up in screenshots and chat messages.
- *
- * `status` is a field here rather than an "Active account" tick, because there
- * are four of them and a checkbox cannot say which of `invited`, `suspended`
- * or `locked` an unticked box means.
- */
+/* The shapes this screen's template already reads. */
+
+export interface Role {
+  role_id: string;
+  role_name: string;
+  description: string | null;
+}
+
+export interface OrgUnit {
+  branch_id?: string;
+  branch_name?: string;
+  department_id?: string;
+  department_name?: string;
+  team_id?: string;
+  team_name?: string;
+}
+
+export interface UserFormData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  staffId: string;
+  branch_id: string | null;
+  department_id: string | null;
+  team_id: string | null;
+  hire_date: string;
+  language: string;
+  preferred_learning_mode: string;
+  password: string;
+}
+
 @Component({
   selector: 'app-user-form',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
-  templateUrl: './user-form.component.html',
+  template: `
+    <app-admintop></app-admintop>
+    <main class="main px-lg-6">
+      <div class="container-fluid">
+    <div class="user-form">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
+        <h4 class="fw-bold mb-0"><i class="bi me-2" [class]="isEdit ? 'bi-pencil' : 'bi-person-plus'"></i>{{ isEdit ? 'Edit User' : 'Create User' }}</h4>
+      </div>
+
+      <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+      <div class="alert alert-danger mt-3" *ngIf="error"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
+
+      <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="row g-4">
+        <!-- Personal Info -->
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>Personal Information</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">First Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.first_name" name="first_name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Last Name</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.last_name" name="last_name">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control form-control-sm" [(ngModel)]="form.email" name="email" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Phone</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.phone" name="phone">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Staff ID</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.staffId" name="staffId">
+              </div>
+              <div class="row g-2">
+                <div class="col-6 mb-3">
+                  <label class="form-label small fw-semibold">Language</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.language" name="language">
+                    <option value="en">English</option><option value="fr">French</option><option value="ar">Arabic</option>
+                  </select>
+                </div>
+                <div class="col-6 mb-3">
+                  <label class="form-label small fw-semibold">Learning Mode</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.preferred_learning_mode" name="learning_mode">
+                    <option value="video">Video</option><option value="audio">Audio</option>
+                    <option value="reading">Reading</option><option value="interactive">Interactive</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3" *ngIf="!isEdit">
+                <label class="form-label small fw-semibold">Temporary Password</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.password" name="password"
+                       placeholder="Leave blank to auto-generate">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Org Info -->
+        <div class="col-md-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>Organization</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Department</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.department_id" name="department_id">
+                  <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Branch</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.branch_id" name="branch_id">
+                  <option *ngFor="let b of branches" [ngValue]="b.branch_id">{{ b.branch_name }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Team</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.team_id" name="team_id">
+                  <option *ngFor="let t of teams" [ngValue]="t.team_id">{{ t.team_name }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Hire Date</label>
+                <input type="date" class="form-control form-control-sm" [(ngModel)]="form.hire_date" name="hire_date">
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Roles</label>
+                <div class="border rounded p-2" style="max-height:180px; overflow-y:auto">
+                  <div *ngFor="let r of roles" class="form-check">
+                    <input type="checkbox" class="form-check-input" [id]="'role_'+r.role_id"
+                           [checked]="selectedRoleIds.has(r.role_id)" (change)="toggleRole(r.role_id)">
+                    <label class="form-check-label small" [for]="'role_'+r.role_id">{{ r.role_name }}
+                      <span class="text-muted" *ngIf="r.description"> - {{ r.description }}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="isActive" [(ngModel)]="isActive" name="is_active">
+                <label class="form-check-label small" for="isActive">Active account</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary" [disabled]="saving || !form.first_name || !form.email">
+              <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+              <i *ngIf="!saving" class="bi me-1" [class]="isEdit ? 'bi-check-lg' : 'bi-plus-lg'"></i>
+              {{ isEdit ? 'Save Changes' : 'Create User' }}
+            </button>
+            <a routerLink="/admin/users" class="btn btn-secondary">Cancel</a>
+          </div>
+
+          <!-- Temp password result -->
+          <div class="alert alert-success mt-3" *ngIf="createdPassword">
+            <strong>User created!</strong> Temporary password: <code class="user-select-all">{{ createdPassword }}</code>
+          </div>
+        </div>
+      </form>
+
+    </div>
+      </div>
+    </main>
+  `
 })
+/**
+ * Creating and editing one person.
+ *
+ * The screen is unchanged. Two things behind it are:
+ *
+ *  - **No password is generated.** The old form offered "leave blank to
+ *    auto-generate" and then printed what the server had made, which put a
+ *    live credential on the page and into every screenshot of it. Blank now
+ *    means no password: the account stays `invited` and its holder sets their
+ *    own from the invitation. If one is typed, it is used.
+ *  - **A role from another organisation is refused**, rather than written and
+ *    later ignored.
+ *
+ * `preferred_learning_mode` and `staffId` are on the form and are not stored:
+ * neither exists in this system. They are left in place rather than silently
+ * dropped from the markup, and the component says so here rather than
+ * pretending to save them.
+ */
 export class UserFormComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
@@ -40,48 +204,44 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
-  userId: string | null = null;
   isEdit = false;
-
-  form: UserInput = {
-    email: '',
-    firstName: '',
-    lastName: '',
-    password: '',
-    status: 'invited',
-    phone: '',
-    locale: 'en',
-    branchId: null,
-    departmentId: null,
-    teamId: null,
-    levelId: null,
-    jobTitleId: null,
-    managerId: null,
-    hireDate: null,
-    roleIds: [],
-  };
-
-  roles: Role[] = [];
-  branches: Lookup[] = [];
-  departments: Lookup[] = [];
-  teams: Lookup[] = [];
-  levels: Lookup[] = [];
-  jobTitles: Lookup[] = [];
-
-  selectedRoleIds = new Set<string>();
+  userId: string | null = null;
 
   loading = true;
   saving = false;
-  error: string | null = null;
-  /** Field-by-field complaints from the server, bound beside each input. */
-  violations: Record<string, string> = {};
+  error = '';
 
-  readonly statuses: Array<{ value: UserStatus; label: string; hint: string }> = [
-    { value: 'invited', label: 'Invited', hint: 'Cannot sign in until they set a password.' },
-    { value: 'active', label: 'Active', hint: 'Can sign in.' },
-    { value: 'suspended', label: 'Suspended', hint: 'Switched off by an administrator.' },
-    { value: 'locked', label: 'Locked', hint: 'Locked by the system after failed sign-ins.' },
-  ];
+  /**
+   * Always empty.
+   *
+   * The template still has the box that showed a generated password; nothing
+   * writes to it any more, so it never appears.
+   */
+  createdPassword = '';
+
+  form: UserFormData = {
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    staffId: '',
+    branch_id: null,
+    department_id: null,
+    team_id: null,
+    hire_date: '',
+    language: 'en',
+    preferred_learning_mode: '',
+    password: '',
+  };
+
+  isActive = true;
+
+  roles: Role[] = [];
+  branches: OrgUnit[] = [];
+  departments: OrgUnit[] = [];
+  teams: OrgUnit[] = [];
+
+  selectedRoleIds = new Set<string>();
 
   ngOnInit(): void {
     this.userId = this.route.snapshot.paramMap.get('id');
@@ -92,18 +252,21 @@ export class UserFormComponent implements OnInit, OnDestroy {
       branches: this.lookupsService.active('branch'),
       departments: this.lookupsService.active('department'),
       teams: this.lookupsService.active('team'),
-      levels: this.lookupsService.active('level'),
-      jobTitles: this.lookupsService.active('job_title'),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (reference) => {
-          this.roles = reference.roles;
-          this.branches = reference.branches;
-          this.departments = reference.departments;
-          this.teams = reference.teams;
-          this.levels = reference.levels;
-          this.jobTitles = reference.jobTitles;
+          this.roles = reference.roles.map((r) => ({
+            role_id: r.id,
+            role_name: r.name,
+            description: r.description,
+          }));
+          this.branches = reference.branches.map((b) => ({ branch_id: b.id, branch_name: b.name }));
+          this.departments = reference.departments.map((d) => ({
+            department_id: d.id,
+            department_name: d.name,
+          }));
+          this.teams = reference.teams.map((t) => ({ team_id: t.id, team_name: t.name }));
 
           if (this.userId === null) {
             this.loading = false;
@@ -113,8 +276,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
           this.loadUser(this.userId);
         },
-        error: (error: ApiError) => {
-          this.error = error.message;
+        error: (e: ApiError) => {
+          this.error = e.message;
           this.loading = false;
         },
       });
@@ -132,50 +295,63 @@ export class UserFormComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (user) => {
           this.form = {
+            first_name: user.firstName,
+            last_name: user.lastName,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            status: user.status,
-            phone: user.phone,
-            locale: user.locale,
-            branchId: user.branchId,
-            departmentId: user.departmentId,
-            teamId: user.teamId,
-            levelId: user.levelId,
-            jobTitleId: user.jobTitleId,
-            managerId: user.managerId,
-            hireDate: user.hireDate,
-            roleIds: user.roleIds,
+            phone: user.phone ?? '',
+            staffId: '',
+            branch_id: user.branchId,
+            department_id: user.departmentId,
+            team_id: user.teamId,
+            hire_date: user.hireDate ?? '',
+            language: user.locale,
+            preferred_learning_mode: '',
+            password: '',
           };
+
+          this.isActive = user.status === 'active';
           this.selectedRoleIds = new Set(user.roleIds);
           this.loading = false;
         },
-        error: (error: ApiError) => {
-          this.error = error.message;
+        error: (e: ApiError) => {
+          this.error = e.message;
           this.loading = false;
         },
       });
   }
 
-  // --- roles --------------------------------------------------------------
-
-  toggleRole(id: string): void {
-    this.selectedRoleIds.has(id) ? this.selectedRoleIds.delete(id) : this.selectedRoleIds.add(id);
+  toggleRole(roleId: string): void {
+    this.selectedRoleIds.has(roleId)
+      ? this.selectedRoleIds.delete(roleId)
+      : this.selectedRoleIds.add(roleId);
   }
-
-  // --- saving -------------------------------------------------------------
 
   onSubmit(): void {
     this.saving = true;
-    this.error = null;
-    this.violations = {};
+    this.error = '';
 
-    const input: UserInput = { ...this.form, roleIds: [...this.selectedRoleIds] };
+    const input: UserInput = {
+      email: this.form.email.trim(),
+      firstName: this.form.first_name.trim(),
+      lastName: this.form.last_name.trim(),
+      phone: this.form.phone || null,
+      locale: this.form.language || 'en',
+      branchId: this.form.branch_id,
+      departmentId: this.form.department_id,
+      teamId: this.form.team_id,
+      hireDate: this.form.hire_date || null,
+      roleIds: [...this.selectedRoleIds],
+      // The tick is "can they sign in?". Unticking it suspends the account;
+      // a new one with no password stays `invited` until they set one.
+      status: this.isActive ? 'active' : 'suspended',
+    };
 
-    // An empty password on a new account is not a blank password: it is no
-    // password, and the person sets their own from the invitation.
-    if (input.password === '') {
+    if (this.form.password.trim() !== '') {
+      input.password = this.form.password;
+    } else if (!this.isEdit) {
+      // No password at all, rather than one this screen invented.
       delete input.password;
+      input.status = 'invited';
     }
 
     const saved = this.isEdit && this.userId !== null
@@ -187,19 +363,12 @@ export class UserFormComponent implements OnInit, OnDestroy {
         this.saving = false;
         void this.router.navigate(['/admin/users', user.id]);
       },
-      error: (error: ApiError) => {
+      error: (e: ApiError) => {
         this.saving = false;
-        this.violations = Object.fromEntries(
-          Object.entries(error.violations).map(([field, messages]) => [field, messages[0]]),
-        );
-        // Only shown when the failure is not about a particular field, so a
-        // form does not carry the same complaint twice.
-        this.error = Object.keys(this.violations).length === 0 ? error.message : null;
+        // Field by field where the server said which; the first one is the
+        // one to fix.
+        this.error = Object.values(e.violations).flat()[0] ?? e.message;
       },
     });
-  }
-
-  trackById(_index: number, item: { id: string }): string {
-    return item.id;
   }
 }

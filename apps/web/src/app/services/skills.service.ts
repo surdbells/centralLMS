@@ -34,6 +34,8 @@ export interface Skill {
   courseCount: number;
   /** How many people have finished at least one of them. */
   learnerCount: number;
+  /** How many are enrolled on one and have not finished any yet. */
+  learnersInProgress: number;
   createdAt: string | null;
 }
 
@@ -117,6 +119,8 @@ export interface SkillStatistics {
   activeSkills: number;
   categories: number;
   coursesMapped: number;
+  /** How many people hold at least one skill. */
+  learnersWithSkills: number;
   /** Skills the organisation has declared and has no way to give anybody. */
   untaught: Array<{ skillId: string; name: string; colour: string }>;
   mostHeld: Array<{ skillId: string; name: string; colour: string; learners: number }>;

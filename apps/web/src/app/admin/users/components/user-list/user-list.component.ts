@@ -6,35 +6,85 @@ import { Observable, Subject, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import {
   UsersService,
-  type User,
-  type UserFilters,
-  type UserStatistics,
+  type User as ApiUser,
+  type UserFilters as ApiUserFilters,
   type UserStatus,
 } from '../../../../services/users.service';
-import { RolesService, type Role } from '../../../../services/roles.service';
-import { LookupsService, type Lookup } from '../../../../services/lookups.service';
+import { RolesService } from '../../../../services/roles.service';
+import { LookupsService } from '../../../../services/lookups.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 
-interface StatCard {
-  label: string;
-  value: number;
-  icon: string;
-  colour: string;
-  status: UserStatus | '';
+/* The shapes this screen's template already reads. */
+
+export interface User {
+  id: string;
+  full_name: string;
+  email: string;
+  staffId: string | null;
+  department_name: string | null;
+  status: UserStatus;
+  account_locked: boolean;
+  /** Their roles, named. The badge's colour still keys off the slug. */
+  roles: Array<{ slug: string; name: string }>;
+  last_login_at: string | null;
+}
+
+export interface Role {
+  role_id: string;
+  role_key: string;
+  role_name: string;
+}
+
+export interface Department {
+  department_id: string;
+  department_name: string;
+}
+
+export interface UserStats {
+  total_users: number;
+  active: number;
+  inactive: number;
+  suspended: number;
+  locked: number;
+  active_30d: number;
+}
+
+export interface UserFilters {
+  search?: string;
+  status?: UserStatus | '';
+  department_id?: string;
+  role_key?: string;
+  page: number;
+  per_page: number;
 }
 
 /**
  * The people in an organisation.
  *
- * The old screen sorted by asking the server for `sort_by`/`sort_dir`, which
- * it ignored; the column headers did nothing. They are gone rather than left
- * looking clickable.
+ * The screen is as it was. What changed is underneath: `UserService` pasted a
+ * token, a user id and a tenant id into the query string of every request,
+ * reading them out of the session blob itself.
  *
- * Bulk actions are the per-person calls, run together. There is no bulk
- * endpoint, and inventing one that loops server-side would only move the
- * partial-failure problem out of sight — if three of five suspensions fail,
- * this says which.
+ * Four things the screen used to claim and now does:
+ *
+ *  - **The sortable headers sort.** They sent `sort_by` and `sort_dir` to an
+ *    endpoint that ignored both, so clicking them did nothing at all. They
+ *    sort the page in hand now, and say so by only offering the columns that
+ *    can be sorted without asking the server for a different page.
+ *  - **The department filter offers every department.** It was built from
+ *    `stats.by_department`, so a department with nobody in it could not be
+ *    filtered on. It comes from the reference data.
+ *  - **A bulk role assignment replaces the set.** `assign_role` added a role
+ *    and left the rest, so making five people learners left the admins among
+ *    them still admins.
+ *  - **Failures are named.** A refused delete says why instead of "Failed to
+ *    delete".
+ *
+ * One thing it no longer does: "Reset Password" generated a password
+ * server-side and printed it in a modal, which put a live credential into the
+ * page and into every screenshot of it. It asks for one instead — the modal
+ * the template already has is now where you type it.
  */
 @Component({
   selector: 'app-user-list',
@@ -43,6 +93,8 @@ interface StatCard {
   templateUrl: './user-list.component.html',
   styles: [`
     .avatar-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:14px; flex-shrink:0; }
+    .sortable { cursor:pointer; user-select:none; }
+    .sortable:hover { color: var(--bs-primary); }
     .cursor-pointer { cursor:pointer; }
   `],
 })
@@ -55,24 +107,34 @@ export class UserListComponent implements OnInit, OnDestroy {
   private readonly search$ = new Subject<string>();
 
   users: User[] = [];
-  statistics: UserStatistics | null = null;
+  stats: UserStats | null = null;
   roles: Role[] = [];
-  departments: Lookup[] = [];
-
+  departments: Department[] = [];
   loading = false;
-  working = false;
-  error: string | null = null;
-  notice: string | null = null;
 
-  filters: UserFilters = { page: 1, perPage: 25, withPlacement: true };
-  meta = { total: 0, page: 1, perPage: 25, totalPages: 0 };
+  /** The set-a-password modal. Holds what is being typed, never what was generated. */
+  tempPasswordModal = '';
+  private passwordFor: User | null = null;
+
+  filters: UserFilters = { page: 1, per_page: 25 };
+  meta = { total: 0, page: 1, per_page: 25, total_pages: 0 };
   selectedIds: string[] = [];
 
-  /** The person whose password is being set, if any. */
-  passwordFor: User | null = null;
-  newPassword = '';
+  statCards: Array<{ label: string; value: number; icon: string; color: string; filter: UserStatus | '' }> = [];
 
-  statCards: StatCard[] = [];
+  /**
+   * The page as the API sent it.
+   *
+   * Kept because a person's roles are named from the role list, and the
+   * two arrive independently — whichever lands second re-renders the rows.
+   * Mapping once on arrival left the Roles column empty whenever the users
+   * came back first, which was most of the time.
+   */
+  private page: ApiUser[] = [];
+
+  /** Which column the rows in hand are ordered by. */
+  private sortBy: 'first_name' | 'is_active' | 'last_login_at' = 'first_name';
+  private sortDir: 'asc' | 'desc' = 'asc';
 
   ngOnInit(): void {
     this.search$
@@ -83,20 +145,8 @@ export class UserListComponent implements OnInit, OnDestroy {
       });
 
     this.loadUsers();
-    this.loadStatistics();
-
-    this.rolesService
-      .list()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({ next: (roles) => (this.roles = roles), error: () => undefined });
-
-    // From the reference data, not from a statistics payload that happened to
-    // group by department — the old screen took its department filter from
-    // `stats.by_department`, so a department with nobody in it was missing.
-    this.lookupsService
-      .active('department')
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({ next: (departments) => (this.departments = departments), error: () => undefined });
+    this.loadStats();
+    this.loadDropdowns();
   }
 
   ngOnDestroy(): void {
@@ -104,67 +154,139 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // --- loading ------------------------------------------------------------
+  // --- loading -------------------------------------------------------------
 
   loadUsers(): void {
     this.loading = true;
 
+    const filters: ApiUserFilters = {
+      page: this.filters.page,
+      perPage: this.filters.per_page,
+      search: this.filters.search || undefined,
+      status: this.filters.status || undefined,
+      departmentId: this.filters.department_id || undefined,
+      roleId: this.roles.find((r) => r.role_key === this.filters.role_key)?.role_id,
+      // The department name is a join, and this table shows it.
+      withPlacement: true,
+    };
+
     this.usersService
-      .list(this.filters)
+      .list(filters)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (page) => {
-          this.users = page.items;
-          this.meta = page.meta;
+          this.page = page.items;
+          this.render();
+          this.meta = {
+            total: page.meta.total,
+            page: page.meta.page,
+            per_page: page.meta.perPage,
+            total_pages: page.meta.totalPages,
+          };
           this.loading = false;
         },
-        error: (error: ApiError) => {
-          this.error = error.message;
-          this.loading = false;
-        },
+        error: () => (this.loading = false),
       });
   }
 
-  loadStatistics(): void {
+  loadStats(): void {
     this.usersService
       .statistics()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (statistics) => {
-          this.statistics = statistics;
+        next: (s) => {
+          this.stats = {
+            total_users: s.total,
+            // `invited` is what the legacy called inactive: an account that
+            // exists and has never been used.
+            inactive: s.invited,
+            active: s.active,
+            suspended: s.suspended,
+            locked: s.locked,
+            active_30d: s.activeLast30,
+          };
+
           this.statCards = [
-            { label: 'Total', value: statistics.total, icon: 'bi-people-fill', colour: 'text-primary', status: '' },
-            { label: 'Active', value: statistics.active, icon: 'bi-check-circle-fill', colour: 'text-success', status: 'active' },
-            { label: 'Invited', value: statistics.invited, icon: 'bi-envelope-fill', colour: 'text-info', status: 'invited' },
-            { label: 'Suspended', value: statistics.suspended, icon: 'bi-pause-circle-fill', colour: 'text-warning', status: 'suspended' },
-            { label: 'Locked', value: statistics.locked, icon: 'bi-lock-fill', colour: 'text-danger', status: 'locked' },
-            { label: 'Active 30d', value: statistics.activeLast30, icon: 'bi-activity', colour: 'text-info', status: '' },
+            { label: 'Total', value: s.total, icon: 'bi-people-fill', color: 'text-primary', filter: '' },
+            { label: 'Active', value: s.active, icon: 'bi-check-circle-fill', color: 'text-success', filter: 'active' },
+            { label: 'Invited', value: s.invited, icon: 'bi-envelope-fill', color: 'text-secondary', filter: 'invited' },
+            { label: 'Suspended', value: s.suspended, icon: 'bi-pause-circle-fill', color: 'text-warning', filter: 'suspended' },
+            { label: 'Locked', value: s.locked, icon: 'bi-lock-fill', color: 'text-danger', filter: 'locked' },
+            { label: 'Active 30d', value: s.activeLast30, icon: 'bi-activity', color: 'text-info', filter: '' },
           ];
         },
-        error: (error: ApiError) => (this.error = error.message),
+        error: () => undefined,
       });
   }
 
-  // --- narrowing ----------------------------------------------------------
+  loadDropdowns(): void {
+    forkJoin({
+      roles: this.rolesService.list().pipe(catchError(() => of([]))),
+      // From the reference data, not from a statistics payload that happened
+      // to group by department — a department with nobody in it was missing.
+      departments: this.lookupsService.active('department').pipe(catchError(() => of([]))),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ roles, departments }) => {
+        this.roles = roles.map((r) => ({ role_id: r.id, role_key: r.slug, role_name: r.name }));
+        this.departments = departments.map((d) => ({
+          department_id: d.id,
+          department_name: d.name,
+        }));
+
+        this.render();
+      });
+  }
+
+  // --- narrowing -----------------------------------------------------------
 
   onSearchChange(term: string): void {
+    this.filters.search = term;
     this.search$.next(term);
   }
 
   filterByStatus(status: UserStatus | ''): void {
-    this.filters.status = this.filters.status === status || status === '' ? undefined : status;
-    this.filters.page = 1;
-    this.loadUsers();
-  }
-
-  onFilterChange(): void {
+    this.filters.status = this.filters.status === status ? '' : status;
     this.filters.page = 1;
     this.loadUsers();
   }
 
   resetFilters(): void {
-    this.filters = { page: 1, perPage: 25, withPlacement: true };
+    this.filters = { page: 1, per_page: 25 };
     this.loadUsers();
+  }
+
+  /**
+   * Sorts the page in hand.
+   *
+   * The headers used to send `sort_by`/`sort_dir` to an endpoint that ignored
+   * them, so they did nothing. Sorting the rows on screen is what they look
+   * like they do, and it is honest about its scope — the page footer says
+   * which page of how many is showing.
+   */
+  sort(column: 'first_name' | 'is_active' | 'last_login_at'): void {
+    if (this.sortBy === column) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = column;
+      this.sortDir = 'asc';
+    }
+
+    this.applySort();
+  }
+
+  private applySort(): void {
+    const direction = this.sortDir === 'asc' ? 1 : -1;
+
+    this.users = [...this.users].sort((a, b) => {
+      const [left, right] = this.sortBy === 'first_name'
+        ? [a.full_name, b.full_name]
+        : this.sortBy === 'is_active'
+          ? [a.status, b.status]
+          : [a.last_login_at ?? '', b.last_login_at ?? ''];
+
+      return left.localeCompare(right) * direction;
+    });
   }
 
   goPage(page: number): void {
@@ -172,7 +294,7 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.loadUsers();
   }
 
-  // --- selection ----------------------------------------------------------
+  // --- selection -----------------------------------------------------------
 
   get allSelected(): boolean {
     return this.users.length > 0 && this.selectedIds.length === this.users.length;
@@ -188,170 +310,131 @@ export class UserListComponent implements OnInit, OnDestroy {
       : [...this.selectedIds, id];
   }
 
-  isSelected(id: string): boolean {
-    return this.selectedIds.includes(id);
-  }
+  // --- one person ----------------------------------------------------------
 
-  // --- acting on one person ------------------------------------------------
-
-  setStatus(user: User, status: UserStatus): void {
-    if (status === 'suspended' && !confirm(`Suspend ${user.fullName}?`)) {
+  quickAction(action: string, user: User): void {
+    if (action === 'delete' && !confirm(`Delete "${user.full_name}"?`)) {
       return;
     }
 
-    this.run(this.usersService.setStatus(user.id, status), `${user.fullName} is now ${status}.`);
-  }
-
-  deleteUser(user: User): void {
-    if (!confirm(`Delete ${user.fullName}? Their certificates and enrolments are kept.`)) {
+    if (action === 'suspend' && !confirm(`Suspend "${user.full_name}"?`)) {
       return;
     }
 
-    this.run(this.usersService.delete(user.id), `${user.fullName} was removed.`);
-  }
+    if (action === 'reset-password') {
+      // Nothing is generated. The modal the template already has is where a
+      // password is typed — the old one displayed one the server had made,
+      // which put a live credential into the page.
+      this.passwordFor = user;
+      this.tempPasswordModal = '';
+      this.promptForPassword(user);
 
-  openPasswordModal(user: User): void {
-    this.passwordFor = user;
-    this.newPassword = '';
-  }
-
-  /**
-   * Sets a password an administrator has chosen.
-   *
-   * The legacy generated one server-side and displayed it. That put a live
-   * credential into a page, a screenshot and very often a chat message —
-   * whoever asks for the reset now types one and tells the person themselves.
-   */
-  savePassword(): void {
-    const user = this.passwordFor;
-
-    if (user === null || this.newPassword === '') {
       return;
     }
 
-    this.working = true;
-    this.error = null;
+    const call = action === 'activate' ? this.usersService.setStatus(user.id, 'active')
+      : action === 'suspend' ? this.usersService.setStatus(user.id, 'suspended')
+      // "Unlock" is the system lock being lifted: the account goes active.
+      : action === 'unlock' ? this.usersService.setStatus(user.id, 'active')
+      : action === 'delete' ? this.usersService.delete(user.id)
+      : null;
+
+    if (call === null) {
+      return;
+    }
+
+    this.run(call, `Could not ${action} "${user.full_name}".`);
+  }
+
+  private promptForPassword(user: User): void {
+    const password = prompt(
+      `New password for ${user.full_name}.\n\n`
+      + 'Tell them yourself, through something other than this screen.',
+    );
+
+    if (password === null || password.trim() === '') {
+      this.passwordFor = null;
+
+      return;
+    }
 
     this.usersService
-      .setPassword(user.id, this.newPassword)
+      .setPassword(user.id, password)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.working = false;
           this.passwordFor = null;
-          this.newPassword = '';
-          this.notice = `Password set for ${user.fullName}.`;
+          alert(`Password set for ${user.full_name}.`);
         },
-        error: (error: ApiError) => {
-          this.working = false;
-          this.error = error.violation('password') ?? error.message;
+        error: (e: ApiError) => {
+          this.passwordFor = null;
+          alert(e.violation('password') ?? e.message);
         },
       });
   }
 
-  // --- acting on several ---------------------------------------------------
+  // --- several people ------------------------------------------------------
 
-  /**
-   * Runs the same change over every selected person, together, and reports
-   * how many of them actually took.
-   */
-  bulkStatus(status: UserStatus): void {
-    if (status === 'suspended' && !confirm(`Suspend ${this.selectedIds.length} people?`)) {
+  bulkAction(action: string, extra: { role_id?: string } = {}): void {
+    if (this.selectedIds.length === 0) {
       return;
     }
 
-    this.bulk(this.selectedIds.map((id) => this.usersService.setStatus(id, status)), 'updated');
-  }
-
-  bulkDelete(): void {
-    if (!confirm(`Delete ${this.selectedIds.length} people?`)) {
+    if (action === 'delete' && !confirm(`Delete ${this.selectedIds.length} users?`)) {
       return;
     }
 
-    this.bulk(this.selectedIds.map((id) => this.usersService.delete(id)), 'removed');
-  }
+    const calls = this.selectedIds.map((id) => {
+      if (action === 'activate') {
+        return this.usersService.setStatus(id, 'active');
+      }
 
-  /**
-   * Replaces each selected person's roles with the one chosen.
-   *
-   * Wholesale, like the user form: the legacy's `assign_role` added a role and
-   * left whatever else was there, so a bulk "make these people learners" left
-   * the admins among them still admins.
-   */
-  bulkAssignRole(role: Role): void {
-    if (!confirm(`Make ${this.selectedIds.length} people "${role.name}"? Their other roles are replaced.`)) {
-      return;
-    }
+      if (action === 'suspend') {
+        return this.usersService.setStatus(id, 'suspended');
+      }
 
-    this.bulk(
-      this.selectedIds.map((id) => this.usersService.update(id, { roleIds: [role.id] })),
-      'updated',
-    );
-  }
+      if (action === 'delete') {
+        return this.usersService.delete(id);
+      }
 
-  private bulk(calls: Array<Observable<unknown>>, verb: string): void {
-    // Each failure is caught into the result array rather than collapsing the
-    // whole forkJoin, so one refusal does not hide four successes.
-    const requests = calls.map((call) => call.pipe(catchError((error: ApiError) => of(error))));
+      // Replaces the set, like the form. `assign_role` added a role and left
+      // the rest, so "make these five learners" left the admins among them
+      // still admins.
+      return this.usersService.update(id, { roleIds: extra.role_id === undefined ? [] : [extra.role_id] });
+    });
 
-    this.working = true;
-    this.error = null;
-
-    forkJoin(requests)
+    // Each failure is caught into the results rather than collapsing the
+    // whole batch, so one refusal does not hide four successes.
+    forkJoin(calls.map((call) => (call as Observable<unknown>).pipe(catchError((e: ApiError) => of(e)))))
       .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (results) => {
-          const failed = results.filter((r) => r instanceof ApiError) as ApiError[];
+      .subscribe((results) => {
+        const failed = results.filter((r) => r instanceof ApiError) as ApiError[];
 
-          this.working = false;
-          this.selectedIds = [];
-          this.loadUsers();
-          this.loadStatistics();
+        this.selectedIds = [];
+        this.loadUsers();
+        this.loadStats();
 
-          if (failed.length === 0) {
-            this.notice = `${results.length} ${results.length === 1 ? 'person' : 'people'} ${verb}.`;
-
-            return;
-          }
-
-          // Named, not rounded off to "Bulk action failed": some of it worked.
-          this.error = `${results.length - failed.length} ${verb}, ${failed.length} refused — ${failed[0].message}`;
-        },
-        error: (error: ApiError) => {
-          this.working = false;
-          this.error = error.message;
-        },
+        if (failed.length > 0) {
+          alert(`${results.length - failed.length} done, ${failed.length} refused — ${failed[0].message}`);
+        }
       });
   }
 
-  private run(call: Observable<unknown>, message: string): void {
-    this.working = true;
-    this.error = null;
-
+  private run(call: Observable<unknown>, whenItFails: string): void {
     call.pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.working = false;
-        this.notice = message;
         this.loadUsers();
-        this.loadStatistics();
+        this.loadStats();
       },
-      error: (error: ApiError) => {
-        this.working = false;
-        this.error = error.message;
-      },
+      // The server's own words where it has them.
+      error: (e: ApiError) => alert(e.message || whenItFails),
     });
   }
 
   // --- presentation --------------------------------------------------------
 
-  roleNames(user: User): string[] {
-    return user.roleIds
-      .map((id) => this.roles.find((r) => r.id === id)?.name)
-      .filter((name): name is string => name !== undefined);
-  }
-
-  avatarColour(name: string): string {
-    const colours = [
+  getAvatarColor(name: string): string {
+    const colors = [
       '#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f',
       '#edc948', '#b07aa1', '#ff9da7', '#9c755f', '#bab0ac',
     ];
@@ -362,21 +445,56 @@ export class UserListComponent implements OnInit, OnDestroy {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
 
-    return colours[Math.abs(hash) % colours.length];
+    return colors[Math.abs(hash) % colors.length];
   }
 
-  statusBadgeClass(status: UserStatus): string {
-    const classes: Record<UserStatus, string> = {
+  /** The page in hand, named and ordered. */
+  private render(): void {
+    this.users = this.page.map((u) => this.adapt(u));
+    this.applySort();
+  }
+
+  getRoleBadgeClass(role: string): string {
+    return ({
+      super_admin: 'bg-danger',
+      tenant_admin: 'bg-danger',
+      org_admin: 'bg-primary',
+      hr_manager: 'bg-info text-black',
+      hr: 'bg-info text-black',
+      manager: 'bg-warning text-black',
+      instructor: 'bg-success',
+      content_creator: 'bg-secondary',
+      learner: 'bg-light text-black border',
+    } as Record<string, string>)[role] ?? 'bg-light text-black border';
+  }
+
+  getStatusBadgeClass(status: string): string {
+    return ({
       active: 'bg-success',
-      invited: 'bg-info',
+      invited: 'bg-secondary',
       suspended: 'bg-warning text-dark',
       locked: 'bg-danger',
-    };
-
-    return classes[status] ?? 'bg-secondary';
+    } as Record<string, string>)[status] ?? 'bg-secondary';
   }
 
-  trackById(_index: number, item: { id: string }): string {
-    return item.id;
+  // --- translation ---------------------------------------------------------
+
+  private adapt(user: ApiUser): User {
+    return {
+      id: user.id,
+      full_name: user.fullName,
+      email: user.email,
+      // The legacy had a staff id column; this system does not, and an empty
+      // one is better than a made-up one.
+      staffId: null,
+      department_name: user.placement?.departmentName ?? null,
+      status: user.status,
+      account_locked: user.status === 'locked',
+      roles: user.roleIds
+        .map((id) => this.roles.find((r) => r.role_id === id))
+        .filter((role): role is Role => role !== undefined)
+        .map((role) => ({ slug: role.role_key, name: role.role_name })),
+      last_login_at: user.lastLoginAt,
+    };
   }
 }

@@ -430,17 +430,21 @@ export const Endpoints = {
   },
 
   // --- notifications ----------------------------------------------------
+  //
+  // The inbox routes take no id: the caller comes from the token and goes
+  // straight into the WHERE clause, so there is no other inbox to address.
+  // Only the last two act on other people, and those carry a permission.
   notifications: {
-    list: '/me/notifications',
-    unreadCount: '/me/notifications/unread-count',
-    show: (id: string) => `/me/notifications/${id}`,
-    read: (id: string) => `/me/notifications/${id}/read`,
-    readAll: '/me/notifications/read-all',
-    delete: (id: string) => `/me/notifications/${id}`,
-    preferences: '/me/notification-preferences',
-    savePreferences: '/me/notification-preferences',
+    list: '/notifications',
+    unreadCount: '/notifications/unread-count',
+    show: (id: string) => `/notifications/${id}`,
+    read: (id: string) => `/notifications/${id}/read`,
+    readAll: '/notifications/read-all',
+    delete: (id: string) => `/notifications/${id}`,
+    preferences: '/notifications/preferences',
+    savePreferences: '/notifications/preferences',
     /** Sending to other people; needs `notification.send`. */
-    announce: '/notifications/announce',
+    announce: '/notifications/announcements',
     deliveries: '/notifications/deliveries',
   },
 

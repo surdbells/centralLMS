@@ -59,24 +59,34 @@ export class NotificationsService {
       .getPaged<Notification>(Endpoints.notifications.list, { perPage })
       .pipe(map((page) => ({
         items: page.items,
-        unread: (page.meta as { unread?: number }).unread ?? page.items.filter((n) => !n.isRead).length,
+        unread: (page.meta as { unreadCount?: number }).unreadCount
+          ?? page.items.filter((n) => !n.isRead).length,
       })));
   }
 
-  unreadCount(): Observable<{ unread: number }> {
-    return this.api.get<{ unread: number }>(Endpoints.notifications.unreadCount);
+  unreadCount(): Observable<{ unreadCount: number }> {
+    return this.api.get<{ unreadCount: number }>(Endpoints.notifications.unreadCount);
   }
 
-  markRead(id: string): Observable<Notification> {
-    return this.api.post<Notification>(Endpoints.notifications.read(id), {});
+  /** The new unread count comes back with it, so the badge cannot drift. */
+  markRead(id: string): Observable<{ id: string; isRead: boolean; unreadCount: number }> {
+    return this.api.post<{ id: string; isRead: boolean; unreadCount: number }>(
+      Endpoints.notifications.read(id),
+      {},
+    );
   }
 
-  markAllRead(): Observable<{ marked: number }> {
-    return this.api.post<{ marked: number }>(Endpoints.notifications.readAll, {});
+  markAllRead(): Observable<{ marked: number; unreadCount: number }> {
+    return this.api.post<{ marked: number; unreadCount: number }>(
+      Endpoints.notifications.readAll,
+      {},
+    );
   }
 
-  delete(id: string): Observable<void> {
-    return this.api.delete<void>(Endpoints.notifications.delete(id));
+  delete(id: string): Observable<{ id: string; deleted: boolean; unreadCount: number }> {
+    return this.api.delete<{ id: string; deleted: boolean; unreadCount: number }>(
+      Endpoints.notifications.delete(id),
+    );
   }
 
   preferences(): Observable<NotificationPreferences> {
