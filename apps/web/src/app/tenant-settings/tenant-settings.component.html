@@ -1,26 +1,4 @@
-<!-- tenant-settings/tenant-settings.component.html -->
-
 <div class="settings-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <div class="header-text">
-        <h1><i class="bi bi-gear-fill"></i> Tenant Settings</h1>
-        <p class="text-muted">Configure your organization's LMS settings</p>
-      </div>
-      <div class="header-actions">
-        <button class="btn btn-outline-light btn-sm" (click)="openHistoryModal()">
-          <i class="bi bi-clock-history me-1"></i> History
-        </button>
-        <button class="btn btn-outline-light btn-sm" (click)="openExportModal()">
-          <i class="bi bi-download me-1"></i> Export
-        </button>
-        <button class="btn btn-outline-light btn-sm" (click)="openImportModal()">
-          <i class="bi bi-upload me-1"></i> Import
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- Messages -->
   <div class="messages-container" *ngIf="successMessage || errorMessage">
@@ -42,912 +20,291 @@
     <p>Loading settings...</p>
   </div>
 
-  <!-- Main Content -->
-  <div class="settings-content" *ngIf="!loading && settings">
-    <!-- Sidebar Navigation -->
+  <div class="settings-content" *ngIf="!loading && tenant">
+    <!-- Sidebar -->
     <div class="settings-sidebar">
       <nav class="settings-nav">
-        <a class="nav-item" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
-          <i class="bi bi-speedometer2"></i>
-          <span>Overview</span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'general'" (click)="setActiveTab('general')">
-          <i class="bi bi-building"></i>
-          <span>General</span>
-          <span class="change-indicator" *ngIf="hasChanges['general']"></span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'branding'" (click)="setActiveTab('branding')">
-          <i class="bi bi-palette"></i>
-          <span>Branding</span>
-          <span class="change-indicator" *ngIf="hasChanges['branding']"></span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'learning'" (click)="setActiveTab('learning')">
-          <i class="bi bi-mortarboard"></i>
-          <span>Learning</span>
-          <span class="change-indicator" *ngIf="hasChanges['learning']"></span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'gamification'" (click)="setActiveTab('gamification')">
-          <i class="bi bi-trophy"></i>
-          <span>Gamification</span>
-          <span class="change-indicator" *ngIf="hasChanges['gamification']"></span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'notifications'" (click)="setActiveTab('notifications')">
-          <i class="bi bi-bell"></i>
-          <span>Notifications</span>
-          <span class="change-indicator" *ngIf="hasChanges['notifications']"></span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'security'" (click)="setActiveTab('security')">
-          <i class="bi bi-shield-lock"></i>
-          <span>Security</span>
-          <span class="change-indicator" *ngIf="hasChanges['security']"></span>
-        </a>
-        <a class="nav-item" [class.active]="activeTab === 'storage'" (click)="setActiveTab('storage')">
-          <i class="bi bi-hdd"></i>
-          <span>Storage</span>
-          <span class="change-indicator" *ngIf="hasChanges['storage']"></span>
+        <a class="nav-item" *ngFor="let tab of tabs"
+           [class.active]="activeTab === tab.key" (click)="setActiveTab(tab.key)">
+          <i class="bi" [ngClass]="tab.icon"></i> {{ tab.label }}
         </a>
       </nav>
     </div>
 
-    <!-- Settings Panels -->
     <div class="settings-panel">
-      <!-- Overview Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'overview'">
+      <!-- ============ The organisation itself ============ -->
+      <div class="panel-content" *ngIf="activeTab === 'organisation'">
         <div class="panel-header">
-          <h2>Overview</h2>
-          <p>Your organization's LMS at a glance</p>
+          <h2>Organisation</h2>
+          <p>What your organisation is called, and how to reach it.</p>
         </div>
 
-        <!-- Tenant Info Card -->
-        <div class="info-card" *ngIf="tenantInfo">
+        <div class="info-card">
           <div class="info-card-header">
-            <h3>Organization Info</h3>
-            <span class="badge" [class.bg-success]="tenantInfo.is_active" [class.bg-danger]="!tenantInfo.is_active">
-              {{ tenantInfo.is_active ? 'Active' : 'Inactive' }}
+            <h3>Details</h3>
+            <span class="badge" [class.bg-success]="tenant.status === 'active'"
+                  [class.bg-secondary]="tenant.status !== 'active'">
+              {{ tenant.status | titlecase }}
             </span>
           </div>
+
           <div class="info-grid">
             <div class="info-item">
-              <label>Organization Name</label>
-              <input type="text" class="form-control" [(ngModel)]="tenantInfoForm.tenant_name"
-                     (ngModelChange)="markAsChanged('tenant')">
+              <label class="form-label">Organisation name</label>
+              <input type="text" class="form-control" [(ngModel)]="tenantForm['name']">
             </div>
             <div class="info-item">
-              <label>Tenant Code</label>
-              <input type="text" class="form-control" [value]="tenantInfo.tenant_code" disabled>
+              <label class="form-label">Code</label>
+              <input type="text" class="form-control" [value]="tenant.code" disabled>
+              <small class="text-muted">
+                The tail of your registration and sign-in links. Changing it would break
+                every link already handed out, so it is fixed.
+              </small>
             </div>
             <div class="info-item">
-              <label>Domain</label>
-              <input type="text" class="form-control" [(ngModel)]="tenantInfoForm.domain"
-                     (ngModelChange)="markAsChanged('tenant')">
+              <label class="form-label">Contact email</label>
+              <input type="email" class="form-control" [(ngModel)]="tenantForm['contactEmail']">
             </div>
             <div class="info-item">
-              <label>Subscription Plan</label>
-              <input type="text" class="form-control" [value]="tenantInfo.subscription_plan || 'Standard'" disabled>
+              <label class="form-label">Contact phone</label>
+              <input type="tel" class="form-control" [(ngModel)]="tenantForm['contactPhone']">
+            </div>
+            <div class="info-item full-width">
+              <label class="form-label">Address</label>
+              <input type="text" class="form-control" [(ngModel)]="tenantForm['address']">
             </div>
             <div class="info-item">
-              <label>Subscription Expires</label>
-              <input type="text" class="form-control" [value]="formatDate(tenantInfo.subscription_expires_at)" disabled>
+              <label class="form-label">Domain</label>
+              <input type="text" class="form-control" [(ngModel)]="tenantForm['domain']"
+                     placeholder="acme.com">
             </div>
             <div class="info-item">
-              <label>Created</label>
-              <input type="text" class="form-control" [value]="formatDate(tenantInfo.created_at)" disabled>
+              <label class="form-label">Industry</label>
+              <input type="text" class="form-control" [(ngModel)]="tenantForm['industry']">
+            </div>
+            <div class="info-item full-width">
+              <label class="form-label">Logo</label>
+              <input type="url" class="form-control" [(ngModel)]="tenantForm['logoUrl']"
+                     placeholder="https://…">
+              <small class="text-muted">
+                Must be https, or browsers refuse to load it on a secure page.
+              </small>
             </div>
           </div>
-          <div class="info-card-footer" *ngIf="hasChanges['tenant']">
-            <button class="btn btn-primary" (click)="saveTenantInfo()" [disabled]="saving">
-              <span *ngIf="!saving">Save Changes</span>
-              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
+
+          <div class="info-card-footer" *ngIf="tenantHasChanges">
+            <button class="btn btn-primary" (click)="saveTenant()" [disabled]="saving">
+              <span *ngIf="!saving">Save changes</span>
+              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving…</span>
             </button>
           </div>
         </div>
 
-        <!-- Usage Stats -->
-        <div class="stats-section" *ngIf="usageStats">
-          <h3>Usage Statistics</h3>
+        <!-- Usage. Counted at read time, never stored. -->
+        <div class="stats-section">
+          <h3>Usage</h3>
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-icon users"><i class="bi bi-people-fill"></i></div>
               <div class="stat-content">
-                <span class="stat-value">{{ usageStats.active_users }} / {{ usageStats.users }}</span>
-                <span class="stat-label">Active Users</span>
+                <span class="stat-value">
+                  {{ tenant.usage.users }}<span *ngIf="tenant.limits.users"> / {{ tenant.limits.users }}</span>
+                </span>
+                <span class="stat-label">People</span>
               </div>
             </div>
             <div class="stat-card">
               <div class="stat-icon courses"><i class="bi bi-journal-bookmark-fill"></i></div>
               <div class="stat-content">
-                <span class="stat-value">{{ usageStats.published_courses }} / {{ usageStats.courses }}</span>
-                <span class="stat-label">Published Courses</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon enrollments"><i class="bi bi-person-check-fill"></i></div>
-              <div class="stat-content">
-                <span class="stat-value">{{ usageStats.enrollments }}</span>
-                <span class="stat-label">Total Enrollments</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon completed"><i class="bi bi-check-circle-fill"></i></div>
-              <div class="stat-content">
-                <span class="stat-value">{{ usageStats.completed_enrollments }}</span>
-                <span class="stat-label">Completions</span>
-              </div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon certificates"><i class="bi bi-award-fill"></i></div>
-              <div class="stat-content">
-                <span class="stat-value">{{ usageStats.certificates_issued }}</span>
-                <span class="stat-label">Certificates</span>
+                <span class="stat-value">{{ tenant.usage.courses }}</span>
+                <span class="stat-label">Courses</span>
               </div>
             </div>
             <div class="stat-card">
               <div class="stat-icon storage"><i class="bi bi-hdd-fill"></i></div>
               <div class="stat-content">
-                <span class="stat-value">{{ formatBytes(usageStats.storage_used_bytes) }}</span>
-                <span class="stat-label">Storage Used</span>
+                <span class="stat-value">{{ tenant.usage.storageMb }} MB</span>
+                <span class="stat-label">Storage used</span>
               </div>
             </div>
           </div>
 
-          <!-- Storage Progress -->
-          <div class="storage-progress-card" *ngIf="usageStats.storage_limit_bytes > 0">
+          <div class="storage-progress-card" *ngIf="tenant.limits.storage">
             <div class="storage-info">
-              <span>Storage Usage</span>
-              <span>{{ formatBytes(usageStats.storage_used_bytes) }} of {{ formatStorageLimit() }}</span>
+              <span>Storage</span>
+              <span>{{ tenant.usage.storageMb }} MB of {{ tenant.limits.storage }} MB</span>
             </div>
             <div class="progress">
-              <div class="progress-bar" [style.width.%]="getStoragePercentage()"
-                   [class.bg-warning]="getStoragePercentage() > 70"
-                   [class.bg-danger]="getStoragePercentage() > 90"></div>
+              <div class="progress-bar" [style.width.%]="storagePercentage"
+                   [class.bg-warning]="storagePercentage > 70"
+                   [class.bg-danger]="storagePercentage > 90"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- General Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'general' && generalForm">
+      <!-- ============ Settings, rendered from the catalogue ============ -->
+      <div class="panel-content"
+           *ngIf="activeTab !== 'organisation' && activeTab !== 'email'">
         <div class="panel-header">
-          <h2>General Settings</h2>
-          <p>Basic organization information and preferences</p>
+          <h2>{{ activeTabInfo?.label }}</h2>
+          <p>{{ activeTabInfo?.description }}</p>
         </div>
 
         <div class="form-section">
-          <h4>Company Information</h4>
           <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Company Name</label>
-              <input type="text" class="form-control" [(ngModel)]="generalForm.company_name"
-                     (ngModelChange)="markAsChanged('general')" placeholder="Your Company Name">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Company Email</label>
-              <input type="email" class="form-control" [(ngModel)]="generalForm.company_email"
-                     (ngModelChange)="markAsChanged('general')" placeholder="contact@company.com">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Company Phone</label>
-              <input type="tel" class="form-control" [(ngModel)]="generalForm.company_phone"
-                     (ngModelChange)="markAsChanged('general')" placeholder="+234 xxx xxx xxxx">
-            </div>
-            <div class="form-group full-width">
-              <label class="form-label">Company Address</label>
-              <textarea class="form-control" [(ngModel)]="generalForm.company_address"
-                        (ngModelChange)="markAsChanged('general')" rows="2" placeholder="Full address"></textarea>
-            </div>
-          </div>
-        </div>
+            <div class="form-group" *ngFor="let s of settingsFor(activeTab)"
+                 [class.full-width]="s.type === 'text'">
 
-        <div class="form-section">
-          <h4>Regional Settings</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Timezone</label>
-              <select class="form-select" [(ngModel)]="generalForm.timezone" (ngModelChange)="markAsChanged('general')">
-                <option *ngFor="let tz of timezones" [value]="tz">{{ tz }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Language</label>
-              <select class="form-select" [(ngModel)]="generalForm.language" (ngModelChange)="markAsChanged('general')">
-                <option *ngFor="let lang of languages" [value]="lang.value">{{ lang.label }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Date Format</label>
-              <select class="form-select" [(ngModel)]="generalForm.date_format" (ngModelChange)="markAsChanged('general')">
-                <option *ngFor="let fmt of dateFormats" [value]="fmt.value">{{ fmt.label }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Time Format</label>
-              <select class="form-select" [(ngModel)]="generalForm.time_format" (ngModelChange)="markAsChanged('general')">
-                <option *ngFor="let fmt of timeFormats" [value]="fmt.value">{{ fmt.label }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Currency</label>
-              <select class="form-select" [(ngModel)]="generalForm.currency" (ngModelChange)="markAsChanged('general')">
-                <option *ngFor="let curr of currencies" [value]="curr.value">{{ curr.label }}</option>
-              </select>
+              <!-- A switch, for the ones that are on or off. -->
+              <div class="form-check-item" *ngIf="s.type === 'boolean'">
+                <input class="form-check-input" type="checkbox" [id]="s.key"
+                       [checked]="boolValue(s.key)"
+                       (change)="setBool(s.key, $any($event.target).checked)">
+                <label class="form-check-label" [for]="s.key">{{ s.label }}</label>
+              </div>
+
+              <ng-container *ngIf="s.type !== 'boolean'">
+                <label class="form-label" [for]="s.key">{{ s.label }}</label>
+
+                <select class="form-select" [id]="s.key" *ngIf="s.type === 'choice'"
+                        [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+                  <option *ngFor="let choice of s.choices" [value]="choice">{{ choice }}</option>
+                </select>
+
+                <input class="form-control" [id]="s.key" type="number"
+                       *ngIf="s.type === 'integer'"
+                       [value]="asString(s.key)"
+                       (input)="setNumber(s.key, $any($event.target).value)">
+
+                <div class="color-picker-group" *ngIf="s.type === 'colour'">
+                  <input class="color-input" type="color" [id]="s.key"
+                         [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+                  <input class="form-control" type="text"
+                         [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+                </div>
+
+                <input class="form-control" [id]="s.key" type="url" *ngIf="s.type === 'url'"
+                       [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event"
+                       placeholder="https://…">
+
+                <input class="form-control" [id]="s.key" type="text" *ngIf="s.type === 'text'"
+                       [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+              </ng-container>
+
+              <small class="text-muted" *ngIf="s.help">{{ s.help }}</small>
+              <!-- Where it takes effect. The whole point of this screen being
+                   built from the catalogue is that this is never a guess. -->
+              <small class="text-muted d-block" *ngIf="s.honouredBy">
+                <i class="bi bi-check2 me-1"></i>{{ s.honouredBy }}
+              </small>
             </div>
           </div>
         </div>
 
         <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('general')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveGeneralSettings()" [disabled]="saving || !hasChanges['general']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
+          <button class="btn btn-outline-secondary" (click)="resetCategory(activeTab)"
+                  [disabled]="saving">
+            Reset to defaults
+          </button>
+          <button class="btn btn-primary" (click)="saveCategory(activeTab)"
+                  [disabled]="saving || !hasChanges(activeTab)">
+            <span *ngIf="!saving">Save changes</span>
+            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving…</span>
           </button>
         </div>
       </div>
 
-      <!-- Branding Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'branding' && brandingForm">
+      <!-- ============ Email templates ============ -->
+      <div class="panel-content" *ngIf="activeTab === 'email'">
         <div class="panel-header">
-          <h2>Branding Settings</h2>
-          <p>Customize the look and feel of your LMS</p>
+          <h2>Email templates</h2>
+          <p>
+            What your transactional email says. Anything you leave alone keeps the
+            standard wording.
+          </p>
         </div>
 
-        <div class="form-section">
-          <h4>Logos & Images</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Logo URL</label>
-              <input type="url" class="form-control" [(ngModel)]="brandingForm.logo_url"
-                     (ngModelChange)="markAsChanged('branding')" placeholder="https://...">
-              <small class="text-muted">Main logo displayed in the header</small>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Favicon URL</label>
-              <input type="url" class="form-control" [(ngModel)]="brandingForm.favicon_url"
-                     (ngModelChange)="markAsChanged('branding')" placeholder="https://...">
-              <small class="text-muted">Browser tab icon (32x32 recommended)</small>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Login Background URL</label>
-              <input type="url" class="form-control" [(ngModel)]="brandingForm.login_background_url"
-                     (ngModelChange)="markAsChanged('branding')" placeholder="https://...">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email Header Logo URL</label>
-              <input type="url" class="form-control" [(ngModel)]="brandingForm.email_header_logo_url"
-                     (ngModelChange)="markAsChanged('branding')" placeholder="https://...">
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Colors</h4>
-          <div class="color-grid">
-            <div class="color-picker-group">
-              <label class="form-label">Primary Color</label>
-              <div class="color-input">
-                <input type="color" [(ngModel)]="brandingForm.primary_color" (ngModelChange)="markAsChanged('branding')">
-                <input type="text" class="form-control" [(ngModel)]="brandingForm.primary_color"
-                       (ngModelChange)="markAsChanged('branding')" maxlength="7">
-              </div>
-            </div>
-            <div class="color-picker-group">
-              <label class="form-label">Secondary Color</label>
-              <div class="color-input">
-                <input type="color" [(ngModel)]="brandingForm.secondary_color" (ngModelChange)="markAsChanged('branding')">
-                <input type="text" class="form-control" [(ngModel)]="brandingForm.secondary_color"
-                       (ngModelChange)="markAsChanged('branding')" maxlength="7">
-              </div>
-            </div>
-            <div class="color-picker-group">
-              <label class="form-label">Accent Color</label>
-              <div class="color-input">
-                <input type="color" [(ngModel)]="brandingForm.accent_color" (ngModelChange)="markAsChanged('branding')">
-                <input type="text" class="form-control" [(ngModel)]="brandingForm.accent_color"
-                       (ngModelChange)="markAsChanged('branding')" maxlength="7">
+        <!-- The list -->
+        <div class="form-section" *ngIf="!editingTemplate">
+          <div class="history-list">
+            <div class="history-item" *ngFor="let t of templates" role="button"
+                 (click)="editTemplate(t.type)">
+              <div class="history-icon"><i class="bi bi-envelope"></i></div>
+              <div class="history-content">
+                <div class="history-header">
+                  <strong>{{ t.label }}</strong>
+                  <span class="chip" [class.bg-success]="!t.usesDefault">
+                    {{ t.usesDefault ? 'Standard wording' : 'Your wording' }}
+                  </span>
+                </div>
+                <div class="history-changes">{{ t.default.title }}</div>
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="color-preview">
-            <div class="preview-box" [style.background]="brandingForm.primary_color">Primary</div>
-            <div class="preview-box" [style.background]="brandingForm.secondary_color">Secondary</div>
-            <div class="preview-box" [style.background]="brandingForm.accent_color">Accent</div>
+        <!-- The editor -->
+        <div class="form-section" *ngIf="editingTemplate">
+          <div class="info-card-header">
+            <h3>{{ editingTemplate.label }}</h3>
+            <button class="btn btn-sm btn-outline-secondary" (click)="closeTemplate()">
+              <i class="bi bi-arrow-left me-1"></i>All templates
+            </button>
           </div>
-        </div>
 
-        <div class="form-section">
-          <h4>Footer</h4>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="showPoweredBy"
-                   [(ngModel)]="brandingForm.show_powered_by" (ngModelChange)="markAsChanged('branding')">
-            <label class="form-check-label" for="showPoweredBy">Show "Powered by" in footer</label>
+          <div class="form-group full-width">
+            <label class="form-label" for="tplSubject">Subject</label>
+            <input class="form-control" id="tplSubject" type="text"
+                   [(ngModel)]="templateForm.subject"
+                   [placeholder]="editingTemplate.default.title">
+            <small class="text-muted">Leave empty to keep the standard subject.</small>
           </div>
-        </div>
 
-        <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('branding')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveBrandingSettings()" [disabled]="saving || !hasChanges['branding']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
-          </button>
-        </div>
-      </div>
+          <div class="form-group full-width">
+            <label class="form-label" for="tplBody">Body</label>
+            <textarea class="form-control" id="tplBody" rows="8"
+                      [(ngModel)]="templateForm.body"
+                      [placeholder]="editingTemplate.default.body"></textarea>
+            <small class="text-muted">Leave empty to keep the standard wording.</small>
+          </div>
 
-      <!-- Learning Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'learning' && learningForm">
-        <div class="panel-header">
-          <h2>Learning Settings</h2>
-          <p>Configure course and learning behavior</p>
-        </div>
-
-        <div class="form-section">
-          <h4>Course Defaults</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Default Course Duration (days)</label>
-              <input type="number" class="form-control" [(ngModel)]="learningForm.default_course_duration_days"
-                     (ngModelChange)="markAsChanged('learning')" min="1" max="365">
+          <div class="form-group full-width">
+            <label class="form-label">Insert</label>
+            <div class="file-type-chips">
+              <button type="button" class="chip" *ngFor="let p of placeholders"
+                      (click)="insertPlaceholder(p)">{{ '{{' + p + '}}' }}</button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Video Completion Threshold (%)</label>
-              <input type="number" class="form-control" [(ngModel)]="learningForm.video_completion_threshold"
-                     (ngModelChange)="markAsChanged('learning')" min="0" max="100">
-              <small class="text-muted">% of video that must be watched to count as complete</small>
-            </div>
+            <small class="text-muted">
+              <code>{{ '{{default_body}}' }}</code> is the standard wording, so you can wrap
+              it rather than rewrite it.
+            </small>
           </div>
-        </div>
 
-        <div class="form-section">
-          <h4>Quiz Settings</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Passing Score (%)</label>
-              <input type="number" class="form-control" [(ngModel)]="learningForm.quiz_passing_score"
-                     (ngModelChange)="markAsChanged('learning')" min="0" max="100">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Maximum Quiz Attempts</label>
-              <input type="number" class="form-control" [(ngModel)]="learningForm.max_quiz_attempts"
-                     (ngModelChange)="markAsChanged('learning')" min="1" max="100">
-            </div>
-          </div>
           <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="showCorrectAnswers"
-                   [(ngModel)]="learningForm.show_correct_answers" (ngModelChange)="markAsChanged('learning')">
-            <label class="form-check-label" for="showCorrectAnswers">Show correct answers after quiz completion</label>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Certificates</h4>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="certificateEnabled"
-                   [(ngModel)]="learningForm.certificate_enabled" (ngModelChange)="markAsChanged('learning')">
-            <label class="form-check-label" for="certificateEnabled">Enable certificates for course completion</label>
-          </div>
-          <div class="form-group mt-3" *ngIf="learningForm.certificate_enabled">
-            <label class="form-label">Certificate Expiry (days)</label>
-            <input type="number" class="form-control" style="max-width: 200px;"
-                   [(ngModel)]="learningForm.certificate_expiry_days" (ngModelChange)="markAsChanged('learning')"
-                   min="0">
-            <small class="text-muted">Set to 0 for no expiry</small>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Enrollment Options</h4>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="allowSelfEnrollment"
-                   [(ngModel)]="learningForm.allow_self_enrollment" (ngModelChange)="markAsChanged('learning')">
-            <label class="form-check-label" for="allowSelfEnrollment">Allow users to self-enroll in courses</label>
-          </div>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="requireSequential"
-                   [(ngModel)]="learningForm.require_sequential_lessons" (ngModelChange)="markAsChanged('learning')">
-            <label class="form-check-label" for="requireSequential">Require sequential lesson completion</label>
-          </div>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="autoEnrollNew"
-                   [(ngModel)]="learningForm.auto_enroll_new_users" (ngModelChange)="markAsChanged('learning')">
-            <label class="form-check-label" for="autoEnrollNew">Auto-enroll new users in mandatory courses</label>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Reminders</h4>
-          <div class="form-group">
-            <label class="form-label">Mandatory Course Reminder Days</label>
-            <input type="text" class="form-control" style="max-width: 300px;"
-                   [value]="getReminderDaysString()"
-                   (change)="setReminderDays($any($event.target).value)"
-                   placeholder="7, 3, 1">
-            <small class="text-muted">Comma-separated days before deadline to send reminders</small>
-          </div>
-        </div>
-
-        <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('learning')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveLearningSettings()" [disabled]="saving || !hasChanges['learning']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Gamification Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'gamification' && gamificationForm">
-        <div class="panel-header">
-          <h2>Gamification Settings</h2>
-          <p>Configure points, badges, and leaderboards</p>
-        </div>
-
-        <div class="form-section">
-          <div class="form-check-item large">
-            <input type="checkbox" class="form-check-input" id="gamificationEnabled"
-                   [(ngModel)]="gamificationForm.enabled" (ngModelChange)="markAsChanged('gamification')">
-            <label class="form-check-label" for="gamificationEnabled">
-              <strong>Enable Gamification</strong>
-              <small>Turn on points, badges, and leaderboards</small>
+            <input class="form-check-input" type="checkbox" id="tplEnabled"
+                   [(ngModel)]="templateForm.enabled">
+            <label class="form-check-label" for="tplEnabled">
+              Use this wording. Off keeps it here and sends the standard one.
             </label>
           </div>
-        </div>
 
-        <div *ngIf="gamificationForm.enabled">
-          <div class="form-section">
-            <h4>Points Configuration</h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">Points per Lesson</label>
-                <input type="number" class="form-control" [(ngModel)]="gamificationForm.points_per_lesson"
-                       (ngModelChange)="markAsChanged('gamification')" min="0">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Points per Course Completion</label>
-                <input type="number" class="form-control" [(ngModel)]="gamificationForm.points_per_course"
-                       (ngModelChange)="markAsChanged('gamification')" min="0">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Points per Correct Quiz Answer</label>
-                <input type="number" class="form-control" [(ngModel)]="gamificationForm.points_per_quiz_correct"
-                       (ngModelChange)="markAsChanged('gamification')" min="0">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Points per Certificate</label>
-                <input type="number" class="form-control" [(ngModel)]="gamificationForm.points_per_certificate"
-                       (ngModelChange)="markAsChanged('gamification')" min="0">
-              </div>
-            </div>
+          <!-- What it would actually send -->
+          <div class="preview-box" *ngIf="editingTemplate.preview">
+            <strong>{{ editingTemplate.preview.title }}</strong>
+            <p class="mb-0">{{ editingTemplate.preview.body }}</p>
           </div>
 
-          <div class="form-section">
-            <h4>Leaderboard</h4>
-            <div class="form-check-item">
-              <input type="checkbox" class="form-check-input" id="leaderboardEnabled"
-                     [(ngModel)]="gamificationForm.leaderboard_enabled" (ngModelChange)="markAsChanged('gamification')">
-              <label class="form-check-label" for="leaderboardEnabled">Enable leaderboard</label>
-            </div>
-            <div class="form-group mt-3" *ngIf="gamificationForm.leaderboard_enabled">
-              <label class="form-label">Display Top Users</label>
-              <input type="number" class="form-control" style="max-width: 150px;"
-                     [(ngModel)]="gamificationForm.leaderboard_display_count" (ngModelChange)="markAsChanged('gamification')"
-                     min="5" max="100">
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h4>Features</h4>
-            <div class="form-check-item">
-              <input type="checkbox" class="form-check-input" id="badgesEnabled"
-                     [(ngModel)]="gamificationForm.badges_enabled" (ngModelChange)="markAsChanged('gamification')">
-              <label class="form-check-label" for="badgesEnabled">Enable badges</label>
-            </div>
-            <div class="form-check-item">
-              <input type="checkbox" class="form-check-input" id="streaksEnabled"
-                     [(ngModel)]="gamificationForm.streaks_enabled" (ngModelChange)="markAsChanged('gamification')">
-              <label class="form-check-label" for="streaksEnabled">Enable learning streaks</label>
-            </div>
-            <div class="form-group mt-3" *ngIf="gamificationForm.streaks_enabled">
-              <label class="form-label">Streak Bonus Multiplier</label>
-              <input type="number" class="form-control" style="max-width: 150px;"
-                     [(ngModel)]="gamificationForm.streak_bonus_multiplier" (ngModelChange)="markAsChanged('gamification')"
-                     min="1" max="5" step="0.1">
-              <small class="text-muted">Points multiplier for maintaining streaks</small>
-            </div>
+          <div class="panel-footer">
+            <button class="btn btn-outline-secondary" (click)="resetTemplate()" [disabled]="saving">
+              Back to standard
+            </button>
+            <button class="btn btn-primary" (click)="saveTemplate()" [disabled]="saving">
+              <span *ngIf="!saving">Save</span>
+              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving…</span>
+            </button>
           </div>
         </div>
-
-        <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('gamification')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveGamificationSettings()" [disabled]="saving || !hasChanges['gamification']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Notifications Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'notifications' && notificationsForm">
-        <div class="panel-header">
-          <h2>Notification Settings</h2>
-          <p>Configure email notifications and alerts</p>
-        </div>
-
-        <div class="form-section">
-          <div class="form-check-item large">
-            <input type="checkbox" class="form-check-input" id="emailNotificationsEnabled"
-                   [(ngModel)]="notificationsForm.email_notifications_enabled" (ngModelChange)="markAsChanged('notifications')">
-            <label class="form-check-label" for="emailNotificationsEnabled">
-              <strong>Enable Email Notifications</strong>
-              <small>Master switch for all email notifications</small>
-            </label>
-          </div>
-        </div>
-
-        <div *ngIf="notificationsForm.email_notifications_enabled">
-          <div class="form-section">
-            <h4>Email Sender</h4>
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="form-label">From Name</label>
-                <input type="text" class="form-control" [(ngModel)]="notificationsForm.notification_from_name"
-                       (ngModelChange)="markAsChanged('notifications')" placeholder="Your Company LMS">
-              </div>
-              <div class="form-group">
-                <label class="form-label">From Email</label>
-                <input type="email" class="form-control" [(ngModel)]="notificationsForm.notification_from_email"
-                       (ngModelChange)="markAsChanged('notifications')" placeholder="noreply@company.com">
-              </div>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h4>User Notifications</h4>
-            <div class="notification-grid">
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="enrollmentNotification"
-                       [(ngModel)]="notificationsForm.enrollment_notification" (ngModelChange)="markAsChanged('notifications')">
-                <label class="form-check-label" for="enrollmentNotification">Course enrollment</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="courseCompletionNotification"
-                       [(ngModel)]="notificationsForm.course_completion_notification" (ngModelChange)="markAsChanged('notifications')">
-                <label class="form-check-label" for="courseCompletionNotification">Course completion</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="certificateNotification"
-                       [(ngModel)]="notificationsForm.certificate_notification" (ngModelChange)="markAsChanged('notifications')">
-                <label class="form-check-label" for="certificateNotification">Certificate issued</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="deadlineReminderNotification"
-                       [(ngModel)]="notificationsForm.deadline_reminder_notification" (ngModelChange)="markAsChanged('notifications')">
-                <label class="form-check-label" for="deadlineReminderNotification">Deadline reminders</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="quizResultNotification"
-                       [(ngModel)]="notificationsForm.quiz_result_notification" (ngModelChange)="markAsChanged('notifications')">
-                <label class="form-check-label" for="quizResultNotification">Quiz results</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="newCourseNotification"
-                       [(ngModel)]="notificationsForm.new_course_notification" (ngModelChange)="markAsChanged('notifications')">
-                <label class="form-check-label" for="newCourseNotification">New course available</label>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-section">
-            <h4>Digest & Reports</h4>
-            <div class="form-check-item">
-              <input type="checkbox" class="form-check-input" id="weeklyProgressDigest"
-                     [(ngModel)]="notificationsForm.weekly_progress_digest" (ngModelChange)="markAsChanged('notifications')">
-              <label class="form-check-label" for="weeklyProgressDigest">Weekly progress digest for users</label>
-            </div>
-            <div class="form-check-item">
-              <input type="checkbox" class="form-check-input" id="managerProgressReports"
-                     [(ngModel)]="notificationsForm.manager_progress_reports" (ngModelChange)="markAsChanged('notifications')">
-              <label class="form-check-label" for="managerProgressReports">Team progress reports for managers</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('notifications')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveNotificationSettings()" [disabled]="saving || !hasChanges['notifications']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Security Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'security' && securityForm">
-        <div class="panel-header">
-          <h2>Security Settings</h2>
-          <p>Configure password policies and access controls</p>
-        </div>
-
-        <div class="form-section">
-          <h4>Password Policy</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Minimum Password Length</label>
-              <input type="number" class="form-control" [(ngModel)]="securityForm.password_min_length"
-                     (ngModelChange)="markAsChanged('security')" min="6" max="50">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Password Expiry (days)</label>
-              <input type="number" class="form-control" [(ngModel)]="securityForm.password_expiry_days"
-                     (ngModelChange)="markAsChanged('security')" min="0">
-              <small class="text-muted">Set to 0 for no expiry</small>
-            </div>
-          </div>
-
-          <div class="password-requirements">
-            <label class="form-label">Password Requirements</label>
-            <div class="requirements-grid">
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="requireUppercase"
-                       [(ngModel)]="securityForm.password_require_uppercase" (ngModelChange)="markAsChanged('security')">
-                <label class="form-check-label" for="requireUppercase">Require uppercase letter</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="requireLowercase"
-                       [(ngModel)]="securityForm.password_require_lowercase" (ngModelChange)="markAsChanged('security')">
-                <label class="form-check-label" for="requireLowercase">Require lowercase letter</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="requireNumber"
-                       [(ngModel)]="securityForm.password_require_number" (ngModelChange)="markAsChanged('security')">
-                <label class="form-check-label" for="requireNumber">Require number</label>
-              </div>
-              <div class="form-check-item">
-                <input type="checkbox" class="form-check-input" id="requireSpecial"
-                       [(ngModel)]="securityForm.password_require_special" (ngModelChange)="markAsChanged('security')">
-                <label class="form-check-label" for="requireSpecial">Require special character</label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Login Security</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Max Login Attempts</label>
-              <input type="number" class="form-control" [(ngModel)]="securityForm.max_login_attempts"
-                     (ngModelChange)="markAsChanged('security')" min="1" max="20">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Lockout Duration (minutes)</label>
-              <input type="number" class="form-control" [(ngModel)]="securityForm.lockout_duration_minutes"
-                     (ngModelChange)="markAsChanged('security')" min="1">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Session Timeout (minutes)</label>
-              <input type="number" class="form-control" [(ngModel)]="securityForm.session_timeout_minutes"
-                     (ngModelChange)="markAsChanged('security')" min="5" max="1440">
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Additional Security</h4>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="forcePasswordChangeFirstLogin"
-                   [(ngModel)]="securityForm.force_password_change_first_login" (ngModelChange)="markAsChanged('security')">
-            <label class="form-check-label" for="forcePasswordChangeFirstLogin">Force password change on first login</label>
-          </div>
-          <div class="form-check-item">
-            <input type="checkbox" class="form-check-input" id="twoFactorEnabled"
-                   [(ngModel)]="securityForm.two_factor_enabled" (ngModelChange)="markAsChanged('security')">
-            <label class="form-check-label" for="twoFactorEnabled">Enable two-factor authentication</label>
-          </div>
-        </div>
-
-        <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('security')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveSecuritySettings()" [disabled]="saving || !hasChanges['security']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Storage Settings Tab -->
-      <div class="panel-content" *ngIf="activeTab === 'storage' && storageForm">
-        <div class="panel-header">
-          <h2>Storage Settings</h2>
-          <p>Configure file upload limits</p>
-        </div>
-
-        <!-- Current Storage Info -->
-        <div class="form-section" *ngIf="usageStats">
-          <h4>Current Usage</h4>
-          <div class="storage-info-card">
-            <div class="storage-visual">
-              <div class="storage-bar">
-                <div class="storage-fill" [style.width.%]="getStoragePercentage()"
-                     [class.warning]="getStoragePercentage() > 70"
-                     [class.danger]="getStoragePercentage() > 90"></div>
-              </div>
-              <div class="storage-text">
-                <span>{{ formatBytes(usageStats.storage_used_bytes) }}</span>
-                <span>of {{ formatStorageLimit() }}</span>
-              </div>
-            </div>
-            <p class="text-muted small mt-2">
-              <i class="bi bi-info-circle"></i> Storage quota is managed by your system administrator.
-            </p>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>General Upload Limits</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Max File Size (MB)</label>
-              <input type="number" class="form-control" [(ngModel)]="storageForm.max_file_size_mb"
-                     (ngModelChange)="markAsChanged('storage')" min="1">
-              <small class="text-muted">Default maximum for any file upload</small>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>File Type Limits</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label class="form-label">Max Video Size (MB)</label>
-              <input type="number" class="form-control" [(ngModel)]="storageForm.video_max_size_mb"
-                     (ngModelChange)="markAsChanged('storage')" min="1">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Max Audio Size (MB)</label>
-              <input type="number" class="form-control" [(ngModel)]="storageForm.audio_max_size_mb"
-                     (ngModelChange)="markAsChanged('storage')" min="1">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Max Document Size (MB)</label>
-              <input type="number" class="form-control" [(ngModel)]="storageForm.document_max_size_mb"
-                     (ngModelChange)="markAsChanged('storage')" min="1">
-              <small class="text-muted">PDF, Word, Excel, PowerPoint</small>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Max SCORM Package Size (MB)</label>
-              <input type="number" class="form-control" [(ngModel)]="storageForm.scorm_max_size_mb"
-                     (ngModelChange)="markAsChanged('storage')" min="1">
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h4>Allowed File Types</h4>
-          <div class="form-group">
-            <label class="form-label">File Extensions</label>
-            <input type="text" class="form-control"
-                   [value]="getAllowedFileTypesString()"
-                   (change)="setAllowedFileTypes($any($event.target).value)">
-            <small class="text-muted">Comma-separated list of allowed file extensions (without dots)</small>
-          </div>
-
-          <div class="file-type-chips">
-            <span class="chip" *ngFor="let type of storageForm.allowed_file_types">
-              .{{ type }}
-            </span>
-          </div>
-        </div>
-
-        <div class="panel-footer">
-          <button class="btn btn-secondary" (click)="openResetModal('storage')">Reset to Defaults</button>
-          <button class="btn btn-primary" (click)="saveStorageSettings()" [disabled]="saving || !hasChanges['storage']">
-            <span *ngIf="!saving">Save Changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving...</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Reset Confirmation Modal -->
-  <div class="modal-overlay" *ngIf="showResetModal" (click)="closeResetModal()">
-    <div class="modal-container small" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3><i class="bi bi-arrow-counterclockwise"></i> Reset to Defaults</h3>
-        <button class="btn-close" (click)="closeResetModal()"></button>
-      </div>
-      <div class="modal-body">
-        <p>Are you sure you want to reset <strong>{{ getCategoryLabel(resetCategory!) }}</strong> settings to their default values?</p>
-        <p class="text-muted">This action cannot be undone.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeResetModal()">Cancel</button>
-        <button class="btn btn-warning" (click)="confirmReset()" [disabled]="saving">
-          <span *ngIf="!saving">Reset to Defaults</span>
-          <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Resetting...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Export Modal -->
-  <div class="modal-overlay" *ngIf="showExportModal" (click)="showExportModal = false">
-    <div class="modal-container small" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3><i class="bi bi-download"></i> Export Settings</h3>
-        <button class="btn-close" (click)="showExportModal = false"></button>
-      </div>
-      <div class="modal-body">
-        <p>Export all tenant settings to a JSON file. This can be used for backup or importing into another tenant.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="showExportModal = false">Cancel</button>
-        <button class="btn btn-primary" (click)="exportSettings()">
-          <i class="bi bi-download me-1"></i> Download JSON
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Import Modal -->
-  <div class="modal-overlay" *ngIf="showImportModal" (click)="closeImportModal()">
-    <div class="modal-container" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3><i class="bi bi-upload"></i> Import Settings</h3>
-        <button class="btn-close" (click)="closeImportModal()"></button>
-      </div>
-      <div class="modal-body">
-        <p>Paste the exported settings JSON below to import settings.</p>
-        <div class="form-group">
-          <textarea class="form-control" rows="10" [(ngModel)]="importData" placeholder="Paste JSON here..."></textarea>
-        </div>
-        <p class="text-muted small mt-2">
-          <i class="bi bi-info-circle"></i> Importing will overwrite existing settings for included categories.
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeImportModal()">Cancel</button>
-        <button class="btn btn-primary" (click)="confirmImport()" [disabled]="saving || !importData.trim()">
-          <span *ngIf="!saving"><i class="bi bi-upload me-1"></i> Import Settings</span>
-          <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Importing...</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- History Modal -->
-  <div class="modal-overlay" *ngIf="showHistoryModal" (click)="closeHistoryModal()">
-    <div class="modal-container large" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3><i class="bi bi-clock-history"></i> Settings History</h3>
-        <button class="btn-close" (click)="closeHistoryModal()"></button>
-      </div>
-      <div class="modal-body">
-        <div class="history-list" *ngIf="settingsHistory.length > 0">
-          <div class="history-item" *ngFor="let item of settingsHistory">
-            <div class="history-icon">
-              <i class="bi bi-pencil-square"></i>
-            </div>
-            <div class="history-content">
-              <div class="history-header">
-                <strong>{{ getCategoryLabel(item.category) }}</strong>
-                <span class="history-time">{{ formatDateTime(item.created_at) }}</span>
-              </div>
-              <div class="history-user">
-                Changed by: {{ item.first_name }} {{ item.last_name }} ({{ item.email }})
-              </div>
-              <div class="history-changes">
-                {{ formatHistoryChanges(item.changes) }}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="empty-state" *ngIf="settingsHistory.length === 0">
-          <i class="bi bi-clock-history"></i>
-          <p>No settings history available</p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeHistoryModal()">Close</button>
       </div>
     </div>
   </div>

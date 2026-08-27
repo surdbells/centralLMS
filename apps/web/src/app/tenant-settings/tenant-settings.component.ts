@@ -1,132 +1,108 @@
-// tenant-settings/tenant-settings.component.ts
-
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, takeUntil } from 'rxjs/operators';
+import { AdmintopComponent } from '../partials/top/admintop/admintop.component';
 import {
-  TenantSettingsService,
-  AllSettings,
-  TenantInfo,
-  UsageStats,
-  SettingsHistoryItem,
-  SettingsCategory,
-  GeneralSettings,
-  BrandingSettings,
-  LearningSettings,
-  GamificationSettings,
-  NotificationSettings,
-  SecuritySettings,
-  StorageSettings
-} from './tenant-settings.service';
+  SettingsService,
+  type SettingDefinition,
+  type SettingValue,
+} from '../services/settings.service';
+import { TenantService, type Tenant } from '../services/tenant.service';
+import {
+  EmailTemplatesService,
+  type EmailTemplate,
+} from '../services/email-templates.service';
+import { ApiError } from '../core/api';
 
-type TabType = 'overview' | 'general' | 'branding' | 'learning' | 'gamification' | 'notifications' | 'security' | 'storage';
+/** A tab. The catalogue's categories, plus the two that are not settings. */
+export interface SettingsTab {
+  key: string;
+  label: string;
+  description: string;
+  icon: string;
+}
 
+/**
+ * Everything an organisation can change about its own installation.
+ *
+ * **It said "Failed to load settings."** The screen posted to
+ * `api.centrallms.com/tenant/settings`, which is not this API and does not
+ * answer, so every tab was empty.
+ *
+ * **The form is built from the catalogue.** `/v1/settings/catalogue` returns
+ * every setting the API actually honours, with its label, help text, type and
+ * — usefully — where it takes effect. Rendering from that rather than from a
+ * hand-written form is what stops the two drifting: the legacy screen offered
+ * eight tabs and about fifty settings, of which the backend read five. A field
+ * that does nothing is worse than a missing one, because somebody sets it and
+ * believes it.
+ *
+ * The tabs that are gone had nothing behind them. What replaced two of them:
+ * the organisation's own record, which is not settings at all, and its email
+ * templates, which are.
+ */
 @Component({
   selector: 'app-tenant-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, AdmintopComponent],
   templateUrl: './tenant-settings.component.html',
-  styleUrls: ['./tenant-settings.component.scss']
+  styleUrls: ['./tenant-settings.component.scss'],
 })
 export class TenantSettingsComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly settingsService = inject(SettingsService);
+  private readonly tenantService = inject(TenantService);
+  private readonly templatesService = inject(EmailTemplatesService);
+  private readonly router = inject(Router);
+  private readonly destroy$ = new Subject<void>();
 
-  // Data
-  settings: AllSettings | null = null;
-  tenantInfo: TenantInfo | null = null;
-  usageStats: UsageStats | null = null;
-  settingsHistory: SettingsHistoryItem[] = [];
-
-  // Active tab
-  activeTab: TabType = 'overview';
-
-  // Form copies for editing
-  generalForm: GeneralSettings | null = null;
-  brandingForm: BrandingSettings | null = null;
-  learningForm: LearningSettings | null = null;
-  gamificationForm: GamificationSettings | null = null;
-  notificationsForm: NotificationSettings | null = null;
-  securityForm: SecuritySettings | null = null;
-  storageForm: StorageSettings | null = null;
-  tenantInfoForm: Partial<TenantInfo> = {};
-
-  // UI State
-  loading = false;
+  loading = true;
   saving = false;
-  hasChanges: Record<string, boolean> = {};
-
-  // Messages
   successMessage = '';
   errorMessage = '';
 
-  // Options for dropdowns
-  timezones: string[] = [
-    'Africa/Lagos',
-    'Africa/Cairo',
-    'Africa/Johannesburg',
-    'Africa/Nairobi',
-    'America/New_York',
-    'America/Los_Angeles',
-    'America/Chicago',
-    'America/Denver',
-    'Europe/London',
-    'Europe/Paris',
-    'Europe/Berlin',
-    'Asia/Dubai',
-    'Asia/Singapore',
-    'Asia/Tokyo',
-    'Asia/Shanghai',
-    'Australia/Sydney',
-    'Pacific/Auckland'
-  ];
+  activeTab = 'organisation';
 
-  dateFormats: { value: string; label: string }[] = [
-    { value: 'Y-m-d', label: '2025-01-02 (ISO)' },
-    { value: 'd/m/Y', label: '02/01/2025 (UK)' },
-    { value: 'm/d/Y', label: '01/02/2025 (US)' },
-    { value: 'd-m-Y', label: '02-01-2025' },
-    { value: 'd M Y', label: '02 Jan 2025' },
-    { value: 'F j, Y', label: 'January 2, 2025' }
-  ];
+  /** Built once the catalogue is in: the categories it actually has. */
+  tabs: SettingsTab[] = [];
 
-  timeFormats: { value: string; label: string }[] = [
-    { value: 'H:i', label: '14:30 (24-hour)' },
-    { value: 'h:i A', label: '02:30 PM (12-hour)' }
-  ];
+  // --- the organisation's own record --------------------------------------
 
-  languages: { value: string; label: string }[] = [
-    { value: 'en', label: 'English' },
-    { value: 'fr', label: 'French' },
-    { value: 'es', label: 'Spanish' },
-    { value: 'de', label: 'German' },
-    { value: 'pt', label: 'Portuguese' },
-    { value: 'ar', label: 'Arabic' }
-  ];
+  tenant: Tenant | null = null;
+  tenantForm: Record<string, string> = {};
 
-  currencies: { value: string; label: string }[] = [
-    { value: 'NGN', label: 'Nigerian Naira (₦)' },
-    { value: 'USD', label: 'US Dollar ($)' },
-    { value: 'EUR', label: 'Euro (€)' },
-    { value: 'GBP', label: 'British Pound (£)' },
-    { value: 'ZAR', label: 'South African Rand (R)' },
-    { value: 'KES', label: 'Kenyan Shilling (KSh)' },
-    { value: 'GHS', label: 'Ghanaian Cedi (₵)' }
-  ];
+  // --- settings ------------------------------------------------------------
 
-  // Modals
-  showResetModal = false;
-  showExportModal = false;
-  showImportModal = false;
-  showHistoryModal = false;
-  resetCategory: SettingsCategory | null = null;
-  importData = '';
+  /** Every setting the API honours, grouped by the tab it belongs on. */
+  byCategory: Record<string, SettingDefinition[]> = {};
 
-  constructor(private settingsService: TenantSettingsService) {}
+  /** What the form holds. Keyed by setting key. */
+  values: Record<string, SettingValue> = {};
+
+  /** What was loaded, so Save can send only what changed. */
+  private loaded: Record<string, SettingValue> = {};
+
+  // --- email templates -----------------------------------------------------
+
+  templates: EmailTemplate[] = [];
+  placeholders: string[] = [];
+  editingTemplate: EmailTemplate | null = null;
+  templateForm = { subject: '', body: '', enabled: true };
+
+  private readonly icons: Record<string, string> = {
+    organisation: 'bi-building',
+    general: 'bi-globe',
+    branding: 'bi-palette',
+    notifications: 'bi-envelope',
+    gamification: 'bi-trophy',
+    security: 'bi-shield-lock',
+    email: 'bi-envelope-paper',
+  };
 
   ngOnInit(): void {
-    this.loadAllData();
+    this.load();
   }
 
   ngOnDestroy(): void {
@@ -134,411 +110,363 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ==========================================
-  // DATA LOADING
-  // ==========================================
-
-  loadAllData(): void {
+  private load(): void {
     this.loading = true;
-
-    // Load all settings
-    this.settingsService.getAllSettings()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (settings) => {
-          this.settings = settings;
-          this.initializeForms();
-          this.loading = false;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to load settings');
-          this.loading = false;
-        }
-      });
-
-    // Load tenant info
-    this.settingsService.getTenantInfo()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (info) => {
-          this.tenantInfo = info;
-          this.tenantInfoForm = {
-            tenant_name: info.tenant_name,
-            domain: info.domain,
-            logo_url: info.logo_url
-          };
-        }
-      });
-
-    // Load usage stats
-    this.settingsService.getUsageStats()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (stats) => this.usageStats = stats
-      });
-  }
-
-  private initializeForms(): void {
-    if (!this.settings) return;
-
-    this.generalForm = { ...this.settings.general };
-    this.brandingForm = { ...this.settings.branding };
-    this.learningForm = { ...this.settings.learning };
-    this.gamificationForm = { ...this.settings.gamification };
-    this.notificationsForm = { ...this.settings.notifications };
-    this.securityForm = { ...this.settings.security };
-    this.storageForm = { ...this.settings.storage };
-
-    // Reset change tracking
-    this.hasChanges = {};
-  }
-
-  // ==========================================
-  // TAB NAVIGATION
-  // ==========================================
-
-  setActiveTab(tab: TabType): void {
-    this.activeTab = tab;
-    this.clearMessages();
-  }
-
-  // ==========================================
-  // CHANGE DETECTION
-  // ==========================================
-
-  markAsChanged(category: string): void {
-    this.hasChanges[category] = true;
-  }
-
-  // ==========================================
-  // SAVE SETTINGS
-  // ==========================================
-
-  saveGeneralSettings(): void {
-    if (!this.generalForm) return;
-    this.saveCategory('general', this.generalForm);
-  }
-
-  saveBrandingSettings(): void {
-    if (!this.brandingForm) return;
-    this.saveCategory('branding', this.brandingForm);
-  }
-
-  saveLearningSettings(): void {
-    if (!this.learningForm) return;
-    this.saveCategory('learning', this.learningForm);
-  }
-
-  saveGamificationSettings(): void {
-    if (!this.gamificationForm) return;
-    this.saveCategory('gamification', this.gamificationForm);
-  }
-
-  saveNotificationSettings(): void {
-    if (!this.notificationsForm) return;
-    this.saveCategory('notifications', this.notificationsForm);
-  }
-
-  saveSecuritySettings(): void {
-    if (!this.securityForm) return;
-    this.saveCategory('security', this.securityForm);
-  }
-
-  saveStorageSettings(): void {
-    if (!this.storageForm) return;
-    this.saveCategory('storage', this.storageForm);
-  }
-
-  private saveCategory(category: SettingsCategory, settings: Record<string, any>): void {
-    this.saving = true;
-    this.clearMessages();
-
-    this.settingsService.updateCategorySettings(category, settings)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (result) => {
-          if (result.success) {
-            this.showSuccess(result.message);
-            this.hasChanges[category] = false;
-            // Update the main settings object
-            if (this.settings) {
-              (this.settings as any)[category] = { ...settings };
-            }
-          } else {
-            this.showError(result.message);
-            if (result.errors) {
-              const errorMessages = Object.entries(result.errors)
-                .map(([key, msg]) => `${key}: ${msg}`)
-                .join(', ');
-              this.showError(`Validation errors: ${errorMessages}`);
-            }
-          }
-          this.saving = false;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to save settings');
-          this.saving = false;
-        }
-      });
-  }
-
-  saveTenantInfo(): void {
-    this.saving = true;
-    this.clearMessages();
-
-    this.settingsService.updateTenantInfo(this.tenantInfoForm)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (result) => {
-          if (result.success) {
-            this.showSuccess('Tenant info updated');
-            this.hasChanges['tenant'] = false;
-            // Update tenant info
-            if (this.tenantInfo) {
-              Object.assign(this.tenantInfo, this.tenantInfoForm);
-            }
-          } else {
-            this.showError(result.message);
-          }
-          this.saving = false;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to update tenant info');
-          this.saving = false;
-        }
-      });
-  }
-
-  // ==========================================
-  // RESET TO DEFAULTS
-  // ==========================================
-
-  openResetModal(category: SettingsCategory): void {
-    this.resetCategory = category;
-    this.showResetModal = true;
-  }
-
-  confirmReset(): void {
-    if (!this.resetCategory) return;
-
-    this.saving = true;
-    this.settingsService.resetCategoryToDefaults(this.resetCategory)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (result) => {
-          this.showSuccess(result.message);
-          this.closeResetModal();
-          this.loadAllData(); // Reload to get defaults
-          this.saving = false;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to reset settings');
-          this.saving = false;
-        }
-      });
-  }
-
-  closeResetModal(): void {
-    this.showResetModal = false;
-    this.resetCategory = null;
-  }
-
-  // ==========================================
-  // EXPORT/IMPORT
-  // ==========================================
-
-  openExportModal(): void {
-    this.showExportModal = true;
-  }
-
-  exportSettings(): void {
-    this.settingsService.exportSettings()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (data) => {
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `tenant-settings-${data.tenant_id}-${new Date().toISOString().split('T')[0]}.json`;
-          a.click();
-          window.URL.revokeObjectURL(url);
-          this.showExportModal = false;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to export settings');
-        }
-      });
-  }
-
-  openImportModal(): void {
-    this.importData = '';
-    this.showImportModal = true;
-  }
-
-  confirmImport(): void {
-    if (!this.importData.trim()) {
-      this.showError('Please paste the settings JSON');
-      return;
-    }
-
-    let parsedSettings: any;
-    try {
-      parsedSettings = JSON.parse(this.importData);
-    } catch {
-      this.showError('Invalid JSON format');
-      return;
-    }
-
-    const settings = parsedSettings.settings || parsedSettings;
-
-    this.saving = true;
-    this.settingsService.importSettings(settings)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (result) => {
-          this.showSuccess('Settings imported successfully');
-          this.showImportModal = false;
-          this.loadAllData();
-          this.saving = false;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to import settings');
-          this.saving = false;
-        }
-      });
-  }
-
-  closeImportModal(): void {
-    this.showImportModal = false;
-    this.importData = '';
-  }
-
-  // ==========================================
-  // HISTORY
-  // ==========================================
-
-  openHistoryModal(): void {
-    this.settingsService.getSettingsHistory(50)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (history) => {
-          this.settingsHistory = history;
-          this.showHistoryModal = true;
-        },
-        error: (err) => {
-          this.showError(err.error?.message || 'Failed to load history');
-        }
-      });
-  }
-
-  closeHistoryModal(): void {
-    this.showHistoryModal = false;
-  }
-
-  formatHistoryChanges(changes: Record<string, any>): string {
-    if (!changes) return '';
-    return Object.entries(changes)
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-      .join(', ');
-  }
-
-  // ==========================================
-  // HELPER METHODS
-  // ==========================================
-
-  getStoragePercentage(): number {
-    if (!this.usageStats || !this.usageStats.storage_limit_bytes) return 0;
-    return Math.min(100, (this.usageStats.storage_used_bytes / this.usageStats.storage_limit_bytes) * 100);
-  }
-
-  formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
-
-  formatStorageLimit(): string {
-    if (!this.usageStats) return '-';
-    return this.formatBytes(this.usageStats.storage_limit_bytes);
-  }
-
-  formatDate(dateString: string): string {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString();
-  }
-
-  formatDateTime(dateString: string): string {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString();
-  }
-
-  getCategoryLabel(category: string): string {
-    const labels: Record<string, string> = {
-      general: 'General',
-      branding: 'Branding',
-      learning: 'Learning',
-      gamification: 'Gamification',
-      notifications: 'Notifications',
-      security: 'Security',
-      storage: 'Storage',
-      integrations: 'Integrations',
-      tenant_info: 'Tenant Info'
-    };
-    return labels[category] || category;
-  }
-
-  // ==========================================
-  // MESSAGES
-  // ==========================================
-
-  private showSuccess(message: string): void {
-    this.successMessage = message;
     this.errorMessage = '';
-    setTimeout(() => this.successMessage = '', 5000);
+
+    forkJoin({
+      tenant: this.tenantService.show(),
+      catalogue: this.settingsService.catalogue(),
+      values: this.settingsService.show(),
+      // The one panel that can fail on its own without the screen being
+      // useless. Everything else is the screen.
+      templates: this.templatesService.list().pipe(
+        catchError(() => of({ templates: [], placeholders: [] })),
+      ),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ tenant, catalogue, values, templates }) => {
+          this.tenant = tenant;
+          this.tenantForm = {
+            name: tenant.name,
+            contactEmail: tenant.contactEmail ?? '',
+            contactPhone: tenant.contactPhone ?? '',
+            address: tenant.address ?? '',
+            domain: tenant.domain ?? '',
+            logoUrl: tenant.logoUrl ?? '',
+            industry: tenant.industry ?? '',
+            companySize: tenant.companySize ?? '',
+          };
+
+          this.byCategory = {};
+
+          for (const definition of catalogue) {
+            (this.byCategory[definition.category] ??= []).push(definition);
+          }
+
+          this.values = { ...values };
+          this.loaded = { ...values };
+
+          this.templates = templates.templates;
+          this.placeholders = templates.placeholders;
+
+          this.tabs = this.buildTabs(catalogue);
+          this.loading = false;
+        },
+        error: (failure: ApiError) => {
+          this.errorMessage = failure.message;
+          this.loading = false;
+        },
+      });
   }
 
-  private showError(message: string): void {
-    this.errorMessage = message;
+  /**
+   * The tabs, from the catalogue plus the two that are not settings.
+   *
+   * A category with no settings gets no tab, so the screen can never offer an
+   * empty one — which is what happened to four of the legacy's eight.
+   */
+  private buildTabs(catalogue: SettingDefinition[]): SettingsTab[] {
+    const tabs: SettingsTab[] = [
+      {
+        key: 'organisation',
+        label: 'Organisation',
+        description: 'What your organisation is called, and how to reach it.',
+        icon: this.icons['organisation'],
+      },
+    ];
+
+    const described: Record<string, string> = {
+      general: 'Language, timezone, and how dates and money are shown.',
+      branding: 'Your logo and colours, wherever the platform shows them.',
+      notifications: 'Who your email appears to come from, and whether it is sent at all.',
+      gamification: 'Whether points and badges are used, and what each is worth.',
+      security: 'What a password must look like, and who may register.',
+    };
+
+    for (const category of Object.keys(this.byCategory)) {
+      if (this.byCategory[category].length === 0) {
+        continue;
+      }
+
+      tabs.push({
+        key: category,
+        label: category.charAt(0).toUpperCase() + category.slice(1),
+        description: described[category] ?? '',
+        icon: this.icons[category] ?? 'bi-sliders',
+      });
+    }
+
+    if (this.templates.length > 0) {
+      tabs.push({
+        key: 'email',
+        label: 'Email templates',
+        description: 'What your transactional email says, in your own words.',
+        icon: this.icons['email'],
+      });
+    }
+
+    return tabs;
+  }
+
+  setActiveTab(key: string): void {
+    this.activeTab = key;
+    this.editingTemplate = null;
     this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  get activeTabInfo(): SettingsTab | undefined {
+    return this.tabs.find((t) => t.key === this.activeTab);
+  }
+
+  // --- the organisation ----------------------------------------------------
+
+  get tenantHasChanges(): boolean {
+    const t = this.tenant;
+
+    if (t === null) {
+      return false;
+    }
+
+    return this.tenantForm['name'] !== t.name
+      || this.tenantForm['contactEmail'] !== (t.contactEmail ?? '')
+      || this.tenantForm['contactPhone'] !== (t.contactPhone ?? '')
+      || this.tenantForm['address'] !== (t.address ?? '')
+      || this.tenantForm['domain'] !== (t.domain ?? '')
+      || this.tenantForm['logoUrl'] !== (t.logoUrl ?? '')
+      || this.tenantForm['industry'] !== (t.industry ?? '')
+      || this.tenantForm['companySize'] !== (t.companySize ?? '');
+  }
+
+  saveTenant(): void {
+    this.saving = true;
+    this.clearMessages();
+
+    this.tenantService
+      .update({
+        name: this.tenantForm['name'],
+        contactEmail: this.tenantForm['contactEmail'],
+        contactPhone: this.tenantForm['contactPhone'],
+        address: this.tenantForm['address'],
+        domain: this.tenantForm['domain'],
+        logoUrl: this.tenantForm['logoUrl'],
+        industry: this.tenantForm['industry'],
+        companySize: this.tenantForm['companySize'],
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (tenant) => {
+          this.tenant = tenant;
+          this.saving = false;
+          this.successMessage = 'Saved.';
+        },
+        error: (failure: ApiError) => this.fail(failure),
+      });
+  }
+
+  /** How much of its allowance the organisation is using. */
+  get storagePercentage(): number {
+    const limit = this.tenant?.limits.storage ?? 0;
+
+    if (limit <= 0) {
+      return 0;
+    }
+
+    return Math.min(100, Math.round(((this.tenant?.usage.storageMb ?? 0) / limit) * 100));
+  }
+
+  // --- settings ------------------------------------------------------------
+
+  settingsFor(category: string): SettingDefinition[] {
+    return this.byCategory[category] ?? [];
+  }
+
+  /** Whether this tab has anything unsaved. */
+  hasChanges(category: string): boolean {
+    return this.settingsFor(category).some((d) => this.values[d.key] !== this.loaded[d.key]);
+  }
+
+  saveCategory(category: string): void {
+    const changed: Record<string, SettingValue> = {};
+
+    // Only what moved. A screen showing one tab must not write back the
+    // twenty settings on the others.
+    for (const definition of this.settingsFor(category)) {
+      if (this.values[definition.key] !== this.loaded[definition.key]) {
+        changed[definition.key] = this.values[definition.key];
+      }
+    }
+
+    if (Object.keys(changed).length === 0) {
+      return;
+    }
+
+    this.saving = true;
+    this.clearMessages();
+
+    this.settingsService
+      .update(changed)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (saved) => {
+          this.values = { ...this.values, ...saved };
+          this.loaded = { ...this.loaded, ...saved };
+          this.saving = false;
+          this.successMessage = 'Saved.';
+        },
+        error: (failure: ApiError) => this.fail(failure),
+      });
+  }
+
+  resetCategory(category: string): void {
+    if (!confirm(`Put every ${category} setting back to its default?`)) {
+      return;
+    }
+
+    this.saving = true;
+    this.clearMessages();
+
+    this.settingsService
+      .reset(category as 'general' | 'branding' | 'gamification' | 'security')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (saved) => {
+          this.values = { ...this.values, ...saved };
+          this.loaded = { ...this.loaded, ...saved };
+          this.saving = false;
+          this.successMessage = 'Put back to the defaults.';
+        },
+        error: (failure: ApiError) => this.fail(failure),
+      });
+  }
+
+  /** For `[(ngModel)]` on a checkbox, which wants a real boolean. */
+  boolValue(key: string): boolean {
+    return this.values[key] === true;
+  }
+
+  setBool(key: string, value: boolean): void {
+    this.values[key] = value;
+  }
+
+  setNumber(key: string, value: string): void {
+    const parsed = Number(value);
+    this.values[key] = Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  asString(key: string): string {
+    const value = this.values[key];
+
+    return value === undefined || value === null ? '' : String(value);
+  }
+
+  // --- email templates -----------------------------------------------------
+
+  editTemplate(type: string): void {
+    this.clearMessages();
+
+    this.templatesService
+      .show(type)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (template) => {
+          this.editingTemplate = template;
+          this.templateForm = {
+            // Empty means "use the platform's", which is what the placeholder
+            // in each field says.
+            subject: template.subject ?? '',
+            body: template.body ?? '',
+            enabled: template.enabled,
+          };
+        },
+        error: (failure: ApiError) => this.fail(failure),
+      });
+  }
+
+  saveTemplate(): void {
+    const template = this.editingTemplate;
+
+    if (template === null) {
+      return;
+    }
+
+    this.saving = true;
+    this.clearMessages();
+
+    this.templatesService
+      .save(template.type, {
+        subject: this.templateForm.subject,
+        body: this.templateForm.body,
+        enabled: this.templateForm.enabled,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (saved) => {
+          this.editingTemplate = { ...template, ...saved };
+          this.templates = this.templates.map(
+            (t) => (t.type === saved.type ? { ...t, ...saved } : t),
+          );
+          this.saving = false;
+          this.successMessage = 'Saved.';
+        },
+        error: (failure: ApiError) => this.fail(failure),
+      });
+  }
+
+  resetTemplate(): void {
+    const template = this.editingTemplate;
+
+    if (template === null || !confirm('Go back to the standard wording?')) {
+      return;
+    }
+
+    this.saving = true;
+
+    this.templatesService
+      .reset(template.type)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.saving = false;
+          this.successMessage = 'Back to the standard wording.';
+          this.editTemplate(template.type);
+          this.templates = this.templates.map(
+            (t) => (t.type === template.type
+              ? { ...t, usesDefault: true, subject: null, body: null }
+              : t),
+          );
+        },
+        error: (failure: ApiError) => this.fail(failure),
+      });
+  }
+
+  closeTemplate(): void {
+    this.editingTemplate = null;
+  }
+
+  /** Drops a placeholder into the body, so nobody has to remember the spelling. */
+  insertPlaceholder(name: string): void {
+    this.templateForm.body = `${this.templateForm.body}{{${name}}}`;
+  }
+
+  // --- shared --------------------------------------------------------------
+
+  goBack(): void {
+    void this.router.navigate(['/administration']);
+  }
+
+  private fail(failure: ApiError): void {
+    this.saving = false;
+
+    const first = Object.values(failure.violations).flat()[0];
+
+    this.errorMessage = first ?? failure.message;
   }
 
   private clearMessages(): void {
     this.successMessage = '';
     this.errorMessage = '';
-  }
-
-  // ==========================================
-  // ARRAY HELPERS (for reminder days, etc.)
-  // ==========================================
-
-  getReminderDaysString(): string {
-    return this.learningForm?.mandatory_course_reminder_days?.join(', ') || '';
-  }
-
-  setReminderDays(value: string): void {
-    if (this.learningForm) {
-      this.learningForm.mandatory_course_reminder_days = value
-        .split(',')
-        .map(s => parseInt(s.trim()))
-        .filter(n => !isNaN(n) && n > 0);
-      this.markAsChanged('learning');
-    }
-  }
-
-  getAllowedFileTypesString(): string {
-    return this.storageForm?.allowed_file_types?.join(', ') || '';
-  }
-
-  setAllowedFileTypes(value: string): void {
-    if (this.storageForm) {
-      this.storageForm.allowed_file_types = value
-        .split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(s => s.length > 0);
-      this.markAsChanged('storage');
-    }
   }
 }

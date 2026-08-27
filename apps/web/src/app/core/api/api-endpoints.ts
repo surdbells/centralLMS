@@ -507,6 +507,23 @@ export const Endpoints = {
   },
 
   // --- organisation settings -------------------------------------------
+  /**
+   * The organisation's own record — what it is called, how to reach it.
+   * Distinct from `settings`, which is preferences with defaults.
+   */
+  tenant: {
+    show: '/tenant',
+    update: '/tenant',
+  },
+
+  /** What this organisation's own transactional mail says. */
+  emailTemplates: {
+    list: '/email-templates',
+    show: (type: string) => `/email-templates/${type}`,
+    save: (type: string) => `/email-templates/${type}`,
+    delete: (type: string) => `/email-templates/${type}`,
+  },
+
   settings: {
     show: '/settings',
     update: '/settings',

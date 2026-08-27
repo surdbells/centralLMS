@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { ApiClient, Endpoints } from '../core/api';
 
 // ---------------------------------------------------------------------------
@@ -17,10 +17,18 @@ export type SettingCategory = 'general' | 'branding' | 'gamification' | 'securit
  * effect. The legacy declared five `password_*` settings that nothing read,
  * which is worse than not offering them.
  */
+/** How the endpoint describes a category. */
+export interface SettingCategoryInfo {
+  category: SettingCategory;
+  label: string;
+  description: string;
+}
+
 export interface SettingDefinition {
   key: string;
   category: SettingCategory;
-  type: 'text' | 'number' | 'boolean' | 'choice';
+  /** The six the API declares — see SettingType on the API side. */
+  type: 'text' | 'integer' | 'boolean' | 'colour' | 'url' | 'choice';
   label: string;
   help: string | null;
   default: SettingValue;
@@ -55,9 +63,20 @@ export class SettingsService {
     return this.api.get<Record<string, SettingValue>>(Endpoints.settings.show);
   }
 
-  /** Every setting with its label, help and where it is honoured. */
+  /**
+   * Every setting with its label, help and where it is honoured.
+   *
+   * The endpoint answers `{categories, settings}` — the categories are for
+   * a screen that wants to describe its own tabs, and this one builds them
+   * from the settings it actually got. Unwrapped here so no caller has to
+   * know the shape.
+   */
   catalogue(): Observable<SettingDefinition[]> {
-    return this.api.get<SettingDefinition[]>(Endpoints.settings.catalogue);
+    return this.api
+      .get<{ categories: SettingCategoryInfo[]; settings: SettingDefinition[] }>(
+        Endpoints.settings.catalogue,
+      )
+      .pipe(map((result) => result.settings));
   }
 
   /**
