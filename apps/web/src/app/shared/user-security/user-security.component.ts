@@ -1,16 +1,32 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
-import {Component, OnInit} from '@angular/core';
-import {SideComponent} from "../../partials/side/side.component";
-import {TopComponent} from "../../partials/top/top.component";
-import {TuiIcon, TuiLoader} from "@taiga-ui/core";
-import {Router} from '@angular/router';
-import {CrudService} from '../../services/crud.service';
-import {HotToastService} from '@ngneat/hot-toast';
-import {GlobalComponent} from '../../global-component';
-import {CommonModule} from '@angular/common';
-import {FormsModule} from '@angular/forms';
-import {AsideComponent} from '../../partials/aside/aside.component';
+import { Component, OnDestroy, inject } from '@angular/core';
+import { TopComponent } from '../../partials/top/top.component';
+import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { Router } from '@angular/router';
+import { HotToastService } from '@ngneat/hot-toast';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
+import { ApiError } from '../../core/api';
+import { SessionStore } from '../../core/auth/session.store';
+import { UsersService } from '../../services/users.service';
 
+/**
+ * Changing your own password.
+ *
+ * **It did not ask for the current one.** The legacy endpoint took an id, a
+ * token and a new password, so anybody who reached this screen with a live
+ * session — a colleague at an unlocked desk, a shared machine somebody had
+ * walked away from, a browser left signed in — could change the password and
+ * lock the owner out of their own account. The API asks for the current
+ * password when the person changing it is the account holder, so the form now
+ * asks too. That is a new field on this screen and it is the point of the
+ * change.
+ *
+ * The rest is the usual retirement: no `atob(sessionStorage.SESSION)`, no id
+ * or token copied into a request body, and a failure that says what went
+ * wrong rather than being swallowed by a `response_code === 200` check that
+ * had no branch for anything else.
+ */
 @Component({
   selector: 'app-user-security',
   standalone: true,
@@ -19,102 +35,112 @@ import {AsideComponent} from '../../partials/aside/aside.component';
     CommonModule,
     FormsModule,
     TuiIcon,
-    TuiLoader
+    TuiLoader,
   ],
   templateUrl: './user-security.component.html',
-  styleUrl: './user-security.component.css'
+  styleUrl: './user-security.component.css',
 })
-export class UserSecurityComponent implements OnInit {
-  constructor(
-    private router: Router,
-    private crudService: CrudService,
-    private toast: HotToastService,
-  ) {}
+export class UserSecurityComponent implements OnDestroy {
+  private readonly router = inject(Router);
+  private readonly toast = inject(HotToastService);
+  private readonly session = inject(SessionStore);
+  private readonly users = inject(UsersService);
+
+  private readonly destroy$ = new Subject<void>();
+
   ui_controls = {
-    is_loading: false
+    is_loading: false,
   };
+
+  /**
+   * The form's own state.
+   *
+   * `current_password` is new. The other two are what the template has always
+   * bound to, so the markup keeps its names.
+   */
   update_password = {
-    id: 0,
-    token: "",
-    first_name: "",
-    email: "",
-    password: "",
-    confirm_password: ""
-  }
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    is_2fa: false,
-    is_active: false
+    current_password: '',
+    password: '',
+    confirm_password: '',
   };
-  ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    if (!this.user_session.is_active){
-      this.router.navigate(['/', '']).then(r => console.log(r)); return;
-    }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
-  goBack() {
-    if (this.user_session.is_active){
-      this.router.navigate(['/account']).then(r => console.log(r));
-    }
+
+  goBack(): void {
+    void this.router.navigate(['/account']);
   }
-  error_notification(message: string) {
+
+  error_notification(message: string): void {
     this.toast.error(message);
   }
-  success_notification(message: string) {
+
+  success_notification(message: string): void {
     this.toast.success(message);
   }
-  password_change() {
-    this.update_password.id = this.user_session.id;
-    this.update_password.token = this.user_session.token;
-    this.update_password.first_name = this.user_session.first_name;
-    this.update_password.email = this.user_session.email;
-    if (this.update_password.password.length === 0) {
-      this.error_notification("Password is required");
+
+  password_change(): void {
+    const session = this.session.session();
+
+    if (session === null) {
+      this.error_notification('Sign in again to change your password.');
+
       return;
     }
-    if (this.update_password.confirm_password.length === 0) {
-      this.error_notification("Password does not match");
+
+    const problem = this.whatIsWrong();
+
+    if (problem !== null) {
+      this.error_notification(problem);
+
       return;
     }
-    if (this.update_password.password != this.update_password.confirm_password) {
-      this.error_notification("Password does not match");
-      return;
-    }
+
     this.ui_controls.is_loading = true;
 
-    this.crudService.post_request(this.update_password, GlobalComponent.updateUserPassword)
-      .subscribe(({
-        next: (response) => {
-          if (response.response_code === 200 && response.status === "success") {
-            this.ui_controls.is_loading = false;
-            this.update_password.password = "";
-            this.update_password.confirm_password = "";
-            this.success_notification(response.message);
-          }
-          if (response.response_code === 200 && response.status === "failed") {
-            this.ui_controls.is_loading = false;
-            this.error_notification(response.message);
-          }
-          if (response.response_code === 400 && response.status === "failed") {
-            this.ui_controls.is_loading = false;
-            this.error_notification(response.message);
-          }
-        },
-        error: (e) => {
-          console.error(e);
-          this.error_notification(e);
+    this.users
+      .setPassword(
+        session.userId,
+        this.update_password.password,
+        this.update_password.current_password,
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
           this.ui_controls.is_loading = false;
+          this.update_password = { current_password: '', password: '', confirm_password: '' };
+          this.success_notification('Your password has been changed.');
         },
-        complete: () => {
-          console.info('complete');
-        }
-      }))
+        error: (error: ApiError) => {
+          // The old screen had a branch for `response_code === 200` and one
+          // for 400, and nothing at all for a wrong current password or a
+          // password the policy rejects — so those failed in silence.
+          this.ui_controls.is_loading = false;
+          this.error_notification(error.message);
+        },
+      });
+  }
+
+  /** The first thing wrong with the form, or null. */
+  private whatIsWrong(): string | null {
+    if (this.update_password.current_password.length === 0) {
+      return 'Enter your current password.';
+    }
+
+    if (this.update_password.password.length === 0) {
+      return 'Password is required';
+    }
+
+    if (this.update_password.confirm_password.length === 0) {
+      return 'Password does not match';
+    }
+
+    if (this.update_password.password !== this.update_password.confirm_password) {
+      return 'Password does not match';
+    }
+
+    return null;
   }
 }

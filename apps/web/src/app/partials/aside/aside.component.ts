@@ -1,8 +1,8 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
-import {Component, OnInit} from '@angular/core';
-import {Router, RouterLink} from "@angular/router";
-import {CrudService} from '../../services/crud.service';
-import {HotToastService} from '@ngneat/hot-toast';
+import { Component, OnDestroy, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { HotToastService } from '@ngneat/hot-toast';
+import { Subject, takeUntil } from 'rxjs';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-aside',
@@ -11,45 +11,54 @@ import {HotToastService} from '@ngneat/hot-toast';
   templateUrl: './aside.component.html',
   styleUrl: './aside.component.css'
 })
-export class AsideComponent implements OnInit {
-  constructor(
-    private router: Router,
-    private crudService: CrudService,
-    private toast: HotToastService,
-  ) {}
+export class AsideComponent implements OnDestroy {
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(HotToastService);
+
+  private readonly destroy$ = new Subject<void>();
+
   ui_controls = {
-    is_loading: false
+    is_loading: false,
   };
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    is_2fa: false,
-    is_active: false,
-    is_admin: false,
-    is_vendor: false,
-    is_customer: false
-  };
-  ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
+
   error_notification(message: string) {
     this.toast.error(message);
   }
+
   success_notification(message: string) {
     this.toast.success(message);
   }
+
+  /**
+   * Signs out on the server, then leaves.
+   *
+   * It used to clear `localStorage` and `sessionStorage` and navigate away,
+   * which looks identical and is not the same thing: the refresh token stayed
+   * valid for its full month on the server. Somebody signing out on a shared
+   * machine had not signed out — anybody who recovered that token from a
+   * backup, a synced profile or a browser extension could have gone on using
+   * the account. The account owner had been told they were out.
+   */
   sign_out(): void {
-    localStorage.clear();
-    sessionStorage.clear();
-    this.success_notification("User logged out successfully.");
-    this.router.navigate(['/']).then(r => console.log(r));
+    this.auth
+      .signOut()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.leave(),
+        // The token may already be gone. Either way the person asked to
+        // leave, so they leave.
+        error: () => this.leave(),
+      });
   }
 
-
+  private leave(): void {
+    this.success_notification('User logged out successfully.');
+    void this.router.navigate(['/']);
+  }
 }
