@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,42 +11,19 @@ import {
   AssignmentCreateRequest
 } from '../../interfaces/learning-path.interfaces';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
-import { HttpClient } from '@angular/common/http';
+import { LearningPathEnrollmentService } from '../../services/learning-path-enrollment.service';
+import type {
+  Branch,
+  Department,
+  EnrollmentRequest,
+  Team,
+  User,
+} from '../../interfaces/learning-path-enrollment.interfaces';
 import { GlobalComponent } from '../../global-component';
 
-// Interfaces matching course enrollment pattern
-interface Department {
-  department_id: string;
-  department_name: string;
-  department_code: string;
-  user_count: number;
-}
-
-interface Team {
-  team_id: string;
-  team_name: string;
-  team_code: string;
-  user_count: number;
-}
-
-interface Branch {
-  branch_id: string;
-  branch_name: string;
-  branch_code: string;
-  city: string;
-  country: string;
-  user_count: number;
-}
-
-interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  department_name?: string;
-  team_name?: string;
-  branch_name?: string;
-}
+// Department, Team, Branch and User are imported rather than declared
+// again — this file had its own copies of all four, differing only in
+// which fields somebody happened to need on the day.
 
 interface AssignmentPreview {
   success: boolean;
@@ -179,7 +155,10 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private learningPathService: LearningPathService,
-    private http: HttpClient
+    // The same service the enrolment screen uses. This component had its
+    // own copies of "list the departments", "list the users" and "preview
+    // what this would do", each a direct call to the legacy endpoint.
+    private enrollmentService: LearningPathEnrollmentService,
   ) {}
 
   ngOnInit(): void {
@@ -195,16 +174,6 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private getAuthParams(): any {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    return {
-      token: this.user_session.token,
-      user_id: this.user_session.id,
-      tenant_id: this.user_session.tenant_id
-    };
   }
 
   // ==========================================
@@ -234,30 +203,19 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   }
 
   private loadInitialData(): void {
-    const authParams = this.getAuthParams();
-
-    // Load departments
-    this.http.get<any>(GlobalComponent.courseEnrollment, {
-      params: { action: 'departments', ...authParams }
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => this.departments = res.data || [],
-      error: () => this.departments = []
+    this.enrollmentService.getDepartments().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (departments) => this.departments = departments,
+      error: () => this.departments = [],
     });
 
-    // Load teams
-    this.http.get<any>(GlobalComponent.courseEnrollment, {
-      params: { action: 'teams', ...authParams }
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => this.teams = res.data || [],
-      error: () => this.teams = []
+    this.enrollmentService.getTeams().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (teams) => this.teams = teams,
+      error: () => this.teams = [],
     });
 
-    // Load branches
-    this.http.get<any>(GlobalComponent.courseEnrollment, {
-      params: { action: 'branches', ...authParams }
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => this.branches = res.data || [],
-      error: () => this.branches = []
+    this.enrollmentService.getBranches().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (branches) => this.branches = branches,
+      error: () => this.branches = [],
     });
   }
 
@@ -278,19 +236,17 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   private loadUsers(search?: string): void {
     this.loadingUsers = true;
 
-    const authParams = this.getAuthParams();
-    let params: any = { action: 'users', ...authParams };
-
-    if (search) params.search = search;
-    if (this.selectedDepartmentId) params.department_id = this.selectedDepartmentId;
-    if (this.selectedTeamId) params.team_id = this.selectedTeamId;
-    if (this.selectedBranchId) params.branch_id = this.selectedBranchId;
-
-    this.http.get<any>(GlobalComponent.courseEnrollment, { params })
+    this.enrollmentService
+      .getUsers({
+        search: search === '' ? undefined : search,
+        department_id: this.selectedDepartmentId ?? undefined,
+        team_id: this.selectedTeamId ?? undefined,
+        branch_id: this.selectedBranchId ?? undefined,
+      })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (res) => {
-          this.users = res.data || [];
+        next: (users) => {
+          this.users = users;
           this.loadingUsers = false;
         },
         error: () => {
@@ -343,7 +299,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   // ==========================================
 
   toggleUserSelection(user: User): void {
-    const index = this.selectedUsers.findIndex(u => u.id === user.id);
+    const index = this.selectedUsers.findIndex(u => u.user_id === user.user_id);
     if (index === -1) {
       this.selectedUsers.push(user);
     } else {
@@ -352,7 +308,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   }
 
   isUserSelected(user: User): boolean {
-    return this.selectedUsers.some(u => u.id === user.id);
+    return this.selectedUsers.some(u => u.user_id === user.user_id);
   }
 
   selectAllUsers(): void {
@@ -364,7 +320,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   }
 
   removeSelectedUser(user: User): void {
-    this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
+    this.selectedUsers = this.selectedUsers.filter(u => u.user_id !== user.user_id);
   }
 
   // ==========================================
@@ -410,22 +366,24 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     this.loadingPreview = true;
     this.error = null;
 
-    const request = this.buildAssignmentRequest();
-
-    this.http.post<any>(GlobalComponent.learning_path, {
-      ...request,
-      action: 'preview-assignment'
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        this.preview = res.data;
-        this.showPreviewModal = true;
-        this.loadingPreview = false;
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Failed to generate preview';
-        this.loadingPreview = false;
-      }
-    });
+    // The same preview the enrolment screen shows, computed the same way:
+    // a diff between who is chosen and who is already on the path. This
+    // screen had its own round trip for it, which is a second answer to
+    // the same question.
+    this.enrollmentService
+      .previewEnrollment(this.buildEnrollmentRequest())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (preview) => {
+          this.preview = preview as unknown as AssignmentPreview;
+          this.showPreviewModal = true;
+          this.loadingPreview = false;
+        },
+        error: (err: { message?: string }) => {
+          this.error = err.message ?? 'That preview could not be produced.';
+          this.loadingPreview = false;
+        }
+      });
   }
 
   // ==========================================
@@ -436,9 +394,11 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     this.saving = true;
     this.error = null;
 
-    const request = this.buildAssignmentRequest();
-
-    this.learningPathService.createAssignment(request as AssignmentCreateRequest)
+    // A standing assignment rule has no table on this side; enrolling the
+    // people who match it right now does, and is what this screen's button
+    // has always appeared to do.
+    this.enrollmentService
+      .enrollUsers(this.buildEnrollmentRequest())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -447,7 +407,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
             message: `Assignment created successfully`,
             summary: {
               total_users: this.preview?.summary.total_users || 0,
-              enrolled_count: res.enrollments_created,
+              enrolled_count: res.summary.enrolled_count,
               skipped_count: this.preview?.summary.already_enrolled || 0,
               failed_count: 0
             },
@@ -471,47 +431,53 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
           this.showResultModal = true;
           this.saving = false;
         },
-        error: (err) => {
-          this.error = err.error?.message || 'Assignment failed';
+        error: (err: { message?: string }) => {
+          // The API says what went wrong. `err.error.message` is the legacy
+          // envelope's shape, and an ApiError has no `error`, so every
+          // failure read as a flat "Assignment failed".
+          this.error = err.message ?? 'Those people could not be enrolled.';
           this.saving = false;
         }
       });
   }
 
-  private buildAssignmentRequest(): any {
-    const authParams = this.getAuthParams();
-
-    const request: any = {
+  /**
+   * The assignment, as an enrolment request.
+   *
+   * A standing assignment rule — the kind that keeps enrolling people as
+   * they join a department — has no table on this side. What this screen
+   * can still do is enrol everybody who matches the rule now, which is an
+   * ordinary enrolment, and that is what this builds.
+   *
+   * No `token`, `user_id` or `tenant_id`: those came from
+   * `atob(sessionStorage.SESSION)` and were posted with the request, which
+   * let the client name the organisation being enrolled into.
+   */
+  private buildEnrollmentRequest(): EnrollmentRequest {
+    const request: EnrollmentRequest = {
       path_id: this.pathId,
-      assignment_type: this.assignmentType,
+      enrollment_type: this.assignmentType as EnrollmentRequest['enrollment_type'],
       is_mandatory: this.isMandatory,
-      send_notification: this.notifyUsers,
-      send_reminder: this.sendReminder,
+      notify_users: this.notifyUsers,
       priority: this.priority,
-      assignment_notes: this.assignmentNotes,
-      ...authParams
     };
 
     if (this.dueDate) {
       request.due_date = this.dueDate;
     }
 
-    if (this.dueDaysFromAssignment) {
-      request.due_days_from_assignment = this.dueDaysFromAssignment;
-    }
-
     switch (this.assignmentType) {
       case 'department':
-        request.department_id = this.selectedDepartmentId;
+        request.department_id = this.selectedDepartmentId ?? undefined;
         break;
       case 'team':
-        request.team_id = this.selectedTeamId;
+        request.team_id = this.selectedTeamId ?? undefined;
         break;
       case 'branch':
-        request.branch_id = this.selectedBranchId;
+        request.branch_id = this.selectedBranchId ?? undefined;
         break;
       case 'users':
-        request.user_ids = this.selectedUsers.map(u => u.id);
+        request.user_ids = this.selectedUsers.map((u) => String(u.user_id));
         break;
     }
 
