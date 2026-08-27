@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import {LoginComponent} from './public/login/login.component';
 import {UserProfileComponent} from './shared/user-profile/user-profile.component';
+import {UserSecurityComponent} from './shared/user-security/user-security.component';
 import {RegisterComponent} from './public/register/register.component';
 import {ResetComponent} from './public/reset/reset.component';
 import {UserComponent} from './learner/user/user.component';
@@ -78,6 +79,14 @@ export const routes: Routes = [
     path: 'profile',
     component: UserProfileComponent,
     title: 'Manage your profile'
+  },
+  {
+    // The navigation has linked to `/security` since it was written and
+    // nothing ever answered it: the component exists, it is the only way
+    // to change your own password, and clicking the link did nothing.
+    path: 'security',
+    component: UserSecurityComponent,
+    title: 'Security'
   },
   {
     path: 'account',
