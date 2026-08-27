@@ -304,6 +304,35 @@ final class SettingCatalogue
                     . 'address may register.',
                 honouredBy: 'Registering, and signing in with Google.',
             ),
+            // --- notifications --------------------------------------------
+            new SettingDefinition(
+                key: SettingKey::EmailNotificationsEnabled,
+                type: SettingType::Boolean,
+                label: 'Send email notifications',
+                default: true,
+                help: 'Off, nothing is emailed. The bell still works, and so do '
+                    . 'invitations and password resets — those are how somebody '
+                    . 'gets into their account at all.',
+                honouredBy: 'Every notification with an email channel, at the moment it is raised.',
+            ),
+            new SettingDefinition(
+                key: SettingKey::NotificationFromName,
+                type: SettingType::Text,
+                label: 'Emails appear to come from',
+                default: '',
+                help: "The name on your outgoing mail. Empty uses your organisation's name.",
+                honouredBy: 'The From line of every email this platform sends you.',
+            ),
+            new SettingDefinition(
+                key: SettingKey::NotificationFromEmail,
+                type: SettingType::Text,
+                label: 'Replies go to',
+                default: '',
+                help: 'Where a reply lands. Empty means replies go nowhere, which is '
+                    . 'what most people expect of an automated message.',
+                honouredBy: 'The Reply-To line of every email this platform sends you.',
+            ),
+
             new SettingDefinition(
                 key: SettingKey::PasswordMinLength,
                 type: SettingType::Integer,

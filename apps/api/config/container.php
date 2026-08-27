@@ -499,6 +499,7 @@ return [
         $c->get(EmailTemplateRepository::class),
         $c->get(EmailTemplateRenderer::class),
         $c->get(TenantRepository::class),
+        $c->get(SettingsRepository::class),
         $c->get(Clock::class),
         $c->get(LoggerInterface::class),
     )),
@@ -538,6 +539,8 @@ return [
                 (string) $mail['zeptomail']['base_url'],
                 (string) $mail['from']['address'],
                 (string) $mail['from']['name'],
+                $c->get(SettingsRepository::class),
+                $c->get(TenantRepository::class),
                 $logger,
             )
             : new LogTransport(NotificationChannel::Email, $logger);

@@ -13,6 +13,8 @@ use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationDelivery;
 use Central\Api\Domain\Notification\NotificationRepository;
 use Central\Api\Domain\Notification\NotificationType;
+use Central\Api\Domain\Settings\SettingKey;
+use Central\Api\Domain\Settings\SettingsRepository;
 use Central\Api\Domain\Tenant\TenantRepository;
 use Central\Api\Support\Clock;
 use Psr\Log\LoggerInterface;
@@ -39,6 +41,7 @@ final readonly class Notifier
         private EmailTemplateRepository $templates,
         private EmailTemplateRenderer $renderer,
         private TenantRepository $tenants,
+        private SettingsRepository $settings,
         private Clock $clock,
         private LoggerInterface $logger,
     ) {
@@ -99,7 +102,7 @@ final readonly class Notifier
             return 0;
         }
 
-        $router = new ChannelRouter($this->tenantChannels($tenantId));
+        $router = new ChannelRouter($this->tenantChannels($tenantId, $type));
 
         // The organisation's own wording for this kind of message, where
         // it has written any. Read once for the batch rather than once
@@ -184,17 +187,44 @@ final readonly class Notifier
     }
 
     /**
+     * The two an organisation may not silence.
+     *
+     * Both carry the link that lets somebody set a password. Switching them
+     * off would leave invited people with no way in and locked-out people
+     * with no way back, and neither failure would look like a setting
+     * somebody chose.
+     */
+    private function alwaysEmailed(NotificationType $type): bool
+    {
+        return $type === NotificationType::Invitation
+            || $type === NotificationType::PasswordReset;
+    }
+
+    /**
      * Which channels the tenant is allowed to use.
      *
-     * In-app and email are always available. SMS and push are billable, so
-     * they stay off until the tenant's entitlements say otherwise — the same
-     * mechanism proctoring uses.
+     * In-app is always available. Email is too, unless the organisation has
+     * switched its outgoing mail off — see {@see alwaysEmailed()} for the two
+     * that ignore that. SMS and push are billable, so they stay off until the
+     * tenant's entitlements say otherwise, the same mechanism proctoring uses.
      *
      * @return list<NotificationChannel>
      */
-    private function tenantChannels(string $tenantId): array
+    private function tenantChannels(string $tenantId, NotificationType $type): array
     {
-        $channels = [NotificationChannel::InApp, NotificationChannel::Email];
+        $channels = [NotificationChannel::InApp];
+
+        // An organisation may switch its outgoing mail off entirely — for a
+        // pilot, or a quiet period, or because it does its own. The bell
+        // still works, and so do invitations and password resets: those are
+        // the only way somebody gets into their account at all, so they are
+        // not the organisation's to silence.
+        if (
+            $this->settings->forTenant($tenantId)->bool(SettingKey::EmailNotificationsEnabled)
+            || $this->alwaysEmailed($type)
+        ) {
+            $channels[] = NotificationChannel::Email;
+        }
 
         foreach ($this->repository->entitledChannels($tenantId) as $channel) {
             if (!in_array($channel, $channels, true)) {

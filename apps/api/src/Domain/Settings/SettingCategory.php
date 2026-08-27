@@ -7,9 +7,10 @@ namespace Central\Api\Domain\Settings;
 /**
  * The tabs on the settings screen.
  *
- * Four, where the legacy declared eight. The other four are not here because
- * nothing reads them — see {@see SettingCatalogue} for which, and for what each
- * would need before it could be offered honestly.
+ * Five, where the legacy declared eight. The three that are still missing —
+ * learning, storage, integrations — are absent for the same reason the other
+ * four were: nothing reads them. See {@see SettingCatalogue} for which, and
+ * for what each would need before it could be offered honestly.
  */
 enum SettingCategory: string
 {
@@ -17,6 +18,7 @@ enum SettingCategory: string
     case Branding     = 'branding';
     case Gamification = 'gamification';
     case Security     = 'security';
+    case Notifications = 'notifications';
 
     public function label(): string
     {
@@ -25,6 +27,7 @@ enum SettingCategory: string
             self::Branding     => 'Branding',
             self::Gamification => 'Gamification',
             self::Security     => 'Security',
+            self::Notifications => 'Notifications',
         };
     }
 
@@ -35,6 +38,7 @@ enum SettingCategory: string
             self::Branding     => 'Your logo and colours, wherever the platform shows them.',
             self::Gamification => 'Whether points and badges are used, and what each is worth.',
             self::Security     => 'What a password must look like.',
+            self::Notifications => 'Who your email appears to come from, and whether it is sent at all.',
         };
     }
 

@@ -54,6 +54,11 @@ enum SettingKey: string
     case PublicRegistration       = 'public_registration';
     case RegistrationDomains      = 'registration_domains';
 
+    // --- notifications ----------------------------------------------------
+    case EmailNotificationsEnabled = 'email_notifications_enabled';
+    case NotificationFromName      = 'notification_from_name';
+    case NotificationFromEmail     = 'notification_from_email';
+
     public function category(): SettingCategory
     {
         return match ($this) {
@@ -73,6 +78,9 @@ enum SettingKey: string
             self::PasswordRequireLowercase, self::PasswordRequireNumber,
             self::PasswordRequireSpecial,
             self::PublicRegistration, self::RegistrationDomains => SettingCategory::Security,
+
+            self::EmailNotificationsEnabled, self::NotificationFromName,
+            self::NotificationFromEmail => SettingCategory::Notifications,
         };
     }
 

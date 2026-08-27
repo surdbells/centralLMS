@@ -8,6 +8,9 @@ use Central\Api\Domain\Notification\NotificationChannel;
 use Central\Api\Domain\Notification\NotificationTransport;
 use Central\Api\Domain\Notification\PendingDelivery;
 use Central\Api\Domain\Notification\TransportResult;
+use Central\Api\Domain\Settings\SettingKey;
+use Central\Api\Domain\Settings\SettingsRepository;
+use Central\Api\Domain\Tenant\TenantRepository;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -23,8 +26,50 @@ final readonly class ZeptoMailTransport implements NotificationTransport
         private string $baseUrl,
         private string $fromAddress,
         private string $fromName,
+        private SettingsRepository $settings,
+        private TenantRepository $tenants,
         private LoggerInterface $logger,
     ) {
+    }
+
+    /**
+     * Whose name is on the mail, and where a reply goes.
+     *
+     * The organisation's own, falling back to its name and then to the
+     * platform's. Somebody receiving a course reminder should see who it is
+     * from, and a company that wants replies to reach its training inbox
+     * should be able to say so.
+     *
+     * Failing to read the settings must not stop the mail: the default is
+     * the platform's name, which is what every message said before this.
+     *
+     * @return array{name: string, replyTo: string|null}
+     */
+    private function senderFor(string $tenantId): array
+    {
+        try {
+            $settings = $this->settings->forTenant($tenantId);
+
+            $name = trim($settings->string(SettingKey::NotificationFromName));
+            $replyTo = trim($settings->string(SettingKey::NotificationFromEmail));
+
+            return [
+                'name' => $name !== ''
+                    ? $name
+                    : ($this->tenants->nameOf($tenantId) ?? $this->fromName),
+                'replyTo' => $replyTo !== ''
+                    && filter_var($replyTo, FILTER_VALIDATE_EMAIL) !== false
+                        ? $replyTo
+                        : null,
+            ];
+        } catch (\Throwable $failure) {
+            $this->logger->warning('Could not read a sender name; using the default', [
+                'tenant' => $tenantId,
+                'error'  => $failure->getMessage(),
+            ]);
+
+            return ['name' => $this->fromName, 'replyTo' => null];
+        }
     }
 
     public function channel(): NotificationChannel
@@ -47,15 +92,28 @@ final readonly class ZeptoMailTransport implements NotificationTransport
             return TransportResult::rejected(sprintf('"%s" is not a valid email address.', $address));
         }
 
+        $sender = $this->senderFor($delivery->tenantId);
+
+        $payload = [
+            // The address stays the platform's: it is the one the sending
+            // domain is authorised for, and putting a tenant's address
+            // there is how mail starts failing SPF and landing in spam.
+            // What the organisation controls is the name beside it, and
+            // where a reply goes.
+            'from'     => ['address' => $this->fromAddress, 'name' => $sender['name']],
+            'to'       => [['email_address' => ['address' => $address]]],
+            'subject'  => $delivery->title,
+            'textbody' => $delivery->body,
+            'htmlbody' => $this->html($delivery),
+        ];
+
+        if ($sender['replyTo'] !== null) {
+            $payload['reply_to'] = [['address' => $sender['replyTo']]];
+        }
+
         $response = $this->http->postJson(
             rtrim($this->baseUrl, '/') . '/email',
-            [
-                'from'     => ['address' => $this->fromAddress, 'name' => $this->fromName],
-                'to'       => [['email_address' => ['address' => $address]]],
-                'subject'  => $delivery->title,
-                'textbody' => $delivery->body,
-                'htmlbody' => $this->html($delivery),
-            ],
+            $payload,
             ['Authorization' => 'Zoho-enczapikey ' . $this->token],
         );
 
