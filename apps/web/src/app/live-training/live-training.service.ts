@@ -1,11 +1,14 @@
 import { decodeSessionBlob } from '../core/utils/session-blob';
 // live-training/live-training.service.ts
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {GlobalComponent} from '../global-component';
+import { ApiClient, Endpoints } from '../core/api';
+
+export type { CheckInResult } from './live-training.interfaces';
 import {
   EnrollmentRule,
   BulkEnrollmentResult,
@@ -17,7 +20,8 @@ import {
   UserForEnrollment,
   EnrollmentFilter,
   SkillSearchFilter,
-  ApiResponse, SkillCategory
+  ApiResponse, SkillCategory,
+  CheckInResult,
 } from './live-training.interfaces';
 
 // ==========================================
@@ -272,6 +276,15 @@ export interface BulkEnrollResult {
 })
 export class LiveTrainingService {
   private apiUrl = GlobalComponent.liveTraining;
+  /**
+   * The new API, for the calls that have moved onto it.
+   *
+   * The rest of this service is still on the legacy endpoint above; it
+   * is being taken across a method at a time rather than in one change
+   * that touches eight components at once.
+   */
+  private readonly api = inject(ApiClient);
+
   constructor(private http: HttpClient) {}
   session_data: any = ""
   user_session = {
@@ -492,13 +505,15 @@ export class LiveTrainingService {
   // ATTENDANCE TRACKING
   // ==========================================
 
-  markAttendanceQR(qr_token: string, learner_id?: number): Observable<SessionAttendance> {
-    return this.http.post<ApiResponse<SessionAttendance>>(this.apiUrl, {
-      ...this.getAuthPayload(),
-      action: 'mark-attendance-qr',
-      qr_token,
-      learner_id
-    }).pipe(map(res => res.data));
+  /**
+   * Checking yourself in by scanning the code at the venue.
+   *
+   * The legacy took a `learner_id` alongside the token, so a scanner
+   * could mark somebody else present by sending a different number. Who
+   * is checking in comes from the token now, and there is no id to send.
+   */
+  checkIn(token: string): Observable<CheckInResult> {
+    return this.api.post<CheckInResult>(Endpoints.attendance.scan, { token });
   }
 
   markAttendanceVirtual(session_id: number, learner_id: number, virtual_data: {

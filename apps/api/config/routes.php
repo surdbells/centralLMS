@@ -265,6 +265,14 @@ return static function (App $app): void {
             // The learner's own view. Scoped to the caller by construction —
             // there is no user id in any of these paths, so there is nothing
             // to tamper with.
+            // Checking in by scanning the code at a venue.
+            //
+            // Outside `/trainings/{id}/sessions/{sessionId}` on purpose: a
+            // scanner has a code and nothing else, so the code is what names
+            // the session. See AttendanceAction::scan().
+            $secure->post('/me/trainings/check-in', [AttendanceAction::class, 'scan'])
+                ->setName('me.trainings.checkIn');
+
             $secure->group('/me/enrollments', function (RouteCollectorProxy $m) use ($uuid): void {
                 $m->get('', MyEnrollmentsAction::class)->setName('me.enrollments');
                 $m->get('/{courseId:' . $uuid . '}', MyCourseProgressAction::class)

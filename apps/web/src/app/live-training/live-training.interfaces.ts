@@ -446,3 +446,13 @@ export interface BulkEnrollResult {
   success: number[];
   failed: Array<{ user_id: number; error: string }>;
 }
+
+/** What `POST /me/trainings/check-in` answers with. */
+export interface CheckInResult {
+  sessionId: string;
+  title: string;
+  /** `present` or `late` — arriving late is still attendance. */
+  status: string;
+  message: string;
+  summary: Record<string, unknown>;
+}

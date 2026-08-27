@@ -194,6 +194,86 @@ final class AttendanceAction extends TrainingAction
     }
 
     /**
+     * A learner scanning a code without knowing which session it belongs to.
+     *
+     * POST /v1/me/trainings/check-in  {"token": "…"}
+     *
+     * The distinction from {@see checkIn} is the whole point: that one is
+     * reached at `/trainings/{id}/sessions/{sessionId}/check-in`, which a
+     * scanner cannot build. Somebody standing at a door has a code and
+     * nothing else — no training id, no session id — so the code has to be
+     * the thing that identifies the session. `findSessionByQrToken` has been
+     * on the repository since it was written and nothing has ever called it;
+     * this is what it was for.
+     *
+     * The token is still checked against the session it resolves to, so a
+     * code that has expired is refused even though it matched a row.
+     */
+    public function scan(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $this->caller($request)->mustHave(Permission::EnrollmentSelf);
+
+        $tenantId = $this->tenantId($request);
+        $userId   = $this->userId($request);
+        $token    = trim((string) ($this->body($request)['token'] ?? ''));
+
+        if ($token === '') {
+            throw ValidationFailed::fromArray(['token' => 'Scan the code shown at the session.']);
+        }
+
+        // Scoped to the caller's tenant, so a code from another organisation
+        // resolves to nothing here rather than to their session.
+        $session = $this->trainings->findSessionByQrToken($tenantId, $token);
+        $now     = new \DateTimeImmutable();
+
+        if ($session === null || !$session->qrIsValid($token, $now)) {
+            // One message for a code that does not exist, one from elsewhere
+            // and one that has expired. Telling them apart lets somebody try
+            // codes until one is accepted.
+            throw new ConflictingState(
+                'That code is not valid for any session running now.',
+                'invalid_check_in_code',
+            );
+        }
+
+        if ($session->attendanceLocked) {
+            throw new ConflictingState('This register has been signed off.', 'attendance_locked');
+        }
+
+        $training = $this->trainings->find($tenantId, $session->trainingId)
+            ?? throw new ConflictingState(
+                'That code is not valid for any session running now.',
+                'invalid_check_in_code',
+            );
+
+        // Late is still attendance — see AttendanceStatus::countsAsAttended().
+        $status = $session->isLate($now) ? AttendanceStatus::Late : AttendanceStatus::Present;
+
+        try {
+            $result = $this->trainings->mark(
+                $tenantId,
+                $session,
+                $training,
+                $userId,
+                $status,
+                AttendanceMode::Physical,
+                ['qrScannedAt' => $now->format(\DateTimeInterface::ATOM)],
+            );
+        } catch (\RuntimeException $e) {
+            throw new ConflictingState($e->getMessage(), 'not_enrolled');
+        }
+
+        return Json::ok($response, [
+            'sessionId' => $session->id,
+            'title'     => $session->title,
+            'status'    => $status->value,
+            'message'   => $status === AttendanceStatus::Late
+                ? 'Checked in, marked as late.'
+                : 'Checked in.',
+            'summary'   => $result['summary']->toArray(),
+        ]);
+    }
+    /**
      * Reads attendance back from the meeting provider.
      *
      * The join and leave times come from Zoom or Teams rather than from the

@@ -55,7 +55,9 @@
         </div>
       </div>
       <div class="col-md-4">
-        <div class="quick-action-card">
+        <!-- This card had no click handler at all: it looked like every other
+             one beside it and did nothing when pressed. -->
+        <div class="quick-action-card" (click)="viewCertificates()">
           <div class="action-icon bg-info-subtle text-info">
             <i class="bi bi-award"></i>
           </div>

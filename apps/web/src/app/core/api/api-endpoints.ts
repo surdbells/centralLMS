@@ -314,6 +314,14 @@ export const Endpoints = {
       `/trainings/${trainingId}/sessions/${sessionId}/attendance`,
     checkIn: (trainingId: string, sessionId: string) =>
       `/trainings/${trainingId}/sessions/${sessionId}/check-in`,
+    /**
+     * Checking in with only the code.
+     *
+     * Somebody standing at a door has a code and nothing else, so the
+     * code is what names the session. `checkIn` above needs both ids,
+     * which a scanner cannot supply.
+     */
+    scan: '/me/trainings/check-in',
     sync: (trainingId: string, sessionId: string) =>
       `/trainings/${trainingId}/sessions/${sessionId}/attendance/sync`,
   },

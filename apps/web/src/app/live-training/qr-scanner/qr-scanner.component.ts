@@ -4,7 +4,7 @@ import { Component, OnInit, OnDestroy, Output, EventEmitter, ViewEncapsulation }
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { LiveTrainingService, SessionAttendance } from '../live-training.service';
+import { LiveTrainingService, CheckInResult } from '../live-training.service';
 
 declare var Html5Qrcode: any;
 
@@ -67,9 +67,9 @@ declare var Html5Qrcode: any;
                 {{ result.data?.status | titlecase }}
               </span>
             </div>
-            <div class="detail-item" *ngIf="result.data?.marked_at">
-              <span class="label">Time:</span>
-              <span class="value">{{ formatTime(result.data?.marked_at) }}</span>
+            <div class="detail-item" *ngIf="result.data?.title">
+              <span class="label">Session:</span>
+              <span class="value">{{ result.data?.title }}</span>
             </div>
           </div>
           <button class="btn btn-primary mt-4" (click)="close()">
@@ -198,14 +198,14 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private html5QrCode: any;
 
-  @Output() onSuccess = new EventEmitter<SessionAttendance>();
+  @Output() onSuccess = new EventEmitter<CheckInResult>();
   @Output() onError = new EventEmitter<string>();
   @Output() onClose = new EventEmitter<void>();
 
   scanning = false;
   processing = false;
   cameraError = false;
-  result: { success: boolean; message?: string; data?: SessionAttendance } | null = null;
+  result: { success: boolean; message?: string; data?: CheckInResult } | null = null;
 
   constructor(private liveTrainingService: LiveTrainingService) {}
 
@@ -302,31 +302,45 @@ export class QrScannerComponent implements OnInit, OnDestroy {
     }
 
     // Send to backend
-    this.liveTrainingService.markAttendanceQR(qrToken)
+    this.liveTrainingService.checkIn(qrToken)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (attendance) => {
+        next: (checkIn) => {
           this.processing = false;
           this.result = {
             success: true,
-            data: attendance
+            // The server's own words: being marked late is a different
+            // outcome from being marked present, and worth reading.
+            message: checkIn.message,
+            data: checkIn,
           };
-          this.onSuccess.emit(attendance);
+          this.onSuccess.emit(checkIn);
         },
-        error: (err) => {
+        error: (err: { message?: string }) => {
           this.processing = false;
           this.result = {
             success: false,
-            message: err.error?.message || 'Failed to mark attendance. Please try again.'
+            // `err.error.message` is the legacy envelope's shape. An
+            // ApiError has no `error`, so every failure — an expired
+            // code, a signed-off register, not being enrolled — read as
+            // the same flat "Failed to mark attendance".
+            message: err.message ?? 'That could not be marked. Please try again.',
           };
           this.onError.emit(this.result.message!);
         }
       });
   }
 
+  /**
+   * Whether this looks like a code at all.
+   *
+   * It used to insist on 64 hex characters, which was the legacy
+   * token's shape — so a code from the new API was rejected here
+   * before it ever reached the server. Deciding whether a code is
+   * valid is the server's job; this only catches an empty scan.
+   */
   private isValidQrToken(token: string): boolean {
-    // QR tokens should be 64 character hex strings
-    return /^[a-f0-9]{64}$/i.test(token);
+    return token.trim().length > 0;
   }
 
   tryAgain(): void {

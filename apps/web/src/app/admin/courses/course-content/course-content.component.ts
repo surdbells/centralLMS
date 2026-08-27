@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
-import { TuiIcon } from '@taiga-ui/core';
+import { TuiDialog, TuiIcon } from '@taiga-ui/core';
+import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
 import {
@@ -113,7 +114,7 @@ export interface MediaFile {
 @Component({
   selector: 'app-course-content',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon],
+  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent],
   templateUrl: './course-content.component.html',
   styleUrls: ['./course-content.component.scss'],
 })

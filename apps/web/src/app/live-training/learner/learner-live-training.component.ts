@@ -1,6 +1,7 @@
 // live-training/learner/learner-live-training.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -46,6 +47,8 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
 
   // Session Detail Modal
   showSessionDetailModal = false;
+
+  private readonly router = inject(Router);
 
   constructor(private liveTrainingService: LiveTrainingService) {}
 
@@ -152,21 +155,28 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
 
     this.scanMessage = '';
 
-    this.liveTrainingService.markAttendanceQR(this.qrToken.trim())
+    this.liveTrainingService.checkIn(this.qrToken.trim())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        next: (result) => {
           this.scanSuccess = true;
-          this.scanMessage = 'Attendance marked successfully!';
+          // The server's own words: "Checked in" and "Checked in, marked as
+          // late" are different outcomes, and somebody arriving late should
+          // be told they were marked late rather than told nothing.
+          this.scanMessage = result.message;
           // Refresh data after 2 seconds
           setTimeout(() => {
             this.closeQRScanner();
             this.loadDashboardData();
           }, 2000);
         },
-        error: err => {
+        error: (err: { message?: string }) => {
           this.scanSuccess = false;
-          this.scanMessage = err.error?.message || 'Failed to mark attendance. Please try again.';
+          // The API says what went wrong — an expired code, a register already
+          // signed off, not being enrolled — and each is worth reading. The
+          // old line reached into `err.error.message`, which an ApiError does
+          // not have, so every failure read "Failed to mark attendance".
+          this.scanMessage = err.message ?? 'That could not be marked. Please try again.';
         }
       });
   }
@@ -175,6 +185,11 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   onQRCodeScanned(token: string): void {
     this.qrToken = token;
     this.submitQRCode();
+  }
+
+  /** The certificates this person has earned. */
+  viewCertificates(): void {
+    void this.router.navigate(['/certificates']);
   }
 
   // ==========================================

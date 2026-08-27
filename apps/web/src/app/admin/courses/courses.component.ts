@@ -2,7 +2,9 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiDialog, TuiDialogService, TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { PolymorpheusComponent } from '@taiga-ui/polymorpheus';
+import { CourseInsightsComponent } from './course-insights/course-insights.component';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import {
@@ -73,6 +75,7 @@ interface PreviewData {
     FormsModule,
     TuiIcon,
     TuiLoader,
+    TuiDialog,
     AdmintopComponent,
     CourseCardComponent,
     CourseMiniCardComponent,
@@ -82,6 +85,7 @@ interface PreviewData {
 })
 export class CourseComponent implements OnInit, OnDestroy {
   private readonly coursesService = inject(CoursesService);
+  private readonly dialogs = inject(TuiDialogService);
   private readonly lookupsService = inject(LookupsService);
   private readonly router = inject(Router);
 
@@ -124,6 +128,17 @@ export class CourseComponent implements OnInit, OnDestroy {
 
   showArchiveModal = false;
   courseToArchive: Course | null = null;
+
+  /**
+   * Whether the duplicate dialog is open.
+   *
+   * The template has always bound `[(tuiDialog)]="openDuplicate"` and no
+   * such property existed. `TuiDialog` was not imported either, so the
+   * binding matched no directive and Angular took it for template context
+   * rather than reporting it — the dialog could not open, and nothing
+   * anywhere said why.
+   */
+  openDuplicate = false;
 
   /** The duplicate dialog. `new_title` is advisory: the server picks a free one. */
   /**
@@ -411,6 +426,7 @@ export class CourseComponent implements OnInit, OnDestroy {
       new_title: `${c.title} (copy)`,
     };
     this.previewData = null;
+    this.openDuplicate = true;
     this.onPreview();
   }
 
@@ -458,6 +474,7 @@ export class CourseComponent implements OnInit, OnDestroy {
         next: (copy) => {
           this.ui_controls.is_loading = false;
           this.previewData = null;
+          this.openDuplicate = false;
           this.notice = `"${copy.title}" was created as a draft, with `
             + `${copy.copiedModules} module(s) and ${copy.copiedLessons} lesson(s).`;
           this.list_course(1);
@@ -485,8 +502,23 @@ export class CourseComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/courses', id, 'content']);
   }
 
+  /**
+   * How one course is going, over the list rather than instead of it.
+   *
+   * It used to navigate away. Insights are something you glance at while
+   * deciding what to do with a course, and leaving the list to look —
+   * then coming back to a list that has forgotten its page, its filters
+   * and its search — is the wrong shape for that. The route still works,
+   * so a link to a course's insights is still a link.
+   */
   showCourseInsights(courseId: string, _courseTitle: string): void {
-    void this.router.navigate(['/courses', courseId, 'insights']);
+    this.dialogs
+      .open(new PolymorpheusComponent(CourseInsightsComponent), {
+        data: { courseId },
+        size: 'page',
+        closeable: true,
+      })
+      .subscribe();
   }
 
   courseEnrollees(c: Course): void {

@@ -1,5 +1,7 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
+import type { TuiDialogContext } from '@taiga-ui/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
@@ -227,6 +229,17 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
   private readonly reportsService = inject(ReportsService);
   private readonly assessmentsService = inject(AssessmentsService);
   private readonly route = inject(ActivatedRoute);
+  /**
+   * Set when this is opened as a dialog rather than reached by its route.
+   *
+   * `optional` because the route is still there — a link to
+   * `/courses/:id/insights` has to keep working — and outside a dialog
+   * there is no context to inject.
+   */
+  private readonly context = inject<TuiDialogContext<void, { courseId: string }> | null>(
+    POLYMORPHEUS_CONTEXT,
+    { optional: true },
+  );
   private readonly destroy$ = new Subject<void>();
 
   courseId = '';
@@ -240,8 +253,19 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
 
   filter = { date_range: 'last_30_days', learner_status: 'all' };
 
+  /** True when this is in a dialog, which is where the close button lives. */
+  get isDialog(): boolean {
+    return this.context !== null;
+  }
+
+  close(): void {
+    this.context?.$implicit.complete();
+  }
+
   ngOnInit(): void {
-    this.courseId = this.route.snapshot.paramMap.get('id') ?? '';
+    this.courseId = this.context?.data.courseId
+      ?? this.route.snapshot.paramMap.get('id')
+      ?? '';
 
     if (this.courseId === '') {
       this.error = 'No course was named in the address.';

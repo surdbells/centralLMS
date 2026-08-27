@@ -66,6 +66,10 @@
         <button class="btn btn-dark btn-sm" (click)="refreshData()" title="Refresh">
           <tui-icon icon="@tui.refresh-cw"></tui-icon>
         </button>
+        <!-- Only in the dialog: reached by its own route there is nothing to close. -->
+        <button *ngIf="isDialog" class="btn btn-outline-secondary btn-sm" (click)="close()" title="Close">
+          <tui-icon icon="@tui.x"></tui-icon>
+        </button>
       </div>
     </div>
 
