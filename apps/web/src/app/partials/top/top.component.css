@@ -612,3 +612,18 @@
     display: none !important;
   }
 }
+
+/* Shown when somebody has not set a picture. The old bar rendered an empty
+   base64 image there, which browsers draw as a broken-image icon. */
+.avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bs-primary, #303234);
+  color: #fff;
+  font-weight: 600;
+  text-transform: uppercase;
+}

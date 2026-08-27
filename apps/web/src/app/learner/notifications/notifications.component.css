@@ -1,0 +1,9 @@
+/* The bar across the top is fixed, so the page starts below it — the same
+   offset every other learner screen uses. */
+.container-fluid {
+  padding-top: 5rem !important;
+}
+
+.list-group-item .material-symbols-outlined {
+  font-size: 1.4rem;
+}

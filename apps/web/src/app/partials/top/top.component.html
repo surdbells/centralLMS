@@ -192,6 +192,8 @@
             <div *ngIf="!ui_controls.is_loading" class="list-group list-group-flush">
               <div *ngFor="let a_notification of notifications"
                    class="list-group-item list-group-item-action px-3 py-2"
+                   role="button"
+                   (click)="open_notification(a_notification)"
                    [class.notification-unread]="!a_notification.is_read">
                 <div class="d-flex gap-2">
                   <div class="notification-indicator" *ngIf="!a_notification.is_read"></div>
@@ -220,7 +222,8 @@
       <div class="dropdown user-dropdown">
         <button class="btn btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="avatar avatar-sm">
-            <img class="avatar-img" src="data:image/png;base64,{{ user_session.avatar }}" alt="User avatar" />
+            <img class="avatar-img" *ngIf="avatarSrc" [src]="avatarSrc" alt="User avatar" />
+            <span class="avatar-initials" *ngIf="!avatarSrc">{{ user_session.first_name.charAt(0) }}</span>
           </span>
           <span class="d-none d-lg-inline ms-2 user-name">{{ user_session.first_name }}</span>
         </button>
@@ -228,7 +231,8 @@
           <li class="dropdown-header d-lg-none">
             <div class="d-flex align-items-center gap-2">
               <span class="avatar avatar-sm">
-                <img class="avatar-img" src="data:image/png;base64,{{ user_session.avatar }}" alt="" />
+                <img class="avatar-img" *ngIf="avatarSrc" [src]="avatarSrc" alt="" />
+                <span class="avatar-initials" *ngIf="!avatarSrc">{{ user_session.first_name.charAt(0) }}</span>
               </span>
               <div>
                 <div class="fw-medium">{{ user_session.first_name }} {{ user_session.last_name }}</div>

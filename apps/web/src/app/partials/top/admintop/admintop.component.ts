@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, effect, inject } from '@angular/core';
 import { CommonModule, NgForOf, NgIf } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
@@ -62,6 +62,17 @@ export class AdmintopComponent implements OnInit, OnDestroy {
   notifications?: Notifications[];
 
   ui_controls = { is_loading: false, count: 0 };
+
+  /**
+   * Keeps the badge on the one unread count there is.
+   *
+   * The inbox screen marks things read as well, and each screen holding
+   * its own copy of the number meant the badge went on saying the old one
+   * until the page was reloaded.
+   */
+  private readonly badge = effect(() => {
+    this.ui_controls.count = this.notificationsService.unreadCount$();
+  });
 
   /**
    * Who is signed in, under the names the template uses.

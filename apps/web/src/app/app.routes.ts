@@ -11,6 +11,7 @@ import {SettingsComponent} from './admin/branding/settings.component';
 import {LearningComponent} from './learner/learning/learning.component';
 import {DictionaryComponent} from './admin/dictionary/dictionary.component';
 import {CourseComponent} from './admin/courses/courses.component';
+import {NotificationsComponent} from './learner/notifications/notifications.component';
 import {NotesComponent} from './learner/notes/notes.component';
 import {MyReportComponent} from './learner/my-report/my-report.component';
 import {LearnerSkillsPageComponent} from './learner/learner-skills-page/learner-skills-page.component';
@@ -165,6 +166,13 @@ export const routes: Routes = [
     path: 'skills',
     component: AdminSkillsPageComponent,
     title: 'Skills & Competencies'
+  },
+  {
+    // The bell in the top bar has linked here since it was written; the
+    // route never existed, so "View all notifications" went nowhere.
+    path: 'notifications',
+    component: NotificationsComponent,
+    title: 'Notifications'
   },
   {
     path: 'notes',

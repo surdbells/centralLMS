@@ -1,0 +1,86 @@
+<app-top></app-top>
+
+<div class="container-fluid p-4">
+  <div class="row align-items-center mb-4">
+    <div (click)="goBack()" role="button" class="col-auto">
+      <div class="avatar text-center avatar-md rounded text-primary-emphasis">
+        <i class="fs-5"><tui-icon icon="@tui.chevron-left" /></i>
+      </div>
+    </div>
+    <div class="col">
+      <h1 class="fs-4 mb-0">Notifications</h1>
+      <small class="text-muted" *ngIf="unread > 0">{{ unread }} unread</small>
+      <small class="text-muted" *ngIf="unread === 0">Nothing unread</small>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-sm btn-outline-secondary" (click)="markAllRead()"
+              [disabled]="unread === 0">
+        <span class="material-symbols-outlined align-middle me-1">done_all</span>
+        Mark all read
+      </button>
+    </div>
+  </div>
+
+  <div class="btn-group btn-group-sm mb-3" role="group">
+    <button type="button" class="btn" [class.btn-dark]="!unreadOnly"
+            [class.btn-outline-dark]="unreadOnly" (click)="showUnreadOnly(false)">All</button>
+    <button type="button" class="btn" [class.btn-dark]="unreadOnly"
+            [class.btn-outline-dark]="!unreadOnly" (click)="showUnreadOnly(true)">Unread</button>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+  <div class="text-center py-5" *ngIf="loading">
+    <tui-loader />
+  </div>
+
+  <div class="card" *ngIf="!loading">
+    <div class="list-group list-group-flush">
+      <div class="list-group-item d-flex gap-3 align-items-start py-3"
+           *ngFor="let n of notifications"
+           [class.bg-body-secondary]="!n.isRead">
+        <span class="material-symbols-outlined mt-1" [ngClass]="tone(n)">{{ icon(n) }}</span>
+
+        <div class="flex-grow-1" role="button" (click)="open(n)">
+          <div class="d-flex align-items-center gap-2">
+            <span class="fw-semibold" [class.fw-normal]="n.isRead">{{ n.title }}</span>
+            <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ n.typeLabel }}</span>
+          </div>
+          <p class="mb-1 small text-muted" *ngIf="n.body">{{ n.body }}</p>
+          <small class="text-muted">{{ n.createdAt | date:'medium' }}</small>
+        </div>
+
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-link text-decoration-none" *ngIf="!n.isRead"
+                  (click)="markRead(n)" title="Mark as read">
+            <span class="material-symbols-outlined">mark_email_read</span>
+          </button>
+          <button class="btn btn-sm btn-link text-danger text-decoration-none"
+                  (click)="remove(n)" title="Delete">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="list-group-item text-center text-muted py-5" *ngIf="notifications.length === 0">
+        <span class="material-symbols-outlined d-block mb-2" style="font-size:2rem">notifications_off</span>
+        <span *ngIf="unreadOnly">Nothing unread.</span>
+        <span *ngIf="!unreadOnly">Nothing here yet.</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="mt-3" *ngIf="!loading && totalPages > 1">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+      <li class="page-item" [class.disabled]="page === 1">
+        <button class="page-link" (click)="goToPage(page - 1)">Previous</button>
+      </li>
+      <li class="page-item disabled">
+        <span class="page-link">{{ page }} of {{ totalPages }}</span>
+      </li>
+      <li class="page-item" [class.disabled]="page === totalPages">
+        <button class="page-link" (click)="goToPage(page + 1)">Next</button>
+      </li>
+    </ul>
+  </nav>
+</div>
