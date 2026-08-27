@@ -35,8 +35,8 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   // UI State
   loading = signal(true);
   enrolling = signal(false);
-  startingItem = signal<number | null>(null);
-  activeSection = signal<number | null>(null);
+  startingItem = signal<string | null>(null);
+  activeSection = signal<string | null>(null);
   showAllObjectives = signal(false);
 
   // Computed
@@ -107,13 +107,22 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  /**
+   * A path by whichever of its two names is in the address.
+   *
+   * It used to tell them apart by asking whether the segment was numeric,
+   * which was true of every id when ids were integers and is true of none
+   * now that they are UUIDs — so every link went down the slug branch. A
+   * UUID has a shape, and that is what this looks for.
+   */
   loadPath(pathIdOrSlug: string | number): void {
     this.loading.set(true);
 
-    const isNumeric = !isNaN(Number(pathIdOrSlug));
-    const observable = isNumeric
-      ? this.learningPathService.getById(Number(pathIdOrSlug))
-      : this.learningPathService.getBySlug(String(pathIdOrSlug));
+    const value = String(pathIdOrSlug);
+    const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+    const observable = isId
+      ? this.learningPathService.getById(value)
+      : this.learningPathService.getBySlug(value);
 
     observable.pipe(takeUntil(this.destroy$)).subscribe({
       next: (path) => {
@@ -128,7 +137,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadEnrollment(pathId: number): void {
+  loadEnrollment(pathId: string): void {
     this.learningPathService.getMyEnrollment(pathId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (enrollment) => {
         this.enrollment.set(enrollment);
@@ -143,7 +152,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadProgress(pathId: number): void {
+  loadProgress(pathId: string): void {
     this.learningPathService.getMyProgress(pathId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (progress) => {
         this.progress.set(progress);
@@ -158,7 +167,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadRatingSummary(pathId: number): void {
+  loadRatingSummary(pathId: string): void {
     this.learningPathService.getRatingSummary(pathId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (summary) => this.ratingSummary.set(summary)
     });
@@ -282,7 +291,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   }
 
   // Section accordion
-  toggleSection(sectionId: number): void {
+  toggleSection(sectionId: string): void {
     if (this.activeSection() === sectionId) {
       this.activeSection.set(null);
     } else {
@@ -290,7 +299,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     }
   }
 
-  isSectionExpanded(sectionId: number): boolean {
+  isSectionExpanded(sectionId: string): boolean {
     return this.activeSection() === sectionId;
   }
 

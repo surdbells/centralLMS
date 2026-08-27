@@ -28,7 +28,7 @@ export class LearningPathCatalogComponent implements OnInit, OnDestroy {
   // Filters
   searchQuery = signal('');
   skillFilter = signal<SkillLevel | ''>('');
-  categoryFilter = signal<number | null>(null);
+  categoryFilter = signal<string | null>(null);
   sortBy = signal('popular');
 
   // Pagination

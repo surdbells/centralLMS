@@ -21,7 +21,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 
 // Course and Assessment interfaces
 interface Course {
-  course_id: number;
+  course_id: string;
   title: string;
   short_description?: string;
   thumbnail_url?: string;
@@ -33,7 +33,7 @@ interface Course {
 }
 
 interface Assessment {
-  assessment_id: number;
+  assessment_id: string;
   title: string;
   description?: string;
   time_limit_minutes?: number;
@@ -75,7 +75,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   // Edit State
   editingSection: LearningPathSection | null = null;
   editingItem: LearningPathItem | null = null;
-  targetSectionId: number | null = null;
+  targetSectionId: string | null = null;
 
   // Section Form
   sectionForm: Partial<SectionCreateRequest> = {
@@ -151,7 +151,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
       const pathId = params['id'];
       if (pathId) {
-        this.loadPath(Number(pathId));
+        this.loadPath(pathId);
       }
     });
 
@@ -168,7 +168,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   // DATA LOADING
   // ==========================================
 
-  loadPath(pathId: number): void {
+  loadPath(pathId: string): void {
     this.loading = true;
 
     forkJoin({
@@ -198,7 +198,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
         }
 
         // Get unsectioned items
-        const sectionedItemIds = new Set<number>();
+        const sectionedItemIds = new Set<string>();
         sectionsArray.forEach(s => {
           if (s.items && Array.isArray(s.items)) {
             s.items.forEach(i => sectionedItemIds.add(i.item_id));
@@ -355,7 +355,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   // ITEM MANAGEMENT
   // ==========================================
 
-  openItemModal(sectionId: number | null, item?: LearningPathItem): void {
+  openItemModal(sectionId: string | null, item?: LearningPathItem): void {
     this.targetSectionId = sectionId;
 
     if (item) {
@@ -441,7 +441,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   // ADD COURSE
   // ==========================================
 
-  openCourseSelector(sectionId: number | null): void {
+  openCourseSelector(sectionId: string | null): void {
     this.targetSectionId = sectionId;
     this.showCourseSelector = true;
     this.courseSearch = '';
@@ -494,7 +494,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   // ADD ASSESSMENT
   // ==========================================
 
-  openAssessmentSelector(sectionId: number | null): void {
+  openAssessmentSelector(sectionId: string | null): void {
     this.targetSectionId = sectionId;
     this.showAssessmentSelector = true;
     this.assessmentSearch = '';
@@ -554,7 +554,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     this.saveSectionOrder(sections);
   }
 
-  onItemDrop(event: CdkDragDrop<LearningPathItem[]>, targetSectionId: number | null): void {
+  onItemDrop(event: CdkDragDrop<LearningPathItem[]>, targetSectionId: string | null): void {
     if (!this.path) return;
 
     if (event.previousContainer === event.container) {
@@ -602,7 +602,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   saveItemOrder(): void {
     if (!this.path) return;
 
-    const itemOrders: { item_id: number; sort_order: number; section_id?: number }[] = [];
+    const itemOrders: { item_id: string; sort_order: number; section_id?: string }[] = [];
     let globalOrder = 1;
 
     // Unsectioned items first
@@ -723,19 +723,19 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   }
 
-  trackBySectionId(index: number, section: LearningPathSection): number {
+  trackBySectionId(index: number, section: LearningPathSection): string {
     return section.section_id;
   }
 
-  trackByItemId(index: number, item: LearningPathItem): number {
+  trackByItemId(index: number, item: LearningPathItem): string {
     return item.item_id;
   }
 
-  trackByCourseId(index: number, course: Course): number {
+  trackByCourseId(index: number, course: Course): string {
     return course.course_id;
   }
 
-  trackByAssessmentId(index: number, assessment: Assessment): number {
+  trackByAssessmentId(index: number, assessment: Assessment): string {
     return assessment.assessment_id;
   }
 }

@@ -1,21 +1,21 @@
 // learning-path-enrollment/learning-path-enrollment.interfaces.ts
 
 export interface Department {
-  department_id: number;
+  department_id: string;
   department_name: string;
   department_code: string;
   user_count: number;
 }
 
 export interface Team {
-  team_id: number;
+  team_id: string;
   team_name: string;
   team_code: string;
   user_count: number;
 }
 
 export interface Branch {
-  branch_id: number;
+  branch_id: string;
   branch_name: string;
   branch_code: string;
   city: string;
@@ -24,7 +24,7 @@ export interface Branch {
 }
 
 export interface User {
-  user_id: number;
+  user_id: string;
   email: string;
   first_name: string;
   last_name: string;
@@ -36,7 +36,7 @@ export interface User {
 }
 
 export interface LearningPathBasic {
-  path_id: number;
+  path_id: string;
   title: string;
   short_description: string;
   description?: string;
@@ -72,20 +72,20 @@ export interface EnrollmentStats {
 
 export interface EnrollmentPreview {
   success: boolean;
-  path: { path_id: number; title: string };
+  path: { path_id: string; title: string };
   summary: {
     total_users: number;
     will_enroll: number;
     already_enrolled: number;
   };
   users_to_enroll: Array<{
-    user_id: number;
+    user_id: string;
     email: string;
     name: string;
     department_name?: string;
   }>;
   users_already_enrolled: Array<{
-    user_id: number;
+    user_id: string;
     email: string;
     name: string;
     enrollment_status?: string;
@@ -102,37 +102,37 @@ export interface EnrollmentResult {
     failed_count: number;
   };
   enrolled: Array<{
-    user_id: number;
+    user_id: string;
     email: string;
     first_name: string;
     last_name: string;
-    enrollment_id: number;
+    enrollment_id: string;
   }>;
   skipped: Array<{
-    user_id: number;
+    user_id: string;
     email: string;
     name: string;
     reason: string
   }>;
   failed: Array<{
-    user_id: number;
+    user_id: string;
     email: string;
     name: string;
     reason: string
   }>;
-  path: { path_id: number; title: string };
+  path: { path_id: string; title: string };
 }
 
 export interface EnrollmentRequest {
-  path_id: number;
+  path_id: string;
   enrollment_type: 'department' | 'team' | 'branch' | 'user' | 'users';
-  department_id?: number;
-  team_id?: number;
-  branch_id?: number;
-  user_id?: number;
+  department_id?: string;
+  team_id?: string;
+  branch_id?: string;
+  user_id?: string;
   token?: string;
-  tenant_id?: number;
-  user_ids?: number[];
+  tenant_id?: string;
+  user_ids?: string[];
   is_mandatory?: boolean;
   due_date?: string;
   notify_users?: boolean;
@@ -149,8 +149,8 @@ export interface ApiResponse<T> {
 
 export interface AuthParams {
   token: string;
-  user_id: number;
-  tenant_id: number;
+  user_id: string;
+  tenant_id: string;
 }
 
 export interface PaginatedResponse<T> {

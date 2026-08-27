@@ -35,7 +35,7 @@ export class LearningPathsListComponent implements OnInit {
   searchQuery = signal('');
   statusFilter = signal<PathStatus | ''>('');
   skillFilter = signal<SkillLevel | ''>('');
-  categoryFilter = signal<number | null>(null);
+  categoryFilter = signal<string | null>(null);
 
   // View mode
   viewMode = signal<'grid' | 'list'>('grid');
@@ -50,7 +50,7 @@ export class LearningPathsListComponent implements OnInit {
   categories = signal<any[]>([]);
 
   // Selection for bulk actions
-  selectedIds = signal<Set<number>>(new Set());
+  selectedIds = signal<Set<string>>(new Set());
   selectAll = signal(false);
 
   // ========================================
@@ -177,7 +177,7 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   // Selection
-  toggleSelect(pathId: number): void {
+  toggleSelect(pathId: string): void {
     const selected = new Set(this.selectedIds());
     if (selected.has(pathId)) {
       selected.delete(pathId);
@@ -198,7 +198,7 @@ export class LearningPathsListComponent implements OnInit {
     }
   }
 
-  isSelected(pathId: number): boolean {
+  isSelected(pathId: string): boolean {
     return this.selectedIds().has(pathId);
   }
 

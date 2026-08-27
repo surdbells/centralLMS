@@ -29,7 +29,7 @@ export class LearningPathFormComponent implements OnInit, OnDestroy {
 
   // Mode
   mode: 'create' | 'edit' = 'create';
-  pathId: number | null = null;
+  pathId: string | null = null;
 
   // Data
   path = signal<LearningPath | null>(null);
@@ -97,7 +97,7 @@ export class LearningPathFormComponent implements OnInit, OnDestroy {
 
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
       if (params['id']) {
-        this.pathId = Number(params['id']);
+        this.pathId = String(params['id']);
         this.loadPath(this.pathId);
       } else {
         this.loading.set(false);
@@ -165,7 +165,7 @@ export class LearningPathFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadPath(pathId: number): void {
+  loadPath(pathId: string): void {
     this.learningPathService.getById(pathId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (path) => {
         this.path.set(path);

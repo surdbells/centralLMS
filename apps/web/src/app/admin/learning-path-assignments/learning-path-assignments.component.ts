@@ -17,21 +17,21 @@ import { GlobalComponent } from '../../global-component';
 
 // Interfaces matching course enrollment pattern
 interface Department {
-  department_id: number;
+  department_id: string;
   department_name: string;
   department_code: string;
   user_count: number;
 }
 
 interface Team {
-  team_id: number;
+  team_id: string;
   team_name: string;
   team_code: string;
   user_count: number;
 }
 
 interface Branch {
-  branch_id: number;
+  branch_id: string;
   branch_name: string;
   branch_code: string;
   city: string;
@@ -51,14 +51,14 @@ interface User {
 
 interface AssignmentPreview {
   success: boolean;
-  path: { path_id: number; title: string };
+  path: { path_id: string; title: string };
   summary: {
     total_users: number;
     will_enroll: number;
     already_enrolled: number;
   };
-  users_to_enroll: Array<{ user_id: number; email: string; name: string }>;
-  users_already_enrolled: Array<{ user_id: number; email: string; name: string }>;
+  users_to_enroll: Array<{ user_id: string; email: string; name: string }>;
+  users_already_enrolled: Array<{ user_id: string; email: string; name: string }>;
 }
 
 interface AssignmentResult {
@@ -71,15 +71,15 @@ interface AssignmentResult {
     failed_count: number;
   };
   enrolled: Array<{
-    user_id: number;
+    user_id: string;
     email: string;
     first_name: string;
     last_name: string;
-    enrollment_id: number;
+    enrollment_id: string;
   }>;
-  skipped: Array<{ user_id: number; email: string; name: string; reason: string }>;
-  failed: Array<{ user_id: number; email: string; name: string; reason: string }>;
-  path: { path_id: number; title: string };
+  skipped: Array<{ user_id: string; email: string; name: string; reason: string }>;
+  failed: Array<{ user_id: string; email: string; name: string; reason: string }>;
+  path: { path_id: string; title: string };
 }
 
 interface AssignmentStatistics {
@@ -126,7 +126,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   };
 
   // Path data
-  pathId!: number;
+  pathId!: string;
   path: LearningPath | null = null;
   assignments: LearningPathAssignment[] = [];
 
@@ -138,9 +138,9 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
 
   // Selection State
   assignmentType: AssignmentType = 'users';
-  selectedDepartmentId: number | null = null;
-  selectedTeamId: number | null = null;
-  selectedBranchId: number | null = null;
+  selectedDepartmentId: string | null = null;
+  selectedTeamId: string | null = null;
+  selectedBranchId: string | null = null;
   selectedUsers: User[] = [];
 
   // Options
@@ -184,7 +184,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      this.pathId = Number(params['id']);
+      this.pathId = String(params['id']);
       this.loadPath();
       this.loadAssignments();
       this.loadInitialData();
@@ -456,7 +456,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
               email: u.email,
               first_name: u.name.split(' ')[0],
               last_name: u.name.split(' ').slice(1).join(' '),
-              enrollment_id: 0
+              enrollment_id: ''
             })) || [],
             skipped: this.preview?.users_already_enrolled.map(u => ({
               user_id: u.user_id,
@@ -611,7 +611,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (stats) => {
-          this.assignmentStats = stats;
+          this.assignmentStats = stats as AssignmentStatistics;
           this.loadingStats = false;
         },
         error: () => this.loadingStats = false

@@ -24,7 +24,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 export class LearningPathDetailComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  pathId!: number;
+  pathId!: string;
   path = signal<LearningPath | null>(null);
   sections = signal<LearningPathSection[]>([]);
   statistics = signal<LearningPathStatistics | null>(null);
@@ -46,7 +46,7 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      this.pathId = Number(params['id']);
+      this.pathId = String(params['id']);
       this.loadData();
     });
   }

@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // learning-path-enrollment/learning-path-enrollment.component.ts
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -35,30 +34,6 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
 
-  session_data: any = "";
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-
   // Data
   departments: Department[] = [];
   teams: Team[] = [];
@@ -69,9 +44,9 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
   // Selection State
   selectedPath: LearningPathBasic | null = null;
   enrollmentType: EnrollmentType = 'users';
-  selectedDepartmentId: number | null = null;
-  selectedTeamId: number | null = null;
-  selectedBranchId: number | null = null;
+  selectedDepartmentId: string | null = null;
+  selectedTeamId: string | null = null;
+  selectedBranchId: string | null = null;
   selectedUsers: User[] = [];
 
   // Options
@@ -386,18 +361,21 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * What to enrol, and whom.
+   *
+   * No `user_id`, `token` or `tenant_id`: those were decoded out of
+   * `atob(sessionStorage.SESSION)` and posted alongside the request, which
+   * meant the client named the organisation it was enrolling people into.
+   * All three come from the bearer token now.
+   */
   private buildEnrollmentRequest(): EnrollmentRequest {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
     const request: EnrollmentRequest = {
       path_id: this.selectedPath!.path_id,
       enrollment_type: this.enrollmentType,
       is_mandatory: this.isMandatory,
       notify_users: this.notifyUsers,
       priority: this.priority,
-      user_id: this.user_session.id,
-      token: this.user_session.token,
-      tenant_id: this.user_session.tenant_id
     };
 
     if (this.dueDate) {

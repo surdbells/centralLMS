@@ -314,8 +314,8 @@ import { TopComponent } from '../../partials/top/top.component';
 export class LearningPathItemViewerComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  pathId!: number;
-  itemId!: number;
+  pathId!: string;
+  itemId!: string;
 
   path = signal<LearningPath | null>(null);
   item = signal<LearningPathItem | null>(null);
@@ -338,8 +338,8 @@ export class LearningPathItemViewerComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      this.pathId = Number(params['id']);
-      this.itemId = Number(params['itemId']);
+      this.pathId = String(params['id']);
+      this.itemId = String(params['itemId']);
       this.loadData();
     });
   }

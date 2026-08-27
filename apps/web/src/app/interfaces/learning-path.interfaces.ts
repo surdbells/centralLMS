@@ -31,15 +31,15 @@ export interface PaginatedResponse<T> {
 // ============================================
 
 export interface LearningPath {
-  path_id: number;
-  tenant_id: number;
+  path_id: string;
+  tenant_id: string;
   title: string;
   slug: string;
   short_description: string;
   description: string;
   thumbnail_url: string | null;
   banner_url: string | null;
-  category_id: number | null;
+  category_id: string | null;
   category_name?: string;
   skill_level: SkillLevel;
   path_type: PathType;
@@ -53,10 +53,10 @@ export interface LearningPath {
   completion_threshold: number;
   passing_score: number | null;
   certificate_enabled: boolean;
-  certificate_template_id: number | null;
+  certificate_template_id: string | null;
   certificate_validity_months: number | null;
   total_points: number;
-  badge_id: number | null;
+  badge_id: string | null;
   status: PathStatus;
   visibility: Visibility;
   publish_date: string | null;
@@ -80,10 +80,10 @@ export interface LearningPath {
   avg_completion_days: number | null;
   avg_rating: number | null;
   total_ratings: number;
-  created_by: number | null;
+  created_by: string | null;
   creator_first_name?: string;
   creator_last_name?: string;
-  updated_by: number | null;
+  updated_by: string | null;
   created_at: string;
   updated_at: string | null;
   published_at: string | null;
@@ -114,7 +114,7 @@ export interface LearningPathCreateRequest {
   description?: string;
   thumbnail_url?: string;
   banner_url?: string;
-  category_id?: number;
+  category_id?: string;
   skill_level?: SkillLevel;
   path_type?: PathType;
   is_mandatory?: boolean;
@@ -127,10 +127,10 @@ export interface LearningPathCreateRequest {
   completion_threshold?: number;
   passing_score?: number;
   certificate_enabled?: boolean;
-  certificate_template_id?: number;
+  certificate_template_id?: string;
   certificate_validity_months?: number;
   total_points?: number;
-  badge_id?: number;
+  badge_id?: string;
   visibility?: Visibility;
   enrollment_type?: EnrollmentType;
   max_enrollments?: number;
@@ -156,7 +156,7 @@ export interface LearningPathListParams {
   search?: string;
   status?: PathStatus;
   skill_level?: SkillLevel;
-  category_id?: number;
+  category_id?: string;
   visibility?: Visibility;
   is_mandatory?: boolean;
 }
@@ -171,16 +171,16 @@ export interface LearningPathListResponse {
 // ============================================
 
 export interface LearningPathSection {
-  section_id: number;
-  path_id: number;
-  tenant_id: number;
+  section_id: string;
+  path_id: string;
+  tenant_id: string;
   title: string;
   description: string;
   sort_order: number;
   is_milestone: boolean;
   milestone_title?: string;
   unlock_type: SectionUnlockType;
-  unlock_after_section_id?: number | null;
+  unlock_after_section_id?: string | null;
   unlock_date: string | null;
   completion_required: boolean;
   min_items_to_complete: number | null;
@@ -197,14 +197,14 @@ export interface LearningPathSection {
 export type SectionUnlockType = 'immediate' | 'previous_section' | 'sequential' | 'date' | 'manual';
 
 export interface SectionCreateRequest {
-  path_id: number;
+  path_id: string;
   title: string;
   description?: string;
   sort_order?: number;
   is_milestone?: boolean;
   milestone_title?: string;
   unlock_type?: SectionUnlockType;
-  unlock_after_section_id?: number;
+  unlock_after_section_id?: string;
   unlock_date?: string;
   completion_required?: boolean;
   min_items_to_complete?: number;
@@ -218,15 +218,15 @@ export interface SectionUpdateRequest extends Partial<Omit<SectionCreateRequest,
 // ============================================
 
 export interface LearningPathItem {
-  item_id: number;
-  path_id: number;
-  section_id: number | null;
-  tenant_id: number;
+  item_id: string;
+  path_id: string;
+  section_id: string | null;
+  tenant_id: string;
   item_type: ItemType;
-  course_id: number | null;
-  assessment_id: number | null;
-  live_session_id: number | null;
-  media_id: number | null;
+  course_id: string | null;
+  assessment_id: string | null;
+  live_session_id: string | null;
+  media_id: string | null;
   external_url: string;
   external_title: string;
   external_description: string;
@@ -234,8 +234,8 @@ export interface LearningPathItem {
   is_required: boolean;
   is_locked: boolean;
   unlock_type: ItemUnlockType;
-  unlock_after_item_ids: number[] | null;
-  unlock_after_item_id?: number | null;
+  unlock_after_item_ids: string[] | null;
+  unlock_after_item_id?: string | null;
   unlock_date: string | null;
   unlock_min_score: number | null;
   unlock_score?: number | null;
@@ -272,13 +272,13 @@ export type ItemUnlockType = 'immediate' | 'previous_item' | 'sequential' | 'spe
 export type ItemCompletionType = 'view' | 'complete' | 'pass' | 'time_spent' | 'manual';
 
 export interface ItemCreateRequest {
-  path_id: number;
-  section_id?: number;
+  path_id: string;
+  section_id?: string;
   item_type: ItemType;
-  course_id?: number;
-  assessment_id?: number;
-  live_session_id?: number;
-  media_id?: number;
+  course_id?: string;
+  assessment_id?: string;
+  live_session_id?: string;
+  media_id?: string;
   external_url?: string;
   external_title?: string;
   external_description?: string;
@@ -286,7 +286,7 @@ export interface ItemCreateRequest {
   is_required?: boolean;
   unlock_type?: ItemUnlockType;
   unlock_after_item_ids?: number[];
-  unlock_after_item_id?: number;
+  unlock_after_item_id?: string;
   unlock_date?: string;
   unlock_min_score?: number;
   unlock_score?: number;
@@ -308,9 +308,9 @@ export interface ItemCreateRequest {
 export interface ItemUpdateRequest extends Partial<Omit<ItemCreateRequest, 'path_id' | 'item_type'>> {}
 
 export interface ItemReorderRequest {
-  item_id: number;
+  item_id: string;
   sort_order: number;
-  section_id?: number | null;
+  section_id?: string | null;
 }
 
 // ============================================
@@ -318,13 +318,13 @@ export interface ItemReorderRequest {
 // ============================================
 
 export interface LearningPathEnrollment {
-  enrollment_id: number;
-  path_id: number;
-  user_id: number;
-  tenant_id: number;
+  enrollment_id: string;
+  path_id: string;
+  user_id: string;
+  tenant_id: string;
   status: EnrollmentStatus;
   enrollment_type: UserEnrollmentType;
-  enrolled_by: number | null;
+  enrolled_by: string | null;
   enrolled_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -334,15 +334,15 @@ export interface LearningPathEnrollment {
   progress_percentage: number;
   items_completed: number;
   items_total: number;
-  current_item_id: number | null;
-  current_section_id: number | null;
+  current_item_id: string | null;
+  current_section_id: string | null;
   total_time_spent_minutes: number;
   last_accessed_at: string | null;
   total_points_earned: number;
   avg_assessment_score: number | null;
   completion_type: string | null;
-  completed_by: number | null;
-  certificate_id: number | null;
+  completed_by: string | null;
+  certificate_id: string | null;
   certificate_issued_at: string | null;
   certificate_expiry_date: string | null;
   admin_notes: string;
@@ -370,8 +370,8 @@ export type EnrollmentStatus = 'pending' | 'active' | 'completed' | 'expired' | 
 export type UserEnrollmentType = 'self' | 'admin' | 'manager' | 'auto' | 'bulk';
 
 export interface EnrollRequest {
-  path_id: number;
-  user_id?: number;
+  path_id: string;
+  user_id?: string;
   user_ids?: number[];
   enrollment_type?: UserEnrollmentType;
   due_date?: string;
@@ -386,8 +386,8 @@ export interface EnrollmentListParams {
   sort_dir?: 'asc' | 'desc';
   search?: string;
   status?: EnrollmentStatus;
-  path_id?: number;
-  user_id?: number;
+  path_id?: string;
+  user_id?: string;
 }
 
 export interface EnrollmentListResponse {
@@ -397,7 +397,7 @@ export interface EnrollmentListResponse {
 
 export interface BulkEnrollResult {
   success: number[];
-  failed: { user_id: number; error: string }[];
+  failed: { user_id: string; error: string }[];
   already_enrolled: number[];
 }
 
@@ -406,11 +406,11 @@ export interface BulkEnrollResult {
 // ============================================
 
 export interface LearningPathItemProgress {
-  progress_id: number;
-  enrollment_id: number;
-  item_id: number;
-  user_id: number;
-  tenant_id: number;
+  progress_id: string;
+  enrollment_id: string;
+  item_id: string;
+  user_id: string;
+  tenant_id: string;
   status: ItemProgressStatus;
   progress_percentage: number;
   unlocked_at: string | null;
@@ -425,8 +425,8 @@ export interface LearningPathItemProgress {
   passed: boolean | null;
   points_earned: number;
   bonus_earned: number;
-  course_enrollment_id: number | null;
-  assessment_attempt_id: number | null;
+  course_enrollment_id: string | null;
+  assessment_attempt_id: string | null;
   notes: string;
   feedback: string;
   created_at: string;
@@ -440,11 +440,11 @@ export interface LearningPathItemProgress {
   points_value?: number;
   display_title?: string;
   display_thumbnail?: string;
-  course_id?: number;
-  assessment_id?: number;
+  course_id?: string;
+  assessment_id?: string;
   external_url?: string;
   is_required?: boolean;
-  section_id?: number;
+  section_id?: string;
   section_title?: string;
   estimated_duration_minutes?: number | null;
 }
@@ -452,11 +452,11 @@ export interface LearningPathItemProgress {
 export type ItemProgressStatus = 'locked' | 'available' | 'in_progress' | 'completed' | 'failed' | 'skipped';
 
 export interface SectionProgress {
-  progress_id: number;
-  enrollment_id: number;
-  section_id: number;
-  user_id: number;
-  tenant_id: number;
+  progress_id: string;
+  enrollment_id: string;
+  section_id: string;
+  user_id: string;
+  tenant_id: string;
   status: SectionProgressStatus;
   progress_percentage: number;
   items_completed: number;
@@ -504,11 +504,11 @@ export interface CompleteItemResponse {
 // ============================================
 
 export interface LearningPathReview {
-  review_id: number;
-  path_id: number;
-  user_id: number;
-  enrollment_id: number;
-  tenant_id: number;
+  review_id: string;
+  path_id: string;
+  user_id: string;
+  enrollment_id: string;
+  tenant_id: string;
   rating: number;
   title: string;
   review_text: string;
@@ -543,7 +543,7 @@ export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'flagged';
 export type ModerationStatus = 'pending' | 'approved' | 'rejected' | 'flagged';
 
 export interface ReviewCreateRequest {
-  path_id: number;
+  path_id: string;
   rating: number;
   title?: string;
   review_text?: string;
@@ -582,11 +582,11 @@ export interface ReviewListResponse {
 // ============================================
 
 export interface LearningPathAssignment {
-  assignment_id: number;
-  path_id: number;
-  tenant_id: number;
+  assignment_id: string;
+  path_id: string;
+  tenant_id: string;
   assignment_type: AssignmentType;
-  user_id: number | null;
+  user_id: string | null;
   role_id: number | null;
   department_id: number | null;
   team_id: number | null;
@@ -627,9 +627,9 @@ export type AssignmentPriority = 'low' | 'normal' | 'high' | 'critical';
 export type AssignmentStatus = 'active' | 'paused' | 'completed' | 'cancelled';
 
 export interface AssignmentCreateRequest {
-  path_id: number;
+  path_id: string;
   assignment_type: AssignmentType;
-  user_id?: number;
+  user_id?: string;
   role_id?: number;
   department_id?: number;
   team_id?: number;
@@ -646,10 +646,10 @@ export interface AssignmentCreateRequest {
 
 export interface AssignmentCreateResponse {
   success: boolean;
-  assignment_id?: number;
+  assignment_id?: string;
   enrollments_created?: number;
   users_enrolled?: number[];
-  users_skipped?: { user_id: number; reason: string }[];
+  users_skipped?: { user_id: string; reason: string }[];
   error?: string;
 }
 
@@ -692,7 +692,7 @@ export interface EnrollmentStatistics {
 // ============================================
 
 export interface PathCardData {
-  path_id: number;
+  path_id: string;
   title: string;
   slug: string;
   short_description: string;
@@ -722,8 +722,8 @@ export interface PathDetailData extends LearningPath {
 
 export interface LearningPathPrerequisite {
   prereq_id: number;
-  path_id: number;
-  tenant_id: number;
+  path_id: string;
+  tenant_id: string;
   prereq_type: PrerequisiteType;
   required_path_id: number | null;
   required_course_id: number | null;
