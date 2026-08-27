@@ -216,4 +216,18 @@ export const routes: Routes = [
     loadComponent: () => import('./website/pages/onboarding.component').then(m => m.OnboardingComponent),
     title: 'Get Started - Central LMS'
   },
+  {
+    /**
+     * An organisation's own registration link, which is what an
+     * administrator hands out. Declared last on purpose: a leading
+     * `:tenantId` matches any single segment, so anywhere earlier it would
+     * swallow `/login` and the rest.
+     *
+     * The bare `/register` above still resolves, and says the link names no
+     * organisation — which is more use than a form that cannot be submitted.
+     */
+    path: ':tenantId/register',
+    component: RegisterComponent,
+    title: 'Register'
+  },
 ];

@@ -26,8 +26,28 @@
             </div>
           </div>
         </div>
-        <div *ngIf="!ui_controls.registered" class="card-body">
+        <div *ngIf="notFound" class="card-body text-center">
+          <h1 class="fs-2">Nothing here</h1>
+          <p class="lead text-body-secondary">
+            This registration link does not name an organisation we know.
+            Check it with whoever gave it to you.
+          </p>
+          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">Go to sign in</a>
+        </div>
+        <div *ngIf="!notFound && !isOpen && !ui_controls.loading" class="card-body text-center">
+          <h1 class="fs-2">{{ organisation }}</h1>
+          <p class="lead text-body-secondary">
+            {{ organisation }} does not take registrations. Ask an administrator
+            there for an invitation.
+          </p>
+          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">Go to sign in</a>
+        </div>
+        <div *ngIf="!notFound && isOpen && !ui_controls.registered" class="card-body">
           <h1 class="fs-2">{{ 'register' | translate }}</h1>
+          <p class="lead text-body-secondary">
+            Joining <strong>{{ organisation }}</strong>.
+            <span *ngIf="domainNote" class="d-block small">{{ domainNote }}</span>
+          </p>
           <p class="lead text-body-secondary">{{'create_account' | translate}}</p>
           <form (ngSubmit)="send_otp()"  method="post"  class="mb-5">
             <div class="row">
@@ -68,20 +88,9 @@
                 <input [(ngModel)]="register.phone" name="phone" class="form-control form-control-sm" type="tel" inputmode="numeric" pattern="\\d*" placeholder="5XXXXXXXX" />
               </div>
             </div>
-            <div class="row">
-              <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
-                <div class="mb-4">
-                  <label for="password" class="required">{{ 'password' | translate }}</label>
-                  <input [type]="fieldTextType ? 'text' : 'password'" class="form-control form-control-sm" name="password" id="password" [(ngModel)]="register.password"  type="password" value=""/>
-                </div>
-              </div>
-              <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
-                <div class="mb-4">
-                  <label for="password" class="required">{{ 'confirm_password' | translate }}</label>
-                  <input [type]="fieldTextType ? 'text' : 'password'" class="form-control form-control-sm" name="confirm_password" id="confirm_password" [(ngModel)]="register.confirm_password"  type="password" value=""/>
-                </div>
-              </div>
-            </div>
+            <p class="text-body-secondary small mb-4">
+              You will choose your password from a link we send to this address.
+            </p>
             <tui-loader *ngIf="ui_controls.loading" />
             <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
               {{'register' | translate}}
@@ -91,34 +100,29 @@
             <a class="text-black" routerLink="/login">{{'sign_in' | translate }}</a>
           </p>
         </div>
-        <div *ngIf="ui_controls.registered" class="card-body">
+        <div *ngIf="!notFound && ui_controls.registered" class="card-body">
           <h1 class="fs-1">{{ 'confirm_email' | translate }}</h1>
-          <p class="lead text-body-secondary">{{ 'otp_message' | translate }}</p>
-          <form (ngSubmit)="user_validate()"  method="post"  class="mb-5">
-            <div class="mb-2">
-              <label for="otp" class="form-label">{{ 'otp' | translate }}</label>
-              <input [max]="6" [(ngModel)]="confirm.input_otp" name="otp" class="form-control form-control-sm" id="otp" type="text" />
-            </div>
-            <tui-loader *ngIf="ui_controls.loading" />
-              <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background text-white btn-secondary text-white w-100" type="submit">
-                {{ 'validate' | translate }}
-              </button>
+          <p class="lead text-body-secondary">
+            A link to choose your password is on its way to
+            <strong>{{ register.email }}</strong>.
+          </p>
+          <div class="mb-5">
             <div class="row mt-4">
               <div class="col-12">
                 <p>
-                  Didn’t get the otp email? Please check your inbox and spam folder.
+                  Didn’t get it? Please check your inbox and spam folder.
                   If the email address you entered is incorrect, click the button below to update and try again.
                 </p>
               </div>
               <div class="col-md-6 col-12">
-                <button type="button" class="text-black abayti_secondary_background text-white btn-secondary w-100 btn btn-sm" (click)="ui_controls.registered=false"> Change Email </button>
+                <button type="button" class="text-black abayti_secondary_background text-white btn-secondary w-100 btn btn-sm" (click)="change_email()"> Change Email </button>
               </div>
               <div class="col-md-6 col-12">
                 <tui-loader *ngIf="ui_controls.loading" />
-                <button *ngIf="!ui_controls.loading" type="button" class="text-black w-100 abayti_secondary_color abayti_primary_background btn-secondary btn btn-sm" (click)="send_otp()"> Resend OTP </button>
+                <button *ngIf="!ui_controls.loading" type="button" class="text-black w-100 abayti_secondary_color abayti_primary_background btn-secondary btn btn-sm" (click)="send_otp()"> Send it again </button>
               </div>
             </div>
-          </form>
+          </div>
         </div>
         <div class="card-footer">
           <p class="text-center text-body-secondary mb-0">{{ 'forgot_password_message' | translate }}

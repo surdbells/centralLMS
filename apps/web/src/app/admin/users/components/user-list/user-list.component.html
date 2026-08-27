@@ -11,6 +11,9 @@
         <div class="d-flex gap-2">
           <a routerLink="roles" class="btn btn-primary btn-sm"><i class="bi bi-shield-lock me-1"></i>Roles</a>
           <a routerLink="activity" class="btn btn-secondary btn-sm"><i class="bi bi-clock-history me-1"></i>Activity Log</a>
+          <button class="btn btn-outline-primary btn-sm" (click)="openRegistrationLink()">
+            <i class="bi bi-link-45deg me-1"></i>Registration link
+          </button>
           <a routerLink="import" class="btn btn-success btn-sm"><i class="bi bi-upload me-1"></i>Import</a>
           <a routerLink="create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Add User</a>
         </div>
@@ -158,6 +161,54 @@
       </div>
 
       <!-- Temp password modal -->
+      <!-- The organisation's own registration link, to hand out. -->
+      <div class="modal fade show d-block" *ngIf="showRegistrationLink" style="background:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title"><i class="bi bi-link-45deg me-2"></i>Registration link</h6>
+              <button class="btn-close" (click)="showRegistrationLink = false"></button>
+            </div>
+            <div class="modal-body">
+              <p class="small text-muted">
+                Anyone with this link can create a learner account in your organisation.
+                People you would rather add yourself can be invited from Add User instead.
+              </p>
+
+              <div class="input-group input-group-sm mb-3">
+                <input class="form-control user-select-all" readonly [value]="registrationLink">
+                <button class="btn btn-outline-secondary" (click)="copyRegistrationLink()">
+                  <i class="bi bi-clipboard me-1"></i>Copy
+                </button>
+              </div>
+
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="publicRegistration"
+                       [checked]="registrationOpen" [disabled]="savingRegistration"
+                       (change)="setRegistrationOpen($any($event.target).checked)">
+                <label class="form-check-label" for="publicRegistration">
+                  Accept registrations through this link
+                </label>
+              </div>
+              <p class="small text-muted mt-2 mb-0" *ngIf="!registrationOpen">
+                Off. The link refuses everybody, including anyone who saved it earlier.
+              </p>
+              <p class="small text-muted mt-2 mb-0" *ngIf="registrationOpen && registrationDomains">
+                Open to {{ registrationDomains }} addresses. Change that under
+                Settings, Security.
+              </p>
+              <p class="small text-muted mt-2 mb-0" *ngIf="registrationOpen && !registrationDomains">
+                Open to any email address. You can narrow it to your own domains
+                under Settings, Security.
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-sm btn-primary" (click)="showRegistrationLink = false">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="modal fade show d-block" *ngIf="tempPasswordModal" style="background:rgba(0,0,0,.5)">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">

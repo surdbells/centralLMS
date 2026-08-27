@@ -12,6 +12,8 @@ import {
 } from '../../../../services/users.service';
 import { RolesService } from '../../../../services/roles.service';
 import { LookupsService } from '../../../../services/lookups.service';
+import { SettingsService } from '../../../../services/settings.service';
+import { SessionStore } from '../../../../core/auth/session.store';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 
@@ -102,6 +104,8 @@ export class UserListComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
   private readonly lookupsService = inject(LookupsService);
+  private readonly settingsService = inject(SettingsService);
+  private readonly session = inject(SessionStore);
 
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<string>();
@@ -114,6 +118,66 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   /** The set-a-password modal. Holds what is being typed, never what was generated. */
   tempPasswordModal = '';
+
+  // --- the organisation's registration link ------------------------------
+  //
+  // Here because this is where somebody goes when they want to give
+  // people accounts, and handing out a link is one of the three ways to do
+  // that — the others being Add User and Import, which sit beside it.
+
+  showRegistrationLink = false;
+  registrationOpen = false;
+  registrationDomains = '';
+  savingRegistration = false;
+
+  /**
+   * The link itself.
+   *
+   * Built from the address the administrator is already looking at, so it
+   * is right on every deployment without anything being configured.
+   */
+  get registrationLink(): string {
+    return `${window.location.origin}/${this.session.tenantId() ?? ''}/register`;
+  }
+
+  openRegistrationLink(): void {
+    this.showRegistrationLink = true;
+
+    // Read afresh each time: the setting is also changeable from Settings,
+    // and a switch showing a stale answer is worse than no switch.
+    this.settingsService
+      .show()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (settings) => {
+          this.registrationOpen = settings['public_registration'] === true;
+          this.registrationDomains = String(settings['registration_domains'] ?? '');
+        },
+        error: () => undefined,
+      });
+  }
+
+  setRegistrationOpen(open: boolean): void {
+    this.savingRegistration = true;
+
+    this.settingsService
+      .update({ public_registration: open })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.registrationOpen = open;
+          this.savingRegistration = false;
+        },
+        error: (failure: ApiError) => {
+          this.savingRegistration = false;
+          alert(failure.message);
+        },
+      });
+  }
+
+  copyRegistrationLink(): void {
+    void navigator.clipboard?.writeText(this.registrationLink);
+  }
   private passwordFor: User | null = null;
 
   filters: UserFilters = { page: 1, per_page: 25 };

@@ -55,8 +55,11 @@
         <div *ngIf="ui_controls.confirmed && ui_controls.validated" class="card-body">
           <h1 class="fs-1" *ngIf="!isInvitation">{{ 'set_a_new_password' | translate }}</h1>
           <h1 class="fs-1" *ngIf="isInvitation">Choose a password</h1>
-          <p class="lead text-body-secondary">
-            {{'otp_confirm' | translate}}
+          <p class="lead text-body-secondary" *ngIf="isInvitation">
+            Your email address is confirmed. Choose a password and your account is ready.
+          </p>
+          <p class="lead text-body-secondary" *ngIf="!isInvitation">
+            Your email address is confirmed. Enter a new password below.
           </p>
           <form (ngSubmit)="reset_password()"  method="post"  class="mb-5">
             <div class="row">

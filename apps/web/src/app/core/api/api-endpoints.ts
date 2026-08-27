@@ -36,6 +36,16 @@ export const Endpoints = {
     me: '/me',
   },
 
+  /**
+   * Registering yourself. The organisation is in the path because an
+   * account has to belong to one, and because the link is something an
+   * administrator hands out for their own organisation.
+   */
+  registration: {
+    show: (tenantId: string) => `/tenants/${tenantId}/registration`,
+    register: (tenantId: string) => `/tenants/${tenantId}/register`,
+  },
+
   users: {
     list: '/users',
     create: '/users',
