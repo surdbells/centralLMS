@@ -107,7 +107,7 @@ import { Title, Meta } from '@angular/platform-browser';
 
               <!-- RIGHT: Image -->
               <div class="col-md-6 bg-light text-center p-4">
-                <img src="assets/img/prcing.png"
+                <img src="/assets/img/prcing.png"
                     alt="LMS pricing plans basic premium enterprise Africa"
                     class="img-fluid rounded-4 shadow-sm"
                     style="max-height: 750px; object-fit: contain;">

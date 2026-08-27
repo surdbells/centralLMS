@@ -2,6 +2,7 @@
 import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'ws-navbar',
@@ -11,7 +12,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
     <nav class="ws-nav" [class.scrolled]="scrolled">
       <div class="nav-inner">
         <a routerLink="/" class="nav-brand">
-          <img src="../assets/img/logo.png" alt="Central LMS" />
+          <img src="/assets/img/logo.png" alt="Central LMS" />
         </a>
         <div class="nav-links">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" class="nav-link">Home</a>
@@ -22,7 +23,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
           <a routerLink="/contact" routerLinkActive="active" class="nav-link">Contact</a>
         </div>
         <div class="nav-actions">
-          <a routerLink="/login" class="btn-hero sm outline">Sign In</a>
+          <a [href]="appUrl + '/login'" class="btn-hero sm outline">Sign In</a>
 <!--          <a routerLink="/onboarding" class="btn-hero sm primary">Sign Up</a>-->
         </div>
         <button class="nav-toggle" (click)="mobileOpen = true"><i class="bi bi-list"></i></button>
@@ -39,7 +40,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <a routerLink="/blog" class="mobile-link" (click)="mobileOpen=false">Blog</a>
         <a routerLink="/contact" class="mobile-link" (click)="mobileOpen=false">Contact</a>
         <div style="padding-top:1.5rem; display:flex; flex-direction:column; gap:0.75rem;">
-          <a routerLink="/login" class="btn-hero outline" style="justify-content:center;" (click)="mobileOpen=false">Sign In</a>
+          <a [href]="appUrl + '/login'" class="btn-hero outline" style="justify-content:center;" (click)="mobileOpen=false">Sign In</a>
 <!--          <a routerLink="/onboarding" class="btn-hero primary" style="justify-content:center;" (click)="mobileOpen=false">Sign Up</a>-->
         </div>
       </div>
@@ -47,6 +48,9 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   `
 })
 export class NavbarComponent {
+  /** The application, which is a separate deployment. */
+  readonly appUrl = environment.appUrl;
+
   scrolled = false;
   mobileOpen = false;
   @HostListener('window:scroll') onScroll() { this.scrolled = window.scrollY > 60; }

@@ -15,7 +15,7 @@ describe('SkillsService', () => {
   const BASE = 'https://api.example.com/v1';
 
   beforeEach(() => {
-    const environment: AppEnvironment = { production: false, api: { baseUrl: BASE } };
+    const environment: AppEnvironment = { production: false, api: { baseUrl: BASE }, publicSiteUrl: 'http://localhost:4400' };
 
     TestBed.configureTestingModule({
       providers: [

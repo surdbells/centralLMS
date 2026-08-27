@@ -17,4 +17,13 @@ export interface AppEnvironment {
     /** Base URL of the API, no trailing slash. */
     readonly baseUrl: string;
   };
+
+  /**
+   * Where the marketing site lives, no trailing slash.
+   *
+   * A separate application since the two were split apart, so "Back to
+   * website" cannot be a relative link any more — `/` is the sign-in
+   * screen here.
+   */
+  readonly publicSiteUrl: string;
 }

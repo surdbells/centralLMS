@@ -5,8 +5,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { OnboardingService, Plan, ContentPackage, ProvisionRequest, ProvisionResponse } from '../../homepage/services/onboarding.service';
+import { OnboardingService, Plan, ContentPackage, ProvisionRequest, ProvisionResponse } from '../services/onboarding.service';
 import { Subject, debounceTime, switchMap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-onboarding',
@@ -17,7 +18,7 @@ import { Subject, debounceTime, switchMap } from 'rxjs';
       <!-- Top bar -->
       <div class="onboarding-topbar">
         <a routerLink="/" class="brand">
-          <img src="assets/img/logo.png" alt="Central LMS" class="rounded-2 bg-white" />
+          <img src="/assets/img/logo.png" alt="Central LMS" class="rounded-2 bg-white" />
         </a>
         <span class="topbar-title d-none d-md-inline">Create Your LMS</span>
         <a routerLink="/" class="btn btn-sm btn-outline-secondary">
@@ -742,8 +743,7 @@ export class OnboardingComponent implements OnInit {
   goToLMS(): void {
     if (this.provResult?.domain) {
       // In production: redirect to the new tenant subdomain
-      // window.location.href = 'https://' + this.provResult.domain + '/login';
-      this.router.navigate(['/login']);
+      window.location.href = environment.appUrl + '/login';
     }
   }
 }

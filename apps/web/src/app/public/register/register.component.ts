@@ -12,6 +12,7 @@ import { TranslatePipe } from '../../translate.pipe';
 import { DIAL_CODES, DialCode } from '../../dial-codes';
 import { RegistrationService } from '../../services/registration.service';
 import { ApiError } from '../../core/api';
+import { environment } from '../../../environments/environment';
 
 /**
  * Registering yourself, in a named organisation.
@@ -48,6 +49,9 @@ import { ApiError } from '../../core/api';
   styleUrl: './register.component.css',
 })
 export class RegisterComponent implements OnInit, OnDestroy {
+  /** The marketing site, which is a separate application now. */
+  readonly publicSiteUrl = environment.publicSiteUrl;
+
   private readonly registration = inject(RegistrationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

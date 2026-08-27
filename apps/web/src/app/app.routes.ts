@@ -23,13 +23,25 @@ import {LmsHomepageComponent} from './public/lms-homepage/lms-homepage.component
 import {proctoredAssessmentRoutes} from './proctored-assessment.routes';
 import {reportsRoutes} from './reports/reports.routes';
 import {usersRoutes} from './admin/users/users.routes';
-import { websiteRoutes } from './website/website.routes';
 export const routes: Routes = [
   ...learningPathRoutes,
   ...proctoredAssessmentRoutes,
   ...reportsRoutes,
   ...usersRoutes,
-  ...websiteRoutes,
+  {
+    /**
+     * The application opens on the sign-in screen.
+     *
+     * The marketing site used to sit at `''` and share this bundle, so
+     * somebody reading the pricing page downloaded the course player, the
+     * assessment engine and every administration screen before deciding
+     * whether they wanted an account. It is its own application now, in
+     * apps/public, and nothing here knows about it.
+     */
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'login',
+  },
   {
     path: 'login',
     component: LoginComponent,
@@ -206,15 +218,6 @@ export const routes: Routes = [
     path: 'mysettings',
     loadComponent: () => import('./learner/my-account.component').then(m => m.MyAccountComponent),
     title: 'My Account'
-  },  {
-    path: 'onboarding',
-    loadComponent: () => import('./website/pages/onboarding.component').then(m => m.OnboardingComponent),
-    title: 'Get Started - Central LMS'
-  },
-  {
-    path: 'onboarding/:planId',
-    loadComponent: () => import('./website/pages/onboarding.component').then(m => m.OnboardingComponent),
-    title: 'Get Started - Central LMS'
   },
   {
     /**

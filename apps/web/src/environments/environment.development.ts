@@ -14,4 +14,7 @@ export const environment: AppEnvironment = {
     // `pnpm --filter api serve`, or the Docker stack on the same port.
     baseUrl: 'http://127.0.0.1:8099/v1',
   },
+
+  // `pnpm --filter public dev`.
+  publicSiteUrl: 'http://localhost:4400',
 };

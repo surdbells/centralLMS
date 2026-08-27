@@ -12,4 +12,6 @@ export const environment: AppEnvironment = {
   api: {
     baseUrl: 'https://api.centrallms.com/v1',
   },
+
+  publicSiteUrl: 'https://centrallms.com',
 };

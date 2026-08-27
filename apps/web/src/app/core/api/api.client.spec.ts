@@ -20,6 +20,7 @@ describe('ApiClient', () => {
     const environment: AppEnvironment = {
       production: false,
       api: { baseUrl: BASE },
+      publicSiteUrl: 'http://localhost:4400',
     };
 
     TestBed.configureTestingModule({

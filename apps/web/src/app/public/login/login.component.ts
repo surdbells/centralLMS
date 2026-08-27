@@ -9,6 +9,7 @@ import { ApiError } from '../../core/api';
 import { AuthService } from '../../core/auth/auth.service';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { environment } from '../../../environments/environment';
 
 /** Local-part@domain.tld, with no spaces. Deliberately permissive. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,6 +22,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   styleUrl: './login.component.css',
 })
 export class LoginComponent implements OnInit {
+  /** The marketing site, which is a separate application now. */
+  readonly publicSiteUrl = environment.publicSiteUrl;
+
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly titleService = inject(Title);

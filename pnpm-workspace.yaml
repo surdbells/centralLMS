@@ -1,5 +1,6 @@
 packages:
   - "apps/web"
+  - "apps/public"
   - "apps/saas"
   - "apps/mobile"
   - "packages/*"

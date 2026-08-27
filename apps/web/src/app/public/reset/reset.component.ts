@@ -11,6 +11,7 @@ import { TranslatePipe } from '../../translate.pipe';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/api';
+import { environment } from '../../../environments/environment';
 
 /**
  * Recovering an account.
@@ -42,6 +43,9 @@ import { ApiError } from '../../core/api';
   styleUrl: './reset.component.css',
 })
 export class ResetComponent implements OnInit, OnDestroy {
+  /** The marketing site, which is a separate application now. */
+  readonly publicSiteUrl = environment.publicSiteUrl;
+
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

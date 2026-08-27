@@ -9,7 +9,7 @@ import { SessionStore } from './session.store';
 const V1_BASE = 'https://api.example.com/v1';
 
 function environment(): AppEnvironment {
-  return { production: false, api: { baseUrl: V1_BASE } };
+  return { production: false, api: { baseUrl: V1_BASE }, publicSiteUrl: 'http://localhost:4400' };
 }
 
 const V1_RESPONSE = {

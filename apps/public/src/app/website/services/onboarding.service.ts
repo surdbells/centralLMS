@@ -4,7 +4,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import {GlobalComponent} from '../../global-component';
 
 export interface Plan {
   plan_id: number; name: string; users_limit: number;
@@ -42,7 +41,16 @@ export interface ProvisionResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OnboardingService {
-  private apiBase = GlobalComponent.baseURL + '/api/onboarding.php';
+  /**
+   * Still the legacy endpoint.
+   *
+   * Onboarding is choosing a plan and asking for an organisation to be
+   * created, and the new API has nothing for that yet — provisioning is
+   * `bin/console tenant:provision`, run by hand. Named here rather than
+   * reached through a shared constant so it is obvious this one page has
+   * not moved with the others.
+   */
+  private apiBase = 'https://api.centrallms.com/api/onboarding.php';
 
   constructor(private http: HttpClient) {}
 
