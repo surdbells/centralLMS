@@ -35,20 +35,26 @@
         </div>
         <div *ngIf="ui_controls.confirmed && !ui_controls.validated" class="card-body">
           <h1 class="fs-1">{{ "confirm_email" | translate }}</h1>
-          <p class="lead text-body-secondary">{{ 'otp_message' | translate }}</p>
-          <form (ngSubmit)="user_validate()"  method="post"  class="mb-5">
-            <div class="mb-4">
-              <label for="otp" class="form-label">{{ 'otp' | translate }}</label>
-              <input [max]="6" [(ngModel)]="confirm.input_otp" name="otp" class="form-control" id="otp" type="text" />
-            </div>
+          <p class="lead text-body-secondary">
+            If <strong>{{ reset.email }}</strong> has an account here, a link to set a new
+            password is on its way. It works once, and for one hour.
+          </p>
+          <div class="mb-5">
             <tui-loader *ngIf="ui_controls.loading" />
-            <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
-              {{ 'validate' | translate }}
-            </button>
-          </form>
+            <div *ngIf="!ui_controls.loading" class="d-grid gap-2">
+              <button class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100"
+                      type="button" (click)="resend()">
+                Send it again
+              </button>
+              <button class="btn btn-link" type="button" (click)="start_over()">
+                Use a different address
+              </button>
+            </div>
+          </div>
         </div>
         <div *ngIf="ui_controls.confirmed && ui_controls.validated" class="card-body">
-          <h1 class="fs-1">{{ 'set_a_new_password' | translate }}</h1>
+          <h1 class="fs-1" *ngIf="!isInvitation">{{ 'set_a_new_password' | translate }}</h1>
+          <h1 class="fs-1" *ngIf="isInvitation">Choose a password</h1>
           <p class="lead text-body-secondary">
             {{'otp_confirm' | translate}}
           </p>

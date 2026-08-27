@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 use Central\Api\Application\Action\Auth\LoginAction;
 use Central\Api\Application\Action\Auth\PasswordResetAction;
+use Central\Api\Application\Action\Auth\RegisterAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
 use Central\Api\Application\Action\Auth\RefreshAction;
 use Central\Api\Application\Action\Catalog\CourseCatalogueAction;
@@ -172,8 +173,18 @@ return static function (App $app): void {
             });
         });
 
-        // Registration, password reset and OTP land here with the people
-        // module — they need invitations and the Termii/ZeptoMail senders.
+        // Registering yourself, in a named organisation.
+        //
+        // The organisation is in the path because an account has to belong
+        // to one: `register.php` asked for none and inserted rows with no
+        // `tenant_id`, so a self-registered account belonged to nobody.
+        // Public, and closed unless the organisation has opened it.
+        $v1->group('/tenants/{tenantId:' . $uuid . '}', function (RouteCollectorProxy $t): void {
+            $t->get('/registration', [RegisterAction::class, 'show'])
+                ->setName('registration.show');
+            $t->post('/register', [RegisterAction::class, 'register'])
+                ->setName('registration.register');
+        });
 
         // --- authenticated ------------------------------------------------
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {

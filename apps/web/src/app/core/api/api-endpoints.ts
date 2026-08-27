@@ -24,6 +24,14 @@ export const Endpoints = {
     login: '/auth/login',
     refresh: '/auth/refresh',
     logout: '/auth/logout',
+
+    /**
+     * Setting a password without being signed in. Public by necessity,
+     * and each one deliberately says as little as it can.
+     */
+    forgotPassword: '/auth/password/forgot',
+    checkPasswordToken: '/auth/password/token',
+    resetPassword: '/auth/password/reset',
     /** The signed-in person, with their resolved permissions. */
     me: '/me',
   },

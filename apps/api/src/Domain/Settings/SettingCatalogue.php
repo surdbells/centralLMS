@@ -286,6 +286,25 @@ final class SettingCatalogue
 
             // --- security -------------------------------------------------
             new SettingDefinition(
+                key: SettingKey::PublicRegistration,
+                type: SettingType::Boolean,
+                label: 'Allow people to register themselves',
+                default: false,
+                help: 'Off unless you turn it on. With it on, anyone holding this '
+                    . "organisation's registration link can create a learner account.",
+                honouredBy: 'The registration link on the user management screen. '
+                    . 'Off, that link refuses everybody, including anyone who saved it earlier.',
+            ),
+            new SettingDefinition(
+                key: SettingKey::RegistrationDomains,
+                type: SettingType::Text,
+                label: 'Restrict registration to these email domains',
+                default: '',
+                help: 'Comma-separated, such as acme.com, acme.co.uk. Empty means any '
+                    . 'address may register.',
+                honouredBy: 'Registering, and signing in with Google.',
+            ),
+            new SettingDefinition(
                 key: SettingKey::PasswordMinLength,
                 type: SettingType::Integer,
                 label: 'Shortest password',

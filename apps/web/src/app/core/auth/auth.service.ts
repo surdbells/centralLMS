@@ -52,6 +52,13 @@ const LEGACY_SESSION_KEY = 'SESSION';
  * out those screens. It is a bridge with an end date, and
  * {@link writeLegacyBlob} is the single place to delete when that date comes.
  */
+/** What the server will say about a password link, and no more than this. */
+export interface PasswordTokenState {
+  valid: boolean;
+  /** `reset` or `invitation`, or null when the link means nothing. */
+  purpose: 'reset' | 'invitation' | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = inject(ApiClient);
@@ -121,6 +128,43 @@ export class AuthService {
         map(() => undefined),
         catchError(() => of(undefined)),
       );
+  }
+
+  /**
+   * Asks for a link to set a new password.
+   *
+   * Completes the same way whether or not an account exists — the server
+   * answers 204 either way, deliberately, because a reply that says "no
+   * such account" is a way to read off who works somewhere.
+   */
+  forgotPassword(email: string): Observable<void> {
+    return this.api
+      .post<unknown>(Endpoints.auth.forgotPassword, { email })
+      .pipe(map(() => undefined));
+  }
+
+  /**
+   * Whether a link is still good, so a form can say so before somebody
+   * types a new password into it.
+   *
+   * Nothing about the account comes back, not even the address it was
+   * sent to. `purpose` distinguishes an invitation from a reset, which is
+   * only used to choose the wording.
+   */
+  checkPasswordToken(token: string): Observable<PasswordTokenState> {
+    return this.api.get<PasswordTokenState>(Endpoints.auth.checkPasswordToken, { token });
+  }
+
+  /**
+   * Redeems a link and sets the password.
+   *
+   * Every session opened with the old password is revoked server-side, so
+   * there is nothing to sign out of locally afterwards.
+   */
+  resetPassword(token: string, password: string): Observable<void> {
+    return this.api
+      .post<unknown>(Endpoints.auth.resetPassword, { token, password })
+      .pipe(map(() => undefined));
   }
 
   private signOutLocally(): void {

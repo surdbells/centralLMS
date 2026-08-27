@@ -50,6 +50,10 @@ enum SettingKey: string
     case PasswordRequireNumber    = 'password_require_number';
     case PasswordRequireSpecial   = 'password_require_special';
 
+    // Who may make themselves an account here.
+    case PublicRegistration       = 'public_registration';
+    case RegistrationDomains      = 'registration_domains';
+
     public function category(): SettingCategory
     {
         return match ($this) {
@@ -67,7 +71,8 @@ enum SettingKey: string
 
             self::PasswordMinLength, self::PasswordRequireUppercase,
             self::PasswordRequireLowercase, self::PasswordRequireNumber,
-            self::PasswordRequireSpecial => SettingCategory::Security,
+            self::PasswordRequireSpecial,
+            self::PublicRegistration, self::RegistrationDomains => SettingCategory::Security,
         };
     }
 
