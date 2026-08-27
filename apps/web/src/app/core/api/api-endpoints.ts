@@ -370,6 +370,8 @@ export const Endpoints = {
     file: (id: string) => `/media/${id}/file`,
     versions: (id: string) => `/media/${id}/versions`,
     uploadVersion: (id: string) => `/media/${id}/versions`,
+    restore: (id: string) => `/media/${id}/restore`,
+    ticket: (id: string) => `/media/${id}/ticket`,
   },
 
   // --- notes ------------------------------------------------------------

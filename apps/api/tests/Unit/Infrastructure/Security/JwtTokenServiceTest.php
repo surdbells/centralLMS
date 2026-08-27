@@ -184,6 +184,74 @@ final class JwtTokenServiceTest extends TestCase
         self::assertCount($rejected, $inputs, 'Every malformed token must be rejected.');
     }
 
+    // --- media tickets ------------------------------------------------------
+    //
+    // The credential a browser can put in a `src`. It authorises one file, so
+    // most of what matters is what it does *not* open.
+
+    #[Test]
+    public function a_media_ticket_names_the_one_file_it_is_for(): void
+    {
+        $service = $this->service();
+
+        $ticket = $service->issueMediaTicket('user-1', 'tenant-9', 'media-7');
+        $claims = $service->verifyMediaTicket($ticket, 'media-7');
+
+        self::assertSame('user-1', $claims['sub']);
+        self::assertSame('tenant-9', $claims['tid']);
+        self::assertSame('media-7', $claims['mid']);
+    }
+
+    #[Test]
+    public function a_media_ticket_does_not_open_the_file_next_to_it(): void
+    {
+        $service = $this->service();
+
+        $ticket = $service->issueMediaTicket('user-1', 'tenant-9', 'media-7');
+
+        // Signed by us and unexpired, and still not permission to read this.
+        $this->expectException(AuthenticationFailed::class);
+        $service->verifyMediaTicket($ticket, 'media-8');
+    }
+
+    #[Test]
+    public function a_media_ticket_is_not_an_access_token(): void
+    {
+        $service = $this->service();
+
+        $ticket = $service->issueMediaTicket('user-1', 'tenant-9', 'media-7');
+
+        // It carries no roles and grants nothing beyond the bytes it names.
+        // Presenting it as a bearer credential must fail on `typ` alone.
+        $this->expectException(AuthenticationFailed::class);
+        $service->verifyAccessToken($ticket);
+    }
+
+    #[Test]
+    public function an_access_token_is_not_a_media_ticket(): void
+    {
+        $service = $this->service();
+
+        $pair = $service->issue('user-1', 'a@example.com', [], 'tenant-9');
+
+        $this->expectException(AuthenticationFailed::class);
+        $service->verifyMediaTicket($pair->accessToken, 'media-7');
+    }
+
+    #[Test]
+    public function a_media_ticket_stops_working_once_it_has_expired(): void
+    {
+        $service = $this->service();
+
+        $ticket = $service->issueMediaTicket('user-1', 'tenant-9', 'media-7');
+
+        // A URL copied out of the address bar has to become useless. Past the
+        // window and the leeway, it does.
+        $this->clock->advance(sprintf('+%d seconds', $service->mediaTicketTtl() + 60));
+
+        $this->expectException(AuthenticationFailed::class);
+        $service->verifyMediaTicket($ticket, 'media-7');
+    }
     private function service(
         string $secret = self::SECRET,
         string $audience = 'central-clients',

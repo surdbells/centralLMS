@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Media;
 
 use Central\Api\Application\Http\ByteRangeStream;
-use Central\Api\Domain\Authz\Permission;
+use Central\Api\Domain\Exception\AuthenticationFailed;
 use Central\Api\Domain\Exception\EntityNotFound;
+use Central\Api\Domain\Media\MediaItem;
 use Central\Api\Domain\Media\MediaRepository;
+use Central\Api\Infrastructure\Security\JwtTokenService;
 use Central\Api\Infrastructure\Storage\MediaStorage;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -24,6 +26,16 @@ use Slim\Psr7\Stream;
  * it was forwarded to until it expired — including somebody who had since been
  * removed from the organisation.
  *
+ * **Authorised by a ticket, not by a header.** This route sits outside the
+ * authenticated group on purpose: a browser fetching an `<img src>`, seeking
+ * inside a `<video src>` or following a download link sends no Authorization
+ * header, so requiring one meant none of them ever worked. The ticket is
+ * minted by `POST /v1/media/{id}/ticket`, which does require a token and does
+ * check the permission; it names one file, lasts fifteen minutes, and is
+ * checked against the id in the path on every fetch. It is still the
+ * application serving the bytes, so a file deleted from the library stops
+ * being readable at once.
+ *
  * Range requests are answered because a video player seeking to the middle of
  * a two-hour recording sends one, and a server that ignores it makes the
  * player download the whole file to skip five minutes.
@@ -33,6 +45,7 @@ final class StreamMediaAction extends MediaAction
     public function __construct(
         MediaRepository $media,
         private readonly MediaStorage $storage,
+        private readonly JwtTokenService $tokens,
     ) {
         parent::__construct($media);
     }
@@ -45,9 +58,7 @@ final class StreamMediaAction extends MediaAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        $this->caller($request)->mustHave(Permission::MediaView);
-
-        $item = $this->require($request, $args['id']);
+        $item = $this->authorise($request, $args['id']);
 
         if (!$this->storage->has($item->storageKey)) {
             // The row survived and the file did not. Saying so beats streaming
@@ -93,6 +104,37 @@ final class StreamMediaAction extends MediaAction
             ->withHeader('Content-Range', sprintf('bytes %d-%d/%d', $start, $end, $size))
             ->withHeader('Content-Length', (string) ($end - $start + 1))
             ->withBody(new ByteRangeStream($stream, $start, $end - $start + 1));
+    }
+
+    /**
+     * The file this ticket is for, or an authentication failure.
+     *
+     * @throws AuthenticationFailed
+     * @throws EntityNotFound
+     */
+    private function authorise(ServerRequestInterface $request, string $id): MediaItem
+    {
+        $ticket = (string) ($request->getQueryParams()['ticket'] ?? '');
+
+        if ($ticket === '') {
+            throw new AuthenticationFailed(reason: 'missing_media_ticket');
+        }
+
+        // Throws unless the ticket is signed by us, unexpired, and issued for
+        // this exact file.
+        $claims = $this->tokens->verifyMediaTicket($ticket, $id);
+
+        $tenantId = $claims['tid'] ?? null;
+
+        if (!is_string($tenantId) || $tenantId === '') {
+            throw new AuthenticationFailed(reason: 'ticket_without_tenant');
+        }
+
+        // Scoped again on the way out. The ticket says which organisation it
+        // was issued in; a file that has since moved or been deleted is a 404
+        // whatever the ticket says.
+        return $this->media->find($tenantId, $id)
+            ?? throw new EntityNotFound('Media', $id);
     }
 
     /**

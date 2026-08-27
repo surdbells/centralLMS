@@ -26,11 +26,26 @@ use Ramsey\Uuid\Uuid;
  *     easy to make and very expensive to discover in production.
  *  2. `jti` is always present, so an individual token can be revoked by
  *     denylisting its id without invalidating every session for that user.
+ *
+ * There is a third kind, and it is deliberately feeble: a media ticket. A
+ * browser fetching an `<img src>` or seeking inside a `<video src>` sends no
+ * Authorization header, so bytes cannot be protected the way JSON is. The
+ * ticket is what stands in — see {@see issueMediaTicket()}.
  */
 final class JwtTokenService
 {
     private const TYPE_ACCESS  = 'access';
     private const TYPE_REFRESH = 'refresh';
+    private const TYPE_MEDIA   = 'media';
+
+    /**
+     * How long a media ticket is good for.
+     *
+     * Long enough for a player to start and to keep seeking through a long
+     * recording; short enough that a URL copied out of the address bar is
+     * useless by the time it is pasted anywhere.
+     */
+    private const MEDIA_TTL = 900;
 
     private readonly string $secret;
     private readonly string $algorithm;
@@ -97,6 +112,59 @@ final class JwtTokenService
         ], $now, $this->refreshTtl);
 
         return new TokenPair($access, $refresh, $this->accessTtl);
+    }
+
+    /**
+     * A ticket that lets a browser fetch one file, briefly.
+     *
+     * `<video src>`, `<img src>` and a link somebody clicks all send no
+     * Authorization header, so every media fetch in the application was
+     * arriving unauthenticated and coming back 401. Nothing in the library
+     * could be previewed and no lesson would play.
+     *
+     * Unlike the signed storage URL the legacy redirected to, this grants one
+     * file and nothing else: `mid` names it, and a ticket for a document is
+     * not a ticket for the video next to it. The bytes still come through the
+     * application, so a file removed from the library stops being served the
+     * moment the row goes, rather than when a storage signature happens to
+     * expire.
+     *
+     * It is bearer credential all the same, and for its fifteen minutes
+     * anybody holding it can read that one file. That is the cost of the
+     * `src` attribute; it is why the window is small and why the ticket
+     * carries no permissions beyond the file it names.
+     */
+    public function issueMediaTicket(string $userId, ?string $tenantId, string $mediaId): string
+    {
+        return $this->encode([
+            'sub' => $userId,
+            'tid' => $tenantId,
+            'mid' => $mediaId,
+            'typ' => self::TYPE_MEDIA,
+        ], $this->clock->timestamp(), self::MEDIA_TTL);
+    }
+
+    /**
+     * @return array<string, mixed>
+     *
+     * @throws AuthenticationFailed
+     */
+    public function verifyMediaTicket(string $ticket, string $mediaId): array
+    {
+        $claims = $this->verify($ticket, self::TYPE_MEDIA);
+
+        if (($claims['mid'] ?? null) !== $mediaId) {
+            // A ticket for one file presented for another. Signed, unexpired,
+            // and still not permission to read this.
+            throw new AuthenticationFailed(reason: 'ticket_for_another_file');
+        }
+
+        return $claims;
+    }
+
+    public function mediaTicketTtl(): int
+    {
+        return self::MEDIA_TTL;
     }
 
     /**

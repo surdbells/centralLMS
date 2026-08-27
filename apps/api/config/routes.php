@@ -199,6 +199,17 @@ return static function (App $app): void {
             $t->get('/sso', [SsoAction::class, 'providers'])->setName('registration.sso');
         });
 
+        // The bytes of one file, for a browser that cannot send a header.
+        //
+        // Outside the authenticated group by necessity: an `<img src>`, a
+        // seeking `<video src>` and a clicked download link all arrive with
+        // no Authorization header, and every one of them was coming back
+        // 401. The credential is a ticket in the query string, minted by
+        // `POST /media/{id}/ticket`, which is authenticated and checks the
+        // permission. The ticket names one file and lasts minutes.
+        $v1->get('/media/{id:' . $uuid . '}/file', StreamMediaAction::class)
+            ->setName('media.file');
+
         // --- authenticated ------------------------------------------------
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
@@ -644,12 +655,18 @@ return static function (App $app): void {
                 $m->delete('/{id:' . $uuid . '}', [ManageMediaAction::class, 'delete'])
                     ->setName('media.delete');
 
-                $m->get('/{id:' . $uuid . '}/file', StreamMediaAction::class)
-                    ->setName('media.file');
                 $m->get('/{id:' . $uuid . '}/versions', [ManageMediaAction::class, 'versions'])
                     ->setName('media.versions');
                 $m->post('/{id:' . $uuid . '}/versions', [ManageMediaAction::class, 'uploadVersion'])
                     ->setName('media.uploadVersion');
+                $m->post('/{id:' . $uuid . '}/restore', [ManageMediaAction::class, 'restore'])
+                    ->setName('media.restore');
+
+                // The URL that goes in a `src`. Authenticated and
+                // permission-checked here, because the fetch it enables
+                // cannot be — see StreamMediaAction.
+                $m->post('/{id:' . $uuid . '}/ticket', [ManageMediaAction::class, 'ticket'])
+                    ->setName('media.ticket');
             });
             // --- people ---------------------------------------------------
             //

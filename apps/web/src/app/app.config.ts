@@ -13,6 +13,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { NG_EVENT_PLUGINS } from '@taiga-ui/event-plugins';
 import { I18nService } from './i18n.service';
 import { authInterceptor, requestIdInterceptor } from './core/api';
+import { enableBootstrapTabs } from './core/bootstrap-tabs';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -38,5 +39,8 @@ export const appConfig: ApplicationConfig = {
 
     // Replaces the deprecated APP_INITIALIZER token, removed in Angular 20.
     provideAppInitializer(() => inject(I18nService).init()),
+
+    // Bootstrap's tab handler, which the vendor bundle leaves unregistered.
+    provideAppInitializer(() => enableBootstrapTabs()),
   ],
 };

@@ -184,7 +184,7 @@
                         </div>
                       </div>
                       <div class="file-actions">
-                        <a [href]="fileUrl(file)" target="_blank" class="btn-action" title="View">
+                        <a role="button" (click)="openFile(file)" class="btn-action" title="View">
                           <i class="bi bi-eye"></i>
                         </a>
                         <button class="btn-action danger" (click)="removeUploadedFile(i)" title="Remove">

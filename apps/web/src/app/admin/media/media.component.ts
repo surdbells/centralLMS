@@ -184,10 +184,12 @@ export class MediaComponent implements OnInit {
   openPreview(item: MediaItem): void {
     this.dialogs
       .open(new PolymorpheusComponent(MediaPreviewDialogComponent), {
+        // No URL: the dialog asks for its own ticket. Minting one here
+        // would start the clock while somebody is still deciding whether
+        // to open the file.
         data: {
           kind: item.kind,
           title: item.title,
-          url: this.media.fileUrl(item),
           id: item.id,
         },
         size: 'page',
@@ -200,8 +202,11 @@ export class MediaComponent implements OnInit {
     return this.media.iconFor(kind);
   }
 
-  fileUrl(item: MediaItem): string {
-    return this.media.fileUrl(item);
+  /** Opens the file in a new tab, with a ticket that lets it be read. */
+  openFile(item: MediaItem): void {
+    this.media.openInNewTab(item).subscribe({
+      error: (error: ApiError) => this.error_notification(error.message),
+    });
   }
 
   labelFor(kind: MediaKind): string {

@@ -218,6 +218,16 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Opens an uploaded file in a new tab, with a ticket that lets it be read. */
+  openUploaded(item: MediaItem): void {
+    this.mediaService.openInNewTab(item).subscribe({
+      error: () => this.uploadError.emit({
+        file: new File([], item.originalFilename),
+        error: 'That file could not be opened.',
+      }),
+    });
+  }
+
   /**
    * Open config modal for a file
    */

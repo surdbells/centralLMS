@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, of, shareReplay } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { ApiClient, Endpoints, type Paged, type UploadProgress } from '../core/api';
 
 export type { UploadProgress };
@@ -43,6 +43,14 @@ export interface MediaItem {
   updatedAt: string | null;
   /** Where to fetch the bytes — always through the API, never a storage URL. */
   url: string;
+}
+
+/** What `POST /media/{id}/ticket` answers with. */
+export interface MediaTicket {
+  /** Path, including the ticket, relative to the API root. */
+  url: string;
+  ticket: string;
+  expiresIn: number;
 }
 
 export interface MediaStatistics {
@@ -154,6 +162,17 @@ export class MediaService {
     return this.api.get<MediaItem[]>(Endpoints.media.versions(id));
   }
 
+  /**
+   * Brings an older version back as the newest one.
+   *
+   * The chain is not rewritten — a new version is written whose bytes are the
+   * old one's — so the history still shows what was current in between, and
+   * the row that was restored from stays where it was.
+   */
+  restore(id: string): Observable<MediaItem> {
+    return this.api.post<MediaItem>(Endpoints.media.restore(id), {});
+  }
+
   /** Title, description, course and version notes. Never the file itself. */
   update(id: string, changes: Partial<Pick<MediaItem, 'title' | 'description' | 'courseId' | 'versionLabel' | 'versionNotes'>>): Observable<MediaItem> {
     return this.api.put<MediaItem>(Endpoints.media.update(id), changes);
@@ -163,11 +182,97 @@ export class MediaService {
     return this.api.delete<void>(Endpoints.media.delete(id), { allVersions });
   }
 
-  /** An absolute URL for an `<img>`, a `<video>` or a link. */
-  fileUrl(item: MediaItem): string {
-    return this.api.urlFor(Endpoints.media.file(item.id));
+  /**
+   * A URL for an `<img>`, a `<video>` or a link somebody clicks.
+   *
+   * Asynchronous because it has to be. The bytes are served by the API, and a
+   * browser fetching a `src` sends no Authorization header — so this used to
+   * return a URL that came back 401 every time. Nothing in the media library
+   * could be previewed, no download link worked, and no lesson whose content
+   * came from the library would play, in any browser, ever.
+   *
+   * So the URL is fetched rather than constructed: the API mints a ticket for
+   * this one file, good for a quarter of an hour, and the URL carries it.
+   * Ranged requests still work, which matters — a blob would have made a
+   * player download a two-hour recording before it could show the first
+   * frame, and seeking impossible.
+   */
+  fileUrl(item: MediaItem | { id: string }): Observable<string> {
+    return this.api
+      .post<MediaTicket>(Endpoints.media.ticket(item.id), {})
+      .pipe(map((ticket) => this.api.urlFor(ticket.url.replace(/^\/v1/, ''))));
   }
 
+  /**
+   * How a lesson refers to a library file.
+   *
+   * Stored in `lessons.content_url`, which is free text and has to hold
+   * something stable. Not a fetchable URL: the bytes need a ticket that lasts
+   * minutes, so writing one here would put a credential in the database and
+   * leave the lesson broken a quarter of an hour later.
+   */
+  static referenceFor(mediaId: string): string {
+    return `media:${mediaId}`;
+  }
+
+  /**
+   * The file a lesson points at, or null if it points somewhere else.
+   *
+   * Recognises the `/v1/media/{id}/file` URLs written before references
+   * existed, so lessons authored against the old shape keep playing.
+   */
+  static idFromReference(reference: string | null): string | null {
+    if (reference === null) {
+      return null;
+    }
+
+    const match = /^(?:media:|.*\/v1\/media\/)([0-9a-f-]{36})(?:\/file)?/i.exec(reference.trim());
+
+    return match === null ? null : match[1];
+  }
+
+  /**
+   * A URL for whatever a lesson points at.
+   *
+   * A library file gets a ticket; anything else — a YouTube embed, a link
+   * somebody pasted — is passed through untouched.
+   */
+  resolve(reference: string | null): Observable<string | null> {
+    const id = MediaService.idFromReference(reference);
+
+    return id === null ? of(reference) : this.fileUrl({ id });
+  }
+
+  /** The same URL, asking the browser to save the file rather than show it. */
+  downloadUrl(item: MediaItem | { id: string }): Observable<string> {
+    return this.fileUrl(item).pipe(map((url) => `${url}&download=1`));
+  }
+
+  /**
+   * Opens a file in a new tab.
+   *
+   * The tab is opened first and pointed at the URL afterwards. Opening it
+   * once the ticket arrives would be a popup the browser did not see a
+   * click for, and every blocker stops those — which is the same nothing
+   * happening that the missing ticket used to cause.
+   */
+  openInNewTab(item: MediaItem | { id: string }, download = false): Observable<boolean> {
+    const tab = window.open('', '_blank', 'noopener');
+    const url = download ? this.downloadUrl(item) : this.fileUrl(item);
+
+    return url.pipe(
+      map((resolved) => {
+        if (tab === null) {
+          return false;
+        }
+
+        tab.location.href = resolved;
+
+        return true;
+      }),
+      tap({ error: () => tab?.close() }),
+    );
+  }
   // --- what may be uploaded ------------------------------------------------
 
   /**

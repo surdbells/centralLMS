@@ -13,6 +13,7 @@ use Central\Api\Domain\Media\MediaItem;
 use Central\Api\Domain\Media\MediaKind;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Media\UploadRequest;
+use Central\Api\Infrastructure\Security\JwtTokenService;
 use Central\Api\Infrastructure\Storage\MediaStorage;
 use Doctrine\DBAL\Connection;
 use Psr\Http\Message\ResponseInterface;
@@ -26,8 +27,10 @@ use Psr\Http\Message\UploadedFileInterface;
  * GET    /v1/media/statistics
  * GET    /v1/media/{id}
  * GET    /v1/media/{id}/versions
+ * POST   /v1/media/{id}/ticket
  * POST   /v1/media
  * POST   /v1/media/{id}/versions
+ * POST   /v1/media/{id}/restore
  * PUT    /v1/media/{id}
  * DELETE /v1/media/{id}
  *
@@ -50,6 +53,7 @@ final class ManageMediaAction extends MediaAction
         MediaRepository $media,
         private readonly MediaStorage $storage,
         private readonly Connection $connection,
+        private readonly JwtTokenService $tokens,
     ) {
         parent::__construct($media);
     }
@@ -139,6 +143,47 @@ final class ManageMediaAction extends MediaAction
         return Json::ok($response, array_map(static fn (MediaItem $m): array => $m->toArray(), $versions));
     }
 
+    /**
+     * A URL the browser can put in a `src`, good for the next few minutes.
+     *
+     * `/media/{id}/file` needs an Authorization header, and a `<video src>`,
+     * an `<img src>` and a clicked download link all send none. Every one of
+     * them was arriving unauthenticated: the media preview showed nothing,
+     * the download link 401'd, and no lesson whose content came from the
+     * library would play. Rather than each screen inventing its own way
+     * round that, there is one: ask for a ticket, put the URL in the
+     * attribute.
+     *
+     * The permission check is here, on a request that does carry a token.
+     * See {@see JwtTokenService::issueMediaTicket()} for what the ticket is
+     * and is not.
+     *
+     * @param array<string, string> $args
+     */
+    public function ticket(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $caller = $this->caller($request);
+        $caller->mustHave(Permission::MediaView);
+
+        // Scoped to the caller's tenant, so a guessed id from another
+        // organisation gets a 404 here rather than a working ticket.
+        $item = $this->require($request, $args['id']);
+
+        $ticket = $this->tokens->issueMediaTicket(
+            $caller->id,
+            $this->tenantId($request),
+            (string) $item->id,
+        );
+
+        return Json::ok($response, [
+            'url'       => sprintf('/v1/media/%s/file?ticket=%s', $item->id, rawurlencode($ticket)),
+            'ticket'    => $ticket,
+            'expiresIn' => $this->tokens->mediaTicketTtl(),
+        ]);
+    }
     public function upload(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $this->caller($request)->mustHave(Permission::MediaManage);
@@ -194,6 +239,76 @@ final class ManageMediaAction extends MediaAction
         }
 
         return Json::created($response, $item->toArray(), '/v1/media/' . $item->id);
+    }
+
+    /**
+     * Brings an older version back as the newest one.
+     *
+     * Not by rewriting the chain — the point of keeping versions is that the
+     * past stays where it was. Restoring writes a *new* version whose bytes
+     * are the old version's, so "we went back to v2 in June" remains as
+     * legible a year later as the upload that made it necessary.
+     *
+     * The stored file is shared rather than copied. `softDelete` already
+     * refuses to remove bytes another row still points at — an upload matched
+     * by checksum has always shared a key — so the two rows can be deleted in
+     * either order without one taking the file from the other.
+     *
+     * @param array<string, string> $args
+     */
+    public function restore(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::MediaManage);
+
+        $tenantId = $this->tenantId($request);
+        $wanted   = $this->require($request, $args['id']);
+
+        if ($wanted->isLatest) {
+            // Restoring the newest version would add one identical to the one
+            // below it and tell the reader of the history nothing.
+            throw new ConflictingState('That is already the current version.');
+        }
+
+        $restored = $this->media->createVersion(
+            new MediaItem(
+                id: null,
+                tenantId: $tenantId,
+                kind: $wanted->kind,
+                title: $wanted->title,
+                originalFilename: $wanted->originalFilename,
+                storageKey: $wanted->storageKey,
+                fileSize: $wanted->fileSize,
+                mimeType: $wanted->mimeType,
+                extension: $wanted->extension,
+                description: $wanted->description,
+                uploadedBy: $this->caller($request)->id,
+                durationSeconds: $wanted->durationSeconds,
+                width: $wanted->width,
+                height: $wanted->height,
+                pageCount: $wanted->pageCount,
+                scormVersion: $wanted->scormVersion,
+                launchUrl: $wanted->launchUrl,
+                extractedPath: $wanted->extractedPath,
+                metadata: $wanted->metadata,
+                sha256: $wanted->sha256,
+                // Not the old label. Two rows both calling themselves "v2.0"
+                // is a history nobody can read; this one is a new version
+                // that happens to carry an old version's bytes.
+                versionLabel: null,
+                versionNotes: sprintf('Restored from v%d.', $wanted->versionNumber),
+                courseId: $wanted->courseId,
+            ),
+            (string) $wanted->id,
+        );
+
+        if ($restored === null) {
+            throw new ConflictingState('That file was removed while it was being restored.');
+        }
+
+        return Json::created($response, $restored->toArray(), '/v1/media/' . $restored->id);
     }
 
     /**

@@ -154,7 +154,7 @@
 
           <!-- Success Info -->
           <div class="success-info" *ngIf="queuedFile.response">
-            <a [href]="mediaService.fileUrl(queuedFile.response)" target="_blank" class="file-link">
+            <a role="button" (click)="openUploaded(queuedFile.response)" class="file-link">
               <i class="bi bi-box-arrow-up-right"></i>
               View file
             </a>

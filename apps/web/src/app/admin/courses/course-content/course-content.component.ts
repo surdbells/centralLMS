@@ -469,7 +469,11 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.currentLesson.content_url = this.mediaService.fileUrl({ id: item.media_id } as MediaItem);
+    // A reference, not a URL somebody can fetch. The bytes need a ticket
+    // that lasts minutes, and writing one into a lesson would store a
+    // credential in the database and break the lesson a quarter of an
+    // hour later. The player mints its own when somebody presses play.
+    this.currentLesson.content_url = MediaService.referenceFor(item.media_id);
 
     // The library knows how long the file runs; asking somebody to retype it
     // is how a course's advertised duration drifts from its content.
