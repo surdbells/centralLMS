@@ -13,6 +13,7 @@ use Central\Api\Domain\Notification\NotificationDelivery;
 use Central\Api\Domain\Notification\NotificationPreference;
 use Central\Api\Domain\Notification\NotificationSchedule;
 use Central\Api\Domain\Notification\NotificationType;
+use Central\Api\Domain\Notification\PendingDelivery;
 use Central\Api\Domain\Notification\QuietHours;
 use Central\Api\Domain\Notification\ScheduleStatus;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
@@ -60,11 +61,24 @@ final class DbalNotificationRepositoryTest extends TestCase
         self::$connection = self::connect();
     }
 
+    /**
+     * Each test runs inside a transaction that is rolled back afterwards.
+     *
+     * Deleting the tenants was not enough. Three of the methods under test
+     * are table-wide on purpose — `claimDue()` drains every due delivery,
+     * `releaseStale()` sweeps every abandoned one, and `releaseStale()`
+     * marks a row `failed` once its attempts are spent. Run against a
+     * database shared with the end-to-end suites, they were claiming real
+     * deliveries that belonged to nobody here, marking them sent, and
+     * burning their retry budgets. A rollback puts all of it back.
+     */
     protected function setUp(): void
     {
         if (self::$connection === null) {
             self::markTestSkipped('PostgreSQL is not reachable — start it with: pnpm up');
         }
+
+        self::$connection->beginTransaction();
 
         $this->notifications = new DbalNotificationRepository(self::$connection);
         $this->composer      = new NotificationComposer();
@@ -77,17 +91,8 @@ final class DbalNotificationRepositoryTest extends TestCase
 
     protected function tearDown(): void
     {
-        if (self::$connection === null) {
-            return;
-        }
-
-        foreach ([$this->tenantA ?? null, $this->tenantB ?? null] as $tenantId) {
-            if ($tenantId === null) {
-                continue;
-            }
-
-            self::$connection->executeStatement('DELETE FROM users WHERE tenant_id = :id', ['id' => $tenantId]);
-            self::$connection->executeStatement('DELETE FROM tenants WHERE id = :id', ['id' => $tenantId]);
+        if (self::$connection?->isTransactionActive() === true) {
+            self::$connection->rollBack();
         }
     }
 
@@ -264,7 +269,7 @@ final class DbalNotificationRepositoryTest extends TestCase
     {
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
 
-        $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
         self::assertCount(1, $claimed);
         self::assertSame(NotificationChannel::Email, $claimed[0]->channel);
@@ -275,7 +280,7 @@ final class DbalNotificationRepositoryTest extends TestCase
     {
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
 
-        $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
         self::assertCount(1, $claimed);
         self::assertSame(1, $claimed[0]->attempts);
@@ -290,8 +295,8 @@ final class DbalNotificationRepositoryTest extends TestCase
         // file overlaps workers on every five-minute restart.
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
 
-        $first  = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
-        $second = $this->notifications->claimDue('worker-2', new \DateTimeImmutable(), 10);
+        $first  = $this->claimMine('worker-1');
+        $second = $this->claimMine('worker-2');
 
         self::assertCount(1, $first);
         self::assertCount(0, $second);
@@ -303,7 +308,7 @@ final class DbalNotificationRepositoryTest extends TestCase
         $raised = $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
         $this->defer((string) $raised->id, '+1 hour');
 
-        self::assertCount(0, $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10));
+        self::assertCount(0, $this->claimMine('worker-1'));
     }
 
     #[Test]
@@ -316,7 +321,7 @@ final class DbalNotificationRepositoryTest extends TestCase
             [$this->delivery(NotificationChannel::Sms, status: DeliveryStatus::Skipped)],
         );
 
-        self::assertCount(0, $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10));
+        self::assertCount(0, $this->claimMine('worker-1'));
         self::assertNotNull($this->notifications->findWithDeliveries($this->tenantA, (string) $raised->id));
     }
 
@@ -324,7 +329,7 @@ final class DbalNotificationRepositoryTest extends TestCase
     public function marking_sent_records_when_and_clears_the_claim(): void
     {
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
-        $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
         $this->notifications->markSent($claimed[0]->deliveryId, new \DateTimeImmutable(), 'msg-123');
 
@@ -340,7 +345,7 @@ final class DbalNotificationRepositoryTest extends TestCase
     public function a_failed_attempt_goes_back_to_pending_with_a_backoff(): void
     {
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
-        $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
         $this->notifications->markAttemptFailed(
             $claimed[0]->deliveryId,
@@ -366,9 +371,10 @@ final class DbalNotificationRepositoryTest extends TestCase
         $deliveryId = null;
 
         for ($attempt = 1; $attempt <= 3; $attempt++) {
-            $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable('+1 day'), 10);
+            // A day ahead, so the backoff between attempts is already past.
+            $claimed = $this->claimMine('worker-1', '+1 day');
 
-            self::assertNotEmpty($claimed, 'nothing left to claim on attempt ' . $attempt);
+            self::assertCount(1, $claimed, 'nothing left to claim on attempt ' . $attempt);
 
             $deliveryId = $claimed[0]->deliveryId;
             $this->notifications->markAttemptFailed($deliveryId, new \DateTimeImmutable(), 'still down');
@@ -389,7 +395,7 @@ final class DbalNotificationRepositoryTest extends TestCase
         // retries achieve is delaying the moment someone can see what is
         // wrong.
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
-        $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
         $this->notifications->markAttemptFailed(
             $claimed[0]->deliveryId,
@@ -410,11 +416,15 @@ final class DbalNotificationRepositoryTest extends TestCase
         // Without this a worker killed between claiming and sending leaves
         // rows in `sending` forever and notifications silently stop.
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
-        $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
-        self::assertSame(1, $this->notifications->releaseStale(new \DateTimeImmutable('+1 hour')));
+        $this->notifications->releaseStale(new \DateTimeImmutable('+1 hour'));
 
-        self::assertCount(1, $this->notifications->claimDue('worker-2', new \DateTimeImmutable(), 10));
+        // Asserted on the row, not on the number the sweep returned: the
+        // sweep is deliberately table-wide, so its count is not this test's
+        // to predict.
+        self::assertSame('pending', $this->deliveryRow($claimed[0]->deliveryId)['status']);
+        self::assertCount(1, $this->claimMine('worker-2'));
     }
 
     #[Test]
@@ -423,7 +433,7 @@ final class DbalNotificationRepositoryTest extends TestCase
         // A repeatedly crashing worker must still exhaust its budget rather
         // than looping forever.
         $this->raise(NotificationType::EnrollmentAssigned, ['subjectTitle' => 'Fire Safety']);
-        $claimed = $this->notifications->claimDue('worker-1', new \DateTimeImmutable(), 10);
+        $claimed = $this->claimMine('worker-1');
 
         $this->notifications->releaseStale(new \DateTimeImmutable('+1 hour'));
 
@@ -854,14 +864,40 @@ final class DbalNotificationRepositoryTest extends TestCase
     }
 
     /**
+     * Claims, and keeps only what this test raised.
+     *
+     * `claimDue()` is table-wide on purpose — a worker drains everything
+     * that is due, whoever it belongs to. This database is shared with the
+     * end-to-end suites, which leave real deliveries behind, so filtering
+     * belongs here rather than in the method under test.
+     *
+     * @return list<PendingDelivery>
+     */
+    private function claimMine(string $worker, string $at = 'now'): array
+    {
+        return array_values(array_filter(
+            $this->notifications->claimDue($worker, new \DateTimeImmutable($at), 50),
+            fn ($delivery): bool => $delivery->tenantId === $this->tenantA,
+        ));
+    }
+
+    /**
      * Pulls the backoff forward so the retry path can be walked without
      * waiting minutes for it.
+     *
+     * Scoped to this test's tenant. Unscoped, it dragged every pending
+     * delivery in the database into the past — the end-to-end suites leave
+     * some there — and the retry test, the only one that claims with a
+     * future clock, would then walk somebody else's row through the three
+     * attempts and assert on that instead. It passed or failed depending on
+     * how many attempts that row had left, which is what made it flake.
      */
     private function undefer(): void
     {
         self::$connection?->executeStatement(
             "UPDATE notification_deliveries SET scheduled_for = NOW() - interval '1 minute'
-             WHERE status = 'pending'",
+             WHERE status = 'pending' AND tenant_id = :tenant",
+            ['tenant' => $this->tenantA],
         );
     }
 

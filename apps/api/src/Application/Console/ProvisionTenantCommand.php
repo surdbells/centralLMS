@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Console;
 
 use Central\Api\Domain\Authz\SystemRole;
+use Central\Api\Domain\Certificate\DefaultCertificateTemplate;
 use Central\Api\Infrastructure\Security\PasswordHasher;
 use Doctrine\DBAL\Connection;
 use Psr\Container\ContainerInterface;
@@ -134,6 +135,31 @@ final class ProvisionTenantCommand extends Command
                     $c->executeStatement(
                         'UPDATE tenants SET admin_user_id = :user WHERE id = :tenant',
                         ['user' => $userId, 'tenant' => $tenantId],
+                    );
+
+                    // Something to print certificates on from day one.
+                    // Without a default template `findDefaultTemplate()`
+                    // returns null and every certificate this tenant issues
+                    // raises `template_missing` when somebody tries to open
+                    // it — the register would hand out documents nobody,
+                    // the holder included, could ever see.
+                    $template = DefaultCertificateTemplate::for((string) $tenantId);
+                    $c->executeStatement(
+                        'INSERT INTO certificate_templates
+                             (id, tenant_id, name, description, body_html, styles_css,
+                              orientation, page_size, is_default, is_active)
+                         VALUES (:id, :tenant, :name, :description, :body, :styles,
+                                 :orientation, :pageSize, true, true)',
+                        [
+                            'id'          => $template->id,
+                            'tenant'      => $tenantId,
+                            'name'        => $template->name,
+                            'description' => $template->description,
+                            'body'        => $template->bodyHtml,
+                            'styles'      => $template->stylesCss,
+                            'orientation' => $template->orientation,
+                            'pageSize'    => $template->pageSize,
+                        ],
                     );
 
                     return ['tenantId' => (string) $tenantId, 'userId' => (string) $userId];

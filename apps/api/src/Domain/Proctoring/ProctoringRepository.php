@@ -131,7 +131,20 @@ interface ProctoringRepository
     /**
      * Sittings that a person should look at, worst first.
      *
+     * A null assessment means every one of them. A reviewer sitting down
+     * to work asks "what needs looking at?", and having to name an
+     * assessment first meant opening each in turn to find out.
+     *
+     * `$pendingOnly` drops the ones already signed off — otherwise the
+     * queue only ever grows and stops meaning anything.
+     *
      * @return array{items: list<array<string, mixed>>, total: int}
      */
-    public function reviewQueue(string $tenantId, string $assessmentId, int $page, int $perPage): array;
+    public function reviewQueue(
+        string $tenantId,
+        ?string $assessmentId,
+        int $page,
+        int $perPage,
+        bool $pendingOnly = false,
+    ): array;
 }

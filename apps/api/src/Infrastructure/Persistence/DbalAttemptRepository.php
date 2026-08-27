@@ -477,6 +477,62 @@ final class DbalAttemptRepository implements AttemptRepository
         return $result;
     }
 
+    public function awaitingMarking(string $tenantId, int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(200, $perPage));
+
+        // Submitted and not yet fully marked. `points_earned IS NULL` is
+        // the mark of an answer no one has looked at — the automatically
+        // scored ones are written at submission.
+        $where = "at.tenant_id = :tenant
+                   AND at.submitted_at IS NOT NULL
+                   AND EXISTS (
+                       SELECT 1 FROM attempt_answers ans
+                       WHERE ans.attempt_id = at.id
+                         AND ans.tenant_id = at.tenant_id
+                         AND ans.points_earned IS NULL
+                   )";
+
+        $params = ['tenant' => $tenantId];
+
+        $total = (int) $this->connection->fetchOne(
+            sprintf('SELECT COUNT(*) FROM attempts at WHERE %s', $where),
+            $params,
+        );
+
+        // The count comes back with the row rather than a query per
+        // attempt: a queue of fifty was fifty-one round trips.
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s, %s,
+                        (SELECT COUNT(*) FROM attempt_answers ans
+                          WHERE ans.attempt_id = at.id
+                            AND ans.tenant_id = at.tenant_id
+                            AND ans.points_earned IS NULL) AS awaiting
+                 FROM attempts at %s WHERE %s
+                 ORDER BY at.submitted_at ASC
+                 LIMIT :limit OFFSET :offset',
+                self::COLUMNS,
+                self::EXTRA,
+                self::JOINS,
+                $where,
+            ),
+            [...$params, 'limit' => $perPage, 'offset' => ($page - 1) * $perPage],
+        );
+
+        return [
+            'items' => array_map(
+                fn (array $r): array => [
+                    'attempt'  => $this->hydrate($r),
+                    'awaiting' => (int) $r['awaiting'],
+                ],
+                $rows,
+            ),
+            'total' => $total,
+        ];
+    }
+
     public function ungradedCount(string $tenantId, string $attemptId): int
     {
         return $this->ungradedWithin($this->connection, $tenantId, $attemptId);

@@ -125,7 +125,13 @@ final class ManageCertificatesAction extends CertificateAction
             'styles'        => $template->stylesCss,
             'html'          => $this->renderer->render(
                 $template->bodyHtml,
-                $certificate->placeholders($this->verificationUrl($request, $certificate)),
+                // The organisation's name was a parameter nobody passed, so
+                // `{{organisation}}` printed as nothing on every certificate
+                // that used it — including the one every tenant now starts with.
+                $certificate->placeholders(
+                    $this->verificationUrl($request, $certificate),
+                    $this->certificates->organisationName($tenantId),
+                ),
             ),
         ]);
     }

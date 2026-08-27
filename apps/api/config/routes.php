@@ -799,6 +799,12 @@ return static function (App $app): void {
                 });
             });
 
+            // Declared before `/attempts/{id}` so `awaiting` is not read as
+            // an id — the uuid constraint would reject it, and a 404 on a
+            // route that exists is the worst kind.
+            $secure->get('/attempts/awaiting', [GradeAnswerAction::class, 'awaiting'])
+                ->setName('attempts.awaiting');
+
             $secure->group('/attempts/{id:' . $uuid . '}', function (RouteCollectorProxy $t) use ($uuid): void {
                 $t->get('', [GradeAnswerAction::class, 'show'])->setName('attempts.show');
                 $t->post('/submit', SubmitAttemptAction::class)->setName('attempts.submit');
@@ -831,6 +837,10 @@ return static function (App $app): void {
                 $t->put('/answers/{questionId:' . $uuid . '}', SaveAnswerAction::class)
                     ->setName('attempts.answer');
             });
+
+            // Everything waiting on a reviewer, across every assessment.
+            $secure->get('/proctoring/queue', [ReviewProctoringAction::class, 'allQueues'])
+                ->setName('proctoring.queue');
 
             $secure->put('/proctoring/violations/{violationId:' . $uuid . '}', [
                 ReviewProctoringAction::class, 'review',

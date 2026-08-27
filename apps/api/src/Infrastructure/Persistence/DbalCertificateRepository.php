@@ -300,6 +300,16 @@ final class DbalCertificateRepository implements CertificateRepository
         return is_string($code) && $code !== '' ? $code : 'CERT';
     }
 
+    public function organisationName(string $tenantId): ?string
+    {
+        $name = $this->connection->fetchOne(
+            'SELECT name FROM tenants WHERE id = :id',
+            ['id' => $tenantId],
+        );
+
+        return is_string($name) && trim($name) !== '' ? $name : null;
+    }
+
     // --- reading ----------------------------------------------------------
 
     public function find(string $tenantId, string $id): ?Certificate

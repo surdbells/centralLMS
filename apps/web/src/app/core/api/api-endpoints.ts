@@ -230,6 +230,8 @@ export const Endpoints = {
     submit: (id: string) => `/attempts/${id}/submit`,
     /** What a marker has waiting on one assessment. */
     queue: (assessmentId: string) => `/assessments/${assessmentId}/attempts`,
+    /** What they have waiting everywhere, longest-waiting first. */
+    awaiting: '/attempts/awaiting',
     grade: (id: string, questionId: string) => `/attempts/${id}/answers/${questionId}/grade`,
   },
 
@@ -239,8 +241,10 @@ export const Endpoints = {
     checkSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
     recordViolation: (attemptId: string) => `/attempts/${attemptId}/proctoring/violations`,
     recordSnapshot: (attemptId: string) => `/attempts/${attemptId}/proctoring/snapshots`,
-    /** The queue is per assessment: a reviewer works through one sitting's flags. */
+    /** One assessment's flagged sittings. */
     reviewQueue: (assessmentId: string) => `/assessments/${assessmentId}/proctoring/queue`,
+    /** Every flagged sitting. `?pending=1` for the ones not yet signed off. */
+    allQueues: '/proctoring/queue',
     review: (attemptId: string) => `/attempts/${attemptId}/proctoring`,
     reviewViolation: (violationId: string) => `/proctoring/violations/${violationId}`,
   },

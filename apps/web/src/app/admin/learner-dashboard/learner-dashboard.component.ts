@@ -14,6 +14,7 @@ import {
 import { MyProfileService } from '../../services/my-profile.service';
 import { SkillsService } from '../../services/skills.service';
 import { GamificationService } from '../../services/gamification.service';
+import { CertificatesService } from '../../services/certificates.service';
 import { ApiClient, ApiError } from '../../core/api';
 
 /* The shapes this screen's template already reads. Each is filled in one
@@ -206,6 +207,7 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   private readonly profiles = inject(MyProfileService);
   private readonly skills = inject(SkillsService);
   private readonly gamification = inject(GamificationService);
+  private readonly certificates = inject(CertificatesService);
   private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
@@ -538,14 +540,21 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Opens the certificate on the register.
+   * Opens the certificate, laid out and ready to print.
    *
    * It used to be an empty method with the real thing commented out beneath
-   * it, so the button did nothing at all. The document is assembled from a
-   * template server-side and shown there.
+   * it, so the button did nothing at all. The API returns the certificate as
+   * HTML rather than a PDF — building one costs seconds of CPU and belongs
+   * behind a queue — and the browser's own print dialogue is where "Save as
+   * PDF" lives anyway.
    */
   downloadCertificate(certificateId: string): void {
-    void this.router.navigate(['/certificates'], { queryParams: { id: certificateId } });
+    this.certificates
+      .openForPrinting(certificateId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        error: (failure: ApiError) => alert(failure.message),
+      });
   }
 
   // -------------------------------------------------------------------------

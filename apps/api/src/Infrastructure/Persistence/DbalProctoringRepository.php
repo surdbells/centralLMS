@@ -480,13 +480,27 @@ final class DbalProctoringRepository implements ProctoringRepository
         }, $rows);
     }
 
-    public function reviewQueue(string $tenantId, string $assessmentId, int $page, int $perPage): array
-    {
+    public function reviewQueue(
+        string $tenantId,
+        ?string $assessmentId,
+        int $page,
+        int $perPage,
+        bool $pendingOnly = false,
+    ): array {
         $page = max(1, $page);
         $perPage = max(1, min(100, $perPage));
 
-        $where = 'ps.tenant_id = :tenant AND at.assessment_id = :assessment';
-        $params = ['tenant' => $tenantId, 'assessment' => $assessmentId];
+        $where = 'ps.tenant_id = :tenant';
+        $params = ['tenant' => $tenantId];
+
+        if ($assessmentId !== null) {
+            $where .= ' AND at.assessment_id = :assessment';
+            $params['assessment'] = $assessmentId;
+        }
+
+        if ($pendingOnly) {
+            $where .= ' AND ps.reviewed_at IS NULL';
+        }
 
         $total = (int) $this->connection->fetchOne(
             'SELECT COUNT(*) FROM proctoring_sessions ps

@@ -37,11 +37,41 @@ final class ReviewProctoringAction extends ProctoringAction
         $tenantId = $this->mustBeEntitled($request);
         $assessment = $this->requireAssessment($request, $args['id'] ?? '');
 
+        return $this->page($request, $response, $tenantId, $assessment->id);
+    }
+
+    /**
+     * GET /v1/proctoring/queue — everything waiting on a reviewer.
+     *
+     * Across every assessment. `?pending=1` drops the sittings already
+     * signed off, which is what makes it a queue rather than a log.
+     */
+    public function allQueues(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::ProctoringReview);
+
+        return $this->page($request, $response, $this->mustBeEntitled($request), null);
+    }
+
+    private function page(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        string $tenantId,
+        ?string $assessmentId,
+    ): ResponseInterface {
         $query = $request->getQueryParams();
         $page = max(1, (int) ($query['page'] ?? 1));
         $perPage = max(1, min(100, (int) ($query['perPage'] ?? 20)));
 
-        $result = $this->proctoring->reviewQueue($tenantId, $assessment->id, $page, $perPage);
+        $result = $this->proctoring->reviewQueue(
+            $tenantId,
+            $assessmentId,
+            $page,
+            $perPage,
+            filter_var($query['pending'] ?? false, FILTER_VALIDATE_BOOL),
+        );
 
         return Json::page($response, $result['items'], $result['total'], $page, $perPage);
     }

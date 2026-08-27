@@ -61,6 +61,14 @@ interface CertificateRepository
      */
     public function tenantCode(string $tenantId): string;
 
+    /**
+     * The organisation's name, as it should appear on a certificate.
+     *
+     * The tenant's own record, not a `company_name` setting: keeping a
+     * second copy in a key/value table is how the two come to disagree.
+     */
+    public function organisationName(string $tenantId): ?string;
+
     // --- reading ----------------------------------------------------------
 
     public function find(string $tenantId, string $id): ?Certificate;

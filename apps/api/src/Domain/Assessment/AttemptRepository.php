@@ -29,6 +29,21 @@ interface AttemptRepository
         ?AttemptStatus $status = null,
     ): array;
 
+    /**
+     * Every sitting anywhere in the organisation with an answer still
+     * waiting on a marker, longest-waiting first.
+     *
+     * A marker had to pick an assessment before they could discover
+     * whether it held any of their work, which is the wrong way round:
+     * the question is "what have I got to mark?", not "is there anything
+     * in this one?".
+     *
+     * `awaiting` on each row is the count of unmarked answers in it.
+     *
+     * @return array{items: list<array{attempt: Attempt, awaiting: int}>, total: int}
+     */
+    public function awaitingMarking(string $tenantId, int $page, int $perPage): array;
+
     public function find(string $tenantId, string $id): ?Attempt;
 
     /**

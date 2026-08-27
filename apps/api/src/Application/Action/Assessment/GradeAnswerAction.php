@@ -141,6 +141,42 @@ final class GradeAnswerAction extends AssessmentAction
     }
 
     /**
+     * GET /v1/attempts/awaiting — everything this marker has waiting.
+     *
+     * Across every assessment, longest-waiting first. The per-assessment
+     * queue answers "is there anything in this one?"; a marker sitting down
+     * to work is asking "what have I got?", and before this they had to
+     * open each assessment in turn to find out.
+     */
+    public function awaiting(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::AssessmentGrade);
+
+        $listing = $this->listing($request);
+
+        $result = $this->attempts->awaitingMarking(
+            $this->tenantId($request),
+            $listing['page'],
+            $listing['perPage'],
+        );
+
+        return Json::page(
+            $response,
+            array_map(
+                fn (array $row): array => $row['attempt']->toArray([
+                    'awaitingMarking' => $row['awaiting'],
+                ]),
+                $result['items'],
+            ),
+            $result['total'],
+            $listing['page'],
+            $listing['perPage'],
+        );
+    }
+
+    /**
      * GET /v1/attempts/{id} — one attempt with its answers, for a marker.
      *
      * @param array<string, string> $args
