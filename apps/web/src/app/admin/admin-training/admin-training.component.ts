@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 import { Component } from '@angular/core';
 import {TopComponent} from "../../partials/top/top.component";
 import {TuiIcon} from "@taiga-ui/core";
@@ -23,30 +22,16 @@ export class AdminTrainingComponent  {
   ui_controls = {
     is_loading: false
   };
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    id_front: "",
-    id_back: "",
-    is_2fa: false,
-    is_active: false
-  };
-  ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-  }
-  goBack() {
-    if (this.user_session.is_active){
-      this.router.navigate(['/account']).then(r => console.log(r));
-    }else{
-      this.router.navigate(['/login']).then(r => console.log(r));
-    }
+  /**
+   * Where "back" goes.
+   *
+   * It used to depend on `is_active`, decoded out of the legacy session
+   * blob — so an expired or malformed blob quietly sent somebody to the
+   * sign-in page from a screen they were entitled to be on. Whether there
+   * is a session at all is the router guard's business; this is a link.
+   */
+  goBack(): void {
+    void this.router.navigate(['/account']);
   }
   error_notification(message: string) {
     this.toast.error(message);

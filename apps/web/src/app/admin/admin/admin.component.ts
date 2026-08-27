@@ -1,5 +1,4 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
-import {Component, OnInit, ViewChild} from '@angular/core';
+import {Component, ViewChild} from '@angular/core';
 import {TopComponent} from '../../partials/top/top.component';
 import {Router, RouterLink, RouterLinkActive} from '@angular/router';
 import {CrudService} from '../../services/crud.service';
@@ -31,7 +30,7 @@ interface TopLearner { name: string; role: string; points: number; avatarUrl?: s
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css'
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent {
   constructor(
     private router: Router,
     private crudService: CrudService,
@@ -45,33 +44,6 @@ export class AdminComponent implements OnInit {
     viewing_recent_orders: false,
     viewing_menu: false
   };
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
-  ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-  }
   error_notification(message: string) {
     this.toast.error(message);
   }
