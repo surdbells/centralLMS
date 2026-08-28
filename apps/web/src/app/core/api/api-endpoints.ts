@@ -481,6 +481,23 @@ export const Endpoints = {
     reviewSummary: (id: string) => `/paths/${id}/reviews/summary`,
     createReview: (id: string) => `/paths/${id}/reviews`,
     myReview: (id: string) => `/me/paths/${id}/review`,
+
+    // Standing assignment rules. Not the enrolment endpoints above: those put
+    // people on the path today, these keep doing it as people join the group.
+    assignments: (id: string) => `/paths/${id}/assignments`,
+    createAssignment: (id: string) => `/paths/${id}/assignments`,
+  },
+
+  pathAssignments: {
+    update: (id: string) => `/path-assignments/${id}`,
+    delete: (id: string) => `/path-assignments/${id}`,
+    pause: (id: string) => `/path-assignments/${id}/pause`,
+    resume: (id: string) => `/path-assignments/${id}/resume`,
+    cancel: (id: string) => `/path-assignments/${id}/cancel`,
+    apply: (id: string) => `/path-assignments/${id}/apply`,
+    reminders: (id: string) => `/path-assignments/${id}/reminders`,
+    preview: (id: string) => `/path-assignments/${id}/preview`,
+    statistics: (id: string) => `/path-assignments/${id}/statistics`,
   },
 
   pathReviews: {

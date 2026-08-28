@@ -394,11 +394,12 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     this.saving = true;
     this.error = null;
 
-    // A standing assignment rule has no table on this side; enrolling the
-    // people who match it right now does, and is what this screen's button
-    // has always appeared to do.
-    this.enrollmentService
-      .enrollUsers(this.buildEnrollmentRequest())
+    // A standing rule, not a one-off enrolment. It enrols everybody it covers
+    // now — which is what this button has always appeared to do — and keeps
+    // enrolling people who join the group afterwards, which is what the word
+    // "assignment" on this screen was always meant to mean.
+    this.learningPathService
+      .createAssignment(this.buildAssignmentRequest())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -407,7 +408,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
             message: `Assignment created successfully`,
             summary: {
               total_users: this.preview?.summary.total_users || 0,
-              enrolled_count: res.summary.enrolled_count,
+              enrolled_count: res.enrollments_created,
               skipped_count: this.preview?.summary.already_enrolled || 0,
               failed_count: 0
             },
@@ -442,12 +443,59 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * The assignment, as an enrolment request.
+   * The choices on the form, as a standing rule.
    *
-   * A standing assignment rule — the kind that keeps enrolling people as
-   * they join a department — has no table on this side. What this screen
-   * can still do is enrol everybody who matches the rule now, which is an
-   * ordinary enrolment, and that is what this builds.
+   * A rule names a group — "Operations", "the London branch" — rather than
+   * the people who happened to be in it this afternoon, which is what lets it
+   * keep enrolling newcomers. Picking people by hand is the one case that is
+   * a list rather than a description, and the API calls that kind `custom`.
+   */
+  private buildAssignmentRequest(): AssignmentCreateRequest {
+    const request: AssignmentCreateRequest = {
+      path_id: this.pathId,
+      assignment_type: this.assignmentType === 'users' ? 'user' : this.assignmentType,
+      is_mandatory: this.isMandatory,
+      send_notification: this.notifyUsers,
+      send_reminder: this.sendReminder,
+      priority: this.priority,
+      assignment_notes: this.assignmentNotes,
+    };
+
+    // A fixed date or a number of days, never both: two answers to "when is
+    // this due" is one too many, and the API refuses it.
+    if (this.dueDate) {
+      request.due_date = this.dueDate;
+    } else if (this.dueDaysFromAssignment) {
+      request.due_days_from_assignment = this.dueDaysFromAssignment;
+    }
+
+    switch (this.assignmentType) {
+      case 'department':
+        request.department_id = this.selectedDepartmentId ?? undefined;
+        break;
+      case 'team':
+        request.team_id = this.selectedTeamId ?? undefined;
+        break;
+      case 'branch':
+        request.branch_id = this.selectedBranchId ?? undefined;
+        break;
+      case 'users':
+        // Everybody who was ticked, not just the first: the form lets a
+        // list be chosen and a rule built from one of them is not the rule
+        // anybody made.
+        request.user_ids = this.selectedUsers.map((u) => String(u.user_id));
+        break;
+    }
+
+    return request;
+  }
+
+  /**
+   * The same choices, as a one-off enrolment.
+   *
+   * Still used for the preview, which asks "who would this cover and who is
+   * already on the path" — the same question the enrolment screen asks, and
+   * answered once rather than twice.
    *
    * No `token`, `user_id` or `tenant_id`: those came from
    * `atob(sessionStorage.SESSION)` and were posted with the request, which

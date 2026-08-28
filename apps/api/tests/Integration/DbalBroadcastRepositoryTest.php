@@ -8,6 +8,7 @@ use Central\Api\Domain\Messaging\Broadcast;
 use Central\Api\Domain\Messaging\BroadcastPriority;
 use Central\Api\Domain\Messaging\BroadcastStatus;
 use Central\Api\Domain\Messaging\BroadcastTarget;
+use Central\Api\Infrastructure\Persistence\DbalAudienceResolver;
 use Central\Api\Infrastructure\Persistence\DbalBroadcastRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -52,7 +53,10 @@ final class DbalBroadcastRepositoryTest extends TestCase
             self::markTestSkipped('PostgreSQL is not reachable — start it with: pnpm up');
         }
 
-        $this->broadcasts = new DbalBroadcastRepository(self::$connection);
+        $this->broadcasts = new DbalBroadcastRepository(
+            self::$connection,
+            new DbalAudienceResolver(self::$connection),
+        );
 
         $this->tenantA = $this->createTenant('bc-a');
         $this->tenantB = $this->createTenant('bc-b');

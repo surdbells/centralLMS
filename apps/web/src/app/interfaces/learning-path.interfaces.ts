@@ -517,14 +517,14 @@ export interface LearningPathReview {
   practical_value_rating: number | null;
   status: ReviewStatus;
   moderation_status: ModerationStatus;  // Added
-  moderated_by: number | null;
+  moderated_by: string | null;
   moderated_at: string | null;
   rejection_reason: string;
   helpful_count: number;
   reported_count: number;
   instructor_response: string | null;  // Added
   response_text: string;
-  response_by: number | null;
+  response_by: string | null;
   response_at: string | null;
   created_at: string;
   updated_at: string | null;
@@ -587,11 +587,13 @@ export interface LearningPathAssignment {
   tenant_id: string;
   assignment_type: AssignmentType;
   user_id: string | null;
-  role_id: number | null;
-  department_id: number | null;
-  team_id: number | null;
-  branch_id?: number | null;
-  assigned_by: number;
+  // Ids are UUIDs, and were typed as numbers here from the days when they
+  // were not. A rule targeting department 0 is what that produced.
+  role_id: string | null;
+  department_id: string | null;
+  team_id: string | null;
+  branch_id?: string | null;
+  assigned_by: string | null;
   assigned_at: string;
   due_date: string | null;
   due_days_from_assignment: number | null;
@@ -630,10 +632,12 @@ export interface AssignmentCreateRequest {
   path_id: string;
   assignment_type: AssignmentType;
   user_id?: string;
-  role_id?: number;
-  department_id?: number;
-  team_id?: number;
-  branch_id?: number;
+  /** More than one, when people were picked by hand. */
+  user_ids?: string[];
+  role_id?: string;
+  department_id?: string;
+  team_id?: string;
+  branch_id?: string;
   due_date?: string;
   due_days_from_assignment?: number;
   priority?: AssignmentPriority;

@@ -77,9 +77,11 @@ use Central\Api\Application\Dashboard\AdminDashboardAssembler;
 use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
 use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\LearningPath\LearningPathRepository;
+use Central\Api\Domain\LearningPath\PathAssignmentRepository;
 use Central\Api\Domain\LearningPath\PathReviewRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Messaging\MessagingRepository;
+use Central\Api\Domain\Audience\AudienceResolver;
 use Central\Api\Domain\Audit\AuditRepository;
 use Central\Api\Domain\Note\NoteRepository;
 use Central\Api\Domain\Settings\SettingCatalogue;
@@ -91,9 +93,11 @@ use Central\Api\Infrastructure\Persistence\DbalSkillRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalLearningPathRepository;
+use Central\Api\Infrastructure\Persistence\DbalPathAssignmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalPathReviewRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
 use Central\Api\Infrastructure\Persistence\DbalMessagingRepository;
+use Central\Api\Infrastructure\Persistence\DbalAudienceResolver;
 use Central\Api\Infrastructure\Persistence\DbalAuditRepository;
 use Central\Api\Infrastructure\Persistence\DbalNoteRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
@@ -471,9 +475,14 @@ return [
         ),
     ),
 
-    BroadcastRepository::class => factory(
-        static fn (ContainerInterface $c) => new DbalBroadcastRepository($c->get(Connection::class)),
+    AudienceResolver::class => factory(
+        static fn (ContainerInterface $c) => new DbalAudienceResolver($c->get(Connection::class)),
     ),
+
+    BroadcastRepository::class => factory(static fn (ContainerInterface $c) => new DbalBroadcastRepository(
+        $c->get(Connection::class),
+        $c->get(AudienceResolver::class),
+    )),
 
     RubricRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalRubricRepository($c->get(Connection::class)),
@@ -682,6 +691,14 @@ return [
 
     PathReviewRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalPathReviewRepository($c->get(Connection::class)),
+    ),
+
+    PathAssignmentRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalPathAssignmentRepository(
+            $c->get(Connection::class),
+            $c->get(AudienceResolver::class),
+            $c->get(LearningPathRepository::class),
+        ),
     ),
 
     SkillRepository::class => factory(

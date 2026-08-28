@@ -83,6 +83,7 @@ use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\LearningPath\ManagePathsAction;
+use Central\Api\Application\Action\LearningPath\PathAssignmentAction;
 use Central\Api\Application\Action\LearningPath\PathReviewAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Messaging\BroadcastAction;
@@ -645,6 +646,39 @@ return static function (App $app): void {
                     ->setName('paths.reviews.summary');
                 $p->post('/{id:' . $uuid . '}/reviews', [PathReviewAction::class, 'create'])
                     ->setName('paths.reviews.create');
+
+                // Standing assignment rules. Not the same as the enrolment
+                // endpoints above: those put people on the path today, these
+                // keep doing it as people join the group named.
+                $p->get('/{id:' . $uuid . '}/assignments', [PathAssignmentAction::class, 'list'])
+                    ->setName('paths.assignments');
+                $p->post('/{id:' . $uuid . '}/assignments', [PathAssignmentAction::class, 'create'])
+                    ->setName('paths.assignments.create');
+            });
+
+            // Everything addressed by rule rather than by path.
+            $secure->group('/path-assignments', function (RouteCollectorProxy $a) use ($uuid): void {
+                $a->put('/{assignmentId:' . $uuid . '}', [PathAssignmentAction::class, 'update'])
+                    ->setName('path-assignments.update');
+                $a->delete('/{assignmentId:' . $uuid . '}', [PathAssignmentAction::class, 'delete'])
+                    ->setName('path-assignments.delete');
+
+                $a->post('/{assignmentId:' . $uuid . '}/pause', [PathAssignmentAction::class, 'pause'])
+                    ->setName('path-assignments.pause');
+                $a->post('/{assignmentId:' . $uuid . '}/resume', [PathAssignmentAction::class, 'resume'])
+                    ->setName('path-assignments.resume');
+                $a->post('/{assignmentId:' . $uuid . '}/cancel', [PathAssignmentAction::class, 'cancel'])
+                    ->setName('path-assignments.cancel');
+                $a->post('/{assignmentId:' . $uuid . '}/apply', [PathAssignmentAction::class, 'apply'])
+                    ->setName('path-assignments.apply');
+
+                $a->post('/{assignmentId:' . $uuid . '}/reminders', [PathAssignmentAction::class, 'remind'])
+                    ->setName('path-assignments.reminders');
+
+                $a->get('/{assignmentId:' . $uuid . '}/preview', [PathAssignmentAction::class, 'preview'])
+                    ->setName('path-assignments.preview');
+                $a->get('/{assignmentId:' . $uuid . '}/statistics', [PathAssignmentAction::class, 'statistics'])
+                    ->setName('path-assignments.statistics');
             });
 
             // Moderation, and everything addressed by review rather than by

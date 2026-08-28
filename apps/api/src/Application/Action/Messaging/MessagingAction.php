@@ -895,8 +895,11 @@ final class MessagingAction
     ): array {
         $message = $this->messaging->findMessage($tenantId, $messageId);
 
-        if ($message === null || $message->id === null
-            || $message->conversationId !== $conversation->id) {
+        if (
+            $message === null
+            || $message->id === null
+            || $message->conversationId !== $conversation->id
+        ) {
             // Membership is settled by `require()` on the conversation; this
             // stops a member of one conversation reaching a message in
             // another by sending its id.

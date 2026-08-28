@@ -747,42 +747,94 @@ export class LearningPathService {
   }
 
   // ==========================================
-  // NOT BUILT
+  // ASSIGNMENT RULES
   // ==========================================
   //
-  // Path assignment rules had a legacy action and no table on this side.
-  // These fail with a message saying so rather than returning empty — a rule
-  // list that renders empty because the feature does not exist is
-  // indistinguishable from one with no rules in it.
+  // A rule is not the same as enrolling everybody in Operations this
+  // afternoon — `enroll` already does that. A rule keeps going: somebody who
+  // joins Operations next month is enrolled by it too. Creating one applies
+  // it at once, so the answer to "did that work" is on the screen rather than
+  // tomorrow morning.
 
   createAssignment(
-    _data: AssignmentCreateRequest,
+    data: AssignmentCreateRequest,
   ): Observable<{ assignment_id: string; enrollments_created: number }> {
-    return notAvailable('Path assignment rules');
+    return this.api
+      .post<AssignmentPayload>(
+        Endpoints.paths.createAssignment(data.path_id),
+        fromAssignmentRequest(data),
+      )
+      .pipe(map((rule) => ({
+        assignment_id: rule.id,
+        enrollments_created: Number(rule['enrollmentsCreated'] ?? 0),
+      })));
   }
 
-  getAssignments(_pathId: string): Observable<LearningPathAssignment[]> {
-    return notAvailable('Path assignment rules');
+  getAssignments(pathId: string): Observable<LearningPathAssignment[]> {
+    return this.api
+      .get<AssignmentPayload[]>(Endpoints.paths.assignments(pathId))
+      .pipe(map((rules) => (rules ?? []).map(toAssignment)));
   }
 
-  cancelAssignment(_assignmentId: string): Observable<void> {
-    return notAvailable('Path assignment rules');
+  updateAssignment(
+    assignmentId: string,
+    data: AssignmentCreateRequest,
+  ): Observable<LearningPathAssignment> {
+    return this.api
+      .put<AssignmentPayload>(
+        Endpoints.pathAssignments.update(assignmentId),
+        fromAssignmentRequest(data),
+      )
+      .pipe(map(toAssignment));
   }
 
-  pauseAssignment(_assignmentId: string): Observable<void> {
-    return notAvailable('Path assignment rules');
+  deleteAssignment(assignmentId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.pathAssignments.delete(assignmentId))
+      .pipe(map(() => undefined));
   }
 
-  resumeAssignment(_assignmentId: string): Observable<void> {
-    return notAvailable('Path assignment rules');
+  /**
+   * Stops a rule enrolling anybody new.
+   *
+   * It does not touch the people it already enrolled. Taking a path away from
+   * somebody halfway through it is a different decision.
+   */
+  pauseAssignment(assignmentId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.pathAssignments.pause(assignmentId), {})
+      .pipe(map(() => undefined));
   }
 
-  getAssignmentStatistics(_assignmentId: string): Observable<unknown> {
-    return notAvailable('Path assignment rules');
+  resumeAssignment(assignmentId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.pathAssignments.resume(assignmentId), {})
+      .pipe(map(() => undefined));
   }
 
-  sendAssignmentReminders(_assignmentId: string): Observable<{ sent: number }> {
-    return notAvailable('Path assignment reminders');
+  cancelAssignment(assignmentId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.pathAssignments.cancel(assignmentId), {})
+      .pipe(map(() => undefined));
+  }
+
+  /** Runs the rule now, rather than waiting for the hourly sweep. */
+  applyAssignment(assignmentId: string): Observable<{ enrollments_created: number }> {
+    return this.api
+      .post<{ enrollmentsCreated?: number }>(Endpoints.pathAssignments.apply(assignmentId), {})
+      .pipe(map((result) => ({ enrollments_created: Number(result?.enrollmentsCreated ?? 0) })));
+  }
+
+  getAssignmentStatistics(assignmentId: string): Observable<unknown> {
+    return this.api
+      .get<AssignmentStatisticsPayload>(Endpoints.pathAssignments.statistics(assignmentId))
+      .pipe(map(toAssignmentStatistics));
+  }
+
+  sendAssignmentReminders(assignmentId: string): Observable<{ sent: number }> {
+    return this.api
+      .post<{ sent?: number }>(Endpoints.pathAssignments.reminders(assignmentId), {})
+      .pipe(map((result) => ({ sent: Number(result?.sent ?? 0) })));
   }
 }
 
@@ -932,6 +984,153 @@ function toRatingSummary(summary: RatingSummaryPayload): RatingSummary {
     two_star_pct: pct(2),
     one_star_pct: pct(1),
     distribution: { 5: at(5), 4: at(4), 3: at(3), 2: at(2), 1: at(1) },
+  };
+}
+
+interface AssignmentPayload extends Record<string, any> {
+  id: string;
+}
+
+interface AssignmentStatisticsPayload {
+  enrolled: number;
+  completed: number;
+  inProgress: number;
+  notStarted: number;
+  overdue: number;
+  completionRate: number | null;
+  averageProgress: number | null;
+  averageDaysToComplete: number | null;
+  pending: Array<Record<string, unknown>>;
+}
+
+/**
+ * A rule as the screen has always read one.
+ *
+ * The screen thinks in one target column per kind (`department_id`, `team_id`
+ * and so on); the API keeps one `targetCriteria` map, because a rule that can
+ * name two departments needs somewhere to put the second. The unpacking is
+ * here rather than in the template.
+ */
+function toAssignment(rule: AssignmentPayload): LearningPathAssignment {
+  const criteria = (rule['targetCriteria'] ?? {}) as Record<string, unknown>;
+  const first = (...keys: string[]): string | null => {
+    for (const key of keys) {
+      const value = criteria[key];
+      if (typeof value === 'string' && value !== '') return value;
+      if (Array.isArray(value) && value.length > 0) return String(value[0]);
+    }
+    return null;
+  };
+
+  const target = String(rule['targetType'] ?? 'all');
+
+  return {
+    assignment_id: rule.id,
+    path_id: rule['pathId'] ?? '',
+    tenant_id: '',
+    assignment_type: (target === 'custom' ? 'user' : target) as LearningPathAssignment['assignment_type'],
+    user_id: first('userIds', 'users'),
+    role_id: first('roleIds', 'roles'),
+    department_id: first('departmentIds', 'departments'),
+    team_id: first('teamIds', 'teams'),
+    branch_id: first('branchIds', 'branches'),
+    assigned_by: rule['assignedBy'] ?? null,
+    assigned_at: rule['assignedAt'] ?? '',
+    due_date: rule['dueDate'] ?? null,
+    due_days_from_assignment: rule['dueDaysFromAssignment'] ?? null,
+    priority: rule['priority'] ?? 'normal',
+    is_mandatory: rule['isMandatory'] === true,
+    send_notification: rule['sendNotification'] === true,
+    send_reminder: rule['sendReminder'] === true,
+    reminder_days_before: Number(rule['reminderDaysBefore'] ?? 3),
+    assignment_notes: rule['notes'] ?? '',
+    status: rule['status'] ?? 'active',
+    created_at: rule['createdAt'] ?? '',
+    updated_at: rule['updatedAt'] ?? null,
+    // Active means the rule is still enrolling people, not merely undeleted.
+    is_active: rule['status'] === 'active',
+    path_title: rule['pathTitle'] ?? undefined,
+    target_description: rule['targetLabel'] ?? undefined,
+    users_enrolled: Number(rule['enrolledCount'] ?? 0),
+    assigned_by_first_name: splitName(rule['assignedByName'])[0],
+    assigned_by_last_name: splitName(rule['assignedByName'])[1],
+  };
+}
+
+function splitName(value: unknown): [string | undefined, string | undefined] {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return [undefined, undefined];
+  }
+
+  const [first, ...rest] = value.trim().split(' ');
+
+  return [first, rest.join(' ') || undefined];
+}
+
+/** The names the statistics panel already reads. */
+function toAssignmentStatistics(stats: AssignmentStatisticsPayload): Record<string, unknown> {
+  return {
+    total_enrollments: stats.enrolled,
+    completed_enrollments: stats.completed,
+    in_progress_enrollments: stats.inProgress,
+    not_started_enrollments: stats.notStarted,
+    overdue_enrollments: stats.overdue,
+    // Zero here rather than null: the panel writes these through a number
+    // pipe, and "0.0%" beside a rule nobody has started is at least true.
+    avg_progress: stats.averageProgress ?? 0,
+    avg_completion_days: stats.averageDaysToComplete ?? 0,
+    completion_rate: stats.completionRate,
+    pending: stats.pending ?? [],
+  };
+}
+
+/**
+ * The rule, in the API's spelling.
+ *
+ * The screen sends one id per kind; the API takes a criteria map, so the
+ * chosen id goes in under the key its kind is written with.
+ */
+function fromAssignmentRequest(data: AssignmentCreateRequest): Record<string, unknown> {
+  const criteria: Record<string, unknown> = {};
+  let target: string = data.assignment_type;
+
+  switch (data.assignment_type) {
+    case 'department':
+      criteria['departmentIds'] = [String(data.department_id)];
+      break;
+    case 'team':
+      criteria['teamIds'] = [String(data.team_id)];
+      break;
+    case 'branch':
+      criteria['branchIds'] = [String(data.branch_id)];
+      break;
+    case 'role':
+      criteria['roleIds'] = [String(data.role_id)];
+      break;
+    case 'user':
+      // The API calls a hand-picked list "custom", because it is the one kind
+      // that is a list rather than a description.
+      target = 'custom';
+      criteria['userIds'] = data.user_ids && data.user_ids.length > 0
+        ? data.user_ids
+        : [String(data.user_id)];
+      break;
+    case 'all_users':
+      target = 'all';
+      break;
+  }
+
+  return {
+    targetType: target,
+    targetCriteria: criteria,
+    dueDate: data.due_date,
+    dueDaysFromAssignment: data.due_days_from_assignment,
+    priority: data.priority ?? 'normal',
+    isMandatory: data.is_mandatory ?? false,
+    sendNotification: data.send_notification ?? true,
+    sendReminder: data.send_reminder ?? false,
+    reminderDaysBefore: data.reminder_days_before ?? 3,
+    notes: data.assignment_notes,
   };
 }
 

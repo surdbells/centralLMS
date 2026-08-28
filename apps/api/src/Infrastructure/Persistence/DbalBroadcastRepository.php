@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Central\Api\Infrastructure\Persistence;
 
+use Central\Api\Domain\Audience\AudienceResolver;
+use Central\Api\Domain\Audience\AudienceTarget;
 use Central\Api\Domain\Messaging\Broadcast;
 use Central\Api\Domain\Messaging\BroadcastPriority;
 use Central\Api\Domain\Messaging\BroadcastRepository;
 use Central\Api\Domain\Messaging\BroadcastStatus;
 use Central\Api\Domain\Messaging\BroadcastTarget;
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 
@@ -42,8 +43,10 @@ final class DbalBroadcastRepository implements BroadcastRepository
 
     private const JOIN = 'LEFT JOIN users u ON u.id = b.created_by';
 
-    public function __construct(private readonly Connection $connection)
-    {
+    public function __construct(
+        private readonly Connection $connection,
+        private readonly AudienceResolver $audience,
+    ) {
     }
 
     public function authored(string $tenantId, ?string $authorId, int $page, int $perPage): array
@@ -321,109 +324,19 @@ final class DbalBroadcastRepository implements BroadcastRepository
     /**
      * Turns "everybody in Operations" into a list of people.
      *
-     * Active users only: sending a policy acknowledgement to somebody who has
-     * left creates an outstanding obligation nobody can discharge.
+     * Delegated: a standing path assignment asks the same question, and two
+     * copies of it would drift — one counting suspended accounts and the
+     * other not, with nobody noticing until a leaver was chased.
      *
      * @return list<string>
      */
     private function resolveAudience(Broadcast $broadcast): array
     {
-        $where = ["u.tenant_id = :tenant", "u.status = 'active'", 'u.deleted_at IS NULL'];
-        $params = ['tenant' => $broadcast->tenantId];
-        $types = [];
-
-        $criteria = $broadcast->targetCriteria;
-
-        switch ($broadcast->targetType) {
-            case BroadcastTarget::All:
-                break;
-
-            case BroadcastTarget::Role:
-                $where[] = 'EXISTS (
-                    SELECT 1 FROM user_roles ur
-                    WHERE ur.user_id = u.id AND ur.role_id IN (:ids)
-                )';
-                $params['ids'] = $this->ids($criteria, ['roleIds', 'roles']);
-                $types['ids'] = ArrayParameterType::STRING;
-                break;
-
-            case BroadcastTarget::Department:
-                $where[] = 'u.department_id IN (:ids)';
-                $params['ids'] = $this->ids($criteria, ['departmentIds', 'departments']);
-                $types['ids'] = ArrayParameterType::STRING;
-                break;
-
-            case BroadcastTarget::Branch:
-                $where[] = 'u.branch_id IN (:ids)';
-                $params['ids'] = $this->ids($criteria, ['branchIds', 'branches']);
-                $types['ids'] = ArrayParameterType::STRING;
-                break;
-
-            case BroadcastTarget::Team:
-                $where[] = 'u.team_id IN (:ids)';
-                $params['ids'] = $this->ids($criteria, ['teamIds', 'teams']);
-                $types['ids'] = ArrayParameterType::STRING;
-                break;
-
-            case BroadcastTarget::Course:
-                // Everybody enrolled on it, whatever their progress: an
-                // announcement about a course is for the people taking it.
-                $where[] = 'EXISTS (
-                    SELECT 1 FROM enrollments e
-                    WHERE e.user_id = u.id AND e.course_id IN (:ids) AND e.deleted_at IS NULL
-                )';
-                $params['ids'] = $this->ids($criteria, ['courseIds', 'courseId', 'courses']);
-                $types['ids'] = ArrayParameterType::STRING;
-                break;
-
-            case BroadcastTarget::Custom:
-                $where[] = 'u.id IN (:ids)';
-                $params['ids'] = $this->ids($criteria, ['userIds', 'users']);
-                $types['ids'] = ArrayParameterType::STRING;
-                break;
-        }
-
-        // An empty list would make `IN ()` a syntax error, and means nobody
-        // was named — which is not the same as everybody.
-        if (isset($params['ids']) && $params['ids'] === []) {
-            return [];
-        }
-
-        $rows = $this->connection->fetchFirstColumn(
-            sprintf('SELECT u.id FROM users u WHERE %s', implode(' AND ', $where)),
-            $params,
-            $types,
+        return $this->audience->resolve(
+            $broadcast->tenantId,
+            AudienceTarget::from($broadcast->targetType->value),
+            $broadcast->targetCriteria,
         );
-
-        return array_map(static fn (mixed $id): string => (string) $id, $rows);
-    }
-
-    /**
-     * The ids out of the criteria, under whichever key the client used.
-     *
-     * @param array<string, mixed> $criteria
-     * @param list<string> $keys
-     *
-     * @return list<string>
-     */
-    private function ids(array $criteria, array $keys): array
-    {
-        foreach ($keys as $key) {
-            $value = $criteria[$key] ?? null;
-
-            if (is_string($value) && $value !== '') {
-                return [$value];
-            }
-
-            if (is_array($value) && $value !== []) {
-                return array_values(array_filter(
-                    array_map(static fn (mixed $v): string => (string) $v, $value),
-                    static fn (string $v): bool => $v !== '',
-                ));
-            }
-        }
-
-        return [];
     }
 
     /**
