@@ -190,6 +190,22 @@ final class DbalReportRepository implements ReportRepository
             // --- system ---------------------------------------------------
             ReportKey::SystemUsage  => $this->systemUsage($definition, $criteria),
             ReportKey::StorageUsage => $this->storageUsage($definition, $criteria),
+
+            // --- my learning (self-service) -------------------------------
+            ReportKey::MyLearningSummary      => $this->myLearningSummary($definition, $criteria),
+            ReportKey::MyEnrolledCourses      => $this->myCourses($definition, $criteria, 'all'),
+            ReportKey::MyCompletedCourses     => $this->myCourses($definition, $criteria, 'completed'),
+            ReportKey::MyInProgressCourses    => $this->myCourses($definition, $criteria, 'in_progress'),
+            ReportKey::MyOverdueCourses       => $this->myCourses($definition, $criteria, 'overdue'),
+            ReportKey::MyCertificates         => $this->myCertificates($definition, $criteria, false),
+            ReportKey::MyExpiringCertificates => $this->myCertificates($definition, $criteria, true),
+            ReportKey::MyBadges               => $this->myBadges($definition, $criteria),
+            ReportKey::MyPointsSummary        => $this->myPointsSummary($definition, $criteria),
+            ReportKey::MyAssessmentResults    => $this->myAssessmentResults($definition, $criteria),
+            ReportKey::MyLearningPaths        => $this->myLearningPaths($definition, $criteria),
+            ReportKey::MyComplianceStatus     => $this->myComplianceStatus($definition, $criteria),
+            ReportKey::MyLearningTime         => $this->myLearningTime($definition, $criteria),
+            ReportKey::MyTranscript           => $this->myTranscript($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -4757,6 +4773,368 @@ final class DbalReportRepository implements ReportRepository
             ['kinds' => count($rows)],
             $criteria,
         );
+    }
+
+    // --- my learning (self-service) ---------------------------------------
+    //
+    // Every one of these is locked to the caller's own id, whatever scope they
+    // run under: a learner reading about themselves cannot be handed a filter
+    // that widens to somebody else. `:self` is the viewer, always.
+
+    private function myLearningSummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $self = $criteria->scope->viewerId;
+        $params = ['self' => $self, 'tenant' => $criteria->scope->tenantId];
+
+        $row = $this->connection->fetchAssociative(
+            "SELECT
+                (SELECT COUNT(*) FROM enrollments e
+                 WHERE e.user_id = :self AND e.tenant_id = :tenant AND e.deleted_at IS NULL) AS enrolled,
+                (SELECT COUNT(*) FROM enrollments e
+                 WHERE e.user_id = :self AND e.tenant_id = :tenant AND e.deleted_at IS NULL
+                   AND e.status = 'completed') AS completed,
+                (SELECT COUNT(*) FROM enrollments e
+                 WHERE e.user_id = :self AND e.tenant_id = :tenant AND e.deleted_at IS NULL
+                   AND e.status = 'in_progress') AS in_progress,
+                (SELECT COUNT(*) FROM certificates
+                 WHERE user_id = :self AND tenant_id = :tenant AND status = 'active') AS certificates,
+                (SELECT COALESCE(SUM(points), 0) FROM point_events
+                 WHERE user_id = :self AND tenant_id = :tenant) AS points,
+                (SELECT COUNT(*) FROM badge_awards
+                 WHERE user_id = :self AND tenant_id = :tenant) AS badges",
+            $params,
+        );
+
+        $row = $row === false ? [] : $row;
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'enrolled'     => (int) ($row['enrolled'] ?? 0),
+                'completed'    => (int) ($row['completed'] ?? 0),
+                'inProgress'   => (int) ($row['in_progress'] ?? 0),
+                'certificates' => (int) ($row['certificates'] ?? 0),
+                'points'       => (int) ($row['points'] ?? 0),
+                'badges'       => (int) ($row['badges'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function myCourses(ReportDefinition $definition, ReportCriteria $criteria, string $filter): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.deleted_at IS NULL')
+            ->where('e.user_id = :self', 'self', $criteria->scope->viewerId);
+
+        match ($filter) {
+            'completed'   => $q->where("e.status = 'completed'"),
+            'in_progress' => $q->where("e.status = 'in_progress'"),
+            'overdue'     => $q->where("e.status <> 'completed' AND e.status <> 'dropped'
+                AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE"),
+            default       => $q,
+        };
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::percent('progress', 'Progress'),
+            ReportColumn::date('dueDate', 'Due'),
+            ReportColumn::date('completedAt', 'Completed'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title AS course,
+             e.status AS status,
+             e.progress_percentage AS progress,
+             e.due_date AS \"dueDate\",
+             e.completed_at AS \"completedAt\"",
+            'e.enrolled_at',
+            'e.id',
+        );
+    }
+
+    private function myCertificates(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+        bool $expiringOnly,
+    ): ReportResult {
+        $q = ReportQuery::tenant($criteria, 'cert')
+            ->where('cert.user_id = :self', 'self', $criteria->scope->viewerId)
+            ->where("cert.status = 'active'");
+
+        if ($expiringOnly) {
+            $q->where("cert.valid_until IS NOT NULL
+                       AND cert.valid_until <= CURRENT_DATE + INTERVAL '90 days'");
+        }
+
+        $columns = [
+            ReportColumn::text('certificate', 'Certificate'),
+            ReportColumn::text('title', 'For'),
+            ReportColumn::date('issuedAt', 'Issued'),
+            ReportColumn::date('validUntil', 'Expires'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM certificates cert',
+            $q,
+            "cert.number AS certificate,
+             cert.title AS title,
+             cert.issued_at AS \"issuedAt\",
+             cert.valid_until AS \"validUntil\"",
+            $expiringOnly ? 'cert.valid_until' : 'cert.issued_at',
+            'cert.id',
+            $expiringOnly ? 'ASC' : 'DESC',
+        );
+    }
+
+    private function myBadges(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'ba')
+            ->where('ba.user_id = :self', 'self', $criteria->scope->viewerId);
+
+        $columns = [
+            ReportColumn::text('badge', 'Badge'),
+            ReportColumn::text('type', 'Type'),
+            ReportColumn::number('points', 'Points'),
+            ReportColumn::date('earnedAt', 'Earned'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM badge_awards ba JOIN badges bg ON bg.id = ba.badge_id',
+            $q,
+            "bg.name AS badge,
+             bg.type AS type,
+             bg.points_value AS points,
+             ba.awarded_at AS \"earnedAt\"",
+            'ba.awarded_at',
+            'ba.id',
+        );
+    }
+
+    private function myPointsSummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $self = $criteria->scope->viewerId;
+        $tenant = $criteria->scope->tenantId;
+
+        $total = (int) $this->connection->fetchOne(
+            'SELECT COALESCE(SUM(points), 0) FROM point_events WHERE user_id = :self AND tenant_id = :tenant',
+            ['self' => $self, 'tenant' => $tenant],
+        );
+
+        $byReason = $this->connection->fetchAllAssociative(
+            'SELECT reason AS label, SUM(points) AS value, COUNT(*) AS awards
+             FROM point_events WHERE user_id = :self AND tenant_id = :tenant
+             GROUP BY reason ORDER BY value DESC',
+            ['self' => $self, 'tenant' => $tenant],
+        );
+
+        // Where the caller stands: how many people in the tenant have more.
+        // Nought when they have earned nothing — an unranked person is not
+        // first, and a fresh account is not top of an empty board.
+        $rank = $total === 0 ? 0 : (int) $this->connection->fetchOne(
+            "SELECT COUNT(*) + 1 FROM (
+                SELECT user_id, SUM(points) AS pts FROM point_events
+                WHERE tenant_id = :tenant GROUP BY user_id HAVING SUM(points) > :total
+            ) ahead",
+            ['tenant' => $tenant, 'total' => $total],
+        );
+
+        return ReportResult::summary(
+            $definition,
+            ['total' => $total, 'rank' => $rank],
+            array_map(
+                fn (array $r): array => [
+                    'label'  => $this->humanise((string) $r['label']),
+                    'value'  => (int) $r['value'],
+                    'awards' => (int) $r['awards'],
+                ],
+                $byReason,
+            ),
+            $criteria,
+        );
+    }
+
+    private function myAssessmentResults(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'at')
+            ->where('at.user_id = :self', 'self', $criteria->scope->viewerId)
+            ->where("at.status = 'graded'");
+
+        $columns = [
+            ReportColumn::text('assessment', 'Assessment'),
+            ReportColumn::percent('score', 'Score'),
+            ReportColumn::status('verdict', 'Result'),
+            ReportColumn::date('submittedAt', 'Sat'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM attempts at JOIN assessments asm ON asm.id = at.assessment_id',
+            $q,
+            "asm.title AS assessment,
+             at.percentage AS score,
+             CASE WHEN at.passed THEN 'Passed' ELSE 'Failed' END AS verdict,
+             at.submitted_at AS \"submittedAt\"",
+            'at.submitted_at',
+            'at.id',
+        );
+    }
+
+    private function myLearningPaths(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.deleted_at IS NULL')
+            ->where('e.user_id = :self', 'self', $criteria->scope->viewerId);
+
+        $columns = [
+            ReportColumn::text('path', 'Path'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::number('itemsDone', 'Items done'),
+            ReportColumn::number('itemsTotal', 'Items'),
+            ReportColumn::percent('progress', 'Progress'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM learning_path_enrollments e JOIN learning_paths p ON p.id = e.path_id',
+            $q,
+            "p.title AS path,
+             e.status AS status,
+             (SELECT COUNT(*) FROM learning_path_item_completions c WHERE c.enrollment_id = e.id) AS \"itemsDone\",
+             (SELECT COUNT(*) FROM learning_path_items i
+              WHERE i.path_id = e.path_id AND i.deleted_at IS NULL) AS \"itemsTotal\",
+             CASE WHEN (SELECT COUNT(*) FROM learning_path_items i
+                        WHERE i.path_id = e.path_id AND i.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM learning_path_item_completions c
+                        WHERE c.enrollment_id = e.id)
+                        / (SELECT COUNT(*) FROM learning_path_items i
+                        WHERE i.path_id = e.path_id AND i.deleted_at IS NULL), 1)
+             END AS progress",
+            'e.enrolled_at',
+            'e.id',
+        );
+    }
+
+    private function myComplianceStatus(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $self = $criteria->scope->viewerId;
+
+        $row = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS requirements,
+                    COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed') AS pending,
+                    COUNT(*) FILTER (WHERE e.status <> 'completed'
+                        AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE) AS overdue
+             FROM enrollments e JOIN courses c ON c.id = e.course_id
+             WHERE e.user_id = :self AND e.tenant_id = :tenant AND e.deleted_at IS NULL
+               AND (e.is_mandatory OR c.is_mandatory) AND e.status <> 'dropped'",
+            ['self' => $self, 'tenant' => $criteria->scope->tenantId],
+        );
+
+        $row = $row === false ? [] : $row;
+        $requirements = (int) ($row['requirements'] ?? 0);
+        $completed = (int) ($row['completed'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'requirements'   => $requirements,
+                'completed'      => $completed,
+                'pending'        => (int) ($row['pending'] ?? 0),
+                'overdue'        => (int) ($row['overdue'] ?? 0),
+                'complianceRate' => $this->percent($completed, $requirements),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function myLearningTime(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $self = $criteria->scope->viewerId;
+
+        $total = (int) $this->connection->fetchOne(
+            'SELECT COALESCE(SUM(time_spent_seconds), 0) FROM enrollments
+             WHERE user_id = :self AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['self' => $self, 'tenant' => $criteria->scope->tenantId],
+        );
+
+        $byCourse = $this->connection->fetchAllAssociative(
+            "SELECT c.title AS label, e.time_spent_seconds AS value
+             FROM enrollments e JOIN courses c ON c.id = e.course_id
+             WHERE e.user_id = :self AND e.tenant_id = :tenant AND e.deleted_at IS NULL
+               AND e.time_spent_seconds > 0
+             ORDER BY e.time_spent_seconds DESC
+             LIMIT 20",
+            ['self' => $self, 'tenant' => $criteria->scope->tenantId],
+        );
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'totalSeconds' => $total,
+                'totalHours'   => round($total / 3600, 1),
+            ],
+            $this->normalise($byCourse),
+            $criteria,
+        );
+    }
+
+    private function myTranscript(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $self = $criteria->scope->viewerId;
+        $params = ['self' => $self, 'tenant' => $criteria->scope->tenantId];
+
+        $courses = $this->connection->fetchAllAssociative(
+            "SELECT c.title AS course, e.status, e.completed_at AS \"completedAt\"
+             FROM enrollments e JOIN courses c ON c.id = e.course_id
+             WHERE e.user_id = :self AND e.tenant_id = :tenant AND e.deleted_at IS NULL
+               AND e.status = 'completed'
+             ORDER BY e.completed_at DESC",
+            $params,
+        );
+
+        $certificates = $this->connection->fetchAllAssociative(
+            "SELECT number, title, issued_at AS \"issuedAt\", valid_until AS \"validUntil\"
+             FROM certificates WHERE user_id = :self AND tenant_id = :tenant AND status = 'active'
+             ORDER BY issued_at DESC",
+            $params,
+        );
+
+        $assessments = $this->connection->fetchAllAssociative(
+            "SELECT asm.title AS assessment, at.percentage, at.passed
+             FROM attempts at JOIN assessments asm ON asm.id = at.assessment_id
+             WHERE at.user_id = :self AND at.tenant_id = :tenant AND at.status = 'graded'
+             ORDER BY at.submitted_at DESC",
+            $params,
+        );
+
+        return (new ReportResult(
+            definition: $definition,
+            totals: [
+                'completedCourses' => $this->normalise($courses),
+                'certificates'     => $this->normalise($certificates),
+                'assessments'      => $this->normalise($assessments),
+            ],
+            criteria: $criteria,
+        ));
     }
 
     // --- shared plumbing --------------------------------------------------

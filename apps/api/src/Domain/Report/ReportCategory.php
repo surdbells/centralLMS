@@ -33,6 +33,7 @@ enum ReportCategory: string
     case Manager      = 'manager';
     case Cohort       = 'cohort';
     case System       = 'system';
+    case Learner      = 'my';
 
     public function label(): string
     {
@@ -54,6 +55,7 @@ enum ReportCategory: string
             self::Manager     => 'For managers',
             self::Cohort      => 'Cohorts and groups',
             self::System      => 'System',
+            self::Learner     => 'My learning',
         };
     }
 
@@ -77,6 +79,7 @@ enum ReportCategory: string
             self::Manager     => 'One team, for the person who runs it.',
             self::Cohort      => 'Groups measured against each other.',
             self::System      => 'The platform itself — usage and storage.',
+            self::Learner     => 'Your own learning, records and progress.',
         };
     }
 

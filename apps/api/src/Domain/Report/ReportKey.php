@@ -155,6 +155,22 @@ enum ReportKey: string
     case SystemUsage  = 'system_usage';
     case StorageUsage = 'storage_usage';
 
+    // --- my learning (self-service) --------------------------------------
+    case MyLearningSummary     = 'my_learning_summary';
+    case MyEnrolledCourses     = 'my_enrolled_courses';
+    case MyCompletedCourses    = 'my_completed_courses';
+    case MyInProgressCourses   = 'my_in_progress_courses';
+    case MyOverdueCourses      = 'my_overdue_courses';
+    case MyCertificates        = 'my_certificates';
+    case MyExpiringCertificates = 'my_expiring_certificates';
+    case MyBadges              = 'my_badges';
+    case MyPointsSummary       = 'my_points_summary';
+    case MyAssessmentResults   = 'my_assessment_results';
+    case MyLearningPaths       = 'my_learning_paths';
+    case MyComplianceStatus    = 'my_compliance_status';
+    case MyLearningTime        = 'my_learning_time';
+    case MyTranscript          = 'my_transcript';
+
     /**
      * @return list<string>
      */
