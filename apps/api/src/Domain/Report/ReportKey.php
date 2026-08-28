@@ -104,6 +104,13 @@ enum ReportKey: string
     case PathDropOff       = 'path_drop_off';
     case PathEffectiveness = 'path_effectiveness';
 
+    // --- live training ----------------------------------------------------
+    case SessionAttendance       = 'session_attendance';
+    case NoShow                  = 'no_show';
+    case SessionUtilization      = 'session_utilization';
+    case InstructorEffectiveness = 'instructor_effectiveness';
+    case VenueUtilization        = 'venue_utilization';
+
     /**
      * @return list<string>
      */

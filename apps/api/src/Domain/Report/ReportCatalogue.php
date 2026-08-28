@@ -686,6 +686,50 @@ final readonly class ReportCatalogue
                 ReportShape::Table,
                 exportable: true,
             ),
+
+            // --- live training --------------------------------------------
+            new ReportDefinition(
+                ReportKey::SessionAttendance,
+                ReportCategory::Ilt,
+                'Session attendance',
+                'Each session, how many were marked and how many turned up.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::NoShow,
+                ReportCategory::Ilt,
+                'No-shows',
+                'The people marked absent from a session, and where they sit.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::SessionUtilization,
+                ReportCategory::Ilt,
+                'Session utilisation',
+                'How full each session was against the room it booked.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::InstructorEffectiveness,
+                ReportCategory::Ilt,
+                'Instructor effectiveness',
+                'Sessions delivered per instructor, and the attendance they drew.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::VenueUtilization,
+                ReportCategory::Ilt,
+                'Venue utilisation',
+                'How hard each venue is worked, and how full it runs.',
+                ReportShape::Breakdown,
+                exportable: true,
+            ),
         ];
     }
 }

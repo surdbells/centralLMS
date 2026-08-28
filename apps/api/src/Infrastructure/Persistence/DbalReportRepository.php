@@ -141,6 +141,13 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::PathCompletion    => $this->pathCompletion($definition, $criteria),
             ReportKey::PathDropOff       => $this->pathDropOff($definition, $criteria),
             ReportKey::PathEffectiveness => $this->pathEffectiveness($definition, $criteria),
+
+            // --- live training --------------------------------------------
+            ReportKey::SessionAttendance       => $this->sessionAttendance($definition, $criteria),
+            ReportKey::NoShow                  => $this->noShow($definition, $criteria),
+            ReportKey::SessionUtilization      => $this->sessionUtilization($definition, $criteria),
+            ReportKey::InstructorEffectiveness => $this->instructorEffectiveness($definition, $criteria),
+            ReportKey::VenueUtilization        => $this->venueUtilization($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -3213,6 +3220,203 @@ final class DbalReportRepository implements ReportRepository
             'enrolled',
             'p.id',
             'DESC',
+        );
+    }
+
+    // --- live training ----------------------------------------------------
+
+    private function sessionAttendance(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 's')
+            ->betweenDates($criteria, 's.starts_at')
+            ->where('s.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('session', 'Session'),
+            ReportColumn::text('training', 'Programme'),
+            ReportColumn::text('instructor', 'Lead'),
+            ReportColumn::date('startsAt', 'When'),
+            ReportColumn::number('marked', 'Marked'),
+            ReportColumn::number('attended', 'Turned up'),
+            ReportColumn::percent('attendanceRate', 'Attendance'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM training_sessions s
+             JOIN live_trainings lt ON lt.id = s.training_id",
+            $q,
+            "s.title AS session,
+             lt.title AS training,
+             (SELECT trim(u.first_name || ' ' || u.last_name) FROM session_instructors si
+              JOIN users u ON u.id = si.user_id
+              WHERE si.session_id = s.id AND si.role = 'primary' LIMIT 1) AS instructor,
+             s.starts_at AS \"startsAt\",
+             (SELECT COUNT(*) FROM session_attendance a WHERE a.session_id = s.id) AS marked,
+             (SELECT COUNT(*) FROM session_attendance a
+              WHERE a.session_id = s.id AND a.status IN ('present', 'late')) AS attended,
+             CASE WHEN (SELECT COUNT(*) FROM session_attendance a WHERE a.session_id = s.id) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM session_attendance a
+                        WHERE a.session_id = s.id AND a.status IN ('present', 'late'))
+                        / (SELECT COUNT(*) FROM session_attendance a WHERE a.session_id = s.id), 1)
+             END AS \"attendanceRate\"",
+            's.starts_at',
+            's.id',
+        );
+    }
+
+    private function noShow(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'a', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 's.starts_at')
+            ->where("a.status = 'absent'")
+            ->where('s.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('session', 'Session'),
+            ReportColumn::text('training', 'Programme'),
+            ReportColumn::date('startsAt', 'When'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM session_attendance a
+             JOIN training_sessions s ON s.id = a.session_id
+             JOIN live_trainings lt ON lt.id = s.training_id
+             JOIN users u ON u.id = a.user_id
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             s.title AS session,
+             lt.title AS training,
+             s.starts_at AS \"startsAt\"",
+            's.starts_at',
+            'a.id',
+        );
+    }
+
+    private function sessionUtilization(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 's')
+            ->betweenDates($criteria, 's.starts_at')
+            ->where('s.deleted_at IS NULL')
+            // A session with no capacity set has no utilisation to compute —
+            // dividing by it would read as 0% for a full room.
+            ->where('s.venue_capacity IS NOT NULL AND s.venue_capacity > 0');
+
+        $columns = [
+            ReportColumn::text('session', 'Session'),
+            ReportColumn::text('venue', 'Venue'),
+            ReportColumn::number('capacity', 'Capacity'),
+            ReportColumn::number('attended', 'Turned up'),
+            ReportColumn::percent('utilization', 'Utilisation'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM training_sessions s',
+            $q,
+            "s.title AS session,
+             COALESCE(s.venue_name, 'Unnamed') AS venue,
+             s.venue_capacity AS capacity,
+             (SELECT COUNT(*) FROM session_attendance a
+              WHERE a.session_id = s.id AND a.status IN ('present', 'late')) AS attended,
+             round(100.0 * (SELECT COUNT(*) FROM session_attendance a
+                    WHERE a.session_id = s.id AND a.status IN ('present', 'late'))
+                    / s.venue_capacity, 1) AS utilization",
+            's.starts_at',
+            's.id',
+        );
+    }
+
+    private function instructorEffectiveness(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $q = ReportQuery::tenant($criteria, 'si')
+            ->where("si.role = 'primary'");
+
+        $columns = [
+            ReportColumn::text('instructor', 'Instructor'),
+            ReportColumn::number('sessions', 'Sessions'),
+            ReportColumn::number('attended', 'Total attended'),
+            ReportColumn::percent('avgAttendance', 'Avg attendance'),
+        ];
+
+        // One row per lead instructor: how many sessions, how many turned up,
+        // and the average attendance rate across their sessions.
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM session_instructors si
+             JOIN users u ON u.id = si.user_id
+             JOIN training_sessions s ON s.id = si.session_id AND s.deleted_at IS NULL
+             LEFT JOIN session_attendance a ON a.session_id = s.id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS instructor,
+             COUNT(DISTINCT s.id) AS sessions,
+             COUNT(*) FILTER (WHERE a.status IN ('present', 'late')) AS attended,
+             CASE WHEN COUNT(a.id) = 0 THEN 0
+                  ELSE round(100.0 * COUNT(*) FILTER (WHERE a.status IN ('present', 'late'))
+                        / COUNT(a.id), 1)
+             END AS \"avgAttendance\"",
+            'u.id, u.first_name, u.last_name',
+            'sessions DESC',
+        );
+    }
+
+    private function venueUtilization(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 's')
+            ->betweenDates($criteria, 's.starts_at')
+            ->where('s.deleted_at IS NULL')
+            ->where('s.venue_name IS NOT NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT s.venue_name AS venue,
+                        COUNT(*) AS sessions,
+                        SUM(s.venue_capacity) AS seats,
+                        SUM((SELECT COUNT(*) FROM session_attendance a
+                             WHERE a.session_id = s.id AND a.status IN ('present', 'late'))) AS attended
+                 FROM training_sessions s
+                 WHERE %s
+                 GROUP BY s.venue_name
+                 ORDER BY sessions DESC",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                fn (array $r): array => [
+                    'label'       => (string) $r['venue'],
+                    'value'       => (int) $r['sessions'],
+                    'attended'    => (int) $r['attended'],
+                    // Null, not zero, when no capacity is recorded: an unknown
+                    // fill rate is not an empty room.
+                    'utilization' => $r['seats'] === null || (int) $r['seats'] === 0
+                        ? null
+                        : $this->percent((int) $r['attended'], (int) $r['seats']),
+                ],
+                $rows,
+            ),
+            ['venues' => count($rows)],
+            $criteria,
         );
     }
 
