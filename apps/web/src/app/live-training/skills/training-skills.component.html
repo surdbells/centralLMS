@@ -2,6 +2,13 @@
 <app-admintop></app-admintop>
 <main class="main px-lg-6">
   <div class="container-fluid">
+    <!-- The way back. Every one of these is opened from the Live Training
+         admin screen, and only the reports page offered a route home. -->
+    <div class="mb-3">
+      <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
+        <i class="bi bi-arrow-left me-2"></i>Back to Live Training
+      </button>
+    </div>
   <div class="training-skills">
   <!-- Header -->
   <div class="card-header bg-white d-flex justify-content-between align-items-center">

@@ -1,7 +1,8 @@
 // training-skills.component.ts
 // Component for managing training skills assignment
 
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LiveTrainingService } from '../live-training.service';
@@ -21,6 +22,8 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
   styleUrls: ['./training-skills.component.scss']
 })
 export class TrainingSkillsComponent implements OnInit {
+  private readonly router = inject(Router);
+
   @Input() trainingId!: string;
 
   // Assigned skills
@@ -149,5 +152,10 @@ export class TrainingSkillsComponent implements OnInit {
 
   getProficiencyDisplayName(level: string): string {
     return this.liveTrainingService.getProficiencyDisplayName(level);
+  }
+
+  /** Back to the programme list this screen was opened from. */
+  goBack(): void {
+    void this.router.navigate(['/live-training/admin']);
   }
 }

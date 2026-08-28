@@ -3,6 +3,7 @@
 
 import { Routes } from '@angular/router';
 import { AdminLiveTrainingComponent } from './admin/admin-live-training.component';
+import { TrainingFormComponent } from './training-form/training-form.component';
 import { LearnerLiveTrainingComponent } from './learner/learner-live-training.component';
 import { InstructorDashboardComponent } from './instructor/instructor-dashboard.component';
 import { TrainingReportsComponent } from './reports/training-reports.component';
@@ -12,6 +13,20 @@ import {TrainingEnrollmentComponent} from './training-enrollment/training-enroll
 import {TrainingSkillsComponent} from './skills/training-skills.component';
 
 export const LIVE_TRAINING_ROUTES: Routes = [
+  // Setting one up. Declared before `admin/:trainingId`, because a
+  // parameter matches anything and `admin/new` would otherwise open the
+  // admin screen for a programme called "new".
+  {
+    path: 'admin/new',
+    component: TrainingFormComponent,
+    data: { title: 'New live training' }
+  },
+  {
+    path: 'admin/:trainingId/edit',
+    component: TrainingFormComponent,
+    data: { title: 'Edit live training' }
+  },
+
   // Admin Routes
   {
     path: 'admin',

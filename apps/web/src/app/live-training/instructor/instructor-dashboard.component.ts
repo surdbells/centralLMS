@@ -1,6 +1,7 @@
 // live-training/instructor/instructor-dashboard.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -28,6 +29,8 @@ interface InstructorSession extends TrainingSession {
 
 })
 export class InstructorDashboardComponent implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+
   private destroy$ = new Subject<void>();
 
   // Data
@@ -469,5 +472,10 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
   trackByInstructorId(index: number, item: SessionInstructor): string {
     return String(item.id);
+  }
+
+  /** Back to the programme list this screen was opened from. */
+  goBack(): void {
+    void this.router.navigate(['/live-training/admin']);
   }
 }

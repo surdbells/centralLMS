@@ -1,6 +1,7 @@
 // training-enrollment/training-enrollment.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -28,6 +29,8 @@ type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
   styleUrls: ['./training-enrollment.component.scss']
 })
 export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
 
@@ -386,5 +389,10 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
 
   startNewEnrollment(): void {
     this.closeResultModal();
+  }
+
+  /** Back to the programme list this screen was opened from. */
+  goBack(): void {
+    void this.router.navigate(['/live-training/admin']);
   }
 }

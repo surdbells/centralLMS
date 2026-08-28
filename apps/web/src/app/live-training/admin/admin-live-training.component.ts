@@ -1,6 +1,7 @@
 // live-training/admin/admin-live-training.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
@@ -26,6 +27,8 @@ import {RouterLink} from '@angular/router';
   styleUrls: ['./admin-live-training.component.scss']
 })
 export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+
   private destroy$ = new Subject<void>();
 
   // Data
@@ -238,30 +241,20 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // TRAINING CRUD
   // ==========================================
 
+  /**
+   * Setting up a programme is a page now, not a dialogue.
+   *
+   * Nineteen fields is more than a modal should hold: it cannot be linked
+   * to, cannot be returned to, and loses everything typed to a stray click
+   * on the backdrop. The method names are kept because the template calls
+   * them.
+   */
   openNewTrainingModal(): void {
-    this.isEditMode = false;
-    this.editingTraining = {
-      title: '',
-      description: '',
-      training_type: 'virtual',
-      status: 'draft',
-      certification_enabled: false,
-      min_attendance_percentage: 80,
-      reminder_24h: true,
-      reminder_1h: true,
-      reminder_15m: false,
-      reminder_channels: ['email', 'in_app'],
-      qr_grace_period_minutes: 15,
-      qr_valid_before_start_minutes: 30,
-      min_virtual_duration_minutes: 30
-    };
-    this.showTrainingModal = true;
+    void this.router.navigate(['/live-training/admin/new']);
   }
 
   openEditTrainingModal(training: LiveTraining): void {
-    this.isEditMode = true;
-    this.editingTraining = { ...training };
-    this.showTrainingModal = true;
+    void this.router.navigate(['/live-training/admin', training.training_id, 'edit']);
   }
 
   closeTrainingModal(): void {

@@ -1,6 +1,7 @@
 // live-training/integrations/integrations-settings.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -38,6 +39,8 @@ interface TestMeetingForm {
 
 })
 export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
+  private readonly router = inject(Router);
+
   private destroy$ = new Subject<void>();
 
   platforms: PlatformConfig[] = [
@@ -403,5 +406,10 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
       hour: 'numeric',
       minute: '2-digit'
     });
+  }
+
+  /** Back to the programme list this screen was opened from. */
+  goBack(): void {
+    void this.router.navigate(['/live-training/admin']);
   }
 }
