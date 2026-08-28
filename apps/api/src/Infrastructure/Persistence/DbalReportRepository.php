@@ -76,7 +76,12 @@ final class DbalReportRepository implements ReportRepository
             // --- compliance -----------------------------------------------
             ReportKey::MandatoryCompliance    => $this->mandatoryCompliance($definition, $criteria),
             ReportKey::NonCompliantUsers      => $this->nonCompliantUsers($definition, $criteria),
-            ReportKey::ComplianceByDepartment => $this->complianceByDepartment($definition, $criteria),
+            ReportKey::ComplianceByDepartment => $this->complianceByUnit($definition, $criteria, 'department'),
+            ReportKey::ComplianceByBranch     => $this->complianceByUnit($definition, $criteria, 'branch'),
+            ReportKey::ComplianceByTeam       => $this->complianceByUnit($definition, $criteria, 'team'),
+            ReportKey::ComplianceStatusDashboard => $this->complianceStatusDashboard($definition, $criteria),
+            ReportKey::RegulatoryTrainingAudit   => $this->regulatoryTrainingAudit($definition, $criteria),
+            ReportKey::ComplianceExecutiveSummary => $this->complianceExecutiveSummary($definition, $criteria),
             ReportKey::ComplianceGapAnalysis  => $this->complianceGapAnalysis($definition, $criteria),
             ReportKey::CertificationExpiry    => $this->certificationExpiry($definition, $criteria),
             ReportKey::RecertificationDue     => $this->recertificationDue($definition, $criteria),
@@ -929,8 +934,24 @@ final class DbalReportRepository implements ReportRepository
         );
     }
 
-    private function complianceByDepartment(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
-    {
+    /**
+     * Mandatory completion grouped by one organisational unit.
+     *
+     * One method for department, branch and team: the query is the same but
+     * for which column names the group, and three copies would be three places
+     * for the compliance-rate formula to drift.
+     */
+    private function complianceByUnit(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+        string $unit,
+    ): ReportResult {
+        $column = match ($unit) {
+            'branch' => 'u.branch_id',
+            'team'   => 'u.team_id',
+            default  => 'u.department_id',
+        };
+
         $q = ReportQuery::tenant($criteria, 'e', 'u')
             ->withScopeFilters($criteria, 'u', 'c')
             ->where('e.deleted_at IS NULL')
@@ -938,7 +959,7 @@ final class DbalReportRepository implements ReportRepository
             ->where("e.status <> 'dropped'");
 
         $columns = [
-            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('unit', ucfirst($unit)),
             ReportColumn::number('people', 'People'),
             ReportColumn::number('requirements', 'Requirements'),
             ReportColumn::number('completed', 'Completed'),
@@ -951,12 +972,15 @@ final class DbalReportRepository implements ReportRepository
             $definition,
             $criteria,
             $columns,
-            'FROM enrollments e
-             JOIN users u ON u.id = e.user_id
-             JOIN courses c ON c.id = e.course_id
-             LEFT JOIN lookups d ON d.id = u.department_id',
+            sprintf(
+                'FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 LEFT JOIN lookups d ON d.id = %s',
+                $column,
+            ),
             $q,
-            "COALESCE(d.name, 'Unassigned') AS department,
+            "COALESCE(d.name, 'Unassigned') AS unit,
              COUNT(DISTINCT e.user_id)      AS people,
              COUNT(*)                       AS requirements,
              COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
@@ -968,6 +992,200 @@ final class DbalReportRepository implements ReportRepository
              COUNT(DISTINCT e.user_id) FILTER (WHERE e.status <> 'completed') AS \"peopleOutstanding\"",
             'd.id, d.name',
             '"complianceRate" ASC NULLS FIRST',
+        );
+    }
+
+    private function complianceStatusDashboard(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status <> 'dropped'");
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(DISTINCT e.user_id) AS people,
+                        COUNT(*) AS requirements,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        COUNT(*) FILTER (WHERE e.status <> 'completed') AS pending,
+                        COUNT(*) FILTER (WHERE e.status <> 'completed'
+                            AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE) AS overdue,
+                        COUNT(DISTINCT e.user_id) FILTER (
+                            WHERE e.status <> 'completed'
+                              AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE
+                        ) AS people_overdue
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row = $row === false ? [] : $row;
+        $requirements = (int) ($row['requirements'] ?? 0);
+        $completed = (int) ($row['completed'] ?? 0);
+
+        // The picture broken down by course, so the dashboard is not just one
+        // number but says which mandatory course is dragging it down.
+        $byCourse = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT c.title AS label,
+                        COUNT(*) AS value,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s
+                 GROUP BY c.title
+                 ORDER BY (COUNT(*) FILTER (WHERE e.status = 'completed')::numeric
+                           / NULLIF(COUNT(*), 0)) ASC NULLS FIRST
+                 LIMIT 20",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'people'         => (int) ($row['people'] ?? 0),
+                'requirements'   => $requirements,
+                'completed'      => $completed,
+                'pending'        => (int) ($row['pending'] ?? 0),
+                'overdue'        => (int) ($row['overdue'] ?? 0),
+                'peopleOverdue'  => (int) ($row['people_overdue'] ?? 0),
+                'complianceRate' => $this->percent($completed, $requirements),
+            ],
+            array_map(
+                fn (array $r): array => [
+                    'label'          => (string) $r['label'],
+                    'value'          => (int) $r['value'],
+                    'completionRate' => $this->percent((int) $r['completed'], (int) $r['value']),
+                ],
+                $byCourse,
+            ),
+            $criteria,
+        );
+    }
+
+    private function regulatoryTrainingAudit(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.completed_at')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status = 'completed'");
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::date('completedAt', 'Completed'),
+            ReportColumn::text('certificate', 'Certificate'),
+            ReportColumn::date('certificateExpiry', 'Expires'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN certificates cert ON cert.user_id = e.user_id AND cert.course_id = e.course_id
+                                        AND cert.status = 'active'",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email AS email,
+             d.name AS department,
+             c.title AS course,
+             e.completed_at AS \"completedAt\",
+             cert.number AS certificate,
+             cert.valid_until AS \"certificateExpiry\"",
+            'e.completed_at',
+            'e.id',
+        );
+    }
+
+    private function complianceExecutiveSummary(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status <> 'dropped'");
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(DISTINCT e.user_id) AS people,
+                        COUNT(*) AS requirements,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        COUNT(*) FILTER (WHERE e.status <> 'completed'
+                            AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE) AS overdue
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row = $row === false ? [] : $row;
+        $requirements = (int) ($row['requirements'] ?? 0);
+        $completed = (int) ($row['completed'] ?? 0);
+
+        // The branches furthest behind, worst first — where an executive
+        // looks after the headline rate. Named so the client can re-request
+        // the leaf learner list scoped to that branch.
+        $worstBranches = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT COALESCE(d.name, 'Unassigned') AS label,
+                        u.branch_id AS \"branchId\",
+                        COUNT(*) AS requirements,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                              / NULLIF(COUNT(*), 0), 1) AS \"complianceRate\"
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 LEFT JOIN lookups d ON d.id = u.branch_id
+                 WHERE %s
+                 GROUP BY u.branch_id, d.name
+                 ORDER BY \"complianceRate\" ASC NULLS FIRST
+                 LIMIT 10",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'people'         => (int) ($row['people'] ?? 0),
+                'requirements'   => $requirements,
+                'completed'      => $completed,
+                'overdue'        => (int) ($row['overdue'] ?? 0),
+                'complianceRate' => $this->percent($completed, $requirements),
+            ],
+            $this->normalise($worstBranches),
+            $criteria,
         );
     }
 

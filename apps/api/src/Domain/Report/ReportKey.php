@@ -111,6 +111,13 @@ enum ReportKey: string
     case InstructorEffectiveness = 'instructor_effectiveness';
     case VenueUtilization        = 'venue_utilization';
 
+    // --- compliance (extended) -------------------------------------------
+    case ComplianceByBranch      = 'compliance_by_branch';
+    case ComplianceByTeam        = 'compliance_by_team';
+    case ComplianceStatusDashboard = 'compliance_status_dashboard';
+    case RegulatoryTrainingAudit = 'regulatory_training_audit';
+    case ComplianceExecutiveSummary = 'compliance_executive_summary';
+
     /**
      * @return list<string>
      */
