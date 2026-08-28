@@ -340,6 +340,15 @@ export const Endpoints = {
     qr: (trainingId: string, id: string) => `/trainings/${trainingId}/sessions/${id}/qr`,
     reminders: (trainingId: string, id: string) =>
       `/trainings/${trainingId}/sessions/${id}/reminders`,
+
+    /**
+     * Who teaches it: a lead, co-instructors, assistants. One of them holds
+     * the meeting's host link, because the provider only issues one.
+     */
+    instructors: (trainingId: string, id: string) =>
+      `/trainings/${trainingId}/sessions/${id}/instructors`,
+    removeInstructor: (trainingId: string, id: string, userId: string) =>
+      `/trainings/${trainingId}/sessions/${id}/instructors/${userId}`,
   },
 
   attendance: {

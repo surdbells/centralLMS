@@ -9,6 +9,7 @@ use Central\Api\Domain\Ilt\AttendanceCalculator;
 use Central\Api\Domain\Ilt\AttendanceMode;
 use Central\Api\Domain\Ilt\AttendanceStatus;
 use Central\Api\Domain\Ilt\AttendanceSummary;
+use Central\Api\Domain\Ilt\InstructorRole;
 use Central\Api\Domain\Ilt\LiveTraining;
 use Central\Api\Domain\Ilt\Meeting;
 use Central\Api\Domain\Ilt\MeetingProviderId;
@@ -19,6 +20,7 @@ use Central\Api\Domain\Ilt\TrainingSession;
 use Central\Api\Domain\Ilt\TrainingStatus;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 
 final class DbalTrainingRepository implements TrainingRepository
 {
@@ -41,8 +43,20 @@ final class DbalTrainingRepository implements TrainingRepository
               AND e.status <> 'dropped' AND NOT e.waitlisted
         ) AS enrolled_count";
 
+    /**
+     * The lead instructor, read from the roster rather than kept beside it.
+     *
+     * Two places recording who teaches a session is two answers to the
+     * question, and the one that gets updated is whichever the last person to
+     * touch the code remembered.
+     */
+    private const SESSION_INSTRUCTOR = "(
+            SELECT i.user_id FROM session_instructors i
+            WHERE i.session_id = training_sessions.id AND i.role = 'primary'
+        ) AS instructor_id";
+
     private const SESSION_COLUMNS = 'id, tenant_id, training_id, title, description, sequence,
-                                     delivery, starts_at, ends_at, timezone, instructor_id,
+                                     delivery, starts_at, ends_at, timezone,
                                      venue_name, venue_address, venue_room, venue_capacity, venue_map_url,
                                      platform, integration_id, external_meeting_id, join_url, host_url,
                                      meeting_password, meeting_scheduled_at, meeting_error,
@@ -220,10 +234,11 @@ final class DbalTrainingRepository implements TrainingRepository
     {
         $rows = $this->connection->fetchAllAssociative(
             sprintf(
-                'SELECT %s FROM training_sessions
+                'SELECT %s, %s FROM training_sessions
                  WHERE training_id = :training AND tenant_id = :tenant AND deleted_at IS NULL
                  ORDER BY sequence ASC, starts_at ASC',
                 self::SESSION_COLUMNS,
+                self::SESSION_INSTRUCTOR,
             ),
             ['training' => $trainingId, 'tenant' => $tenantId],
         );
@@ -235,9 +250,10 @@ final class DbalTrainingRepository implements TrainingRepository
     {
         $row = $this->connection->fetchAssociative(
             sprintf(
-                'SELECT %s FROM training_sessions
+                'SELECT %s, %s FROM training_sessions
                  WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
                 self::SESSION_COLUMNS,
+                self::SESSION_INSTRUCTOR,
             ),
             ['id' => $id, 'tenant' => $tenantId],
         );
@@ -250,7 +266,7 @@ final class DbalTrainingRepository implements TrainingRepository
         $id = $this->connection->fetchOne(
             'INSERT INTO training_sessions
                  (tenant_id, training_id, title, description, sequence, delivery,
-                  starts_at, ends_at, timezone, instructor_id,
+                  starts_at, ends_at, timezone,
                   venue_name, venue_address, venue_room, venue_capacity, venue_map_url,
                   is_mandatory, allow_late_join, late_threshold_minutes)
              VALUES (:tenant, :training, :title, :description,
@@ -258,7 +274,7 @@ final class DbalTrainingRepository implements TrainingRepository
                          SELECT COALESCE(MAX(sequence), 0) + 1
                          FROM training_sessions WHERE training_id = :training AND deleted_at IS NULL
                      )),
-                     :delivery, :startsAt, :endsAt, :timezone, :instructor,
+                     :delivery, :startsAt, :endsAt, :timezone,
                      :venueName, :venueAddress, :venueRoom, :venueCapacity, :venueMapUrl,
                      :mandatory, :lateJoin, :lateThreshold)
              RETURNING id',
@@ -266,6 +282,8 @@ final class DbalTrainingRepository implements TrainingRepository
                 'sequence' => $session->sequence > 1 ? $session->sequence : null,
             ],
         );
+
+        $this->syncLeadInstructor($session->tenantId, (string) $id, $session->instructorId);
 
         return $this->findSession($session->tenantId, (string) $id)
             ?? throw new \RuntimeException('Newly created session could not be read back.');
@@ -277,7 +295,7 @@ final class DbalTrainingRepository implements TrainingRepository
             'UPDATE training_sessions SET
                 title = :title, description = :description, sequence = :sequence,
                 delivery = :delivery, starts_at = :startsAt, ends_at = :endsAt,
-                timezone = :timezone, instructor_id = :instructor,
+                timezone = :timezone,
                 venue_name = :venueName, venue_address = :venueAddress, venue_room = :venueRoom,
                 venue_capacity = :venueCapacity, venue_map_url = :venueMapUrl,
                 is_mandatory = :mandatory, allow_late_join = :lateJoin,
@@ -293,8 +311,140 @@ final class DbalTrainingRepository implements TrainingRepository
             throw new \RuntimeException('Updated session could not be found.');
         }
 
+        $this->syncLeadInstructor($session->tenantId, $session->id, $session->instructorId);
+
         return $this->findSession($session->tenantId, $session->id)
             ?? throw new \RuntimeException('Updated session could not be read back.');
+    }
+
+    /**
+     * Keeps the session form's single "instructor" field and the roster in
+     * step.
+     *
+     * The form names one person; the roster may hold several. Saving the form
+     * makes the named person the lead and the host, and leaves everybody else
+     * on the session alone — clearing the roster because somebody edited the
+     * start time would be a surprising thing for a date picker to do.
+     *
+     * A null instructor means the form left it blank, which is not the same as
+     * "remove whoever is teaching this" and does not become it.
+     */
+    private function syncLeadInstructor(string $tenantId, string $sessionId, ?string $userId): void
+    {
+        if ($userId === null) {
+            return;
+        }
+
+        $this->assignInstructor($tenantId, $sessionId, $userId, InstructorRole::Primary, true);
+    }
+
+    // --- who teaches it ---------------------------------------------------
+
+    public function instructorsFor(string $tenantId, string $sessionId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT i.session_id, i.user_id, i.role, i.is_host, i.created_at,
+                    u.first_name, u.last_name, u.email, u.avatar_url
+             FROM session_instructors i
+             JOIN users u ON u.id = i.user_id
+             WHERE i.session_id = :session AND i.tenant_id = :tenant
+               AND u.deleted_at IS NULL
+             ORDER BY CASE i.role
+                          WHEN 'primary' THEN 0
+                          WHEN 'co_instructor' THEN 1
+                          ELSE 2
+                      END,
+                      u.first_name",
+            ['session' => $sessionId, 'tenant' => $tenantId],
+        );
+
+        return array_map(static fn (array $row): array => [
+            'sessionId' => (string) $row['session_id'],
+            'userId'    => (string) $row['user_id'],
+            'role'      => (string) $row['role'],
+            'roleLabel' => InstructorRole::from((string) $row['role'])->label(),
+            'isHost'    => (bool) $row['is_host'],
+            'firstName' => (string) $row['first_name'],
+            'lastName'  => (string) $row['last_name'],
+            'email'     => (string) $row['email'],
+            'avatarUrl' => $row['avatar_url'] === null ? null : (string) $row['avatar_url'],
+            'addedAt'   => (string) $row['created_at'],
+        ], $rows);
+    }
+
+    public function assignInstructor(
+        string $tenantId,
+        string $sessionId,
+        string $userId,
+        InstructorRole $role,
+        bool $isHost,
+    ): bool {
+        return (bool) $this->connection->transactional(
+            function (Connection $tx) use ($tenantId, $sessionId, $userId, $role, $isHost): bool {
+                $exists = (bool) $tx->fetchOne(
+                    'SELECT 1 FROM training_sessions
+                     WHERE id = :session AND tenant_id = :tenant AND deleted_at IS NULL',
+                    ['session' => $sessionId, 'tenant' => $tenantId],
+                );
+
+                if (!$exists) {
+                    return false;
+                }
+
+                // Naming a new lead moves the old one aside rather than being
+                // refused: an administrator changing who runs a workshop means
+                // to change it, and being made to demote the previous lead
+                // first is a step with no decision in it.
+                if ($role->isExclusive()) {
+                    $tx->executeStatement(
+                        "UPDATE session_instructors SET role = 'co_instructor'
+                         WHERE session_id = :session AND role = 'primary' AND user_id <> :user",
+                        ['session' => $sessionId, 'user' => $userId],
+                    );
+                }
+
+                // The same for the host, which the provider can only issue
+                // once — two hosts is a state it cannot represent, and the
+                // second would simply not work on the morning.
+                if ($isHost) {
+                    $tx->executeStatement(
+                        'UPDATE session_instructors SET is_host = FALSE
+                         WHERE session_id = :session AND user_id <> :user',
+                        ['session' => $sessionId, 'user' => $userId],
+                    );
+                }
+
+                $tx->executeStatement(
+                    'INSERT INTO session_instructors (session_id, user_id, tenant_id, role, is_host)
+                     VALUES (:session, :user, :tenant, :role, :host)
+                     ON CONFLICT (session_id, user_id) DO UPDATE SET
+                         role = EXCLUDED.role, is_host = EXCLUDED.is_host',
+                    [
+                        'session' => $sessionId,
+                        'user'    => $userId,
+                        'tenant'  => $tenantId,
+                        'role'    => $role->value,
+                        'host'    => $isHost,
+                    ],
+                    ['host' => ParameterType::BOOLEAN],
+                );
+
+                return true;
+            },
+        );
+    }
+
+    public function removeInstructor(string $tenantId, string $sessionId, string $userId): bool
+    {
+        // No promotion afterwards. A session left with no lead is visibly
+        // wrong on the screen, which is the right place for somebody to
+        // decide who takes over — guessing would put a name on it that
+        // nobody chose.
+        return $this->connection->executeStatement(
+            'DELETE FROM session_instructors
+             WHERE session_id = :session AND user_id = :user AND tenant_id = :tenant',
+            ['session' => $sessionId, 'user' => $userId, 'tenant' => $tenantId],
+        ) > 0;
     }
 
     public function saveMeeting(
@@ -389,9 +539,10 @@ final class DbalTrainingRepository implements TrainingRepository
     {
         $row = $this->connection->fetchAssociative(
             sprintf(
-                'SELECT %s FROM training_sessions
+                'SELECT %s, %s FROM training_sessions
                  WHERE qr_token = :token AND tenant_id = :tenant AND deleted_at IS NULL',
                 self::SESSION_COLUMNS,
+                self::SESSION_INSTRUCTOR,
             ),
             ['token' => $token, 'tenant' => $tenantId],
         );
@@ -680,10 +831,11 @@ final class DbalTrainingRepository implements TrainingRepository
 
         $rows = $this->connection->fetchAllAssociative(
             sprintf(
-                'SELECT %s FROM training_sessions
+                'SELECT %s, %s FROM training_sessions
                  WHERE tenant_id = :tenant AND training_id IN (:ids) AND deleted_at IS NULL
                  ORDER BY starts_at',
                 self::SESSION_COLUMNS,
+                self::SESSION_INSTRUCTOR,
             ),
             ['tenant' => $tenantId, 'ids' => array_values(array_unique($trainingIds))],
             ['ids' => ArrayParameterType::STRING],
@@ -1042,7 +1194,6 @@ final class DbalTrainingRepository implements TrainingRepository
             'startsAt'    => $s->startsAt->format(\DateTimeInterface::ATOM),
             'endsAt'      => $s->endsAt->format(\DateTimeInterface::ATOM),
             'timezone'    => $s->timezone,
-            'instructor'  => $s->instructorId,
             'venueName'    => $s->venueName,
             'venueAddress' => $s->venueAddress,
             'venueRoom'    => $s->venueRoom,

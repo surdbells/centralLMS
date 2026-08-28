@@ -1165,11 +1165,24 @@ return static function (App $app): void {
                     // Sessions.
                     $one->post('/sessions', [ManageSessionsAction::class, 'create'])->setName('sessions.create');
 
-                    $one->group('/sessions/{sessionId:' . $uuid . '}', function (RouteCollectorProxy $s): void {
+                    $one->group('/sessions/{sessionId:' . $uuid . '}', function (RouteCollectorProxy $s) use ($uuid): void {
                         $s->put('', [ManageSessionsAction::class, 'update'])->setName('sessions.update');
                         $s->patch('/status', [ManageSessionsAction::class, 'setStatus'])->setName('sessions.status');
                         $s->post('/meeting', [ManageSessionsAction::class, 'meeting'])->setName('sessions.meeting');
                         $s->post('/qr', [ManageSessionsAction::class, 'issueQr'])->setName('sessions.qr');
+
+                        // A session can be taught by more than one person: a
+                        // lead, co-instructors, assistants. One of them holds
+                        // the meeting's host link, because the provider only
+                        // issues one.
+                        $s->get('/instructors', [ManageSessionsAction::class, 'instructors'])
+                            ->setName('sessions.instructors');
+                        $s->post('/instructors', [ManageSessionsAction::class, 'assignInstructor'])
+                            ->setName('sessions.instructors.assign');
+                        $s->delete(
+                            '/instructors/{userId:' . $uuid . '}',
+                            [ManageSessionsAction::class, 'removeInstructor'],
+                        )->setName('sessions.instructors.remove');
 
                         // What reminders are planned, and whether they went
                         // out. The legacy could not answer either question.

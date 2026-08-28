@@ -674,29 +674,52 @@ export class LiveTrainingService {
   // NOT BUILT
   // ==========================================
   //
-  // Instructor assignment and the skills a programme confers each had legacy
-  // actions and neither has a table on this side. A session names one
-  // `instructorId`, and that is the whole of what the schema models. These
-  // say so rather than resolving empty.
+  // The skills a programme confers had a legacy action and no table on this
+  // side. These say so rather than resolving empty — a skills list that
+  // renders empty because the feature does not exist is indistinguishable
+  // from a programme that confers none.
 
+  /**
+   * Puts somebody on a session, or changes what they do on it.
+   *
+   * A session has one lead and one host. Naming a new lead moves the old one
+   * to co-instructor rather than refusing, and the same for the host, which
+   * the meeting provider can only issue once.
+   *
+   * The programme id is on the session; it is a parameter rather than a
+   * lookup so this does not cost a round trip to learn something the caller
+   * already has.
+   */
   assignInstructor(
-    _session_id: string,
-    _instructor_id: string,
-    _role = 'primary',
-    _is_host = false,
+    session_id: string,
+    instructor_id: string,
+    role = 'primary',
+    is_host = false,
+    training_id = '',
   ): Observable<void> {
-    return notAvailable('Assigning more than one instructor to a session');
+    return this.api
+      .post(Endpoints.sessions.instructors(training_id, session_id), {
+        userId: instructor_id,
+        role,
+        isHost: is_host,
+      })
+      .pipe(map(() => undefined));
   }
 
-  removeInstructor(_session_id: string, _instructor_id: string): Observable<void> {
-    return notAvailable('Assigning more than one instructor to a session');
+  removeInstructor(
+    session_id: string,
+    instructor_id: string,
+    training_id = '',
+  ): Observable<void> {
+    return this.api
+      .delete(Endpoints.sessions.removeInstructor(training_id, session_id, instructor_id))
+      .pipe(map(() => undefined));
   }
 
-  getSessionInstructors(_session_id: string): Observable<SessionInstructor[]> {
-    // A session has one instructor, named on the session itself. Empty rather
-    // than loud: this is read on a screen that draws a list, and a list with
-    // one entry already comes from the session.
-    return of([]);
+  getSessionInstructors(session_id: string, training_id = ''): Observable<SessionInstructor[]> {
+    return this.api
+      .get<InstructorPayload[]>(Endpoints.sessions.instructors(training_id, session_id))
+      .pipe(map((rows) => (rows ?? []).map(toSessionInstructor)));
   }
 
   /**
@@ -1162,6 +1185,32 @@ function fromRule(rule: EnrollmentRule): Record<string, unknown> {
   }
 
   return { targetType: target, targetCriteria: criteria };
+}
+
+interface InstructorPayload extends Record<string, any> {
+  userId: string;
+}
+
+/**
+ * Somebody teaching a session, as the roster screen reads them.
+ *
+ * `id` and `instructor_id` are the same person twice: the screen asks for
+ * both and each template happens to use one. They are filled from the single
+ * field the API sends rather than allowed to drift.
+ */
+function toSessionInstructor(row: InstructorPayload): SessionInstructor {
+  return {
+    id: row.userId as unknown as number,
+    instructor_id: row.userId,
+    session_id: row['sessionId'] ?? '',
+    user_id: row.userId,
+    role: (row['role'] ?? 'primary') as SessionInstructor['role'],
+    is_host: row['isHost'] === true,
+    first_name: row['firstName'] ?? '',
+    last_name: row['lastName'] ?? '',
+    email: row['email'] ?? '',
+    profile_image: row['avatarUrl'] ?? null,
+  };
 }
 
 /** Something with no server behind it, said out loud rather than left empty. */

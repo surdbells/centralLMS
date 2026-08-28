@@ -9,6 +9,7 @@ use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
+use Central\Api\Domain\Ilt\InstructorRole;
 use Central\Api\Domain\Ilt\MeetingProviderId;
 use Central\Api\Domain\Ilt\SessionStatus;
 use Central\Api\Domain\Ilt\TrainingSession;
@@ -24,6 +25,8 @@ use Ramsey\Uuid\Uuid;
  * PATCH /v1/trainings/{id}/sessions/{sessionId}/status
  * POST  /v1/trainings/{id}/sessions/{sessionId}/meeting   book or retry
  * POST  /v1/trainings/{id}/sessions/{sessionId}/qr        issue a door code
+ * GET   /v1/trainings/{id}/sessions/{sessionId}/instructors
+ * POST  /v1/trainings/{id}/sessions/{sessionId}/instructors
  *
  * Creating an online session books a real meeting through the provider layer.
  * That is the change: the legacy code returned `https://meet.example.com/`
@@ -186,6 +189,97 @@ final class ManageSessionsAction extends TrainingAction
         }
 
         return Json::ok($response, $updated->toArray(includeHostUrl: true));
+    }
+
+    // --- who teaches it ---------------------------------------------------
+
+    /**
+     * Everybody teaching this session, the lead first.
+     *
+     * @param array<string, string> $args
+     */
+    public function instructors(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::IltSessionView);
+
+        $session = $this->requireSession($request, $args['id'] ?? '', $args['sessionId'] ?? '');
+
+        return Json::ok($response, $this->trainings->instructorsFor(
+            $this->tenantId($request),
+            $session->id,
+        ));
+    }
+
+    /**
+     * Puts somebody on a session, or changes what they do on it.
+     *
+     * @param array<string, string> $args
+     */
+    public function assignInstructor(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::IltSessionManage);
+
+        $tenantId = $this->tenantId($request);
+        $session = $this->requireSession($request, $args['id'] ?? '', $args['sessionId'] ?? '');
+        $body = $this->body($request);
+
+        $userId = trim((string) ($body['userId'] ?? ''));
+
+        if ($userId === '') {
+            throw ValidationFailed::fromArray(['userId' => 'Choose somebody.']);
+        }
+
+        $role = InstructorRole::tryFrom((string) ($body['role'] ?? 'primary'));
+
+        if ($role === null) {
+            throw ValidationFailed::fromArray([
+                'role' => 'Choose one of: ' . implode(', ', InstructorRole::values()),
+            ]);
+        }
+
+        $assigned = $this->trainings->assignInstructor(
+            $tenantId,
+            $session->id,
+            $userId,
+            $role,
+            (bool) ($body['isHost'] ?? false),
+        );
+
+        if (!$assigned) {
+            throw new EntityNotFound('Session', $session->id);
+        }
+
+        return Json::ok($response, $this->trainings->instructorsFor($tenantId, $session->id));
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function removeInstructor(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::IltSessionManage);
+
+        $tenantId = $this->tenantId($request);
+        $session = $this->requireSession($request, $args['id'] ?? '', $args['sessionId'] ?? '');
+        $userId = $args['userId'] ?? '';
+
+        if (!$this->trainings->removeInstructor($tenantId, $session->id, $userId)) {
+            throw new EntityNotFound('Instructor', $userId);
+        }
+
+        // No promotion afterwards. A session left with no lead is visibly
+        // wrong on the screen, which is the right place for somebody to decide
+        // who takes over.
+        return Json::ok($response, $this->trainings->instructorsFor($tenantId, $session->id));
     }
 
     /**

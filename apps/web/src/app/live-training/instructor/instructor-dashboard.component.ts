@@ -375,8 +375,8 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   // INSTRUCTOR MANAGEMENT
   // ==========================================
 
-  loadSessionInstructors(session_id: string): void {
-    this.liveTrainingService.getSessionInstructors(session_id)
+  loadSessionInstructors(session_id: string, training_id = ''): void {
+    this.liveTrainingService.getSessionInstructors(session_id, training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: instructors => {

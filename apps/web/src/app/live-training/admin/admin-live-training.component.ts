@@ -761,7 +761,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
   openInstructorModal(session: TrainingSession): void {
     this.selectedSession = session;
-    this.loadSessionInstructors(session.session_id);
+    this.loadSessionInstructors(session.session_id, session.training_id);
     this.showInstructorModal = true;
     this.newInstructorId = null;
     this.newInstructorRole = 'primary';
@@ -774,8 +774,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     this.selectedSession = null;
   }
 
-  loadSessionInstructors(session_id: string): void {
-    this.liveTrainingService.getSessionInstructors(session_id)
+  loadSessionInstructors(session_id: string, training_id = ''): void {
+    this.liveTrainingService.getSessionInstructors(session_id, training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: instructors => {
@@ -793,12 +793,13 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       this.selectedSession.session_id,
       this.newInstructorId,
       this.newInstructorRole,
-      this.newInstructorIsHost
+      this.newInstructorIsHost,
+      this.selectedSession.training_id
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
           this.saving = false;
-          this.loadSessionInstructors(this.selectedSession!.session_id);
+          this.loadSessionInstructors(this.selectedSession!.session_id, this.selectedSession!.training_id);
           this.newInstructorId = null;
           this.newInstructorRole = 'primary';
           this.newInstructorIsHost = false;
@@ -816,11 +817,12 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
     this.liveTrainingService.removeInstructor(
       this.selectedSession.session_id,
-      String(instructor.id)
+      String(instructor.instructor_id ?? instructor.id),
+      this.selectedSession.training_id
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.loadSessionInstructors(this.selectedSession!.session_id);
+          this.loadSessionInstructors(this.selectedSession!.session_id, this.selectedSession!.training_id);
         },
         error: err => console.error('Error removing instructor:', err)
       });

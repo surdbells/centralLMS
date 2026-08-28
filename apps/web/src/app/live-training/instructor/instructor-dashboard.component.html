@@ -152,7 +152,7 @@
                       *ngIf="session.session_type !== 'virtual'" title="QR Code">
                 <i class="bi bi-qr-code"></i>
               </button>
-              <button class="btn btn-outline-info btn-sm" (click)="loadSessionInstructors(session.session_id)"
+              <button class="btn btn-outline-info btn-sm" (click)="loadSessionInstructors(session.session_id, session.training_id)"
                       title="View Instructors">
                 <i class="bi bi-person-badge"></i>
               </button>

@@ -80,6 +80,34 @@ interface TrainingRepository
 
     public function findSessionByQrToken(string $tenantId, string $token): ?TrainingSession;
 
+    // --- who teaches it ---------------------------------------------------
+
+    /**
+     * Everybody teaching a session, the lead first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function instructorsFor(string $tenantId, string $sessionId): array;
+
+    /**
+     * Puts somebody on a session, or changes what they do on it.
+     *
+     * A session has one lead and one host. Naming a new lead moves the old one
+     * to co-instructor rather than refusing — an administrator changing who
+     * runs a workshop means to change it, and being made to demote the
+     * previous lead first is a step with no decision in it. The same for the
+     * host, which the meeting provider can only issue once.
+     */
+    public function assignInstructor(
+        string $tenantId,
+        string $sessionId,
+        string $userId,
+        InstructorRole $role,
+        bool $isHost,
+    ): bool;
+
+    public function removeInstructor(string $tenantId, string $sessionId, string $userId): bool;
+
     // --- enrolment --------------------------------------------------------
 
     /**
