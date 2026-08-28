@@ -306,6 +306,67 @@
               </span>
                 </label>
               </div>
+
+              <div class="option-item" *ngIf="canBeStandingRule()">
+                <label class="form-check">
+                  <input type="checkbox" class="form-check-input" [(ngModel)]="makeStandingRule">
+                  <span class="form-check-label">
+                <strong>Keep This Enrollment Running</strong>
+                <small>Saves it as a rule, so people who join this group later are enrolled too</small>
+              </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Standing rules already on this programme -->
+          <div class="enrollment-options" *ngIf="rules.length > 0 || loadingRules">
+            <h5><i class="bi bi-arrow-repeat"></i> Standing Rules</h5>
+
+            <p class="text-muted small mb-3">
+              These keep enrolling people as they join the group named. Pausing one stops it
+              enrolling anybody new; it does not remove the people it already enrolled.
+            </p>
+
+            <div class="alert alert-info py-2" *ngIf="ruleMessage">{{ ruleMessage }}</div>
+
+            <div class="text-muted small" *ngIf="loadingRules">Loading rules…</div>
+
+            <div class="table-responsive" *ngIf="!loadingRules && rules.length > 0">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Covers</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let rule of rules">
+                    <td>
+                      <span class="text-capitalize">{{ rule.enrollment_type }}</span>
+                      <span class="text-muted"> — {{ ruleTarget(rule) }}</span>
+                    </td>
+                    <td>
+                      <span class="badge" [class.bg-success]="rule.is_active"
+                            [class.bg-secondary]="!rule.is_active">
+                        {{ rule.is_active ? 'Active' : 'Paused' }}
+                      </span>
+                    </td>
+                    <td class="text-end">
+                      <button class="btn btn-sm btn-outline-secondary me-1" (click)="runRule(rule)">
+                        <i class="bi bi-play"></i> Run now
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary me-1" (click)="toggleRule(rule)">
+                        {{ rule.is_active ? 'Pause' : 'Resume' }}
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" (click)="deleteRule(rule)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 

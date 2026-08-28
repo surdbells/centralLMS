@@ -18,6 +18,8 @@ import {
   EnrollmentResult
 } from './training-enrollment.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { LiveTrainingService } from '../live-training.service';
+import type { EnrollmentRule } from '../live-training.interfaces';
 
 type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 
@@ -30,6 +32,7 @@ type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 })
 export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly trainings$ = inject(LiveTrainingService);
 
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
@@ -52,6 +55,24 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
   // Options
   isMandatory = false;
   notifyUsers = true;
+
+  /**
+   * Whether this should keep going.
+   *
+   * Ticked, the choice becomes a standing rule: whoever joins the department
+   * next month is enrolled too. Unticked, it enrols the people who are in it
+   * today and stops there. Only a group can be a rule — a hand-picked list of
+   * five people is already the list, and there is nothing for a rule to keep
+   * matching.
+   */
+  makeStandingRule = false;
+
+  /** What the last rule run did, shown beside the list. */
+  ruleMessage: string | null = null;
+
+  // Standing rules on the selected programme
+  rules: EnrollmentRule[] = [];
+  loadingRules = false;
 
   // Search
   userSearch = '';
@@ -160,12 +181,105 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
     this.selectedTraining = training;
     this.showTrainingSelector = false;
     this.resetSelections();
+    this.loadRules();
   }
 
   changeTraining(): void {
     this.selectedTraining = null;
     this.showTrainingSelector = true;
+    this.rules = [];
     this.resetSelections();
+  }
+
+  // ==========================================
+  // STANDING RULES
+  // ==========================================
+
+  /** Only a group can be a rule; a hand-picked list is already the list. */
+  canBeStandingRule(): boolean {
+    return this.enrollmentType !== 'users';
+  }
+
+  loadRules(): void {
+    if (!this.selectedTraining) return;
+
+    this.loadingRules = true;
+    this.trainings$.getEnrollmentRules(this.selectedTraining.training_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (rules) => {
+          this.rules = rules;
+          this.loadingRules = false;
+        },
+        error: () => {
+          this.rules = [];
+          this.loadingRules = false;
+        }
+      });
+  }
+
+  ruleTarget(rule: EnrollmentRule): string {
+    const criteria = rule.target_criteria ?? {};
+    const named = (ids: unknown[] | undefined, list: Array<Record<string, unknown>>,
+                   idKey: string, nameKey: string): string[] =>
+      (ids ?? []).map((id) => {
+        const found = list.find((row) => String(row[idKey]) === String(id));
+        return found ? String(found[nameKey]) : String(id);
+      });
+
+    switch (rule.enrollment_type) {
+      case 'department':
+        return named(criteria.department_ids, this.departments as unknown as Array<Record<string, unknown>>,
+          'department_id', 'department_name').join(', ');
+      case 'team':
+        return named(criteria.team_ids, this.teams as unknown as Array<Record<string, unknown>>,
+          'team_id', 'team_name').join(', ');
+      case 'branch':
+        return named(criteria.branch_ids, this.branches as unknown as Array<Record<string, unknown>>,
+          'branch_id', 'branch_name').join(', ');
+      case 'direct':
+        return `${(criteria.user_ids ?? []).length} chosen people`;
+      default:
+        return 'Everybody';
+    }
+  }
+
+  toggleRule(rule: EnrollmentRule): void {
+    if (!rule.rule_id) return;
+
+    // Pausing stops it enrolling anybody new. It does not take the programme
+    // away from the people it already enrolled.
+    const change = rule.is_active
+      ? this.trainings$.pauseEnrollmentRule(rule.rule_id)
+      : this.trainings$.resumeEnrollmentRule(rule.rule_id);
+
+    change.pipe(takeUntil(this.destroy$)).subscribe({ next: () => this.loadRules() });
+  }
+
+  runRule(rule: EnrollmentRule): void {
+    if (!rule.rule_id) return;
+
+    this.trainings$.applyEnrollmentRule(rule.rule_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.error = null;
+          this.ruleMessage = result.enrolled === 0
+            ? 'Nobody new to enrol.'
+            : `${result.enrolled} newly enrolled.`;
+          this.loadRules();
+        },
+        error: (err) => this.error = err?.message ?? 'That rule could not be run.'
+      });
+  }
+
+  deleteRule(rule: EnrollmentRule): void {
+    if (!rule.rule_id) return;
+    if (!confirm('Delete this rule? The people it already enrolled stay enrolled.')) return;
+
+    this.trainings$.deleteEnrollmentRule(rule.rule_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadRules() });
   }
 
   filterTrainings(): Training[] {
@@ -319,6 +433,11 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
     this.enrolling = true;
     this.error = null;
 
+    if (this.makeStandingRule && this.canBeStandingRule()) {
+      this.saveStandingRule();
+      return;
+    }
+
     const request = this.buildEnrollmentRequest();
 
     this.enrollmentService.enrollUsers(request)
@@ -335,6 +454,69 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
           this.enrolling = false;
         }
       });
+  }
+
+  /**
+   * Saves the choice as a standing rule, and runs it once.
+   *
+   * A rule that only took effect at the next sweep would look broken to
+   * whoever just made it, so the count on the result screen is what it
+   * actually enrolled just now.
+   */
+  private saveStandingRule(): void {
+    const training = this.selectedTraining!;
+
+    this.trainings$
+      .bulkEnrollByRule(training.training_id, this.buildRule(training.training_id))
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.result = {
+            success: true,
+            message: 'Standing rule created.',
+            summary: {
+              total_users: result.enrolled,
+              enrolled_count: result.enrolled,
+              waitlisted_count: 0,
+              already_enrolled_count: 0,
+              failed_count: 0,
+            },
+          } as unknown as EnrollmentResult;
+          this.showPreviewModal = false;
+          this.showResultModal = true;
+          this.enrolling = false;
+          this.loadRules();
+        },
+        error: (err: { message?: string }) => {
+          this.error = err.message ?? 'That rule could not be saved.';
+          this.enrolling = false;
+        }
+      });
+  }
+
+  private buildRule(trainingId: string): EnrollmentRule {
+    const rule: EnrollmentRule = {
+      training_id: trainingId,
+      enrollment_type: this.enrollmentType === 'users' ? 'direct' : this.enrollmentType,
+      target_criteria: {},
+    };
+
+    switch (this.enrollmentType) {
+      case 'department':
+        rule.target_criteria.department_ids = [this.selectedDepartmentId!];
+        break;
+      case 'team':
+        rule.target_criteria.team_ids = [this.selectedTeamId!];
+        break;
+      case 'branch':
+        rule.target_criteria.branch_ids = [this.selectedBranchId!];
+        break;
+      case 'users':
+        rule.target_criteria.user_ids = this.selectedUsers.map((u) => String(u.id));
+        break;
+    }
+
+    return rule;
   }
 
   /**

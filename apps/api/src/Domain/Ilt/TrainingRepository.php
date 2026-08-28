@@ -93,6 +93,9 @@ interface TrainingRepository
         array $userIds,
         EnrollmentSource $source,
         ?string $actorId,
+        ?string $ruleId = null,
+        ?\DateTimeImmutable $dueDate = null,
+        bool $isMandatory = false,
     ): array;
 
     /**

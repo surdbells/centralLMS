@@ -2,50 +2,55 @@
 
 declare(strict_types=1);
 
-namespace Central\Api\Domain\LearningPath;
+namespace Central\Api\Domain\Enrollment;
 
 use Central\Api\Domain\Audience\AudienceTarget;
 use Central\Api\Domain\Exception\ValidationFailed;
 
 /**
- * A standing rule that puts people on a learning path.
+ * A standing rule that puts people onto something.
  *
  * Not the same thing as enrolling everybody in Operations this afternoon. A
  * rule outlives the moment it was made: somebody who joins Operations next
  * month is enrolled by it too, which is the whole reason a rule exists rather
  * than a list.
  *
+ * What it enrols people onto — a learning path, a training programme — is a
+ * field, not a class. Everything a rule does is the same either way, and two
+ * classes would be two sweeps to keep in step and two places for the answer to
+ * "what does pausing do" to drift apart.
+ *
  * Due dates come in two shapes and only one at a time. A fixed date is the
- * same day for everybody — right for "before the audit in March". An offset
- * is counted from each person's own enrolment — right for "within 30 days of
+ * same day for everybody — right for "before the audit in March". An offset is
+ * counted from each person's own enrolment — right for "within 30 days of
  * joining". A rule carrying both has two answers to when it is due.
  */
-final readonly class PathAssignment
+final readonly class EnrollmentRule
 {
     public function __construct(
         public string $id,
         public string $tenantId,
-        public string $pathId,
+        public RuleSubject $subjectKind,
+        public string $subjectId,
         public AudienceTarget $targetType,
         /** @var array<string, mixed> */
         public array $targetCriteria = [],
         public ?string $dueDate = null,
-        public ?int $dueDaysFromAssignment = null,
-        public AssignmentPriority $priority = AssignmentPriority::Normal,
+        public ?int $dueDaysFromEnrollment = null,
+        public RulePriority $priority = RulePriority::Normal,
         public bool $isMandatory = false,
         public bool $sendNotification = true,
         public bool $sendReminder = false,
         public int $reminderDaysBefore = 3,
         public ?string $notes = null,
-        public AssignmentStatus $status = AssignmentStatus::Active,
-        public ?string $assignedBy = null,
-        public ?\DateTimeImmutable $assignedAt = null,
-        public ?\DateTimeImmutable $lastAppliedAt = null,
+        public RuleStatus $status = RuleStatus::Active,
+        public ?string $createdBy = null,
         public ?\DateTimeImmutable $createdAt = null,
+        public ?\DateTimeImmutable $lastAppliedAt = null,
         public ?\DateTimeImmutable $updatedAt = null,
         /** Joined for display. */
-        public ?string $pathTitle = null,
-        public ?string $assignedByName = null,
+        public ?string $subjectTitle = null,
+        public ?string $createdByName = null,
         /** Counted from the enrolments this rule made, never stored. */
         public int $enrolledCount = 0,
         public int $completedCount = 0,
@@ -61,9 +66,10 @@ final readonly class PathAssignment
     public static function fromInput(
         string $id,
         string $tenantId,
-        string $pathId,
+        RuleSubject $subjectKind,
+        string $subjectId,
         array $input,
-        ?string $assignedBy = null,
+        ?string $createdBy = null,
     ): self {
         $violations = [];
 
@@ -83,25 +89,25 @@ final readonly class PathAssignment
         }
 
         $dueDate = self::text($input['dueDate'] ?? null);
-        $offset = self::offset($input['dueDaysFromAssignment'] ?? null);
+        $offset = self::offset($input['dueDaysFromEnrollment'] ?? $input['dueDaysFromAssignment'] ?? null);
 
         if ($dueDate !== null && $offset !== null) {
             $violations['dueDate'] = 'Use a fixed date or a number of days, not both.';
         }
 
         if ($offset !== null && $offset < 1) {
-            $violations['dueDaysFromAssignment'] = 'Give at least one day.';
+            $violations['dueDaysFromEnrollment'] = 'Give at least one day.';
         }
 
         if ($dueDate !== null && !self::isDate($dueDate)) {
             $violations['dueDate'] = 'That is not a date.';
         }
 
-        $priority = AssignmentPriority::tryFrom((string) ($input['priority'] ?? 'normal'));
+        $priority = RulePriority::tryFrom((string) ($input['priority'] ?? 'normal'));
 
         if ($priority === null) {
             $violations['priority'] = 'Unknown priority.';
-            $priority = AssignmentPriority::Normal;
+            $priority = RulePriority::Normal;
         }
 
         $reminderDays = self::offset($input['reminderDaysBefore'] ?? null) ?? 3;
@@ -117,18 +123,19 @@ final readonly class PathAssignment
         return new self(
             id: $id,
             tenantId: $tenantId,
-            pathId: $pathId,
+            subjectKind: $subjectKind,
+            subjectId: $subjectId,
             targetType: $target,
             targetCriteria: $criteria,
             dueDate: $dueDate,
-            dueDaysFromAssignment: $offset,
+            dueDaysFromEnrollment: $offset,
             priority: $priority,
             isMandatory: (bool) ($input['isMandatory'] ?? false),
             sendNotification: (bool) ($input['sendNotification'] ?? true),
             sendReminder: (bool) ($input['sendReminder'] ?? false),
             reminderDaysBefore: $reminderDays,
             notes: self::text($input['notes'] ?? null),
-            assignedBy: $assignedBy,
+            createdBy: $createdBy,
         );
     }
 
@@ -144,12 +151,12 @@ final readonly class PathAssignment
             return $this->dueDate;
         }
 
-        if ($this->dueDaysFromAssignment === null) {
+        if ($this->dueDaysFromEnrollment === null) {
             return null;
         }
 
         return $enrolledAt
-            ->modify(sprintf('+%d days', $this->dueDaysFromAssignment))
+            ->modify(sprintf('+%d days', $this->dueDaysFromEnrollment))
             ->format('Y-m-d');
     }
 
@@ -159,14 +166,19 @@ final readonly class PathAssignment
     public function toArray(): array
     {
         return [
-            'id'       => $this->id,
-            'pathId'   => $this->pathId,
-            'pathTitle' => $this->pathTitle,
+            'id'           => $this->id,
+            'subjectKind'  => $this->subjectKind->value,
+            'subjectId'    => $this->subjectId,
+            'subjectTitle' => $this->subjectTitle,
+            // The old names, for screens that were written against a rule
+            // that could only ever mean a path.
+            'pathId'    => $this->subjectKind === RuleSubject::Path ? $this->subjectId : null,
+            'pathTitle' => $this->subjectKind === RuleSubject::Path ? $this->subjectTitle : null,
             'targetType'     => $this->targetType->value,
             'targetLabel'    => $this->targetType->label(),
             'targetCriteria' => $this->targetCriteria,
-            'dueDate'                => $this->dueDate,
-            'dueDaysFromAssignment'  => $this->dueDaysFromAssignment,
+            'dueDate'               => $this->dueDate,
+            'dueDaysFromEnrollment' => $this->dueDaysFromEnrollment,
             'priority'      => $this->priority->value,
             'isMandatory'   => $this->isMandatory,
             'sendNotification'   => $this->sendNotification,
@@ -174,12 +186,11 @@ final readonly class PathAssignment
             'reminderDaysBefore' => $this->reminderDaysBefore,
             'notes'   => $this->notes,
             'status'  => $this->status->value,
-            'assignedBy'     => $this->assignedBy,
-            'assignedByName' => $this->assignedByName,
-            'assignedAt'     => $this->assignedAt?->format(\DateTimeInterface::ATOM),
+            'createdBy'     => $this->createdBy,
+            'createdByName' => $this->createdByName,
             // When the sweep last looked. Null means it has never run for this
             // rule, which is different from "it ran and enrolled nobody".
-            'lastAppliedAt'  => $this->lastAppliedAt?->format(\DateTimeInterface::ATOM),
+            'lastAppliedAt' => $this->lastAppliedAt?->format(\DateTimeInterface::ATOM),
             'enrolledCount'  => $this->enrolledCount,
             'completedCount' => $this->completedCount,
             'overdueCount'   => $this->overdueCount,

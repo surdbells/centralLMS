@@ -482,22 +482,26 @@ export const Endpoints = {
     createReview: (id: string) => `/paths/${id}/reviews`,
     myReview: (id: string) => `/me/paths/${id}/review`,
 
-    // Standing assignment rules. Not the enrolment endpoints above: those put
-    // people on the path today, these keep doing it as people join the group.
-    assignments: (id: string) => `/paths/${id}/assignments`,
-    createAssignment: (id: string) => `/paths/${id}/assignments`,
   },
 
-  pathAssignments: {
-    update: (id: string) => `/path-assignments/${id}`,
-    delete: (id: string) => `/path-assignments/${id}`,
-    pause: (id: string) => `/path-assignments/${id}/pause`,
-    resume: (id: string) => `/path-assignments/${id}/resume`,
-    cancel: (id: string) => `/path-assignments/${id}/cancel`,
-    apply: (id: string) => `/path-assignments/${id}/apply`,
-    reminders: (id: string) => `/path-assignments/${id}/reminders`,
-    preview: (id: string) => `/path-assignments/${id}/preview`,
-    statistics: (id: string) => `/path-assignments/${id}/statistics`,
+  /**
+   * Standing enrolment rules, addressed by rule rather than by what they
+   * enrol people onto. One set of paths for every subject, because a rule
+   * behaves identically whichever it is.
+   */
+  enrollmentRules: {
+    forPath: (pathId: string) => `/paths/${pathId}/assignments`,
+    forTraining: (trainingId: string) => `/trainings/${trainingId}/rules`,
+
+    update: (id: string) => `/enrollment-rules/${id}`,
+    delete: (id: string) => `/enrollment-rules/${id}`,
+    pause: (id: string) => `/enrollment-rules/${id}/pause`,
+    resume: (id: string) => `/enrollment-rules/${id}/resume`,
+    cancel: (id: string) => `/enrollment-rules/${id}/cancel`,
+    apply: (id: string) => `/enrollment-rules/${id}/apply`,
+    reminders: (id: string) => `/enrollment-rules/${id}/reminders`,
+    preview: (id: string) => `/enrollment-rules/${id}/preview`,
+    statistics: (id: string) => `/enrollment-rules/${id}/statistics`,
   },
 
   pathReviews: {

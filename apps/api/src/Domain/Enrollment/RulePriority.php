@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Central\Api\Domain\LearningPath;
+namespace Central\Api\Domain\Enrollment;
 
 /**
- * How urgent an assignment is meant to look to the person it lands on.
+ * How urgent a rule is meant to make its enrolments look to the people they
+ * land on.
  *
  * It does not change what the rule does — nothing here alters who is enrolled
  * or when it is due. It changes what the learner sees, and which reminders go
  * out first when a batch of them is sent.
  */
-enum AssignmentPriority: string
+enum RulePriority: string
 {
     case Low      = 'low';
     case Normal   = 'normal';

@@ -77,7 +77,8 @@ use Central\Api\Application\Dashboard\AdminDashboardAssembler;
 use Central\Api\Application\Dashboard\LearnerDashboardAssembler;
 use Central\Api\Domain\Dashboard\DashboardRepository;
 use Central\Api\Domain\LearningPath\LearningPathRepository;
-use Central\Api\Domain\LearningPath\PathAssignmentRepository;
+use Central\Api\Application\Action\Enrollment\EnrollmentRuleAction;
+use Central\Api\Domain\Enrollment\EnrollmentRuleRepository;
 use Central\Api\Domain\LearningPath\PathReviewRepository;
 use Central\Api\Domain\Media\MediaRepository;
 use Central\Api\Domain\Messaging\MessagingRepository;
@@ -93,7 +94,9 @@ use Central\Api\Infrastructure\Persistence\DbalSkillRepository;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Persistence\DbalDashboardRepository;
 use Central\Api\Infrastructure\Persistence\DbalLearningPathRepository;
-use Central\Api\Infrastructure\Persistence\DbalPathAssignmentRepository;
+use Central\Api\Infrastructure\Enrollment\PathSubjectEnroller;
+use Central\Api\Infrastructure\Enrollment\TrainingSubjectEnroller;
+use Central\Api\Infrastructure\Persistence\DbalEnrollmentRuleRepository;
 use Central\Api\Infrastructure\Persistence\DbalPathReviewRepository;
 use Central\Api\Infrastructure\Persistence\DbalMediaRepository;
 use Central\Api\Infrastructure\Persistence\DbalMessagingRepository;
@@ -693,11 +696,27 @@ return [
         static fn (ContainerInterface $c) => new DbalPathReviewRepository($c->get(Connection::class)),
     ),
 
-    PathAssignmentRepository::class => factory(
-        static fn (ContainerInterface $c) => new DbalPathAssignmentRepository(
+    // The one thing that differs between subjects: where the enrolment lands.
+    // Adding a third kind means adding an enroller here, not a second copy of
+    // the rule, the sweep and the screen.
+    'enrollment.subjects' => factory(static fn (ContainerInterface $c): array => [
+        new PathSubjectEnroller($c->get(Connection::class), $c->get(LearningPathRepository::class)),
+        new TrainingSubjectEnroller($c->get(Connection::class), $c->get(TrainingRepository::class)),
+    ]),
+
+    EnrollmentRuleRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalEnrollmentRuleRepository(
             $c->get(Connection::class),
             $c->get(AudienceResolver::class),
-            $c->get(LearningPathRepository::class),
+            $c->get('enrollment.subjects'),
+        ),
+    ),
+
+    EnrollmentRuleAction::class => factory(
+        static fn (ContainerInterface $c) => new EnrollmentRuleAction(
+            $c->get(EnrollmentRuleRepository::class),
+            $c->get(Notifier::class),
+            $c->get('enrollment.subjects'),
         ),
     ),
 

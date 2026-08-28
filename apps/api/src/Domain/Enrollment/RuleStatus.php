@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Central\Api\Domain\LearningPath;
+namespace Central\Api\Domain\Enrollment;
 
 /**
- * Whether a standing assignment rule is still doing anything.
+ * Whether a standing enrolment rule is still doing anything.
  *
  * None of these touch the enrolments the rule already made. Pausing a rule
  * stops it enrolling anybody new; it does not take a course away from somebody
  * halfway through it, and neither does cancelling.
  */
-enum AssignmentStatus: string
+enum RuleStatus: string
 {
     case Active    = 'active';
     case Paused    = 'paused';

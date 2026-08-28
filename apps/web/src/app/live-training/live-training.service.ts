@@ -674,10 +674,10 @@ export class LiveTrainingService {
   // NOT BUILT
   // ==========================================
   //
-  // Instructor assignment, standing enrolment rules and the skills a
-  // programme confers each had legacy actions and none has a table on this
-  // side. A session names one `instructorId`, and that is the whole of what
-  // the schema models. These say so rather than resolving empty.
+  // Instructor assignment and the skills a programme confers each had legacy
+  // actions and neither has a table on this side. A session names one
+  // `instructorId`, and that is the whole of what the schema models. These
+  // say so rather than resolving empty.
 
   assignInstructor(
     _session_id: string,
@@ -699,16 +699,66 @@ export class LiveTrainingService {
     return of([]);
   }
 
-  bulkEnrollByRule(_trainingId: string, _rule: EnrollmentRule): Observable<BulkEnrollmentResult> {
-    return notAvailable('Standing enrolment rules');
+  /**
+   * Saves a standing enrolment rule and runs it once.
+   *
+   * A rule is not the same as enrolling everybody in Operations this
+   * afternoon — `bulkEnroll` already does that. A rule keeps going: somebody
+   * who joins Operations next month is enrolled by it too. It is applied on
+   * save, so the answer to "did that work" is on the screen rather than at
+   * the next sweep.
+   *
+   * A programme has a capacity, so the count is the places filled; the rest
+   * go on the waiting list, which the roster reports separately.
+   */
+  bulkEnrollByRule(trainingId: string, rule: EnrollmentRule): Observable<BulkEnrollmentResult> {
+    return this.api
+      .post<RulePayload>(Endpoints.enrollmentRules.forTraining(trainingId), fromRule(rule))
+      .pipe(map((saved) => {
+        const enrolled = Number(saved['enrollmentsCreated'] ?? 0);
+
+        return {
+          total: enrolled,
+          enrolled,
+          already_enrolled: 0,
+          waitlisted: 0,
+          failed: 0,
+          errors: [],
+          message: `${enrolled} enrolled by this rule.`,
+        } as BulkEnrollmentResult;
+      }));
   }
 
-  getEnrollmentRules(_trainingId: string): Observable<EnrollmentRule[]> {
-    return notAvailable('Standing enrolment rules');
+  getEnrollmentRules(trainingId: string): Observable<EnrollmentRule[]> {
+    return this.api
+      .get<RulePayload[]>(Endpoints.enrollmentRules.forTraining(trainingId))
+      .pipe(map((rules) => (rules ?? []).map(toRule)));
   }
 
-  deleteEnrollmentRule(_ruleId: string): Observable<void> {
-    return notAvailable('Standing enrolment rules');
+  deleteEnrollmentRule(ruleId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.enrollmentRules.delete(ruleId))
+      .pipe(map(() => undefined));
+  }
+
+  /** Stops a rule enrolling anybody new. It leaves the enrolled alone. */
+  pauseEnrollmentRule(ruleId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.enrollmentRules.pause(ruleId), {})
+      .pipe(map(() => undefined));
+  }
+
+  resumeEnrollmentRule(ruleId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.enrollmentRules.resume(ruleId), {})
+      .pipe(map(() => undefined));
+  }
+
+  /** Runs the rule now, rather than waiting for the hourly sweep. */
+  applyEnrollmentRule(ruleId: string): Observable<{ enrolled: number }> {
+    return this.api
+      .post<{ enrollmentsCreated?: number }>(Endpoints.enrollmentRules.apply(ruleId), {})
+      .pipe(map((result) => ({ enrolled: Number(result?.enrollmentsCreated ?? 0) })));
   }
 
   searchUsersForEnrollment(filters: EnrollmentFilter): Observable<UserForEnrollment[]> {
@@ -1030,6 +1080,88 @@ function toAnalytics(t: TrainingPayload): TrainingAnalytics {
     completed_count: Number(t['completedCount'] ?? 0),
     average_attendance: Number(t['averageAttendance'] ?? 0),
   } as unknown as TrainingAnalytics;
+}
+
+interface RulePayload extends Record<string, any> {
+  id: string;
+}
+
+/**
+ * A standing rule as this screen has always read one.
+ *
+ * The screen thinks in one target list per kind (`department_ids`,
+ * `team_ids`); the API keeps one `targetCriteria` map, because a rule that
+ * names two departments needs somewhere to put the second.
+ */
+function toRule(rule: RulePayload): EnrollmentRule {
+  const criteria = (rule['targetCriteria'] ?? {}) as Record<string, unknown>;
+  const ids = (...keys: string[]): string[] => {
+    for (const key of keys) {
+      const value = criteria[key];
+      if (Array.isArray(value)) return value.map(String);
+      if (typeof value === 'string' && value !== '') return [value];
+    }
+    return [];
+  };
+
+  const target = String(rule['targetType'] ?? 'all');
+
+  return {
+    rule_id: rule.id,
+    training_id: rule['subjectId'] ?? '',
+    enrollment_type: (target === 'custom'
+      ? 'direct'
+      : target === 'all' ? 'automatic' : target) as EnrollmentRule['enrollment_type'],
+    target_criteria: {
+      department_ids: ids('departmentIds', 'departments') as unknown as number[],
+      branch_ids: ids('branchIds', 'branches') as unknown as number[],
+      team_ids: ids('teamIds', 'teams') as unknown as number[],
+      user_ids: ids('userIds', 'users'),
+    },
+    // A rule covers whoever matches it whenever the sweep runs, so it always
+    // takes in people who joined after it was made. There is no separate
+    // switch for that, and a stored one that said "no" would be a lie.
+    auto_enroll_new_users: rule['status'] === 'active',
+    auto_enroll_on_hire: rule['status'] === 'active',
+    is_active: rule['status'] === 'active',
+    created_by: rule['createdBy'] ?? undefined,
+    created_at: rule['createdAt'] ?? undefined,
+    updated_at: rule['updatedAt'] ?? undefined,
+  };
+}
+
+/** The rule, in the API's spelling. */
+function fromRule(rule: EnrollmentRule): Record<string, unknown> {
+  const criteria: Record<string, unknown> = {};
+  const some = (value: unknown[] | undefined): string[] =>
+    (value ?? []).map(String).filter((v) => v !== '');
+
+  let target: string;
+
+  switch (rule.enrollment_type) {
+    case 'department':
+      target = 'department';
+      criteria['departmentIds'] = some(rule.target_criteria.department_ids);
+      break;
+    case 'branch':
+      target = 'branch';
+      criteria['branchIds'] = some(rule.target_criteria.branch_ids);
+      break;
+    case 'team':
+      target = 'team';
+      criteria['teamIds'] = some(rule.target_criteria.team_ids);
+      break;
+    case 'direct':
+      // The API calls a hand-picked list "custom", because it is the one kind
+      // that is a list rather than a description.
+      target = 'custom';
+      criteria['userIds'] = some(rule.target_criteria.user_ids);
+      break;
+    default:
+      target = 'all';
+  }
+
+  return { targetType: target, targetCriteria: criteria };
 }
 
 /** Something with no server behind it, said out loud rather than left empty. */

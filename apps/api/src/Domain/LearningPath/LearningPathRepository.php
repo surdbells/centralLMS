@@ -86,7 +86,7 @@ interface LearningPathRepository
      * they had, and with it the progress that lets the path credit work
      * finished before they joined.
      *
-     * `$assignmentId` names the standing rule that caused this, when one
+     * `$ruleId` names the standing rule that caused this, when one
      * did. Without it, "how many people has this rule enrolled" can only be
      * guessed at from dates.
      *
@@ -101,7 +101,7 @@ interface LearningPathRepository
         ?string $assignedBy,
         ?\DateTimeImmutable $dueDate,
         bool $isMandatory,
-        ?string $assignmentId = null,
+        ?string $ruleId = null,
     ): array;
 
     public function withdraw(string $tenantId, string $pathId, string $userId): bool;

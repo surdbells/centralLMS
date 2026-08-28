@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace Central\Api\Tests\Integration;
 
 use Central\Api\Domain\Audience\AudienceTarget;
-use Central\Api\Domain\LearningPath\AssignmentStatus;
-use Central\Api\Domain\LearningPath\PathAssignment;
+use Central\Api\Domain\Enrollment\EnrollmentRule;
+use Central\Api\Domain\Enrollment\RuleStatus;
+use Central\Api\Domain\Enrollment\RuleSubject;
+use Central\Api\Domain\Ilt\AttendanceCalculator;
+use Central\Api\Infrastructure\Enrollment\PathSubjectEnroller;
+use Central\Api\Infrastructure\Enrollment\TrainingSubjectEnroller;
 use Central\Api\Infrastructure\Persistence\DbalAudienceResolver;
+use Central\Api\Infrastructure\Persistence\DbalEnrollmentRuleRepository;
 use Central\Api\Infrastructure\Persistence\DbalLearningPathRepository;
-use Central\Api\Infrastructure\Persistence\DbalPathAssignmentRepository;
+use Central\Api\Infrastructure\Persistence\DbalTrainingRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -18,22 +23,24 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
 /**
- * Standing assignment rules against real PostgreSQL.
+ * Standing enrolment rules against real PostgreSQL.
  *
  * The thing worth proving is that a rule outlives the moment it was made:
  * somebody who joins the department afterwards is enrolled by it too. That,
- * and that running it twice does not enrol anybody twice — which it has to
- * survive, because the sweep runs it again every hour.
+ * that running it twice does not enrol anybody twice — which it has to
+ * survive, because the sweep runs it again every hour — and that the same rule
+ * behaves the same way whether it puts people on a learning path or a training
+ * programme, which is the reason there is one of it rather than two.
  *
  * Skipped when the database is unreachable, so a checkout without the Docker
  * stack still gets a green suite.
  */
-#[CoversClass(DbalPathAssignmentRepository::class)]
-final class DbalPathAssignmentTest extends TestCase
+#[CoversClass(DbalEnrollmentRuleRepository::class)]
+final class DbalEnrollmentRuleTest extends TestCase
 {
     private static ?Connection $connection = null;
 
-    private DbalPathAssignmentRepository $rules;
+    private DbalEnrollmentRuleRepository $rules;
 
     private string $tenantId;
     private string $pathId;
@@ -52,10 +59,10 @@ final class DbalPathAssignmentTest extends TestCase
             self::markTestSkipped('PostgreSQL is not reachable — start it with: pnpm up');
         }
 
-        $this->rules = new DbalPathAssignmentRepository(
+        $this->rules = new DbalEnrollmentRuleRepository(
             self::$connection,
             new DbalAudienceResolver(self::$connection),
-            new DbalLearningPathRepository(self::$connection),
+            [new PathSubjectEnroller(self::$connection, new DbalLearningPathRepository(self::$connection))],
         );
 
         $this->tenantId = $this->createTenant('asg');
@@ -75,7 +82,9 @@ final class DbalPathAssignmentTest extends TestCase
         $sweep = [
             'DELETE FROM learning_path_enrollments WHERE tenant_id = :id',
             'DELETE FROM enrollments WHERE tenant_id = :id',
-            'DELETE FROM learning_path_assignments WHERE tenant_id = :id',
+            'DELETE FROM training_enrollments WHERE tenant_id = :id',
+            'DELETE FROM enrollment_rules WHERE tenant_id = :id',
+            'DELETE FROM live_trainings WHERE tenant_id = :id',
             'DELETE FROM learning_paths WHERE tenant_id = :id',
             'UPDATE users SET department_id = NULL WHERE tenant_id = :id',
             'DELETE FROM users WHERE tenant_id = :id',
@@ -137,7 +146,7 @@ final class DbalPathAssignmentTest extends TestCase
         $rule = $this->rules->save($this->rule($this->operations));
         $this->rules->apply($this->tenantId, $rule->id);
 
-        $this->rules->setStatus($this->tenantId, $rule->id, AssignmentStatus::Paused);
+        $this->rules->setStatus($this->tenantId, $rule->id, RuleStatus::Paused);
         $this->createUser('newcomer', $this->operations);
 
         self::assertSame(0, $this->rules->apply($this->tenantId, $rule->id));
@@ -151,7 +160,7 @@ final class DbalPathAssignmentTest extends TestCase
         $rule = $this->rules->save($this->rule($this->operations));
         $this->rules->apply($this->tenantId, $rule->id);
 
-        $this->rules->setStatus($this->tenantId, $rule->id, AssignmentStatus::Cancelled);
+        $this->rules->setStatus($this->tenantId, $rule->id, RuleStatus::Cancelled);
 
         // Taking a path away from somebody halfway through it is a different
         // decision, and not one anybody made by cancelling a rule.
@@ -183,14 +192,15 @@ final class DbalPathAssignmentTest extends TestCase
     {
         $this->createUser('ada', $this->operations);
 
-        $rule = $this->rules->save(new PathAssignment(
+        $rule = $this->rules->save(new EnrollmentRule(
             id: Uuid::uuid4()->toString(),
             tenantId: $this->tenantId,
-            pathId: $this->pathId,
+            subjectKind: RuleSubject::Path,
+            subjectId: $this->pathId,
             targetType: AudienceTarget::Department,
             targetCriteria: ['departmentIds' => [$this->operations]],
-            dueDaysFromAssignment: 30,
-            assignedBy: $this->admin,
+            dueDaysFromEnrollment: 30,
+            createdBy: $this->admin,
         ));
 
         $this->rules->apply($this->tenantId, $rule->id);
@@ -227,9 +237,10 @@ final class DbalPathAssignmentTest extends TestCase
         $this->expectException(\Doctrine\DBAL\Exception\DriverException::class);
 
         $this->db()->executeStatement(
-            "INSERT INTO learning_path_assignments
-                 (tenant_id, path_id, target_type, target_criteria, due_date, due_days_from_assignment)
-             VALUES (:tenant, :path, 'all', '{}'::jsonb, CURRENT_DATE, 30)",
+            "INSERT INTO enrollment_rules
+                 (tenant_id, subject_kind, subject_id, target_type, target_criteria,
+                  due_date, due_days_from_enrollment)
+             VALUES (:tenant, 'path', :path, 'all', '{}'::jsonb, CURRENT_DATE, 30)",
             ['tenant' => $this->tenantId, 'path' => $this->pathId],
         );
     }
@@ -241,8 +252,8 @@ final class DbalPathAssignmentTest extends TestCase
         $this->expectException(\Doctrine\DBAL\Exception\DriverException::class);
 
         $this->db()->executeStatement(
-            "INSERT INTO learning_path_assignments (tenant_id, path_id, target_type)
-             VALUES (:tenant, :path, 'department')",
+            "INSERT INTO enrollment_rules (tenant_id, subject_kind, subject_id, target_type)
+             VALUES (:tenant, 'path', :path, 'department')",
             ['tenant' => $this->tenantId, 'path' => $this->pathId],
         );
     }
@@ -301,9 +312,42 @@ final class DbalPathAssignmentTest extends TestCase
         $rule = $this->rules->save($this->rule($this->operations));
 
         self::assertSame(
-            ['covered' => 2, 'alreadyEnrolled' => 1, 'wouldEnrol' => 1],
+            ['covered' => 2, 'alreadyEnrolled' => 1, 'wouldEnrol' => 1, 'subjectAccepting' => true],
             $this->rules->preview($this->tenantId, $rule->id),
         );
+    }
+
+    #[Test]
+    public function a_preview_promises_nothing_a_draft_programme_would_refuse(): void
+    {
+        $this->createUser('ada', $this->operations);
+        $this->createUser('bob', $this->operations);
+
+        $trainingId = $this->createTraining('Not published yet', null);
+        $this->db()->executeStatement(
+            "UPDATE live_trainings SET status = 'draft' WHERE id = :id",
+            ['id' => $trainingId],
+        );
+
+        $rules = $this->rulesFor($trainingId);
+        $rule = $rules->save(new EnrollmentRule(
+            id: Uuid::uuid4()->toString(),
+            tenantId: $this->tenantId,
+            subjectKind: RuleSubject::Training,
+            subjectId: $trainingId,
+            targetType: AudienceTarget::Department,
+            targetCriteria: ['departmentIds' => [$this->operations]],
+            createdBy: $this->admin,
+        ));
+
+        // Saying "would enrol 2" and then enrolling none is what costs an
+        // afternoon. The rule is still fine to set up now.
+        $preview = $rules->preview($this->tenantId, $rule->id);
+
+        self::assertSame(2, $preview['covered']);
+        self::assertSame(0, $preview['wouldEnrol']);
+        self::assertFalse($preview['subjectAccepting']);
+        self::assertSame(0, $rules->apply($this->tenantId, $rule->id));
     }
 
     #[Test]
@@ -342,6 +386,97 @@ final class DbalPathAssignmentTest extends TestCase
         self::assertStringContainsString('Bob', (string) $pending[0]['name']);
     }
 
+    // --- the same rule, a different subject ------------------------------------
+
+    #[Test]
+    public function the_same_rule_enrols_people_onto_a_training_programme(): void
+    {
+        $this->createUser('ada', $this->operations);
+        $this->createUser('bob', $this->operations);
+        $this->createUser('cleo', $this->finance);
+
+        $trainingId = $this->createTraining('Fire drill', null);
+        $rules = $this->rulesFor($trainingId);
+
+        $rule = $rules->save(new EnrollmentRule(
+            id: Uuid::uuid4()->toString(),
+            tenantId: $this->tenantId,
+            subjectKind: RuleSubject::Training,
+            subjectId: $trainingId,
+            targetType: AudienceTarget::Department,
+            targetCriteria: ['departmentIds' => [$this->operations]],
+            createdBy: $this->admin,
+        ));
+
+        // Nothing about the rule changed — only where the enrolment lands.
+        self::assertSame(2, $rules->apply($this->tenantId, $rule->id));
+        self::assertSame(0, $rules->apply($this->tenantId, $rule->id));
+
+        $found = $rules->find($this->tenantId, $rule->id);
+        self::assertNotNull($found);
+        self::assertSame(2, $found->enrolledCount);
+        self::assertSame('Fire drill', $found->subjectTitle);
+        self::assertSame(2, $rules->statistics($this->tenantId, $rule->id)['enrolled']);
+    }
+
+    #[Test]
+    public function a_rule_counts_the_places_it_filled_not_the_waiting_list(): void
+    {
+        $this->createUser('ada', $this->operations);
+        $this->createUser('bob', $this->operations);
+        $this->createUser('cleo', $this->operations);
+
+        // One place, waiting list open.
+        $trainingId = $this->createTraining('Confined spaces', 1);
+        $rules = $this->rulesFor($trainingId);
+
+        $rule = $rules->save(new EnrollmentRule(
+            id: Uuid::uuid4()->toString(),
+            tenantId: $this->tenantId,
+            subjectKind: RuleSubject::Training,
+            subjectId: $trainingId,
+            targetType: AudienceTarget::Department,
+            targetCriteria: ['departmentIds' => [$this->operations]],
+            createdBy: $this->admin,
+        ));
+
+        // Reporting three attending when one is would be describing something
+        // that did not happen.
+        self::assertSame(1, $rules->apply($this->tenantId, $rule->id));
+
+        self::assertSame(2, (int) $this->db()->fetchOne(
+            'SELECT COUNT(*) FROM training_enrollments WHERE rule_id = :rule AND waitlisted',
+            ['rule' => $rule->id],
+        ));
+    }
+
+    #[Test]
+    public function a_rule_whose_subject_has_gone_is_skipped_rather_than_failed(): void
+    {
+        $this->createUser('ada', $this->operations);
+
+        $trainingId = $this->createTraining('Cancelled course', null);
+        $rules = $this->rulesFor($trainingId);
+
+        $rule = $rules->save(new EnrollmentRule(
+            id: Uuid::uuid4()->toString(),
+            tenantId: $this->tenantId,
+            subjectKind: RuleSubject::Training,
+            subjectId: $trainingId,
+            targetType: AudienceTarget::Department,
+            targetCriteria: ['departmentIds' => [$this->operations]],
+            createdBy: $this->admin,
+        ));
+
+        $this->db()->executeStatement(
+            'UPDATE live_trainings SET deleted_at = NOW() WHERE id = :id',
+            ['id' => $trainingId],
+        );
+
+        // One archived programme must not stop every other rule running.
+        self::assertSame(0, $rules->apply($this->tenantId, $rule->id));
+    }
+
     // --- tenants --------------------------------------------------------------
 
     #[Test]
@@ -351,21 +486,47 @@ final class DbalPathAssignmentTest extends TestCase
         $other = Uuid::uuid4()->toString();
 
         self::assertNull($this->rules->find($other, $rule->id));
-        self::assertSame([], $this->rules->forPath($other, $this->pathId));
+        self::assertSame([], $this->rules->forSubject($other, RuleSubject::Path, $this->pathId));
         self::assertSame(0, $this->rules->apply($other, $rule->id));
     }
 
     // --- helpers --------------------------------------------------------------
 
-    private function rule(string $departmentId): PathAssignment
+    private function rule(string $departmentId): EnrollmentRule
     {
-        return new PathAssignment(
+        return new EnrollmentRule(
             id: Uuid::uuid4()->toString(),
             tenantId: $this->tenantId,
-            pathId: $this->pathId,
+            subjectKind: RuleSubject::Path,
+            subjectId: $this->pathId,
             targetType: AudienceTarget::Department,
             targetCriteria: ['departmentIds' => [$departmentId]],
-            assignedBy: $this->admin,
+            createdBy: $this->admin,
+        );
+    }
+
+    /** The same repository, told about training as well as paths. */
+    private function rulesFor(string $_trainingId): DbalEnrollmentRuleRepository
+    {
+        return new DbalEnrollmentRuleRepository(
+            $this->db(),
+            new DbalAudienceResolver($this->db()),
+            [
+                new PathSubjectEnroller($this->db(), new DbalLearningPathRepository($this->db())),
+                new TrainingSubjectEnroller($this->db(), new DbalTrainingRepository(
+                    $this->db(),
+                    new AttendanceCalculator(),
+                )),
+            ],
+        );
+    }
+
+    private function createTraining(string $title, ?int $capacity): string
+    {
+        return (string) $this->db()->fetchOne(
+            "INSERT INTO live_trainings (tenant_id, title, status, max_capacity, allow_waitlist)
+             VALUES (:tenant, :title, 'published', :capacity, TRUE) RETURNING id",
+            ['tenant' => $this->tenantId, 'title' => $title, 'capacity' => $capacity],
         );
     }
 

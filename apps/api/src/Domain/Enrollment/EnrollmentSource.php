@@ -26,6 +26,15 @@ enum EnrollmentSource: string
     case Branch = 'branch';
     case Department = 'department';
 
+    /**
+     * A standing rule put them here, and will keep putting people here.
+     *
+     * Distinct from `Bulk`: bulk is one administrator's decision on one
+     * afternoon, and a rule outlives the afternoon. Telling them apart is how
+     * "why am I on this" has an answer a year later.
+     */
+    case Rule = 'rule';
+
     public static function fromLegacy(?string $value): self
     {
         $value = strtolower(trim((string) $value));
@@ -79,6 +88,7 @@ enum EnrollmentSource: string
             self::Team         => 'Team assignment',
             self::Branch       => 'Branch assignment',
             self::Department   => 'Department assignment',
+            self::Rule         => 'Standing rule',
         };
     }
 }

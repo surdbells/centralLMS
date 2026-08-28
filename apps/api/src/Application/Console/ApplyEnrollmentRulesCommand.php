@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Central\Api\Application\Console;
 
-use Central\Api\Domain\LearningPath\PathAssignment;
-use Central\Api\Domain\LearningPath\PathAssignmentRepository;
+use Central\Api\Domain\Enrollment\EnrollmentRule;
+use Central\Api\Domain\Enrollment\EnrollmentRuleRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Runs every active path assignment rule.
+ * Runs every active standing enrolment rule, whatever it enrols people onto.
  *
  * This is what makes a rule a rule. Creating one enrols everybody it covers
  * at that moment; without this sweep, somebody who joins the department next
@@ -23,7 +23,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * Run it from cron, hourly is plenty:
  *
- *   0 * * * * cd /path/to/api && php bin/console paths:apply-assignments
+ *   0 * * * * cd /path/to/api && php bin/console enrollment:apply-rules
  *
  * The interval is not load-bearing. Applying a rule is idempotent — it enrols
  * the people it covers who are not on the path yet, and nobody else — so
@@ -31,13 +31,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * makes somebody's first day on a path later than it might have been.
  */
 #[AsCommand(
-    name: 'paths:apply-assignments',
-    description: 'Enrol everybody newly covered by a standing path assignment rule',
+    name: 'enrollment:apply-rules',
+    description: 'Enrol everybody newly covered by a standing enrolment rule',
 )]
-final class ApplyPathAssignmentsCommand extends Command
+final class ApplyEnrollmentRulesCommand extends Command
 {
     public function __construct(
-        private readonly PathAssignmentRepository $assignments,
+        private readonly EnrollmentRuleRepository $rules,
     ) {
         parent::__construct();
     }
@@ -57,14 +57,14 @@ final class ApplyPathAssignmentsCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $tenant = $input->getOption('tenant');
-        $rules = $this->assignments->running(is_string($tenant) ? $tenant : null);
+        $rules = $this->rules->running(is_string($tenant) ? $tenant : null);
 
         $enrolled = 0;
         $failed = 0;
 
         foreach ($rules as $rule) {
             try {
-                $enrolled += $this->assignments->apply($rule->tenantId, $rule->id);
+                $enrolled += $this->rules->apply($rule->tenantId, $rule->id);
             } catch (\Throwable $e) {
                 // One broken rule must not stop the rest. A rule whose
                 // department was deleted should not keep every other rule in
@@ -81,7 +81,7 @@ final class ApplyPathAssignmentsCommand extends Command
         }
 
         $io->writeln(sprintf(
-            'Assignment rules: %d considered, %d people enrolled, %d rules failed',
+            'Enrolment rules: %d considered, %d people enrolled, %d rules failed',
             count($rules),
             $enrolled,
             $failed,
@@ -90,8 +90,12 @@ final class ApplyPathAssignmentsCommand extends Command
         return $failed > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 
-    private function describe(PathAssignment $rule): string
+    private function describe(EnrollmentRule $rule): string
     {
-        return sprintf('%s (%s)', $rule->pathTitle ?? $rule->pathId, $rule->targetType->value);
+        return sprintf(
+            '%s (%s)',
+            $rule->subjectTitle ?? $rule->subjectId,
+            $rule->targetType->value,
+        );
     }
 }

@@ -407,10 +407,22 @@ final class DbalTrainingRepository implements TrainingRepository
         array $userIds,
         EnrollmentSource $source,
         ?string $actorId,
+        ?string $ruleId = null,
+        ?\DateTimeImmutable $dueDate = null,
+        bool $isMandatory = false,
     ): array {
         /** @var array{enrolled: list<string>, waitlisted: list<string>, alreadyEnrolled: list<string>, notFound: list<string>, rejected: list<string>} $result */
         $result = $this->connection->transactional(
-            function (Connection $tx) use ($tenantId, $training, $userIds, $source, $actorId): array {
+            function (Connection $tx) use (
+                $tenantId,
+                $training,
+                $userIds,
+                $source,
+                $actorId,
+                $ruleId,
+                $dueDate,
+                $isMandatory,
+            ): array {
                 /** @var list<string> $real */
                 $real = $tx->fetchFirstColumn(
                     'SELECT id FROM users
@@ -476,6 +488,9 @@ final class DbalTrainingRepository implements TrainingRepository
                         $actorId,
                         $verdict['waitlist'],
                         array_key_exists($userId, $existing),
+                        $ruleId,
+                        $dueDate,
+                        $isMandatory,
                     );
                 }
 
@@ -926,6 +941,9 @@ final class DbalTrainingRepository implements TrainingRepository
         ?string $actorId,
         bool $waitlisted,
         bool $reinstating,
+        ?string $ruleId = null,
+        ?\DateTimeImmutable $dueDate = null,
+        bool $isMandatory = false,
     ): void {
         $position = null;
 
@@ -942,6 +960,7 @@ final class DbalTrainingRepository implements TrainingRepository
                 "UPDATE training_enrollments
                  SET status = 'not_started', completed_at = NULL, source = :source,
                      assigned_by = :actor, waitlisted = :waitlisted, waitlist_position = :position,
+                     rule_id = :rule::uuid, due_date = :dueDate::date, is_mandatory = :mandatory,
                      updated_at = NOW()
                  WHERE training_id = :training AND user_id = :user AND tenant_id = :tenant",
                 [
@@ -949,6 +968,9 @@ final class DbalTrainingRepository implements TrainingRepository
                     'actor'      => $actorId,
                     'waitlisted' => $waitlisted ? 'true' : 'false',
                     'position'   => $position,
+                    'rule'       => $ruleId,
+                    'dueDate'    => $dueDate?->format('Y-m-d'),
+                    'mandatory'  => $isMandatory ? 'true' : 'false',
                     'training'   => $trainingId,
                     'user'       => $userId,
                     'tenant'     => $tenantId,
@@ -960,8 +982,10 @@ final class DbalTrainingRepository implements TrainingRepository
 
         $tx->executeStatement(
             'INSERT INTO training_enrollments
-                 (tenant_id, training_id, user_id, source, assigned_by, waitlisted, waitlist_position)
-             VALUES (:tenant, :training, :user, :source, :actor, :waitlisted, :position)',
+                 (tenant_id, training_id, user_id, source, assigned_by, waitlisted,
+                  waitlist_position, rule_id, due_date, is_mandatory)
+             VALUES (:tenant, :training, :user, :source, :actor, :waitlisted,
+                     :position, :rule::uuid, :dueDate::date, :mandatory)',
             [
                 'tenant'     => $tenantId,
                 'training'   => $trainingId,
@@ -970,6 +994,9 @@ final class DbalTrainingRepository implements TrainingRepository
                 'actor'      => $actorId,
                 'waitlisted' => $waitlisted ? 'true' : 'false',
                 'position'   => $position,
+                'rule'       => $ruleId,
+                'dueDate'    => $dueDate?->format('Y-m-d'),
+                'mandatory'  => $isMandatory ? 'true' : 'false',
             ],
         );
     }

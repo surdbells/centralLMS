@@ -38,10 +38,9 @@ import {
  * method names and the shapes they return are kept exactly — the change is
  * entirely underneath.
  *
- * **Assignment rules have no server.** No table for them survived the
- * migration, and the methods that need one are listed at the bottom of this
- * file rather than quietly returning empty — a rule list that shows nothing
- * because the feature was never built looks exactly like one with no rules.
+ * A path's assignment rules are standing enrolment rules, which live in one
+ * place for every subject that has them — see the API's `enrollment_rules`.
+ * The methods here are the path-shaped view of that one feature.
  *
  * A path's structure is two calls, sections and items, joined here. The API
  * keeps them apart because an item may sit outside every section, which a
@@ -761,7 +760,7 @@ export class LearningPathService {
   ): Observable<{ assignment_id: string; enrollments_created: number }> {
     return this.api
       .post<AssignmentPayload>(
-        Endpoints.paths.createAssignment(data.path_id),
+        Endpoints.enrollmentRules.forPath(data.path_id),
         fromAssignmentRequest(data),
       )
       .pipe(map((rule) => ({
@@ -772,7 +771,7 @@ export class LearningPathService {
 
   getAssignments(pathId: string): Observable<LearningPathAssignment[]> {
     return this.api
-      .get<AssignmentPayload[]>(Endpoints.paths.assignments(pathId))
+      .get<AssignmentPayload[]>(Endpoints.enrollmentRules.forPath(pathId))
       .pipe(map((rules) => (rules ?? []).map(toAssignment)));
   }
 
@@ -782,7 +781,7 @@ export class LearningPathService {
   ): Observable<LearningPathAssignment> {
     return this.api
       .put<AssignmentPayload>(
-        Endpoints.pathAssignments.update(assignmentId),
+        Endpoints.enrollmentRules.update(assignmentId),
         fromAssignmentRequest(data),
       )
       .pipe(map(toAssignment));
@@ -790,7 +789,7 @@ export class LearningPathService {
 
   deleteAssignment(assignmentId: string): Observable<void> {
     return this.api
-      .delete(Endpoints.pathAssignments.delete(assignmentId))
+      .delete(Endpoints.enrollmentRules.delete(assignmentId))
       .pipe(map(() => undefined));
   }
 
@@ -802,38 +801,38 @@ export class LearningPathService {
    */
   pauseAssignment(assignmentId: string): Observable<void> {
     return this.api
-      .post(Endpoints.pathAssignments.pause(assignmentId), {})
+      .post(Endpoints.enrollmentRules.pause(assignmentId), {})
       .pipe(map(() => undefined));
   }
 
   resumeAssignment(assignmentId: string): Observable<void> {
     return this.api
-      .post(Endpoints.pathAssignments.resume(assignmentId), {})
+      .post(Endpoints.enrollmentRules.resume(assignmentId), {})
       .pipe(map(() => undefined));
   }
 
   cancelAssignment(assignmentId: string): Observable<void> {
     return this.api
-      .post(Endpoints.pathAssignments.cancel(assignmentId), {})
+      .post(Endpoints.enrollmentRules.cancel(assignmentId), {})
       .pipe(map(() => undefined));
   }
 
   /** Runs the rule now, rather than waiting for the hourly sweep. */
   applyAssignment(assignmentId: string): Observable<{ enrollments_created: number }> {
     return this.api
-      .post<{ enrollmentsCreated?: number }>(Endpoints.pathAssignments.apply(assignmentId), {})
+      .post<{ enrollmentsCreated?: number }>(Endpoints.enrollmentRules.apply(assignmentId), {})
       .pipe(map((result) => ({ enrollments_created: Number(result?.enrollmentsCreated ?? 0) })));
   }
 
   getAssignmentStatistics(assignmentId: string): Observable<unknown> {
     return this.api
-      .get<AssignmentStatisticsPayload>(Endpoints.pathAssignments.statistics(assignmentId))
+      .get<AssignmentStatisticsPayload>(Endpoints.enrollmentRules.statistics(assignmentId))
       .pipe(map(toAssignmentStatistics));
   }
 
   sendAssignmentReminders(assignmentId: string): Observable<{ sent: number }> {
     return this.api
-      .post<{ sent?: number }>(Endpoints.pathAssignments.reminders(assignmentId), {})
+      .post<{ sent?: number }>(Endpoints.enrollmentRules.reminders(assignmentId), {})
       .pipe(map((result) => ({ sent: Number(result?.sent ?? 0) })));
   }
 }

@@ -71,6 +71,7 @@ use Central\Api\Application\Action\Proctoring\ProctoringSessionAction;
 use Central\Api\Application\Action\Proctoring\ReviewProctoringAction;
 use Central\Api\Application\Action\Enrollment\AssignEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\CourseEnrollmentStatsAction;
+use Central\Api\Application\Action\Enrollment\EnrollmentRuleAction;
 use Central\Api\Application\Action\Enrollment\EnrollmentHistoryAction;
 use Central\Api\Application\Action\Enrollment\ListCourseEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\MyCourseProgressAction;
@@ -83,7 +84,6 @@ use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\LearningPath\ManagePathsAction;
-use Central\Api\Application\Action\LearningPath\PathAssignmentAction;
 use Central\Api\Application\Action\LearningPath\PathReviewAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Messaging\BroadcastAction;
@@ -647,38 +647,40 @@ return static function (App $app): void {
                 $p->post('/{id:' . $uuid . '}/reviews', [PathReviewAction::class, 'create'])
                     ->setName('paths.reviews.create');
 
-                // Standing assignment rules. Not the same as the enrolment
+                // Standing enrolment rules. Not the same as the enrolment
                 // endpoints above: those put people on the path today, these
                 // keep doing it as people join the group named.
-                $p->get('/{id:' . $uuid . '}/assignments', [PathAssignmentAction::class, 'list'])
+                $p->get('/{id:' . $uuid . '}/assignments', [EnrollmentRuleAction::class, 'listForPath'])
                     ->setName('paths.assignments');
-                $p->post('/{id:' . $uuid . '}/assignments', [PathAssignmentAction::class, 'create'])
+                $p->post('/{id:' . $uuid . '}/assignments', [EnrollmentRuleAction::class, 'createForPath'])
                     ->setName('paths.assignments.create');
             });
 
-            // Everything addressed by rule rather than by path.
-            $secure->group('/path-assignments', function (RouteCollectorProxy $a) use ($uuid): void {
-                $a->put('/{assignmentId:' . $uuid . '}', [PathAssignmentAction::class, 'update'])
-                    ->setName('path-assignments.update');
-                $a->delete('/{assignmentId:' . $uuid . '}', [PathAssignmentAction::class, 'delete'])
-                    ->setName('path-assignments.delete');
+            // Everything addressed by rule rather than by what it enrols
+            // people onto. One set of paths for both subjects, because a rule
+            // behaves identically whichever it is.
+            $secure->group('/enrollment-rules', function (RouteCollectorProxy $a) use ($uuid): void {
+                $a->put('/{ruleId:' . $uuid . '}', [EnrollmentRuleAction::class, 'update'])
+                    ->setName('enrollment-rules.update');
+                $a->delete('/{ruleId:' . $uuid . '}', [EnrollmentRuleAction::class, 'delete'])
+                    ->setName('enrollment-rules.delete');
 
-                $a->post('/{assignmentId:' . $uuid . '}/pause', [PathAssignmentAction::class, 'pause'])
-                    ->setName('path-assignments.pause');
-                $a->post('/{assignmentId:' . $uuid . '}/resume', [PathAssignmentAction::class, 'resume'])
-                    ->setName('path-assignments.resume');
-                $a->post('/{assignmentId:' . $uuid . '}/cancel', [PathAssignmentAction::class, 'cancel'])
-                    ->setName('path-assignments.cancel');
-                $a->post('/{assignmentId:' . $uuid . '}/apply', [PathAssignmentAction::class, 'apply'])
-                    ->setName('path-assignments.apply');
+                $a->post('/{ruleId:' . $uuid . '}/pause', [EnrollmentRuleAction::class, 'pause'])
+                    ->setName('enrollment-rules.pause');
+                $a->post('/{ruleId:' . $uuid . '}/resume', [EnrollmentRuleAction::class, 'resume'])
+                    ->setName('enrollment-rules.resume');
+                $a->post('/{ruleId:' . $uuid . '}/cancel', [EnrollmentRuleAction::class, 'cancel'])
+                    ->setName('enrollment-rules.cancel');
+                $a->post('/{ruleId:' . $uuid . '}/apply', [EnrollmentRuleAction::class, 'apply'])
+                    ->setName('enrollment-rules.apply');
 
-                $a->post('/{assignmentId:' . $uuid . '}/reminders', [PathAssignmentAction::class, 'remind'])
-                    ->setName('path-assignments.reminders');
+                $a->post('/{ruleId:' . $uuid . '}/reminders', [EnrollmentRuleAction::class, 'remind'])
+                    ->setName('enrollment-rules.reminders');
 
-                $a->get('/{assignmentId:' . $uuid . '}/preview', [PathAssignmentAction::class, 'preview'])
-                    ->setName('path-assignments.preview');
-                $a->get('/{assignmentId:' . $uuid . '}/statistics', [PathAssignmentAction::class, 'statistics'])
-                    ->setName('path-assignments.statistics');
+                $a->get('/{ruleId:' . $uuid . '}/preview', [EnrollmentRuleAction::class, 'preview'])
+                    ->setName('enrollment-rules.preview');
+                $a->get('/{ruleId:' . $uuid . '}/statistics', [EnrollmentRuleAction::class, 'statistics'])
+                    ->setName('enrollment-rules.statistics');
             });
 
             // Moderation, and everything addressed by review rather than by
@@ -1151,6 +1153,14 @@ return static function (App $app): void {
                         ->setName('trainings.withdraw');
                     $one->post('/enrol', [TrainingEnrolmentAction::class, 'selfEnrol'])
                         ->setName('trainings.selfEnrol');
+
+                    // Standing enrolment rules. `assign` above puts people on
+                    // this programme today; these keep doing it as people
+                    // join the group named.
+                    $one->get('/rules', [EnrollmentRuleAction::class, 'listForTraining'])
+                        ->setName('trainings.rules');
+                    $one->post('/rules', [EnrollmentRuleAction::class, 'createForTraining'])
+                        ->setName('trainings.rules.create');
 
                     // Sessions.
                     $one->post('/sessions', [ManageSessionsAction::class, 'create'])->setName('sessions.create');

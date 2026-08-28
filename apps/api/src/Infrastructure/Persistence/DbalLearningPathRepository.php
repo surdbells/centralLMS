@@ -497,7 +497,7 @@ final class DbalLearningPathRepository implements LearningPathRepository
         ?string $assignedBy,
         ?\DateTimeImmutable $dueDate,
         bool $isMandatory,
-        ?string $assignmentId = null,
+        ?string $ruleId = null,
     ): array {
         if ($userIds === []) {
             return ['enrolled' => 0, 'skipped' => 0];
@@ -512,7 +512,7 @@ final class DbalLearningPathRepository implements LearningPathRepository
                 $assignedBy,
                 $dueDate,
                 $isMandatory,
-                $assignmentId,
+                $ruleId,
             ): array {
                 // ON CONFLICT DO NOTHING against the partial unique index, so
                 // enrolling a cohort twice adds nobody twice. The legacy had
@@ -520,9 +520,9 @@ final class DbalLearningPathRepository implements LearningPathRepository
                 $enrolled = (int) $tx->executeStatement(
                     'INSERT INTO learning_path_enrollments
                          (tenant_id, path_id, user_id, source, assigned_by, due_date,
-                          is_mandatory, assignment_id)
+                          is_mandatory, rule_id)
                      SELECT :tenant, :path, u.id, :source, :assignedBy, :dueDate::date,
-                            :mandatory, :assignment::uuid
+                            :mandatory, :rule::uuid
                      FROM users u
                      WHERE u.id IN (:ids) AND u.tenant_id = :tenant AND u.deleted_at IS NULL
                      ON CONFLICT DO NOTHING',
@@ -534,7 +534,7 @@ final class DbalLearningPathRepository implements LearningPathRepository
                         'assignedBy' => $assignedBy,
                         'dueDate'    => $dueDate?->format('Y-m-d'),
                         'mandatory'  => $isMandatory,
-                        'assignment' => $assignmentId,
+                        'rule'       => $ruleId,
                     ],
                     ['ids' => ArrayParameterType::STRING, 'mandatory' => ParameterType::BOOLEAN],
                 );

@@ -6,7 +6,7 @@ declare(strict_types=1);
 use Central\Api\Application\Console\CheckFrontendRoutesCommand;
 use Central\Api\Application\Console\CheckIltProvidersCommand;
 use Central\Api\Application\Console\GenerateOpenApiCommand;
-use Central\Api\Application\Console\ApplyPathAssignmentsCommand;
+use Central\Api\Application\Console\ApplyEnrollmentRulesCommand;
 use Central\Api\Application\Console\ConsumeMessagesCommand;
 use Central\Api\Application\Console\DispatchNotificationsCommand;
 use Central\Api\Application\Console\DispatchScheduledReportsCommand;
@@ -85,7 +85,7 @@ $app->addCommands([
     $container->get(ConsumeMessagesCommand::class),
     $container->get(DispatchNotificationsCommand::class),
     $container->get(DispatchScheduledReportsCommand::class),
-    $container->get(ApplyPathAssignmentsCommand::class),
+    $container->get(ApplyEnrollmentRulesCommand::class),
     $container->get(ProvisionTenantCommand::class),
     $container->get(ImportLegacyUsersCommand::class),
 ]);
