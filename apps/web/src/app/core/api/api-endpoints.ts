@@ -510,6 +510,29 @@ export const Endpoints = {
   },
 
   /**
+   * Announcements.
+   *
+   * Writing one reaches everybody in an organisation, so it needs
+   * `notification.send`. Receiving one needs only to be signed in, and
+   * shows only what was addressed to you — hence the two groups.
+   */
+  broadcasts: {
+    list: '/broadcasts',
+    create: '/broadcasts',
+    show: (id: string) => `/broadcasts/${id}`,
+    update: (id: string) => `/broadcasts/${id}`,
+    delete: (id: string) => `/broadcasts/${id}`,
+    send: (id: string) => `/broadcasts/${id}/send`,
+    cancel: (id: string) => `/broadcasts/${id}/cancel`,
+
+    mine: '/me/broadcasts',
+    unread: '/me/broadcasts/unread',
+    mineShow: (id: string) => `/me/broadcasts/${id}`,
+    read: (id: string) => `/me/broadcasts/${id}/read`,
+    acknowledge: (id: string) => `/me/broadcasts/${id}/acknowledge`,
+  },
+
+  /**
    * Messages across every conversation.
    *
    * Not nested under one, because searching or listing what you have saved

@@ -564,6 +564,11 @@ interface FormTargetCriteria {
   `]
 })
 export class BroadcastManagementComponent implements OnInit, OnDestroy {
+  loading = false;
+
+  /** What went wrong, if anything. Rendered rather than swallowed. */
+  error: string | null = null;
+
   private destroy$ = new Subject<void>();
 
   // Data
@@ -648,18 +653,47 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
   }
 
   loadBroadcasts(): void {
-    // TODO: Replace with admin API call to get all broadcasts
-    // Mock data for now
-    this.broadcasts = [];
-    this.categorizeBroadcasts();
+    this.loading = true;
+    this.error = null;
+
+    this.messagingService
+      .getAuthoredBroadcasts()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (broadcasts) => {
+          this.broadcasts = broadcasts;
+          this.categorizeBroadcasts();
+          this.loadStats();
+          this.loading = false;
+        },
+        error: (failure: { message?: string }) => {
+          this.error = failure.message ?? 'Announcements could not be loaded.';
+          this.loading = false;
+        },
+      });
   }
 
+  /**
+   * The figures at the top, counted from what came back.
+   *
+   * They were hard-coded — 45 sent, 12,500 recipients, 78% read — on a
+   * screen whose list was an empty array with a TODO above it. Numbers
+   * that look like data and are not are worse than none, because nobody
+   * checks them.
+   */
   loadStats(): void {
+    const sent = this.sentBroadcasts;
+    const recipients = sent.reduce((total, b) => total + b.recipients_count, 0);
+    const read = sent.reduce((total, b) => total + b.read_count, 0);
+
     this.stats = {
-      total_sent: 45,
-      total_recipients: 12500,
-      avg_read_rate: 78,
-      scheduled: this.scheduledBroadcasts.length
+      total_sent: sent.length,
+      total_recipients: recipients,
+      // Across everybody who received anything, not an average of
+      // averages — one announcement to four hundred people and one to
+      // three should not weigh the same.
+      avg_read_rate: recipients === 0 ? 0 : Math.round((read / recipients) * 100),
+      scheduled: this.scheduledBroadcasts.length,
     };
   }
 

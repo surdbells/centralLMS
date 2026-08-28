@@ -770,28 +770,77 @@ export class MessagingService {
     return notAvailable('Participant roles');
   }
 
-  createBroadcast(_data: Record<string, unknown>): Observable<Broadcast> {
-    return notAvailable('Broadcasts');
+  /**
+   * Announcements.
+   *
+   * Creating one does not send it: a broadcast is written, checked, then
+   * sent — because the audience is fixed at the moment of sending, and it
+   * cannot be edited afterwards.
+   */
+  createBroadcast(data: Record<string, unknown>): Observable<Broadcast> {
+    return this.api
+      .post<BroadcastPayload>(Endpoints.broadcasts.create, {
+        title: data['title'],
+        content: data['content'],
+        targetType: data['target_type'] ?? 'all',
+        targetCriteria: data['target_criteria'] ?? {},
+        priority: data['priority'] ?? 'normal',
+        requiresAcknowledgment: data['requires_acknowledgment'] ?? false,
+        scheduledAt: data['scheduled_at'] ?? null,
+        expiresAt: data['expires_at'] ?? null,
+      })
+      .pipe(map(toBroadcast));
   }
 
-  sendBroadcast(_broadcastId: string): Observable<void> {
-    return notAvailable('Broadcasts');
+  sendBroadcast(broadcastId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.broadcasts.send(broadcastId), {})
+      .pipe(map(() => undefined));
   }
 
-  getBroadcast(_broadcastId: string): Observable<Broadcast> {
-    return notAvailable('Broadcasts');
+  getBroadcast(broadcastId: string): Observable<Broadcast> {
+    return this.api
+      .get<BroadcastPayload>(Endpoints.broadcasts.mineShow(broadcastId))
+      .pipe(map(toBroadcast));
   }
 
+  /** What has been sent to the caller — not what they wrote. */
   getMyBroadcasts(): Observable<Broadcast[]> {
-    return notAvailable('Broadcasts');
+    return this.api
+      .get<BroadcastPayload[]>(Endpoints.broadcasts.mine)
+      .pipe(map((rows) => rows.map(toBroadcast)));
   }
 
-  markBroadcastRead(_broadcastId: string): Observable<void> {
-    return notAvailable('Broadcasts');
+  /** What has been written, for the management screen. */
+  getAuthoredBroadcasts(): Observable<Broadcast[]> {
+    return this.api
+      .getPaged<BroadcastPayload>(Endpoints.broadcasts.list, { perPage: 100 })
+      .pipe(map((page) => page.items.map(toBroadcast)));
   }
 
-  acknowledgeBroadcast(_broadcastId: string): Observable<void> {
-    return notAvailable('Broadcasts');
+  markBroadcastRead(broadcastId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.broadcasts.read(broadcastId), {})
+      .pipe(map(() => undefined));
+  }
+
+  /** Confirming it was read. Marks it read too, if it was not already. */
+  acknowledgeBroadcast(broadcastId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.broadcasts.acknowledge(broadcastId), {})
+      .pipe(map(() => undefined));
+  }
+
+  cancelBroadcast(broadcastId: string): Observable<void> {
+    return this.api
+      .post(Endpoints.broadcasts.cancel(broadcastId), {})
+      .pipe(map(() => undefined));
+  }
+
+  deleteBroadcast(broadcastId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.broadcasts.delete(broadcastId))
+      .pipe(map(() => undefined));
   }
 
   /**
@@ -1034,4 +1083,39 @@ function toSettings(p: PreferencesPayload): MessagingSettings {
     allow_direct_messages: p.directMessagesFromAnyone,
     show_read_receipts: p.showReadReceipts,
   } as unknown as MessagingSettings;
+}
+
+interface BroadcastPayload extends Record<string, any> {
+  id: string;
+  title: string;
+}
+
+function toBroadcast(b: BroadcastPayload): Broadcast {
+  return {
+    broadcast_id: b.id,
+    tenant_id: '',
+    title: b.title,
+    content: String(b['content'] ?? ''),
+    content_html: null,
+    target_type: (b['targetType'] ?? 'all') as Broadcast['target_type'],
+    target_criteria: (b['targetCriteria'] ?? null) as Broadcast['target_criteria'],
+    priority: (b['priority'] ?? 'normal') as Broadcast['priority'],
+    requires_acknowledgment: b['requiresAcknowledgment'] === true,
+    scheduled_at: b['scheduledAt'] ?? null,
+    expires_at: b['expiresAt'] ?? null,
+    status: (b['status'] ?? 'draft') as Broadcast['status'],
+    sent_at: b['sentAt'] ?? null,
+    // Counted by the API from the recipients — never stored, because all
+    // three move whenever somebody opens it.
+    recipients_count: Number(b['recipientCount'] ?? 0),
+    read_count: Number(b['readCount'] ?? 0),
+    acknowledged_count: Number(b['acknowledgedCount'] ?? 0),
+    created_by: String(b['createdBy'] ?? ''),
+    created_at: String(b['createdAt'] ?? ''),
+    is_read: b['isRead'],
+    is_acknowledged: b['isAcknowledged'],
+    read_at: b['readAt'] ?? undefined,
+    sender_first_name: String(b['senderName'] ?? '').split(' ')[0] ?? '',
+    sender_last_name: String(b['senderName'] ?? '').split(' ').slice(1).join(' '),
+  };
 }
