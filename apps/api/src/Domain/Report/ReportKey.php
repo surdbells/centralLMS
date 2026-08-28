@@ -170,6 +170,14 @@ enum ReportKey: string
     case MyComplianceStatus    = 'my_compliance_status';
     case MyLearningTime        = 'my_learning_time';
     case MyTranscript          = 'my_transcript';
+    case MyQuizHistory         = 'my_quiz_history';
+    case MyMandatoryTraining   = 'my_mandatory_training';
+    case MyUpcomingDeadlines   = 'my_upcoming_deadlines';
+    case MyPathProgress        = 'my_path_progress';
+
+    // --- assessment impact ------------------------------------------------
+    case RepeatAssessmentTrend = 'repeat_assessment_trend';
+    case CourseLearnerRoster   = 'course_learner_roster';
 
     /**
      * @return list<string>

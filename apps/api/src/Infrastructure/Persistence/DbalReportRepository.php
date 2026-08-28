@@ -206,6 +206,14 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::MyComplianceStatus     => $this->myComplianceStatus($definition, $criteria),
             ReportKey::MyLearningTime         => $this->myLearningTime($definition, $criteria),
             ReportKey::MyTranscript           => $this->myTranscript($definition, $criteria),
+            ReportKey::MyQuizHistory          => $this->myQuizHistory($definition, $criteria),
+            ReportKey::MyMandatoryTraining    => $this->myMandatoryTraining($definition, $criteria),
+            ReportKey::MyUpcomingDeadlines    => $this->myUpcomingDeadlines($definition, $criteria),
+            ReportKey::MyPathProgress         => $this->myPathProgress($definition, $criteria),
+
+            // --- assessment impact ----------------------------------------
+            ReportKey::RepeatAssessmentTrend => $this->repeatAssessmentTrend($definition, $criteria),
+            ReportKey::CourseLearnerRoster   => $this->courseLearnerRoster($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -5135,6 +5143,216 @@ final class DbalReportRepository implements ReportRepository
             ],
             criteria: $criteria,
         ));
+    }
+
+    private function myQuizHistory(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'at')
+            ->where('at.user_id = :self', 'self', $criteria->scope->viewerId)
+            ->where("at.status = 'graded'");
+
+        $columns = [
+            ReportColumn::text('assessment', 'Assessment'),
+            ReportColumn::number('attempt', 'Attempt'),
+            ReportColumn::percent('score', 'Score'),
+            ReportColumn::status('verdict', 'Result'),
+            ReportColumn::date('submittedAt', 'Sat'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM attempts at JOIN assessments asm ON asm.id = at.assessment_id',
+            $q,
+            "asm.title AS assessment,
+             at.attempt_number AS attempt,
+             at.percentage AS score,
+             CASE WHEN at.passed THEN 'Passed' ELSE 'Failed' END AS verdict,
+             at.submitted_at AS \"submittedAt\"",
+            'at.submitted_at',
+            'at.id',
+        );
+    }
+
+    private function myMandatoryTraining(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.deleted_at IS NULL')
+            ->where('e.user_id = :self', 'self', $criteria->scope->viewerId)
+            ->where(self::MANDATORY);
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::percent('progress', 'Progress'),
+            ReportColumn::date('dueDate', 'Due'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title AS course,
+             e.status AS status,
+             e.progress_percentage AS progress,
+             e.due_date AS \"dueDate\"",
+            'e.due_date',
+            'e.id',
+            'ASC',
+        );
+    }
+
+    private function myUpcomingDeadlines(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.deleted_at IS NULL')
+            ->where('e.user_id = :self', 'self', $criteria->scope->viewerId)
+            ->where("e.status <> 'completed' AND e.status <> 'dropped'")
+            ->where('e.due_date IS NOT NULL AND e.due_date >= CURRENT_DATE');
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::date('dueDate', 'Due'),
+            ReportColumn::number('daysLeft', 'Days left'),
+            ReportColumn::percent('progress', 'Progress'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e JOIN courses c ON c.id = e.course_id',
+            $q,
+            "c.title AS course,
+             e.due_date AS \"dueDate\",
+             (e.due_date - CURRENT_DATE) AS \"daysLeft\",
+             e.progress_percentage AS progress",
+            'e.due_date',
+            'e.id',
+            'ASC',
+        );
+    }
+
+    private function myPathProgress(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $pathId = $criteria->pathId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'i')
+            ->where('i.path_id = :pathId', 'pathId', $pathId)
+            ->where('i.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::number('position', 'Position'),
+            ReportColumn::text('item', 'Item'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::date('completedAt', 'Completed'),
+        ];
+
+        // Each item on the path, marked done where this learner's enrolment
+        // has a completion for it.
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM learning_path_items i
+             LEFT JOIN learning_path_enrollments e ON e.path_id = i.path_id
+                                                  AND e.user_id = :self AND e.deleted_at IS NULL
+             LEFT JOIN learning_path_item_completions c ON c.item_id = i.id AND c.enrollment_id = e.id",
+            $q->where('1 = 1', 'self', $criteria->scope->viewerId),
+            "i.sort_order AS position,
+             i.title AS item,
+             CASE WHEN c.completed_at IS NOT NULL THEN 'Completed' ELSE 'Outstanding' END AS status,
+             c.completed_at AS \"completedAt\"",
+            'i.sort_order',
+            'i.id',
+            'ASC',
+        );
+    }
+
+    // --- assessment impact ------------------------------------------------
+
+    private function repeatAssessmentTrend(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'at')
+            ->where("at.status = 'graded'")
+            ->maybe($criteria->assessmentId, 'at.assessment_id = :assessmentId', 'assessmentId');
+
+        // Averaged by attempt number: if later attempts score higher, retakes
+        // are teaching something; if flat, they are just chances to guess.
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT at.attempt_number AS attempt,
+                        round(AVG(at.percentage)::numeric, 1) AS avg_score,
+                        COUNT(*) AS attempts,
+                        round(100.0 * COUNT(*) FILTER (WHERE at.passed) / COUNT(*), 1) AS pass_rate
+                 FROM attempts at
+                 WHERE %s
+                 GROUP BY at.attempt_number
+                 ORDER BY at.attempt_number
+                 LIMIT 20",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                static fn (array $r): array => [
+                    'label'    => 'Attempt ' . (int) $r['attempt'],
+                    'value'    => (float) $r['avg_score'],
+                    'attempts' => (int) $r['attempts'],
+                    'passRate' => (float) $r['pass_rate'],
+                ],
+                $rows,
+            ),
+            ['attemptLevels' => count($rows)],
+            $criteria,
+        );
+    }
+
+    private function courseLearnerRoster(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $courseId = $criteria->courseId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('e.deleted_at IS NULL')
+            ->where('e.course_id = :rosterCourse', 'rosterCourse', $courseId);
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::percent('progress', 'Progress'),
+            ReportColumn::date('enrolledAt', 'Enrolled'),
+            ReportColumn::date('completedAt', 'Completed'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email AS email,
+             d.name AS department,
+             e.status AS status,
+             e.progress_percentage AS progress,
+             e.enrolled_at AS \"enrolledAt\",
+             e.completed_at AS \"completedAt\"",
+            'u.first_name',
+            'e.id',
+            'ASC',
+        );
     }
 
     // --- shared plumbing --------------------------------------------------

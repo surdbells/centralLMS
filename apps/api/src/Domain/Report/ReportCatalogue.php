@@ -1120,6 +1120,63 @@ final readonly class ReportCatalogue
                 ReportShape::Summary,
                 permission: Permission::EnrollmentSelf,
             ),
+            new ReportDefinition(
+                ReportKey::MyQuizHistory,
+                ReportCategory::Learner,
+                'My quiz history',
+                'Every attempt you have made, in order, so you can see yourself improve.',
+                ReportShape::Table,
+                permission: Permission::EnrollmentSelf,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::MyMandatoryTraining,
+                ReportCategory::Learner,
+                'My mandatory training',
+                'The training you are required to do, and where each stands.',
+                ReportShape::Table,
+                permission: Permission::EnrollmentSelf,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::MyUpcomingDeadlines,
+                ReportCategory::Learner,
+                'My upcoming deadlines',
+                'What is due soon, nearest first.',
+                ReportShape::Table,
+                permission: Permission::EnrollmentSelf,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::MyPathProgress,
+                ReportCategory::Learner,
+                'My path progress',
+                'One learning path you are on, item by item.',
+                ReportShape::Table,
+                permission: Permission::EnrollmentSelf,
+                exportable: true,
+                requires: ['pathId'],
+            ),
+
+            // --- assessment impact ----------------------------------------
+            new ReportDefinition(
+                ReportKey::RepeatAssessmentTrend,
+                ReportCategory::Assessment,
+                'Retake improvement',
+                'Whether people score better on their later attempts — averaged by attempt number.',
+                ReportShape::Series,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::CourseLearnerRoster,
+                ReportCategory::Course,
+                'Course roster',
+                'Everyone on one course, and where each of them stands.',
+                ReportShape::Table,
+                exportable: true,
+                requires: ['courseId'],
+                namesPeople: true,
+            ),
         ];
     }
 }
