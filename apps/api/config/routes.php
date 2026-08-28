@@ -746,17 +746,31 @@ return static function (App $app): void {
                 $s->put('/{id:' . $uuid . '}', [ManageSkillsAction::class, 'update'])->setName('skills.update');
                 $s->delete('/{id:' . $uuid . '}', [ManageSkillsAction::class, 'delete'])->setName('skills.delete');
 
+                // Everything that teaches it, of any kind. Still `/courses`
+                // in the path, because that is what the screen asks for.
                 $s->get('/{id:' . $uuid . '}/courses', [ManageSkillsAction::class, 'coursesTeaching'])
                     ->setName('skills.courses');
                 $s->get('/{id:' . $uuid . '}/learners', [ManageSkillsAction::class, 'learners'])
                     ->setName('skills.learners');
             });
 
-            // What a course teaches, and what somebody has learned.
+            // What something teaches, and what somebody has learned. Three
+            // kinds, one shape: a skill is held because the person finished
+            // something that teaches it, whatever that something was.
             $secure->get('/courses/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'forCourse'])
                 ->setName('courses.skills');
             $secure->put('/courses/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'setCourseSkills'])
                 ->setName('courses.skills.set');
+
+            $secure->get('/trainings/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'forTraining'])
+                ->setName('trainings.skills');
+            $secure->put('/trainings/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'setTrainingSkills'])
+                ->setName('trainings.skills.set');
+
+            $secure->get('/paths/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'forPath'])
+                ->setName('paths.skills');
+            $secure->put('/paths/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'setPathSkills'])
+                ->setName('paths.skills.set');
             $secure->get('/me/skills', [ManageSkillsAction::class, 'mine'])->setName('me.skills');
             $secure->get('/users/{id:' . $uuid . '}/skills', [ManageSkillsAction::class, 'forUser'])
                 ->setName('users.skills');

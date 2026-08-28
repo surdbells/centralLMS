@@ -56,31 +56,40 @@ interface SkillRepository
     // --- what teaches what ------------------------------------------------
 
     /**
-     * The skills a course teaches.
+     * The skills something teaches.
+     *
+     * A course, a training programme or a learning path — the answer has the
+     * same shape whichever it is, so there is one method rather than three
+     * that would drift.
      *
      * @return list<array<string, mixed>>
      */
-    public function forCourse(string $tenantId, string $courseId): array;
+    public function forSubject(string $tenantId, SkillSubject $kind, string $subjectId): array;
 
     /**
-     * Replaces a course's skills wholesale.
+     * Replaces what something teaches, wholesale.
      *
-     * One transaction, and the whole set: a course teaches these three things,
-     * not "these three plus whatever was there before". The legacy's
+     * One transaction, and the whole set: this course teaches these three
+     * things, not "these three plus whatever was there before". The legacy's
      * `assignSkillsToCourse()` deleted and re-inserted without one, so an
      * interrupted save left a course teaching nothing.
      *
-     * @param  list<array{skillId: string, proficiency: string, isPrimary: bool}> $skills
-     * @return list<array<string, mixed>> what the course now teaches
+     * @param  list<array{skillId: string, proficiency: string, isPrimary: bool, isRequired?: bool}> $skills
+     * @return list<array<string, mixed>> what it now teaches
      */
-    public function setCourseSkills(string $tenantId, string $courseId, array $skills): array;
+    public function setSubjectSkills(
+        string $tenantId,
+        SkillSubject $kind,
+        string $subjectId,
+        array $skills,
+    ): array;
 
     /**
-     * The courses that teach a skill.
+     * Everything that teaches a skill, of any kind.
      *
      * @return list<array<string, mixed>>
      */
-    public function coursesTeaching(string $tenantId, string $skillId): array;
+    public function subjectsTeaching(string $tenantId, string $skillId): array;
 
     // --- who holds what ---------------------------------------------------
 

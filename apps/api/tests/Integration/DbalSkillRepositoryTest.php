@@ -9,6 +9,7 @@ use Central\Api\Domain\Skill\Proficiency;
 use Central\Api\Domain\Skill\Skill;
 use Central\Api\Domain\Skill\SkillCategory;
 use Central\Api\Domain\Skill\SkillFilters;
+use Central\Api\Domain\Skill\SkillSubject;
 use Central\Api\Infrastructure\Persistence\DbalSkillRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
@@ -21,8 +22,10 @@ use Ramsey\Uuid\Uuid;
  * Skills against a real PostgreSQL.
  *
  * The substance is the derivation: a learner's skills are the skills of the
- * courses they have finished. `user_skills_acquired` was built to store them,
- * holds nothing, and was never read.
+ * things they have finished — a course, a training programme, a learning path.
+ * `user_skills_acquired` was built to store them, holds nothing, and was never
+ * read. Nobody is awarded a skill; they hold it because they did the work, and
+ * that is recomputed on every read rather than written down and left to rot.
  */
 #[CoversClass(DbalSkillRepository::class)]
 #[CoversClass(Skill::class)]
@@ -73,7 +76,12 @@ final class DbalSkillRepositoryTest extends TestCase
                 continue;
             }
 
-            foreach (['course_skills', 'enrollments', 'skills', 'skill_categories', 'courses', 'users'] as $table) {
+            $tables = [
+                'subject_skills', 'enrollments', 'training_enrollments', 'live_trainings',
+                'skills', 'skill_categories', 'courses', 'users',
+            ];
+
+            foreach ($tables as $table) {
                 self::$connection->executeStatement(
                     sprintf('DELETE FROM %s WHERE tenant_id = :id', $table),
                     ['id' => $tenantId],
@@ -211,7 +219,7 @@ final class DbalSkillRepositoryTest extends TestCase
         $fire = $this->skills->save($this->skill('Fire safety'));
         $data = $this->skills->save($this->skill('Data protection'));
 
-        $taught = $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $taught = $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => true],
             ['skillId' => (string) $data->id, 'proficiency' => 'beginner', 'isPrimary' => false],
         ]);
@@ -228,11 +236,11 @@ final class DbalSkillRepositoryTest extends TestCase
         $fire = $this->skills->save($this->skill('Fire safety'));
         $data = $this->skills->save($this->skill('Data protection'));
 
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
-        $taught = $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $taught = $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $data->id, 'proficiency' => 'beginner', 'isPrimary' => false],
         ]);
 
@@ -249,7 +257,7 @@ final class DbalSkillRepositoryTest extends TestCase
         // about" four things.
         $this->expectException(\Doctrine\DBAL\Exception\UniqueConstraintViolationException::class);
 
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => true],
             ['skillId' => (string) $data->id, 'proficiency' => 'beginner', 'isPrimary' => true],
         ]);
@@ -259,7 +267,7 @@ final class DbalSkillRepositoryTest extends TestCase
     public function removing_a_skill_removes_it_from_the_courses_that_taught_it(): void
     {
         $fire = $this->skills->save($this->skill('Fire safety'));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -267,7 +275,7 @@ final class DbalSkillRepositoryTest extends TestCase
         // must not go on claiming to teach something that no longer exists.
         $this->skills->softDelete($this->tenantA, (string) $fire->id);
 
-        self::assertSame([], $this->skills->forCourse($this->tenantA, $this->fireCourse));
+        self::assertSame([], $this->skills->forSubject($this->tenantA, SkillSubject::Course, $this->fireCourse));
     }
 
     #[Test]
@@ -276,12 +284,132 @@ final class DbalSkillRepositoryTest extends TestCase
         $fire = $this->skills->save($this->skill('Fire safety'));
 
         foreach ([$this->fireCourse, $this->gdprCourse] as $courseId) {
-            $this->skills->setCourseSkills($this->tenantA, $courseId, [
+            $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $courseId, [
                 ['skillId' => (string) $fire->id, 'proficiency' => 'intermediate', 'isPrimary' => false],
             ]);
         }
 
-        self::assertCount(2, $this->skills->coursesTeaching($this->tenantA, (string) $fire->id));
+        self::assertCount(2, $this->skills->subjectsTeaching($this->tenantA, (string) $fire->id));
+    }
+
+    // --- a skill can come from more than a course -----------------------------
+
+    #[Test]
+    public function a_training_programme_confers_a_skill_when_it_is_finished(): void
+    {
+        $skill = $this->savedSkill('Working at height');
+        $training = $this->createTraining('Scaffold safety');
+
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Training, $training, [
+            ['skillId' => $skill, 'proficiency' => 'advanced', 'isPrimary' => true],
+        ]);
+
+        // Enrolled but not finished: on the way to it, not holding it.
+        $this->enrolOnTraining($this->ada, $training, 'in_progress');
+
+        $held = $this->skills->forLearner($this->tenantA, $this->ada, true);
+        self::assertSame([], $held);
+
+        $inProgress = $this->skills->forLearner($this->tenantA, $this->ada);
+        self::assertCount(1, $inProgress);
+        self::assertSame('Working at height', $inProgress[0]->name);
+
+        // Finished: held, at the level the programme teaches.
+        self::$connection?->executeStatement(
+            "UPDATE training_enrollments SET status = 'completed', completed_at = NOW()
+             WHERE training_id = :t AND user_id = :u",
+            ['t' => $training, 'u' => $this->ada],
+        );
+
+        $held = $this->skills->forLearner($this->tenantA, $this->ada, true);
+        self::assertCount(1, $held);
+        self::assertSame('advanced', $held[0]->proficiency?->value);
+    }
+
+    #[Test]
+    public function a_course_and_a_programme_teaching_the_same_skill_are_one_skill(): void
+    {
+        $skill = $this->savedSkill('First aid');
+        $training = $this->createTraining('Practical first aid');
+
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
+            ['skillId' => $skill, 'proficiency' => 'beginner', 'isPrimary' => true],
+        ]);
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Training, $training, [
+            ['skillId' => $skill, 'proficiency' => 'expert', 'isPrimary' => true],
+        ]);
+
+        $this->enrol($this->ada, $this->fireCourse, 'completed');
+        $this->enrolOnTraining($this->ada, $training, 'completed');
+
+        $held = $this->skills->forLearner($this->tenantA, $this->ada, true);
+
+        // One skill, at the highest level anything they finished teaches.
+        self::assertCount(1, $held);
+        self::assertSame('expert', $held[0]->proficiency?->value);
+
+        // And both things that teach it are listed, whatever kind they are.
+        $teaching = $this->skills->subjectsTeaching($this->tenantA, $skill);
+        self::assertCount(2, $teaching);
+        self::assertSame(
+            ['course', 'training'],
+            array_values(array_unique(array_map(
+                static fn (array $r): string => (string) $r['subjectKind'],
+                $teaching,
+            ))),
+        );
+    }
+
+    #[Test]
+    public function a_skill_only_a_programme_teaches_is_not_a_gap(): void
+    {
+        $skill = $this->savedSkill('Confined spaces');
+        $training = $this->createTraining('Confined space entry');
+
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Training, $training, [
+            ['skillId' => $skill, 'proficiency' => 'advanced', 'isPrimary' => true],
+        ]);
+
+        $gaps = array_map(
+            static fn (array $r): string => (string) $r['name'],
+            $this->skills->statistics($this->tenantA)['untaught'],
+        );
+
+        // A gap is a skill nothing can give anybody. Counting only courses
+        // would report one here and send somebody off to write a course that
+        // already exists as a workshop.
+        self::assertNotContains('Confined spaces', $gaps);
+    }
+
+    #[Test]
+    public function an_optional_skill_is_touched_on_not_conferred(): void
+    {
+        $skill = $this->savedSkill('Negotiation');
+        $training = $this->createTraining('Advanced management');
+
+        // The workshop covers negotiation but is not about it. Finishing it
+        // does not make somebody a negotiator, and saying so would make the
+        // register worthless to whoever reads it looking for one.
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Training, $training, [
+            ['skillId' => $skill, 'proficiency' => 'beginner', 'isPrimary' => false, 'isRequired' => false],
+        ]);
+
+        $this->enrolOnTraining($this->ada, $training, 'completed');
+
+        // Not held, though the programme was finished.
+        self::assertSame([], $this->skills->forLearner($this->tenantA, $this->ada, true));
+
+        // And it counts as a gap: nothing actually confers it.
+        $gaps = array_map(
+            static fn (array $r): string => (string) $r['name'],
+            $this->skills->statistics($this->tenantA)['untaught'],
+        );
+        self::assertContains('Negotiation', $gaps);
+
+        // But the editor still sees it listed against the programme.
+        $listed = $this->skills->forSubject($this->tenantA, SkillSubject::Training, $training);
+        self::assertCount(1, $listed);
+        self::assertFalse($listed[0]['isRequired']);
     }
 
     // --- who holds what ---------------------------------------------------
@@ -290,7 +418,7 @@ final class DbalSkillRepositoryTest extends TestCase
     public function finishing_a_course_is_what_grants_the_skill(): void
     {
         $fire = $this->skills->save($this->skill('Fire safety'));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => true],
         ]);
 
@@ -310,7 +438,7 @@ final class DbalSkillRepositoryTest extends TestCase
     {
         // An enrolment on an expert course does not make somebody an expert.
         $fire = $this->skills->save($this->skill('Fire safety'));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'expert', 'isPrimary' => false],
         ]);
 
@@ -332,10 +460,10 @@ final class DbalSkillRepositoryTest extends TestCase
     {
         $fire = $this->skills->save($this->skill('Fire safety'));
 
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'beginner', 'isPrimary' => false],
         ]);
-        $this->skills->setCourseSkills($this->tenantA, $this->gdprCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->gdprCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'expert', 'isPrimary' => false],
         ]);
 
@@ -353,7 +481,7 @@ final class DbalSkillRepositoryTest extends TestCase
     public function a_dropped_enrolment_counts_for_nothing(): void
     {
         $fire = $this->skills->save($this->skill('Fire safety'));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -368,7 +496,7 @@ final class DbalSkillRepositoryTest extends TestCase
         // Retiring a skill stops it appearing on anybody's profile; the
         // completed course stays completed.
         $fire = $this->skills->save($this->skill('Fire safety', active: false));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -381,7 +509,7 @@ final class DbalSkillRepositoryTest extends TestCase
     public function each_person_holds_their_own(): void
     {
         $fire = $this->skills->save($this->skill('Fire safety'));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -396,7 +524,7 @@ final class DbalSkillRepositoryTest extends TestCase
     public function the_people_holding_a_skill_can_be_listed(): void
     {
         $fire = $this->skills->save($this->skill('Fire safety'));
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $fire->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -416,7 +544,7 @@ final class DbalSkillRepositoryTest extends TestCase
         $fire = $this->skills->save($this->skill('Fire safety'));
 
         foreach ([$this->fireCourse, $this->gdprCourse] as $courseId) {
-            $this->skills->setCourseSkills($this->tenantA, $courseId, [
+            $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $courseId, [
                 ['skillId' => (string) $fire->id, 'proficiency' => 'intermediate', 'isPrimary' => false],
             ]);
             $this->enrol($this->ada, $courseId, 'completed');
@@ -437,7 +565,7 @@ final class DbalSkillRepositoryTest extends TestCase
         $taught   = $this->skills->save($this->skill('Fire safety'));
         $untaught = $this->skills->save($this->skill('Welding'));
 
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $taught->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -457,10 +585,10 @@ final class DbalSkillRepositoryTest extends TestCase
         $common = $this->skills->save($this->skill('Fire safety'));
         $rare   = $this->skills->save($this->skill('Welding'));
 
-        $this->skills->setCourseSkills($this->tenantA, $this->fireCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->fireCourse, [
             ['skillId' => (string) $common->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
-        $this->skills->setCourseSkills($this->tenantA, $this->gdprCourse, [
+        $this->skills->setSubjectSkills($this->tenantA, SkillSubject::Course, $this->gdprCourse, [
             ['skillId' => (string) $rare->id, 'proficiency' => 'advanced', 'isPrimary' => false],
         ]);
 
@@ -484,6 +612,43 @@ final class DbalSkillRepositoryTest extends TestCase
     }
 
     // --- helpers ----------------------------------------------------------
+
+    /** A skill saved and its id handed back, which is all these tests want. */
+    private function savedSkill(string $name): string
+    {
+        return (string) $this->skills->save($this->skill($name))->id;
+    }
+
+    private function createTraining(string $title): string
+    {
+        $id = Uuid::uuid4()->toString();
+
+        self::$connection?->executeStatement(
+            "INSERT INTO live_trainings (id, tenant_id, title, status)
+             VALUES (:id, :t, :ti, 'published')",
+            ['id' => $id, 't' => $this->tenantA, 'ti' => $title],
+        );
+
+        return $id;
+    }
+
+    private function enrolOnTraining(string $userId, string $trainingId, string $status): void
+    {
+        self::$connection?->executeStatement(
+            "INSERT INTO training_enrollments
+                 (tenant_id, training_id, user_id, status, source, completed_at)
+             VALUES (:t, :tr, :u, :s,
+                     'direct',
+                     CASE WHEN :s2 = 'completed' THEN now() ELSE NULL END)",
+            [
+                't'  => $this->tenantA,
+                'tr' => $trainingId,
+                'u'  => $userId,
+                's'  => $status,
+                's2' => $status,
+            ],
+        );
+    }
 
     private function skill(
         string $name,

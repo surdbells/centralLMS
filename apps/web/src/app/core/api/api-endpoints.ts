@@ -329,6 +329,8 @@ export const Endpoints = {
     /** Takes the people to withdraw in the body, so several go at once. */
     withdraw: (id: string) => `/trainings/${id}/roster`,
     selfEnrol: (id: string) => `/trainings/${id}/enrol`,
+    /** The skills the programme confers, and setting them. */
+    skills: (id: string) => `/trainings/${id}/skills`,
   },
 
   sessions: {

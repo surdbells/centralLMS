@@ -1,8 +1,8 @@
 // live-training/live-training.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { ApiClient, Endpoints } from '../core/api';
 
 export type { CheckInResult } from './live-training.interfaces';
@@ -796,20 +796,66 @@ export class LiveTrainingService {
       .pipe(map((page) => page.items as unknown as UserForEnrollment[]));
   }
 
-  assignSkills(_trainingId: string, _skills: TrainingSkill[]): Observable<SkillAssignmentResult> {
-    return notAvailable('Skills conferred by a training programme');
+  /**
+   * The skills this programme confers.
+   *
+   * Held because somebody finished the programme, not stored against them —
+   * so there is no "award a skill by hand", and the method that used to
+   * promise one is gone. What a person holds is derived from what they have
+   * completed, and correcting a completion corrects the skill with it.
+   */
+  getTrainingSkills(trainingId: string): Observable<TrainingSkill[]> {
+    return this.api
+      .get<SubjectSkillPayload[]>(Endpoints.trainings.skills(trainingId))
+      .pipe(map((rows) => (rows ?? []).map((row) => toTrainingSkill(trainingId, row))));
   }
 
-  removeSkill(_trainingId: string, _skillId: string): Observable<void> {
-    return notAvailable('Skills conferred by a training programme');
+  /**
+   * Adds a skill to what the programme confers, keeping the rest.
+   *
+   * The API replaces the whole set in one transaction, so this reads the
+   * current set, appends, and sends it back — a half-written set that left a
+   * programme conferring nothing is the failure the transaction prevents.
+   */
+  assignSkills(trainingId: string, skills: TrainingSkill[]): Observable<SkillAssignmentResult> {
+    return this.getTrainingSkills(trainingId).pipe(
+      switchMap((existing) => {
+        const merged = new Map(existing.map((s) => [s.skill_id, s]));
+        for (const skill of skills) {
+          merged.set(skill.skill_id, skill);
+        }
+        return this.putTrainingSkills(trainingId, [...merged.values()]);
+      }),
+      map((saved) => ({
+        added: skills.length,
+        updated: 0,
+        skipped: 0,
+        errors: [],
+      } as SkillAssignmentResult)),
+    );
   }
 
-  getTrainingSkills(_trainingId: string): Observable<TrainingSkill[]> {
-    return of([]);
+  removeSkill(trainingId: string, skillId: string): Observable<void> {
+    return this.getTrainingSkills(trainingId).pipe(
+      switchMap((existing) =>
+        this.putTrainingSkills(trainingId, existing.filter((s) => s.skill_id !== skillId))),
+      map(() => undefined),
+    );
   }
 
-  awardSkillsManual(_enrollmentId: string): Observable<SkillAssignmentResult> {
-    return notAvailable('Awarding a skill by hand');
+  private putTrainingSkills(trainingId: string, skills: TrainingSkill[]): Observable<TrainingSkill[]> {
+    return this.api
+      .put<SubjectSkillPayload[]>(Endpoints.trainings.skills(trainingId), {
+        skills: skills.map((s) => ({
+          skillId: s.skill_id,
+          proficiency: s.proficiency_level,
+          // "Required" on this screen is "you actually get it" — the API's
+          // isRequired. The one headline skill is the first required one.
+          isRequired: s.is_required,
+          isPrimary: s.is_required,
+        })),
+      })
+      .pipe(map((rows) => (rows ?? []).map((row) => toTrainingSkill(trainingId, row))));
   }
 
   // ==========================================
@@ -1213,7 +1259,25 @@ function toSessionInstructor(row: InstructorPayload): SessionInstructor {
   };
 }
 
-/** Something with no server behind it, said out loud rather than left empty. */
-function notAvailable(what: string): Observable<never> {
-  return throwError(() => new Error(`${what} is not available yet.`));
+interface SubjectSkillPayload extends Record<string, any> {
+  skillId: string;
+}
+
+/**
+ * A skill the programme confers, as this screen reads one.
+ *
+ * "Required" on the screen means "finishing this gives you the skill", which
+ * is the API's isRequired. An optional one is a topic the programme touched
+ * on, and does not count towards what a learner holds.
+ */
+function toTrainingSkill(trainingId: string, row: SubjectSkillPayload): TrainingSkill {
+  return {
+    training_id: trainingId,
+    skill_id: row.skillId,
+    skill_name: row['name'] ?? '',
+    skill_description: row['description'] ?? undefined,
+    skill_category: row['categoryName'] ?? undefined,
+    proficiency_level: (row['proficiency'] ?? 'intermediate') as TrainingSkill['proficiency_level'],
+    is_required: row['isRequired'] !== false,
+  };
 }

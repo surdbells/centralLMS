@@ -10,6 +10,7 @@ use Central\Api\Domain\Skill\Skill;
 use Central\Api\Domain\Skill\SkillCategory;
 use Central\Api\Domain\Skill\SkillFilters;
 use Central\Api\Domain\Skill\SkillRepository;
+use Central\Api\Domain\Skill\SkillSubject;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 
@@ -27,35 +28,38 @@ final class DbalSkillRepository implements SkillRepository
      * per skill inside the listing loop.
      */
     private const COUNTS = "(
-            SELECT COUNT(*) FROM course_skills cs
-            JOIN courses co ON co.id = cs.course_id AND co.deleted_at IS NULL
+            SELECT COUNT(*) FROM subject_skills cs
+            JOIN teachable_subjects sub ON sub.subject_kind = cs.subject_kind
+                                       AND sub.subject_id = cs.subject_id
+                                       AND sub.deleted_at IS NULL
             WHERE cs.skill_id = s.id
         ) AS course_count,
         (
             SELECT COUNT(DISTINCT e.user_id)
-            FROM course_skills cs
-            JOIN enrollments e ON e.course_id = cs.course_id
-                              AND e.status = 'completed'
-                              AND e.deleted_at IS NULL
-            WHERE cs.skill_id = s.id
+            FROM subject_skills cs
+            JOIN subject_completions e ON e.subject_kind = cs.subject_kind
+                                      AND e.subject_id = cs.subject_id
+                                      AND e.is_complete
+            WHERE cs.skill_id = s.id AND cs.is_required
         ) AS learner_count,
         -- On the way to it: enrolled on something that teaches it and not
         -- yet finished any. The same reading the learner's own list uses,
         -- so the two never disagree about one person.
         (
             SELECT COUNT(DISTINCT e.user_id)
-            FROM course_skills cs
-            JOIN enrollments e ON e.course_id = cs.course_id
-                              AND e.status NOT IN ('completed', 'dropped')
-                              AND e.deleted_at IS NULL
-            WHERE cs.skill_id = s.id
+            FROM subject_skills cs
+            JOIN subject_completions e ON e.subject_kind = cs.subject_kind
+                                      AND e.subject_id = cs.subject_id
+                                      AND NOT e.is_complete
+                                      AND NOT e.is_abandoned
+            WHERE cs.skill_id = s.id AND cs.is_required
               AND NOT EXISTS (
-                  SELECT 1 FROM course_skills cs2
-                  JOIN enrollments e2 ON e2.course_id = cs2.course_id
-                                     AND e2.user_id = e.user_id
-                                     AND e2.status = 'completed'
-                                     AND e2.deleted_at IS NULL
-                  WHERE cs2.skill_id = s.id
+                  SELECT 1 FROM subject_skills cs2
+                  JOIN subject_completions e2 ON e2.subject_kind = cs2.subject_kind
+                                             AND e2.subject_id = cs2.subject_id
+                                             AND e2.user_id = e.user_id
+                                             AND e2.is_complete
+                  WHERE cs2.skill_id = s.id AND cs2.is_required
               )
         ) AS learners_in_progress";
 
@@ -287,18 +291,19 @@ final class DbalSkillRepository implements SkillRepository
 
     // --- what teaches what ------------------------------------------------
 
-    public function forCourse(string $tenantId, string $courseId): array
+    public function forSubject(string $tenantId, SkillSubject $kind, string $subjectId): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT cs.skill_id, cs.proficiency, cs.is_primary,
+            'SELECT cs.skill_id, cs.proficiency, cs.is_primary, cs.is_required,
                     s.name, s.icon, s.colour, s.description,
                     c.name AS category_name, c.colour AS category_colour
-             FROM course_skills cs
+             FROM subject_skills cs
              JOIN skills s ON s.id = cs.skill_id AND s.deleted_at IS NULL
              LEFT JOIN skill_categories c ON c.id = s.category_id
-             WHERE cs.course_id = :course AND cs.tenant_id = :tenant
+             WHERE cs.subject_kind = :kind AND cs.subject_id = :subject
+               AND cs.tenant_id = :tenant
              ORDER BY cs.is_primary DESC, s.name',
-            ['course' => $courseId, 'tenant' => $tenantId],
+            ['kind' => $kind->value, 'subject' => $subjectId, 'tenant' => $tenantId],
         );
 
         return array_map(
@@ -312,67 +317,87 @@ final class DbalSkillRepository implements SkillRepository
                 'categoryColour' => $r['category_colour'] === null ? null : (string) $r['category_colour'],
                 'proficiency'    => (string) $r['proficiency'],
                 'isPrimary'      => (bool) $r['is_primary'],
+                // Optional means the subject touches on it without conferring
+                // it. Held skills below count only the required ones.
+                'isRequired'     => (bool) $r['is_required'],
             ],
             $rows,
         );
     }
 
-    public function setCourseSkills(string $tenantId, string $courseId, array $skills): array
-    {
-        $this->connection->transactional(function (Connection $tx) use ($tenantId, $courseId, $skills): void {
-            // The whole set, replaced. Deleting and re-inserting outside a
-            // transaction — which is what the legacy did — leaves a course
-            // teaching nothing if the second half fails.
-            $tx->executeStatement(
-                'DELETE FROM course_skills WHERE course_id = :course AND tenant_id = :tenant',
-                ['course' => $courseId, 'tenant' => $tenantId],
-            );
-
-            foreach ($skills as $skill) {
+    public function setSubjectSkills(
+        string $tenantId,
+        SkillSubject $kind,
+        string $subjectId,
+        array $skills,
+    ): array {
+        $this->connection->transactional(
+            function (Connection $tx) use ($tenantId, $kind, $subjectId, $skills): void {
+                // The whole set, replaced. Deleting and re-inserting outside a
+                // transaction — which is what the legacy did — leaves a course
+                // teaching nothing if the second half fails.
                 $tx->executeStatement(
-                    'INSERT INTO course_skills (course_id, skill_id, tenant_id, proficiency, is_primary)
-                     VALUES (:course, :skill, :tenant, :proficiency, :primary)',
-                    [
-                        'course'      => $courseId,
-                        'skill'       => $skill['skillId'],
-                        'tenant'      => $tenantId,
-                        'proficiency' => $skill['proficiency'],
-                        'primary'     => $skill['isPrimary'],
-                    ],
-                    ['primary' => ParameterType::BOOLEAN],
+                    'DELETE FROM subject_skills
+                     WHERE subject_kind = :kind AND subject_id = :subject AND tenant_id = :tenant',
+                    ['kind' => $kind->value, 'subject' => $subjectId, 'tenant' => $tenantId],
                 );
-            }
-        });
 
-        return $this->forCourse($tenantId, $courseId);
+                foreach ($skills as $skill) {
+                    $tx->executeStatement(
+                        'INSERT INTO subject_skills
+                             (subject_kind, subject_id, skill_id, tenant_id,
+                              proficiency, is_primary, is_required)
+                         VALUES (:kind, :subject, :skill, :tenant,
+                                 :proficiency, :primary, :required)',
+                        [
+                            'kind'        => $kind->value,
+                            'subject'     => $subjectId,
+                            'skill'       => $skill['skillId'],
+                            'tenant'      => $tenantId,
+                            'proficiency' => $skill['proficiency'],
+                            'primary'     => $skill['isPrimary'],
+                            'required'    => $skill['isRequired'] ?? true,
+                        ],
+                        ['primary' => ParameterType::BOOLEAN, 'required' => ParameterType::BOOLEAN],
+                    );
+                }
+            },
+        );
+
+        return $this->forSubject($tenantId, $kind, $subjectId);
     }
 
-    public function coursesTeaching(string $tenantId, string $skillId): array
+    public function subjectsTeaching(string $tenantId, string $skillId): array
     {
         $rows = $this->connection->fetchAllAssociative(
-            "SELECT co.id, co.title, co.status, co.duration_minutes, co.thumbnail_url,
-                    cs.proficiency, cs.is_primary,
+            "SELECT sub.subject_id AS id, sub.subject_kind, sub.title,
+                    cs.proficiency, cs.is_primary, cs.is_required,
                     (
-                        SELECT COUNT(*) FROM enrollments e
-                        WHERE e.course_id = co.id AND e.status = 'completed' AND e.deleted_at IS NULL
+                        SELECT COUNT(*) FROM subject_completions e
+                        WHERE e.subject_kind = cs.subject_kind
+                          AND e.subject_id = cs.subject_id AND e.is_complete
                     ) AS completions
-             FROM course_skills cs
-             JOIN courses co ON co.id = cs.course_id AND co.deleted_at IS NULL
+             FROM subject_skills cs
+             JOIN teachable_subjects sub ON sub.subject_kind = cs.subject_kind
+                                        AND sub.subject_id = cs.subject_id
+                                        AND sub.deleted_at IS NULL
              WHERE cs.skill_id = :skill AND cs.tenant_id = :tenant
-             ORDER BY cs.is_primary DESC, co.title",
+             ORDER BY cs.is_primary DESC, sub.title",
             ['skill' => $skillId, 'tenant' => $tenantId],
         );
 
         return array_map(
             static fn (array $r): array => [
-                'courseId'        => (string) $r['id'],
-                'title'           => (string) $r['title'],
-                'status'          => (string) $r['status'],
-                'durationMinutes' => $r['duration_minutes'] === null ? null : (int) $r['duration_minutes'],
-                'thumbnailUrl'    => $r['thumbnail_url'] === null ? null : (string) $r['thumbnail_url'],
-                'proficiency'     => (string) $r['proficiency'],
-                'isPrimary'       => (bool) $r['is_primary'],
-                'completions'     => (int) $r['completions'],
+                'subjectId'   => (string) $r['id'],
+                'subjectKind' => (string) $r['subject_kind'],
+                // Kept for the screens written when only a course could teach
+                // anything. Both name the same thing.
+                'courseId'    => (string) $r['id'],
+                'title'       => (string) $r['title'],
+                'proficiency' => (string) $r['proficiency'],
+                'isPrimary'   => (bool) $r['is_primary'],
+                'isRequired'  => (bool) $r['is_required'],
+                'completions' => (int) $r['completions'],
             ],
             $rows,
         );
@@ -389,35 +414,40 @@ final class DbalSkillRepository implements SkillRepository
             sprintf(
                 "SELECT s.id, s.name, s.description, s.icon, s.colour,
                         s.category_id, c.name AS category_name, c.colour AS category_colour,
-                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
-                        COUNT(*) FILTER (WHERE e.status NOT IN ('completed', 'dropped')) AS in_progress,
-                        MAX(e.completed_at) FILTER (WHERE e.status = 'completed') AS acquired_at,
-                        -- The highest level demonstrated by a course actually
+                        COUNT(*) FILTER (WHERE e.is_complete) AS completed,
+                        COUNT(*) FILTER (WHERE NOT e.is_complete) AS in_progress,
+                        MAX(e.completed_at) FILTER (WHERE e.is_complete) AS acquired_at,
+                        -- The highest level demonstrated by something actually
                         -- finished. An enrolment on an expert course does not
                         -- make somebody an expert.
-                        MAX(CASE WHEN e.status = 'completed' THEN
+                        MAX(CASE WHEN e.is_complete THEN
                             CASE cs.proficiency
                                 WHEN 'expert' THEN 4 WHEN 'advanced' THEN 3
                                 WHEN 'intermediate' THEN 2 ELSE 1 END
                         END) AS proficiency_rank,
                         (
-                            SELECT COUNT(*) FROM course_skills all_cs
-                            JOIN courses all_co ON all_co.id = all_cs.course_id AND all_co.deleted_at IS NULL
-                            WHERE all_cs.skill_id = s.id
+                            SELECT COUNT(*) FROM subject_skills all_cs
+                            JOIN teachable_subjects all_sub
+                                 ON all_sub.subject_kind = all_cs.subject_kind
+                                AND all_sub.subject_id = all_cs.subject_id
+                                AND all_sub.deleted_at IS NULL
+                            WHERE all_cs.skill_id = s.id AND all_cs.is_required
                         ) AS available
-                 FROM course_skills cs
+                 FROM subject_skills cs
                  JOIN skills s ON s.id = cs.skill_id AND s.deleted_at IS NULL AND s.is_active
                  LEFT JOIN skill_categories c ON c.id = s.category_id
-                 JOIN enrollments e ON e.course_id = cs.course_id
-                                   AND e.user_id = :user
-                                   AND e.deleted_at IS NULL
-                                   AND e.status <> 'dropped'
-                 WHERE s.tenant_id = :tenant
+                 JOIN subject_completions e ON e.subject_kind = cs.subject_kind
+                                           AND e.subject_id = cs.subject_id
+                                           AND e.user_id = :user
+                                           AND NOT e.is_abandoned
+                 -- Only the skills a subject actually confers. An optional one
+                 -- is a topic it touched on, not a skill they walked away with.
+                 WHERE s.tenant_id = :tenant AND cs.is_required
                  GROUP BY s.id, s.name, s.description, s.icon, s.colour,
                           s.category_id, c.name, c.colour
                  %s
                  ORDER BY proficiency_rank DESC NULLS LAST, completed DESC, s.name",
-                $heldOnly ? "HAVING COUNT(*) FILTER (WHERE e.status = 'completed') > 0" : '',
+                $heldOnly ? 'HAVING COUNT(*) FILTER (WHERE e.is_complete) > 0' : '',
             ),
             ['tenant' => $tenantId, 'user' => $userId],
         );
@@ -427,16 +457,17 @@ final class DbalSkillRepository implements SkillRepository
 
     public function learnersWith(string $tenantId, string $skillId, int $page, int $perPage): array
     {
-        $where = "cs.skill_id = :skill AND cs.tenant_id = :tenant
-                  AND e.status = 'completed' AND e.deleted_at IS NULL AND u.deleted_at IS NULL";
+        $where = 'cs.skill_id = :skill AND cs.tenant_id = :tenant
+                  AND cs.is_required AND e.is_complete AND u.deleted_at IS NULL';
+
+        $join = 'JOIN subject_completions e ON e.subject_kind = cs.subject_kind
+                                          AND e.subject_id = cs.subject_id
+                 JOIN users u ON u.id = e.user_id';
 
         $total = (int) $this->connection->fetchOne(
             sprintf(
-                'SELECT COUNT(DISTINCT e.user_id)
-                 FROM course_skills cs
-                 JOIN enrollments e ON e.course_id = cs.course_id
-                 JOIN users u ON u.id = e.user_id
-                 WHERE %s',
+                'SELECT COUNT(DISTINCT e.user_id) FROM subject_skills cs %s WHERE %s',
+                $join,
                 $where,
             ),
             ['skill' => $skillId, 'tenant' => $tenantId],
@@ -446,18 +477,17 @@ final class DbalSkillRepository implements SkillRepository
             sprintf(
                 "SELECT u.id, u.email, u.avatar_url,
                         NULLIF(btrim(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')), '') AS full_name,
-                        COUNT(DISTINCT e.course_id) AS courses,
+                        COUNT(DISTINCT (e.subject_kind, e.subject_id)) AS courses,
                         MAX(e.completed_at) AS acquired_at,
                         MAX(CASE cs.proficiency
                                 WHEN 'expert' THEN 4 WHEN 'advanced' THEN 3
                                 WHEN 'intermediate' THEN 2 ELSE 1 END) AS proficiency_rank
-                 FROM course_skills cs
-                 JOIN enrollments e ON e.course_id = cs.course_id
-                 JOIN users u ON u.id = e.user_id
+                 FROM subject_skills cs %s
                  WHERE %s
                  GROUP BY u.id, u.email, u.avatar_url, u.first_name, u.last_name
                  ORDER BY proficiency_rank DESC, acquired_at DESC, u.id
                  LIMIT :limit OFFSET :offset",
+                $join,
                 $where,
             ),
             [
@@ -494,27 +524,33 @@ final class DbalSkillRepository implements SkillRepository
                     AS active_skills,
                 (SELECT COUNT(*) FROM skill_categories WHERE tenant_id = :tenant AND deleted_at IS NULL)
                     AS categories,
-                (SELECT COUNT(DISTINCT course_id) FROM course_skills WHERE tenant_id = :tenant) AS courses_mapped,
+                (SELECT COUNT(DISTINCT (subject_kind, subject_id)) FROM subject_skills
+                  WHERE tenant_id = :tenant) AS courses_mapped,
                 (SELECT COUNT(DISTINCT e.user_id)
-                   FROM course_skills cs
-                   JOIN enrollments e ON e.course_id = cs.course_id
-                                     AND e.status = \'completed\'
-                                     AND e.deleted_at IS NULL
+                   FROM subject_skills cs
+                   JOIN subject_completions e ON e.subject_kind = cs.subject_kind
+                                             AND e.subject_id = cs.subject_id
+                                             AND e.is_complete
                   WHERE cs.tenant_id = :tenant) AS learners_with_skills',
             ['tenant' => $tenantId],
         );
 
         // The skills nothing teaches. The legacy called this a "gap" and
-        // computed it as skills with no course — which is the useful one: a
-        // skill the organisation has declared and has no way to give anybody.
+        // computed it as skills with no course — which is the useful one, now
+        // counting programmes and paths too: a skill the organisation has
+        // declared and has no way to give anybody.
         $gaps = $this->connection->fetchAllAssociative(
             'SELECT s.id, s.name, s.colour
              FROM skills s
              WHERE s.tenant_id = :tenant AND s.deleted_at IS NULL AND s.is_active
                AND NOT EXISTS (
-                   SELECT 1 FROM course_skills cs
-                   JOIN courses co ON co.id = cs.course_id AND co.deleted_at IS NULL
-                   WHERE cs.skill_id = s.id
+                   SELECT 1 FROM subject_skills cs
+                   JOIN teachable_subjects sub ON sub.subject_kind = cs.subject_kind
+                                              AND sub.subject_id = cs.subject_id
+                                              AND sub.deleted_at IS NULL
+                   -- A skill only ever mentioned optionally is still a gap:
+                   -- nothing actually confers it, so nobody can acquire it.
+                   WHERE cs.skill_id = s.id AND cs.is_required
                )
              ORDER BY s.name',
             ['tenant' => $tenantId],
@@ -524,10 +560,10 @@ final class DbalSkillRepository implements SkillRepository
             "SELECT s.id, s.name, s.colour,
                     COUNT(DISTINCT e.user_id) AS learners
              FROM skills s
-             JOIN course_skills cs ON cs.skill_id = s.id
-             JOIN enrollments e ON e.course_id = cs.course_id
-                               AND e.status = 'completed'
-                               AND e.deleted_at IS NULL
+             JOIN subject_skills cs ON cs.skill_id = s.id AND cs.is_required
+             JOIN subject_completions e ON e.subject_kind = cs.subject_kind
+                                       AND e.subject_id = cs.subject_id
+                                       AND e.is_complete
              WHERE s.tenant_id = :tenant AND s.deleted_at IS NULL
              GROUP BY s.id, s.name, s.colour
              ORDER BY learners DESC, s.name

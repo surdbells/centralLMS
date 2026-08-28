@@ -13,6 +13,7 @@ use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Skill\LearnerSkill;
 use Central\Api\Domain\Skill\Proficiency;
+use Central\Api\Domain\Skill\SkillSubject;
 use Central\Api\Domain\Skill\Skill;
 use Central\Api\Domain\Skill\SkillCategory;
 use Central\Api\Domain\Skill\SkillFilters;
@@ -213,7 +214,7 @@ final class ManageSkillsAction
         $tenantId = $this->readable($request);
         $this->requireSkill($tenantId, $args['id']);
 
-        return Json::ok($response, $this->skills->coursesTeaching($tenantId, $args['id']));
+        return Json::ok($response, $this->skills->subjectsTeaching($tenantId, $args['id']));
     }
 
     /**
@@ -224,9 +225,40 @@ final class ManageSkillsAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
+        return $this->forSubject($request, $response, SkillSubject::Course, $args['id'] ?? '');
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function forTraining(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        return $this->forSubject($request, $response, SkillSubject::Training, $args['id'] ?? '');
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function forPath(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        return $this->forSubject($request, $response, SkillSubject::Path, $args['id'] ?? '');
+    }
+
+    private function forSubject(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        SkillSubject $kind,
+        string $subjectId,
+    ): ResponseInterface {
         $tenantId = $this->readable($request);
 
-        return Json::ok($response, $this->skills->forCourse($tenantId, $args['id']));
+        return Json::ok($response, $this->skills->forSubject($tenantId, $kind, $subjectId));
     }
 
     /**
@@ -239,8 +271,51 @@ final class ManageSkillsAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        // Authoring a course, not maintaining the dictionary — so this is the
-        // one write here that a course author may make.
+        return $this->setSubjectSkills($request, $response, SkillSubject::Course, $args['id'] ?? '');
+    }
+
+    /**
+     * Replaces what a training programme teaches.
+     *
+     * @param array<string, string> $args
+     */
+    public function setTrainingSkills(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        return $this->setSubjectSkills($request, $response, SkillSubject::Training, $args['id'] ?? '');
+    }
+
+    /**
+     * Replaces what a learning path teaches.
+     *
+     * @param array<string, string> $args
+     */
+    public function setPathSkills(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        return $this->setSubjectSkills($request, $response, SkillSubject::Path, $args['id'] ?? '');
+    }
+
+    /**
+     * Replaces what something teaches.
+     *
+     * One method for all three kinds: the validation is identical, and three
+     * copies of it would be three places for the one-main-skill rule to be
+     * forgotten.
+     */
+    private function setSubjectSkills(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        SkillSubject $kind,
+        string $subjectId,
+    ): ResponseInterface {
+        // Authoring, not maintaining the dictionary — so this is the one write
+        // here that an author may make. A training programme and a path are
+        // authored under the same permission as a course.
         $caller = $this->caller($request);
         $caller->mustHave(Permission::CourseManage);
 
@@ -289,17 +364,23 @@ final class ManageSkillsAction
                 $primaries++;
             }
 
+            // Defaults to required: the common case is that finishing a thing
+            // gives you the skill. `false` marks one it only touches on, which
+            // is left off what a learner is credited with holding.
+            $isRequired = filter_var($entry['isRequired'] ?? true, FILTER_VALIDATE_BOOL);
+
             $seen[$skillId] = true;
             $accepted[]     = [
                 'skillId'     => $skillId,
                 'proficiency' => $proficiency->value,
                 'isPrimary'   => $isPrimary,
+                'isRequired'  => $isRequired,
             ];
         }
 
         if ($primaries > 1) {
-            // A course cannot be "really about" four things. The index enforces
-            // it too; saying so here is the difference between a 422 and a 500.
+            // Nothing is "really about" four things. The index enforces it
+            // too; saying so here is the difference between a 422 and a 500.
             $violations['skills'] = 'Only one skill can be the main one.';
         }
 
@@ -307,7 +388,7 @@ final class ManageSkillsAction
             throw ValidationFailed::fromArray($violations);
         }
 
-        return Json::ok($response, $this->skills->setCourseSkills($tenantId, $args['id'], $accepted));
+        return Json::ok($response, $this->skills->setSubjectSkills($tenantId, $kind, $subjectId, $accepted));
     }
 
     // --- who holds what ---------------------------------------------------
