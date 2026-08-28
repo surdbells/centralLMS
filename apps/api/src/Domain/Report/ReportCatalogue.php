@@ -597,6 +597,50 @@ final readonly class ReportCatalogue
                 permission: Permission::ReportExport,
                 exportable: true,
             ),
+
+            // --- gamification ---------------------------------------------
+            new ReportDefinition(
+                ReportKey::Leaderboard,
+                ReportCategory::Gamification,
+                'Leaderboard',
+                'Who has earned the most points, with badges and completions beside.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::BadgesEarned,
+                ReportCategory::Gamification,
+                'Badges earned',
+                'Every badge awarded in range, and to whom.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::PointsSummary,
+                ReportCategory::Gamification,
+                'Points summary',
+                'Points per person — all time, this month and this week.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::DepartmentLeaderboard,
+                ReportCategory::Gamification,
+                'Department leaderboard',
+                'Points and badges totalled by department.',
+                ReportShape::Breakdown,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::GamificationParticipation,
+                ReportCategory::Gamification,
+                'Gamification participation',
+                'How many people are taking part, and where the points come from.',
+                ReportShape::Summary,
+            ),
         ];
     }
 }

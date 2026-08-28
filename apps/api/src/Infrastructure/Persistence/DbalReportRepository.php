@@ -127,6 +127,13 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::ExecutiveDashboard => $this->executiveDashboard($definition, $criteria),
             ReportKey::MonthlyTraining    => $this->monthlyTraining($definition, $criteria),
             ReportKey::YearOverYear       => $this->yearOverYear($definition, $criteria),
+
+            // --- gamification ---------------------------------------------
+            ReportKey::Leaderboard           => $this->leaderboard($definition, $criteria),
+            ReportKey::BadgesEarned          => $this->badgesEarned($definition, $criteria),
+            ReportKey::PointsSummary         => $this->pointsSummary($definition, $criteria),
+            ReportKey::DepartmentLeaderboard => $this->departmentLeaderboard($definition, $criteria),
+            ReportKey::GamificationParticipation => $this->gamificationParticipation($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -2736,6 +2743,238 @@ final class DbalReportRepository implements ReportRepository
             rows: $out,
             total: count($out),
             criteria: $criteria,
+        );
+    }
+
+    // --- gamification -----------------------------------------------------
+
+    private function leaderboard(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        // Points are events, not a stored total: a running total drifts the
+        // first time an award is reversed. Summed here, and again everywhere
+        // else that asks, so the two never disagree.
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('points', 'Points'),
+            ReportColumn::number('pointsThisMonth', 'This month'),
+            ReportColumn::number('badges', 'Badges'),
+            ReportColumn::number('completed', 'Courses done'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             COALESCE((SELECT SUM(p.points) FROM point_events p WHERE p.user_id = u.id), 0) AS points,
+             COALESCE((
+                 SELECT SUM(p.points) FROM point_events p
+                 WHERE p.user_id = u.id AND p.earned_at >= date_trunc('month', now())
+             ), 0) AS \"pointsThisMonth\",
+             (SELECT COUNT(*) FROM badge_awards b WHERE b.user_id = u.id) AS badges,
+             (SELECT COUNT(*) FROM enrollments e
+              WHERE e.user_id = u.id AND e.status = 'completed' AND e.deleted_at IS NULL) AS completed",
+            'points',
+            'u.id',
+            'DESC',
+        );
+    }
+
+    private function badgesEarned(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'ba', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'ba.awarded_at');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::text('badge', 'Badge'),
+            ReportColumn::text('badgeType', 'Type'),
+            ReportColumn::number('pointsValue', 'Points'),
+            ReportColumn::date('awardedAt', 'Earned'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM badge_awards ba
+             JOIN users u ON u.id = ba.user_id
+             JOIN badges bg ON bg.id = ba.badge_id
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             bg.name AS badge,
+             bg.type AS \"badgeType\",
+             bg.points_value AS \"pointsValue\",
+             ba.awarded_at AS \"awardedAt\"",
+            'ba.awarded_at',
+            'ba.id',
+        );
+    }
+
+    private function pointsSummary(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            // Somebody who has never earned a point is not on a points report.
+            ->where('EXISTS (SELECT 1 FROM point_events p WHERE p.user_id = u.id)');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('total', 'All time'),
+            ReportColumn::number('thisMonth', 'This month'),
+            ReportColumn::number('thisWeek', 'This week'),
+            ReportColumn::number('awards', 'Awards'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             COALESCE((SELECT SUM(p.points) FROM point_events p WHERE p.user_id = u.id), 0) AS total,
+             COALESCE((SELECT SUM(p.points) FROM point_events p
+                 WHERE p.user_id = u.id AND p.earned_at >= date_trunc('month', now())), 0) AS \"thisMonth\",
+             COALESCE((SELECT SUM(p.points) FROM point_events p
+                 WHERE p.user_id = u.id AND p.earned_at >= date_trunc('week', now())), 0) AS \"thisWeek\",
+             (SELECT COUNT(*) FROM point_events p WHERE p.user_id = u.id) AS awards",
+            'total',
+            'u.id',
+            'DESC',
+        );
+    }
+
+    private function departmentLeaderboard(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.department_id IS NOT NULL');
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT d.name AS department,
+                        COUNT(DISTINCT u.id) AS people,
+                        COALESCE(SUM((
+                            SELECT SUM(p.points) FROM point_events p WHERE p.user_id = u.id
+                        )), 0) AS points,
+                        COALESCE(SUM((
+                            SELECT COUNT(*) FROM badge_awards b WHERE b.user_id = u.id
+                        )), 0) AS badges
+                 FROM users u
+                 JOIN lookups d ON d.id = u.department_id
+                 WHERE %s
+                 GROUP BY d.name
+                 ORDER BY points DESC",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                fn (array $r): array => [
+                    'label'         => (string) $r['department'],
+                    'value'         => (int) $r['points'],
+                    'people'        => (int) $r['people'],
+                    'badges'        => (int) $r['badges'],
+                    // The fair comparison between a big department and a small
+                    // one: total points flatter the large team for its size.
+                    'pointsPerHead' => $this->round(
+                        (int) $r['people'] === 0 ? 0 : (int) $r['points'] / (int) $r['people'],
+                    ),
+                ],
+                $rows,
+            ),
+            ['departments' => count($rows)],
+            $criteria,
+        );
+    }
+
+    private function gamificationParticipation(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL');
+
+        $totals = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(*) AS people,
+                        COUNT(*) FILTER (
+                            WHERE EXISTS (SELECT 1 FROM point_events p WHERE p.user_id = u.id)
+                               OR EXISTS (SELECT 1 FROM badge_awards b WHERE b.user_id = u.id)
+                        ) AS taking_part,
+                        COALESCE((SELECT SUM(p.points) FROM point_events p WHERE p.tenant_id = :tenantId), 0)
+                            AS total_points,
+                        (SELECT COUNT(*) FROM badge_awards b WHERE b.tenant_id = :tenantId) AS total_badges
+                 FROM users u
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $totals = $totals === false ? [] : $totals;
+        $people = (int) ($totals['people'] ?? 0);
+        $takingPart = (int) ($totals['taking_part'] ?? 0);
+
+        // Where the points come from — the reason column of the events, which
+        // is the closest the schema has to "what earns points here".
+        $bySource = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT p.reason AS label, SUM(p.points) AS value, COUNT(*) AS awards
+                 FROM point_events p
+                 JOIN users u ON u.id = p.user_id
+                 WHERE %s
+                 GROUP BY p.reason
+                 ORDER BY value DESC',
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'people'            => $people,
+                'takingPart'        => $takingPart,
+                'participationRate' => $this->percent($takingPart, $people),
+                'totalPoints'       => (int) ($totals['total_points'] ?? 0),
+                'totalBadges'       => (int) ($totals['total_badges'] ?? 0),
+            ],
+            array_map(
+                fn (array $r): array => [
+                    'label'  => $this->humanise((string) $r['label']),
+                    'value'  => (int) $r['value'],
+                    'awards' => (int) $r['awards'],
+                ],
+                $bySource,
+            ),
+            $criteria,
         );
     }
 

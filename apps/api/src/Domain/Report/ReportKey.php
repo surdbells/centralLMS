@@ -90,6 +90,13 @@ enum ReportKey: string
     case MonthlyTraining    = 'monthly_training_summary';
     case YearOverYear       = 'year_over_year';
 
+    // --- gamification -----------------------------------------------------
+    case Leaderboard              = 'leaderboard';
+    case BadgesEarned             = 'badges_earned';
+    case PointsSummary            = 'points_summary';
+    case DepartmentLeaderboard    = 'department_leaderboard';
+    case GamificationParticipation = 'gamification_participation';
+
     /**
      * @return list<string>
      */

@@ -7,9 +7,12 @@ namespace Central\Api\Domain\Report;
 /**
  * How the report catalogue is grouped for a person choosing one.
  *
- * The legacy's twelve categories, minus the three whose modules this port has
- * not reached. Adding one back is an enum case and its reports — see
- * {@see ReportCatalogue} for what is deferred and why.
+ * The families a report can belong to. Adding one is an enum case and its
+ * reports — see {@see ReportCatalogue}. A handful of legacy families are
+ * absent because the data they read was never migrated: surveys and
+ * satisfaction, training cost and budget, content-access analytics, security
+ * and GDPR logs. A report with nothing truthful to read is not built rather
+ * than built to return zeroes.
  */
 enum ReportCategory: string
 {
@@ -22,6 +25,14 @@ enum ReportCategory: string
     case Time        = 'time';
     case Certificate = 'certificate';
     case Executive   = 'executive';
+    case Gamification = 'gamification';
+    case Path         = 'path';
+    case Ilt          = 'ilt';
+    case Onboarding   = 'onboarding';
+    case Audit        = 'audit';
+    case Manager      = 'manager';
+    case Cohort       = 'cohort';
+    case System       = 'system';
 
     public function label(): string
     {
@@ -35,6 +46,14 @@ enum ReportCategory: string
             self::Time        => 'Time and engagement',
             self::Certificate => 'Certificates',
             self::Executive   => 'Executive',
+            self::Gamification => 'Gamification',
+            self::Path        => 'Learning paths',
+            self::Ilt         => 'Live training',
+            self::Onboarding  => 'Onboarding',
+            self::Audit       => 'Audit and records',
+            self::Manager     => 'For managers',
+            self::Cohort      => 'Cohorts and groups',
+            self::System      => 'System',
         };
     }
 
@@ -50,6 +69,14 @@ enum ReportCategory: string
             self::Time        => 'Where the hours go.',
             self::Certificate => 'What has been issued, checked and is about to lapse.',
             self::Executive   => 'The organisation at a glance.',
+            self::Gamification => 'Points, badges and who is on top.',
+            self::Path        => 'Progress through the multi-course journeys.',
+            self::Ilt         => 'Attendance, no-shows and how full the rooms are.',
+            self::Onboarding  => 'How quickly new joiners get up to speed.',
+            self::Audit       => 'The trail of who did what, and the records to prove it.',
+            self::Manager     => 'One team, for the person who runs it.',
+            self::Cohort      => 'Groups measured against each other.',
+            self::System      => 'The platform itself — usage and storage.',
         };
     }
 
