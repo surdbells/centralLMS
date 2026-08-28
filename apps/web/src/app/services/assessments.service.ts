@@ -409,6 +409,94 @@ export class AssessmentsService {
       map((review) => (review['violations'] ?? []) as Array<Record<string, unknown>>),
     );
   }
+
+  // --- rubrics ---------------------------------------------------------
+
+  rubrics(activeOnly = false): Observable<Rubric[]> {
+    return this.api.get<Rubric[]>(Endpoints.rubrics.list, {
+      activeOnly: activeOnly ? 1 : undefined,
+    });
+  }
+
+  rubric(id: string): Observable<Rubric> {
+    return this.api.get<Rubric>(Endpoints.rubrics.show(id));
+  }
+
+  createRubric(input: RubricInput): Observable<Rubric> {
+    return this.api.post<Rubric>(Endpoints.rubrics.create, input);
+  }
+
+  /**
+   * Saves a rubric.
+   *
+   * Sending `criteria` replaces them all. Leaving the key out leaves them
+   * alone — the API distinguishes the two, so a form that edits only the
+   * name cannot empty the rubric by omission.
+   */
+  updateRubric(id: string, input: Partial<RubricInput>): Observable<Rubric> {
+    return this.api.put<Rubric>(Endpoints.rubrics.update(id), input);
+  }
+
+  deleteRubric(id: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.rubrics.delete(id));
+  }
+
+  duplicateRubric(id: string, name?: string): Observable<Rubric> {
+    return this.api.post<Rubric>(Endpoints.rubrics.duplicate(id), { name });
+  }
+
+  // --- who is marking what ---------------------------------------------
+
+  /**
+   * The marking queue.
+   *
+   * `mine` is what a marker wants and a coordinator does not;
+   * `unassigned` is the other half of the same question.
+   */
+  gradingQueue(filters: { mine?: boolean; unassigned?: boolean } = {}):
+  Observable<{ items: QueuedAttempt[]; total: number }> {
+    return this.api.get<{ items: QueuedAttempt[]; total: number }>(Endpoints.grading.queue, {
+      mine: filters.mine === true ? 1 : undefined,
+      unassigned: filters.unassigned === true ? 1 : undefined,
+    });
+  }
+
+  assignForMarking(
+    attemptId: string,
+    assignedTo: string,
+    options: { priority?: number; notes?: string } = {},
+  ): Observable<GradingAssignment> {
+    return this.api.put<GradingAssignment>(Endpoints.grading.assign(attemptId), {
+      assignedTo,
+      priority: options.priority ?? 0,
+      notes: options.notes ?? null,
+    });
+  }
+
+  /** Puts a paper back in the general queue. */
+  releaseForMarking(attemptId: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.grading.release(attemptId));
+  }
+
+  skipForMarking(attemptId: string, reason?: string): Observable<GradingAssignment> {
+    return this.api.post<GradingAssignment>(Endpoints.grading.skip(attemptId), { reason });
+  }
+
+  prioritiseForMarking(attemptId: string, priority: number): Observable<GradingAssignment> {
+    return this.api.patch<GradingAssignment>(
+      Endpoints.grading.prioritise(attemptId),
+      { priority },
+    );
+  }
+
+  /** Shares a batch out between markers, round-robin. */
+  assignManyForMarking(attemptIds: string[], markerIds: string[]):
+  Observable<{ assigned: number; markers: number }> {
+    return this.api.post<{ assigned: number; markers: number }>(
+      Endpoints.grading.assignMany,
+      { attemptIds, markerIds },
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -484,4 +572,84 @@ export interface ProctoringSettings extends Record<string, unknown> {
   blockCopyPaste: boolean;
   snapshotIntervalSeconds: number | null;
   maxViolations: number | null;
+}
+
+// ---------------------------------------------------------------------------
+// Rubrics and the marking queue
+// ---------------------------------------------------------------------------
+
+export type RubricKind = 'analytic' | 'holistic';
+
+export interface RubricLevel {
+  id: string;
+  label: string;
+  description: string | null;
+  points: number;
+  sortOrder: number;
+}
+
+export interface RubricCriterion {
+  id: string;
+  title: string;
+  description: string | null;
+  /** Taken from the bands, not a stored number — see the API's Rubric. */
+  maxPoints: number;
+  sortOrder: number;
+  levels: RubricLevel[];
+}
+
+export interface Rubric {
+  id: string;
+  name: string;
+  description: string | null;
+  kind: RubricKind;
+  kindLabel: string;
+  isActive: boolean;
+  /** Whether it has criteria, and every criterion has bands to choose between. */
+  isUsable: boolean;
+  totalPoints: number;
+  criterionCount: number;
+  /** How many questions are marked against it. Blocks deletion while > 0. */
+  questionCount: number;
+  criteria: RubricCriterion[];
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface RubricInput {
+  name: string;
+  description?: string | null;
+  kind?: RubricKind;
+  isActive?: boolean;
+  criteria?: Array<{
+    title: string;
+    description?: string | null;
+    maxPoints?: number;
+    levels?: Array<{ label: string; description?: string | null; points: number }>;
+  }>;
+}
+
+export interface GradingAssignment {
+  id: string;
+  attemptId: string;
+  assignedTo: string | null;
+  assigneeName: string | null;
+  assignedBy: string | null;
+  priority: number;
+  /** False once a marker has set it aside; it stays in the queue regardless. */
+  isOpen: boolean;
+  skippedAt: string | null;
+  skipReason: string | null;
+  notes: string | null;
+}
+
+/** One paper in the queue: the attempt, what is left to mark, and who has it. */
+export interface QueuedAttempt extends Record<string, unknown> {
+  id: string;
+  assessmentId: string;
+  assessmentTitle: string | null;
+  userName: string | null;
+  submittedAt: string | null;
+  awaitingMarking: number;
+  assignment: GradingAssignment | null;
 }

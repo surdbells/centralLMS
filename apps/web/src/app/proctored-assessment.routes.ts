@@ -106,31 +106,35 @@ export const proctoredAssessmentRoutes: Routes = [
           .then(m => m.GradingQueueComponent),
         title: 'Grading Queue'
       },
-      {
-        path: ':attemptId',
-        loadComponent: () => import('./proctored/grading//grading-interface/grading-interface.component')
-          .then(m => m.GradingInterfaceComponent),
-        title: 'Grade Attempt'
-      },
+      // The rubric routes come before `:attemptId`. Angular takes the first
+      // route that matches, and a parameter matches anything — declared after
+      // it, `rubrics` was never reachable and the URL opened the grading
+      // screen for an attempt called "rubrics".
       {
         path: 'rubrics',
-        loadComponent: () => import('./proctored/grading//rubric-manager/rubric-manager.component')
+        loadComponent: () => import('./proctored/grading/rubric-manager/rubric-manager.component')
           .then(m => m.RubricManagerComponent),
         title: 'Rubric Manager'
       },
       {
         path: 'rubrics/create',
-        loadComponent: () => import('./proctored/grading//rubric-form/rubric-form.component')
+        loadComponent: () => import('./proctored/grading/rubric-form/rubric-form.component')
           .then(m => m.RubricFormComponent),
         title: 'Create Rubric',
         data: { mode: 'create' }
       },
       {
         path: 'rubrics/:id/edit',
-        loadComponent: () => import('./proctored/grading//rubric-form/rubric-form.component')
+        loadComponent: () => import('./proctored/grading/rubric-form/rubric-form.component')
           .then(m => m.RubricFormComponent),
         title: 'Edit Rubric',
         data: { mode: 'edit' }
+      },
+      {
+        path: ':attemptId',
+        loadComponent: () => import('./proctored/grading/grading-interface/grading-interface.component')
+          .then(m => m.GradingInterfaceComponent),
+        title: 'Grade Attempt'
       }
     ]
   },

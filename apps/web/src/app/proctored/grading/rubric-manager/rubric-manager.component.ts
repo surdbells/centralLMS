@@ -7,11 +7,14 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../../global-component';
+import { ApiError } from '../../../core/api';
+import {
+  AssessmentsService,
+  type Rubric,
+} from '../../../services/assessments.service';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 
 // ==========================================
@@ -26,7 +29,7 @@ interface ApiResponse<T> {
 }
 
 interface RubricListItem {
-  rubric_id: number;
+  rubric_id: string;
   name: string;
   description: string;
   rubric_type: string;
@@ -41,12 +44,12 @@ interface RubricListItem {
 
 interface RubricPreview extends RubricListItem {
   criteria: {
-    criterion_id: number;
+    criterion_id: string;
     title: string;
     description: string;
     max_points: number;
     weight: number;
-    levels: { level_id: number; label: string; description: string; points: number; }[];
+    levels: { level_id: string; label: string; description: string; points: number; }[];
   }[];
 }
 
@@ -339,7 +342,10 @@ interface RubricPreview extends RubricListItem {
   `]
 })
 export class RubricManagerComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private readonly assessments = inject(AssessmentsService);
+
+  /** What went wrong, if anything. Rendered rather than swallowed. */
+  error: string | null = null;
   private router = inject(Router);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
@@ -377,20 +383,21 @@ export class RubricManagerComponent implements OnInit, OnDestroy {
 
   loadRubrics(): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_rubrics');
+    this.error = null;
 
-    this.http.post<ApiResponse<RubricListItem[]>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.rubrics = res.data || [];
-          this.applyFilters();
-        }
+    this.assessments.rubrics().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rubrics) => {
+        this.rubrics = rubrics.map(toListItem);
+        this.applyFilters();
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: (failure: ApiError) => {
+        // Said out loud. The legacy checked `res.code === 1` and did
+        // nothing otherwise, so a failure left an empty list that looked
+        // exactly like having no rubrics.
+        this.error = failure.message;
+        this.loading = false;
+      },
     });
   }
 
@@ -453,36 +460,26 @@ export class RubricManagerComponent implements OnInit, OnDestroy {
   }
 
   cloneRubric(r: RubricListItem): void {
-    const fd = new FormData();
-    fd.append('action', 'clone_rubric');
-    fd.append('rubric_id', r.rubric_id.toString());
-
-    this.http.post<ApiResponse<{ rubric_id: number }>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.loadRubrics();
-        }
-      }
-    });
+    this.assessments
+      .duplicateRubric(r.rubric_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.loadRubrics(),
+        error: (failure: ApiError) => (this.error = failure.message),
+      });
   }
 
   previewRubric(r: RubricListItem): void {
-    const fd = new FormData();
-    fd.append('action', 'get_rubric');
-    fd.append('rubric_id', r.rubric_id.toString());
-
-    this.http.post<ApiResponse<RubricPreview>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.previewData = res.data;
+    this.assessments
+      .rubric(r.rubric_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (rubric) => {
+          this.previewData = toPreview(rubric);
           this.showPreviewModal = true;
-        }
-      }
-    });
+        },
+        error: (failure: ApiError) => (this.error = failure.message),
+      });
   }
 
   confirmDelete(r: RubricListItem): void {
@@ -492,21 +489,23 @@ export class RubricManagerComponent implements OnInit, OnDestroy {
 
   executeDelete(): void {
     if (!this.deleteTarget) return;
-    const fd = new FormData();
-    fd.append('action', 'delete_rubric');
-    fd.append('rubric_id', this.deleteTarget.rubric_id.toString());
 
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
+    this.assessments
+      .deleteRubric(this.deleteTarget.rubric_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
           this.showDeleteModal = false;
           this.deleteTarget = null;
           this.loadRubrics();
-        }
-      }
-    });
+        },
+        // The API refuses while questions still point at it, and says how
+        // many — the marks already given name its criteria.
+        error: (failure: ApiError) => {
+          this.showDeleteModal = false;
+          this.error = failure.message;
+        },
+      });
   }
 
   // ==========================================
@@ -528,4 +527,49 @@ export class RubricManagerComponent implements OnInit, OnDestroy {
   truncate(text: string, len: number): string {
     return text && text.length > len ? text.substring(0, len) + '...' : text || '';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+//
+// The screen's own vocabulary, kept exactly. `total_points` and
+// `criteria_count` are counted by the API from the bands rather than stored,
+// so what arrives here is already right.
+
+function toListItem(r: Rubric): RubricListItem {
+  return {
+    rubric_id: r.id,
+    name: r.name,
+    description: r.description ?? '',
+    rubric_type: r.kind,
+    total_points: r.totalPoints,
+    criteria_count: r.criterionCount,
+    status: r.isActive ? 'active' : 'inactive',
+    usage_count: r.questionCount,
+    created_by_name: '',
+    created_at: r.createdAt ?? '',
+    updated_at: r.updatedAt ?? '',
+  };
+}
+
+function toPreview(r: Rubric): RubricPreview {
+  return {
+    ...toListItem(r),
+    criteria: r.criteria.map((c) => ({
+      criterion_id: c.id,
+      title: c.title,
+      description: c.description ?? '',
+      max_points: c.maxPoints,
+      // Weighting is not modelled: a criterion's weight is what its bands
+      // are worth, which is the same thing said once instead of twice.
+      weight: 1,
+      levels: c.levels.map((l) => ({
+        level_id: l.id,
+        label: l.label,
+        description: l.description ?? '',
+        points: l.points,
+      })),
+    })),
+  };
 }

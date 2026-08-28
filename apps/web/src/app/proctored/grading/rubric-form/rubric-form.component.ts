@@ -7,11 +7,15 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../../global-component';
+import { ApiError } from '../../../core/api';
+import {
+  AssessmentsService,
+  type Rubric,
+  type RubricKind,
+} from '../../../services/assessments.service';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 
 // ==========================================
@@ -26,7 +30,7 @@ interface ApiResponse<T> {
 }
 
 interface CriterionLevel {
-  level_id?: number;
+  level_id?: string;
   label: string;
   description: string;
   points: number;
@@ -34,7 +38,7 @@ interface CriterionLevel {
 }
 
 interface RubricCriterion {
-  criterion_id?: number;
+  criterion_id?: string;
   title: string;
   description: string;
   max_points: number;
@@ -45,7 +49,7 @@ interface RubricCriterion {
 }
 
 interface RubricFormData {
-  rubric_id?: number;
+  rubric_id?: string;
   name: string;
   description: string;
   rubric_type: string;
@@ -406,7 +410,10 @@ interface RubricFormData {
   `]
 })
 export class RubricFormComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private readonly assessments = inject(AssessmentsService);
+
+  /** What went wrong, if anything. Rendered rather than swallowed. */
+  error: string | null = null;
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
@@ -434,7 +441,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
       const id = params['rubricId'];
       if (id && id !== 'new') {
         this.isEditMode = true;
-        this.loadRubric(+id);
+        this.loadRubric(id);
       }
     });
   }
@@ -448,46 +455,72 @@ export class RubricFormComponent implements OnInit, OnDestroy {
   // DATA
   // ==========================================
 
-  loadRubric(rubricId: number): void {
+  loadRubric(rubricId: string): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_rubric');
-    fd.append('rubric_id', rubricId.toString());
+    this.error = null;
 
-    this.http.post<ApiResponse<RubricFormData>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) this.form = res.data;
+    this.assessments.rubric(rubricId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rubric) => {
+        this.form = toForm(rubric);
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: (failure: ApiError) => {
+        this.error = failure.message;
+        this.loading = false;
+      },
     });
   }
 
+  /**
+   * Saves the rubric and its criteria together.
+   *
+   * This has never worked. It posted to `${GlobalComponent}/user/grading` —
+   * the class interpolated into a string rather than `GlobalComponent.baseURL`
+   * — so every save went to `[object Object]/user/grading` and failed
+   * silently, because the handler only acted on `res.code === 1`.
+   *
+   * Criteria go with the rubric in one request. Sending them separately
+   * would let a marker open the rubric between the two and mark against
+   * something half-saved.
+   */
   saveRubric(): void {
     if (!this.isValid()) return;
-    this.saving = true;
-    const fd = new FormData();
-    fd.append('action', this.isEditMode ? 'update_rubric' : 'create_rubric');
-    if (this.form.rubric_id) fd.append('rubric_id', this.form.rubric_id.toString());
-    fd.append('name', this.form.name);
-    fd.append('description', this.form.description);
-    fd.append('rubric_type', this.form.rubric_type);
-    fd.append('status', this.form.status);
-    fd.append('criteria', JSON.stringify(this.form.criteria.map((c, i) => ({
-      ...c, sort_order: i + 1,
-      levels: c.levels.map((l, li) => ({ ...l, sort_order: li + 1 }))
-    }))));
 
-    this.http.post<ApiResponse<{ rubric_id: number }>>(
-      `${GlobalComponent}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
+    this.saving = true;
+    this.error = null;
+
+    const input = {
+      name: this.form.name,
+      description: this.form.description || null,
+      kind: (this.form.rubric_type === 'holistic' ? 'holistic' : 'analytic') as RubricKind,
+      isActive: this.form.status !== 'draft',
+      // Position in the list is the order, so two criteria cannot claim
+      // the same place.
+      criteria: this.form.criteria.map((c) => ({
+        title: c.title,
+        description: c.description || null,
+        maxPoints: c.max_points,
+        levels: c.levels.map((l) => ({
+          label: l.label,
+          description: l.description || null,
+          points: l.points,
+        })),
+      })),
+    };
+
+    const saved = this.form.rubric_id
+      ? this.assessments.updateRubric(this.form.rubric_id, input)
+      : this.assessments.createRubric(input);
+
+    saved.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
         this.saving = false;
-        if (res.code === 1) this.router.navigate(['/admin/rubrics']);
+        void this.router.navigate(['/admin/grading/rubrics']);
       },
-      error: () => { this.saving = false; }
+      error: (failure: ApiError) => {
+        this.saving = false;
+        this.error = failure.message;
+      },
     });
   }
 
@@ -650,4 +683,35 @@ export class RubricFormComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void { this.router.navigate(['/admin/rubrics']); }
+}
+
+// ---------------------------------------------------------------------------
+// Translation
+// ---------------------------------------------------------------------------
+
+function toForm(r: Rubric): RubricFormData {
+  return {
+    rubric_id: r.id,
+    name: r.name,
+    description: r.description ?? '',
+    rubric_type: r.kind,
+    status: r.isActive ? 'active' : 'draft',
+    criteria: r.criteria.map((c, position) => ({
+      criterion_id: c.id,
+      title: c.title,
+      description: c.description ?? '',
+      max_points: c.maxPoints,
+      // Weighting is not modelled: what a criterion is worth is what its
+      // bands are worth.
+      weight: 1,
+      sort_order: position + 1,
+      levels: c.levels.map((l, band) => ({
+        level_id: l.id,
+        label: l.label,
+        description: l.description ?? '',
+        points: l.points,
+        sort_order: band + 1,
+      })),
+    })),
+  };
 }

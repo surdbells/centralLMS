@@ -271,6 +271,37 @@ export const Endpoints = {
     grade: (id: string, questionId: string) => `/attempts/${id}/answers/${questionId}/grade`,
   },
 
+  /**
+   * Marking rubrics.
+   *
+   * Reading one needs `assessment.grade` — a marker has to see what they
+   * are marking against. Writing one is authoring, and needs
+   * `assessment.manage`.
+   */
+  rubrics: {
+    list: '/rubrics',
+    create: '/rubrics',
+    show: (id: string) => `/rubrics/${id}`,
+    update: (id: string) => `/rubrics/${id}`,
+    delete: (id: string) => `/rubrics/${id}`,
+    duplicate: (id: string) => `/rubrics/${id}/duplicate`,
+  },
+
+  /**
+   * Who is marking what.
+   *
+   * The queue itself is derived from the attempts; these paths are about
+   * the decisions a person made on top of it.
+   */
+  grading: {
+    queue: '/grading/queue',
+    assignMany: '/grading/assign',
+    assign: (attemptId: string) => `/grading/queue/${attemptId}`,
+    release: (attemptId: string) => `/grading/queue/${attemptId}`,
+    skip: (attemptId: string) => `/grading/queue/${attemptId}/skip`,
+    prioritise: (attemptId: string) => `/grading/queue/${attemptId}/priority`,
+  },
+
   proctoring: {
     settings: (assessmentId: string) => `/assessments/${assessmentId}/proctoring`,
     openSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
