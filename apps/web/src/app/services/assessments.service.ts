@@ -189,4 +189,299 @@ export class AssessmentsService {
         })),
     );
   }
+
+  // --- sections -------------------------------------------------------------
+
+  sections(assessmentId: string): Observable<AssessmentSection[]> {
+    return this.api.get<AssessmentSection[]>(Endpoints.assessments.sections(assessmentId));
+  }
+
+  createSection(assessmentId: string, input: SectionInput): Observable<AssessmentSection> {
+    return this.api.post<AssessmentSection>(
+      Endpoints.assessments.createSection(assessmentId),
+      input,
+    );
+  }
+
+  updateSection(
+    assessmentId: string,
+    sectionId: string,
+    input: Partial<SectionInput>,
+  ): Observable<AssessmentSection> {
+    return this.api.put<AssessmentSection>(
+      Endpoints.assessments.updateSection(assessmentId, sectionId),
+      input,
+    );
+  }
+
+  deleteSection(assessmentId: string, sectionId: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.assessments.deleteSection(assessmentId, sectionId));
+  }
+
+  /** One list, so a failure cannot leave two sections claiming a position. */
+  reorderSections(assessmentId: string, sectionIds: string[]): Observable<unknown> {
+    return this.api.put(Endpoints.assessments.reorderSections(assessmentId), { sectionIds });
+  }
+
+  moveQuestionToSection(
+    assessmentId: string,
+    questionId: string,
+    sectionId: string | null,
+  ): Observable<unknown> {
+    return this.api.put(
+      Endpoints.assessments.setQuestionSection(assessmentId, questionId),
+      { sectionId },
+    );
+  }
+
+  // --- how a paper is drawn -------------------------------------------------
+
+  /**
+   * The rules that pick questions at random.
+   *
+   * An assessment either lists its questions or describes them — "six from
+   * this bank, difficulty medium" — and the rules are that description. They
+   * are read and written whole because a half-applied set of rules produces a
+   * paper nobody intended.
+   */
+  rules(assessmentId: string): Observable<RandomRule[]> {
+    return this.api.get<RandomRule[]>(Endpoints.assessments.rules(assessmentId));
+  }
+
+  createRule(assessmentId: string, input: RandomRuleInput): Observable<RandomRule> {
+    return this.api.post<RandomRule>(Endpoints.assessments.createRule(assessmentId), input);
+  }
+
+  deleteRule(assessmentId: string, ruleId: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.assessments.deleteRule(assessmentId, ruleId));
+  }
+
+  // --- sitting one ----------------------------------------------------------
+
+  /**
+   * Opens an attempt, or returns the one already open.
+   *
+   * The server decides which: a learner who closed the tab mid-paper gets
+   * their attempt back with the answers they had already given, rather than a
+   * second attempt against their limit.
+   */
+  startAttempt(assessmentId: string): Observable<AttemptPaper> {
+    return this.api.post<AttemptPaper>(Endpoints.attempts.start(assessmentId), {});
+  }
+
+  attempt(attemptId: string): Observable<AttemptPaper> {
+    return this.api.get<AttemptPaper>(Endpoints.attempts.show(attemptId));
+  }
+
+  /**
+   * Records one answer.
+   *
+   * One at a time, deliberately: an attempt interrupted halfway keeps what was
+   * already put down, which a single all-or-nothing submission cannot do.
+   */
+  saveAnswer(attemptId: string, questionId: string, answer: unknown): Observable<unknown> {
+    return this.api.put(Endpoints.attempts.answer(attemptId, questionId), { answer });
+  }
+
+  submitAttempt(attemptId: string): Observable<AttemptResult> {
+    return this.api.post<AttemptResult>(Endpoints.attempts.submit(attemptId), {});
+  }
+
+  /** Every attempt this person has sat, newest first. */
+  myAttempts(limit = 50): Observable<AttemptResult[]> {
+    return this.api.get<AttemptResult[]>(Endpoints.me.attempts, { limit });
+  }
+
+  // --- marking --------------------------------------------------------------
+
+  /**
+   * What is waiting to be marked, longest-waiting first.
+   *
+   * There is no queue table: the queue is the attempts with an ungraded
+   * written answer, which is a question the attempts themselves can answer.
+   * That is why there is nothing here to assign, prioritise or claim — a
+   * second table tracking who is marking what would need keeping in step with
+   * the answers, and would be wrong whenever it was not.
+   */
+  awaitingMarking(): Observable<Paged<AttemptResult>> {
+    return this.api.getPaged<AttemptResult>(Endpoints.attempts.awaiting, { perPage: 100 });
+  }
+
+  queueFor(assessmentId: string): Observable<Paged<AttemptResult>> {
+    return this.api.getPaged<AttemptResult>(Endpoints.attempts.queue(assessmentId), {
+      perPage: 100,
+    });
+  }
+
+  grade(
+    attemptId: string,
+    questionId: string,
+    marks: { pointsAwarded: number; feedback?: string },
+  ): Observable<unknown> {
+    return this.api.put(Endpoints.attempts.grade(attemptId, questionId), marks);
+  }
+
+  // --- proctoring -----------------------------------------------------------
+
+  proctoringSettings(assessmentId: string): Observable<ProctoringSettings> {
+    return this.api.get<ProctoringSettings>(Endpoints.proctoring.settings(assessmentId));
+  }
+
+  saveProctoringSettings(
+    assessmentId: string,
+    settings: Partial<ProctoringSettings>,
+  ): Observable<ProctoringSettings> {
+    return this.api.put<ProctoringSettings>(
+      Endpoints.proctoring.settings(assessmentId),
+      settings,
+    );
+  }
+
+  /** Every flagged sitting; `pending` for the ones not yet signed off. */
+  flaggedSittings(pending = false): Observable<Paged<Record<string, unknown>>> {
+    return this.api.getPaged<Record<string, unknown>>(Endpoints.proctoring.allQueues, {
+      pending: pending ? 1 : undefined,
+      perPage: 100,
+    });
+  }
+
+  flaggedFor(assessmentId: string): Observable<Paged<Record<string, unknown>>> {
+    return this.api.getPaged<Record<string, unknown>>(
+      Endpoints.proctoring.reviewQueue(assessmentId),
+      { perPage: 100 },
+    );
+  }
+
+  sitting(attemptId: string): Observable<Record<string, unknown>> {
+    return this.api.get<Record<string, unknown>>(Endpoints.proctoring.review(attemptId));
+  }
+
+  reviewSitting(
+    attemptId: string,
+    verdict: { outcome: string; notes?: string },
+  ): Observable<unknown> {
+    return this.api.put(Endpoints.proctoring.review(attemptId), verdict);
+  }
+
+  reviewViolation(violationId: string, verdict: { dismissed: boolean; notes?: string }):
+  Observable<unknown> {
+    return this.api.put(Endpoints.proctoring.reviewViolation(violationId), verdict);
+  }
+
+  openProctoringSession(attemptId: string, environment: Record<string, unknown>):
+  Observable<Record<string, unknown>> {
+    return this.api.post<Record<string, unknown>>(
+      Endpoints.proctoring.openSession(attemptId),
+      environment,
+    );
+  }
+
+  recordViolation(attemptId: string, violation: Record<string, unknown>): Observable<unknown> {
+    return this.api.post(Endpoints.proctoring.recordViolation(attemptId), violation);
+  }
+
+  /**
+   * A webcam still.
+   *
+   * Sent as it is taken rather than collected and uploaded at the end: a tab
+   * closed mid-paper otherwise takes the evidence with it, which is the one
+   * moment it matters.
+   */
+  recordSnapshot(attemptId: string, snapshot: Record<string, unknown>): Observable<unknown> {
+    return this.api.post(Endpoints.proctoring.recordSnapshot(attemptId), snapshot);
+  }
+
+  /**
+   * The stills taken during one sitting.
+   *
+   * Off the sitting rather than an endpoint of their own: a review shows
+   * the violations and the stills together, and two requests for one
+   * screen is two chances for them to disagree about what happened.
+   */
+  snapshots(attemptId: string): Observable<Array<Record<string, unknown>>> {
+    return this.sitting(attemptId).pipe(
+      map((review) => (review['snapshots'] ?? []) as Array<Record<string, unknown>>),
+    );
+  }
+
+  violations(attemptId: string): Observable<Array<Record<string, unknown>>> {
+    return this.sitting(attemptId).pipe(
+      map((review) => (review['violations'] ?? []) as Array<Record<string, unknown>>),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The shapes the extended surface works with
+// ---------------------------------------------------------------------------
+
+export interface AssessmentSection {
+  id: string;
+  assessmentId: string;
+  title: string;
+  instructions: string | null;
+  sortOrder: number;
+  timeLimitMinutes: number | null;
+  questionCount: number;
+}
+
+export interface SectionInput {
+  title: string;
+  instructions?: string | null;
+  sortOrder?: number;
+  timeLimitMinutes?: number | null;
+}
+
+/**
+ * A rule that picks questions rather than naming them.
+ *
+ * "Six from this bank, difficulty medium" — so two people sitting the same
+ * assessment get different papers of equal weight.
+ */
+export interface RandomRule {
+  id: string;
+  bankId: string;
+  bankName: string | null;
+  difficulty: string | null;
+  questionCount: number;
+  pointsEach: number | null;
+}
+
+export interface RandomRuleInput {
+  bankId: string;
+  questionCount: number;
+  difficulty?: string | null;
+  pointsEach?: number | null;
+}
+
+/** An attempt with its paper, as the player receives it. */
+export interface AttemptPaper {
+  attempt: Record<string, unknown>;
+  sections: Array<Record<string, unknown>>;
+  questions: Array<Record<string, unknown>>;
+}
+
+export interface AttemptResult extends Record<string, unknown> {
+  id: string;
+  assessmentId: string;
+  assessmentTitle: string | null;
+  userId: string;
+  userName: string | null;
+  status: string;
+  rawScore: number | null;
+  maxScore: number | null;
+  percentage: number | null;
+  passed: boolean | null;
+  startedAt: string | null;
+  submittedAt: string | null;
+}
+
+export interface ProctoringSettings extends Record<string, unknown> {
+  assessmentId: string;
+  isEnabled: boolean;
+  requireWebcam: boolean;
+  requireFullscreen: boolean;
+  blockCopyPaste: boolean;
+  snapshotIntervalSeconds: number | null;
+  maxViolations: number | null;
 }
