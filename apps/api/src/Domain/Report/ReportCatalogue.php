@@ -769,6 +769,57 @@ final readonly class ReportCatalogue
                 ReportShape::Breakdown,
                 exportable: true,
             ),
+
+            // --- onboarding -----------------------------------------------
+            new ReportDefinition(
+                ReportKey::OnboardingByCohort,
+                ReportCategory::Onboarding,
+                'Onboarding by cohort',
+                'New joiners grouped by the month they started, and how far through required training they are.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::TimeToCompetency,
+                ReportCategory::Onboarding,
+                'Time to competency',
+                'How long each new joiner took from their first day to finishing required training.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::OnboardingByOrg,
+                ReportCategory::Onboarding,
+                'Onboarding by department',
+                'How well each department gets its new people through required training.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::NewHireDashboard,
+                ReportCategory::Onboarding,
+                'New hire dashboard',
+                'Everyone who started recently, and where they are with required training.',
+                ReportShape::Summary,
+            ),
+            new ReportDefinition(
+                ReportKey::OnboardingDropOff,
+                ReportCategory::Onboarding,
+                'Onboarding drop-off',
+                'The required course new joiners stall on most.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::ProbationCompliance,
+                ReportCategory::Onboarding,
+                'Probation compliance',
+                'Who finished their required training before their probation ended — and who did not.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
         ];
     }
 }

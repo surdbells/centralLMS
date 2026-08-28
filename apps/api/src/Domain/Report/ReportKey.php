@@ -118,6 +118,14 @@ enum ReportKey: string
     case RegulatoryTrainingAudit = 'regulatory_training_audit';
     case ComplianceExecutiveSummary = 'compliance_executive_summary';
 
+    // --- onboarding -------------------------------------------------------
+    case OnboardingByCohort       = 'onboarding_by_cohort';
+    case TimeToCompetency         = 'time_to_competency';
+    case OnboardingByOrg          = 'onboarding_by_org';
+    case NewHireDashboard         = 'new_hire_dashboard';
+    case OnboardingDropOff        = 'onboarding_drop_off';
+    case ProbationCompliance      = 'probation_compliance';
+
     /**
      * @return list<string>
      */

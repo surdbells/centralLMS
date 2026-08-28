@@ -153,6 +153,14 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::SessionUtilization      => $this->sessionUtilization($definition, $criteria),
             ReportKey::InstructorEffectiveness => $this->instructorEffectiveness($definition, $criteria),
             ReportKey::VenueUtilization        => $this->venueUtilization($definition, $criteria),
+
+            // --- onboarding -----------------------------------------------
+            ReportKey::OnboardingByCohort  => $this->onboardingByCohort($definition, $criteria),
+            ReportKey::TimeToCompetency    => $this->timeToCompetency($definition, $criteria),
+            ReportKey::OnboardingByOrg     => $this->onboardingByOrg($definition, $criteria),
+            ReportKey::NewHireDashboard    => $this->newHireDashboard($definition, $criteria),
+            ReportKey::OnboardingDropOff   => $this->onboardingDropOff($definition, $criteria),
+            ReportKey::ProbationCompliance => $this->probationCompliance($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -3635,6 +3643,274 @@ final class DbalReportRepository implements ReportRepository
             ),
             ['venues' => count($rows)],
             $criteria,
+        );
+    }
+
+    // --- onboarding -------------------------------------------------------
+    //
+    // "Required training" is the mandatory enrolments, the same set compliance
+    // reads; the new schema has no separate onboarding flag, and inventing one
+    // out of nothing would be a second answer to "what must this person do".
+    // A "new hire" is somebody with a hire date — the reports about current
+    // joiners narrow to a recent window, the cohort reports do not.
+
+    private function onboardingByCohort(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->betweenDates($criteria, 'u.hire_date')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.hire_date IS NOT NULL');
+
+        $columns = [
+            ReportColumn::text('cohort', 'Started'),
+            ReportColumn::number('joiners', 'Joiners'),
+            ReportColumn::number('requirements', 'Requirements'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN enrollments e ON e.user_id = u.id AND e.deleted_at IS NULL
+                                    AND (e.is_mandatory OR EXISTS (
+                                        SELECT 1 FROM courses c
+                                        WHERE c.id = e.course_id AND c.is_mandatory))",
+            $q,
+            "to_char(date_trunc('month', u.hire_date), 'YYYY-MM') AS cohort,
+             COUNT(DISTINCT u.id) AS joiners,
+             COUNT(e.id) AS requirements,
+             COUNT(e.id) FILTER (WHERE e.status = 'completed') AS completed,
+             CASE WHEN COUNT(e.id) = 0 THEN 0
+                  ELSE round(100.0 * COUNT(e.id) FILTER (WHERE e.status = 'completed')
+                        / COUNT(e.id), 1)
+             END AS \"completionRate\"",
+            "date_trunc('month', u.hire_date)",
+            'cohort DESC',
+        );
+    }
+
+    private function timeToCompetency(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.hire_date IS NOT NULL')
+            // Only people who have actually finished all their required
+            // training have a time-to-competency; the rest have not got there.
+            ->where("NOT EXISTS (
+                SELECT 1 FROM enrollments e
+                JOIN courses c ON c.id = e.course_id
+                WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                  AND (e.is_mandatory OR c.is_mandatory) AND e.status <> 'completed')")
+            ->where("EXISTS (
+                SELECT 1 FROM enrollments e
+                JOIN courses c ON c.id = e.course_id
+                WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                  AND (e.is_mandatory OR c.is_mandatory))");
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::date('hireDate', 'Started'),
+            ReportColumn::date('competentAt', 'Finished required'),
+            ReportColumn::number('days', 'Days'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             u.hire_date AS \"hireDate\",
+             (SELECT MAX(e.completed_at) FROM enrollments e
+              JOIN courses c ON c.id = e.course_id
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                AND (e.is_mandatory OR c.is_mandatory)) AS \"competentAt\",
+             (SELECT EXTRACT(DAY FROM MAX(e.completed_at) - u.hire_date)::int FROM enrollments e
+              JOIN courses c ON c.id = e.course_id
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                AND (e.is_mandatory OR c.is_mandatory)) AS days",
+            'days',
+            'u.id',
+        );
+    }
+
+    private function onboardingByOrg(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.hire_date IS NOT NULL');
+
+        $columns = [
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('joiners', 'Joiners'),
+            ReportColumn::number('requirements', 'Requirements'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id
+             LEFT JOIN enrollments e ON e.user_id = u.id AND e.deleted_at IS NULL
+                                    AND (e.is_mandatory OR EXISTS (
+                                        SELECT 1 FROM courses c
+                                        WHERE c.id = e.course_id AND c.is_mandatory))",
+            $q,
+            "COALESCE(d.name, 'Unassigned') AS department,
+             COUNT(DISTINCT u.id) AS joiners,
+             COUNT(e.id) AS requirements,
+             COUNT(e.id) FILTER (WHERE e.status = 'completed') AS completed,
+             CASE WHEN COUNT(e.id) = 0 THEN 0
+                  ELSE round(100.0 * COUNT(e.id) FILTER (WHERE e.status = 'completed')
+                        / COUNT(e.id), 1)
+             END AS \"completionRate\"",
+            'd.id, d.name',
+            '"completionRate" ASC NULLS FIRST',
+        );
+    }
+
+    private function newHireDashboard(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        // Recent joiners: hired inside the window, ninety days unless the
+        // caller narrows it with a date range on the hire date.
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.hire_date IS NOT NULL')
+            ->where("u.hire_date >= CURRENT_DATE - INTERVAL '90 days'");
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(DISTINCT u.id) AS joiners,
+                        COUNT(DISTINCT u.id) FILTER (WHERE NOT EXISTS (
+                            SELECT 1 FROM enrollments e JOIN courses c ON c.id = e.course_id
+                            WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                              AND (e.is_mandatory OR c.is_mandatory) AND e.status <> 'completed'
+                        ) AND EXISTS (
+                            SELECT 1 FROM enrollments e JOIN courses c ON c.id = e.course_id
+                            WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                              AND (e.is_mandatory OR c.is_mandatory)
+                        )) AS done,
+                        COUNT(DISTINCT u.id) FILTER (WHERE EXISTS (
+                            SELECT 1 FROM enrollments e JOIN courses c ON c.id = e.course_id
+                            WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                              AND (e.is_mandatory OR c.is_mandatory)
+                              AND e.status <> 'completed'
+                              AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE
+                        )) AS overdue
+                 FROM users u
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row = $row === false ? [] : $row;
+        $joiners = (int) ($row['joiners'] ?? 0);
+        $done = (int) ($row['done'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'joiners'      => $joiners,
+                'onTrack'      => $joiners - (int) ($row['overdue'] ?? 0),
+                'finished'     => $done,
+                'overdue'      => (int) ($row['overdue'] ?? 0),
+                'finishedRate' => $this->percent($done, $joiners),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function onboardingDropOff(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL')
+            ->where('u.hire_date IS NOT NULL')
+            ->where(self::MANDATORY);
+
+        $columns = [
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::number('joiners', 'Joiners on it'),
+            ReportColumn::number('completed', 'Finished'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id",
+            $q,
+            "c.title AS course,
+             COUNT(DISTINCT e.user_id) AS joiners,
+             COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+             round(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1) AS \"completionRate\"",
+            'c.id, c.title',
+            '"completionRate" ASC NULLS FIRST',
+        );
+    }
+
+    private function probationCompliance(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.probation_end_date IS NOT NULL');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::date('probationEnd', 'Probation ends'),
+            ReportColumn::number('requirements', 'Requirements'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::status('verdict', 'By probation'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM users u
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             d.name AS department,
+             u.probation_end_date AS \"probationEnd\",
+             (SELECT COUNT(*) FROM enrollments e JOIN courses c ON c.id = e.course_id
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                AND (e.is_mandatory OR c.is_mandatory)) AS requirements,
+             (SELECT COUNT(*) FROM enrollments e JOIN courses c ON c.id = e.course_id
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                AND (e.is_mandatory OR c.is_mandatory)
+                AND e.status = 'completed' AND e.completed_at <= u.probation_end_date) AS completed,
+             CASE WHEN (SELECT COUNT(*) FROM enrollments e JOIN courses c ON c.id = e.course_id
+                        WHERE e.user_id = u.id AND e.deleted_at IS NULL
+                          AND (e.is_mandatory OR c.is_mandatory)
+                          AND (e.status <> 'completed' OR e.completed_at > u.probation_end_date)) = 0
+                  THEN 'On time' ELSE 'Missed' END AS verdict",
+            'u.probation_end_date',
+            'u.id',
+            'ASC',
         );
     }
 
