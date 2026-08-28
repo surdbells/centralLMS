@@ -48,6 +48,8 @@ use Central\Api\Application\Action\Catalog\UpdateLessonAction;
 use Central\Api\Application\Action\Catalog\UpdateModuleAction;
 use Central\Api\Application\Action\Assessment\DeleteBankAction;
 use Central\Api\Application\Action\Assessment\GradeAnswerAction;
+use Central\Api\Application\Action\Assessment\GradingQueueAction;
+use Central\Api\Application\Action\Assessment\ManageRubricsAction;
 use Central\Api\Application\Action\Assessment\ListAssessmentsAction;
 use Central\Api\Application\Action\Assessment\ListBanksAction;
 use Central\Api\Application\Action\Assessment\ListQuestionsAction;
@@ -903,6 +905,40 @@ return static function (App $app): void {
             // Declared before `/attempts/{id}` so `awaiting` is not read as
             // an id — the uuid constraint would reject it, and a 404 on a
             // route that exists is the worst kind.
+            // Marking rubrics. Reading one needs `assessment.grade`, because a
+            // marker has to see what they are marking against; writing one is
+            // authoring, and needs `assessment.manage`.
+            $secure->group('/rubrics', function (RouteCollectorProxy $r) use ($uuid): void {
+                $r->get('', [ManageRubricsAction::class, 'list'])->setName('rubrics.list');
+                $r->post('', [ManageRubricsAction::class, 'create'])->setName('rubrics.create');
+                $r->get('/{id:' . $uuid . '}', [ManageRubricsAction::class, 'show'])
+                    ->setName('rubrics.show');
+                $r->put('/{id:' . $uuid . '}', [ManageRubricsAction::class, 'update'])
+                    ->setName('rubrics.update');
+                $r->delete('/{id:' . $uuid . '}', [ManageRubricsAction::class, 'delete'])
+                    ->setName('rubrics.delete');
+                $r->post('/{id:' . $uuid . '}/duplicate', [ManageRubricsAction::class, 'duplicate'])
+                    ->setName('rubrics.duplicate');
+            });
+
+            // The marking queue. The list of what needs marking is derived from
+            // the attempts; these routes are about who is doing it — see
+            // GradingQueueAction.
+            $secure->get('/grading/queue', [GradingQueueAction::class, 'queue'])
+                ->setName('grading.queue');
+            $secure->post('/grading/assign', [GradingQueueAction::class, 'assignMany'])
+                ->setName('grading.assignMany');
+            $secure->put('/grading/queue/{id:' . $uuid . '}', [GradingQueueAction::class, 'assign'])
+                ->setName('grading.assign');
+            $secure->delete('/grading/queue/{id:' . $uuid . '}', [GradingQueueAction::class, 'release'])
+                ->setName('grading.release');
+            $secure->post('/grading/queue/{id:' . $uuid . '}/skip', [GradingQueueAction::class, 'skip'])
+                ->setName('grading.skip');
+            $secure->patch(
+                '/grading/queue/{id:' . $uuid . '}/priority',
+                [GradingQueueAction::class, 'prioritise'],
+            )->setName('grading.prioritise');
+
             $secure->get('/attempts/awaiting', [GradeAnswerAction::class, 'awaiting'])
                 ->setName('attempts.awaiting');
 

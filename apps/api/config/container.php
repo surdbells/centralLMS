@@ -25,6 +25,8 @@ use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
+use Central\Api\Domain\Assessment\GradingAssignmentRepository;
+use Central\Api\Domain\Assessment\RubricRepository;
 use Central\Api\Domain\Assessment\Grader;
 use Central\Api\Domain\Certificate\CertificateRenderer;
 use Central\Api\Domain\Certificate\CertificateRepository;
@@ -99,7 +101,9 @@ use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
+use Central\Api\Infrastructure\Persistence\DbalGradingAssignmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalQuestionRepository;
+use Central\Api\Infrastructure\Persistence\DbalRubricRepository;
 use Central\Api\Infrastructure\Persistence\DbalTrainingRepository;
 use Central\Api\Infrastructure\Persistence\DbalEnrollmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonProgressRepository;
@@ -460,6 +464,16 @@ return [
         static fn (ContainerInterface $c) => new DbalAttemptRepository(
             $c->get(Connection::class),
             $c->get(QuestionRepository::class),
+        ),
+    ),
+
+    RubricRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalRubricRepository($c->get(Connection::class)),
+    ),
+
+    GradingAssignmentRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalGradingAssignmentRepository(
+            $c->get(Connection::class),
         ),
     ),
 
