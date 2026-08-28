@@ -941,6 +941,59 @@ final readonly class ReportCatalogue
                 requires: ['learnerId'],
                 namesPeople: true,
             ),
+
+            // --- audit and records ----------------------------------------
+            new ReportDefinition(
+                ReportKey::FullAuditTrail,
+                ReportCategory::Audit,
+                'Audit trail',
+                'Who did what, from where — the record of every change.',
+                ReportShape::Table,
+                permission: Permission::AuditLogView,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::DataRetention,
+                ReportCategory::Audit,
+                'Data retention',
+                'How much of each kind of record is held, and how much has aged past a year.',
+                ReportShape::Table,
+                permission: Permission::AuditLogView,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::TrainingRecordsExport,
+                ReportCategory::Audit,
+                'Training records',
+                'One person\'s complete training record — enrolments, certificates and attempts.',
+                ReportShape::Summary,
+                // Runs under the export permission because it is one named
+                // person's whole file. Not itself exportable: it is several
+                // sections, and one flat CSV of them would misrepresent the
+                // record rather than reproduce it.
+                permission: Permission::ReportExport,
+                requires: ['learnerId'],
+                namesPeople: true,
+            ),
+
+            // --- system ---------------------------------------------------
+            new ReportDefinition(
+                ReportKey::SystemUsage,
+                ReportCategory::System,
+                'System usage',
+                'The platform at a glance: active people, and what the catalogue holds.',
+                ReportShape::Summary,
+                permission: Permission::SettingsManage,
+            ),
+            new ReportDefinition(
+                ReportKey::StorageUsage,
+                ReportCategory::System,
+                'Storage usage',
+                'How much is stored, broken down by kind of file.',
+                ReportShape::Breakdown,
+                permission: Permission::SettingsManage,
+                exportable: true,
+            ),
         ];
     }
 }

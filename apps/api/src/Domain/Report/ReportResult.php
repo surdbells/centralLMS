@@ -17,7 +17,7 @@ final readonly class ReportResult
     /**
      * @param list<ReportColumn>              $columns
      * @param list<array<string, mixed>>      $rows
-     * @param array<string, int|float|string|null> $totals
+     * @param array<string, mixed> $totals
      * @param list<array<string, mixed>>      $series label/value pairs
      */
     public function __construct(
@@ -52,7 +52,7 @@ final readonly class ReportResult
     }
 
     /**
-     * @param array<string, int|float|string|null> $totals
+     * @param array<string, mixed> $totals
      * @param list<array<string, mixed>>      $series
      */
     public static function summary(
@@ -66,7 +66,7 @@ final readonly class ReportResult
 
     /**
      * @param list<array<string, mixed>>      $series
-     * @param array<string, int|float|string|null> $totals
+     * @param array<string, mixed> $totals
      */
     public static function series(
         ReportDefinition $definition,

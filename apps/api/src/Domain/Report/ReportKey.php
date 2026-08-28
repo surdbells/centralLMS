@@ -146,6 +146,15 @@ enum ReportKey: string
     case GroupPerformance = 'group_performance';
     case PeerBenchmarking = 'peer_benchmarking';
 
+    // --- audit and records ------------------------------------------------
+    case FullAuditTrail       = 'full_audit_trail';
+    case DataRetention        = 'data_retention';
+    case TrainingRecordsExport = 'training_records_export';
+
+    // --- system -----------------------------------------------------------
+    case SystemUsage  = 'system_usage';
+    case StorageUsage = 'storage_usage';
+
     /**
      * @return list<string>
      */

@@ -181,6 +181,15 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::CohortProgress   => $this->cohortProgress($definition, $criteria),
             ReportKey::GroupPerformance => $this->groupPerformance($definition, $criteria),
             ReportKey::PeerBenchmarking => $this->peerBenchmarking($definition, $criteria),
+
+            // --- audit and records ----------------------------------------
+            ReportKey::FullAuditTrail        => $this->fullAuditTrail($definition, $criteria),
+            ReportKey::DataRetention         => $this->dataRetention($definition, $criteria),
+            ReportKey::TrainingRecordsExport => $this->trainingRecordsExport($definition, $criteria),
+
+            // --- system ---------------------------------------------------
+            ReportKey::SystemUsage  => $this->systemUsage($definition, $criteria),
+            ReportKey::StorageUsage => $this->storageUsage($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -4527,6 +4536,227 @@ final class DbalReportRepository implements ReportRepository
         $named = trim((string) ($criteria->filters['managerId'] ?? ''));
 
         return $named !== '' ? $named : $criteria->scope->viewerId;
+    }
+
+    // --- audit and records ------------------------------------------------
+
+    private function fullAuditTrail(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'a')
+            ->betweenDates($criteria, 'a.created_at');
+
+        $columns = [
+            ReportColumn::date('at', 'When'),
+            ReportColumn::text('actor', 'Who'),
+            ReportColumn::text('action', 'Action'),
+            ReportColumn::text('method', 'Method'),
+            ReportColumn::text('path', 'Path'),
+            ReportColumn::text('status', 'Result'),
+            ReportColumn::text('ip', 'From'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM audit_events a',
+            $q,
+            "a.created_at AS at,
+             COALESCE(a.actor_email, 'system') AS actor,
+             a.action AS action,
+             a.method AS method,
+             a.path AS path,
+             a.status::text AS status,
+             a.ip_address::text AS ip",
+            'a.created_at',
+            'a.id',
+        );
+    }
+
+    private function dataRetention(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        // What is held, and how much of it has aged — the question a retention
+        // policy is answered against. One row per kind of record.
+        $tenant = $criteria->scope->tenantId;
+        $params = ['tenant' => $tenant];
+
+        $kinds = [
+            'Users'          => 'users',
+            'Enrolments'     => 'enrollments',
+            'Assessment attempts' => 'attempts',
+            'Certificates'   => 'certificates',
+            'Audit events'   => 'audit_events',
+        ];
+
+        $rows = [];
+
+        foreach ($kinds as $label => $table) {
+            $row = $this->connection->fetchAssociative(
+                sprintf(
+                    "SELECT COUNT(*) AS total,
+                            COUNT(*) FILTER (WHERE created_at < now() - INTERVAL '1 year') AS over_one_year,
+                            COUNT(*) FILTER (WHERE created_at < now() - INTERVAL '2 years') AS over_two_years,
+                            MIN(created_at) AS oldest
+                     FROM %s WHERE tenant_id = :tenant",
+                    $table,
+                ),
+                $params,
+            );
+
+            $row = $row === false ? [] : $row;
+            $rows[] = [
+                'record'      => $label,
+                'total'       => (int) ($row['total'] ?? 0),
+                'overOneYear' => (int) ($row['over_one_year'] ?? 0),
+                'overTwoYears' => (int) ($row['over_two_years'] ?? 0),
+                'oldest'      => $row['oldest'] ?? null,
+            ];
+        }
+
+        return ReportResult::table(
+            $definition,
+            [
+                ReportColumn::text('record', 'Record'),
+                ReportColumn::number('total', 'Held'),
+                ReportColumn::number('overOneYear', 'Over a year'),
+                ReportColumn::number('overTwoYears', 'Over two years'),
+                ReportColumn::date('oldest', 'Oldest'),
+            ],
+            $rows,
+            count($rows),
+            $criteria,
+        );
+    }
+
+    private function trainingRecordsExport(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $learnerId = $criteria->learnerId ?? '';
+        $tenant = $criteria->scope->tenantId;
+        $params = ['tenant' => $tenant, 'user' => $learnerId];
+
+        // One person's whole record, gathered into named sections — the shape
+        // an HR request or a subject-access request comes in.
+        $person = $this->connection->fetchAssociative(
+            "SELECT trim(first_name || ' ' || last_name) AS name, email, hire_date
+             FROM users WHERE id = :user AND tenant_id = :tenant",
+            $params,
+        );
+
+        $enrolments = $this->connection->fetchAllAssociative(
+            "SELECT c.title AS course, e.status, e.progress_percentage AS progress,
+                    e.enrolled_at AS \"enrolledAt\", e.completed_at AS \"completedAt\"
+             FROM enrollments e JOIN courses c ON c.id = e.course_id
+             WHERE e.user_id = :user AND e.tenant_id = :tenant AND e.deleted_at IS NULL
+             ORDER BY e.enrolled_at DESC",
+            $params,
+        );
+
+        $certificates = $this->connection->fetchAllAssociative(
+            "SELECT number, title, issued_at AS \"issuedAt\", valid_until AS \"validUntil\", status
+             FROM certificates WHERE user_id = :user AND tenant_id = :tenant
+             ORDER BY issued_at DESC",
+            $params,
+        );
+
+        $attempts = $this->connection->fetchAllAssociative(
+            "SELECT asm.title AS assessment, at.percentage, at.passed, at.submitted_at AS \"submittedAt\"
+             FROM attempts at JOIN assessments asm ON asm.id = at.assessment_id
+             WHERE at.user_id = :user AND at.tenant_id = :tenant
+             ORDER BY at.submitted_at DESC",
+            $params,
+        );
+
+        return (new ReportResult(
+            definition: $definition,
+            totals: [
+                'name'      => $person === false ? null : (string) $person['name'],
+                'email'     => $person === false ? null : (string) $person['email'],
+                'hireDate'  => $person === false ? null : ($person['hire_date'] ?? null),
+                'enrolments'   => $this->normalise($enrolments),
+                'certificates' => $this->normalise($certificates),
+                'attempts'     => $this->normalise($attempts),
+            ],
+            criteria: $criteria,
+        ));
+    }
+
+    // --- system -----------------------------------------------------------
+
+    private function systemUsage(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $tenant = $criteria->scope->tenantId;
+        $params = ['tenant' => $tenant];
+
+        $users = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS total,
+                    COUNT(*) FILTER (WHERE status = 'active') AS active,
+                    COUNT(*) FILTER (WHERE last_login_at >= now() - INTERVAL '7 days') AS active_week,
+                    COUNT(*) FILTER (WHERE last_login_at >= now() - INTERVAL '30 days') AS active_month
+             FROM users WHERE tenant_id = :tenant AND deleted_at IS NULL",
+            $params,
+        );
+
+        $content = $this->connection->fetchAssociative(
+            "SELECT (SELECT COUNT(*) FROM courses WHERE tenant_id = :tenant AND deleted_at IS NULL) AS courses,
+                    (SELECT COUNT(*) FROM live_trainings WHERE tenant_id = :tenant AND deleted_at IS NULL)
+                        AS trainings,
+                    (SELECT COUNT(*) FROM learning_paths WHERE tenant_id = :tenant AND deleted_at IS NULL) AS paths,
+                    (SELECT COUNT(*) FROM assessments WHERE tenant_id = :tenant AND deleted_at IS NULL)
+                        AS assessments,
+                    (SELECT COUNT(*) FROM media WHERE tenant_id = :tenant AND deleted_at IS NULL) AS media",
+            $params,
+        );
+
+        $users = $users === false ? [] : $users;
+        $content = $content === false ? [] : $content;
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'users'          => (int) ($users['total'] ?? 0),
+                'activeUsers'    => (int) ($users['active'] ?? 0),
+                'activeThisWeek' => (int) ($users['active_week'] ?? 0),
+                'activeThisMonth' => (int) ($users['active_month'] ?? 0),
+                'courses'        => (int) ($content['courses'] ?? 0),
+                'trainings'      => (int) ($content['trainings'] ?? 0),
+                'paths'          => (int) ($content['paths'] ?? 0),
+                'assessments'    => (int) ($content['assessments'] ?? 0),
+                'mediaFiles'     => (int) ($content['media'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function storageUsage(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT COALESCE(NULLIF(split_part(mime_type, '/', 1), ''), 'other') AS kind,
+                    COUNT(*) AS files,
+                    COALESCE(SUM(file_size), 0) AS bytes
+             FROM media
+             WHERE tenant_id = :tenant AND deleted_at IS NULL
+             GROUP BY split_part(mime_type, '/', 1)
+             ORDER BY bytes DESC",
+            ['tenant' => $criteria->scope->tenantId],
+        );
+
+        return ReportResult::series(
+            $definition,
+            array_map(
+                static fn (array $r): array => [
+                    'label'      => ucfirst((string) $r['kind']),
+                    'value'      => (int) $r['bytes'],
+                    'files'      => (int) $r['files'],
+                    'megabytes'  => round((int) $r['bytes'] / 1048576, 1),
+                ],
+                $rows,
+            ),
+            ['kinds' => count($rows)],
+            $criteria,
+        );
     }
 
     // --- shared plumbing --------------------------------------------------
