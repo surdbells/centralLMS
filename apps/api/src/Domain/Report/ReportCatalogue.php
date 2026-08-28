@@ -820,6 +820,66 @@ final readonly class ReportCatalogue
                 exportable: true,
                 namesPeople: true,
             ),
+
+            // --- gaps in existing families --------------------------------
+            new ReportDefinition(
+                ReportKey::SelfEnrollment,
+                ReportCategory::Enrollment,
+                'Self-enrolment',
+                'What people chose for themselves — the courses pulling learners in unbidden.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::IncompleteCourses,
+                ReportCategory::Completion,
+                'Incomplete courses',
+                'Everyone with a course still open, with their manager and how far past due it is.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::CompletionByManager,
+                ReportCategory::Completion,
+                'Completion by manager',
+                'How each manager\'s team is doing, for the people they answer for.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::LearningHoursByDepartment,
+                ReportCategory::Time,
+                'Learning hours by department',
+                'Where the hours are being spent, totalled by department.',
+                ReportShape::Breakdown,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::MonthlyTrainingHours,
+                ReportCategory::Time,
+                'Monthly training hours',
+                'Hours spent learning, month by month.',
+                ReportShape::Series,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::CertificatesByCourse,
+                ReportCategory::Certificate,
+                'Certificates by course',
+                'How many certificates each course has issued, and to how many people.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::DrilldownLearners,
+                ReportCategory::User,
+                'Learner drilldown',
+                'The people behind a figure — filtered by the status you clicked through from.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
         ];
     }
 }

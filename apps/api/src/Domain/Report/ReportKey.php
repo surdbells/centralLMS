@@ -126,6 +126,15 @@ enum ReportKey: string
     case OnboardingDropOff        = 'onboarding_drop_off';
     case ProbationCompliance      = 'probation_compliance';
 
+    // --- gaps in existing families ---------------------------------------
+    case SelfEnrollment       = 'self_enrollment';
+    case IncompleteCourses    = 'incomplete_courses';
+    case CompletionByManager  = 'completion_by_manager';
+    case LearningHoursByDepartment = 'learning_hours_by_department';
+    case MonthlyTrainingHours = 'monthly_training_hours';
+    case CertificatesByCourse = 'certificates_by_course';
+    case DrilldownLearners    = 'drilldown_learners';
+
     /**
      * @return list<string>
      */
