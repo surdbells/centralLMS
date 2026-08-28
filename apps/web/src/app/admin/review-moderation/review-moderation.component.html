@@ -1,0 +1,125 @@
+<app-admintop></app-admintop>
+
+<main class="main px-lg-6">
+  <div class="container-fluid">
+    <div class="moderation-page">
+      <!-- Header -->
+      <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <nav aria-label="breadcrumb">
+              <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
+                <li class="breadcrumb-item active">Review Moderation</li>
+              </ol>
+            </nav>
+            <h1 class="h3 mb-0">Review Moderation</h1>
+          </div>
+          @if (!loading()) {
+            <span class="badge bg-warning text-dark fs-6">{{ total() }} waiting</span>
+          }
+        </div>
+      </div>
+
+      @if (loading()) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+        </div>
+      } @else if (reviews().length === 0) {
+        <div class="card review-card">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-check2-circle display-4 text-success"></i>
+            <h5 class="mt-3">Nothing waiting</h5>
+            <p class="text-muted mb-0">Every review has been checked.</p>
+          </div>
+        </div>
+      } @else {
+        @for (review of reviews(); track review.review_id) {
+          <div class="card review-card mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex">
+                  <div class="reviewer-avatar me-3">
+                    @if (review.profile_image_url) {
+                      <img [src]="review.profile_image_url" alt="">
+                    } @else {
+                      {{ (review.first_name || '?').charAt(0) }}
+                    }
+                  </div>
+                  <div>
+                    <strong>{{ review.first_name }} {{ review.last_name }}</strong>
+                    <div class="review-stars">
+                      @for (star of [1,2,3,4,5]; track star) {
+                        <i class="bi"
+                           [class.bi-star-fill]="star <= review.rating"
+                           [class.bi-star]="star > review.rating"
+                           [class.text-warning]="star <= review.rating">
+                        </i>
+                      }
+                      <span class="ms-2 text-muted small">{{ review.created_at | date:'MMM d, yyyy' }}</span>
+                    </div>
+                  </div>
+                </div>
+                @if (review.path_title) {
+                  <a class="badge bg-light text-dark text-decoration-none"
+                     [routerLink]="['/admin/learning-paths', review.path_id, 'reviews']">
+                    {{ review.path_title }}
+                  </a>
+                }
+              </div>
+
+              @if (review.title) {
+                <h6 class="review-title">{{ review.title }}</h6>
+              }
+              <p class="review-text mb-3">{{ review.review_text }}</p>
+
+              <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                <div class="text-muted small">
+                  <i class="bi bi-hand-thumbs-up me-1"></i>{{ review.helpful_count }} found helpful
+                  @if (review.reported_count > 0) {
+                    <span class="ms-3 text-danger">
+                      <i class="bi bi-flag me-1"></i>{{ review.reported_count }} reports
+                    </span>
+                  }
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-success"
+                          [disabled]="acting() === review.review_id"
+                          (click)="approve(review)">
+                    <i class="bi bi-check-lg me-1"></i>Approve
+                  </button>
+                  <button class="btn btn-outline-danger"
+                          [disabled]="acting() === review.review_id"
+                          (click)="reject(review)">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Pagination -->
+        @if (totalPages() > 1) {
+          <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+              <li class="page-item" [class.disabled]="currentPage() === 1">
+                <button class="page-link" (click)="goToPage(currentPage() - 1)">Previous</button>
+              </li>
+              @for (page of [1,2,3,4,5]; track page) {
+                @if (page <= totalPages()) {
+                  <li class="page-item" [class.active]="page === currentPage()">
+                    <button class="page-link" (click)="goToPage(page)">{{ page }}</button>
+                  </li>
+                }
+              }
+              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                <button class="page-link" (click)="goToPage(currentPage() + 1)">Next</button>
+              </li>
+            </ul>
+          </nav>
+        }
+      }
+    </div>
+  </div>
+</main>

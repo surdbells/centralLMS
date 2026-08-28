@@ -21,6 +21,13 @@ export const learningPathRoutes: Routes = [
         data: { mode: 'create' }
       },
       {
+        // Before `:id`, or it is read as a path id and nothing is found.
+        path: 'moderation',
+        loadComponent: () => import('./admin/review-moderation/review-moderation.component')
+          .then(m => m.ReviewModerationComponent),
+        title: 'Review Moderation'
+      },
+      {
         path: ':id',
         loadComponent: () => import('./admin/learning-path-detail/learning-path-detail.component')
           .then(m => m.LearningPathDetailComponent),

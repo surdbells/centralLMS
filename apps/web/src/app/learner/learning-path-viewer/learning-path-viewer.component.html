@@ -333,6 +333,125 @@
               </div>
             </div>
           }
+
+          <!-- Reviews -->
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                Reviews
+                @if (ratingSummary()) {
+                  <span class="text-muted small ms-2">({{ ratingSummary()!.total_reviews }})</span>
+                }
+              </h5>
+              @if (isEnrolled() && !showReviewForm()) {
+                <button class="btn btn-sm btn-outline-primary" (click)="openReviewForm()">
+                  <i class="bi bi-pencil me-1"></i>{{ myReview() ? 'Edit your review' : 'Write a review' }}
+                </button>
+              }
+            </div>
+            <div class="card-body">
+              @if (reviewSubmitted()) {
+                <div class="alert alert-success">
+                  <i class="bi bi-check-circle me-1"></i>
+                  Thank you. Your review will appear here once it has been checked.
+                </div>
+              }
+
+              @if (showReviewForm()) {
+                <div class="mb-4">
+                  <div class="mb-3">
+                    <label class="form-label d-block">Your rating</label>
+                    @for (star of [1, 2, 3, 4, 5]; track star) {
+                      <button
+                        type="button"
+                        class="btn btn-link p-0 me-1"
+                        [attr.aria-label]="star + ' stars'"
+                        (click)="reviewRating.set(star)">
+                        <i class="bi fs-4"
+                           [class.bi-star-fill]="star <= reviewRating()"
+                           [class.bi-star]="star > reviewRating()"
+                           [class.text-warning]="star <= reviewRating()"></i>
+                      </button>
+                    }
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="review-title">Title</label>
+                    <input id="review-title" type="text" class="form-control" maxlength="120"
+                           [ngModel]="reviewTitle()" (ngModelChange)="reviewTitle.set($event)">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="review-text">Your review</label>
+                    <textarea id="review-text" class="form-control" rows="4"
+                              [ngModel]="reviewText()" (ngModelChange)="reviewText.set($event)"></textarea>
+                  </div>
+                  @if (reviewError()) {
+                    <div class="alert alert-danger py-2">{{ reviewError() }}</div>
+                  }
+                  <button class="btn btn-primary me-2" [disabled]="savingReview()" (click)="submitReview()">
+                    {{ savingReview() ? 'Saving…' : 'Submit review' }}
+                  </button>
+                  <button class="btn btn-outline-secondary" (click)="closeReviewForm()">Cancel</button>
+                </div>
+              }
+
+              @if (myReview() && myReview()!.moderation_status === 'pending' && !reviewSubmitted()) {
+                <div class="alert alert-info py-2">
+                  <i class="bi bi-hourglass-split me-1"></i>
+                  Your review is waiting to be checked, so it is not on this page yet.
+                </div>
+              }
+              @if (myReview() && myReview()!.moderation_status === 'rejected') {
+                <div class="alert alert-warning py-2">
+                  <i class="bi bi-exclamation-triangle me-1"></i>
+                  Your review was not published.
+                  @if (myReview()!.rejection_reason) {
+                    <span>{{ myReview()!.rejection_reason }}</span>
+                  }
+                </div>
+              }
+
+              @if (reviews().length === 0) {
+                <p class="text-muted mb-0">No reviews yet.</p>
+              } @else {
+                @for (review of reviews(); track review.review_id) {
+                  <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong>{{ review.first_name }} {{ review.last_name }}</strong>
+                        <div>
+                          @for (star of [1, 2, 3, 4, 5]; track star) {
+                            <i class="bi"
+                               [class.bi-star-fill]="star <= review.rating"
+                               [class.bi-star]="star > review.rating"
+                               [class.text-warning]="star <= review.rating"></i>
+                          }
+                          <span class="ms-2 text-muted small">{{ review.created_at | date:'MMM d, yyyy' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    @if (review.title) {
+                      <h6 class="mt-2 mb-1">{{ review.title }}</h6>
+                    }
+                    <p class="mb-2">{{ review.review_text }}</p>
+                    @if (review.instructor_response) {
+                      <div class="ps-3 border-start">
+                        <strong class="small">Response</strong>
+                        <p class="mb-0 small">{{ review.instructor_response }}</p>
+                      </div>
+                    }
+                    <div class="mt-2">
+                      <button class="btn btn-sm btn-link p-0 me-3" (click)="markHelpful(review)">
+                        <i class="bi bi-hand-thumbs-up me-1"></i>Helpful ({{ review.helpful_count }})
+                      </button>
+                      <button class="btn btn-sm btn-link p-0 text-muted" (click)="reportReview(review)">
+                        <i class="bi bi-flag me-1"></i>Report
+                      </button>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
         </div>
 
         <!-- Sidebar -->

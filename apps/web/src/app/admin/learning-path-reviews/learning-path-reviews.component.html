@@ -63,12 +63,12 @@
     <div class="col-md-8">
       <!-- Filter -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <select class="form-select w-auto" [(ngModel)]="statusFilter" (change)="loadReviews()">
+        <select class="form-select w-auto" [(ngModel)]="statusFilter" (change)="filterChanged()">
           <option value="">All Reviews</option>
           <option value="pending">Pending Moderation</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
-          <option value="flagged">Flagged</option>
+          <option value="flagged">Reported</option>
         </select>
       </div>
 

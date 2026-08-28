@@ -18,6 +18,7 @@ import {
   ItemCreateRequest,
   ItemUpdateRequest,
   ReviewCreateRequest,
+  ReviewStatus,
   AssignmentCreateRequest,
   LearningPathListParams,
   EnrollmentListParams,
@@ -37,12 +38,10 @@ import {
  * method names and the shapes they return are kept exactly — the change is
  * entirely underneath.
  *
- * **Reviews and assignments have no server.** No table for either survived
- * the migration: the schema has paths, sections, items, enrolments and item
- * completions, and nothing else. Two admin screens are built on them, and
- * they are listed at the bottom of this file rather than quietly returning
- * empty — a moderation queue that shows nothing because the feature was never
- * built looks exactly like one with nothing to moderate.
+ * **Assignment rules have no server.** No table for them survived the
+ * migration, and the methods that need one are listed at the bottom of this
+ * file rather than quietly returning empty — a rule list that shows nothing
+ * because the feature was never built looks exactly like one with no rules.
  *
  * A path's structure is two calls, sections and items, joined here. The API
  * keeps them apart because an item may sit outside every section, which a
@@ -621,58 +620,140 @@ export class LearningPathService {
   }
 
   // ==========================================
+  // REVIEWS
+  // ==========================================
+  //
+  // A review names the enrolment it came from, and one enrolment leaves one
+  // review — which is why `createReview` sends no user or enrolment id: the
+  // API works out both from the caller and refuses if they are not on the
+  // path. A rating anybody could post as often as they liked would make the
+  // average beside a path meaningless.
+
+  /**
+   * The reviews on one path.
+   *
+   * `status` is honoured for moderators only, and an empty one means every
+   * state. A learner asking gets what has been approved and published,
+   * whatever they send.
+   */
+  getReviews(
+    pathId: string,
+    page = 1,
+    status = '',
+  ): Observable<PaginatedResponse<LearningPathReview>> {
+    return this.api
+      .getPaged<ReviewPayload>(Endpoints.paths.reviews(pathId), { page, status })
+      .pipe(map((result) => ({
+        data: result.items.map(toReview),
+        pagination: {
+          page: result.meta.page,
+          per_page: result.meta.perPage,
+          total: result.meta.total,
+          total_pages: result.meta.totalPages,
+        },
+      })));
+  }
+
+  /**
+   * The caller's own review of a path, whatever state it is in.
+   *
+   * Null when they have not written one, or are not on the path. It is not in
+   * {@link getReviews} until a moderator approves it, and its author is the
+   * one person entitled to see it before then.
+   */
+  getMyReview(pathId: string): Observable<LearningPathReview | null> {
+    return this.api
+      .get<ReviewPayload | null>(Endpoints.paths.myReview(pathId))
+      .pipe(map((review) => (review ? toReview(review) : null)));
+  }
+
+  getRatingSummary(pathId: string): Observable<RatingSummary> {
+    return this.api
+      .get<RatingSummaryPayload>(Endpoints.paths.reviewSummary(pathId))
+      .pipe(map(toRatingSummary));
+  }
+
+  createReview(data: ReviewCreateRequest): Observable<{ review_id: string }> {
+    return this.api
+      .post<ReviewPayload>(Endpoints.paths.createReview(data.path_id), fromReviewRequest(data))
+      .pipe(map((review) => ({ review_id: review.id })));
+  }
+
+  /**
+   * Edits a review.
+   *
+   * The same endpoint as writing one: the API replaces whatever this
+   * enrolment left, and sends it back to be checked, because the words a
+   * moderator approved are not the words that would be shown afterwards.
+   *
+   * The review id is not needed — one enrolment has one review, and the API
+   * finds it from the caller — but the parameter stays, because callers name
+   * the review they are editing.
+   */
+  updateReview(_reviewId: string, data: Partial<ReviewCreateRequest>): Observable<void> {
+    if (!data.path_id) {
+      return throwError(() => new Error('A review is edited against the path it is on.'));
+    }
+
+    return this.api
+      .post(Endpoints.paths.createReview(data.path_id), fromReviewRequest(data))
+      .pipe(map(() => undefined));
+  }
+
+  deleteReview(reviewId: string): Observable<void> {
+    return this.api.delete(Endpoints.pathReviews.delete(reviewId)).pipe(map(() => undefined));
+  }
+
+  approveReview(reviewId: string): Observable<void> {
+    return this.api.post(Endpoints.pathReviews.approve(reviewId), {}).pipe(map(() => undefined));
+  }
+
+  rejectReview(reviewId: string, reason?: string): Observable<void> {
+    return this.api
+      .post(Endpoints.pathReviews.reject(reviewId), { reason: reason ?? '' })
+      .pipe(map(() => undefined));
+  }
+
+  respondToReview(reviewId: string, response: string): Observable<void> {
+    return this.api
+      .post(Endpoints.pathReviews.respond(reviewId), { response })
+      .pipe(map(() => undefined));
+  }
+
+  /** A toggle — the same gesture again takes the mark back. */
+  markReviewHelpful(reviewId: string): Observable<void> {
+    return this.api.post(Endpoints.pathReviews.helpful(reviewId), {}).pipe(map(() => undefined));
+  }
+
+  reportReview(reviewId: string, reason: string): Observable<void> {
+    return this.api
+      .post(Endpoints.pathReviews.report(reviewId), { reason })
+      .pipe(map(() => undefined));
+  }
+
+  /** The moderation queue, across every path, oldest first. */
+  getPendingReviews(page = 1): Observable<PaginatedResponse<LearningPathReview>> {
+    return this.api
+      .getPaged<ReviewPayload>(Endpoints.pathReviews.pending, { page })
+      .pipe(map((result) => ({
+        data: result.items.map(toReview),
+        pagination: {
+          page: result.meta.page,
+          per_page: result.meta.perPage,
+          total: result.meta.total,
+          total_pages: result.meta.totalPages,
+        },
+      })));
+  }
+
+  // ==========================================
   // NOT BUILT
   // ==========================================
   //
-  // Reviews and assignments both had legacy actions and neither has a table
-  // on this side — the schema holds paths, sections, items, enrolments and
-  // item completions, and stops there. Each of these fails with a message
-  // saying so. A moderation queue that renders empty because the feature does
-  // not exist is indistinguishable from one with nothing waiting.
-
-  getReviews(_pathId: string, _page = 1): Observable<PaginatedResponse<LearningPathReview>> {
-    return notAvailable('Path reviews');
-  }
-
-  getRatingSummary(_pathId: string): Observable<RatingSummary> {
-    return notAvailable('Path ratings');
-  }
-
-  createReview(_data: ReviewCreateRequest): Observable<{ review_id: string }> {
-    return notAvailable('Path reviews');
-  }
-
-  updateReview(_reviewId: string, _data: Partial<ReviewCreateRequest>): Observable<void> {
-    return notAvailable('Path reviews');
-  }
-
-  deleteReview(_reviewId: string): Observable<void> {
-    return notAvailable('Path reviews');
-  }
-
-  approveReview(_reviewId: string): Observable<void> {
-    return notAvailable('Review moderation');
-  }
-
-  rejectReview(_reviewId: string, _reason?: string): Observable<void> {
-    return notAvailable('Review moderation');
-  }
-
-  respondToReview(_reviewId: string, _response: string): Observable<void> {
-    return notAvailable('Review moderation');
-  }
-
-  markReviewHelpful(_reviewId: string): Observable<void> {
-    return notAvailable('Path reviews');
-  }
-
-  reportReview(_reviewId: string, _reason: string): Observable<void> {
-    return notAvailable('Path reviews');
-  }
-
-  getPendingReviews(_page = 1): Observable<PaginatedResponse<LearningPathReview>> {
-    return notAvailable('Review moderation');
-  }
+  // Path assignment rules had a legacy action and no table on this side.
+  // These fail with a message saying so rather than returning empty — a rule
+  // list that renders empty because the feature does not exist is
+  // indistinguishable from one with no rules in it.
 
   createAssignment(
     _data: AssignmentCreateRequest,
@@ -764,6 +845,105 @@ interface MyPathPayload {
 
 interface CompletionPayload extends Record<string, any> {
   enrollment?: Record<string, any>;
+}
+
+interface ReviewPayload extends Record<string, any> {
+  id: string;
+  rating: number;
+}
+
+interface RatingSummaryPayload {
+  total: number;
+  average: number | null;
+  averageContent: number | null;
+  averageDifficulty: number | null;
+  averagePractical: number | null;
+  distribution: Record<string, number>;
+}
+
+/**
+ * A review as the screens have always read one.
+ *
+ * `status` and `moderation_status` are the same thing twice: the screens ask
+ * for both and one of them is what each template happens to use. They are
+ * filled from the single field the API sends rather than allowed to drift.
+ */
+function toReview(review: ReviewPayload): LearningPathReview {
+  const [firstName, ...rest] = String(review['authorName'] ?? '').trim().split(' ');
+  const status = (review['moderationStatus'] ?? 'pending') as ReviewStatus;
+
+  return {
+    review_id: review.id,
+    path_id: review['pathId'] ?? '',
+    user_id: review['userId'] ?? '',
+    enrollment_id: review['enrollmentId'] ?? '',
+    tenant_id: '',
+    rating: review.rating,
+    title: review['title'] ?? '',
+    review_text: review['reviewText'] ?? '',
+    content_rating: review['contentRating'] ?? null,
+    difficulty_rating: review['difficultyRating'] ?? null,
+    practical_value_rating: review['practicalValueRating'] ?? null,
+    status,
+    moderation_status: status,
+    moderated_by: null,
+    moderated_at: review['moderatedAt'] ?? null,
+    rejection_reason: review['rejectionReason'] ?? '',
+    helpful_count: review['helpfulCount'] ?? 0,
+    reported_count: review['reportedCount'] ?? 0,
+    instructor_response: review['responseText'] ?? null,
+    response_text: review['responseText'] ?? '',
+    response_by: null,
+    response_at: review['responseAt'] ?? null,
+    created_at: review['createdAt'] ?? '',
+    updated_at: review['updatedAt'] ?? null,
+    // Published, not merely undeleted: a review waiting to be checked is on
+    // no page, and a screen that reads this flag is asking about that.
+    is_active: review['isPublished'] === true,
+    first_name: firstName || undefined,
+    last_name: rest.join(' ') || undefined,
+    profile_image_url: review['authorAvatarUrl'] ?? undefined,
+    path_title: review['pathTitle'] ?? undefined,
+  };
+}
+
+function toRatingSummary(summary: RatingSummaryPayload): RatingSummary {
+  const counts = summary.distribution ?? {};
+  const at = (star: number): number => Number(counts[String(star)] ?? 0);
+  const total = summary.total ?? 0;
+  const pct = (star: number): number => (total === 0 ? 0 : Math.round((at(star) / total) * 100));
+
+  return {
+    total_reviews: total,
+    // Null rather than zero when nobody has reviewed it: a zero would draw
+    // five empty stars beside a path nobody has rated yet.
+    avg_rating: summary.average,
+    avg_content_rating: summary.averageContent,
+    avg_difficulty_rating: summary.averageDifficulty,
+    avg_practical_value_rating: summary.averagePractical,
+    five_star: at(5),
+    four_star: at(4),
+    three_star: at(3),
+    two_star: at(2),
+    one_star: at(1),
+    five_star_pct: pct(5),
+    four_star_pct: pct(4),
+    three_star_pct: pct(3),
+    two_star_pct: pct(2),
+    one_star_pct: pct(1),
+    distribution: { 5: at(5), 4: at(4), 3: at(3), 2: at(2), 1: at(1) },
+  };
+}
+
+function fromReviewRequest(data: Partial<ReviewCreateRequest>): Record<string, unknown> {
+  return {
+    rating: data.rating,
+    title: data.title,
+    reviewText: data.review_text,
+    contentRating: data.content_rating,
+    difficultyRating: data.difficulty_rating,
+    practicalValueRating: data.practical_value_rating,
+  };
 }
 
 /**

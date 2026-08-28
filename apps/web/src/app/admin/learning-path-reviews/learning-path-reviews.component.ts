@@ -65,7 +65,9 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
 
   loadReviews(): void {
     this.loading.set(true);
-    this.learningPathService.getReviews(this.pathId, this.currentPage()).pipe(takeUntil(this.destroy$)).subscribe({
+    this.learningPathService
+      .getReviews(this.pathId, this.currentPage(), this.statusFilter)
+      .pipe(takeUntil(this.destroy$)).subscribe({
       next: (response) => {
         this.reviews.set(response.data);
         this.totalPages.set(response.pagination.total_pages);
@@ -79,6 +81,17 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
     this.learningPathService.getRatingSummary(this.pathId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (summary) => this.ratingSummary.set(summary)
     });
+  }
+
+  /**
+   * Narrows the list, from the first page.
+   *
+   * Filtering while on page three of the old list shows an empty one, which
+   * reads as "no reviews in this state" rather than "you are past the end".
+   */
+  filterChanged(): void {
+    this.currentPage.set(1);
+    this.loadReviews();
   }
 
   goToPage(page: number): void {
@@ -111,8 +124,15 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
   }
 
   rejectReview(review: LearningPathReview): void {
-    const reason = prompt('Reason for rejection (optional):');
-    this.learningPathService.rejectReview(review.review_id, reason || undefined)
+    // Required, not optional: "rejected, no reason given" is the message the
+    // learner who wrote it would receive.
+    const reason = prompt('Why is this review being rejected?')?.trim();
+
+    if (!reason) {
+      return;
+    }
+
+    this.learningPathService.rejectReview(review.review_id, reason)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: () => this.loadReviews() });
   }

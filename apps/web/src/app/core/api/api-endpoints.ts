@@ -474,6 +474,23 @@ export const Endpoints = {
     mineShow: (id: string) => `/me/paths/${id}`,
     selfEnrol: (id: string) => `/me/paths/${id}/enroll`,
     completeItem: (id: string, itemId: string) => `/me/paths/${id}/items/${itemId}/complete`,
+
+    // Reviews. Reading and writing hang off the path; everything a moderator
+    // does is addressed by review, because the queue spans every path.
+    reviews: (id: string) => `/paths/${id}/reviews`,
+    reviewSummary: (id: string) => `/paths/${id}/reviews/summary`,
+    createReview: (id: string) => `/paths/${id}/reviews`,
+    myReview: (id: string) => `/me/paths/${id}/review`,
+  },
+
+  pathReviews: {
+    pending: '/path-reviews/pending',
+    delete: (reviewId: string) => `/path-reviews/${reviewId}`,
+    approve: (reviewId: string) => `/path-reviews/${reviewId}/approve`,
+    reject: (reviewId: string) => `/path-reviews/${reviewId}/reject`,
+    respond: (reviewId: string) => `/path-reviews/${reviewId}/response`,
+    helpful: (reviewId: string) => `/path-reviews/${reviewId}/helpful`,
+    report: (reviewId: string) => `/path-reviews/${reviewId}/report`,
   },
 
   // --- messaging --------------------------------------------------------

@@ -83,6 +83,7 @@ use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\LearningPath\ManagePathsAction;
+use Central\Api\Application\Action\LearningPath\PathReviewAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
 use Central\Api\Application\Action\Messaging\BroadcastAction;
 use Central\Api\Application\Action\Messaging\MessagingAction;
@@ -635,6 +636,35 @@ return static function (App $app): void {
                     '/{id:' . $uuid . '}/enrollments/{userId:' . $uuid . '}',
                     [ManagePathsAction::class, 'withdraw'],
                 )->setName('paths.enrollments.withdraw');
+
+                // What learners thought of it. Reading is part of the path's
+                // page; writing needs an enrolment, which the action checks.
+                $p->get('/{id:' . $uuid . '}/reviews', [PathReviewAction::class, 'list'])
+                    ->setName('paths.reviews');
+                $p->get('/{id:' . $uuid . '}/reviews/summary', [PathReviewAction::class, 'summary'])
+                    ->setName('paths.reviews.summary');
+                $p->post('/{id:' . $uuid . '}/reviews', [PathReviewAction::class, 'create'])
+                    ->setName('paths.reviews.create');
+            });
+
+            // Moderation, and everything addressed by review rather than by
+            // path. `/pending` is declared first so it is never read as an id.
+            $secure->group('/path-reviews', function (RouteCollectorProxy $r) use ($uuid): void {
+                $r->get('/pending', [PathReviewAction::class, 'pending'])
+                    ->setName('path-reviews.pending');
+
+                $r->delete('/{reviewId:' . $uuid . '}', [PathReviewAction::class, 'delete'])
+                    ->setName('path-reviews.delete');
+                $r->post('/{reviewId:' . $uuid . '}/approve', [PathReviewAction::class, 'approve'])
+                    ->setName('path-reviews.approve');
+                $r->post('/{reviewId:' . $uuid . '}/reject', [PathReviewAction::class, 'reject'])
+                    ->setName('path-reviews.reject');
+                $r->post('/{reviewId:' . $uuid . '}/response', [PathReviewAction::class, 'respond'])
+                    ->setName('path-reviews.respond');
+                $r->post('/{reviewId:' . $uuid . '}/helpful', [PathReviewAction::class, 'helpful'])
+                    ->setName('path-reviews.helpful');
+                $r->post('/{reviewId:' . $uuid . '}/report', [PathReviewAction::class, 'report'])
+                    ->setName('path-reviews.report');
             });
 
             // The learner's own. No user id in any of these paths.
@@ -648,6 +678,12 @@ return static function (App $app): void {
                     '/{id:' . $uuid . '}/items/{itemId:' . $uuid . '}/complete',
                     [ManagePathsAction::class, 'completeItem'],
                 )->setName('me.paths.items.complete');
+
+                // Their own review, whatever state it is in. A review waiting
+                // to be checked is on no page, and its author is the one
+                // person entitled to see it there.
+                $p->get('/{id:' . $uuid . '}/review', [PathReviewAction::class, 'mine'])
+                    ->setName('me.paths.review');
             });
 
             // --- skills ---------------------------------------------------

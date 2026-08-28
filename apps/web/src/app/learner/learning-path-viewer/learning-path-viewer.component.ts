@@ -9,17 +9,19 @@ import {
   ProgressBySection,
   LearningPathItemProgress,
   RatingSummary,
+  LearningPathReview,
   SKILL_LEVELS,
   ITEM_TYPES,
   PROGRESS_STATUSES,
   ItemProgressStatus
 } from '../../interfaces/learning-path.interfaces';
+import { FormsModule } from '@angular/forms';
 import {TopComponent} from '../../partials/top/top.component';
 
 @Component({
   selector: 'app-learning-path-viewer',
   standalone: true,
-  imports: [CommonModule, RouterModule, TopComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopComponent],
   templateUrl: './learning-path-viewer.component.html',
   styleUrls: ['./learning-path-viewer.component.scss']
 })
@@ -31,6 +33,8 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   enrollment = signal<LearningPathEnrollment | null>(null);
   progress = signal<ProgressBySection | null>(null);
   ratingSummary = signal<RatingSummary | null>(null);
+  reviews = signal<LearningPathReview[]>([]);
+  myReview = signal<LearningPathReview | null>(null);
 
   // UI State
   loading = signal(true);
@@ -38,6 +42,15 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   startingItem = signal<string | null>(null);
   activeSection = signal<string | null>(null);
   showAllObjectives = signal(false);
+
+  // Reviews
+  showReviewForm = signal(false);
+  savingReview = signal(false);
+  reviewSubmitted = signal(false);
+  reviewError = signal<string | null>(null);
+  reviewRating = signal(0);
+  reviewTitle = signal('');
+  reviewText = signal('');
 
   // Computed
   isEnrolled = computed(() => !!this.enrollment());
@@ -129,6 +142,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
         this.path.set(path);
         this.loadEnrollment(path.path_id);
         this.loadRatingSummary(path.path_id);
+        this.loadReviews(path.path_id);
       },
       error: (error) => {
         console.error('Error loading path:', error);
@@ -171,6 +185,95 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     this.learningPathService.getRatingSummary(pathId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (summary) => this.ratingSummary.set(summary)
     });
+  }
+
+  loadReviews(pathId: string): void {
+    this.learningPathService.getReviews(pathId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (response) => this.reviews.set(response.data)
+    });
+
+    // Fails softly: somebody who is not on the path has no review of their
+    // own, and that is not an error worth showing on a page they can read.
+    this.learningPathService.getMyReview(pathId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (review) => this.myReview.set(review),
+      error: () => this.myReview.set(null)
+    });
+  }
+
+  // Reviews
+
+  /**
+   * Opens the review form, filled in with whatever this learner said before.
+   *
+   * One enrolment leaves one review, so writing a second one edits the first
+   * rather than adding to it.
+   */
+  openReviewForm(): void {
+    const mine = this.myReview();
+
+    this.reviewRating.set(mine?.rating ?? 0);
+    this.reviewTitle.set(mine?.title ?? '');
+    this.reviewText.set(mine?.review_text ?? '');
+    this.reviewError.set(null);
+    this.showReviewForm.set(true);
+  }
+
+  closeReviewForm(): void {
+    this.showReviewForm.set(false);
+  }
+
+  submitReview(): void {
+    const p = this.path();
+    if (!p || this.reviewRating() < 1) {
+      this.reviewError.set('Choose a rating first.');
+      return;
+    }
+
+    this.savingReview.set(true);
+    this.reviewError.set(null);
+
+    this.learningPathService
+      .createReview({
+        path_id: p.path_id,
+        rating: this.reviewRating(),
+        title: this.reviewTitle().trim() || undefined,
+        review_text: this.reviewText().trim() || undefined,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.savingReview.set(false);
+          this.showReviewForm.set(false);
+          // A new review waits to be checked, so it will not appear on the
+          // page yet — the banner below says so rather than leaving the
+          // learner wondering where it went.
+          this.reviewSubmitted.set(true);
+          this.loadReviews(p.path_id);
+          this.loadRatingSummary(p.path_id);
+        },
+        error: (error) => {
+          this.savingReview.set(false);
+          this.reviewError.set(error?.message || 'Could not save your review.');
+        }
+      });
+  }
+
+  markHelpful(review: LearningPathReview): void {
+    this.learningPathService.markReviewHelpful(review.review_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadReviews(review.path_id) });
+  }
+
+  reportReview(review: LearningPathReview): void {
+    const reason = prompt('What is wrong with this review?')?.trim();
+
+    if (!reason) {
+      return;
+    }
+
+    this.learningPathService.reportReview(review.review_id, reason)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadReviews(review.path_id) });
   }
 
   // Actions

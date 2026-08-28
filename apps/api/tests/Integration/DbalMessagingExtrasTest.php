@@ -131,14 +131,11 @@ final class DbalMessagingExtrasTest extends TestCase
         $this->messaging->saveDraft($this->tenantA, $this->conversationId, $this->alice, 'Alice typing', null);
         $this->messaging->saveDraft($this->tenantA, $this->conversationId, $this->bob, 'Bob typing', null);
 
-        self::assertSame(
-            'Alice typing',
-            $this->messaging->draft($this->tenantA, $this->conversationId, $this->alice)['content'],
-        );
-        self::assertSame(
-            'Bob typing',
-            $this->messaging->draft($this->tenantA, $this->conversationId, $this->bob)['content'],
-        );
+        $alice = $this->messaging->draft($this->tenantA, $this->conversationId, $this->alice);
+        $bob = $this->messaging->draft($this->tenantA, $this->conversationId, $this->bob);
+
+        self::assertSame('Alice typing', $alice['content'] ?? null);
+        self::assertSame('Bob typing', $bob['content'] ?? null);
     }
 
     // --- pinned and saved -----------------------------------------------------
