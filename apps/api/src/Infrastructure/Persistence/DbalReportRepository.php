@@ -170,6 +170,17 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::MonthlyTrainingHours => $this->monthlyTrainingHours($definition, $criteria),
             ReportKey::CertificatesByCourse => $this->certificatesByCourse($definition, $criteria),
             ReportKey::DrilldownLearners   => $this->drilldownLearners($definition, $criteria),
+
+            // --- for managers ---------------------------------------------
+            ReportKey::ManagerTeamDashboard     => $this->managerTeamDashboard($definition, $criteria),
+            ReportKey::ManagerComplianceSummary => $this->managerComplianceSummary($definition, $criteria),
+            ReportKey::ManagerActionRequired    => $this->managerActionRequired($definition, $criteria),
+            ReportKey::TeamVsOrgBenchmark       => $this->teamVsOrgBenchmark($definition, $criteria),
+
+            // --- cohorts and groups ---------------------------------------
+            ReportKey::CohortProgress   => $this->cohortProgress($definition, $criteria),
+            ReportKey::GroupPerformance => $this->groupPerformance($definition, $criteria),
+            ReportKey::PeerBenchmarking => $this->peerBenchmarking($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -4218,6 +4229,304 @@ final class DbalReportRepository implements ReportRepository
             'e.id',
             'ASC',
         );
+    }
+
+    // --- for managers -----------------------------------------------------
+    //
+    // "The manager" is the caller unless they name another — an administrator
+    // looking at somebody else's team. Defaulting to the caller is what makes
+    // these usable by a team lead with no filter to fill in.
+
+    private function managerTeamDashboard(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $manager = $this->managerId($criteria);
+
+        $q = ReportQuery::tenant($criteria, 'u')
+            ->where('u.deleted_at IS NULL')
+            ->where('u.manager_id = :manager', 'manager', $manager);
+
+        $columns = [
+            ReportColumn::text('learner', 'Team member'),
+            ReportColumn::number('enrolments', 'Courses'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::number('inProgress', 'In progress'),
+            ReportColumn::number('overdue', 'Overdue'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM users u',
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.deleted_at IS NULL) AS enrolments,
+             (SELECT COUNT(*) FROM enrollments e
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status = 'completed') AS completed,
+             (SELECT COUNT(*) FROM enrollments e
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status = 'in_progress') AS \"inProgress\",
+             (SELECT COUNT(*) FROM enrollments e
+              WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status <> 'completed'
+                AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE) AS overdue,
+             CASE WHEN (SELECT COUNT(*) FROM enrollments e
+                        WHERE e.user_id = u.id AND e.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM enrollments e
+                        WHERE e.user_id = u.id AND e.deleted_at IS NULL AND e.status = 'completed')
+                        / (SELECT COUNT(*) FROM enrollments e
+                        WHERE e.user_id = u.id AND e.deleted_at IS NULL), 1)
+             END AS \"completionRate\"",
+            'completed',
+            'u.id',
+            'DESC',
+        );
+    }
+
+    private function managerComplianceSummary(
+        ReportDefinition $definition,
+        ReportCriteria $criteria,
+    ): ReportResult {
+        $manager = $this->managerId($criteria);
+
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.deleted_at IS NULL')
+            ->where(self::MANDATORY)
+            ->where("e.status <> 'dropped'")
+            ->where('u.manager_id = :manager', 'manager', $manager);
+
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                "SELECT COUNT(DISTINCT u.id) AS people,
+                        COUNT(*) AS requirements,
+                        COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+                        COUNT(*) FILTER (WHERE e.status <> 'completed') AS pending,
+                        COUNT(*) FILTER (WHERE e.status <> 'completed'
+                            AND e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE) AS overdue
+                 FROM enrollments e
+                 JOIN users u ON u.id = e.user_id
+                 JOIN courses c ON c.id = e.course_id
+                 WHERE %s",
+                $q->sql(),
+            ),
+            $q->params(),
+            $q->types(),
+        );
+
+        $row = $row === false ? [] : $row;
+        $requirements = (int) ($row['requirements'] ?? 0);
+        $completed = (int) ($row['completed'] ?? 0);
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'people'         => (int) ($row['people'] ?? 0),
+                'requirements'   => $requirements,
+                'completed'      => $completed,
+                'pending'        => (int) ($row['pending'] ?? 0),
+                'overdue'        => (int) ($row['overdue'] ?? 0),
+                'complianceRate' => $this->percent($completed, $requirements),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    private function managerActionRequired(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $manager = $this->managerId($criteria);
+
+        $q = ReportQuery::tenant($criteria, 'e')
+            ->where('e.deleted_at IS NULL')
+            ->where("e.status <> 'completed' AND e.status <> 'dropped'")
+            ->where('e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE')
+            ->where('u.manager_id = :manager', 'manager', $manager);
+
+        $columns = [
+            ReportColumn::text('learner', 'Team member'),
+            ReportColumn::text('course', 'Course'),
+            ReportColumn::date('dueDate', 'Was due'),
+            ReportColumn::number('daysOverdue', 'Days overdue'),
+            ReportColumn::percent('progress', 'Progress'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             c.title AS course,
+             e.due_date AS \"dueDate\",
+             (CURRENT_DATE - e.due_date) AS \"daysOverdue\",
+             e.progress_percentage AS progress",
+            'e.due_date',
+            'e.id',
+            'ASC',
+        );
+    }
+
+    private function teamVsOrgBenchmark(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $manager = $this->managerId($criteria);
+
+        // Two figures on the same measure: the team, and the whole tenant. The
+        // org line uses the tenant only — a manager comparing against "their
+        // scope" would be comparing against themselves.
+        $row = $this->connection->fetchAssociative(
+            "SELECT
+                COUNT(*) FILTER (WHERE u.manager_id = :manager) AS team_total,
+                COUNT(*) FILTER (WHERE u.manager_id = :manager AND e.status = 'completed') AS team_done,
+                COUNT(*) AS org_total,
+                COUNT(*) FILTER (WHERE e.status = 'completed') AS org_done
+             FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             WHERE e.tenant_id = :tenant AND e.deleted_at IS NULL",
+            ['manager' => $manager, 'tenant' => $criteria->scope->tenantId],
+        );
+
+        $row = $row === false ? [] : $row;
+        $teamRate = $this->percent((int) ($row['team_done'] ?? 0), (int) ($row['team_total'] ?? 0));
+        $orgRate = $this->percent((int) ($row['org_done'] ?? 0), (int) ($row['org_total'] ?? 0));
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'teamCompletionRate' => $teamRate,
+                'orgCompletionRate'  => $orgRate,
+                'difference'         => round($teamRate - $orgRate, 1),
+                'teamEnrolments'     => (int) ($row['team_total'] ?? 0),
+                'orgEnrolments'      => (int) ($row['org_total'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    // --- cohorts and groups -----------------------------------------------
+
+    private function cohortProgress(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->betweenDates($criteria, 'e.enrolled_at')
+            ->where('e.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('cohort', 'Enrolled'),
+            ReportColumn::number('learners', 'Learners'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id',
+            $q,
+            "to_char(date_trunc('month', e.enrolled_at), 'YYYY-MM') AS cohort,
+             COUNT(DISTINCT e.user_id) AS learners,
+             COUNT(*) AS enrolments,
+             COUNT(*) FILTER (WHERE e.status = 'completed') AS completed,
+             round(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1) AS \"completionRate\"",
+            "date_trunc('month', e.enrolled_at)",
+            'cohort DESC',
+        );
+    }
+
+    private function groupPerformance(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u', 'c')
+            ->where('e.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('department', 'Department'),
+            ReportColumn::number('people', 'People'),
+            ReportColumn::number('enrolments', 'Enrolments'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::number('avgScore', 'Avg score'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups d ON d.id = u.department_id",
+            $q,
+            "COALESCE(d.name, 'Unassigned') AS department,
+             COUNT(DISTINCT e.user_id) AS people,
+             COUNT(*) AS enrolments,
+             round(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed')
+                   / NULLIF(COUNT(*), 0), 1) AS \"completionRate\",
+             round((SELECT AVG(a.percentage) FROM attempts a
+                    JOIN users uu ON uu.id = a.user_id
+                    WHERE uu.department_id = d.id AND a.percentage IS NOT NULL)::numeric, 1) AS \"avgScore\"",
+            'd.id, d.name',
+            '"completionRate" DESC NULLS LAST',
+        );
+    }
+
+    private function peerBenchmarking(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $learnerId = $criteria->learnerId ?? '';
+
+        // The learner and their peers are their department. Their figures set
+        // against the department average, so "how am I doing" has a denominator.
+        $row = $this->connection->fetchAssociative(
+            "WITH peers AS (
+                SELECT u.id FROM users u
+                WHERE u.tenant_id = :tenant AND u.deleted_at IS NULL
+                  AND u.department_id = (SELECT department_id FROM users WHERE id = :learner)
+            )
+            SELECT
+                COUNT(*) FILTER (WHERE e.user_id = :learner) AS my_total,
+                COUNT(*) FILTER (WHERE e.user_id = :learner AND e.status = 'completed') AS my_done,
+                COUNT(*) AS peer_total,
+                COUNT(*) FILTER (WHERE e.status = 'completed') AS peer_done,
+                COUNT(DISTINCT e.user_id) AS peer_count
+             FROM enrollments e
+             WHERE e.user_id IN (SELECT id FROM peers) AND e.deleted_at IS NULL",
+            ['tenant' => $criteria->scope->tenantId, 'learner' => $learnerId],
+        );
+
+        $row = $row === false ? [] : $row;
+
+        return ReportResult::summary(
+            $definition,
+            [
+                'myCompletionRate'   => $this->percent((int) ($row['my_done'] ?? 0), (int) ($row['my_total'] ?? 0)),
+                'peerCompletionRate' => $this->percent((int) ($row['peer_done'] ?? 0), (int) ($row['peer_total'] ?? 0)),
+                'peers'              => max(0, (int) ($row['peer_count'] ?? 0) - 1),
+                'myEnrolments'       => (int) ($row['my_total'] ?? 0),
+            ],
+            [],
+            $criteria,
+        );
+    }
+
+    /**
+     * The manager these "for managers" reports are about.
+     *
+     * The person named, or the caller. A team lead running one has no filter
+     * to fill in and gets their own team; an administrator names somebody
+     * else's.
+     */
+    private function managerId(ReportCriteria $criteria): string
+    {
+        $named = trim((string) ($criteria->filters['managerId'] ?? ''));
+
+        return $named !== '' ? $named : $criteria->scope->viewerId;
     }
 
     // --- shared plumbing --------------------------------------------------

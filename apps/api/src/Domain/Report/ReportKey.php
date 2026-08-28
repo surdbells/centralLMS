@@ -135,6 +135,17 @@ enum ReportKey: string
     case CertificatesByCourse = 'certificates_by_course';
     case DrilldownLearners    = 'drilldown_learners';
 
+    // --- for managers -----------------------------------------------------
+    case ManagerTeamDashboard    = 'manager_team_dashboard';
+    case ManagerComplianceSummary = 'manager_compliance_summary';
+    case ManagerActionRequired   = 'manager_action_required';
+    case TeamVsOrgBenchmark      = 'team_vs_org_benchmark';
+
+    // --- cohorts and groups ----------------------------------------------
+    case CohortProgress   = 'cohort_progress';
+    case GroupPerformance = 'group_performance';
+    case PeerBenchmarking = 'peer_benchmarking';
+
     /**
      * @return list<string>
      */

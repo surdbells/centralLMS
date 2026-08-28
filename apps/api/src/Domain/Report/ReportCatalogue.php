@@ -880,6 +880,67 @@ final readonly class ReportCatalogue
                 exportable: true,
                 namesPeople: true,
             ),
+
+            // --- for managers ---------------------------------------------
+            new ReportDefinition(
+                ReportKey::ManagerTeamDashboard,
+                ReportCategory::Manager,
+                'My team',
+                'Everyone who reports to you, and where each stands with their training.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::ManagerComplianceSummary,
+                ReportCategory::Manager,
+                'My team\'s compliance',
+                'How much of your team\'s mandatory training is done, pending and overdue.',
+                ReportShape::Summary,
+            ),
+            new ReportDefinition(
+                ReportKey::ManagerActionRequired,
+                ReportCategory::Manager,
+                'Needs your attention',
+                'The overdue training on your team — what to chase, most overdue first.',
+                ReportShape::Table,
+                exportable: true,
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::TeamVsOrgBenchmark,
+                ReportCategory::Manager,
+                'My team against the organisation',
+                'Your team\'s completion set beside the organisation\'s, so you know where you stand.',
+                ReportShape::Summary,
+            ),
+
+            // --- cohorts and groups ---------------------------------------
+            new ReportDefinition(
+                ReportKey::CohortProgress,
+                ReportCategory::Cohort,
+                'Cohort progress',
+                'Completion by the month people enrolled — how each intake is faring.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::GroupPerformance,
+                ReportCategory::Cohort,
+                'Group performance',
+                'Completion and average score measured by department.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::PeerBenchmarking,
+                ReportCategory::Cohort,
+                'Peer benchmarking',
+                'One learner set against their department peers.',
+                ReportShape::Summary,
+                requires: ['learnerId'],
+                namesPeople: true,
+            ),
         ];
     }
 }
