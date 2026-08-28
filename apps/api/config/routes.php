@@ -467,6 +467,23 @@ return static function (App $app): void {
             // membership, and one that is not theirs answers 404 rather than
             // 403 — saying a conversation exists but is not yours says who is
             // talking. `unread` is declared before `/{id}`.
+            // Messages across every conversation this person is in. Not nested
+            // under one, because searching or listing what you have saved is a
+            // question about all of them.
+            $secure->group('/me/messages', function (RouteCollectorProxy $m) use ($uuid): void {
+                $m->get('/saved', [MessagingAction::class, 'saved'])->setName('me.messages.saved');
+                $m->get('/search', [MessagingAction::class, 'search'])->setName('me.messages.search');
+                $m->get('/blocked', [MessagingAction::class, 'blocked'])->setName('me.messages.blocked');
+                $m->put('/blocked/{userId:' . $uuid . '}', [MessagingAction::class, 'block'])
+                    ->setName('me.messages.block');
+                $m->delete('/blocked/{userId:' . $uuid . '}', [MessagingAction::class, 'unblock'])
+                    ->setName('me.messages.unblock');
+                $m->get('/preferences', [MessagingAction::class, 'preferences'])
+                    ->setName('me.messages.preferences');
+                $m->put('/preferences', [MessagingAction::class, 'savePreferences'])
+                    ->setName('me.messages.preferences.save');
+            });
+
             $secure->group('/me/conversations', function (RouteCollectorProxy $m) use ($uuid): void {
                 $m->get('', [MessagingAction::class, 'inbox'])->setName('me.conversations');
                 $m->post('', [MessagingAction::class, 'start'])->setName('me.conversations.start');
@@ -499,6 +516,36 @@ return static function (App $app): void {
                     '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}',
                     [MessagingAction::class, 'delete'],
                 )->setName('me.conversations.messages.delete');
+
+                // Reacting is a toggle: the same emoji twice takes it back.
+                $m->post(
+                    '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}/reactions',
+                    [MessagingAction::class, 'react'],
+                )->setName('me.conversations.messages.react');
+
+                // Pinning is the conversation's; saving is the reader's own.
+                $m->get('/{id:' . $uuid . '}/pinned', [MessagingAction::class, 'pinned'])
+                    ->setName('me.conversations.pinned');
+                $m->put(
+                    '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}/pin',
+                    [MessagingAction::class, 'pin'],
+                )->setName('me.conversations.messages.pin');
+                $m->put(
+                    '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}/save',
+                    [MessagingAction::class, 'save'],
+                )->setName('me.conversations.messages.save');
+                $m->delete(
+                    '/{id:' . $uuid . '}/messages/{messageId:' . $uuid . '}/save',
+                    [MessagingAction::class, 'unsave'],
+                )->setName('me.conversations.messages.unsave');
+
+                // What somebody has typed and not sent. One per conversation.
+                $m->get('/{id:' . $uuid . '}/draft', [MessagingAction::class, 'draft'])
+                    ->setName('me.conversations.draft');
+                $m->put('/{id:' . $uuid . '}/draft', [MessagingAction::class, 'saveDraft'])
+                    ->setName('me.conversations.draft.save');
+                $m->delete('/{id:' . $uuid . '}/draft', [MessagingAction::class, 'deleteDraft'])
+                    ->setName('me.conversations.draft.delete');
             });
 
             // --- learning paths -------------------------------------------

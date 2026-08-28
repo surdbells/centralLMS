@@ -664,4 +664,430 @@ final class DbalMessagingRepository implements MessagingRepository
             return null;
         }
     }
+
+    // --- reactions -----------------------------------------------------------
+
+    public function toggleReaction(
+        string $tenantId,
+        string $messageId,
+        string $userId,
+        string $emoji,
+    ): array {
+        // One statement rather than a read then a write: two people tapping
+        // the same emoji at once would otherwise both see "not mine yet" and
+        // both insert, and the unique index would fail one of them.
+        $removed = $this->connection->executeStatement(
+            'DELETE FROM message_reactions
+             WHERE tenant_id = :tenant AND message_id = :message
+               AND user_id = :user AND emoji = :emoji',
+            ['tenant' => $tenantId, 'message' => $messageId, 'user' => $userId, 'emoji' => $emoji],
+        );
+
+        if ($removed === 0) {
+            $this->connection->executeStatement(
+                'INSERT INTO message_reactions (tenant_id, message_id, user_id, emoji)
+                 VALUES (:tenant, :message, :user, :emoji)
+                 ON CONFLICT (message_id, user_id, emoji) DO NOTHING',
+                ['tenant' => $tenantId, 'message' => $messageId, 'user' => $userId, 'emoji' => $emoji],
+            );
+        }
+
+        return $this->reactionsFor($tenantId, [$messageId])[$messageId] ?? [];
+    }
+
+    public function reactionsFor(string $tenantId, array $messageIds): array
+    {
+        if ($messageIds === []) {
+            return [];
+        }
+
+        // Grouped in the query, because that is how they are drawn — "👍 3"
+        // with the names behind it, not a row per reaction for the client to
+        // group itself.
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT r.message_id, r.emoji, COUNT(*) AS n,
+                    ARRAY_AGG(r.user_id::text) AS user_ids,
+                    ARRAY_AGG(TRIM(CONCAT(u.first_name, ' ', u.last_name))) AS names
+             FROM message_reactions r
+             LEFT JOIN users u ON u.id = r.user_id
+             WHERE r.tenant_id = :tenant AND r.message_id IN (:ids)
+             GROUP BY r.message_id, r.emoji
+             ORDER BY n DESC, r.emoji",
+            ['tenant' => $tenantId, 'ids' => array_values(array_unique($messageIds))],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $byMessage = [];
+
+        foreach ($rows as $row) {
+            $byMessage[(string) $row['message_id']][] = [
+                'emoji'   => (string) $row['emoji'],
+                'count'   => (int) $row['n'],
+                'userIds' => $this->fromArrayLiteral($row['user_ids']),
+                'names'   => $this->fromArrayLiteral($row['names']),
+            ];
+        }
+
+        return $byMessage;
+    }
+
+    // --- drafts --------------------------------------------------------------
+
+    public function saveDraft(
+        string $tenantId,
+        string $conversationId,
+        string $userId,
+        string $content,
+        ?string $replyToId,
+    ): void {
+        $this->connection->executeStatement(
+            'INSERT INTO message_drafts (conversation_id, user_id, tenant_id, content, reply_to_id)
+             VALUES (:conversation, :user, :tenant, :content, :reply)
+             ON CONFLICT (conversation_id, user_id) DO UPDATE SET
+                 content     = EXCLUDED.content,
+                 reply_to_id = EXCLUDED.reply_to_id,
+                 updated_at  = NOW()',
+            [
+                'conversation' => $conversationId,
+                'user'         => $userId,
+                'tenant'       => $tenantId,
+                'content'      => $content,
+                'reply'        => $replyToId,
+            ],
+        );
+    }
+
+    public function draft(string $tenantId, string $conversationId, string $userId): ?array
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT content, reply_to_id, updated_at FROM message_drafts
+             WHERE tenant_id = :tenant AND conversation_id = :conversation AND user_id = :user',
+            ['tenant' => $tenantId, 'conversation' => $conversationId, 'user' => $userId],
+        );
+
+        if ($row === false) {
+            return null;
+        }
+
+        return [
+            'content'   => (string) $row['content'],
+            'replyToId' => $this->text($row['reply_to_id']),
+            'updatedAt' => (string) $row['updated_at'],
+        ];
+    }
+
+    public function deleteDraft(string $tenantId, string $conversationId, string $userId): void
+    {
+        $this->connection->executeStatement(
+            'DELETE FROM message_drafts
+             WHERE tenant_id = :tenant AND conversation_id = :conversation AND user_id = :user',
+            ['tenant' => $tenantId, 'conversation' => $conversationId, 'user' => $userId],
+        );
+    }
+
+    // --- pinned and saved ----------------------------------------------------
+
+    public function setPinned(
+        string $tenantId,
+        string $messageId,
+        bool $pinned,
+        ?string $by,
+    ): ?Message {
+        $affected = $this->connection->executeStatement(
+            $pinned
+                ? 'UPDATE messages SET pinned_at = NOW(), pinned_by = :by
+                   WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL'
+                : 'UPDATE messages SET pinned_at = NULL, pinned_by = NULL
+                   WHERE id = :id AND tenant_id = :tenant',
+            $pinned
+                ? ['id' => $messageId, 'tenant' => $tenantId, 'by' => $by]
+                : ['id' => $messageId, 'tenant' => $tenantId],
+        );
+
+        return $affected > 0 ? $this->findMessage($tenantId, $messageId) : null;
+    }
+
+    public function pinnedIn(string $tenantId, string $conversationId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s FROM messages m
+                 LEFT JOIN users u ON u.id = m.sender_id
+                 LEFT JOIN messages r ON r.id = m.reply_to_id
+                 LEFT JOIN users ru ON ru.id = r.sender_id
+                 WHERE m.tenant_id = :tenant AND m.conversation_id = :conversation
+                   AND m.pinned_at IS NOT NULL AND m.deleted_at IS NULL
+                 ORDER BY m.pinned_at DESC',
+                $this->messageColumns(),
+            ),
+            ['tenant' => $tenantId, 'conversation' => $conversationId],
+        );
+
+        return array_map(fn (array $row): Message => $this->hydrateMessage($row), $rows);
+    }
+
+    public function saveMessage(
+        string $tenantId,
+        string $messageId,
+        string $userId,
+        ?string $note,
+    ): void {
+        $this->connection->executeStatement(
+            'INSERT INTO saved_messages (tenant_id, message_id, user_id, note)
+             VALUES (:tenant, :message, :user, :note)
+             ON CONFLICT (user_id, message_id) DO UPDATE SET note = EXCLUDED.note',
+            ['tenant' => $tenantId, 'message' => $messageId, 'user' => $userId, 'note' => $note],
+        );
+    }
+
+    public function unsaveMessage(string $tenantId, string $messageId, string $userId): bool
+    {
+        return $this->connection->executeStatement(
+            'DELETE FROM saved_messages
+             WHERE tenant_id = :tenant AND message_id = :message AND user_id = :user',
+            ['tenant' => $tenantId, 'message' => $messageId, 'user' => $userId],
+        ) > 0;
+    }
+
+    public function savedBy(string $tenantId, string $userId, int $limit, int $offset): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                "SELECT %s, s.note, s.created_at AS saved_at,
+                        c.name AS conversation_name, c.kind AS conversation_kind
+                 FROM saved_messages s
+                 JOIN messages m ON m.id = s.message_id
+                 JOIN conversations c ON c.id = m.conversation_id
+                 LEFT JOIN users u ON u.id = m.sender_id
+                 LEFT JOIN messages r ON r.id = m.reply_to_id
+                 LEFT JOIN users ru ON ru.id = r.sender_id
+                 WHERE s.tenant_id = :tenant AND s.user_id = :user
+                 ORDER BY s.created_at DESC
+                 LIMIT :limit OFFSET :offset",
+                $this->messageColumns(),
+            ),
+            ['tenant' => $tenantId, 'user' => $userId, 'limit' => $limit, 'offset' => $offset],
+        );
+
+        return array_map(
+            fn (array $row): array => [
+                ...$this->hydrateMessage($row)->toArray(),
+                'note'             => $this->text($row['note']),
+                'savedAt'          => (string) $row['saved_at'],
+                'conversationName' => $this->text($row['conversation_name']),
+                'conversationKind' => (string) $row['conversation_kind'],
+            ],
+            $rows,
+        );
+    }
+
+    // --- searching -----------------------------------------------------------
+
+    public function search(
+        string $tenantId,
+        string $userId,
+        string $phrase,
+        ?string $conversationId,
+        int $limit,
+    ): array {
+        $where = [
+            'm.tenant_id = :tenant',
+            'm.deleted_at IS NULL',
+            'm.content ILIKE :phrase',
+            // Only conversations this person is in. A tenant-wide search
+            // would hand somebody every private conversation containing the
+            // word they typed.
+            'EXISTS (
+                 SELECT 1 FROM conversation_participants p
+                 WHERE p.conversation_id = m.conversation_id
+                   AND p.user_id = :user AND p.left_at IS NULL
+             )',
+        ];
+
+        $params = [
+            'tenant' => $tenantId,
+            'user'   => $userId,
+            'phrase' => '%' . trim($phrase) . '%',
+            'limit'  => $limit,
+        ];
+
+        if ($conversationId !== null && $conversationId !== '') {
+            $where[] = 'm.conversation_id = :conversation';
+            $params['conversation'] = $conversationId;
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s FROM messages m
+                 LEFT JOIN users u ON u.id = m.sender_id
+                 LEFT JOIN messages r ON r.id = m.reply_to_id
+                 LEFT JOIN users ru ON ru.id = r.sender_id
+                 WHERE %s
+                 ORDER BY m.created_at DESC
+                 LIMIT :limit',
+                $this->messageColumns(),
+                implode(' AND ', $where),
+            ),
+            $params,
+        );
+
+        return array_map(fn (array $row): Message => $this->hydrateMessage($row), $rows);
+    }
+
+    // --- blocking ------------------------------------------------------------
+
+    public function block(string $tenantId, string $userId, string $blockedId, ?string $reason): void
+    {
+        $this->connection->executeStatement(
+            'INSERT INTO blocked_users (tenant_id, user_id, blocked_id, reason)
+             VALUES (:tenant, :user, :blocked, :reason)
+             ON CONFLICT (user_id, blocked_id) DO UPDATE SET reason = EXCLUDED.reason',
+            ['tenant' => $tenantId, 'user' => $userId, 'blocked' => $blockedId, 'reason' => $reason],
+        );
+    }
+
+    public function unblock(string $tenantId, string $userId, string $blockedId): bool
+    {
+        return $this->connection->executeStatement(
+            'DELETE FROM blocked_users
+             WHERE tenant_id = :tenant AND user_id = :user AND blocked_id = :blocked',
+            ['tenant' => $tenantId, 'user' => $userId, 'blocked' => $blockedId],
+        ) > 0;
+    }
+
+    public function blockedBy(string $tenantId, string $userId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT b.blocked_id, b.reason, b.created_at,
+                    TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS name, u.email
+             FROM blocked_users b
+             LEFT JOIN users u ON u.id = b.blocked_id
+             WHERE b.tenant_id = :tenant AND b.user_id = :user
+             ORDER BY b.created_at DESC",
+            ['tenant' => $tenantId, 'user' => $userId],
+        );
+
+        return array_map(
+            fn (array $row): array => [
+                'userId'    => (string) $row['blocked_id'],
+                'name'      => $this->text($row['name']),
+                'email'     => $this->text($row['email']),
+                'reason'    => $this->text($row['reason']),
+                'blockedAt' => (string) $row['created_at'],
+            ],
+            $rows,
+        );
+    }
+
+    public function isBlockedBetween(string $tenantId, string $a, string $b): bool
+    {
+        // Either direction: if A blocked B, B must not be able to open a
+        // conversation with A either, or blocking is only a mute.
+        return (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM blocked_users
+             WHERE tenant_id = :tenant
+               AND ((user_id = :a AND blocked_id = :b) OR (user_id = :b AND blocked_id = :a))',
+            ['tenant' => $tenantId, 'a' => $a, 'b' => $b],
+        ) > 0;
+    }
+
+    // --- preferences ---------------------------------------------------------
+
+    public function preferences(string $tenantId, string $userId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT notify_on_message, notify_on_mention, email_digest,
+                    direct_messages_from_anyone, show_read_receipts
+             FROM messaging_preferences
+             WHERE tenant_id = :tenant AND user_id = :user',
+            ['tenant' => $tenantId, 'user' => $userId],
+        );
+
+        // No row means the defaults, which is why there is no row written when
+        // somebody has never opened the screen.
+        if ($row === false) {
+            return [
+                'notifyOnMessage'         => true,
+                'notifyOnMention'         => true,
+                'emailDigest'             => false,
+                'directMessagesFromAnyone' => true,
+                'showReadReceipts'        => true,
+            ];
+        }
+
+        return [
+            'notifyOnMessage'          => (bool) $row['notify_on_message'],
+            'notifyOnMention'          => (bool) $row['notify_on_mention'],
+            'emailDigest'              => (bool) $row['email_digest'],
+            'directMessagesFromAnyone' => (bool) $row['direct_messages_from_anyone'],
+            'showReadReceipts'         => (bool) $row['show_read_receipts'],
+        ];
+    }
+
+    public function savePreferences(string $tenantId, string $userId, array $changes): array
+    {
+        $current = $this->preferences($tenantId, $userId);
+        $merged = [...$current, ...array_intersect_key($changes, $current)];
+
+        $this->connection->executeStatement(
+            'INSERT INTO messaging_preferences
+                 (user_id, tenant_id, notify_on_message, notify_on_mention, email_digest,
+                  direct_messages_from_anyone, show_read_receipts)
+             VALUES (:user, :tenant, :message, :mention, :digest, :dms, :receipts)
+             ON CONFLICT (user_id) DO UPDATE SET
+                 notify_on_message           = EXCLUDED.notify_on_message,
+                 notify_on_mention           = EXCLUDED.notify_on_mention,
+                 email_digest                = EXCLUDED.email_digest,
+                 direct_messages_from_anyone = EXCLUDED.direct_messages_from_anyone,
+                 show_read_receipts          = EXCLUDED.show_read_receipts,
+                 updated_at                  = NOW()',
+            [
+                'user'     => $userId,
+                'tenant'   => $tenantId,
+                'message'  => (bool) $merged['notifyOnMessage'],
+                'mention'  => (bool) $merged['notifyOnMention'],
+                'digest'   => (bool) $merged['emailDigest'],
+                'dms'      => (bool) $merged['directMessagesFromAnyone'],
+                'receipts' => (bool) $merged['showReadReceipts'],
+            ],
+            [
+                'message'  => ParameterType::BOOLEAN,
+                'mention'  => ParameterType::BOOLEAN,
+                'digest'   => ParameterType::BOOLEAN,
+                'dms'      => ParameterType::BOOLEAN,
+                'receipts' => ParameterType::BOOLEAN,
+            ],
+        );
+
+        return $merged;
+    }
+
+    /**
+     * A PostgreSQL array literal as a PHP list.
+     *
+     * `ARRAY_AGG` comes back as `{a,b,c}` over the wire rather than as an
+     * array, and names containing commas would break a naive split — so the
+     * quoted form is handled too.
+     *
+     * @return list<string>
+     */
+    private function fromArrayLiteral(mixed $value): array
+    {
+        if (!is_string($value) || $value === '{}') {
+            return [];
+        }
+
+        $inner = trim($value, '{}');
+
+        if ($inner === '') {
+            return [];
+        }
+
+        $parts = str_getcsv($inner, ',', '"', '\\');
+
+        return array_values(array_map(
+            static fn (?string $p): string => trim((string) $p),
+            $parts,
+        ));
+    }
 }

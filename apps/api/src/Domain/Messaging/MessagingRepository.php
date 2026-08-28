@@ -116,4 +116,128 @@ interface MessagingRepository
      * How many messages this person has not read, across everything.
      */
     public function unreadTotal(string $tenantId, string $userId): int;
+
+    // --- reactions -----------------------------------------------------------
+
+    /**
+     * Adds one, or removes it if the same person already reacted that way.
+     *
+     * A toggle rather than separate add and remove calls: tapping an emoji
+     * that is already yours means taking it back, and two endpoints for one
+     * gesture is two chances to get the state wrong.
+     *
+     * @return list<array<string, mixed>> the message's reactions afterwards
+     */
+    public function toggleReaction(
+        string $tenantId,
+        string $messageId,
+        string $userId,
+        string $emoji,
+    ): array;
+
+    /**
+     * Reactions on a set of messages, keyed by message id.
+     *
+     * Grouped by emoji with a count and the people, because that is how they
+     * are drawn — "👍 3" with names on hover, not a row per reaction.
+     *
+     * @param list<string> $messageIds
+     *
+     * @return array<string, list<array<string, mixed>>>
+     */
+    public function reactionsFor(string $tenantId, array $messageIds): array;
+
+    // --- drafts --------------------------------------------------------------
+
+    public function saveDraft(
+        string $tenantId,
+        string $conversationId,
+        string $userId,
+        string $content,
+        ?string $replyToId,
+    ): void;
+
+    /** @return array<string, mixed>|null */
+    public function draft(string $tenantId, string $conversationId, string $userId): ?array;
+
+    public function deleteDraft(string $tenantId, string $conversationId, string $userId): void;
+
+    // --- pinned and saved ----------------------------------------------------
+
+    /**
+     * Pins or unpins a message for everybody in the conversation.
+     *
+     * Pinning is the conversation's, not the pinner's — that is what
+     * distinguishes it from saving.
+     */
+    public function setPinned(
+        string $tenantId,
+        string $messageId,
+        bool $pinned,
+        ?string $by,
+    ): ?Message;
+
+    /** @return list<Message> */
+    public function pinnedIn(string $tenantId, string $conversationId): array;
+
+    /** Saving is mine alone, and carries my own note. */
+    public function saveMessage(
+        string $tenantId,
+        string $messageId,
+        string $userId,
+        ?string $note,
+    ): void;
+
+    public function unsaveMessage(string $tenantId, string $messageId, string $userId): bool;
+
+    /** @return list<array<string, mixed>> */
+    public function savedBy(string $tenantId, string $userId, int $limit, int $offset): array;
+
+    // --- searching -----------------------------------------------------------
+
+    /**
+     * Messages matching a phrase, in conversations this person is in.
+     *
+     * Scoped by participation rather than by tenant alone: a tenant-wide
+     * search would return other people's private conversations to anybody who
+     * typed the right word.
+     *
+     * @return list<Message>
+     */
+    public function search(
+        string $tenantId,
+        string $userId,
+        string $phrase,
+        ?string $conversationId,
+        int $limit,
+    ): array;
+
+    // --- blocking ------------------------------------------------------------
+
+    public function block(string $tenantId, string $userId, string $blockedId, ?string $reason): void;
+
+    public function unblock(string $tenantId, string $userId, string $blockedId): bool;
+
+    /** @return list<array<string, mixed>> */
+    public function blockedBy(string $tenantId, string $userId): array;
+
+    /**
+     * Whether either has blocked the other.
+     *
+     * Symmetric on purpose: if A blocked B, B should not be able to open a
+     * conversation with A either, or blocking would merely be a mute.
+     */
+    public function isBlockedBetween(string $tenantId, string $a, string $b): bool;
+
+    // --- preferences ---------------------------------------------------------
+
+    /** @return array<string, mixed> the stored row, or the defaults */
+    public function preferences(string $tenantId, string $userId): array;
+
+    /**
+     * @param array<string, mixed> $changes
+     *
+     * @return array<string, mixed>
+     */
+    public function savePreferences(string $tenantId, string $userId, array $changes): array;
 }

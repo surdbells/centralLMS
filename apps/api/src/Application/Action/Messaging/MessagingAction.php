@@ -564,4 +564,371 @@ final class MessagingAction
 
         return preg_match('/^[0-9a-f-]{36}$/i', $value) === 1 ? $value : null;
     }
+
+    // --- reactions -----------------------------------------------------------
+
+    /**
+     * POST /v1/me/conversations/{id}/messages/{messageId}/reactions
+     *
+     * A toggle: reacting with an emoji already yours takes it back. One
+     * gesture, one endpoint.
+     *
+     * @param array<string, string> $args
+     */
+    public function react(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [$conversation] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+        [, $messageId] = $this->requireMessageIn($tenantId, $conversation, $args['messageId'] ?? '');
+        $emoji = trim((string) ($this->body($request)['emoji'] ?? ''));
+
+        if ($emoji === '') {
+            throw ValidationFailed::fromArray(['emoji' => 'Choose an emoji.']);
+        }
+
+        return Json::ok($response, [
+            'messageId' => $messageId,
+            'reactions' => $this->messaging->toggleReaction($tenantId, $messageId, $userId, $emoji),
+        ]);
+    }
+
+    // --- drafts --------------------------------------------------------------
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function saveDraft(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [, $conversationId] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+        $body = $this->body($request);
+        $content = (string) ($body['content'] ?? '');
+
+        // An emptied box is a deleted draft, not a draft of nothing — else
+        // clearing what you typed leaves it waiting for you next time.
+        if (trim($content) === '') {
+            $this->messaging->deleteDraft($tenantId, $conversationId, $userId);
+
+            return Json::noContent($response);
+        }
+
+        $this->messaging->saveDraft(
+            $tenantId,
+            $conversationId,
+            $userId,
+            $content,
+            $this->textOrNull($body['replyToId'] ?? null),
+        );
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function draft(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [, $conversationId] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+
+        return Json::ok($response, $this->messaging->draft($tenantId, $conversationId, $userId));
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function deleteDraft(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [, $conversationId] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+        $this->messaging->deleteDraft($tenantId, $conversationId, $userId);
+
+        return Json::noContent($response);
+    }
+
+    // --- pinned --------------------------------------------------------------
+
+    /**
+     * Pinning is for everybody in the conversation, so it takes the role that
+     * governs the conversation rather than the one that governs a message.
+     *
+     * @param array<string, string> $args
+     */
+    public function pin(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [$conversation] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+        [, $messageId] = $this->requireMessageIn($tenantId, $conversation, $args['messageId'] ?? '');
+        $pinned = (bool) ($this->body($request)['pinned'] ?? true);
+
+        $updated = $this->messaging->setPinned($tenantId, $messageId, $pinned, $userId);
+
+        if ($updated === null) {
+            throw new ConflictingState('That message cannot be pinned.', 'message_not_pinnable');
+        }
+
+        return Json::ok($response, $updated->toArray());
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function pinned(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [, $conversationId] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+
+        return Json::ok($response, array_map(
+            static fn (Message $m): array => $m->toArray(),
+            $this->messaging->pinnedIn($tenantId, $conversationId),
+        ));
+    }
+
+    // --- saved ---------------------------------------------------------------
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function save(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [$conversation] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+        [, $messageId] = $this->requireMessageIn($tenantId, $conversation, $args['messageId'] ?? '');
+
+        $this->messaging->saveMessage(
+            $tenantId,
+            $messageId,
+            $userId,
+            $this->textOrNull($this->body($request)['note'] ?? null),
+        );
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function unsave(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        [$conversation] = $this->requireWithId($tenantId, $userId, $args['id'] ?? '');
+        [, $messageId] = $this->requireMessageIn($tenantId, $conversation, $args['messageId'] ?? '');
+
+        $this->messaging->unsaveMessage($tenantId, $messageId, $userId);
+
+        return Json::noContent($response);
+    }
+
+    /** GET /v1/me/messages/saved */
+    public function saved(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        [$tenantId, $userId] = $this->caller($request);
+        $listing = $this->listing($request);
+
+        return Json::ok($response, $this->messaging->savedBy(
+            $tenantId,
+            $userId,
+            $listing['perPage'],
+            ($listing['page'] - 1) * $listing['perPage'],
+        ));
+    }
+
+    // --- searching -----------------------------------------------------------
+
+    /**
+     * GET /v1/me/messages/search?q=…
+     *
+     * Only the conversations this person is in — see the repository.
+     */
+    public function search(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        [$tenantId, $userId] = $this->caller($request);
+
+        $query = $request->getQueryParams();
+        $phrase = trim((string) ($query['q'] ?? ''));
+
+        if ($phrase === '') {
+            throw ValidationFailed::fromArray(['q' => 'Type something to search for.']);
+        }
+
+        return Json::ok($response, array_map(
+            static fn (Message $m): array => $m->toArray(),
+            $this->messaging->search(
+                $tenantId,
+                $userId,
+                $phrase,
+                $this->textOrNull($query['conversationId'] ?? null),
+                50,
+            ),
+        ));
+    }
+
+    // --- blocking ------------------------------------------------------------
+
+    /** GET /v1/me/messages/blocked */
+    public function blocked(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        [$tenantId, $userId] = $this->caller($request);
+
+        return Json::ok($response, $this->messaging->blockedBy($tenantId, $userId));
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function block(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        $blockedId = $args['userId'] ?? '';
+
+        if ($blockedId === $userId) {
+            throw ValidationFailed::fromArray(['userId' => 'You cannot block yourself.']);
+        }
+
+        $this->messaging->block(
+            $tenantId,
+            $userId,
+            $blockedId,
+            $this->textOrNull($this->body($request)['reason'] ?? null),
+        );
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function unblock(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        $this->messaging->unblock($tenantId, $userId, $args['userId'] ?? '');
+
+        return Json::noContent($response);
+    }
+
+    // --- preferences ---------------------------------------------------------
+
+    public function preferences(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        [$tenantId, $userId] = $this->caller($request);
+
+        return Json::ok($response, $this->messaging->preferences($tenantId, $userId));
+    }
+
+    public function savePreferences(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+    ): ResponseInterface {
+        [$tenantId, $userId] = $this->caller($request);
+
+        return Json::ok($response, $this->messaging->savePreferences(
+            $tenantId,
+            $userId,
+            $this->body($request),
+        ));
+    }
+
+    // --- internals -----------------------------------------------------------
+
+    /**
+     * A message, checked against the conversation it is claimed to be in.
+     *
+     * Membership is settled by `require()` on the conversation; this stops a
+     * member of one conversation reaching a message in another by sending its
+     * id.
+     */
+    /**
+     * A message, checked against the conversation it is claimed to be in,
+     * and its id.
+     *
+     * The id comes back separately because `Message::$id` is nullable — an
+     * unsaved message has none — and one that came from the repository
+     * always has one. Returning it is how that is stated rather than
+     * assumed.
+     *
+     * @return array{Message, string}
+     */
+    private function requireMessageIn(
+        string $tenantId,
+        Conversation $conversation,
+        string $messageId,
+    ): array {
+        $message = $this->messaging->findMessage($tenantId, $messageId);
+
+        if ($message === null || $message->id === null
+            || $message->conversationId !== $conversation->id) {
+            // Membership is settled by `require()` on the conversation; this
+            // stops a member of one conversation reaching a message in
+            // another by sending its id.
+            throw new EntityNotFound('Message', $messageId);
+        }
+
+        return [$message, $message->id];
+    }
+
+    /**
+     * A conversation the caller is in, and its id.
+     *
+     * @return array{Conversation, string}
+     */
+    private function requireWithId(string $tenantId, string $userId, string $id): array
+    {
+        $conversation = $this->require($tenantId, $userId, $id);
+
+        if ($conversation->id === null) {
+            throw new EntityNotFound('Conversation', $id);
+        }
+
+        return [$conversation, $conversation->id];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function body(ServerRequestInterface $request): array
+    {
+        $parsed = $request->getParsedBody();
+
+        return is_array($parsed) ? $parsed : [];
+    }
 }
