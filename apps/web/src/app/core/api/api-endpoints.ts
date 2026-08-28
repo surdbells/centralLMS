@@ -493,6 +493,34 @@ export const Endpoints = {
       `/me/conversations/${id}/messages/${messageId}`,
     deleteMessage: (id: string, messageId: string) =>
       `/me/conversations/${id}/messages/${messageId}`,
+
+    /** A toggle: the same emoji twice takes it back. */
+    react: (id: string, messageId: string) =>
+      `/me/conversations/${id}/messages/${messageId}/reactions`,
+
+    /** Pinning is the conversation's; saving is the reader's own. */
+    pinned: (id: string) => `/me/conversations/${id}/pinned`,
+    pin: (id: string, messageId: string) =>
+      `/me/conversations/${id}/messages/${messageId}/pin`,
+    save: (id: string, messageId: string) =>
+      `/me/conversations/${id}/messages/${messageId}/save`,
+
+    /** What somebody has typed and not sent. One per conversation. */
+    draft: (id: string) => `/me/conversations/${id}/draft`,
+  },
+
+  /**
+   * Messages across every conversation.
+   *
+   * Not nested under one, because searching or listing what you have saved
+   * is a question about all of them.
+   */
+  messages: {
+    saved: '/me/messages/saved',
+    search: '/me/messages/search',
+    blocked: '/me/messages/blocked',
+    block: (userId: string) => `/me/messages/blocked/${userId}`,
+    preferences: '/me/messages/preferences',
   },
 
   // --- gamification -----------------------------------------------------

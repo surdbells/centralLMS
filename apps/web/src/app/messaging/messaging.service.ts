@@ -615,28 +615,76 @@ export class MessagingService {
   // Each of these had a legacy action and none has a table on this side. The
   // schema is conversations, participants and messages.
 
-  addReaction(_messageId: string, _emoji: string): Observable<void> {
-    return notAvailable('Reactions');
+  /**
+   * Reacting, and un-reacting.
+   *
+   * One endpoint for both: the API toggles, because tapping an emoji that
+   * is already yours means taking it back. The screen calls these two
+   * separately, so both point at the same place.
+   */
+  addReaction(messageId: string, emoji: string): Observable<void> {
+    return this.toggleReaction(messageId, emoji);
   }
 
-  removeReaction(_messageId: string, _emoji: string): Observable<void> {
-    return notAvailable('Reactions');
+  removeReaction(messageId: string, emoji: string): Observable<void> {
+    return this.toggleReaction(messageId, emoji);
   }
 
-  pinMessage(_messageId: string, _pinned = true): Observable<void> {
-    return notAvailable('Pinned messages');
+  private toggleReaction(messageId: string, emoji: string): Observable<void> {
+    const inConversation = this.activeConversationSubject.getValue()?.conversation_id;
+
+    if (inConversation === undefined || inConversation === '') {
+      return throwError(() => new Error('Open the conversation first.'));
+    }
+
+    return this.api
+      .post<{ messageId: string; reactions: MessageReaction[] }>(
+        Endpoints.conversations.react(inConversation, messageId),
+        { emoji },
+      )
+      .pipe(
+        // The stream carries the screen's own spelling of the field.
+        tap((result) => this.reactionUpdated$.next({
+          message_id: result.messageId,
+          reactions: result.reactions,
+        })),
+        map(() => undefined),
+      );
   }
 
-  saveMessageBookmark(_messageId: string, _note?: string): Observable<void> {
-    return notAvailable('Saved messages');
+  /** Pinning is for everybody in the conversation — that is the point of it. */
+  pinMessage(messageId: string, pinned = true): Observable<void> {
+    return this.inActive((conversationId) => this.api
+      .put(Endpoints.conversations.pin(conversationId, messageId), { pinned })
+      .pipe(map(() => undefined)));
   }
 
-  unsaveMessage(_messageId: string): Observable<void> {
-    return notAvailable('Saved messages');
+  pinnedMessages(conversationId: string): Observable<Message[]> {
+    return this.api
+      .get<MessagePayload[]>(Endpoints.conversations.pinned(conversationId))
+      .pipe(map((rows) => rows.map(toMessage)));
   }
 
-  getSavedMessages(_limit?: number, _offset?: number): Observable<SavedMessage[]> {
-    return notAvailable('Saved messages');
+  /** Saving is mine alone, and carries my own note. */
+  saveMessageBookmark(messageId: string, note?: string): Observable<void> {
+    return this.inActive((conversationId) => this.api
+      .put(Endpoints.conversations.save(conversationId, messageId), { note })
+      .pipe(map(() => undefined)));
+  }
+
+  unsaveMessage(messageId: string): Observable<void> {
+    return this.inActive((conversationId) => this.api
+      .delete(Endpoints.conversations.save(conversationId, messageId))
+      .pipe(map(() => undefined)));
+  }
+
+  getSavedMessages(limit = 50, offset = 0): Observable<SavedMessage[]> {
+    return this.api
+      .get<SavedPayload[]>(Endpoints.messages.saved, {
+        page: Math.floor(offset / limit) + 1,
+        perPage: limit,
+      })
+      .pipe(map((rows) => rows.map(toSaved)));
   }
 
   forwardMessage(_messageId: string, _conversationIds: string[]): Observable<void> {
@@ -647,36 +695,67 @@ export class MessagingService {
     return notAvailable('Reporting a message');
   }
 
-  searchMessages(_query: string, _conversationId?: string): Observable<Message[]> {
-    return notAvailable('Searching messages');
+  /**
+   * Searches the conversations this person is in.
+   *
+   * The scoping is the server's — a tenant-wide search would return other
+   * people's private conversations to anybody who typed the right word.
+   */
+  searchMessages(query: string, conversationId?: string): Observable<Message[]> {
+    return this.api
+      .get<MessagePayload[]>(Endpoints.messages.search, { q: query, conversationId })
+      .pipe(map((rows) => rows.map(toMessage)));
   }
 
   getReadReceipts(_messageId: string): Observable<ReadReceipt[]> {
     return notAvailable('Read receipts');
   }
 
-  saveDraft(_conversationId: string, _content: string, _replyToId?: string): Observable<void> {
-    return notAvailable('Drafts');
+  /**
+   * What has been typed and not sent.
+   *
+   * Emptying the box deletes the draft rather than storing an empty one —
+   * the server does that — so clearing what you typed does not leave it
+   * waiting for you tomorrow.
+   */
+  saveDraft(conversationId: string, content: string, replyToId?: string): Observable<void> {
+    return this.api
+      .put(Endpoints.conversations.draft(conversationId), { content, replyToId })
+      .pipe(map(() => undefined));
   }
 
-  getDraft(_conversationId: string): Observable<{ content: string } | null> {
-    return notAvailable('Drafts');
+  getDraft(conversationId: string): Observable<{ content: string } | null> {
+    return this.api.get<{ content: string } | null>(
+      Endpoints.conversations.draft(conversationId),
+    );
   }
 
-  deleteDraft(_conversationId: string): Observable<void> {
-    return notAvailable('Drafts');
+  deleteDraft(conversationId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.conversations.draft(conversationId))
+      .pipe(map(() => undefined));
   }
 
-  blockUser(_userId: string, _reason?: string): Observable<void> {
-    return notAvailable('Blocking somebody');
+  /**
+   * Blocking somebody.
+   *
+   * It holds in both directions — if you block somebody, neither of you can
+   * start a conversation with the other. One-way would only be a mute.
+   */
+  blockUser(userId: string, reason?: string): Observable<void> {
+    return this.api
+      .put(Endpoints.messages.block(userId), { reason })
+      .pipe(map(() => undefined));
   }
 
-  unblockUser(_userId: string): Observable<void> {
-    return notAvailable('Blocking somebody');
+  unblockUser(userId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.messages.block(userId))
+      .pipe(map(() => undefined));
   }
 
   getBlockedUsers(): Observable<BlockedUser[]> {
-    return notAvailable('Blocking somebody');
+    return this.api.get<BlockedUser[]>(Endpoints.messages.blocked);
   }
 
   archiveConversation(_conversationId: string): Observable<void> {
@@ -715,12 +794,30 @@ export class MessagingService {
     return notAvailable('Broadcasts');
   }
 
+  /**
+   * What somebody wants from messaging in general.
+   *
+   * Saving merges rather than replaces, so a screen that changes one switch
+   * cannot silently reset the others.
+   */
   getSettings(): Observable<MessagingSettings> {
-    return notAvailable('Messaging preferences');
+    return this.api
+      .get<PreferencesPayload>(Endpoints.messages.preferences)
+      .pipe(map(toSettings));
   }
 
-  updateSettings(_settings: Partial<MessagingSettings>): Observable<MessagingSettings> {
-    return notAvailable('Messaging preferences');
+  updateSettings(settings: Partial<MessagingSettings>): Observable<MessagingSettings> {
+    const s = settings as Record<string, unknown>;
+
+    return this.api
+      .put<PreferencesPayload>(Endpoints.messages.preferences, {
+        notifyOnMessage: s['notify_on_message'],
+        notifyOnMention: s['notify_on_mention'],
+        emailDigest: s['email_digest'],
+        directMessagesFromAnyone: s['allow_direct_messages'],
+        showReadReceipts: s['show_read_receipts'],
+      })
+      .pipe(map(toSettings));
   }
 
   /**
@@ -736,6 +833,24 @@ export class MessagingService {
 
   getTypingUsers(_conversationId: string): Observable<TypingUser[]> {
     return of([]);
+  }
+
+  /**
+   * Runs something against the open conversation.
+   *
+   * The API addresses a message through its conversation — that is where
+   * the permission to touch it lives — and the screen holds only the
+   * message, so the open one is the answer. It is also the only one whose
+   * messages are on screen to be acted on.
+   */
+  private inActive<T>(run: (conversationId: string) => Observable<T>): Observable<T> {
+    const open = this.activeConversationSubject.getValue()?.conversation_id;
+
+    if (open === undefined || open === '') {
+      return throwError(() => new Error('Open the conversation first.'));
+    }
+
+    return run(open);
   }
 
   // ==========================================
@@ -883,4 +998,40 @@ function toMessage(m: MessagePayload): Message {
 /** A feature with no server behind it, said out loud rather than left empty. */
 function notAvailable(what: string): Observable<never> {
   return throwError(() => new Error(`${what} are not available yet.`));
+}
+
+interface SavedPayload extends MessagePayload {
+  note: string | null;
+  savedAt: string;
+  conversationName: string | null;
+  conversationKind: string;
+}
+
+interface PreferencesPayload {
+  notifyOnMessage: boolean;
+  notifyOnMention: boolean;
+  emailDigest: boolean;
+  directMessagesFromAnyone: boolean;
+  showReadReceipts: boolean;
+}
+
+function toSaved(row: SavedPayload): SavedMessage {
+  return {
+    ...toMessage(row),
+    id: row.id,
+    note: row.note ?? '',
+    message_created_at: row['createdAt'] ?? '',
+    conversation_name: row.conversationName ?? '',
+    user_id: '',
+  } as unknown as SavedMessage;
+}
+
+function toSettings(p: PreferencesPayload): MessagingSettings {
+  return {
+    notify_on_message: p.notifyOnMessage,
+    notify_on_mention: p.notifyOnMention,
+    email_digest: p.emailDigest,
+    allow_direct_messages: p.directMessagesFromAnyone,
+    show_read_receipts: p.showReadReceipts,
+  } as unknown as MessagingSettings;
 }
