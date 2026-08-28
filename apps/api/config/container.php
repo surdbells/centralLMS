@@ -26,6 +26,7 @@ use Central\Api\Domain\Identity\UserRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\GradingAssignmentRepository;
+use Central\Api\Domain\Messaging\BroadcastRepository;
 use Central\Api\Domain\Assessment\RubricRepository;
 use Central\Api\Domain\Assessment\Grader;
 use Central\Api\Domain\Certificate\CertificateRenderer;
@@ -101,6 +102,7 @@ use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
+use Central\Api\Infrastructure\Persistence\DbalBroadcastRepository;
 use Central\Api\Infrastructure\Persistence\DbalGradingAssignmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalQuestionRepository;
 use Central\Api\Infrastructure\Persistence\DbalRubricRepository;
@@ -465,6 +467,10 @@ return [
             $c->get(Connection::class),
             $c->get(QuestionRepository::class),
         ),
+    ),
+
+    BroadcastRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalBroadcastRepository($c->get(Connection::class)),
     ),
 
     RubricRepository::class => factory(

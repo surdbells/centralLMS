@@ -84,6 +84,7 @@ use Central\Api\Application\Action\Gamification\GamificationAction;
 use Central\Api\Application\Action\Dashboard\DashboardAction;
 use Central\Api\Application\Action\LearningPath\ManagePathsAction;
 use Central\Api\Application\Action\Media\ManageMediaAction;
+use Central\Api\Application\Action\Messaging\BroadcastAction;
 use Central\Api\Application\Action\Messaging\MessagingAction;
 use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
@@ -467,6 +468,35 @@ return static function (App $app): void {
             // membership, and one that is not theirs answers 404 rather than
             // 403 — saying a conversation exists but is not yours says who is
             // talking. `unread` is declared before `/{id}`.
+            // Announcements. Writing one reaches everybody in an organisation,
+            // so it needs `notification.send`; receiving one needs only to be
+            // signed in, and shows only what was addressed to you.
+            $secure->group('/broadcasts', function (RouteCollectorProxy $b) use ($uuid): void {
+                $b->get('', [BroadcastAction::class, 'list'])->setName('broadcasts.list');
+                $b->post('', [BroadcastAction::class, 'create'])->setName('broadcasts.create');
+                $b->get('/{id:' . $uuid . '}', [BroadcastAction::class, 'show'])
+                    ->setName('broadcasts.show');
+                $b->put('/{id:' . $uuid . '}', [BroadcastAction::class, 'update'])
+                    ->setName('broadcasts.update');
+                $b->delete('/{id:' . $uuid . '}', [BroadcastAction::class, 'delete'])
+                    ->setName('broadcasts.delete');
+                $b->post('/{id:' . $uuid . '}/send', [BroadcastAction::class, 'send'])
+                    ->setName('broadcasts.send');
+                $b->post('/{id:' . $uuid . '}/cancel', [BroadcastAction::class, 'cancel'])
+                    ->setName('broadcasts.cancel');
+            });
+
+            $secure->group('/me/broadcasts', function (RouteCollectorProxy $b) use ($uuid): void {
+                $b->get('', [BroadcastAction::class, 'mine'])->setName('me.broadcasts');
+                $b->get('/unread', [BroadcastAction::class, 'unread'])->setName('me.broadcasts.unread');
+                $b->get('/{id:' . $uuid . '}', [BroadcastAction::class, 'mineShow'])
+                    ->setName('me.broadcasts.show');
+                $b->post('/{id:' . $uuid . '}/read', [BroadcastAction::class, 'markRead'])
+                    ->setName('me.broadcasts.read');
+                $b->post('/{id:' . $uuid . '}/acknowledge', [BroadcastAction::class, 'acknowledge'])
+                    ->setName('me.broadcasts.acknowledge');
+            });
+
             // Messages across every conversation this person is in. Not nested
             // under one, because searching or listing what you have saved is a
             // question about all of them.
