@@ -641,6 +641,51 @@ final readonly class ReportCatalogue
                 'How many people are taking part, and where the points come from.',
                 ReportShape::Summary,
             ),
+
+            // --- learning paths -------------------------------------------
+            new ReportDefinition(
+                ReportKey::PathEnrollment,
+                ReportCategory::Path,
+                'Path enrolment',
+                'Every path, and how many are on it, active on it and finished.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::PathProgress,
+                ReportCategory::Path,
+                'Path progress',
+                'Each learner on one path, and how far through its items they are.',
+                ReportShape::Table,
+                exportable: true,
+                requires: ['pathId'],
+                namesPeople: true,
+            ),
+            new ReportDefinition(
+                ReportKey::PathCompletion,
+                ReportCategory::Path,
+                'Path completion',
+                'The rate each path is finished at, and how long it takes.',
+                ReportShape::Table,
+                exportable: true,
+            ),
+            new ReportDefinition(
+                ReportKey::PathDropOff,
+                ReportCategory::Path,
+                'Path drop-off',
+                'The item on one path where learners stop — where to look first.',
+                ReportShape::Table,
+                exportable: true,
+                requires: ['pathId'],
+            ),
+            new ReportDefinition(
+                ReportKey::PathEffectiveness,
+                ReportCategory::Path,
+                'Path effectiveness',
+                'Completion set against how much of each path people actually reach.',
+                ReportShape::Table,
+                exportable: true,
+            ),
         ];
     }
 }

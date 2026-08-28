@@ -134,6 +134,13 @@ final class DbalReportRepository implements ReportRepository
             ReportKey::PointsSummary         => $this->pointsSummary($definition, $criteria),
             ReportKey::DepartmentLeaderboard => $this->departmentLeaderboard($definition, $criteria),
             ReportKey::GamificationParticipation => $this->gamificationParticipation($definition, $criteria),
+
+            // --- learning paths -------------------------------------------
+            ReportKey::PathEnrollment    => $this->pathEnrollment($definition, $criteria),
+            ReportKey::PathProgress      => $this->pathProgress($definition, $criteria),
+            ReportKey::PathCompletion    => $this->pathCompletion($definition, $criteria),
+            ReportKey::PathDropOff       => $this->pathDropOff($definition, $criteria),
+            ReportKey::PathEffectiveness => $this->pathEffectiveness($definition, $criteria),
             // No default: the match covers every case of a closed enum, so
             // adding a report without a query behind it stops compiling here
             // rather than failing for somebody who ran it.
@@ -2975,6 +2982,237 @@ final class DbalReportRepository implements ReportRepository
                 $bySource,
             ),
             $criteria,
+        );
+    }
+
+    // --- learning paths ---------------------------------------------------
+
+    private function pathEnrollment(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        // Counts derived on read: a path's enrolled/active/completed figures
+        // change every time somebody finishes an item, and a stored total is
+        // wrong from the first of those.
+        $q = ReportQuery::tenant($criteria, 'p')
+            ->where('p.deleted_at IS NULL')
+            ->maybe($criteria->pathId, 'p.id = :pathId', 'pathId');
+
+        $columns = [
+            ReportColumn::text('path', 'Path'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::number('enrolled', 'Enrolled'),
+            ReportColumn::number('active', 'Active'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM learning_paths p',
+            $q,
+            "p.title AS path,
+             p.status AS status,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL) AS enrolled,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.status = 'active') AS active,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.status = 'completed') AS completed,
+             CASE WHEN (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.status = 'completed')
+                        / (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL), 1)
+             END AS \"completionRate\"",
+            'enrolled',
+            'p.id',
+            'DESC',
+        );
+    }
+
+    private function pathProgress(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $pathId = $criteria->pathId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'e', 'u')
+            ->withScopeFilters($criteria, 'u')
+            ->where('e.path_id = :pathId', 'pathId', $pathId)
+            ->where('e.deleted_at IS NULL');
+
+        $columns = [
+            ReportColumn::text('learner', 'Learner'),
+            ReportColumn::text('email', 'Email'),
+            ReportColumn::status('status', 'Status'),
+            ReportColumn::number('itemsDone', 'Items done'),
+            ReportColumn::number('itemsTotal', 'Items'),
+            ReportColumn::percent('progress', 'Progress'),
+            ReportColumn::date('enrolledAt', 'Enrolled'),
+            ReportColumn::date('completedAt', 'Completed'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM learning_path_enrollments e
+             JOIN users u ON u.id = e.user_id",
+            $q,
+            "trim(u.first_name || ' ' || u.last_name) AS learner,
+             u.email AS email,
+             e.status AS status,
+             (SELECT COUNT(*) FROM learning_path_item_completions c WHERE c.enrollment_id = e.id) AS \"itemsDone\",
+             (SELECT COUNT(*) FROM learning_path_items i
+              WHERE i.path_id = e.path_id AND i.deleted_at IS NULL) AS \"itemsTotal\",
+             CASE WHEN (SELECT COUNT(*) FROM learning_path_items i
+                        WHERE i.path_id = e.path_id AND i.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM learning_path_item_completions c
+                        WHERE c.enrollment_id = e.id)
+                        / (SELECT COUNT(*) FROM learning_path_items i
+                        WHERE i.path_id = e.path_id AND i.deleted_at IS NULL), 1)
+             END AS progress,
+             e.enrolled_at AS \"enrolledAt\",
+             e.completed_at AS \"completedAt\"",
+            'progress',
+            'e.id',
+            'DESC',
+        );
+    }
+
+    private function pathCompletion(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'p')
+            ->where('p.deleted_at IS NULL')
+            ->maybe($criteria->pathId, 'p.id = :pathId', 'pathId');
+
+        $columns = [
+            ReportColumn::text('path', 'Path'),
+            ReportColumn::number('enrolled', 'Enrolled'),
+            ReportColumn::number('completed', 'Completed'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::number('avgDays', 'Avg days to finish'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM learning_paths p',
+            $q,
+            "p.title AS path,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL) AS enrolled,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.status = 'completed') AS completed,
+             CASE WHEN (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.status = 'completed')
+                        / (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL), 1)
+             END AS \"completionRate\",
+             (SELECT round(AVG(EXTRACT(EPOCH FROM (e.completed_at - e.enrolled_at)) / 86400)::numeric, 1)
+              FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.completed_at IS NOT NULL) AS \"avgDays\"",
+            'enrolled',
+            'p.id',
+            'DESC',
+        );
+    }
+
+    private function pathDropOff(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $pathId = $criteria->pathId ?? '';
+
+        $q = ReportQuery::tenant($criteria, 'i')
+            ->where('i.path_id = :pathId', 'pathId', $pathId)
+            ->where('i.deleted_at IS NULL');
+
+        // How many active-or-finished learners reached each item versus the
+        // whole cohort, so the item where the line falls off is the one to fix.
+        $columns = [
+            ReportColumn::number('position', 'Position'),
+            ReportColumn::text('item', 'Item'),
+            ReportColumn::number('reached', 'Reached it'),
+            ReportColumn::number('cohort', 'On the path'),
+            ReportColumn::percent('reachedRate', 'Reached rate'),
+        ];
+
+        return $this->grouped(
+            $definition,
+            $criteria,
+            $columns,
+            "FROM learning_path_items i",
+            $q,
+            "i.sort_order AS position,
+             i.title AS item,
+             (SELECT COUNT(*) FROM learning_path_item_completions c WHERE c.item_id = i.id) AS reached,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = i.path_id AND e.deleted_at IS NULL) AS cohort,
+             CASE WHEN (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = i.path_id AND e.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM learning_path_item_completions c WHERE c.item_id = i.id)
+                        / (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = i.path_id AND e.deleted_at IS NULL), 1)
+             END AS \"reachedRate\"",
+            'i.id, i.sort_order, i.title',
+            'i.sort_order',
+        );
+    }
+
+    private function pathEffectiveness(ReportDefinition $definition, ReportCriteria $criteria): ReportResult
+    {
+        $q = ReportQuery::tenant($criteria, 'p')
+            ->where('p.deleted_at IS NULL')
+            ->maybe($criteria->pathId, 'p.id = :pathId', 'pathId');
+
+        $columns = [
+            ReportColumn::text('path', 'Path'),
+            ReportColumn::number('items', 'Items'),
+            ReportColumn::number('enrolled', 'Enrolled'),
+            ReportColumn::percent('completionRate', 'Completion rate'),
+            ReportColumn::percent('avgReach', 'Avg reached'),
+        ];
+
+        return $this->paginated(
+            $definition,
+            $criteria,
+            $columns,
+            'FROM learning_paths p',
+            $q,
+            "p.title AS path,
+             (SELECT COUNT(*) FROM learning_path_items i
+              WHERE i.path_id = p.id AND i.deleted_at IS NULL) AS items,
+             (SELECT COUNT(*) FROM learning_path_enrollments e
+              WHERE e.path_id = p.id AND e.deleted_at IS NULL) AS enrolled,
+             CASE WHEN (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL) = 0 THEN 0
+                  ELSE round(100.0 * (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL AND e.status = 'completed')
+                        / (SELECT COUNT(*) FROM learning_path_enrollments e
+                        WHERE e.path_id = p.id AND e.deleted_at IS NULL), 1)
+             END AS \"completionRate\",
+             -- How much of the path the average enrolment actually reaches,
+             -- which tells apart a path people finish from one they abandon
+             -- halfway: the same completion rate can hide either.
+             COALESCE((
+                 SELECT round(AVG(reach)::numeric, 1) FROM (
+                     SELECT CASE WHEN items.total = 0 THEN 0
+                                 ELSE 100.0 * (SELECT COUNT(*) FROM learning_path_item_completions c
+                                               WHERE c.enrollment_id = e.id) / items.total
+                            END AS reach
+                     FROM learning_path_enrollments e
+                     CROSS JOIN LATERAL (
+                         SELECT COUNT(*) AS total FROM learning_path_items i
+                         WHERE i.path_id = p.id AND i.deleted_at IS NULL
+                     ) items
+                     WHERE e.path_id = p.id AND e.deleted_at IS NULL
+                 ) reaches
+             ), 0) AS \"avgReach\"",
+            'enrolled',
+            'p.id',
+            'DESC',
         );
     }
 

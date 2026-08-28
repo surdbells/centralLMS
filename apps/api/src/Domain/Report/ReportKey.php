@@ -97,6 +97,13 @@ enum ReportKey: string
     case DepartmentLeaderboard    = 'department_leaderboard';
     case GamificationParticipation = 'gamification_participation';
 
+    // --- learning paths ---------------------------------------------------
+    case PathEnrollment    = 'path_enrollment';
+    case PathProgress      = 'path_progress';
+    case PathCompletion    = 'path_completion';
+    case PathDropOff       = 'path_drop_off';
+    case PathEffectiveness = 'path_effectiveness';
+
     /**
      * @return list<string>
      */
