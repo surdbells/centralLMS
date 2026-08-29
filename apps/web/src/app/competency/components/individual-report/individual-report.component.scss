@@ -31,7 +31,7 @@
 
 .ir-sheet {
   background: #fff;
-  max-width: 1100px;
+  max-width: 1400px;
   margin: 1.5rem auto;
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -85,9 +85,9 @@
   .ir-exec { background: #c62828; color: #fff; }
 
   .ir-num { width: 28px; }
-  .ir-comp { width: 130px; text-align: left; font-weight: 600; }
-  .ir-desc { width: 200px; text-align: left; font-weight: normal; }
-  .ir-evi { width: 320px; text-align: left; white-space: pre-line; }
+  .ir-comp { width: 150px; text-align: left; font-weight: 600; }
+  .ir-desc { width: 34%; text-align: left; font-weight: normal; }
+  .ir-evi { width: 34%; text-align: left; white-space: pre-line; }
 
   tbody td { font-size: 0.75rem; }
 }
@@ -163,8 +163,17 @@
 }
 
 // --- print ----------------------------------------------------------------
+// Landscape: the report is a wide grid — a description column and an evidence
+// column of running prose — and portrait wraps both into unreadable ribbons.
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
 @media print {
   :host { background: #fff; }
   .no-print { display: none !important; }
-  .ir-sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+  .ir-sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; font-size: 8.5pt; }
+  // Keep a competency's row from splitting across pages where it can be helped.
+  .ir-grid tbody tr { page-break-inside: avoid; }
 }
