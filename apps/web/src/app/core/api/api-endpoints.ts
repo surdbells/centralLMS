@@ -505,6 +505,8 @@ export const Endpoints = {
     /** The caller's own assessments, for self-assessment. */
     mine: '/competency-assessments/mine',
     show: (id: string) => `/competency-assessments/${id}`,
+    /** The individual competency report for one assessment. */
+    report: (id: string) => `/competency-assessments/${id}/report`,
     /** The learner records their own levels. */
     self: (id: string) => `/competency-assessments/${id}/self`,
     /** The expert confirms the levels. */

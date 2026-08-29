@@ -198,10 +198,18 @@ final class CompetencyAssessmentAction
             );
         }
 
-        $levels = $this->levels($this->body($request)['levels'] ?? null);
+        $body   = $this->body($request);
+        $levels = $this->levels($body['levels'] ?? null);
 
         if ($levels !== []) {
             $this->repository->recordLevels($tenantId, $assessment->id, 'self', $levels);
+        }
+
+        // The employee's own overall account of the evidence, if they gave one.
+        if (array_key_exists('comment', $body)) {
+            $this->repository->saveNarrative($tenantId, $assessment->id, [
+                'self_comment' => $this->str($body['comment'] ?? null),
+            ]);
         }
 
         $updated = $this->repository->setStatus(
@@ -262,6 +270,87 @@ final class CompetencyAssessmentAction
         );
 
         return Json::ok($response, ($finalized ?? $assessment)->toArray());
+    }
+
+    /**
+     * The individual competency report for one assessment.
+     *
+     * Everything a person's report shows, assembled: the assessment with its
+     * levels and narrative, the descriptor for each competency so the report
+     * can say what each level means, and the header facts about the person.
+     * The subject may read their own; everyone else needs the view permission.
+     *
+     * @param array<string, string> $args
+     */
+    public function report(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId   = $this->tenantId($request);
+        $assessment = $this->require($request, $args['id'] ?? '');
+
+        if ($this->caller($request)->id !== $assessment->userId) {
+            $this->caller($request)->mustHave(Permission::CompetencyView);
+        }
+
+        return Json::ok($response, [
+            'assessment'  => $assessment->toArray(),
+            'subject'     => $this->repository->reportSubject($tenantId, $assessment->userId),
+            // competencyId => {knowledge, skill, mastery}, so the report can
+            // show the proof points for the level a person is credited with.
+            'descriptors' => $this->repository->descriptorsFor(
+                $tenantId,
+                array_map(static fn ($i): string => $i['competencyId'], $assessment->toArray()['items']),
+            ),
+        ]);
+    }
+
+    /**
+     * Records the qualitative side of an individual's report: the manager's
+     * and executive's notes, the placement decision, the two gaps paragraphs,
+     * and the line executive's confirming levels. The assessor's work.
+     *
+     * @param array<string, string> $args
+     */
+    public function saveReport(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $this->caller($request)->mustHave(Permission::CompetencyAssess);
+
+        $tenantId   = $this->tenantId($request);
+        $assessment = $this->require($request, $args['id'] ?? '');
+        $body       = $this->body($request);
+
+        // Only the narrative keys that were sent are written.
+        $map = [
+            'selfComment'              => 'self_comment',
+            'lineManagerComment'       => 'line_manager_comment',
+            'lineExecutiveDecision'    => 'line_executive_decision',
+            'gapsIdentified'           => 'gaps_identified',
+            'gapsClosureInterventions' => 'gaps_closure_interventions',
+        ];
+
+        $fields = [];
+        foreach ($map as $in => $column) {
+            if (array_key_exists($in, $body)) {
+                $fields[$column] = $this->str($body[$in] ?? null);
+            }
+        }
+
+        if ($fields !== []) {
+            $this->repository->saveNarrative($tenantId, $assessment->id, $fields);
+        }
+
+        // The line executive's confirming levels, where any were given.
+        $lineExec = $this->levels($body['lineExecutiveLevels'] ?? null);
+        if ($lineExec !== []) {
+            $this->repository->recordLevels($tenantId, $assessment->id, 'line_executive', $lineExec);
+        }
+
+        return Json::ok($response, $this->require($request, $assessment->id)->toArray());
     }
 
     /**

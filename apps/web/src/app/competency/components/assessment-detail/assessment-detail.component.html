@@ -12,6 +12,10 @@
         {{ a.jobTitle }} · {{ a.functionName }} · Cycle {{ a.cycle }}
       </div>
     </div>
+    <a class="btn btn-sm btn-outline-primary mt-1"
+       [routerLink]="['/admin/competency/assessments', a.id, 'report']">
+      <tui-icon icon="@tui.file-text"></tui-icon> Report
+    </a>
     <span class="badge rounded-pill fs-6"
           [class.bg-secondary-subtle]="a.status === 'draft'"
           [class.text-secondary-emphasis]="a.status === 'draft'"

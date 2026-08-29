@@ -823,6 +823,11 @@ return static function (App $app): void {
                     ->setName('competency-assessments.create');
                 $a->get('/{id:' . $uuid . '}', [CompetencyAssessmentAction::class, 'show'])
                     ->setName('competency-assessments.show');
+                // The individual report for one assessment, and its narrative.
+                $a->get('/{id:' . $uuid . '}/report', [CompetencyAssessmentAction::class, 'report'])
+                    ->setName('competency-assessments.report');
+                $a->put('/{id:' . $uuid . '}/report', [CompetencyAssessmentAction::class, 'saveReport'])
+                    ->setName('competency-assessments.report.save');
                 $a->post('/{id:' . $uuid . '}/self', [CompetencyAssessmentAction::class, 'selfAssess'])
                     ->setName('competency-assessments.self');
                 $a->post('/{id:' . $uuid . '}/review', [CompetencyAssessmentAction::class, 'review'])

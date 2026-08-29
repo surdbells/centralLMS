@@ -11,6 +11,16 @@ import { Routes } from '@angular/router';
  */
 export const competencyRoutes: Routes = [
   {
+    // The individual report prints full-page, so it sits outside the shell
+    // and its sub-navigation rather than inside it.
+    path: 'admin/competency/assessments/:id/report',
+    loadComponent: () =>
+      import('./components/individual-report/individual-report.component').then(
+        (m) => m.IndividualReportComponent,
+      ),
+    title: 'Competency Report',
+  },
+  {
     path: 'admin/competency',
     loadComponent: () =>
       import('./components/competency-shell/competency-shell.component').then(

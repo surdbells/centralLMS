@@ -1,0 +1,128 @@
+<div class="ir-loading" *ngIf="loading">
+  <div class="spinner-border" role="status"></div>
+</div>
+
+<div class="ir-missing" *ngIf="!loading && !report">
+  <p>This report could not be found.</p>
+</div>
+
+<ng-container *ngIf="!loading && report as r">
+  <!-- Toolbar (not printed) -->
+  <div class="ir-toolbar no-print">
+    <div>
+      <strong>{{ r.subject.name || r.assessment.userName }}</strong>
+      <span class="ir-muted"> · Competency Report</span>
+    </div>
+    <button class="btn btn-primary" (click)="print()">
+      <i class="bi bi-printer"></i> Print / Save as PDF
+    </button>
+  </div>
+
+  <div class="ir-sheet">
+    <!-- Person header -->
+    <table class="ir-person">
+      <tbody>
+        <tr><th>Name:</th><td>{{ r.subject.name || r.assessment.userName }}</td></tr>
+        <tr><th>Email Address:</th><td>{{ r.subject.email || '—' }}</td></tr>
+        <tr><th>Job Grade:</th><td>{{ r.subject.jobTitle || r.assessment.jobTitle || '—' }}</td></tr>
+        <tr><th>Job Level:</th><td>{{ r.subject.level || r.assessment.jobTitle || '—' }}</td></tr>
+        <tr><th>JCP Type:</th><td>{{ r.assessment.functionName || '—' }}</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Competency table -->
+    <table class="ir-grid">
+      <thead>
+        <tr class="ir-grouphead">
+          <th rowspan="2">#</th>
+          <th rowspan="2" class="ir-comp">Competency</th>
+          <th rowspan="2">Ideal<br>Proficiency</th>
+          <th colspan="3" class="ir-assess">Assessments</th>
+          <th rowspan="2">Competency<br>Readiness</th>
+          <th rowspan="2" class="ir-desc">Proficiency Description</th>
+          <th rowspan="2" class="ir-evi">Evidence</th>
+        </tr>
+        <tr>
+          <th class="ir-self">Self</th>
+          <th class="ir-sme">SME's</th>
+          <th class="ir-exec">Line Exec.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of r.assessment.items; let i = index">
+          <td class="ir-num">{{ i + 1 }}</td>
+          <td class="ir-comp">
+            {{ item.competencyName }}
+            <span class="ir-star" *ngIf="item.isCritical" title="Critical">★</span>
+          </td>
+          <td>{{ item.requiredLabel }}</td>
+          <td>{{ item.selfLabel || '—' }}</td>
+          <td>{{ item.assessedLabel || '—' }}</td>
+          <td>{{ item.lineExecutiveLabel || item.assessedLabel || '—' }}</td>
+          <td [class.ir-prepared]="item.gap === 0" [class.ir-gap]="item.gap > 0">
+            {{ readiness(item) }}
+          </td>
+          <td class="ir-desc">{{ proficiencyDescription(item) }}</td>
+          <td class="ir-evi">{{ item.comment || '' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="ir-summary">
+      <table class="ir-totals">
+        <tbody>
+          <tr>
+            <th>Ideal Proficiency</th>
+            <th>Assessed Proficiency</th>
+          </tr>
+          <tr>
+            <td>{{ r.assessment.idealProficiencyTotal ?? '—' }}</td>
+            <td>{{ r.assessment.assessedProficiencyTotal ?? '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="ir-kv">
+        <tbody>
+          <tr *ngIf="r.assessment.lineExecutiveDecision">
+            <th>Line Executive's Decision</th>
+            <td class="ir-decision">{{ r.assessment.lineExecutiveDecision }}</td>
+          </tr>
+          <tr>
+            <th>Competency Rating</th>
+            <td>{{ r.assessment.readinessPercent != null ? (r.assessment.readinessPercent + '%') : '—' }}</td>
+          </tr>
+          <tr>
+            <th>Time-to-Competency</th>
+            <td>{{ r.assessment.estimatedMonths }} month{{ r.assessment.estimatedMonths === 1 ? '' : 's' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Comments -->
+    <div class="ir-notes">
+      <div class="ir-note" *ngIf="r.assessment.selfComment">
+        <h4>Self Assessment Comments</h4>
+        <p>{{ r.assessment.selfComment }}</p>
+      </div>
+      <div class="ir-note" *ngIf="r.assessment.lineManagerComment">
+        <h4>Line Manager's Comments</h4>
+        <p>{{ r.assessment.lineManagerComment }}</p>
+      </div>
+      <div class="ir-note" *ngIf="r.assessment.assessorComment">
+        <h4>SME's Comments</h4>
+        <p>{{ r.assessment.assessorComment }}</p>
+      </div>
+      <div class="ir-note" *ngIf="r.assessment.gapsIdentified">
+        <h4>Gaps Identified</h4>
+        <p>{{ r.assessment.gapsIdentified }}</p>
+      </div>
+      <div class="ir-note" *ngIf="r.assessment.gapsClosureInterventions">
+        <h4>Gaps Closure Interventions</h4>
+        <p>{{ r.assessment.gapsClosureInterventions }}</p>
+      </div>
+    </div>
+  </div>
+</ng-container>

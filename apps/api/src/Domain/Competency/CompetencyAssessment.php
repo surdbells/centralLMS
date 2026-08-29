@@ -35,6 +35,16 @@ final readonly class CompetencyAssessment
         public ?string $jobTitle = null,
         public ?string $functionName = null,
         public ?string $assessorName = null,
+        /**
+         * The narrative an individual's report carries beyond the levels: the
+         * employee's own account, the manager's and executive's notes, the
+         * placement decision, and what the gaps are and how they close.
+         */
+        public ?string $selfComment = null,
+        public ?string $lineManagerComment = null,
+        public ?string $lineExecutiveDecision = null,
+        public ?string $gapsIdentified = null,
+        public ?string $gapsClosureInterventions = null,
     ) {
     }
 
@@ -74,6 +84,28 @@ final readonly class CompetencyAssessment
         return $counts;
     }
 
+    /** The sum of the levels the job requires — the report's "ideal" total. */
+    public function idealProficiencyTotal(): int
+    {
+        $total = 0;
+        foreach ($this->items as $item) {
+            $total += $item->requiredLevel->value;
+        }
+
+        return $total;
+    }
+
+    /** The sum of the levels the person is credited with — the "assessed" total. */
+    public function assessedProficiencyTotal(): int
+    {
+        $total = 0;
+        foreach ($this->items as $item) {
+            $total += $item->demonstratedLevel()->value;
+        }
+
+        return $total;
+    }
+
     /** The estimated months to close every gap in this assessment. */
     public function estimatedMonths(): int
     {
@@ -107,6 +139,13 @@ final readonly class CompetencyAssessment
             'readinessPercent' => $this->readinessPercent(),
             'gapCounts'        => $this->gapCounts(),
             'estimatedMonths'  => $this->estimatedMonths(),
+            'idealProficiencyTotal'    => $this->idealProficiencyTotal(),
+            'assessedProficiencyTotal' => $this->assessedProficiencyTotal(),
+            'selfComment'              => $this->selfComment,
+            'lineManagerComment'       => $this->lineManagerComment,
+            'lineExecutiveDecision'    => $this->lineExecutiveDecision,
+            'gapsIdentified'           => $this->gapsIdentified,
+            'gapsClosureInterventions' => $this->gapsClosureInterventions,
             'items'     => array_map(static fn (AssessmentItem $i): array => $i->toArray(), $this->items),
             'selfSubmittedAt' => $this->selfSubmittedAt?->format(\DateTimeInterface::ATOM),
             'reviewedAt'      => $this->reviewedAt?->format(\DateTimeInterface::ATOM),

@@ -20,6 +20,12 @@ final readonly class AssessmentItem
         /** Joined for display. */
         public ?string $competencyName = null,
         public ?string $functionName = null,
+        /**
+         * The line executive's confirming level, where they have set one. It
+         * does not change the stored gap — that is the SME's assessed level —
+         * but the individual report shows it as its own column.
+         */
+        public ?ProficiencyLevel $lineExecutiveLevel = null,
     ) {
     }
 
@@ -63,8 +69,11 @@ final readonly class AssessmentItem
             'requiredLevel'  => $this->requiredLevel->value,
             'requiredLabel'  => $this->requiredLevel->label(),
             'selfLevel'      => $this->selfLevel?->value,
+            'selfLabel'      => $this->selfLevel?->label(),
             'assessedLevel'  => $this->assessedLevel?->value,
             'assessedLabel'  => $this->assessedLevel?->label(),
+            'lineExecutiveLevel' => $this->lineExecutiveLevel?->value,
+            'lineExecutiveLabel' => $this->lineExecutiveLevel?->label(),
             'demonstratedLevel' => $this->demonstratedLevel()->value,
             'demonstratedLabel' => $this->demonstratedLevel()->label(),
             'gap'            => $this->gap(),

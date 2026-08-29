@@ -100,7 +100,32 @@ interface CompetencyRepository
         ?string $assessorComment,
     ): ?CompetencyAssessment;
 
+    /**
+     * Stores the narrative fields of an individual's report. Only the keys
+     * present are written, each replacing what was there; the rest are left.
+     *
+     * @param array<string, ?string> $fields any of self_comment,
+     *        line_manager_comment, line_executive_decision, gaps_identified,
+     *        gaps_closure_interventions
+     */
+    public function saveNarrative(string $tenantId, string $assessmentId, array $fields): ?CompetencyAssessment;
+
     public function deleteAssessment(string $tenantId, string $id): bool;
+
+    /**
+     * The header facts about the person an individual report is for.
+     *
+     * @return array{name: ?string, email: ?string, jobTitle: ?string, level: ?string}
+     */
+    public function reportSubject(string $tenantId, string $userId): array;
+
+    /**
+     * The level descriptors for some competencies, keyed by competency id.
+     *
+     * @param  list<string> $competencyIds
+     * @return array<string, array{knowledge: ?string, skill: ?string, mastery: ?string}>
+     */
+    public function descriptorsFor(string $tenantId, array $competencyIds): array;
 
     // --- the outcome report ---------------------------------------------------
 

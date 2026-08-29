@@ -85,13 +85,19 @@ export interface AssessmentItem {
   requiredLevel: ProficiencyLevel;
   requiredLabel: string;
   selfLevel: ProficiencyLevel | null;
+  selfLabel: string | null;
   assessedLevel: ProficiencyLevel | null;
+  assessedLabel: string | null;
+  lineExecutiveLevel: ProficiencyLevel | null;
+  lineExecutiveLabel: string | null;
   /** The demonstrated level: assessed if confirmed, else self, else none. */
   demonstratedLevel: ProficiencyLevel;
   demonstratedLabel: string;
   /** Required minus demonstrated, never below zero. */
   gap: number;
   gapCategory: GapCategory;
+  gapLabel: string;
+  estimatedMonths?: number;
   isCritical: boolean;
   comment: string | null;
 }
@@ -114,11 +120,46 @@ export interface CompetencyAssessment {
   gapCounts: Record<GapCategory, number>;
   /** Estimated months to close every gap, on the standard estimates. */
   estimatedMonths: number;
+  /** Sum of required levels vs sum of demonstrated — the report's totals. */
+  idealProficiencyTotal?: number;
+  assessedProficiencyTotal?: number;
+  selfComment?: string | null;
+  lineManagerComment?: string | null;
+  lineExecutiveDecision?: string | null;
+  gapsIdentified?: string | null;
+  gapsClosureInterventions?: string | null;
   items: AssessmentItem[];
   selfSubmittedAt: string | null;
   reviewedAt: string | null;
   finalizedAt: string | null;
   createdAt: string | null;
+}
+
+/** The header facts about the person a report is for. */
+export interface ReportSubject {
+  name: string | null;
+  email: string | null;
+  jobTitle: string | null;
+  level: string | null;
+}
+
+/** Everything an individual competency report shows. */
+export interface CompetencyReport {
+  assessment: CompetencyAssessment;
+  subject: ReportSubject;
+  /** competencyId -> level descriptors, for the proficiency-description column. */
+  descriptors: Record<string, { knowledge: string | null; skill: string | null; mastery: string | null }>;
+}
+
+/** The qualitative fields an assessor writes on a report. */
+export interface ReportNarrative {
+  selfComment?: string;
+  lineManagerComment?: string;
+  lineExecutiveDecision?: string;
+  gapsIdentified?: string;
+  gapsClosureInterventions?: string;
+  /** Line executive's confirming levels, keyed by competency id. */
+  lineExecutiveLevels?: Record<string, ProficiencyLevel>;
 }
 
 export interface OutcomeReport {
@@ -296,6 +337,16 @@ export class CompetencyService {
   /** The caller's own assessments — what a learner self-assesses against. */
   getMyAssessments(cycle?: string): Observable<Paged<CompetencyAssessment>> {
     return this.api.getPaged<CompetencyAssessment>(Endpoints.competencyAssessments.mine, { cycle });
+  }
+
+  /** The full individual report for one assessment. */
+  getReport(id: string): Observable<CompetencyReport> {
+    return this.api.get<CompetencyReport>(Endpoints.competencyAssessments.report(id));
+  }
+
+  /** Saves the qualitative side of a report — the assessor's work. */
+  saveReport(id: string, narrative: ReportNarrative): Observable<CompetencyAssessment> {
+    return this.api.put<CompetencyAssessment>(Endpoints.competencyAssessments.report(id), narrative);
   }
 
   /** Starts an assessment for a person against a job profile. */

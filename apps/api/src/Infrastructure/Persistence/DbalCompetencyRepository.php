@@ -12,6 +12,7 @@ use Central\Api\Domain\Competency\CompetencyRepository;
 use Central\Api\Domain\Competency\JobCompetencyProfile;
 use Central\Api\Domain\Competency\ProficiencyLevel;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 
 final class DbalCompetencyRepository implements CompetencyRepository
@@ -430,11 +431,14 @@ final class DbalCompetencyRepository implements CompetencyRepository
 
     public function recordLevels(string $tenantId, string $assessmentId, string $field, array $levels): ?CompetencyAssessment
     {
-        if (!in_array($field, ['self', 'assessed'], true)) {
-            throw new \InvalidArgumentException('A level is either self or assessed.');
-        }
-
-        $column = $field === 'self' ? 'self_level' : 'assessed_level';
+        $column = match ($field) {
+            'self'           => 'self_level',
+            'assessed'       => 'assessed_level',
+            'line_executive' => 'line_executive_level',
+            default          => throw new \InvalidArgumentException(
+                'A level is self, assessed or line_executive.',
+            ),
+        };
 
         $this->connection->transactional(function (Connection $tx) use ($tenantId, $assessmentId, $column, $levels): void {
             foreach ($levels as $competencyId => $level) {
@@ -495,6 +499,97 @@ final class DbalCompetencyRepository implements CompetencyRepository
         );
 
         return $affected > 0 ? $this->findAssessment($tenantId, $assessmentId) : null;
+    }
+
+    public function saveNarrative(string $tenantId, string $assessmentId, array $fields): ?CompetencyAssessment
+    {
+        $allowed = [
+            'self_comment',
+            'line_manager_comment',
+            'line_executive_decision',
+            'gaps_identified',
+            'gaps_closure_interventions',
+        ];
+
+        $sets   = [];
+        $params = ['id' => $assessmentId, 'tenant' => $tenantId];
+
+        foreach ($allowed as $column) {
+            if (array_key_exists($column, $fields)) {
+                $sets[]           = sprintf('%s = :%s', $column, $column);
+                $value            = $fields[$column];
+                $params[$column]  = ($value === null || trim((string) $value) === '') ? null : (string) $value;
+            }
+        }
+
+        if ($sets === []) {
+            return $this->findAssessment($tenantId, $assessmentId);
+        }
+
+        $this->connection->executeStatement(
+            sprintf(
+                'UPDATE competency_assessments SET %s, updated_at = NOW()
+                 WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+                implode(', ', $sets),
+            ),
+            $params,
+        );
+
+        return $this->findAssessment($tenantId, $assessmentId);
+    }
+
+    public function reportSubject(string $tenantId, string $userId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            "SELECT TRIM(u.first_name || ' ' || u.last_name) AS name,
+                    u.email,
+                    jt.name AS job_title,
+                    lv.name AS level
+             FROM users u
+             LEFT JOIN lookups jt ON jt.id = u.job_title_id
+             LEFT JOIN lookups lv ON lv.id = u.level_id
+             WHERE u.id = :id AND u.tenant_id = :tenant",
+            ['id' => $userId, 'tenant' => $tenantId],
+        );
+
+        if ($row === false) {
+            return ['name' => null, 'email' => null, 'jobTitle' => null, 'level' => null];
+        }
+
+        return [
+            'name'     => $this->displayName($row['name'] ?? null),
+            'email'    => $this->text($row['email'] ?? null),
+            'jobTitle' => $this->text($row['job_title'] ?? null),
+            'level'    => $this->text($row['level'] ?? null),
+        ];
+    }
+
+    public function descriptorsFor(string $tenantId, array $competencyIds): array
+    {
+        $ids = array_values(array_unique(array_filter($competencyIds)));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id, knowledge_descriptor, skill_descriptor, mastery_descriptor
+             FROM competencies
+             WHERE tenant_id = :tenant AND id IN (:ids)',
+            ['tenant' => $tenantId, 'ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(string) $row['id']] = [
+                'knowledge' => $this->text($row['knowledge_descriptor'] ?? null),
+                'skill'     => $this->text($row['skill_descriptor'] ?? null),
+                'mastery'   => $this->text($row['mastery_descriptor'] ?? null),
+            ];
+        }
+
+        return $out;
     }
 
     public function deleteAssessment(string $tenantId, string $id): bool
@@ -695,6 +790,9 @@ final class DbalCompetencyRepository implements CompetencyRepository
                 isCritical: (bool) $r['is_critical'],
                 competencyName: (string) $r['name'],
                 functionName: (string) $r['function_name'],
+                lineExecutiveLevel: $r['line_executive_level'] === null
+                    ? null
+                    : ProficiencyLevel::from((int) $r['line_executive_level']),
             ),
             $rows,
         );
@@ -763,6 +861,11 @@ final class DbalCompetencyRepository implements CompetencyRepository
             jobTitle: $this->text($row['job_title'] ?? null),
             functionName: $this->text($row['function_name'] ?? null),
             assessorName: $this->displayName($row['assessor_name'] ?? null),
+            selfComment: $this->text($row['self_comment'] ?? null),
+            lineManagerComment: $this->text($row['line_manager_comment'] ?? null),
+            lineExecutiveDecision: $this->text($row['line_executive_decision'] ?? null),
+            gapsIdentified: $this->text($row['gaps_identified'] ?? null),
+            gapsClosureInterventions: $this->text($row['gaps_closure_interventions'] ?? null),
         );
     }
 
