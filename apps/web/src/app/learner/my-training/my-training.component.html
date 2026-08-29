@@ -1,14 +1,6 @@
-<app-top></app-top>
-<main class="main">
-<div class="container-fluid py-4">
-  <div class="row align-items-center mb-4">
-    <div (click)="goBack()" role="button" class="col-auto">
-      <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-        <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-      </div>
-    </div>
-    <div class="col"></div>
-  </div>
-  <app-learner-live-training></app-learner-live-training>
-</div>
-</main>
+<!--
+  The live-training screen renders its own top navigation, page header and
+  "Back to Dashboard" link, so this wrapper was doubling the navigation bar and
+  adding an empty header band above it. It only needs to place the screen.
+-->
+<app-learner-live-training></app-learner-live-training>
