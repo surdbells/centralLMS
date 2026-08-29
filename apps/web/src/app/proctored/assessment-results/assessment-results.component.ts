@@ -4,14 +4,13 @@
 // Multi-Tenant LMS | Angular Standalone
 // =============================================
 
-import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil, forkJoin } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
+import { AssessmentsService } from '../../services/assessments.service';
 import { TopComponent } from '../../partials/top/top.component';
 
 // ==========================================
@@ -74,13 +73,13 @@ interface SectionResult {
 }
 
 interface QuestionResult {
-  answer_id: number;
-  question_id: number;
+  answer_id: string;
+  question_id: string;
   question_type: string;
   question_text: string;
   question_media: string | null;
   question_order: number;
-  section_id: number;
+  section_id: string;
   section_title: string;
   points_possible: number;
   points_earned: number;
@@ -1281,7 +1280,7 @@ interface AttemptTimeline {
   `]
 })
 export class AssessmentResultsComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private destroy$ = new Subject<void>();
@@ -1296,16 +1295,16 @@ export class AssessmentResultsComponent implements OnInit, OnDestroy {
   timeline: AttemptTimeline[] = [];
   activeTab = 'summary';
   reviewFilter = 'all';
-  expandedQuestions = new Set<number>();
+  expandedQuestions = new Set<string>();
   loadingQuestions = false;
   loadingTimeline = false;
 
   // Route params
-  attemptId: number = 0;
+  attemptId = '';
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      this.attemptId = +params['attemptId'] || +params['id'] || 0;
+      this.attemptId = String(params['attemptId'] || params['id'] || '');
       if (this.attemptId) {
         this.loadResults();
       } else {
@@ -1328,105 +1327,114 @@ export class AssessmentResultsComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
-    const fd = new FormData();
-    fd.append('action', 'get_attempt_result');
-    fd.append('attempt_id', this.attemptId.toString());
+    this.assessments.attempt(this.attemptId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (raw) => {
+        const a = raw as unknown as Record<string, unknown>;
+        const rows = Array.isArray(a['answers']) ? (a['answers'] as Array<Record<string, unknown>>) : [];
+        const graded = a['gradedAt'] != null;
+        const pending = rows.some(r => r['needsMarker'] === true && r['isGraded'] !== true);
 
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/attempt`,
-      fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1 && res.data) {
-          this.result = res.data.attempt;
-          this.sectionResults = res.data.sections || [];
-          this.scoreBreakdown = res.data.score_breakdown || null;
-          if (res.data.questions) {
-            this.questionResults = res.data.questions;
-          }
-        } else {
-          this.error = res.message || 'Failed to load results';
-        }
+        this.result = {
+          attempt_id: this.attemptId as unknown as number,
+          assessment_id: a['assessmentId'] as unknown as number,
+          assessment_title: String(a['assessmentTitle'] ?? 'Assessment'),
+          assessment_type: 'quiz',
+          learner_id: 0,
+          learner_name: String(a['userName'] ?? ''),
+          status: String(a['status'] ?? ''),
+          started_at: String(a['startedAt'] ?? ''),
+          completed_at: String(a['submittedAt'] ?? ''),
+          duration_seconds: Number(a['timeSpentSeconds'] ?? 0),
+          total_score: Number(a['rawScore'] ?? 0),
+          max_score: Number(a['maxScore'] ?? 0),
+          percentage: Number(a['percentage'] ?? 0),
+          passed: a['passed'] === true,
+          passing_score: 0,
+          grade: '',
+          attempt_number: Number(a['attemptNumber'] ?? 1),
+          max_attempts: 0,
+          remaining_attempts: 0,
+          show_correct_answers: true,
+          show_explanations: true,
+          show_score_breakdown: true,
+          feedback_message: '',
+          grading_status: pending ? 'pending' : (graded ? 'graded' : 'graded'),
+          has_manual_questions: pending,
+          pending_manual_count: rows.filter(r => r['needsMarker'] === true && r['isGraded'] !== true).length,
+          certificate_id: null,
+          certificate_number: null,
+          points_earned: Number(a['rawScore'] ?? 0),
+          badges_earned: [],
+        };
+        this.questionResults = rows.map((r, i) => this.toQuestionResult(r, i));
+        this.sectionResults = [];
+        this.scoreBreakdown = null;
         this.loading = false;
       },
-      error: (err) => {
+      error: () => {
         this.error = 'Network error. Please try again.';
         this.loading = false;
-      }
-    });
-  }
-
-  loadQuestionResults(): void {
-    if (this.questionResults.length > 0) return;
-
-    this.loadingQuestions = true;
-
-    const fd = new FormData();
-    fd.append('action', 'get_attempt_answers');
-    fd.append('attempt_id', this.attemptId.toString());
-
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/attempt`,
-      fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.questionResults = res.data || [];
-        }
-        this.loadingQuestions = false;
       },
-      error: () => {
-        this.loadingQuestions = false;
-      }
     });
   }
 
-  loadTimeline(): void {
-    if (this.timeline.length > 0) return;
-
-    this.loadingTimeline = true;
-
-    const fd = new FormData();
-    fd.append('action', 'get_attempt_timeline');
-    fd.append('attempt_id', this.attemptId.toString());
-
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/attempt`,
-      fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.timeline = res.data || [];
-        }
-        this.loadingTimeline = false;
-      },
-      error: () => {
-        this.loadingTimeline = false;
-      }
-    });
+  /** One API answer row -> the per-question review shape. */
+  private toQuestionResult(r: Record<string, unknown>, index: number): QuestionResult {
+    const q = (r['question'] ?? {}) as Record<string, unknown>;
+    const opts = Array.isArray(q['options']) ? (q['options'] as Array<Record<string, unknown>>) : [];
+    const correctIds = opts.filter(o => o['isCorrect'] === true).map(o => String(o['id']));
+    return {
+      answer_id: String(q['id'] ?? index),
+      question_id: String(q['id'] ?? ''),
+      question_type: String(q['type'] ?? ''),
+      question_text: String(q['text'] ?? ''),
+      question_media: null,
+      question_order: index + 1,
+      section_id: 'all',
+      section_title: '',
+      points_possible: Number(r['pointsPossible'] ?? q['points'] ?? 0),
+      points_earned: Number(r['pointsEarned'] ?? 0),
+      is_correct: r['isCorrect'] === true,
+      is_partial: false,
+      grading_status: r['isGraded'] === true ? 'graded' : (r['needsMarker'] === true ? 'pending' : 'graded'),
+      user_answer: r['answer'] ?? null,
+      correct_answer: correctIds,
+      options: opts.map(o => ({ id: String(o['id']), option_text: String(o['text']), is_correct: o['isCorrect'] === true })),
+      matching_pairs: [],
+      ordering_items: [],
+      explanation: (q['explanation'] as string) ?? null,
+      feedback: (r['feedback'] as string) ?? null,
+      time_spent_seconds: 0,
+      flagged: false,
+    };
   }
+
+  // Questions and timeline arrive with the attempt; kept as no-ops so the
+  // template's tab hooks still resolve.
+  loadQuestionResults(): void { /* questions loaded with the result */ }
+  loadTimeline(): void { /* no timeline endpoint yet */ }
 
   // ==========================================
   // NAVIGATION
   // ==========================================
 
   goToAssessments(): void {
-    this.router.navigate(['/assessments']);
+    this.router.navigate(['/learner/assessments']);
   }
 
   goToHistory(): void {
-    this.router.navigate(['/assessments/history']);
+    this.router.navigate(['/learner/assessments/history']);
   }
 
   viewCertificate(): void {
     if (this.result?.certificate_id) {
-      this.router.navigate(['/certificates', this.result.certificate_id]);
+      this.router.navigate(['/learner/assessments/certificates', this.result.certificate_id]);
     }
   }
 
   retakeAssessment(): void {
     if (this.result?.assessment_id) {
-      this.router.navigate(['/assessments', this.result.assessment_id, 'start']);
+      this.router.navigate(['/learner/assessments', this.result.assessment_id, 'lobby']);
     }
   }
 
@@ -1597,7 +1605,7 @@ export class AssessmentResultsComponent implements OnInit, OnDestroy {
   // QUESTION REVIEW HELPERS
   // ==========================================
 
-  toggleQuestion(answerId: number): void {
+  toggleQuestion(answerId: string): void {
     if (this.expandedQuestions.has(answerId)) {
       this.expandedQuestions.delete(answerId);
     } else {
