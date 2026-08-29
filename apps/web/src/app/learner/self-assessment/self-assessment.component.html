@@ -89,6 +89,22 @@
         </div>
       </div>
 
+      <!-- Overall self-assessment comment -->
+      <div class="sa-comment">
+        <label for="sa-comment">Self Assessment Comments</label>
+        <p class="sa-comment-hint">
+          In your own words — how you see your competence overall, and the evidence behind it.
+          This appears on your competency report.
+        </p>
+        <textarea
+          id="sa-comment"
+          rows="4"
+          [(ngModel)]="selfComment"
+          [disabled]="!canSelfAssess(a)"
+          placeholder="Based on my experience…"
+        ></textarea>
+      </div>
+
       <div class="sa-actions" *ngIf="canSelfAssess(a)">
         <button class="btn btn-light" (click)="back()" [disabled]="saving">Cancel</button>
         <button class="btn btn-primary" (click)="submit()" [disabled]="saving">

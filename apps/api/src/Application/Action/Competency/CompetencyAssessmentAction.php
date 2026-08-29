@@ -395,6 +395,7 @@ final class CompetencyAssessmentAction
         // Only the narrative keys that were sent are written.
         $map = [
             'selfComment'              => 'self_comment',
+            'assessorComment'          => 'assessor_comment',
             'lineManagerComment'       => 'line_manager_comment',
             'lineExecutiveDecision'    => 'line_executive_decision',
             'gapsIdentified'           => 'gaps_identified',

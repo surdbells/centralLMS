@@ -42,6 +42,16 @@ export class AssessmentDetailComponent implements OnInit {
   finalizeComment = '';
   showFinalize = false;
 
+  // The report's qualitative side, written by the assessor / line manager.
+  savingNarrative = false;
+  narrative = {
+    assessorComment: '',
+    lineManagerComment: '',
+    lineExecutiveDecision: '',
+    gapsIdentified: '',
+    gapsClosureInterventions: '',
+  };
+
   readonly levelOptions: Array<{ value: ProficiencyLevel; letter: string; label: string }> = [
     { value: 0, letter: '–', label: 'None' },
     { value: 1, letter: 'K', label: 'Knowledge' },
@@ -61,6 +71,7 @@ export class AssessmentDetailComponent implements OnInit {
     this.competency.getAssessment(id).subscribe({
       next: (assessment) => {
         this.assessment = assessment;
+        this.seedNarrative(assessment);
         this.loading = false;
       },
       error: () => {
@@ -161,6 +172,36 @@ export class AssessmentDetailComponent implements OnInit {
             ? 'Nothing has been assessed yet.'
             : 'The assessment could not be finalised.',
         );
+      },
+    });
+  }
+
+  // --- report narrative ---------------------------------------------------
+
+  private seedNarrative(a: CompetencyAssessment): void {
+    this.narrative = {
+      assessorComment: a.assessorComment ?? '',
+      lineManagerComment: a.lineManagerComment ?? '',
+      lineExecutiveDecision: a.lineExecutiveDecision ?? '',
+      gapsIdentified: a.gapsIdentified ?? '',
+      gapsClosureInterventions: a.gapsClosureInterventions ?? '',
+    };
+  }
+
+  saveNarrative(): void {
+    if (!this.assessment) {
+      return;
+    }
+    this.savingNarrative = true;
+    this.competency.saveReport(this.assessment.id, { ...this.narrative }).subscribe({
+      next: (updated) => {
+        this.assessment = { ...this.assessment!, ...updated };
+        this.savingNarrative = false;
+        this.toast.success('Report notes saved.');
+      },
+      error: () => {
+        this.savingNarrative = false;
+        this.toast.error('The report notes could not be saved.');
       },
     });
   }

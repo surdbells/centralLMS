@@ -156,6 +156,7 @@ export interface CompetencyReport {
 /** The qualitative fields an assessor writes on a report. */
 export interface ReportNarrative {
   selfComment?: string;
+  assessorComment?: string;
   lineManagerComment?: string;
   lineExecutiveDecision?: string;
   gapsIdentified?: string;
@@ -376,9 +377,9 @@ export class CompetencyService {
     );
   }
 
-  /** The learner records their own levels, moving it to self-assessed. */
-  selfAssess(id: string, levels: LevelSubmission): Observable<CompetencyAssessment> {
-    return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.self(id), { levels });
+  /** The learner records their own levels and overall comment, moving it to self-assessed. */
+  selfAssess(id: string, levels: LevelSubmission, comment?: string): Observable<CompetencyAssessment> {
+    return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.self(id), { levels, comment });
   }
 
   /** The expert confirms the levels, moving it to reviewed. */

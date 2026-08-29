@@ -505,6 +505,7 @@ final class DbalCompetencyRepository implements CompetencyRepository
     {
         $allowed = [
             'self_comment',
+            'assessor_comment',
             'line_manager_comment',
             'line_executive_decision',
             'gaps_identified',

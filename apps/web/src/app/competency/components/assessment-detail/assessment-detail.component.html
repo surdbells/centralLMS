@@ -144,13 +144,45 @@
     </div>
   </div>
 
-  <!-- Assessor note -->
-  <div class="mt-3" *ngIf="a.assessorName || a.assessorComment">
-    <div class="assessor-note">
-      <tui-icon icon="@tui.message-square-quote"></tui-icon>
+  <!-- Report notes — the qualitative side of the individual report -->
+  <div class="card border-0 shadow-sm mt-3">
+    <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
       <div>
-        <div class="small" *ngIf="a.assessorComment">{{ a.assessorComment }}</div>
-        <small class="text-muted" *ngIf="a.assessorName">— {{ a.assessorName }}</small>
+        <h6 class="mb-0">Report notes</h6>
+        <small class="text-muted">The comments and gaps narrative that appear on the printed report.</small>
+      </div>
+      <button class="btn btn-primary btn-sm" [disabled]="savingNarrative" (click)="saveNarrative()">
+        <span *ngIf="savingNarrative" class="spinner-border spinner-border-sm me-1"></span>
+        Save notes
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">SME's Comments</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="narrative.assessorComment"
+                    placeholder="The subject-matter expert's overall assessment"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Line Manager's Comments</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="narrative.lineManagerComment"
+                    placeholder="The line manager's note"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Gaps Identified</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="narrative.gapsIdentified"
+                    placeholder="Which competences fall short, and why"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Gaps Closure Interventions</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="narrative.gapsClosureInterventions"
+                    placeholder="How the gaps are to be closed — training, on-the-job, exposure"></textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold">Line Executive's Decision</label>
+          <input class="form-control" [(ngModel)]="narrative.lineExecutiveDecision"
+                 placeholder="e.g. Placed" />
+        </div>
       </div>
     </div>
   </div>

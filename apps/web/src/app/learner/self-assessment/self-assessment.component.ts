@@ -37,6 +37,8 @@ export class SelfAssessmentComponent implements OnInit {
   /** The one being filled in, with the levels claimed so far. */
   open: CompetencyAssessment | null = null;
   levels: Record<string, ProficiencyLevel> = {};
+  /** The employee's overall account of the evidence, shown on their report. */
+  selfComment = '';
 
   readonly levelOptions: { value: ProficiencyLevel; label: string }[] = [
     { value: 0, label: 'Not yet' },
@@ -74,6 +76,7 @@ export class SelfAssessmentComponent implements OnInit {
       next: (full) => {
         this.open = full;
         this.levels = {};
+        this.selfComment = full.selfComment ?? '';
         for (const item of full.items) {
           // Start each competency on what they last claimed, if anything.
           this.levels[item.competencyId] = (item.selfLevel ?? 0) as ProficiencyLevel;
@@ -97,7 +100,7 @@ export class SelfAssessmentComponent implements OnInit {
     }
     this.saving = true;
     const submission: LevelSubmission = { ...this.levels };
-    this.competency.selfAssess(this.open.id, submission).subscribe({
+    this.competency.selfAssess(this.open.id, submission, this.selfComment.trim()).subscribe({
       next: (updated) => {
         this.saving = false;
         this.toast.success('Your self-assessment has been saved.');
