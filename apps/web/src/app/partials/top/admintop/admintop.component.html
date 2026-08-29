@@ -270,10 +270,9 @@
             <img class="avatar-img" *ngIf="avatarSrc" [src]="avatarSrc" alt="User avatar" />
             <span class="avatar-initials" *ngIf="!avatarSrc">{{ user_session.first_name.charAt(0) }}</span>
           </span>
-          <span class="d-none d-lg-inline ms-2 user-name">{{ user_session.first_name }}</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow-lg">
-          <li class="dropdown-header d-lg-none">
+          <li class="dropdown-header">
             <div class="d-flex align-items-center gap-2">
               <span class="avatar avatar-sm">
                 <img class="avatar-img" *ngIf="avatarSrc" [src]="avatarSrc" alt="" />
