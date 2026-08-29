@@ -461,6 +461,42 @@ export const Endpoints = {
     learners: (id: string) => `/skills/${id}/learners`,
   },
 
+  // --- competency assurance ---------------------------------------------
+  //
+  // The dictionary, the job profiles built from it, and the assessments
+  // that measure a person against their profile. The gap between required
+  // and demonstrated is computed by the API, never sent up.
+  competencies: {
+    list: '/competencies',
+    create: '/competencies',
+    functions: '/competencies/functions',
+    show: (id: string) => `/competencies/${id}`,
+    update: (id: string) => `/competencies/${id}`,
+    delete: (id: string) => `/competencies/${id}`,
+  },
+
+  jobProfiles: {
+    list: '/job-profiles',
+    create: '/job-profiles',
+    show: (id: string) => `/job-profiles/${id}`,
+    update: (id: string) => `/job-profiles/${id}`,
+    delete: (id: string) => `/job-profiles/${id}`,
+  },
+
+  competencyAssessments: {
+    list: '/competency-assessments',
+    create: '/competency-assessments',
+    /** The organisation-wide outcome for a cycle. */
+    outcome: '/competency-assessments/outcome',
+    show: (id: string) => `/competency-assessments/${id}`,
+    /** The learner records their own levels. */
+    self: (id: string) => `/competency-assessments/${id}/self`,
+    /** The expert confirms the levels. */
+    review: (id: string) => `/competency-assessments/${id}/review`,
+    finalize: (id: string) => `/competency-assessments/${id}/finalize`,
+    delete: (id: string) => `/competency-assessments/${id}`,
+  },
+
   // --- learning paths ---------------------------------------------------
   paths: {
     list: '/paths',

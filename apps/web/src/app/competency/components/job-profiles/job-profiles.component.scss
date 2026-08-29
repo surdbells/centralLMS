@@ -1,0 +1,166 @@
+.search-box {
+  min-width: 240px;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.35rem;
+  background: transparent;
+  border: none;
+  color: var(--bs-secondary-color, #6b7280);
+
+  &:hover {
+    color: var(--bs-emphasis-color, #111827);
+  }
+}
+
+.profile-row {
+  border: 1px solid var(--bs-border-color, #e5e7eb);
+  border-radius: 0.75rem;
+  background: var(--bs-body-bg, #fff);
+  overflow: hidden;
+}
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bs-tertiary-bg, #f9fafb);
+  }
+
+  .chev {
+    color: var(--bs-secondary-color, #9ca3af);
+    display: flex;
+  }
+}
+
+.profile-body {
+  padding: 0.5rem 1rem 1rem 2.5rem;
+  border-top: 1px solid var(--bs-border-color, #f1f1f4);
+}
+
+.lvl-pill {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: #64748b;
+
+  &.k { background: #64748b; }
+  &.s { background: #2563eb; }
+  &.m { background: #7c3aed; }
+}
+
+// --- requirement editor ---------------------------------------------------
+.req-list {
+  border: 1px solid var(--bs-border-color, #eef0f3);
+  border-radius: 0.6rem;
+  padding: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.req-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.5rem;
+
+  & + .req-row {
+    border-top: 1px solid var(--bs-border-color, #f1f1f4);
+  }
+
+  .req-name {
+    flex-grow: 1;
+    font-size: 0.88rem;
+    font-weight: 500;
+  }
+
+  .req-critical {
+    margin: 0;
+  }
+}
+
+.level-toggle {
+  .btn {
+    width: 34px;
+    font-weight: 700;
+    color: var(--bs-secondary-color, #6b7280);
+    border-color: var(--bs-border-color, #d1d5db);
+
+    &.active {
+      color: #fff;
+      background: #6d5ef6;
+      border-color: #6d5ef6;
+    }
+  }
+}
+
+.empty-panel {
+  background: var(--bs-tertiary-bg, #f9fafb);
+  border: 1px dashed var(--bs-border-color, #e5e7eb);
+  border-radius: 0.75rem;
+
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--bs-secondary-color, #9ca3af);
+  }
+}
+
+// --- overlay --------------------------------------------------------------
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.overlay-panel {
+  background: var(--bs-body-bg, #fff);
+  border-radius: 0.9rem;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+
+  &.sm {
+    max-width: 420px;
+  }
+}
+
+.overlay-head,
+.overlay-foot {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.overlay-head {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--bs-border-color, #eef0f3);
+}
+
+.overlay-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.overlay-foot {
+  gap: 0.5rem;
+  border-top: 1px solid var(--bs-border-color, #eef0f3);
+}

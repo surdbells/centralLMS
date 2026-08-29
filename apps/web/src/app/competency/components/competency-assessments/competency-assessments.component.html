@@ -1,0 +1,131 @@
+<!-- Toolbar -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <div class="input-group input-group-sm search-box">
+      <span class="input-group-text bg-transparent border-end-0"><tui-icon icon="@tui.search"></tui-icon></span>
+      <input type="search" class="form-control border-start-0" placeholder="Search by person"
+             [ngModel]="search" (ngModelChange)="onSearch($event)" />
+    </div>
+    <select class="form-select form-select-sm w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
+      <option value="">All statuses</option>
+      <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
+    </select>
+    <input class="form-control form-control-sm w-auto" placeholder="Cycle" style="max-width: 120px"
+           [(ngModel)]="cycleFilter" (keyup.enter)="load()" (blur)="load()" />
+  </div>
+  <button class="btn btn-primary btn-sm" (click)="openStart()">
+    <tui-icon icon="@tui.plus"></tui-icon> Start assessment
+  </button>
+</div>
+
+<div *ngIf="loading" class="text-center py-5 text-muted">
+  <div class="spinner-border text-primary" role="status"></div>
+</div>
+
+<div *ngIf="!loading && !assessments.length" class="empty-panel text-center py-5">
+  <tui-icon icon="@tui.clipboard-check" class="empty-icon"></tui-icon>
+  <h5 class="mt-3 mb-1">No assessments yet</h5>
+  <p class="text-muted mb-3">Measure a person against their job profile — the gaps, and what it would take to close them.</p>
+  <button class="btn btn-primary btn-sm" (click)="openStart()">Start the first one</button>
+</div>
+
+<!-- Table -->
+<div *ngIf="!loading && assessments.length" class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0 assess-table">
+      <thead>
+        <tr>
+          <th>Person</th>
+          <th>Job profile</th>
+          <th class="text-center">Cycle</th>
+          <th class="text-center">Status</th>
+          <th style="width: 22%">Readiness</th>
+          <th class="text-center">Gaps</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of assessments" (click)="open(a)" class="clickable">
+          <td class="fw-medium">{{ a.userName || '—' }}</td>
+          <td>
+            <div>{{ a.jobTitle || '—' }}</div>
+            <small class="text-muted">{{ a.functionName }}</small>
+          </td>
+          <td class="text-center">{{ a.cycle }}</td>
+          <td class="text-center">
+            <span class="badge rounded-pill" [class]="statusMeta(a.status).badge">{{ statusMeta(a.status).label }}</span>
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2" *ngIf="a.readinessPercent !== null; else noReadiness">
+              <div class="progress flex-grow-1" style="height: 6px">
+                <div class="progress-bar"
+                     [class.bg-success]="a.readinessPercent >= 80"
+                     [class.bg-warning]="a.readinessPercent >= 50 && a.readinessPercent < 80"
+                     [class.bg-danger]="a.readinessPercent < 50"
+                     [style.width.%]="a.readinessPercent"></div>
+              </div>
+              <span class="small text-nowrap">{{ a.readinessPercent | number: '1.0-0' }}%</span>
+            </div>
+            <ng-template #noReadiness><span class="text-muted small">—</span></ng-template>
+          </td>
+          <td class="text-center">
+            <span class="gap-chip minor" *ngIf="a.gapCounts.minor" title="Minor">{{ a.gapCounts.minor }}</span>
+            <span class="gap-chip major" *ngIf="a.gapCounts.major" title="Major">{{ a.gapCounts.major }}</span>
+            <span class="gap-chip significant" *ngIf="a.gapCounts.significant" title="Significant">{{ a.gapCounts.significant }}</span>
+            <span class="text-muted small" *ngIf="!a.gapCounts.minor && !a.gapCounts.major && !a.gapCounts.significant">—</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Start modal -->
+<div class="overlay" *ngIf="modalOpen" (click)="closeStart()">
+  <div class="overlay-panel" (click)="$event.stopPropagation()">
+    <div class="overlay-head">
+      <h5 class="mb-0">Start an assessment</h5>
+      <button class="btn btn-sm btn-icon" (click)="closeStart()"><tui-icon icon="@tui.x"></tui-icon></button>
+    </div>
+    <div class="overlay-body">
+      <div class="mb-3 position-relative">
+        <label class="form-label">Person <span class="text-danger">*</span></label>
+        <input class="form-control" placeholder="Search by name or email"
+               [ngModel]="userQuery" (ngModelChange)="onUserQuery($event)" />
+        <div class="user-results" *ngIf="userResults.length && !selectedUser">
+          <button class="user-result" *ngFor="let u of userResults" (click)="pickUser(u)">
+            <span class="fw-medium">{{ u.fullName }}</span>
+            <small class="text-muted">{{ u.email }}</small>
+          </button>
+        </div>
+        <div class="picked mt-2" *ngIf="selectedUser">
+          <tui-icon icon="@tui.circle-check" class="text-success"></tui-icon>
+          {{ selectedUser.fullName }} <small class="text-muted">{{ selectedUser.email }}</small>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Job profile <span class="text-danger">*</span></label>
+        <select class="form-select" [(ngModel)]="selectedProfileId">
+          <option value="">Choose a profile…</option>
+          <option *ngFor="let p of profiles" [value]="p.id">
+            {{ p.jobTitle }} — {{ p.functionName }} ({{ p.competencyCount }})
+          </option>
+        </select>
+        <small class="text-muted">Only profiles with requirements can be assessed against.</small>
+      </div>
+
+      <div class="mb-1">
+        <label class="form-label">Cycle</label>
+        <input class="form-control" [(ngModel)]="cycle" placeholder="e.g. 2026" />
+        <small class="text-muted">A label for the round — a year, a quarter. One assessment per person, profile and cycle.</small>
+      </div>
+    </div>
+    <div class="overlay-foot">
+      <button class="btn btn-light" (click)="closeStart()">Cancel</button>
+      <button class="btn btn-primary" [disabled]="starting || !selectedUser || !selectedProfileId" (click)="start()">
+        <span *ngIf="starting" class="spinner-border spinner-border-sm me-1"></span>
+        Start assessment
+      </button>
+    </div>
+  </div>
+</div>

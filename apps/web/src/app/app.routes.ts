@@ -24,11 +24,13 @@ import {LmsHomepageComponent} from './public/lms-homepage/lms-homepage.component
 import {proctoredAssessmentRoutes} from './proctored-assessment.routes';
 import {reportsRoutes} from './reports/reports.routes';
 import {usersRoutes} from './admin/users/users.routes';
+import {competencyRoutes} from './competency/competency.routes';
 export const routes: Routes = [
   ...learningPathRoutes,
   ...proctoredAssessmentRoutes,
   ...reportsRoutes,
   ...usersRoutes,
+  ...competencyRoutes,
   {
     /**
      * The application opens on the sign-in screen.

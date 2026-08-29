@@ -43,6 +43,15 @@ final readonly class AssessmentItem
     }
 
     /**
+     * The level the person is credited with: the expert's where confirmed, the
+     * self-claim until then, none if neither. The other side of {@see gap()}.
+     */
+    public function demonstratedLevel(): ProficiencyLevel
+    {
+        return $this->assessedLevel ?? $this->selfLevel ?? ProficiencyLevel::None;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -56,6 +65,8 @@ final readonly class AssessmentItem
             'selfLevel'      => $this->selfLevel?->value,
             'assessedLevel'  => $this->assessedLevel?->value,
             'assessedLabel'  => $this->assessedLevel?->label(),
+            'demonstratedLevel' => $this->demonstratedLevel()->value,
+            'demonstratedLabel' => $this->demonstratedLevel()->label(),
             'gap'            => $this->gap(),
             'gapCategory'    => $this->category()->value,
             'gapLabel'       => $this->category()->label(),

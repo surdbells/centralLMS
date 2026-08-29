@@ -23,6 +23,7 @@
         "league/flysystem": "^3.29",
         "league/flysystem-aws-s3-v3": "^3.29",
         "monolog/monolog": "^3.8",
+        "openspout/openspout": "^5.3",
         "php-di/php-di": "^7.0",
         "predis/predis": "^2.3",
         "ramsey/uuid": "^4.7",

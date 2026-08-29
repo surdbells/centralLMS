@@ -1,0 +1,160 @@
+<!-- Toolbar -->
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div class="d-flex gap-2 flex-wrap">
+    <div class="input-group input-group-sm search-box">
+      <span class="input-group-text bg-transparent border-end-0">
+        <tui-icon icon="@tui.search"></tui-icon>
+      </span>
+      <input type="search" class="form-control border-start-0" placeholder="Search competencies"
+             [(ngModel)]="search" (keyup.enter)="load()" (search)="load()" />
+    </div>
+    <select class="form-select form-select-sm w-auto" [(ngModel)]="functionFilter" (ngModelChange)="load()">
+      <option value="">All functions</option>
+      <option *ngFor="let f of knownFunctions" [value]="f">{{ f }}</option>
+    </select>
+  </div>
+  <button class="btn btn-primary btn-sm" (click)="openNew()">
+    <tui-icon icon="@tui.plus"></tui-icon> New competency
+  </button>
+</div>
+
+<!-- Loading -->
+<div *ngIf="loading" class="text-center py-5 text-muted">
+  <div class="spinner-border text-primary" role="status"></div>
+</div>
+
+<!-- Empty -->
+<div *ngIf="!loading && !groups.length" class="empty-panel text-center py-5">
+  <tui-icon icon="@tui.book-open" class="empty-icon"></tui-icon>
+  <h5 class="mt-3 mb-1">No competencies yet</h5>
+  <p class="text-muted mb-3">Define the capabilities your organisation measures, grouped by function.</p>
+  <button class="btn btn-primary btn-sm" (click)="openNew()">Add the first one</button>
+</div>
+
+<!-- Groups -->
+<div *ngIf="!loading" class="d-flex flex-column gap-4">
+  <div *ngFor="let group of groups" class="function-group">
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <h6 class="mb-0 fw-semibold">{{ group.function }}</h6>
+      <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">
+        {{ group.competencies.length }}
+      </span>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-6 col-xl-4" *ngFor="let c of group.competencies">
+        <div class="comp-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="fw-medium">{{ c.name }}</div>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-icon" type="button"
+                      (click)="openMenuId = openMenuId === c.id ? null : c.id">
+                <tui-icon icon="@tui.ellipsis-vertical"></tui-icon>
+              </button>
+              <div class="card-menu" *ngIf="openMenuId === c.id">
+                <button class="menu-item" (click)="openMenuId = null; openEdit(c)">
+                  <tui-icon icon="@tui.pencil"></tui-icon> Edit
+                </button>
+                <button class="menu-item text-danger" (click)="openMenuId = null; askDelete(c)">
+                  <tui-icon icon="@tui.trash-2"></tui-icon> Remove
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="text-muted small mb-2" *ngIf="c.description">{{ c.description }}</p>
+          <div class="level-lines">
+            <div class="level-line" *ngIf="c.levels.knowledge">
+              <span class="lvl-badge k">K</span><span>{{ c.levels.knowledge }}</span>
+            </div>
+            <div class="level-line" *ngIf="c.levels.skill">
+              <span class="lvl-badge s">S</span><span>{{ c.levels.skill }}</span>
+            </div>
+            <div class="level-line" *ngIf="c.levels.mastery">
+              <span class="lvl-badge m">M</span><span>{{ c.levels.mastery }}</span>
+            </div>
+          </div>
+          <div class="comp-meta">
+            <span title="Job profiles requiring it"><tui-icon icon="@tui.briefcase"></tui-icon> {{ c.profileCount }}</span>
+            <span title="Times assessed"><tui-icon icon="@tui.clipboard-check"></tui-icon> {{ c.assessedCount }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / edit modal -->
+<div class="overlay" *ngIf="modalOpen" (click)="closeModal()">
+  <div class="overlay-panel" (click)="$event.stopPropagation()">
+    <div class="overlay-head">
+      <h5 class="mb-0">{{ editing ? 'Edit competency' : 'New competency' }}</h5>
+      <button class="btn btn-sm btn-icon" (click)="closeModal()"><tui-icon icon="@tui.x"></tui-icon></button>
+    </div>
+    <div class="overlay-body">
+      <div class="row g-3">
+        <div class="col-md-7">
+          <label class="form-label">Name <span class="text-danger">*</span></label>
+          <input class="form-control" [(ngModel)]="form.name" placeholder="e.g. Well Control" />
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Function <span class="text-danger">*</span></label>
+          <input class="form-control" [(ngModel)]="form.functionName" list="dict-functions"
+                 placeholder="e.g. Drilling" />
+          <datalist id="dict-functions">
+            <option *ngFor="let f of knownFunctions" [value]="f"></option>
+          </datalist>
+        </div>
+        <div class="col-12">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="2" [(ngModel)]="form.description"
+                    placeholder="What this competency covers"></textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label mb-1">What each level looks like</label>
+          <p class="text-muted small mb-2">Behavioural anchors, so two assessors read a level the same way.</p>
+        </div>
+        <div class="col-12">
+          <div class="input-group mb-2">
+            <span class="input-group-text lvl-badge k">K</span>
+            <input class="form-control" [(ngModel)]="form.knowledgeDescriptor"
+                   placeholder="Knowledge — knows the principles" />
+          </div>
+          <div class="input-group mb-2">
+            <span class="input-group-text lvl-badge s">S</span>
+            <input class="form-control" [(ngModel)]="form.skillDescriptor"
+                   placeholder="Skill — applies them in practice" />
+          </div>
+          <div class="input-group">
+            <span class="input-group-text lvl-badge m">M</span>
+            <input class="form-control" [(ngModel)]="form.masteryDescriptor"
+                   placeholder="Mastery — coaches others through it" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="overlay-foot">
+      <button class="btn btn-light" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" [disabled]="saving" (click)="save()">
+        <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+        {{ editing ? 'Save changes' : 'Add competency' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation -->
+<div class="overlay" *ngIf="deleteTarget" (click)="cancelDelete()">
+  <div class="overlay-panel sm" (click)="$event.stopPropagation()">
+    <div class="overlay-body text-center py-4">
+      <tui-icon icon="@tui.triangle-alert" class="text-danger" style="font-size: 2rem"></tui-icon>
+      <h6 class="mt-2 mb-1">Remove “{{ deleteTarget.name }}”?</h6>
+      <p class="text-muted small mb-0" *ngIf="deleteTarget.profileCount">
+        It is required by {{ deleteTarget.profileCount }} job profile(s). Removing it leaves those
+        profiles measuring one thing fewer.
+      </p>
+    </div>
+    <div class="overlay-foot">
+      <button class="btn btn-light" (click)="cancelDelete()">Keep it</button>
+      <button class="btn btn-danger" (click)="confirmDelete()">Remove</button>
+    </div>
+  </div>
+</div>

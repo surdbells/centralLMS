@@ -1,0 +1,29 @@
+.competency-nav {
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--bs-border-color, #e5e7eb);
+  padding-bottom: 0.75rem;
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--bs-secondary-color, #6b7280);
+    font-weight: 500;
+    border-radius: 0.5rem;
+    padding: 0.45rem 0.9rem;
+
+    tui-icon {
+      font-size: 1rem;
+    }
+
+    &:hover {
+      background: var(--bs-tertiary-bg, #f3f4f6);
+      color: var(--bs-emphasis-color, #111827);
+    }
+
+    &.active {
+      background: #6d5ef6;
+      color: #fff;
+    }
+  }
+}

@@ -1,0 +1,207 @@
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.4rem;
+  background: transparent;
+  border: none;
+  color: var(--bs-secondary-color, #6b7280);
+
+  &:hover {
+    color: var(--bs-emphasis-color, #111827);
+  }
+}
+
+// --- stepper --------------------------------------------------------------
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+
+    .dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bs-tertiary-bg, #f3f4f6);
+      color: var(--bs-secondary-color, #9ca3af);
+      flex-shrink: 0;
+    }
+
+    &.active .dot {
+      background: #ede9fe;
+      color: #6d5ef6;
+      box-shadow: 0 0 0 3px rgba(109, 94, 246, 0.15);
+    }
+
+    &.done .dot {
+      background: #16a34a;
+      color: #fff;
+    }
+  }
+
+  .bar {
+    flex-grow: 1;
+    height: 2px;
+    background: var(--bs-border-color, #e5e7eb);
+
+    &.done {
+      background: #16a34a;
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .stepper .step small {
+    display: none;
+  }
+}
+
+// --- mini cards -----------------------------------------------------------
+.mini-card {
+  background: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-border-color, #e5e7eb);
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  text-align: center;
+
+  .mini-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--bs-secondary-color, #6b7280);
+  }
+
+  .mini-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+}
+
+// --- items table ----------------------------------------------------------
+.items-table {
+  thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--bs-secondary-color, #6b7280);
+  }
+}
+
+.lvl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  background: var(--bs-tertiary-bg, #f3f4f6);
+  color: var(--bs-body-color, #374151);
+
+  &.req {
+    background: #ede9fe;
+    color: #6d5ef6;
+  }
+
+  &.muted {
+    color: var(--bs-secondary-color, #c4c7cc);
+  }
+}
+
+.level-toggle {
+  .btn {
+    width: 40px;
+    font-weight: 700;
+    color: var(--bs-secondary-color, #6b7280);
+    border-color: var(--bs-border-color, #d1d5db);
+
+    &.active {
+      color: #fff;
+      background: #6d5ef6;
+      border-color: #6d5ef6;
+    }
+  }
+}
+
+.edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #5b21b6;
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.assessor-note {
+  display: flex;
+  gap: 0.6rem;
+  background: var(--bs-tertiary-bg, #f9fafb);
+  border: 1px solid var(--bs-border-color, #eef0f3);
+  border-radius: 0.6rem;
+  padding: 0.75rem 1rem;
+
+  tui-icon {
+    color: var(--bs-secondary-color, #9ca3af);
+    flex-shrink: 0;
+  }
+}
+
+// orange bucket, which Bootstrap has no subtle token for
+.bg-orange-subtle { background-color: #ffedd5; }
+.text-orange { color: #c2410c; }
+
+// --- overlay --------------------------------------------------------------
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.overlay-panel {
+  background: var(--bs-body-bg, #fff);
+  border-radius: 0.9rem;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.overlay-head,
+.overlay-foot {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem;
+}
+
+.overlay-head {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--bs-border-color, #eef0f3);
+}
+
+.overlay-body {
+  padding: 1.25rem;
+}
+
+.overlay-foot {
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--bs-border-color, #eef0f3);
+}
