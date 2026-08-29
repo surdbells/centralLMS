@@ -38,6 +38,12 @@ $ir-exec: #c62828;
 
 .ir-muted { color: #6c757d; }
 
+.ir-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .ir-sheet {
   background: #fff;
   max-width: 1400px;

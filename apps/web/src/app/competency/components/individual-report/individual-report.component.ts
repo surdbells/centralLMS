@@ -1,6 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { Component, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { BrandingService } from '../../../core/branding.service';
 import {
@@ -26,21 +26,57 @@ import {
   templateUrl: './individual-report.component.html',
   styleUrl: './individual-report.component.scss',
 })
-export class IndividualReportComponent implements OnInit {
+export class IndividualReportComponent implements OnInit, OnChanges {
   private readonly competency = inject(CompetencyService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly toast = inject(HotToastService);
   readonly branding = inject(BrandingService);
+
+  /** When embedded (e.g. the report viewer), the assessment to show is fed in. */
+  @Input() assessmentId?: string;
+  /** Hides the toolbar so the host can provide its own controls. */
+  @Input() embedded = false;
 
   loading = true;
   report: CompetencyReport | null = null;
 
+  /** Back to wherever the report was opened from, or the assessments list. */
+  back(): void {
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      void this.router.navigate(['/admin/competency/assessments']);
+    }
+  }
+
   ngOnInit(): void {
+    if (this.embedded) {
+      // Driven by the @Input; ngOnChanges loads it, so nothing to do until one
+      // is chosen.
+      if (!this.assessmentId) {
+        this.loading = false;
+      }
+      return;
+    }
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
       this.loading = false;
       return;
     }
+    this.load(id);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['assessmentId'] && this.assessmentId) {
+      this.load(this.assessmentId);
+    }
+  }
+
+  private load(id: string): void {
+    this.loading = true;
+    this.report = null;
     this.competency.getReport(id).subscribe({
       next: (report) => {
         this.report = report;

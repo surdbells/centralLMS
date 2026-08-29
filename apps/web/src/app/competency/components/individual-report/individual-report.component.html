@@ -8,10 +8,15 @@
 
 <ng-container *ngIf="!loading && report as r">
   <!-- Toolbar (not printed) -->
-  <div class="ir-toolbar no-print">
-    <div>
-      <strong>{{ r.subject.name || r.assessment.userName }}</strong>
-      <span class="ir-muted"> · Competency Report</span>
+  <div class="ir-toolbar no-print" *ngIf="!embedded">
+    <div class="ir-toolbar-left">
+      <button class="btn btn-outline-secondary btn-sm ir-back" (click)="back()">
+        <i class="bi bi-arrow-left"></i> Back
+      </button>
+      <div>
+        <strong>{{ r.subject.name || r.assessment.userName }}</strong>
+        <span class="ir-muted"> · Competency Report</span>
+      </div>
     </div>
     <button class="btn btn-primary" (click)="print()">
       <i class="bi bi-printer"></i> Print / Save as PDF

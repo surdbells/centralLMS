@@ -1,0 +1,68 @@
+<div class="rv-page">
+  <!-- Picker bar (not printed) -->
+  <div class="rv-bar no-print">
+    <div class="rv-bar-inner">
+      <div class="rv-heading">
+        <h1>Competency Report Viewer</h1>
+        <p>Choose an employee to read and print their competency report.</p>
+      </div>
+
+      <div class="rv-picker" [class.open]="open">
+        <label class="rv-picker-label">Employee</label>
+        <div class="rv-input-wrap">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            class="rv-input"
+            placeholder="Search by name, job title or function…"
+            [(ngModel)]="search"
+            (focus)="openMenu()"
+            (blur)="closeMenu()"
+            autocomplete="off"
+          />
+          <i class="bi bi-chevron-down rv-caret"></i>
+        </div>
+
+        <div class="rv-menu" *ngIf="open">
+          <div class="rv-loading" *ngIf="loading">Loading…</div>
+          <div class="rv-empty" *ngIf="!loading && filtered.length === 0">
+            No one matches “{{ search }}”.
+          </div>
+          <button
+            type="button"
+            class="rv-option"
+            *ngFor="let s of filtered"
+            [class.selected]="selected?.assessmentId === s.assessmentId"
+            (mousedown)="choose(s)"
+          >
+            <span class="rv-avatar">{{ s.userName.charAt(0) }}</span>
+            <span class="rv-option-text">
+              <span class="rv-name">{{ s.userName }}</span>
+              <span class="rv-sub">{{ s.jobTitle }}<span *ngIf="s.functionName"> · {{ s.functionName }}</span> · {{ s.cycle }}</span>
+            </span>
+            <span class="rv-status" [attr.data-status]="s.status">{{ s.status }}</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary rv-print" *ngIf="selected" (click)="print()">
+        <i class="bi bi-printer"></i> Print / Save as PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- Report -->
+  <div class="rv-report">
+    <div class="rv-placeholder no-print" *ngIf="!selected">
+      <i class="bi bi-file-earmark-person"></i>
+      <h3>No employee chosen</h3>
+      <p>Pick someone above and their report appears here, ready to print.</p>
+    </div>
+
+    <app-individual-report
+      *ngIf="selected"
+      [embedded]="true"
+      [assessmentId]="selected.assessmentId"
+    ></app-individual-report>
+  </div>
+</div>

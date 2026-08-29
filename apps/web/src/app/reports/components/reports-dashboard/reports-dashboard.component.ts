@@ -28,8 +28,11 @@ export class ReportsDashboardComponent implements OnInit {
   }
 
   private loadData(): void {
-    // Categories
-    this.reportService.getCategories().subscribe(cats => this.categories = cats);
+    // Categories. "My learning" is the learner's own reports and belongs on
+    // the learner's screens; this admin catalogue is not where they are read.
+    this.reportService
+      .getCategories()
+      .subscribe(cats => (this.categories = cats.filter(c => c.key !== 'my_learning')));
 
     // Total
     this.reportService.getCatalog().subscribe(items => {

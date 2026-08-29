@@ -67,6 +67,14 @@ export const competencyRoutes: Routes = [
           ),
         title: 'Assessment',
       },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./components/report-viewer/report-viewer.component').then(
+            (m) => m.ReportViewerComponent,
+          ),
+        title: 'Competency Reports',
+      },
     ],
   },
 ];
