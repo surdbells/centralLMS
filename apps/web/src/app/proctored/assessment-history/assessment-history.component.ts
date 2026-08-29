@@ -7,11 +7,10 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
+import { AssessmentsService, type AttemptResult } from '../../services/assessments.service';
 import {TopComponent} from '../../partials/top/top.component';
 
 // ==========================================
@@ -26,8 +25,8 @@ interface ApiResponse<T> {
 }
 
 interface AttemptHistoryItem {
-  attempt_id: number;
-  assessment_id: number;
+  attempt_id: string;
+  assessment_id: string;
   assessment_title: string;
   assessment_type: string;
   category_name: string;
@@ -44,7 +43,7 @@ interface AttemptHistoryItem {
   grade: string;
   grading_status: string;
   has_certificate: boolean;
-  certificate_id: number | null;
+  certificate_id: string | null;
   proctored: boolean;
   proctoring_level: string;
   violation_count: number;
@@ -414,13 +413,15 @@ interface PaginationInfo {
   `]
 })
 export class AssessmentHistoryComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
 
   // State
   loading = true;
   attempts: AttemptHistoryItem[] = [];
+  /** The full history, filtered/paginated into `attempts` on the client. */
+  private allAttempts: AttemptHistoryItem[] = [];
   stats: HistoryStats | null = null;
   pagination: PaginationInfo | null = null;
 
@@ -453,31 +454,91 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
 
   loadHistory(): void {
     this.loading = true;
-
-    const fd = new FormData();
-    fd.append('action', 'get_learner_history');
-    fd.append('page', this.filters.page.toString());
-    fd.append('per_page', this.filters.perPage.toString());
-    fd.append('sort', this.filters.sort);
-
-    if (this.filters.search) fd.append('search', this.filters.search);
-    if (this.filters.type) fd.append('assessment_type', this.filters.type);
-    if (this.filters.status) fd.append('status', this.filters.status);
-    if (this.filters.result) fd.append('result', this.filters.result);
-
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/attempt`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.attempts = res.data.attempts || [];
-          this.stats = res.data.stats || null;
-          this.pagination = res.data.pagination || null;
-        }
+    // The new API answers with the caller's attempts; filtering, sorting,
+    // paging and the summary are computed here rather than by the server.
+    this.assessments.myAttempts(200).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rows) => {
+        this.allAttempts = rows.map(r => this.toHistoryItem(r));
+        this.stats = this.computeStats(this.allAttempts);
+        this.applyView();
         this.loading = false;
       },
-      error: () => { this.loading = false; }
+      error: () => { this.loading = false; },
     });
+  }
+
+  private toHistoryItem(r: AttemptResult): AttemptHistoryItem {
+    return {
+      attempt_id: r.id,
+      assessment_id: r.assessmentId,
+      assessment_title: r.assessmentTitle ?? 'Assessment',
+      assessment_type: String((r as Record<string, unknown>)['assessmentKind'] ?? 'quiz'),
+      category_name: '',
+      attempt_number: Number((r as Record<string, unknown>)['attemptNumber'] ?? 1),
+      max_attempts: 0,
+      status: r.status,
+      started_at: r.startedAt ?? '',
+      completed_at: r.submittedAt,
+      duration_seconds: Number((r as Record<string, unknown>)['timeSpentSeconds'] ?? 0),
+      total_score: r.rawScore ?? 0,
+      max_score: r.maxScore ?? 0,
+      percentage: r.percentage ?? 0,
+      passed: r.passed === true,
+      grade: '',
+      grading_status: r.status === 'graded' ? 'graded' : (r.status === 'submitted' ? 'pending' : r.status),
+      has_certificate: false,
+      certificate_id: null,
+      proctored: false,
+      proctoring_level: 'none',
+      violation_count: 0,
+    };
+  }
+
+  private computeStats(items: AttemptHistoryItem[]): HistoryStats {
+    const done = items.filter(i => i.status === 'graded' || i.status === 'submitted');
+    const passed = items.filter(i => i.passed).length;
+    const scores = done.map(i => i.percentage);
+    return {
+      total_attempts: items.length,
+      total_passed: passed,
+      total_failed: done.length - passed,
+      total_pending: items.filter(i => i.grading_status === 'pending').length,
+      total_in_progress: items.filter(i => i.status === 'in_progress').length,
+      average_score: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
+      best_score: scores.length ? Math.max(...scores) : 0,
+      total_time_seconds: items.reduce((a, i) => a + i.duration_seconds, 0),
+      certificates_earned: 0,
+      pass_rate: done.length ? Math.round((passed / done.length) * 100) : 0,
+    };
+  }
+
+  /** Applies the current filters, sort and page to the loaded attempts. */
+  private applyView(): void {
+    const f = this.filters;
+    let rows = [...this.allAttempts];
+
+    if (f.search) {
+      const q = f.search.toLowerCase();
+      rows = rows.filter(r => r.assessment_title.toLowerCase().includes(q));
+    }
+    if (f.type) rows = rows.filter(r => r.assessment_type === f.type);
+    if (f.status) rows = rows.filter(r => r.status === f.status);
+    if (f.result) rows = rows.filter(r => (f.result === 'passed' ? r.passed : !r.passed));
+
+    rows.sort((a, b) => {
+      switch (f.sort) {
+        case 'oldest': return a.started_at.localeCompare(b.started_at);
+        case 'highest': return b.percentage - a.percentage;
+        case 'lowest': return a.percentage - b.percentage;
+        default: return b.started_at.localeCompare(a.started_at);
+      }
+    });
+
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / f.perPage));
+    const page = Math.min(f.page, totalPages);
+    this.pagination = { current_page: page, total_pages: totalPages, total_records: total, per_page: f.perPage };
+    this.attempts = rows.slice((page - 1) * f.perPage, page * f.perPage);
   }
 
   // ==========================================
@@ -488,13 +549,13 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
     if (this.filterTimer) clearTimeout(this.filterTimer);
     this.filterTimer = setTimeout(() => {
       this.filters.page = 1;
-      this.loadHistory();
+      this.applyView();
     }, 300);
   }
 
   clearFilters(): void {
     this.filters = { search: '', type: '', status: '', result: '', sort: 'newest', perPage: 10, page: 1 };
-    this.loadHistory();
+    this.applyView();
   }
 
   hasActiveFilters(): boolean {
@@ -506,23 +567,22 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
   // ==========================================
 
   viewResults(item: AttemptHistoryItem): void {
-    this.router.navigate(['/assessments', 'results', item.attempt_id]);
+    this.router.navigate(['/learner/assessments', item.assessment_id, 'results', item.attempt_id]);
   }
 
   resumeAttempt(item: AttemptHistoryItem): void {
-    this.router.navigate(['/assessments', item.assessment_id, 'take'], {
-      queryParams: { attempt_id: item.attempt_id }
-    });
+    // Back to the lobby, which resumes the in-progress attempt.
+    this.router.navigate(['/learner/assessments', item.assessment_id, 'lobby']);
   }
 
   viewCertificate(item: AttemptHistoryItem): void {
     if (item.certificate_id) {
-      this.router.navigate(['/certificates', item.certificate_id]);
+      this.router.navigate(['/learner/assessments/certificates', item.certificate_id]);
     }
   }
 
   goToAssessments(): void {
-    this.router.navigate(['/assessments']);
+    this.router.navigate(['/learner/assessments']);
   }
 
   // ==========================================
@@ -533,7 +593,7 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
     if (!this.pagination) return;
     if (page < 1 || page > this.pagination.total_pages) return;
     this.filters.page = page;
-    this.loadHistory();
+    this.applyView();
   }
 
   getShowingStart(): number {
@@ -571,24 +631,25 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
   // ==========================================
 
   exportHistory(): void {
-    const fd = new FormData();
-    fd.append('action', 'export_learner_history');
-    fd.append('format', 'csv');
-
-    this.http.post(`${GlobalComponent.baseURL}/user/attempt`, fd, { responseType: 'blob' })
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `assessment-history-${new Date().toISOString().split('T')[0]}.csv`;
-          a.click();
-          URL.revokeObjectURL(url);
-        },
-        error: () => {
-          console.error('Export failed');
-        }
-      });
+    // Built on the client from the loaded history, so no export endpoint is
+    // needed and the current filters are respected.
+    const rows = this.allAttempts;
+    const header = ['Assessment', 'Attempt', 'Status', 'Score', 'Max', 'Percentage', 'Passed', 'Started', 'Completed'];
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [header.map(escape).join(',')];
+    for (const r of rows) {
+      lines.push([
+        r.assessment_title, r.attempt_number, r.status, r.total_score, r.max_score,
+        r.percentage, r.passed ? 'Yes' : 'No', r.started_at, r.completed_at ?? '',
+      ].map(escape).join(','));
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `assessment-history-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ==========================================
@@ -635,7 +696,7 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
     return item.passed ? 'Passed' : 'Failed';
   }
 
-  trackByAttempt(index: number, item: AttemptHistoryItem): number {
+  trackByAttempt(index: number, item: AttemptHistoryItem): string {
     return item.attempt_id;
   }
 }

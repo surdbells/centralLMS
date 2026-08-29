@@ -765,7 +765,7 @@ interface AttemptTimeline {
                   <!-- Default -->
                   <div *ngSwitchDefault>
                     <div class="text-answer-display">
-                      <pre>{{ q.user_answer | json }}</pre>
+                      <p>{{ formatUserAnswer(q) || '(No answer provided)' }}</p>
                     </div>
                   </div>
                 </div>
@@ -1386,7 +1386,7 @@ export class AssessmentResultsComponent implements OnInit, OnDestroy {
     return {
       answer_id: String(q['id'] ?? index),
       question_id: String(q['id'] ?? ''),
-      question_type: String(q['type'] ?? ''),
+      question_type: this.resultType(String(q['type'] ?? '')),
       question_text: String(q['text'] ?? ''),
       question_media: null,
       question_order: index + 1,
@@ -1633,14 +1633,59 @@ export class AssessmentResultsComponent implements OnInit, OnDestroy {
     return this.questionResults.filter(q => q.flagged).length;
   }
 
+  /** New-API question type -> the review template's own type names. */
+  private resultType(apiType: string): string {
+    return ({
+      multiple_choice: 'multiple_choice',
+      multiple_choice_single: 'multiple_choice',
+      multiple_choice_multiple: 'multi_select',
+      true_false: 'true_false',
+      short_answer: 'short_answer',
+      essay: 'essay',
+      numeric: 'numeric',
+      fill_in_blanks: 'fill_in_blank',
+      matching: 'matching',
+      ordering: 'ordering',
+    } as Record<string, string>)[apiType] ?? apiType;
+  }
+
+  /** The option ids in a saved answer, whatever shape it arrived in. */
+  private answerOptionIds(a: any): string[] {
+    if (a && Array.isArray(a.optionIds)) return a.optionIds.map(String);
+    if (Array.isArray(a)) return a.map(String);
+    if (a !== null && a !== undefined && typeof a !== 'object') return [String(a)];
+    return [];
+  }
+
+  private optionId(option: any): string {
+    return String(option?.id ?? option?.option_id ?? '');
+  }
+
+  /** A human-readable rendering of any saved answer, for the fallback view. */
+  formatUserAnswer(q: QuestionResult): string {
+    const a: any = q.user_answer;
+    if (a === null || a === undefined) return '';
+    const ids = this.answerOptionIds(a);
+    if (ids.length && q.options?.length) {
+      return q.options
+        .filter((o: any) => ids.includes(this.optionId(o)))
+        .map((o: any) => o.option_text)
+        .join(', ');
+    }
+    if (typeof a === 'object') {
+      if (typeof a.text === 'string') return a.text;
+      if (a.value !== undefined && a.value !== null) return String(a.value);
+      if (Array.isArray(a.texts)) return a.texts.join(', ');
+    }
+    return typeof a === 'object' ? '' : String(a);
+  }
+
   isOptionSelected(userAnswer: any, option: any): boolean {
-    if (!userAnswer) return false;
-    return String(userAnswer) === String(option.option_id);
+    return this.answerOptionIds(userAnswer).includes(this.optionId(option));
   }
 
   isOptionInArray(userAnswer: any, option: any): boolean {
-    if (!userAnswer || !Array.isArray(userAnswer)) return false;
-    return userAnswer.map(String).includes(String(option.option_id));
+    return this.answerOptionIds(userAnswer).includes(this.optionId(option));
   }
 
   getBlankAnswers(q: QuestionResult): any[] {
