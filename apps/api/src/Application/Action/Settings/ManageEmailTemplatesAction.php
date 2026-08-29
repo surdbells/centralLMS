@@ -11,6 +11,7 @@ use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Notification\EmailTemplate;
+use Central\Api\Domain\Notification\EmailTemplateDefaults;
 use Central\Api\Domain\Notification\EmailTemplateRenderer;
 use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationChannel;
@@ -45,6 +46,7 @@ final class ManageEmailTemplatesAction
         private readonly NotificationComposer $composer,
         private readonly EmailTemplateRenderer $renderer,
         private readonly TenantRepository $tenants,
+        private readonly EmailTemplateDefaults $richDefaults,
     ) {
     }
 
@@ -206,7 +208,15 @@ final class ManageEmailTemplatesAction
      */
     private function defaultWording(NotificationType $type): array
     {
-        return $this->composer->compose($type, $this->example());
+        $composed = $this->composer->compose($type, $this->example());
+
+        // The subject stays the composer's plain line; the body is the rich,
+        // laid-out HTML an author starts from. Placeholders are left in so the
+        // default reads as an editable template, not one person's filled-in copy.
+        return [
+            'title' => $composed['title'],
+            'body'  => $this->richDefaults->body($type) ?? $composed['body'],
+        ];
     }
 
     /**
