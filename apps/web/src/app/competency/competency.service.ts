@@ -141,6 +141,8 @@ export interface ReportSubject {
   email: string | null;
   jobTitle: string | null;
   level: string | null;
+  department: string | null;
+  division: string | null;
 }
 
 /** Everything an individual competency report shows. */

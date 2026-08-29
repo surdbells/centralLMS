@@ -176,6 +176,14 @@ app-course-player main {
   box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.2);
 }
 
+/* Modals run 30% wider than Bootstrap's defaults, so forms and tables inside
+   them have room to breathe. Applies to the Bootstrap modal sizes and to the
+   custom `.overlay-panel` dialogs the newer modules use. */
+.modal-dialog:not(.modal-sm):not(.modal-fullscreen) { max-width: 650px; }
+.modal-dialog.modal-lg { max-width: 1040px; }
+.modal-dialog.modal-xl { max-width: 1500px; }
+.modal-dialog.modal-sm { max-width: 390px; }
+
 /* Shared page-header back button — a consistent boxed chevron, brand-aware,
    used so the Reports, Competency and other module headers line the back
    control up beside the title the way the Courses screen does. */

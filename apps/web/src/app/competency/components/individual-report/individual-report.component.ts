@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
+import { BrandingService } from '../../../core/branding.service';
 import {
   CompetencyService,
   type CompetencyReport,
@@ -29,6 +30,7 @@ export class IndividualReportComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(HotToastService);
+  readonly branding = inject(BrandingService);
 
   loading = true;
   report: CompetencyReport | null = null;
@@ -71,7 +73,19 @@ export class IndividualReportComponent implements OnInit {
 
   /** "Prepared" when the gap is closed, otherwise the gap's own label. */
   readiness(item: AssessmentItem): string {
-    return item.gap === 0 ? 'Prepared' : `${item.gapLabel} gap`;
+    return item.gap === 0 ? 'Prepared' : `${item.gapLabel} Gap`;
+  }
+
+  /** Whether a decision reads as a positive placement, for the green cell. */
+  isPlaced(decision: string | null | undefined): boolean {
+    return (decision ?? '').trim().toLowerCase() === 'placed';
+  }
+
+  /** Months rendered the way the exercise writes it: "1 years / 0 months". */
+  timeToCompetency(months: number): string {
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    return `${years} year${years === 1 ? '' : 's'} / ${rem} month${rem === 1 ? '' : 's'}`;
   }
 
   print(): void {

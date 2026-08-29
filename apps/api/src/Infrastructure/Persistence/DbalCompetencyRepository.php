@@ -544,23 +544,32 @@ final class DbalCompetencyRepository implements CompetencyRepository
             "SELECT TRIM(u.first_name || ' ' || u.last_name) AS name,
                     u.email,
                     jt.name AS job_title,
-                    lv.name AS level
+                    lv.name AS level,
+                    dept.name AS department,
+                    br.name AS division
              FROM users u
              LEFT JOIN lookups jt ON jt.id = u.job_title_id
              LEFT JOIN lookups lv ON lv.id = u.level_id
+             LEFT JOIN lookups dept ON dept.id = u.department_id
+             LEFT JOIN lookups br ON br.id = u.branch_id
              WHERE u.id = :id AND u.tenant_id = :tenant",
             ['id' => $userId, 'tenant' => $tenantId],
         );
 
         if ($row === false) {
-            return ['name' => null, 'email' => null, 'jobTitle' => null, 'level' => null];
+            return [
+                'name' => null, 'email' => null, 'jobTitle' => null,
+                'level' => null, 'department' => null, 'division' => null,
+            ];
         }
 
         return [
-            'name'     => $this->displayName($row['name'] ?? null),
-            'email'    => $this->text($row['email'] ?? null),
-            'jobTitle' => $this->text($row['job_title'] ?? null),
-            'level'    => $this->text($row['level'] ?? null),
+            'name'       => $this->displayName($row['name'] ?? null),
+            'email'      => $this->text($row['email'] ?? null),
+            'jobTitle'   => $this->text($row['job_title'] ?? null),
+            'level'      => $this->text($row['level'] ?? null),
+            'department' => $this->text($row['department'] ?? null),
+            'division'   => $this->text($row['division'] ?? null),
         ];
     }
 

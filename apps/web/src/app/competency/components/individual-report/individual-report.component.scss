@@ -1,3 +1,14 @@
+// The exercise's report is a blue-and-white grid. These tokens follow the
+// sample workbooks so a printed page reads as the same document.
+$ir-navy: #1f4e79;
+$ir-navy-2: #2e5f8a;
+$ir-line: #9db8d2;
+$ir-label: #dbe5f1;
+$ir-green: #2f9e44;
+$ir-self: #2e7d32;
+$ir-sme: #e8930c;
+$ir-exec: #c62828;
+
 :host {
   display: block;
   background: #eceff1;
@@ -25,9 +36,7 @@
   z-index: 5;
 }
 
-.ir-muted {
-  color: #6c757d;
-}
+.ir-muted { color: #6c757d; }
 
 .ir-sheet {
   background: #fff;
@@ -36,27 +45,44 @@
   padding: 2rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   color: #212529;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
 }
 
-// --- person header --------------------------------------------------------
+// --- person header + logo -------------------------------------------------
+.ir-topband {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.25rem;
+}
+
 .ir-person {
   border-collapse: collapse;
-  margin-bottom: 1.25rem;
 
   th, td {
-    border: 1px solid #9db8d2;
+    border: 1px solid $ir-line;
     padding: 0.3rem 0.75rem;
     text-align: left;
     vertical-align: top;
+    font-size: 0.8rem;
   }
 
   th {
-    background: #eaf1f8;
-    font-weight: 600;
+    background: $ir-label;
+    font-weight: 700;
     white-space: nowrap;
-    width: 140px;
+    width: 150px;
   }
+
+  td { min-width: 280px; }
+  .ir-email { color: $ir-navy; text-decoration: underline; }
+}
+
+.ir-logo {
+  flex-shrink: 0;
+  img { max-height: 60px; max-width: 220px; object-fit: contain; }
+  .ir-orgname { font-weight: 800; font-size: 1.3rem; color: var(--brand-primary, #{$ir-navy}); }
 }
 
 // --- competency grid ------------------------------------------------------
@@ -66,114 +92,114 @@
   table-layout: fixed;
 
   th, td {
-    border: 1px solid #b8c4d0;
+    border: 1px solid $ir-line;
     padding: 0.4rem 0.5rem;
     vertical-align: top;
     text-align: center;
   }
 
   thead th {
-    background: var(--brand-primary, #1f4e79);
+    background: $ir-navy;
     color: #fff;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     line-height: 1.2;
+    small { font-weight: 400; opacity: 0.85; }
   }
 
-  .ir-assess { background: color-mix(in srgb, var(--brand-primary, #1f4e79) 82%, #000); }
-  .ir-self { background: #2e7d32; color: #fff; }
-  .ir-sme { background: #ef9a00; color: #fff; }
-  .ir-exec { background: #c62828; color: #fff; }
+  .ir-assess { background: $ir-navy-2; }
+  .ir-self { background: $ir-self; color: #fff; }
+  .ir-sme  { background: $ir-sme;  color: #fff; }
+  .ir-exec { background: $ir-exec; color: #fff; }
 
-  .ir-num { width: 28px; }
-  .ir-comp { width: 150px; text-align: left; font-weight: 600; }
-  .ir-desc { width: 34%; text-align: left; font-weight: normal; }
-  .ir-evi { width: 34%; text-align: left; white-space: pre-line; }
+  .ir-num  { width: 26px; }
+  .ir-comp { width: 120px; text-align: left; font-weight: 600; }
+  .ir-ideal, .ir-ready { width: 70px; }
+  .ir-desc { width: 24%; text-align: left; font-weight: normal; }
+  .ir-evi  { width: 22%; text-align: left; white-space: pre-line; }
+  .ir-gaps { width: 15%; text-align: left; white-space: pre-line; }
 
-  tbody td { font-size: 0.75rem; }
+  tbody td { font-size: 0.72rem; }
+  tbody .ir-desc ::ng-deep p,
+  tbody .ir-desc ::ng-deep ul { margin: 0 0 0.25rem; padding-left: 1rem; }
 }
 
 .ir-star { color: #f0ad4e; }
+.ir-prepared { color: $ir-green; font-weight: 700; }
+.ir-gap { color: $ir-exec; font-weight: 700; }
 
-.ir-prepared { color: #1b7e34; font-weight: 700; }
-.ir-gap { color: #b02a37; font-weight: 700; }
+// --- totals ---------------------------------------------------------------
+.ir-totals {
+  border-collapse: collapse;
+  margin: 1.5rem 0 1rem;
 
-// --- summary --------------------------------------------------------------
-.ir-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin: 1.5rem 0;
+  th, td {
+    border: 1px solid $ir-line;
+    padding: 0.4rem 1.5rem;
+    text-align: center;
+    font-weight: 700;
+  }
+  th { background: $ir-navy; color: #fff; }
 }
 
-.ir-totals,
+// --- decision / rating / time --------------------------------------------
 .ir-kv {
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  width: 420px;
+  max-width: 100%;
+
+  th, td {
+    border: 1px solid #fff;
+    padding: 0.45rem 1rem;
+    text-align: left;
+  }
+  th {
+    background: $ir-navy;
+    color: #fff;
+    font-weight: 700;
+    width: 220px;
+  }
+  td {
+    background: #eef2f7;
+    text-align: center;
+    font-weight: 700;
+  }
+  .ir-decision.placed { background: $ir-green; color: #fff; }
+}
+
+// --- narrative ------------------------------------------------------------
+.ir-notes {
+  width: 100%;
   border-collapse: collapse;
 
   th, td {
-    border: 1px solid #9db8d2;
-    padding: 0.4rem 1rem;
-    text-align: center;
-  }
-
-  th {
-    background: var(--brand-primary, #1f4e79);
-    color: #fff;
-    font-weight: 600;
-  }
-}
-
-.ir-kv {
-  th { text-align: left; background: var(--brand-primary, #1f4e79); }
-  td { text-align: left; min-width: 120px; }
-}
-
-.ir-decision {
-  background: #1b7e34;
-  color: #fff;
-  font-weight: 700;
-}
-
-// --- notes ----------------------------------------------------------------
-.ir-notes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.ir-note {
-  border: 1px solid #cdd8e3;
-  border-radius: 4px;
-  overflow: hidden;
-
-  h4 {
-    background: #f1f5f9;
-    margin: 0;
-    padding: 0.4rem 0.75rem;
+    border: 1px solid $ir-line;
+    padding: 0.55rem 0.85rem;
+    vertical-align: top;
+    text-align: left;
     font-size: 0.78rem;
-    font-weight: 700;
-  }
-
-  p {
-    margin: 0;
-    padding: 0.6rem 0.75rem;
-    font-size: 0.78rem;
-    white-space: pre-line;
     line-height: 1.5;
+    white-space: pre-line;
   }
+  th {
+    background: $ir-label;
+    font-weight: 700;
+    width: 180px;
+    white-space: nowrap;
+  }
+  td { min-height: 2.5rem; }
 }
 
 // --- print ----------------------------------------------------------------
-// Landscape: the report is a wide grid — a description column and an evidence
-// column of running prose — and portrait wraps both into unreadable ribbons.
 @page {
   size: A4 landscape;
-  margin: 10mm;
+  margin: 8mm;
 }
 
 @media print {
   :host { background: #fff; }
   .no-print { display: none !important; }
-  .ir-sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; font-size: 8.5pt; }
-  // Keep a competency's row from splitting across pages where it can be helped.
+  .ir-sheet { box-shadow: none; margin: 0; max-width: none; padding: 0; font-size: 8pt; }
   .ir-grid tbody tr { page-break-inside: avoid; }
+  .ir-notes tr { page-break-inside: avoid; }
 }

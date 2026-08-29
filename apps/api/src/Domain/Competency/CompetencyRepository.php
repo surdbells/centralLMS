@@ -115,7 +115,7 @@ interface CompetencyRepository
     /**
      * The header facts about the person an individual report is for.
      *
-     * @return array{name: ?string, email: ?string, jobTitle: ?string, level: ?string}
+     * @return array{name: ?string, email: ?string, jobTitle: ?string, level: ?string, department: ?string, division: ?string}
      */
     public function reportSubject(string $tenantId, string $userId): array;
 
