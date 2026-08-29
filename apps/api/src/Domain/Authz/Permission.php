@@ -87,6 +87,10 @@ enum Permission: string
     case ReportExport = 'report.export';
     case AuditLogView = 'audit.view';
 
+    case CompetencyView   = 'competency.view';
+    case CompetencyManage = 'competency.manage';
+    case CompetencyAssess = 'competency.assess';
+
     /**
      * The module this permission belongs to, taken from its own name.
      *
@@ -152,6 +156,10 @@ enum Permission: string
             self::ReportView   => "Run reports.",
             self::ReportExport => "Export report results.",
             self::AuditLogView => "Read the audit trail.",
+
+            self::CompetencyView   => "See competencies, job profiles and assessment outcomes.",
+            self::CompetencyManage => "Define competencies and job competency profiles.",
+            self::CompetencyAssess => "Run and review competency assessments.",
         };
     }
 

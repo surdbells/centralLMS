@@ -16,6 +16,9 @@ declare(strict_types=1);
 use Central\Api\Application\Action\Auth\LoginAction;
 use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Action\Auth\RegisterAction;
+use Central\Api\Application\Action\Competency\CompetencyAction;
+use Central\Api\Application\Action\Competency\CompetencyAssessmentAction;
+use Central\Api\Application\Action\Competency\JobProfileAction;
 use Central\Api\Application\Action\Auth\SsoAction;
 use Central\Api\Application\Action\Settings\ManageEmailTemplatesAction;
 use Central\Api\Application\Action\Settings\ManageSsoAction;
@@ -767,6 +770,51 @@ return static function (App $app): void {
                     ->setName('skills.courses');
                 $s->get('/{id:' . $uuid . '}/learners', [ManageSkillsAction::class, 'learners'])
                     ->setName('skills.learners');
+            });
+
+            // --- competency assurance -------------------------------------
+            //
+            // The dictionary, the job profiles built from it, and the
+            // assessments measuring people against those profiles.
+            $secure->group('/competencies', function (RouteCollectorProxy $c) use ($uuid): void {
+                $c->get('', [CompetencyAction::class, 'list'])->setName('competencies.list');
+                $c->post('', [CompetencyAction::class, 'create'])->setName('competencies.create');
+                $c->get('/functions', [CompetencyAction::class, 'functions'])
+                    ->setName('competencies.functions');
+                $c->get('/{id:' . $uuid . '}', [CompetencyAction::class, 'show'])->setName('competencies.show');
+                $c->put('/{id:' . $uuid . '}', [CompetencyAction::class, 'update'])->setName('competencies.update');
+                $c->delete('/{id:' . $uuid . '}', [CompetencyAction::class, 'delete'])
+                    ->setName('competencies.delete');
+            });
+
+            $secure->group('/job-profiles', function (RouteCollectorProxy $p) use ($uuid): void {
+                $p->get('', [JobProfileAction::class, 'list'])->setName('job-profiles.list');
+                $p->post('', [JobProfileAction::class, 'create'])->setName('job-profiles.create');
+                $p->get('/{id:' . $uuid . '}', [JobProfileAction::class, 'show'])->setName('job-profiles.show');
+                $p->put('/{id:' . $uuid . '}', [JobProfileAction::class, 'update'])->setName('job-profiles.update');
+                $p->delete('/{id:' . $uuid . '}', [JobProfileAction::class, 'delete'])
+                    ->setName('job-profiles.delete');
+            });
+
+            $secure->group('/competency-assessments', function (RouteCollectorProxy $a) use ($uuid): void {
+                // `/outcome` before `/{id}` so it is not read as an id.
+                $a->get('/outcome', [CompetencyAssessmentAction::class, 'outcome'])
+                    ->setName('competency-assessments.outcome');
+
+                $a->get('', [CompetencyAssessmentAction::class, 'list'])
+                    ->setName('competency-assessments.list');
+                $a->post('', [CompetencyAssessmentAction::class, 'create'])
+                    ->setName('competency-assessments.create');
+                $a->get('/{id:' . $uuid . '}', [CompetencyAssessmentAction::class, 'show'])
+                    ->setName('competency-assessments.show');
+                $a->post('/{id:' . $uuid . '}/self', [CompetencyAssessmentAction::class, 'selfAssess'])
+                    ->setName('competency-assessments.self');
+                $a->post('/{id:' . $uuid . '}/review', [CompetencyAssessmentAction::class, 'review'])
+                    ->setName('competency-assessments.review');
+                $a->post('/{id:' . $uuid . '}/finalize', [CompetencyAssessmentAction::class, 'finalize'])
+                    ->setName('competency-assessments.finalize');
+                $a->delete('/{id:' . $uuid . '}', [CompetencyAssessmentAction::class, 'delete'])
+                    ->setName('competency-assessments.delete');
             });
 
             // What something teaches, and what somebody has learned. Three

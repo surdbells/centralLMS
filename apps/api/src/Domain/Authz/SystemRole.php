@@ -103,6 +103,12 @@ enum SystemRole: string
                 // rules — is an org admin's job. `tenant.manage` above is the
                 // platform's control over the tenant record and stays there.
                 Permission::SettingsManage,
+                // Competency assurance is run at the organisation level:
+                // defining the dictionary and job profiles, reading the
+                // outcome, and overseeing the assessments themselves.
+                Permission::CompetencyView,
+                Permission::CompetencyManage,
+                Permission::CompetencyAssess,
             ],
             self::TenantAdmin => [
                 Permission::RoleManage,
@@ -122,6 +128,11 @@ enum SystemRole: string
             self::Hr => [
                 Permission::UserView,
                 Permission::ReportView,
+                // HR runs the competency assessments — sitting with people,
+                // recording levels, confirming an expert's review. Defining
+                // the profiles is an org admin's job, above.
+                Permission::CompetencyView,
+                Permission::CompetencyAssess,
             ],
             // "HR management — users, compliance, reports".
             self::HrManager => [
