@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
 import { AdmintopComponent } from '../partials/top/admintop/admintop.component';
+import { RichHtmlEditorComponent } from '../shared/rich-html-editor/rich-html-editor.component';
 import {
   SettingsService,
   type SettingDefinition,
@@ -47,7 +48,7 @@ export interface SettingsTab {
 @Component({
   selector: 'app-tenant-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, RichHtmlEditorComponent],
   templateUrl: './tenant-settings.component.html',
   styleUrls: ['./tenant-settings.component.scss'],
 })

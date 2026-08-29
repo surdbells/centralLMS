@@ -1,0 +1,30 @@
+<div class="rhe" [class.disabled]="disabled">
+  <!-- Toolbar -->
+  <div class="rhe-toolbar">
+    <ng-container *ngFor="let t of tools">
+      <span *ngIf="t === 'sep'" class="rhe-sep"></span>
+      <button *ngIf="t !== 'sep'" type="button" class="rhe-btn"
+              [class.active]="isActive(t)"
+              [title]="t.title" (mousedown)="run(t, $event)">
+        <i class="bi" [ngClass]="t.icon"></i>
+      </button>
+    </ng-container>
+    <span class="rhe-sep"></span>
+    <button type="button" class="rhe-btn rhe-source" [class.active]="showSource"
+            title="Edit HTML source" (click)="toggleSource()">
+      <i class="bi bi-code-slash"></i>
+    </button>
+  </div>
+
+  <!-- Rich surface -->
+  <div #surface class="rhe-surface" [hidden]="showSource"
+       contenteditable="true" [attr.data-placeholder]="placeholder"
+       [style.min-height.px]="minHeight"
+       (input)="syncFromSurface()" (keyup)="saveSelection()"
+       (mouseup)="saveSelection()" (blur)="blurred()"></div>
+
+  <!-- Raw HTML -->
+  <textarea *ngIf="showSource" class="rhe-source-area" spellcheck="false"
+            [style.min-height.px]="minHeight"
+            [ngModel]="html" (ngModelChange)="onSourceChange($event)"></textarea>
+</div>

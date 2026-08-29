@@ -263,17 +263,19 @@
 
           <div class="form-group full-width">
             <label class="form-label" for="tplBody">Body</label>
-            <textarea class="form-control" id="tplBody" rows="8"
-                      [(ngModel)]="templateForm.body"
-                      [placeholder]="editingTemplate.default.body"></textarea>
-            <small class="text-muted">Leave empty to keep the standard wording.</small>
+            <app-rich-html-editor #bodyEditor [(ngModel)]="templateForm.body"
+                                  [placeholder]="editingTemplate.default.body"></app-rich-html-editor>
+            <small class="text-muted">
+              Rich HTML — format it here, or switch to source with the
+              <i class="bi bi-code-slash"></i> button. Leave empty to keep the standard wording.
+            </small>
           </div>
 
           <div class="form-group full-width">
             <label class="form-label">Insert</label>
             <div class="file-type-chips">
               <button type="button" class="chip" *ngFor="let p of placeholders"
-                      (click)="insertPlaceholder(p)">{{ '{{' + p + '}}' }}</button>
+                      (click)="bodyEditor.insert('{{' + p + '}}')">{{ '{{' + p + '}}' }}</button>
             </div>
             <small class="text-muted">
               <code>{{ '{{default_body}}' }}</code> is the standard wording, so you can wrap
@@ -291,8 +293,8 @@
 
           <!-- What it would actually send -->
           <div class="preview-box" *ngIf="editingTemplate.preview">
-            <strong>{{ editingTemplate.preview.title }}</strong>
-            <p class="mb-0">{{ editingTemplate.preview.body }}</p>
+            <div class="preview-subject">{{ editingTemplate.preview.title }}</div>
+            <div class="preview-body" [innerHTML]="editingTemplate.preview.body"></div>
           </div>
 
           <div class="panel-footer">
