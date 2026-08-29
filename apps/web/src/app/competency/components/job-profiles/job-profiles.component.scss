@@ -99,8 +99,8 @@
 
     &.active {
       color: #fff;
-      background: #6d5ef6;
-      border-color: #6d5ef6;
+      background: var(--brand-primary, #6d5ef6);
+      border-color: var(--brand-primary, #6d5ef6);
     }
   }
 }

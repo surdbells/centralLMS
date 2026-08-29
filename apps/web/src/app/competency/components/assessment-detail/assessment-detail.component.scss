@@ -37,7 +37,7 @@
 
     &.active .dot {
       background: #ede9fe;
-      color: #6d5ef6;
+      color: var(--brand-primary, #6d5ef6);
       box-shadow: 0 0 0 3px rgba(109, 94, 246, 0.15);
     }
 
@@ -109,7 +109,7 @@
 
   &.req {
     background: #ede9fe;
-    color: #6d5ef6;
+    color: var(--brand-primary, #6d5ef6);
   }
 
   &.muted {
@@ -126,8 +126,8 @@
 
     &.active {
       color: #fff;
-      background: #6d5ef6;
-      border-color: #6d5ef6;
+      background: var(--brand-primary, #6d5ef6);
+      border-color: var(--brand-primary, #6d5ef6);
     }
   }
 }

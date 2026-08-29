@@ -1,24 +1,43 @@
-<!-- Toolbar -->
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <div class="d-flex gap-2 flex-wrap">
-    <div class="input-group input-group-sm search-box">
-      <span class="input-group-text bg-transparent border-end-0">
-        <tui-icon icon="@tui.search"></tui-icon>
-      </span>
-      <input type="search" class="form-control border-start-0" placeholder="Search competencies"
-             [(ngModel)]="search" (keyup.enter)="load()" (search)="load()" />
+<!-- Header: totals + actions -->
+<div class="dict-header">
+  <div class="dict-stats">
+    <div class="dstat">
+      <tui-icon icon="@tui.layers" class="dstat-icon"></tui-icon>
+      <div><div class="dstat-val">{{ functionStats.length }}</div><div class="dstat-lbl">Functions</div></div>
     </div>
-    <select class="form-select form-select-sm w-auto" [(ngModel)]="functionFilter" (ngModelChange)="load()">
-      <option value="">All functions</option>
-      <option *ngFor="let f of knownFunctions" [value]="f">{{ f }}</option>
-    </select>
+    <div class="dstat">
+      <tui-icon icon="@tui.book-open" class="dstat-icon"></tui-icon>
+      <div><div class="dstat-val">{{ totalCompetencies }}</div><div class="dstat-lbl">Competencies</div></div>
+    </div>
+    <div class="dstat">
+      <tui-icon icon="@tui.briefcase" class="dstat-icon"></tui-icon>
+      <div><div class="dstat-val">{{ totalProfiles }}</div><div class="dstat-lbl">Job profiles</div></div>
+    </div>
   </div>
   <div class="d-flex gap-2">
     <button class="btn btn-outline-secondary btn-sm" (click)="openImport()">
-      <tui-icon icon="@tui.upload"></tui-icon> Import workbooks
+      <tui-icon icon="@tui.upload"></tui-icon> Import
     </button>
     <button class="btn btn-primary btn-sm" (click)="openNew()">
       <tui-icon icon="@tui.plus"></tui-icon> New competency
+    </button>
+  </div>
+</div>
+
+<!-- Search + function chips -->
+<div class="dict-toolbar">
+  <div class="input-group input-group-sm search-box">
+    <span class="input-group-text bg-transparent border-end-0"><tui-icon icon="@tui.search"></tui-icon></span>
+    <input type="search" class="form-control border-start-0" placeholder="Search competencies"
+           [(ngModel)]="search" (keyup.enter)="load()" (search)="load()" />
+  </div>
+  <div class="fn-chips">
+    <button class="fn-chip" [class.active]="!functionFilter" (click)="selectFunction('')">
+      All <span class="chip-count">{{ totalCompetencies }}</span>
+    </button>
+    <button class="fn-chip" *ngFor="let f of functionStats"
+            [class.active]="functionFilter === f.function" (click)="selectFunction(f.function)">
+      {{ f.function }} <span class="chip-count">{{ f.competencies }}</span>
     </button>
   </div>
 </div>
@@ -31,11 +50,13 @@
 <!-- Empty -->
 <div *ngIf="!loading && !groups.length" class="empty-panel text-center py-5">
   <tui-icon icon="@tui.book-open" class="empty-icon"></tui-icon>
-  <h5 class="mt-3 mb-1">No competencies yet</h5>
+  <h5 class="mt-3 mb-1">{{ search || functionFilter ? 'No matching competencies' : 'No competencies yet' }}</h5>
   <p class="text-muted mb-3">
-    Import the completed JCP workbooks, or define the capabilities your organisation measures by hand.
+    {{ search || functionFilter
+        ? 'Try a different search or function.'
+        : 'Import the completed JCP workbooks, or define the capabilities your organisation measures by hand.' }}
   </p>
-  <div class="d-flex justify-content-center gap-2">
+  <div class="d-flex justify-content-center gap-2" *ngIf="!search && !functionFilter">
     <button class="btn btn-primary btn-sm" (click)="openImport()">
       <tui-icon icon="@tui.upload"></tui-icon> Import workbooks
     </button>
@@ -44,50 +65,63 @@
 </div>
 
 <!-- Groups -->
-<div *ngIf="!loading" class="d-flex flex-column gap-4">
+<div *ngIf="!loading && groups.length" class="d-flex flex-column gap-4">
   <div *ngFor="let group of groups" class="function-group">
-    <div class="d-flex align-items-center gap-2 mb-2">
+    <div class="fn-group-head">
+      <span class="fn-dot"></span>
       <h6 class="mb-0 fw-semibold">{{ group.function }}</h6>
-      <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">
-        {{ group.competencies.length }}
-      </span>
+      <span class="fn-count">{{ group.competencies.length }}</span>
     </div>
-    <div class="row g-3">
-      <div class="col-md-6 col-xl-4" *ngFor="let c of group.competencies">
-        <div class="comp-card">
-          <div class="d-flex justify-content-between align-items-start">
-            <div class="fw-medium">{{ c.name }}</div>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-icon" type="button"
-                      (click)="openMenuId = openMenuId === c.id ? null : c.id">
-                <tui-icon icon="@tui.ellipsis-vertical"></tui-icon>
+    <div class="comp-grid">
+      <div class="comp-card" *ngFor="let c of group.competencies" [class.expanded]="expandedId === c.id">
+        <div class="comp-card-head">
+          <div class="comp-name">{{ c.name }}</div>
+          <div class="dropdown">
+            <button class="btn btn-sm btn-icon" type="button"
+                    (click)="openMenuId = openMenuId === c.id ? null : c.id">
+              <tui-icon icon="@tui.ellipsis-vertical"></tui-icon>
+            </button>
+            <div class="card-menu" *ngIf="openMenuId === c.id">
+              <button class="menu-item" (click)="openMenuId = null; openEdit(c)">
+                <tui-icon icon="@tui.pencil"></tui-icon> Edit
               </button>
-              <div class="card-menu" *ngIf="openMenuId === c.id">
-                <button class="menu-item" (click)="openMenuId = null; openEdit(c)">
-                  <tui-icon icon="@tui.pencil"></tui-icon> Edit
-                </button>
-                <button class="menu-item text-danger" (click)="openMenuId = null; askDelete(c)">
-                  <tui-icon icon="@tui.trash-2"></tui-icon> Remove
-                </button>
-              </div>
+              <button class="menu-item text-danger" (click)="openMenuId = null; askDelete(c)">
+                <tui-icon icon="@tui.trash-2"></tui-icon> Remove
+              </button>
             </div>
           </div>
-          <p class="text-muted small mb-2" *ngIf="c.description">{{ c.description }}</p>
-          <div class="level-lines">
-            <div class="level-line" *ngIf="c.levels.knowledge">
-              <span class="lvl-badge k">K</span><span>{{ c.levels.knowledge }}</span>
-            </div>
-            <div class="level-line" *ngIf="c.levels.skill">
-              <span class="lvl-badge s">S</span><span>{{ c.levels.skill }}</span>
-            </div>
-            <div class="level-line" *ngIf="c.levels.mastery">
-              <span class="lvl-badge m">M</span><span>{{ c.levels.mastery }}</span>
-            </div>
+        </div>
+
+        <p class="comp-def" *ngIf="c.description">{{ c.description }}</p>
+
+        <!-- Which levels this competency defines, at a glance -->
+        <div class="lvl-strip">
+          <span class="lvl-pill k" [class.on]="c.levels.knowledge" title="Knowledge">K</span>
+          <span class="lvl-pill s" [class.on]="c.levels.skill" title="Skill">S</span>
+          <span class="lvl-pill m" [class.on]="c.levels.mastery" title="Mastery">M</span>
+          <button class="lvl-toggle" *ngIf="c.levels.knowledge || c.levels.skill || c.levels.mastery"
+                  (click)="toggleLevels(c.id)">
+            {{ expandedId === c.id ? 'Hide levels' : 'View levels' }}
+            <tui-icon [icon]="expandedId === c.id ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
+          </button>
+        </div>
+
+        <!-- The behavioural anchors, on demand -->
+        <div class="lvl-detail" *ngIf="expandedId === c.id">
+          <div class="lvl-row" *ngIf="c.levels.knowledge">
+            <span class="lvl-tag k">Knowledge</span><p>{{ c.levels.knowledge }}</p>
           </div>
-          <div class="comp-meta">
-            <span title="Job profiles requiring it"><tui-icon icon="@tui.briefcase"></tui-icon> {{ c.profileCount }}</span>
-            <span title="Times assessed"><tui-icon icon="@tui.clipboard-check"></tui-icon> {{ c.assessedCount }}</span>
+          <div class="lvl-row" *ngIf="c.levels.skill">
+            <span class="lvl-tag s">Skill</span><p>{{ c.levels.skill }}</p>
           </div>
+          <div class="lvl-row" *ngIf="c.levels.mastery">
+            <span class="lvl-tag m">Mastery</span><p>{{ c.levels.mastery }}</p>
+          </div>
+        </div>
+
+        <div class="comp-meta">
+          <span title="Job profiles requiring it"><tui-icon icon="@tui.briefcase"></tui-icon> {{ c.profileCount }} profile{{ c.profileCount === 1 ? '' : 's' }}</span>
+          <span title="Times assessed"><tui-icon icon="@tui.clipboard-check"></tui-icon> {{ c.assessedCount }} assessed</span>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 import {
   CompetencyService,
   type Competency,
+  type CompetencyFunction,
   type CompetencyInput,
   type ImportResult,
 } from '../../competency.service';
@@ -39,8 +40,28 @@ export class CompetencyDictionaryComponent implements OnInit {
   groups: FunctionGroup[] = [];
   functionFilter = '';
   search = '';
-  knownFunctions: string[] = [];
+  functionStats: CompetencyFunction[] = [];
   openMenuId: string | null = null;
+  /** The card whose level descriptors are expanded. */
+  expandedId: string | null = null;
+
+  get knownFunctions(): string[] {
+    return this.functionStats.map((f) => f.function);
+  }
+
+  /** Totals for the header — across the whole dictionary, not the filtered view. */
+  get totalCompetencies(): number {
+    return this.functionStats.reduce((sum, f) => sum + f.competencies, 0);
+  }
+
+  get totalProfiles(): number {
+    return this.functionStats.reduce((sum, f) => sum + f.profiles, 0);
+  }
+
+  /** Competencies shown after the current filter — for the result count. */
+  get shownCount(): number {
+    return this.groups.reduce((sum, g) => sum + g.competencies.length, 0);
+  }
 
   // Modal state
   modalOpen = false;
@@ -76,11 +97,21 @@ export class CompetencyDictionaryComponent implements OnInit {
         },
       });
 
-    // Function list for the filter and the form's datalist.
+    // Per-function counts for the chip bar, the header totals and the datalist.
     this.competency.getFunctions().subscribe({
-      next: (functions) => (this.knownFunctions = functions.map((f) => f.function)),
+      next: (functions) => (this.functionStats = functions),
       error: () => undefined,
     });
+  }
+
+  /** Filter to one function (or clear) from the chip bar. */
+  selectFunction(fn: string): void {
+    this.functionFilter = this.functionFilter === fn ? '' : fn;
+    this.load();
+  }
+
+  toggleLevels(id: string): void {
+    this.expandedId = this.expandedId === id ? null : id;
   }
 
   private group(items: Competency[]): FunctionGroup[] {

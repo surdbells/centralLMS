@@ -22,7 +22,7 @@
     }
 
     &.active {
-      background: #6d5ef6;
+      background: var(--brand-primary, #6d5ef6);
       color: #fff;
     }
   }
