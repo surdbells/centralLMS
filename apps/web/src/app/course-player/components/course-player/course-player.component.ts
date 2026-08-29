@@ -14,10 +14,13 @@ import {
   Module,
   Assessment,
   Note,
-  QuizResult
+  QuizResult,
+  Classmate,
+  DiscussionPost
 } from '../../services/course-player.service';
 import { ScormAdapterService } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
+import { SessionStore } from '../../../core/auth/session.store';
 import {GlobalComponent} from '../../../global-component';
 import {HotToastService} from '@ngneat/hot-toast';
 
@@ -39,7 +42,8 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
   // UI State
   sidebarCollapsed = false;
-  activeTab: 'content' | 'notes' | 'resources' = 'content';
+  activeTab: 'transcript' | 'notes' | 'resources' = 'transcript';
+  sidebarTab: 'path' | 'learners' | 'discuss' = 'path';
   showCompletionModal = false;
   showRatingModal = false;
   showNoteModal = false;
@@ -55,7 +59,20 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   newNote = '';
   noteTimestamp = 0;
 
+  // Learners and discussion
+  courseId = '';
+  classmates: Classmate[] = [];
+  classmatesLoaded = false;
+  discussion: DiscussionPost[] = [];
+  discussionLoaded = false;
+  newDiscussionPost = '';
+  replyingTo: string | null = null;
+  replyText = '';
+  currentUserId = '';
+
   // Video tracking
+  settingsOpen = false;
+  private openModules = new Set<string>();
   videoElement: HTMLVideoElement | null = null;
   isPlaying = false;
   currentTime = 0;
@@ -69,10 +86,11 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router,
+    public router: Router,
     private toast: HotToastService,
     private sanitizer: DomSanitizer,
     private scormAdapter: ScormAdapterService,
+    private session: SessionStore,
     public playerService: CoursePlayerService
   ) {}
 
@@ -117,9 +135,13 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       const courseId = String(params['courseId'] ?? '');
 
       if (courseId !== '') {
+        this.courseId = courseId;
         this.loadCourse(courseId);
       }
     });
+
+    // Who the caller is, so their own discussion posts can be deleted.
+    this.currentUserId = this.session.userId() ?? '';
 
     // Subscribe to service observables
     this.playerService.courseData$
@@ -238,7 +260,9 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     }
 
     this.playerService.selectLesson(lesson);
-    this.activeTab = 'content';
+    // Opening a lesson shows its transcript first; the settings menu closes.
+    this.activeTab = 'transcript';
+    this.settingsOpen = false;
 
     // Track content interaction based on type
     if (lesson.content_type === 'scorm' && this.courseData) {
@@ -714,6 +738,214 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     return this.playerService.formatDuration(Math.floor(seconds));
   }
 
+  /** Two-digit padding, as the design shows: "01", "00 of 16". */
+  padded(value: number): string {
+    const n = Math.max(0, Math.round(value || 0));
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  // ==========================================
+  // MODULE ACCORDION
+  // ==========================================
+
+  isModuleOpen(module: Module, index: number): boolean {
+    // The first module, the one holding the current lesson, and any the
+    // learner has opened by hand.
+    if (this.openModules.has(module.module_id)) return true;
+    if (this.openModules.size === 0 && index === 0) return true;
+    return module.module_id === this.currentLesson?.module_id;
+  }
+
+  toggleModule(moduleId: string): void {
+    if (this.openModules.has(moduleId)) {
+      this.openModules.delete(moduleId);
+    } else {
+      this.openModules.add(moduleId);
+    }
+  }
+
+  restart(): void {
+    if (this.videoElement) {
+      this.videoElement.currentTime = 0;
+    }
+  }
+
+  // ==========================================
+  // SIDEBAR TABS: PATH / LEARNERS / DISCUSS
+  // ==========================================
+
+  selectSidebarTab(tab: 'path' | 'learners' | 'discuss'): void {
+    this.sidebarTab = tab;
+
+    // Loaded lazily and once: opening the player should not fetch the
+    // classmates and the whole discussion nobody may look at.
+    if (tab === 'learners' && !this.classmatesLoaded) {
+      this.loadClassmates();
+    }
+    if (tab === 'discuss' && !this.discussionLoaded) {
+      this.loadDiscussion();
+    }
+  }
+
+  private loadClassmates(): void {
+    if (!this.courseId) return;
+    this.playerService.getClassmates(this.courseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (people) => { this.classmates = people; this.classmatesLoaded = true; },
+        error: () => { this.classmates = []; this.classmatesLoaded = true; },
+      });
+  }
+
+  private loadDiscussion(): void {
+    if (!this.courseId) return;
+    this.playerService.getDiscussion(this.courseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (posts) => { this.discussion = posts; this.discussionLoaded = true; },
+        error: () => { this.discussion = []; this.discussionLoaded = true; },
+      });
+  }
+
+  submitDiscussionPost(): void {
+    const text = this.newDiscussionPost.trim();
+    if (!text || !this.courseId) return;
+
+    this.playerService
+      .postToDiscussion(this.courseId, text, null, this.currentLesson?.lesson_id ?? null)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.newDiscussionPost = ''; this.loadDiscussion(); },
+        error: (err) => this.toast.error(err?.message || 'Could not post.'),
+      });
+  }
+
+  startReply(postId: string): void {
+    this.replyingTo = this.replyingTo === postId ? null : postId;
+    this.replyText = '';
+  }
+
+  submitReply(parentId: string): void {
+    const text = this.replyText.trim();
+    if (!text || !this.courseId) return;
+
+    this.playerService
+      .postToDiscussion(this.courseId, text, parentId, this.currentLesson?.lesson_id ?? null)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.replyingTo = null; this.replyText = ''; this.loadDiscussion(); },
+        error: (err) => this.toast.error(err?.message || 'Could not reply.'),
+      });
+  }
+
+  deleteDiscussionPost(postId: string): void {
+    if (!this.courseId) return;
+    this.playerService.deleteDiscussionPost(this.courseId, postId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadDiscussion() });
+  }
+
+  // ==========================================
+  // TRANSCRIPT & RESOURCES
+  // ==========================================
+
+  /** The transcript of the current lesson, where it has one. */
+  get transcript(): string {
+    return this.currentLesson?.content_text?.trim() ?? '';
+  }
+
+  /**
+   * Downloadable resources: every lesson across the course whose content is a
+   * file rather than a stream — a PDF, a document, an audio file, a package.
+   * Real data, not a separate attachment store the schema does not have.
+   */
+  get resources(): Array<{
+    lessonId: string;
+    title: string;
+    url: string;
+    type: string;
+    module: string;
+  }> {
+    if (!this.courseData) return [];
+
+    const downloadable = new Set(['pdf', 'audio', 'scorm', 'html']);
+    const out: Array<{ lessonId: string; title: string; url: string; type: string; module: string }> = [];
+
+    for (const module of this.courseData.modules) {
+      for (const lesson of module.lessons) {
+        if (downloadable.has(lesson.content_type) && lesson.content_url) {
+          out.push({
+            lessonId: lesson.lesson_id,
+            title: lesson.title,
+            url: lesson.content_url,
+            type: lesson.content_type,
+            module: module.title,
+          });
+        }
+      }
+    }
+
+    return out;
+  }
+
+  /** The three-letter badge and its colour class for a resource file type. */
+  resourceBadge(type: string): { label: string; cls: string } {
+    const map: Record<string, { label: string; cls: string }> = {
+      pdf:   { label: 'PDF', cls: 'badge-pdf' },
+      audio: { label: 'MP3', cls: 'badge-audio' },
+      scorm: { label: 'ZIP', cls: 'badge-zip' },
+      html:  { label: 'DOC', cls: 'badge-doc' },
+    };
+    return map[type] ?? { label: 'FILE', cls: 'badge-doc' };
+  }
+
+  downloadResource(url: string): void {
+    window.open(url, '_blank', 'noopener');
+    this.onDocumentDownload();
+  }
+
+  /** The per-lesson meta line shown in the path — "05:00", "Ebook", "Quiz: 5 questions". */
+  lessonMeta(lesson: Lesson): string {
+    switch (lesson.content_type) {
+      case 'video':
+      case 'audio':
+        return this.formatTime(lesson.duration_minutes * 60);
+      case 'pdf':
+        return 'Ebook';
+      case 'html':
+      case 'text':
+        return lesson.duration_minutes ? `Reading: ${lesson.duration_minutes} minutes` : 'Reading';
+      case 'scorm':
+        return 'Interactive';
+      default:
+        return '';
+    }
+  }
+
+  /** The typed icon for a lesson in the path, matching the design's set. */
+  pathLessonIcon(lesson: Lesson): string {
+    const icons: Record<string, string> = {
+      video: 'bi-play-circle',
+      audio: 'bi-music-note-beamed',
+      pdf: 'bi-file-earmark-text',
+      html: 'bi-book',
+      text: 'bi-book',
+      scorm: 'bi-box',
+    };
+    return icons[lesson.content_type] ?? 'bi-file-earmark';
+  }
+
+  assessmentMeta(a: Assessment): string {
+    if (a.assessment_type === 'assignment') return 'Assignment';
+    const n = a.total_questions || 0;
+    const label = a.assessment_type === 'exam' ? 'Exam' : 'Quiz';
+    return n ? `${label}: ${n} question${n === 1 ? '' : 's'}` : label;
+  }
+
+  pathAssessmentIcon(a: Assessment): string {
+    return a.assessment_type === 'assignment' ? 'bi-layout-text-window' : 'bi-question-circle';
+  }
+
   getProgressPercentage(): number {
     return this.courseData?.enrollment.progress_percentage || 0;
   }
@@ -868,10 +1100,11 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
         this.videoElement?.requestFullscreen();
         break;
       case 'b':
-        this.addBookmark();
-        break;
       case 'n':
-        this.openNoteModal();
+        // The note modal is gone; both shortcuts open the Notes tab at the
+        // current timestamp, which is where a note is now written.
+        this.noteTimestamp = Math.floor(this.currentTime);
+        this.activeTab = 'notes';
         break;
     }
   }

@@ -71,6 +71,7 @@ use Central\Api\Application\Action\Proctoring\ProctoringSessionAction;
 use Central\Api\Application\Action\Proctoring\ReviewProctoringAction;
 use Central\Api\Application\Action\Enrollment\AssignEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\CourseEnrollmentStatsAction;
+use Central\Api\Application\Action\Enrollment\CoursePlayerExtrasAction;
 use Central\Api\Application\Action\Enrollment\EnrollmentRuleAction;
 use Central\Api\Application\Action\Enrollment\EnrollmentHistoryAction;
 use Central\Api\Application\Action\Enrollment\ListCourseEnrollmentsAction;
@@ -296,6 +297,20 @@ return static function (App $app): void {
                     '/{courseId:' . $uuid . '}/lessons/{lessonId:' . $uuid . '}/progress',
                     RecordProgressAction::class,
                 )->setName('me.progress.record');
+
+                // The player's "Learners" and "Discuss" tabs. Both are gated
+                // on being enrolled — you see the classmates and join the
+                // discussion of a course you are on, and no other.
+                $m->get('/{courseId:' . $uuid . '}/classmates', [CoursePlayerExtrasAction::class, 'classmates'])
+                    ->setName('me.enrollments.classmates');
+                $m->get('/{courseId:' . $uuid . '}/discussion', [CoursePlayerExtrasAction::class, 'discussion'])
+                    ->setName('me.enrollments.discussion');
+                $m->post('/{courseId:' . $uuid . '}/discussion', [CoursePlayerExtrasAction::class, 'post'])
+                    ->setName('me.enrollments.discussion.post');
+                $m->delete(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}',
+                    [CoursePlayerExtrasAction::class, 'deletePost'],
+                )->setName('me.enrollments.discussion.delete');
             });
 
             // The course catalogue.

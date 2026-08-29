@@ -106,6 +106,25 @@ export interface Assessment {
   has_passed: boolean;
 }
 
+export interface Classmate {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  progress: number;
+  status: string;
+}
+
+export interface DiscussionPost {
+  id: string;
+  body: string;
+  lessonId: string | null;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string | null;
+  createdAt: string;
+  replies?: DiscussionPost[];
+}
+
 export interface Bookmark {
   bookmark_id: string;
   lesson_id: string;
@@ -580,6 +599,39 @@ export class CoursePlayerService {
     return this.api
       .getPaged<NotePayload>(Endpoints.notes.list, { lessonId, perPage: 100 })
       .pipe(map((page) => page.items.map(toNote)));
+  }
+
+  // ==========================================
+  // LEARNERS AND DISCUSSION
+  // ==========================================
+
+  /** The people also on this course, and how far each has got. */
+  getClassmates(courseId: string): Observable<Classmate[]> {
+    return this.api.get<Classmate[]>(Endpoints.me.classmates(courseId));
+  }
+
+  /** The course's discussion: top-level posts, each with its replies. */
+  getDiscussion(courseId: string): Observable<DiscussionPost[]> {
+    return this.api.get<DiscussionPost[]>(Endpoints.me.discussion(courseId));
+  }
+
+  postToDiscussion(
+    courseId: string,
+    body: string,
+    parentId?: string | null,
+    lessonId?: string | null,
+  ): Observable<DiscussionPost> {
+    return this.api.post<DiscussionPost>(Endpoints.me.discussion(courseId), {
+      body,
+      parentId: parentId ?? undefined,
+      lessonId: lessonId ?? undefined,
+    });
+  }
+
+  deleteDiscussionPost(courseId: string, postId: string): Observable<void> {
+    return this.api
+      .delete(Endpoints.me.deleteDiscussionPost(courseId, postId))
+      .pipe(map(() => undefined));
   }
 
   // ==========================================

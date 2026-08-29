@@ -196,6 +196,12 @@ export const Endpoints = {
     course: (courseId: string) => `/me/enrollments/${courseId}`,
     recordProgress: (courseId: string, lessonId: string) =>
       `/me/enrollments/${courseId}/lessons/${lessonId}/progress`,
+
+    // The player's Learners and Discuss tabs, both gated on being enrolled.
+    classmates: (courseId: string) => `/me/enrollments/${courseId}/classmates`,
+    discussion: (courseId: string) => `/me/enrollments/${courseId}/discussion`,
+    deleteDiscussionPost: (courseId: string, postId: string) =>
+      `/me/enrollments/${courseId}/discussion/${postId}`,
     certificates: '/me/certificates',
     /** The assessments this person has sat — not a marker's queue. */
     attempts: '/me/attempts',
