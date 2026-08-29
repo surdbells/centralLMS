@@ -131,13 +131,39 @@
         <div *ngIf="!requirements.length" class="text-muted small text-center py-2">No competencies added yet.</div>
       </div>
 
-      <!-- Add picker -->
-      <div class="input-group input-group-sm">
-        <span class="input-group-text bg-transparent"><tui-icon icon="@tui.plus"></tui-icon></span>
-        <select class="form-select" #picker (change)="addRequirement(picker.value); picker.value = ''">
-          <option value="">Add a competency…</option>
-          <option *ngFor="let c of pickableCompetencies" [value]="c.id">{{ c.name }}</option>
-        </select>
+      <!-- Add picker — searchable -->
+      <div class="comp-picker" [class.open]="pickerOpen">
+        <div class="comp-picker-input">
+          <tui-icon icon="@tui.search"></tui-icon>
+          <input
+            type="text"
+            [(ngModel)]="pickerSearch"
+            (focus)="openPicker()"
+            (blur)="closePicker()"
+            [placeholder]="functionName ? 'Add a competency — search ' + functionName + '…' : 'Choose a function first'"
+            [disabled]="!functionName"
+            autocomplete="off"
+          />
+          <tui-icon icon="@tui.chevron-down" class="comp-caret"></tui-icon>
+        </div>
+
+        <div class="comp-menu" *ngIf="pickerOpen">
+          <div class="comp-empty" *ngIf="filteredPickable.length === 0">
+            {{ pickerSearch ? 'Nothing matches “' + pickerSearch + '”.' : 'Every competency in this function is already required.' }}
+          </div>
+          <button
+            type="button"
+            class="comp-option"
+            *ngFor="let c of filteredPickable"
+            (mousedown)="pick(c)"
+          >
+            <tui-icon icon="@tui.plus" class="comp-add"></tui-icon>
+            <span class="comp-option-text">
+              <span class="comp-name">{{ c.name }}</span>
+              <span class="comp-desc" *ngIf="c.description">{{ c.description }}</span>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
     <div class="overlay-foot">

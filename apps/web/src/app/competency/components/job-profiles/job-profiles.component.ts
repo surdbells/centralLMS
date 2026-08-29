@@ -50,6 +50,10 @@ export class JobProfilesComponent implements OnInit {
   // Every competency, for the requirement picker, indexed by function.
   allCompetencies: Competency[] = [];
 
+  // The searchable "add a competency" picker.
+  pickerOpen = false;
+  pickerSearch = '';
+
   // Modal / editor state
   modalOpen = false;
   editing: JobCompetencyProfile | null = null;
@@ -125,6 +129,31 @@ export class JobProfilesComponent implements OnInit {
     return this.allCompetencies
       .filter((c) => !this.functionName || c.functionName === this.functionName)
       .filter((c) => !chosen.has(c.id));
+  }
+
+  /** The pickable competencies narrowed by what has been typed. */
+  get filteredPickable(): Competency[] {
+    const q = this.pickerSearch.trim().toLowerCase();
+    if (!q) {
+      return this.pickableCompetencies;
+    }
+    return this.pickableCompetencies.filter(
+      (c) => c.name.toLowerCase().includes(q) || (c.description ?? '').toLowerCase().includes(q),
+    );
+  }
+
+  openPicker(): void {
+    this.pickerOpen = true;
+  }
+
+  closePicker(): void {
+    setTimeout(() => (this.pickerOpen = false), 150);
+  }
+
+  pick(competency: Competency): void {
+    this.addRequirement(competency.id);
+    this.pickerSearch = '';
+    this.pickerOpen = false;
   }
 
   competencyName(id: string): string {
