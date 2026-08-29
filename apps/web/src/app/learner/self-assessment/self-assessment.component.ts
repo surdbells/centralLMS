@@ -37,6 +37,8 @@ export class SelfAssessmentComponent implements OnInit {
   /** The one being filled in, with the levels claimed so far. */
   open: CompetencyAssessment | null = null;
   levels: Record<string, ProficiencyLevel> = {};
+  /** The evidence text the employee gives for each competency. */
+  evidence: Record<string, string> = {};
   /** The employee's overall account of the evidence, shown on their report. */
   selfComment = '';
 
@@ -76,10 +78,12 @@ export class SelfAssessmentComponent implements OnInit {
       next: (full) => {
         this.open = full;
         this.levels = {};
+        this.evidence = {};
         this.selfComment = full.selfComment ?? '';
         for (const item of full.items) {
           // Start each competency on what they last claimed, if anything.
           this.levels[item.competencyId] = (item.selfLevel ?? 0) as ProficiencyLevel;
+          this.evidence[item.competencyId] = item.comment ?? '';
         }
       },
       error: () => this.toast.error('That assessment could not be opened.'),
@@ -100,7 +104,7 @@ export class SelfAssessmentComponent implements OnInit {
     }
     this.saving = true;
     const submission: LevelSubmission = { ...this.levels };
-    this.competency.selfAssess(this.open.id, submission, this.selfComment.trim()).subscribe({
+    this.competency.selfAssess(this.open.id, submission, this.selfComment.trim(), { ...this.evidence }).subscribe({
       next: (updated) => {
         this.saving = false;
         this.toast.success('Your self-assessment has been saved.');

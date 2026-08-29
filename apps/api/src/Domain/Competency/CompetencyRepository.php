@@ -92,6 +92,14 @@ interface CompetencyRepository
      */
     public function recordLevels(string $tenantId, string $assessmentId, string $field, array $levels): ?CompetencyAssessment;
 
+    /**
+     * Records the evidence text on some items — the employee's account of each
+     * competency, shown as the report's Evidence column.
+     *
+     * @param array<string, ?string> $comments competency id => evidence text
+     */
+    public function recordComments(string $tenantId, string $assessmentId, array $comments): ?CompetencyAssessment;
+
     public function setStatus(
         string $tenantId,
         string $assessmentId,

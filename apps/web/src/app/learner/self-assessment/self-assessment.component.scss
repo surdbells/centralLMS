@@ -249,3 +249,38 @@
     &:disabled { background: #f1f3f5; }
   }
 }
+
+// Per-competency evidence, under the level buttons.
+.sa-evidence {
+  margin-top: 1rem;
+
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .sa-evidence-hint {
+    margin: 0 0 0.5rem;
+    color: #6c757d;
+    font-size: 0.78rem;
+  }
+
+  textarea {
+    width: 100%;
+    border: 1.5px solid #dee2e6;
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.88rem;
+    resize: vertical;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--brand-primary, #303234);
+      box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb, 48, 50, 52), 0.12);
+    }
+    &:disabled { background: #f1f3f5; }
+  }
+}

@@ -273,6 +273,13 @@ final class CompetencyAssessmentAction
             $this->repository->recordLevels($tenantId, $assessment->id, 'self', $levels);
         }
 
+        // The evidence the employee gives for each competency — their account of
+        // what they have done, shown as the report's Evidence column.
+        $evidence = $this->comments($body['evidence'] ?? null);
+        if ($evidence !== []) {
+            $this->repository->recordComments($tenantId, $assessment->id, $evidence);
+        }
+
         // The employee's own overall account of the evidence, if they gave one.
         if (array_key_exists('comment', $body)) {
             $this->repository->saveNarrative($tenantId, $assessment->id, [
@@ -521,6 +528,27 @@ final class CompetencyAssessmentAction
         foreach ($raw as $competencyId => $level) {
             if (is_string($competencyId) && $competencyId !== '' && is_numeric($level)) {
                 $out[$competencyId] = (int) $level;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A map of competency id => evidence text, from a request object.
+     *
+     * @return array<string, string>
+     */
+    private function comments(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $competencyId => $text) {
+            if (is_string($competencyId) && $competencyId !== '' && is_scalar($text)) {
+                $out[$competencyId] = (string) $text;
             }
         }
 

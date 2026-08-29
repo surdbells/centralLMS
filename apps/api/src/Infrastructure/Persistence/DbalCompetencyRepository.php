@@ -462,6 +462,28 @@ final class DbalCompetencyRepository implements CompetencyRepository
         return $this->findAssessment($tenantId, $assessmentId);
     }
 
+    public function recordComments(string $tenantId, string $assessmentId, array $comments): ?CompetencyAssessment
+    {
+        $this->connection->transactional(function (Connection $tx) use ($tenantId, $assessmentId, $comments): void {
+            foreach ($comments as $competencyId => $comment) {
+                $text = trim((string) $comment);
+                $tx->executeStatement(
+                    'UPDATE competency_assessment_items SET comment = :comment
+                     WHERE assessment_id = :assessment AND competency_id = :competency
+                       AND tenant_id = :tenant',
+                    [
+                        'comment'    => $text === '' ? null : $text,
+                        'assessment' => $assessmentId,
+                        'competency' => (string) $competencyId,
+                        'tenant'     => $tenantId,
+                    ],
+                );
+            }
+        });
+
+        return $this->findAssessment($tenantId, $assessmentId);
+    }
+
     public function setStatus(
         string $tenantId,
         string $assessmentId,

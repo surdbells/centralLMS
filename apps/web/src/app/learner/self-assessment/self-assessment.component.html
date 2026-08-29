@@ -86,6 +86,20 @@
               {{ opt.label }}
             </button>
           </div>
+
+          <div class="sa-evidence">
+            <label [attr.for]="'ev-' + item.competencyId">Evidence</label>
+            <p class="sa-evidence-hint">
+              What have you done that demonstrates this competency? Give specific examples.
+            </p>
+            <textarea
+              [id]="'ev-' + item.competencyId"
+              rows="3"
+              [(ngModel)]="evidence[item.competencyId]"
+              [disabled]="!canSelfAssess(a)"
+              placeholder="e.g. I led the casing design for…"
+            ></textarea>
+          </div>
         </div>
       </div>
 

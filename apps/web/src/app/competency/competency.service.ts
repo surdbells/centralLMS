@@ -377,9 +377,21 @@ export class CompetencyService {
     );
   }
 
-  /** The learner records their own levels and overall comment, moving it to self-assessed. */
-  selfAssess(id: string, levels: LevelSubmission, comment?: string): Observable<CompetencyAssessment> {
-    return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.self(id), { levels, comment });
+  /**
+   * The learner records their own levels, the evidence for each competency and
+   * an overall comment, moving it to self-assessed.
+   */
+  selfAssess(
+    id: string,
+    levels: LevelSubmission,
+    comment?: string,
+    evidence?: Record<string, string>,
+  ): Observable<CompetencyAssessment> {
+    return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.self(id), {
+      levels,
+      comment,
+      evidence,
+    });
   }
 
   /** The expert confirms the levels, moving it to reviewed. */
