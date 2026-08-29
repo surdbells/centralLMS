@@ -21,7 +21,6 @@ import {
 import { ScormAdapterService } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
 import { SessionStore } from '../../../core/auth/session.store';
-import {GlobalComponent} from '../../../global-component';
 import {HotToastService} from '@ngneat/hot-toast';
 
 @Component({

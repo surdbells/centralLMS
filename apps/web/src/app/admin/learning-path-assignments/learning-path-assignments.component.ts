@@ -19,7 +19,6 @@ import type {
   Team,
   User,
 } from '../../interfaces/learning-path-enrollment.interfaces';
-import { GlobalComponent } from '../../global-component';
 
 // Department, Team, Branch and User are imported rather than declared
 // again — this file had its own copies of all four, differing only in
