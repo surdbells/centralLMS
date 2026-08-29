@@ -58,9 +58,30 @@ export interface PublicSettings {
 export class SettingsService {
   private readonly api = inject(ApiClient);
 
-  /** Every declared setting with its resolved value. */
+  /**
+   * Every declared setting with its resolved value, as a flat `{key: value}`
+   * map the forms can bind to.
+   *
+   * The endpoint answers the values nested under their categories
+   * (`{categories: [{settings: [{key, value}]}]}`) — the same shape the
+   * catalogue uses — so they are flattened here, once, rather than every
+   * screen re-learning the shape. Without this every settings field bound to
+   * `values[key]` read `undefined` and rendered blank.
+   */
   show(): Observable<Record<string, SettingValue>> {
-    return this.api.get<Record<string, SettingValue>>(Endpoints.settings.show);
+    return this.api
+      .get<{ categories?: { settings?: { key: string; value: SettingValue }[] }[] }>(Endpoints.settings.show)
+      .pipe(
+        map((result) => {
+          const flat: Record<string, SettingValue> = {};
+          for (const category of result.categories ?? []) {
+            for (const setting of category.settings ?? []) {
+              flat[setting.key] = setting.value;
+            }
+          }
+          return flat;
+        }),
+      );
   }
 
   /**
