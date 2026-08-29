@@ -27,6 +27,13 @@ final readonly class JobCompetencyProfile
         public array $requirements = [],
         public ?\DateTimeImmutable $createdAt = null,
         public int $assessmentCount = 0,
+        /**
+         * How many competencies the profile requires. The list view counts
+         * this in SQL and leaves {@see $requirements} empty to avoid loading
+         * every requirement of every profile; the detail view loads the
+         * requirements and lets this fall back to counting them.
+         */
+        public ?int $competencyCount = null,
     ) {
     }
 
@@ -122,7 +129,7 @@ final readonly class JobCompetencyProfile
                 ],
                 $this->requirements,
             ),
-            'competencyCount' => count($this->requirements),
+            'competencyCount' => $this->competencyCount ?? count($this->requirements),
             'assessmentCount' => $this->assessmentCount,
             'createdAt'       => $this->createdAt?->format(\DateTimeInterface::ATOM),
         ];

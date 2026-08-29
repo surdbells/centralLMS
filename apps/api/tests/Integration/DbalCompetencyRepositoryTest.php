@@ -219,6 +219,24 @@ final class DbalCompetencyRepositoryTest extends TestCase
     }
 
     #[Test]
+    public function the_listing_counts_requirements_without_loading_them(): void
+    {
+        // The list omits each profile's requirements to avoid loading every one
+        // of every profile, but must still report how many there are.
+        $well = $this->competencies->saveCompetency($this->competency('Well Control', 'Drilling'));
+        $casing = $this->competencies->saveCompetency($this->competency('Casing Design', 'Drilling'));
+        $this->saveProfile('Driller', 'Drilling', [
+            [$well->id, ProficiencyLevel::Mastery, true],
+            [$casing->id, ProficiencyLevel::Skill, false],
+        ]);
+
+        $listed = $this->competencies->profiles($this->tenantA, null, null, 1, 25)['items'][0];
+
+        self::assertSame([], $listed->requirements);
+        self::assertSame(2, $listed->toArray()['competencyCount']);
+    }
+
+    #[Test]
     public function a_profile_is_found_by_title_within_its_function(): void
     {
         $well = $this->competencies->saveCompetency($this->competency('Well Control', 'Drilling'));

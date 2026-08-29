@@ -730,6 +730,7 @@ final class DbalCompetencyRepository implements CompetencyRepository
             requirements: $requirements,
             createdAt: $this->at($row['created_at'] ?? null),
             assessmentCount: (int) ($row['assessment_count'] ?? 0),
+            competencyCount: isset($row['competency_count']) ? (int) $row['competency_count'] : null,
         );
     }
 

@@ -43,6 +43,9 @@ export class JobProfilesComponent implements OnInit {
   functionFilter = '';
   knownFunctions: string[] = [];
   expandedId: string | null = null;
+  /** The full profile behind the open row — the list omits requirements. */
+  expandedProfile: JobCompetencyProfile | null = null;
+  expandedLoading = false;
 
   // Every competency, for the requirement picker, indexed by function.
   allCompetencies: Competency[] = [];
@@ -92,7 +95,27 @@ export class JobProfilesComponent implements OnInit {
   }
 
   toggleExpand(id: string): void {
-    this.expandedId = this.expandedId === id ? null : id;
+    if (this.expandedId === id) {
+      this.expandedId = null;
+      this.expandedProfile = null;
+      return;
+    }
+
+    // The list view carries no requirements, so the full profile is fetched
+    // the moment a row is opened.
+    this.expandedId = id;
+    this.expandedProfile = null;
+    this.expandedLoading = true;
+    this.competency.getProfile(id).subscribe({
+      next: (profile) => {
+        this.expandedProfile = profile;
+        this.expandedLoading = false;
+      },
+      error: () => {
+        this.toast.error('The profile could not be loaded.');
+        this.expandedLoading = false;
+      },
+    });
   }
 
   // --- competencies available to pick, for the chosen function -------------

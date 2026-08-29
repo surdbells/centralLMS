@@ -50,26 +50,31 @@
       </div>
     </div>
     <div class="profile-body" *ngIf="expandedId === p.id">
-      <p class="text-muted small" *ngIf="p.description">{{ p.description }}</p>
-      <table class="table table-sm align-middle mb-0">
-        <thead>
-          <tr><th>Competency</th><th style="width: 140px">Required</th><th style="width: 90px" class="text-center">Critical</th></tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let req of p.requirements">
-            <td>{{ req.competencyName }}</td>
-            <td>
-              <span class="lvl-pill" [class.k]="req.requiredLevel === 1" [class.s]="req.requiredLevel === 2" [class.m]="req.requiredLevel === 3">
-                {{ req.requiredLabel }}
-              </span>
-            </td>
-            <td class="text-center">
-              <tui-icon *ngIf="req.isCritical" icon="@tui.star" class="text-warning" title="Critical"></tui-icon>
-              <span *ngIf="!req.isCritical" class="text-muted">—</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div *ngIf="expandedLoading" class="text-center py-3 text-muted">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      </div>
+      <ng-container *ngIf="!expandedLoading && expandedProfile as detail">
+        <p class="text-muted small" *ngIf="detail.description">{{ detail.description }}</p>
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr><th>Competency</th><th style="width: 140px">Required</th><th style="width: 90px" class="text-center">Critical</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let req of detail.requirements">
+              <td>{{ req.competencyName }}</td>
+              <td>
+                <span class="lvl-pill" [class.k]="req.requiredLevel === 1" [class.s]="req.requiredLevel === 2" [class.m]="req.requiredLevel === 3">
+                  {{ req.requiredLabel }}
+                </span>
+              </td>
+              <td class="text-center">
+                <tui-icon *ngIf="req.isCritical" icon="@tui.star" class="text-warning" title="Critical"></tui-icon>
+                <span *ngIf="!req.isCritical" class="text-muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </ng-container>
     </div>
   </div>
 </div>
