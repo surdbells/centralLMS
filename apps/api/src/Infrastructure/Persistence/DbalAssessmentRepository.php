@@ -14,6 +14,7 @@ use Central\Api\Domain\Assessment\QuestionSelectionMode;
 use Central\Api\Domain\Assessment\RevealAnswers;
 use Central\Api\Domain\Shared\Difficulty;
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 
 final class DbalAssessmentRepository implements AssessmentRepository
 {
@@ -45,6 +46,29 @@ final class DbalAssessmentRepository implements AssessmentRepository
             WHERE aq.assessment_id = a.id
         ), 0) AS total_points';
 
+    /**
+     * How an assessment is doing, for the listing cards. One correlated pass
+     * over the attempts: how many were sat, how many finished, the share that
+     * passed and the average score. A completion is anything that reached a
+     * terminal state; the pass rate and average are over graded attempts only,
+     * because an ungraded attempt has no verdict yet.
+     */
+    private const STATS = "(
+            SELECT COUNT(*) FROM attempts t WHERE t.assessment_id = a.id
+        ) AS total_attempts,
+        (
+            SELECT COUNT(*) FROM attempts t
+            WHERE t.assessment_id = a.id AND t.status IN ('submitted', 'auto_submitted', 'grading', 'graded')
+        ) AS total_completions,
+        COALESCE((
+            SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE t.passed) / NULLIF(COUNT(*) FILTER (WHERE t.status = 'graded'), 0), 1)
+            FROM attempts t WHERE t.assessment_id = a.id
+        ), 0) AS pass_rate,
+        COALESCE((
+            SELECT ROUND(AVG(t.percentage) FILTER (WHERE t.status = 'graded'), 1)
+            FROM attempts t WHERE t.assessment_id = a.id
+        ), 0) AS avg_score";
+
     public function __construct(
         private readonly Connection $connection,
         private readonly QuestionRepository $questions,
@@ -58,6 +82,11 @@ final class DbalAssessmentRepository implements AssessmentRepository
         ?string $search = null,
         ?AssessmentStatus $status = null,
         ?string $courseId = null,
+        ?string $kind = null,
+        ?string $proctoringLevel = null,
+        ?string $categoryId = null,
+        ?string $sort = null,
+        ?string $order = null,
     ): array {
         $where = 'a.tenant_id = :tenant AND a.deleted_at IS NULL';
         $params = ['tenant' => $tenantId];
@@ -70,6 +99,21 @@ final class DbalAssessmentRepository implements AssessmentRepository
         if ($courseId !== null && $courseId !== '') {
             $where .= ' AND a.course_id = :course';
             $params['course'] = $courseId;
+        }
+
+        if ($kind !== null && $kind !== '') {
+            $where .= ' AND a.kind = :kind';
+            $params['kind'] = $kind;
+        }
+
+        if ($proctoringLevel !== null && $proctoringLevel !== '') {
+            $where .= ' AND a.proctoring_level = :proctoring';
+            $params['proctoring'] = $proctoringLevel;
+        }
+
+        if ($categoryId !== null && $categoryId !== '') {
+            $where .= ' AND a.category_id = :category';
+            $params['category'] = $categoryId;
         }
 
         if ($search !== null && trim($search) !== '') {
@@ -85,13 +129,34 @@ final class DbalAssessmentRepository implements AssessmentRepository
             $params,
         );
 
+        // Only these may be sorted on, and the direction is boolean — the
+        // field arrives from the browser, so nothing here is interpolated
+        // that was not first checked against this list.
+        $sortColumns = [
+            'title'          => 'a.title',
+            'created_at'     => 'a.created_at',
+            'updated_at'     => 'a.updated_at',
+            'total_attempts' => 'total_attempts',
+            'pass_rate'      => 'pass_rate',
+        ];
+        $sortColumn = $sortColumns[$sort ?? ''] ?? 'a.title';
+        $sortDir = strtolower((string) $order) === 'asc' ? 'ASC' : 'DESC';
+        // Title reads naturally ascending; everything else defaults to newest
+        // or highest first unless the caller says otherwise.
+        if ($sort === null || $sort === '' || $sort === 'title') {
+            $sortDir = strtolower((string) $order) === 'desc' ? 'DESC' : 'ASC';
+        }
+
         $rows = $this->connection->fetchAllAssociative(
             sprintf(
-                'SELECT %s, %s FROM assessments a WHERE %s
-                 ORDER BY a.title ASC LIMIT :limit OFFSET :offset',
+                'SELECT %s, %s, %s FROM assessments a WHERE %s
+                 ORDER BY %s %s NULLS LAST LIMIT :limit OFFSET :offset',
                 self::COLUMNS,
                 self::DERIVED,
+                self::STATS,
                 $where,
+                $sortColumn,
+                $sortDir,
             ),
             [...$params, 'limit' => $perPage, 'offset' => ($page - 1) * $perPage],
         );
@@ -191,6 +256,155 @@ final class DbalAssessmentRepository implements AssessmentRepository
              WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL",
             ['id' => $id, 'tenant' => $tenantId],
         ) > 0;
+    }
+
+    /**
+     * The headline figures for the authoring list: how many assessments sit in
+     * each status, and across all of them how many attempts have been made and
+     * what share passed.
+     *
+     * @return array{total: int, published: int, draft: int, closed: int, totalAttempts: int, totalCompletions: int, avgPassRate: float}
+     */
+    public function stats(string $tenantId): array
+    {
+        $counts = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS total,
+                    COUNT(*) FILTER (WHERE status = 'published') AS published,
+                    COUNT(*) FILTER (WHERE status = 'draft') AS draft,
+                    COUNT(*) FILTER (WHERE status = 'closed') AS closed
+             FROM assessments WHERE tenant_id = :tenant AND deleted_at IS NULL",
+            ['tenant' => $tenantId],
+        ) ?: [];
+
+        // Attempts only count against assessments that still exist.
+        $attempts = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS total_attempts,
+                    COUNT(*) FILTER (WHERE t.status IN ('submitted', 'auto_submitted', 'grading', 'graded')) AS total_completions,
+                    ROUND(100.0 * COUNT(*) FILTER (WHERE t.passed)
+                          / NULLIF(COUNT(*) FILTER (WHERE t.status = 'graded'), 0), 1) AS avg_pass_rate
+             FROM attempts t
+             JOIN assessments a ON a.id = t.assessment_id AND a.deleted_at IS NULL
+             WHERE t.tenant_id = :tenant",
+            ['tenant' => $tenantId],
+        ) ?: [];
+
+        return [
+            'total'            => (int) ($counts['total'] ?? 0),
+            'published'        => (int) ($counts['published'] ?? 0),
+            'draft'            => (int) ($counts['draft'] ?? 0),
+            'closed'           => (int) ($counts['closed'] ?? 0),
+            'totalAttempts'    => (int) ($attempts['total_attempts'] ?? 0),
+            'totalCompletions' => (int) ($attempts['total_completions'] ?? 0),
+            'avgPassRate'      => (float) ($attempts['avg_pass_rate'] ?? 0),
+        ];
+    }
+
+    /**
+     * Copies an assessment into a fresh draft — configuration, questions,
+     * sections and random rules — so a new one can start from a working one
+     * rather than from nothing. The copy carries no attempts and no publish
+     * date; it is a draft the moment it exists.
+     */
+    public function duplicate(string $tenantId, string $id): ?Assessment
+    {
+        if ($this->find($tenantId, $id) === null) {
+            return null;
+        }
+
+        $newId = $this->connection->transactional(function (Connection $tx) use ($tenantId, $id): string {
+            $newId = Uuid::uuid4()->toString();
+
+            // The row itself: every column copied, but reset to an unpublished
+            // draft with a new title. Listing the columns keeps the copy honest
+            // if one is added — a missing column is a NOT NULL failure, not a
+            // silent loss.
+            $tx->executeStatement(
+                "INSERT INTO assessments
+                     (id, tenant_id, title, description, instructions, kind, status, difficulty,
+                      course_id, module_id, category_id, time_limit_minutes, available_from, available_until,
+                      grace_period_minutes, max_attempts, attempts_gap_hours, passing_score, passing_type,
+                      question_selection, random_question_count, shuffle_questions, shuffle_options,
+                      reveal_answers, show_score_immediately, show_explanations, allow_backward_navigation,
+                      requires_manual_grading, proctoring_level, created_by, created_at, updated_at)
+                 SELECT :newId, tenant_id, title || ' (Copy)', description, instructions, kind, 'draft', difficulty,
+                        course_id, module_id, category_id, time_limit_minutes, available_from, available_until,
+                        grace_period_minutes, max_attempts, attempts_gap_hours, passing_score, passing_type,
+                        question_selection, random_question_count, shuffle_questions, shuffle_options,
+                        reveal_answers, show_score_immediately, show_explanations, allow_backward_navigation,
+                        requires_manual_grading, proctoring_level, created_by, NOW(), NOW()
+                 FROM assessments WHERE id = :id AND tenant_id = :tenant",
+                ['newId' => $newId, 'id' => $id, 'tenant' => $tenantId],
+            );
+
+            // Sections keep their own new ids, mapped old→new so the questions
+            // and rules that point at them follow the copy, not the original.
+            $sectionMap = [];
+            $sections = $tx->fetchAllAssociative(
+                'SELECT id FROM assessment_sections WHERE assessment_id = :id',
+                ['id' => $id],
+            );
+            foreach ($sections as $section) {
+                $oldSectionId = (string) $section['id'];
+                $newSectionId = Uuid::uuid4()->toString();
+                $sectionMap[$oldSectionId] = $newSectionId;
+
+                $tx->executeStatement(
+                    'INSERT INTO assessment_sections
+                         (id, tenant_id, assessment_id, title, description, instructions,
+                          time_limit_minutes, selection_type, random_count, sort_order, created_at, updated_at)
+                     SELECT :newSectionId, tenant_id, :newId, title, description, instructions,
+                            time_limit_minutes, selection_type, random_count, sort_order, NOW(), NOW()
+                     FROM assessment_sections WHERE id = :oldSectionId',
+                    ['newSectionId' => $newSectionId, 'newId' => $newId, 'oldSectionId' => $oldSectionId],
+                );
+            }
+
+            $this->copyQuestionsAndRules($tx, $id, $newId, $sectionMap);
+
+            return $newId;
+        });
+
+        return $this->find($tenantId, $newId);
+    }
+
+    /**
+     * @param array<string, string> $sectionMap old section id → new section id
+     */
+    private function copyQuestionsAndRules(Connection $tx, string $id, string $newId, array $sectionMap): void
+    {
+        $questions = $tx->fetchAllAssociative(
+            'SELECT question_id, section_id, points_override, sort_order, is_required
+             FROM assessment_questions WHERE assessment_id = :id',
+            ['id' => $id],
+        );
+        foreach ($questions as $q) {
+            $section = $q['section_id'] === null ? null : ($sectionMap[(string) $q['section_id']] ?? null);
+            $tx->executeStatement(
+                'INSERT INTO assessment_questions
+                     (id, tenant_id, assessment_id, question_id, section_id, points_override, sort_order, is_required)
+                 SELECT gen_random_uuid(), tenant_id, :newId, question_id, :section, points_override, sort_order, is_required
+                 FROM assessment_questions
+                 WHERE assessment_id = :id AND question_id = :questionId',
+                ['newId' => $newId, 'section' => $section, 'id' => $id, 'questionId' => (string) $q['question_id']],
+            );
+        }
+
+        $rules = $tx->fetchAllAssociative(
+            'SELECT id, section_id FROM assessment_random_rules WHERE assessment_id = :id',
+            ['id' => $id],
+        );
+        foreach ($rules as $rule) {
+            $section = $rule['section_id'] === null ? null : ($sectionMap[(string) $rule['section_id']] ?? null);
+            $tx->executeStatement(
+                'INSERT INTO assessment_random_rules
+                     (id, tenant_id, assessment_id, section_id, bank_id, category_id, category_kind,
+                      difficulty, question_types, question_count, points_per_question, sort_order, created_at, updated_at)
+                 SELECT gen_random_uuid(), tenant_id, :newId, :section, bank_id, category_id, category_kind,
+                        difficulty, question_types, question_count, points_per_question, sort_order, NOW(), NOW()
+                 FROM assessment_random_rules WHERE id = :ruleId',
+                ['newId' => $newId, 'section' => $section, 'ruleId' => (string) $rule['id']],
+            );
+        }
     }
 
     public function questionsFor(string $tenantId, string $assessmentId): array
@@ -423,6 +637,11 @@ final class DbalAssessmentRepository implements AssessmentRepository
             updatedAt: $this->date($row['updated_at'] ?? null),
             questionCount: (int) ($row['question_count'] ?? 0),
             totalPoints: (float) ($row['total_points'] ?? 0),
+            // Present only on the listing, which joins the attempts.
+            totalAttempts: (int) ($row['total_attempts'] ?? 0),
+            totalCompletions: (int) ($row['total_completions'] ?? 0),
+            passRate: (float) ($row['pass_rate'] ?? 0),
+            avgScore: (float) ($row['avg_score'] ?? 0),
         );
     }
 

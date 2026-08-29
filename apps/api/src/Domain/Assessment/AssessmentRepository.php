@@ -21,7 +21,22 @@ interface AssessmentRepository
         ?string $search = null,
         ?AssessmentStatus $status = null,
         ?string $courseId = null,
+        ?string $kind = null,
+        ?string $proctoringLevel = null,
+        ?string $categoryId = null,
+        ?string $sort = null,
+        ?string $order = null,
     ): array;
+
+    /**
+     * The headline figures for the authoring list.
+     *
+     * @return array{total: int, published: int, draft: int, closed: int, totalAttempts: int, totalCompletions: int, avgPassRate: float}
+     */
+    public function stats(string $tenantId): array;
+
+    /** Copies an assessment into a fresh draft, questions and sections included. */
+    public function duplicate(string $tenantId, string $id): ?Assessment;
 
     public function find(string $tenantId, string $id): ?Assessment;
 

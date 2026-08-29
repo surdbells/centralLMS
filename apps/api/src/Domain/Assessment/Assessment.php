@@ -51,6 +51,15 @@ final readonly class Assessment
         /** Derived, never stored — see the migration docblock. */
         public int $questionCount = 0,
         public float $totalPoints = 0.0,
+        /**
+         * Attempt statistics, computed only for the listing — a card shows how
+         * an assessment is doing, not just how it is configured. Zero on the
+         * single-assessment view, which does not join the attempts.
+         */
+        public int $totalAttempts = 0,
+        public int $totalCompletions = 0,
+        public float $passRate = 0.0,
+        public float $avgScore = 0.0,
     ) {
     }
 
@@ -302,6 +311,10 @@ final readonly class Assessment
             // reality in 16 of its 19 rows.
             'questionCount' => $this->questionCount,
             'totalPoints'   => $this->totalPoints,
+            'totalAttempts'    => $this->totalAttempts,
+            'totalCompletions' => $this->totalCompletions,
+            'passRate'         => $this->passRate,
+            'avgScore'         => $this->avgScore,
             'publishedAt'   => $this->publishedAt?->format(\DateTimeInterface::ATOM),
             'createdAt'     => $this->createdAt?->format(\DateTimeInterface::ATOM),
             'updatedAt'     => $this->updatedAt?->format(\DateTimeInterface::ATOM),

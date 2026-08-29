@@ -7,53 +7,41 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import {
+  AssessmentAdminService,
+  type Assessment as ApiAssessment,
+  type AssessmentStatus,
+} from '../assessment-admin.service';
 
 // ==========================================
-// INTERFACES
+// INTERFACES — the view-model this screen renders. The REST API is
+// camelCase and UUID-keyed; the template stays as it was, so the API rows
+// are mapped into this shape on the way in.
 // ==========================================
-
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
 
 interface Assessment {
-  assessment_id: number;
+  assessment_id: string;
   title: string;
   description: string;
   assessment_type: 'quiz' | 'exam' | 'practice' | 'survey';
   status: 'draft' | 'published' | 'closed' | 'archived';
-  category_id: number;
-  category_name: string;
-  course_id: number | null;
+  category_id: string | null;
   course_title: string | null;
-  training_id: number | null;
   total_questions: number;
   total_points: number;
   time_limit_minutes: number;
-  max_attempts: number;
-  passing_score: number;
-  passing_type: 'percentage' | 'points';
   proctoring_level: 'none' | 'basic' | 'standard' | 'advanced';
-  shuffle_questions: boolean;
-  shuffle_options: boolean;
-  show_results: boolean;
-  availability_start: string | null;
-  availability_end: string | null;
-  created_by: number;
-  created_by_name: string;
-  created_at: string;
   updated_at: string;
   // Stats
   total_attempts: number;
   total_completions: number;
   pass_rate: number;
   avg_score: number;
-  assigned_count: number;
-  section_count: number;
   is_selected?: boolean;
 }
 
@@ -68,7 +56,7 @@ interface AssessmentStats {
 }
 
 interface Category {
-  category_id: number;
+  category_id: string;
   name: string;
   assessment_count: number;
 }
@@ -504,7 +492,7 @@ interface Category {
   `]
 })
 export class AssessmentListComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private api = inject(AssessmentAdminService);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
@@ -520,7 +508,7 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
   totalItems = 0;
   sortField = 'updated_at';
   sortDir = 'desc';
-  openMenuId: number | null = null;
+  openMenuId: string | null = null;
 
   // Delete
   showDeleteConfirm = false;
@@ -559,54 +547,72 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
 
   loadAssessments(): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_assessments');
-    fd.append('page', this.page.toString());
-    fd.append('limit', this.pageSize.toString());
-    fd.append('sort', this.sortField);
-    fd.append('order', this.sortDir);
-    if (this.filters.search) fd.append('search', this.filters.search);
-    if (this.filters.status) fd.append('status', this.filters.status);
-    if (this.filters.type) fd.append('type', this.filters.type);
-    if (this.filters.proctoring) fd.append('proctoring_level', this.filters.proctoring);
-    if (this.filters.category_id) fd.append('category_id', this.filters.category_id);
-
-    this.http.post<ApiResponse<{ items: Assessment[], total: number }>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.assessments = (res.data.items || []).map(a => ({ ...a, is_selected: false }));
-            this.totalItems = res.data.total || 0;
-          }
-          this.loading = false;
-        },
-        error: () => { this.loading = false; }
-      });
+    this.api.list({
+      page: this.page,
+      perPage: this.pageSize,
+      sort: this.sortField,
+      order: this.sortDir,
+      search: this.filters.search || undefined,
+      status: this.filters.status || undefined,
+      kind: this.filters.type || undefined,
+      proctoringLevel: this.filters.proctoring || undefined,
+      categoryId: this.filters.category_id || undefined,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (paged) => {
+        this.assessments = paged.items.map(a => this.toVm(a));
+        this.totalItems = paged.meta.total;
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
   }
 
   loadStats(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_assessment_stats');
-    this.http.post<ApiResponse<AssessmentStats>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) this.stats = res.data; }
-      });
+    this.api.stats().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (s) => {
+        this.stats = {
+          total: s.total, published: s.published, draft: s.draft, closed: s.closed,
+          total_attempts: s.totalAttempts, total_completions: s.totalCompletions,
+          avg_pass_rate: s.avgPassRate,
+        };
+      }
+    });
   }
 
   loadCategories(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_categories');
-    this.http.post<ApiResponse<Category[]>>(`${GlobalComponent.baseURL}/user/question-bank`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) this.categories = res.data || []; }
-      });
+    // Assessment categories are not a resource on the new API yet; the filter
+    // degrades to "All Categories" until one exists.
+    this.categories = [];
+  }
+
+  /** Maps a REST row into the shape the template renders. */
+  private toVm(a: ApiAssessment): Assessment {
+    return {
+      assessment_id: a.id,
+      title: a.title,
+      description: a.description ?? '',
+      assessment_type: a.kind,
+      status: a.status,
+      category_id: a.categoryId,
+      course_title: null,
+      total_questions: a.questionCount,
+      total_points: a.totalPoints,
+      time_limit_minutes: a.timeLimitMinutes ?? 0,
+      proctoring_level: a.proctoringLevel,
+      updated_at: a.updatedAt ?? a.createdAt ?? '',
+      total_attempts: a.totalAttempts,
+      total_completions: a.totalCompletions,
+      pass_rate: a.passRate,
+      avg_score: a.avgScore,
+      is_selected: false,
+    };
   }
 
   // ==========================================
   // ACTIONS
   // ==========================================
 
-  createNew(): void { this.router.navigate(['/admin/assessments/new']); }
+  createNew(): void { this.router.navigate(['/admin/assessments/create']); }
   editAssessment(a: Assessment): void { this.router.navigate(['/admin/assessments', a.assessment_id, 'edit']); }
   previewAssessment(a: Assessment): void { this.router.navigate(['/admin/assessments', a.assessment_id, 'preview']); }
   manageQuestions(a: Assessment): void { this.router.navigate(['/admin/assessments', a.assessment_id, 'questions']); }
@@ -614,27 +620,18 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
   viewResults(a: Assessment): void { this.router.navigate(['/admin/assessments', a.assessment_id, 'results']); }
 
   cloneAssessment(a: Assessment): void {
-    const fd = new FormData();
-    fd.append('action', 'clone_assessment');
-    fd.append('assessment_id', a.assessment_id.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.loadAssessments(); this.loadStats(); } }
-      });
+    this.api.duplicate(a.assessment_id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { this.loadAssessments(); this.loadStats(); }
+    });
   }
 
   publishAssessment(a: Assessment): void { this.updateStatus(a, 'published'); }
   closeAssessment(a: Assessment): void { this.updateStatus(a, 'closed'); }
 
-  private updateStatus(a: Assessment, status: string): void {
-    const fd = new FormData();
-    fd.append('action', 'update_assessment_status');
-    fd.append('assessment_id', a.assessment_id.toString());
-    fd.append('status', status);
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { a.status = status as any; this.loadStats(); } }
-      });
+  private updateStatus(a: Assessment, status: AssessmentStatus): void {
+    this.api.setStatus(a.assessment_id, status).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { a.status = status; this.loadStats(); }
+    });
     this.openMenuId = null;
   }
 
@@ -647,31 +644,35 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
   confirmDelete(): void {
     if (!this.deleteTarget) return;
     this.deleting = true;
-    const fd = new FormData();
-    fd.append('action', 'delete_assessment');
-    fd.append('assessment_id', this.deleteTarget.assessment_id.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) { this.loadAssessments(); this.loadStats(); }
-          this.deleting = false;
-          this.showDeleteConfirm = false;
-        },
-        error: () => { this.deleting = false; }
-      });
+    this.api.delete(this.deleteTarget.assessment_id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.loadAssessments();
+        this.loadStats();
+        this.deleting = false;
+        this.showDeleteConfirm = false;
+      },
+      error: () => { this.deleting = false; }
+    });
   }
 
   bulkAction(action: string): void {
-    const ids = this.assessments.filter(a => a.is_selected).map(a => a.assessment_id);
-    if (ids.length === 0) return;
-    const fd = new FormData();
-    fd.append('action', 'bulk_assessment_action');
-    fd.append('bulk_action', action);
-    fd.append('assessment_ids', JSON.stringify(ids));
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.loadAssessments(); this.loadStats(); } }
-      });
+    const targets = this.assessments.filter(a => a.is_selected);
+    if (targets.length === 0) return;
+    // The legacy backend had one bulk endpoint; here each selected assessment
+    // is acted on and the list reloads once every call has returned.
+    const calls = targets.map(a => {
+      const call$ = action === 'delete'
+        ? this.api.delete(a.assessment_id)
+        : this.api.setStatus(a.assessment_id, this.bulkStatus(action)).pipe(map(() => undefined));
+      return call$.pipe(catchError(() => of(undefined)));
+    });
+    forkJoin(calls).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { this.loadAssessments(); this.loadStats(); }
+    });
+  }
+
+  private bulkStatus(action: string): AssessmentStatus {
+    return action === 'publish' ? 'published' : action === 'close' ? 'closed' : 'archived';
   }
 
   // ==========================================
@@ -702,7 +703,7 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
     this.loadAssessments();
   }
 
-  toggleMenu(id: number, e: Event): void {
+  toggleMenu(id: string, e: Event): void {
     e.stopPropagation();
     this.openMenuId = this.openMenuId === id ? null : id;
   }

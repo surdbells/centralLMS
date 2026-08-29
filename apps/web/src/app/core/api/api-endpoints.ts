@@ -227,8 +227,11 @@ export const Endpoints = {
   assessments: {
     list: '/assessments',
     create: '/assessments',
+    stats: '/assessments/stats',
     show: (id: string) => `/assessments/${id}`,
     update: (id: string) => `/assessments/${id}`,
+    delete: (id: string) => `/assessments/${id}`,
+    duplicate: (id: string) => `/assessments/${id}/duplicate`,
     status: (id: string) => `/assessments/${id}/status`,
 
     sections: (id: string) => `/assessments/${id}/sections`,

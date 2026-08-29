@@ -592,6 +592,42 @@ final class DbalAssessmentRepositoryTest extends TestCase
         ));
     }
 
+    #[Test]
+    public function the_stats_count_assessments_by_status(): void
+    {
+        $this->assessment();               // a draft
+        $this->publishedWithOneQuestion(); // a published one
+
+        $stats = $this->assessments->stats($this->tenantA);
+
+        self::assertSame(2, $stats['total']);
+        self::assertSame(1, $stats['published']);
+        self::assertSame(1, $stats['draft']);
+        self::assertSame(0, $stats['closed']);
+    }
+
+    #[Test]
+    public function duplicating_copies_the_configuration_and_questions_as_a_fresh_draft(): void
+    {
+        $source = $this->publishedWithOneQuestion();
+
+        $copy = $this->assessments->duplicate($this->tenantA, $source->id);
+
+        self::assertNotNull($copy);
+        self::assertNotSame($source->id, $copy->id);
+        self::assertSame(AssessmentStatus::Draft, $copy->status);
+        self::assertStringEndsWith('(Copy)', $copy->title);
+        // The questions come with it; the attempts and publish date do not.
+        self::assertSame(1, $copy->questionCount);
+        self::assertNull($copy->publishedAt);
+    }
+
+    #[Test]
+    public function duplicating_something_that_is_not_there_returns_null(): void
+    {
+        self::assertNull($this->assessments->duplicate($this->tenantA, Uuid::uuid4()->toString()));
+    }
+
     private function assessment(
         float $passingScore = 70.0,
         PassingType $passingType = PassingType::Percentage,

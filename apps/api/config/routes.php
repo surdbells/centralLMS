@@ -50,7 +50,10 @@ use Central\Api\Application\Action\Catalog\ShowModuleAction;
 use Central\Api\Application\Action\Catalog\UpdateCourseAction;
 use Central\Api\Application\Action\Catalog\UpdateLessonAction;
 use Central\Api\Application\Action\Catalog\UpdateModuleAction;
+use Central\Api\Application\Action\Assessment\AssessmentStatsAction;
+use Central\Api\Application\Action\Assessment\DeleteAssessmentAction;
 use Central\Api\Application\Action\Assessment\DeleteBankAction;
+use Central\Api\Application\Action\Assessment\DuplicateAssessmentAction;
 use Central\Api\Application\Action\Assessment\GradeAnswerAction;
 use Central\Api\Application\Action\Assessment\GradingQueueAction;
 use Central\Api\Application\Action\Assessment\ManageRubricsAction;
@@ -1079,9 +1082,14 @@ return static function (App $app): void {
 
             $secure->group('/assessments', function (RouteCollectorProxy $a) use ($uuid): void {
                 $a->get('', ListAssessmentsAction::class)->setName('assessments.list');
+                // Before `/{id}`, or `stats` is read as an id.
+                $a->get('/stats', AssessmentStatsAction::class)->setName('assessments.stats');
                 $a->post('', SaveAssessmentAction::class)->setName('assessments.create');
                 $a->get('/{id:' . $uuid . '}', ShowAssessmentAction::class)->setName('assessments.show');
                 $a->put('/{id:' . $uuid . '}', SaveAssessmentAction::class)->setName('assessments.update');
+                $a->delete('/{id:' . $uuid . '}', DeleteAssessmentAction::class)->setName('assessments.delete');
+                $a->post('/{id:' . $uuid . '}/duplicate', DuplicateAssessmentAction::class)
+                    ->setName('assessments.duplicate');
                 $a->patch('/{id:' . $uuid . '}/status', SetAssessmentStatusAction::class)
                     ->setName('assessments.status');
 

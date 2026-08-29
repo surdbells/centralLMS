@@ -35,6 +35,11 @@ final class ListAssessmentsAction extends AssessmentAction
                 ? AssessmentStatus::tryFrom((string) $query['status'])
                 : null,
             isset($query['courseId']) ? (string) $query['courseId'] : null,
+            isset($query['kind']) ? (string) $query['kind'] : null,
+            isset($query['proctoringLevel']) ? (string) $query['proctoringLevel'] : null,
+            isset($query['categoryId']) ? (string) $query['categoryId'] : null,
+            isset($query['sort']) ? (string) $query['sort'] : null,
+            isset($query['order']) ? (string) $query['order'] : null,
         );
 
         return Json::page(
