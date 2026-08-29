@@ -5,19 +5,22 @@
 // Pre-assessment: instructions, requirements, system checks
 // =============================================
 
-import { Component, OnInit, OnDestroy, inject, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
-
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
+import {
+  AssessmentsService,
+  type Assessment as ApiAssessment,
+  type ProctoringSettings,
+  type AttemptResult,
+} from '../../services/assessments.service';
 
 interface AssessmentInfo {
-  assessment_id: number; title: string; description: string;
+  assessment_id: string; title: string; description: string;
   assessment_type: 'quiz'|'exam'|'practice'|'survey';
   total_questions: number; total_points: number; time_limit_minutes: number;
   max_attempts: number; passing_score: number; passing_type: 'percentage'|'points';
@@ -29,7 +32,7 @@ interface AssessmentInfo {
   availability_start: string|null; availability_end: string|null;
   instructions: string; sections: SectionInfo[];
   attempt_count: number; remaining_attempts: number;
-  has_active_attempt: boolean; active_attempt_id: number|null;
+  has_active_attempt: boolean; active_attempt_id: string|null;
   estimated_duration_minutes: number;
 }
 
@@ -278,19 +281,16 @@ interface SystemCheck {
   `]
 })
 export class AssessmentLobbyComponent implements OnInit, OnDestroy {
-  @Output() onStart = new EventEmitter<{assessmentId: number; attemptId: number|null}>();
-
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment';
-  private attemptUrl = GlobalComponent.baseURL + '/user/attempt';
 
   assessment: AssessmentInfo|null = null;
   loading = true;
   error = '';
   agreedToTerms = false;
+  starting = false;
 
   // System checks
   systemChecks: SystemCheck[] = [];
@@ -302,25 +302,72 @@ export class AssessmentLobbyComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) this.loadAssessment(+id);
+    if (id) this.loadAssessment(id);
     else { this.loading = false; this.error = 'No assessment ID provided.'; }
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
-  loadAssessment(id: number): void {
-    const fd = new FormData(); fd.append('action', 'get_assessment_for_learner'); fd.append('assessment_id', id.toString());
-    this.http.post<ApiResponse<AssessmentInfo>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
+  loadAssessment(id: string): void {
+    // The assessment itself, its proctoring settings, and how many times this
+    // person has already sat it — in one pass.
+    forkJoin({
+      assessment: this.assessments.show(id),
+      proctoring: this.assessments.proctoringSettings(id).pipe(catchError(() => of(null))),
+      attempts: this.assessments.myAttempts(200).pipe(catchError(() => of([] as AttemptResult[]))),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ assessment, proctoring, attempts }) => {
+        this.assessment = this.toInfo(assessment, proctoring, attempts);
         this.loading = false;
-        if (r.status === 'success') {
-          this.assessment = r.data;
-          this.initSystemChecks();
-          if (this.assessment.proctoring_level !== 'none') this.runSystemChecks();
-        } else { this.error = r.message || 'Assessment not found.'; }
+        this.initSystemChecks();
+        if (this.assessment.proctoring_level !== 'none') this.runSystemChecks();
       },
-      error: () => { this.loading = false; this.error = 'Failed to load assessment.'; }
+      error: () => { this.loading = false; this.error = 'Failed to load assessment.'; },
     });
+  }
+
+  /** Maps the new API's shapes into the shape this screen was built around. */
+  private toInfo(
+    a: ApiAssessment,
+    p: ProctoringSettings | null,
+    attempts: AttemptResult[],
+  ): AssessmentInfo {
+    const mine = attempts.filter(t => t.assessmentId === a.id);
+    const active = mine.find(t => t.status === 'in_progress') ?? null;
+    const proctored = p?.isEnabled ?? false;
+    const type = (['quiz', 'exam', 'practice', 'survey'].includes(a.kind) ? a.kind : 'quiz') as AssessmentInfo['assessment_type'];
+
+    return {
+      assessment_id: a.id,
+      title: a.title,
+      description: a.description ?? '',
+      assessment_type: type,
+      total_questions: a.questionCount,
+      total_points: a.totalPoints,
+      time_limit_minutes: a.timeLimitMinutes ?? 0,
+      max_attempts: a.maxAttempts ?? 0,
+      passing_score: a.passingScore,
+      passing_type: (a.passingType === 'points' ? 'points' : 'percentage'),
+      shuffle_questions: a.shuffleQuestions,
+      shuffle_options: a.shuffleOptions,
+      show_results: a.showScoreImmediately,
+      allow_review: a.revealAnswers !== 'never',
+      allow_back_navigation: true,
+      proctoring_level: proctored ? 'standard' : 'none',
+      requires_webcam: p?.requireWebcam ?? false,
+      requires_screen_share: false,
+      requires_id_verification: false,
+      requires_lockdown: p?.requireFullscreen ?? false,
+      availability_start: null,
+      availability_end: null,
+      instructions: a.instructions ?? '',
+      sections: [],
+      attempt_count: mine.length,
+      remaining_attempts: a.maxAttempts ? Math.max(0, a.maxAttempts - mine.length) : 999,
+      has_active_attempt: active !== null,
+      active_attempt_id: active?.id ?? null,
+      estimated_duration_minutes: a.timeLimitMinutes ?? 0,
+    };
   }
 
   initSystemChecks(): void {
@@ -379,21 +426,18 @@ export class AssessmentLobbyComponent implements OnInit, OnDestroy {
   }
 
   startAssessment(): void {
-    if (!this.assessment || !this.canStart()) return;
-    if (this.assessment.has_active_attempt && this.assessment.active_attempt_id) {
-      this.onStart.emit({ assessmentId: this.assessment.assessment_id, attemptId: this.assessment.active_attempt_id });
-      return;
-    }
-    const fd = new FormData();
-    fd.append('action', 'start_attempt');
-    fd.append('assessment_id', this.assessment.assessment_id.toString());
-    this.http.post<ApiResponse<{attempt_id: number}>>(this.attemptUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        if (r.status === 'success') {
-          this.onStart.emit({ assessmentId: this.assessment!.assessment_id, attemptId: r.data.attempt_id });
-        } else { this.error = r.message || 'Failed to start attempt.'; }
+    if (!this.assessment || !this.canStart() || this.starting) return;
+    this.starting = true;
+    const assessmentId = this.assessment.assessment_id;
+    // The server opens a new attempt or returns the one already open, so
+    // resuming and starting are the same call.
+    this.assessments.startAttempt(assessmentId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: paper => {
+        this.starting = false;
+        const attemptId = String(paper.attempt?.['id'] ?? '');
+        void this.router.navigate(['/learner/assessments', assessmentId, 'attempt', attemptId]);
       },
-      error: () => { this.error = 'Failed to start attempt.'; }
+      error: () => { this.starting = false; this.error = 'Failed to start attempt.'; },
     });
   }
 
