@@ -470,6 +470,8 @@ export const Endpoints = {
     list: '/competencies',
     create: '/competencies',
     functions: '/competencies/functions',
+    /** Uploading the completed JCP workbooks. */
+    import: '/competencies/import',
     show: (id: string) => `/competencies/${id}`,
     update: (id: string) => `/competencies/${id}`,
     delete: (id: string) => `/competencies/${id}`,

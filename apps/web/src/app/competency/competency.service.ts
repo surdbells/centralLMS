@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiClient, Endpoints, type Paged } from '../core/api';
+import { ApiClient, Endpoints, type Paged, type UploadProgress } from '../core/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -181,6 +181,30 @@ export interface AssessmentFilters {
 /** Levels keyed by competency id — how a self-assessment or review is submitted. */
 export type LevelSubmission = Record<string, ProficiencyLevel>;
 
+/** What one uploaded workbook turned into, or why it could not be read. */
+export interface ImportFileResult {
+  file: string;
+  status: 'imported' | 'legacy_xls' | 'no_competency_sheets' | 'unreadable';
+  people?: number;
+  functions: Array<{
+    function: string;
+    competencies: number;
+    profiles: Array<{ jobTitle: string; requirements: number }>;
+  }>;
+}
+
+export interface ImportResult {
+  totals: {
+    files: number;
+    functions: number;
+    competencies: number;
+    profiles: number;
+    requirements: number;
+    people: number;
+  };
+  files: ImportFileResult[];
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -221,6 +245,20 @@ export class CompetencyService {
 
   getFunctions(): Observable<CompetencyFunction[]> {
     return this.api.get<CompetencyFunction[]>(Endpoints.competencies.functions);
+  }
+
+  /**
+   * Imports one or more completed JCP workbooks.
+   *
+   * The same parse the console importer runs, reached from the browser — each
+   * function's dictionary and its job profiles, in one upload.
+   */
+  importWorkbooks(files: File[]): Observable<UploadProgress<ImportResult>> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files[]', file, file.name);
+    }
+    return this.api.upload<ImportResult>(Endpoints.competencies.import, form);
   }
 
   // --- job profiles -------------------------------------------------------

@@ -7,6 +7,7 @@ import {
   CompetencyService,
   type Competency,
   type CompetencyInput,
+  type ImportResult,
 } from '../../competency.service';
 
 interface FunctionGroup {
@@ -48,6 +49,13 @@ export class CompetencyDictionaryComponent implements OnInit {
 
   // Delete confirmation
   deleteTarget: Competency | null = null;
+
+  // Import
+  importOpen = false;
+  importing = false;
+  importProgress = 0;
+  importFiles: File[] = [];
+  importResult: ImportResult | null = null;
 
   ngOnInit(): void {
     this.load();
@@ -167,6 +175,72 @@ export class CompetencyDictionaryComponent implements OnInit {
         this.deleteTarget = null;
       },
     });
+  }
+
+  // --- import -------------------------------------------------------------
+
+  openImport(): void {
+    this.importOpen = true;
+    this.importFiles = [];
+    this.importResult = null;
+    this.importProgress = 0;
+  }
+
+  closeImport(): void {
+    if (this.importing) {
+      return;
+    }
+    this.importOpen = false;
+    // If anything came in, the dictionary behind the modal is now stale.
+    if (this.importResult && this.importResult.totals.competencies > 0) {
+      this.load();
+    }
+  }
+
+  onFilesPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.importFiles = input.files ? Array.from(input.files) : [];
+    this.importResult = null;
+  }
+
+  runImport(): void {
+    if (!this.importFiles.length) {
+      return;
+    }
+    this.importing = true;
+    this.importProgress = 0;
+    this.importResult = null;
+
+    this.competency.importWorkbooks(this.importFiles).subscribe({
+      next: (progress) => {
+        this.importProgress = progress.progress;
+        if (progress.state === 'done' && progress.result) {
+          this.importResult = progress.result;
+          this.importing = false;
+          const t = progress.result.totals;
+          if (t.competencies > 0) {
+            this.toast.success(`Imported ${t.competencies} competencies across ${t.functions} functions.`);
+          } else {
+            this.toast.error('Nothing could be imported from those files.');
+          }
+        }
+      },
+      error: () => {
+        this.importing = false;
+        this.toast.error('The workbooks could not be imported.');
+      },
+    });
+  }
+
+  fileStatusLabel(status: string): string {
+    return (
+      {
+        imported: 'Imported',
+        legacy_xls: 'Old .xls format — re-save as .xlsx',
+        no_competency_sheets: 'No competency sheets found',
+        unreadable: 'Could not be read',
+      }[status] ?? status
+    );
   }
 
   private blankForm(): CompetencyInput {
