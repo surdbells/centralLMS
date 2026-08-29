@@ -671,6 +671,14 @@
   overflow: hidden;
 }
 
+/* A card showing nothing but an empty state does not need to float — the
+   raised box around "No courses in progress" or "No badges yet" reads as
+   clutter. Flatten it while it has no real content. */
+.content-card:has(.empty-state):not(:has(.course-card)):not(:has(.badge-item)) {
+  box-shadow: none;
+  border: 1px solid var(--border-color, #e9ecef);
+}
+
 .content-card.full-width {
   width: 100%;
 }
