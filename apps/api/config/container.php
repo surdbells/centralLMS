@@ -23,6 +23,7 @@ use Central\Api\Domain\Identity\PasswordTokenRepository;
 use Central\Api\Domain\Sso\SsoRepository;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\Identity\UserRepository;
+use Central\Api\Domain\Assessment\AssessmentAssignmentRepository;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\GradingAssignmentRepository;
@@ -46,6 +47,7 @@ use Central\Api\Domain\Enrollment\EnrollmentRepository;
 use Central\Api\Domain\Enrollment\LessonProgressRepository;
 use Central\Api\Domain\Catalog\ModuleRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
+use Central\Api\Infrastructure\Persistence\DbalAssessmentAssignmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
 use Central\Api\Application\Notification\NotificationDispatcher;
@@ -481,6 +483,10 @@ return [
             $c->get(Connection::class),
             $c->get(QuestionRepository::class),
         ),
+    ),
+
+    AssessmentAssignmentRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalAssessmentAssignmentRepository($c->get(Connection::class)),
     ),
 
     AttemptRepository::class => factory(

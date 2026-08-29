@@ -50,6 +50,7 @@ use Central\Api\Application\Action\Catalog\ShowModuleAction;
 use Central\Api\Application\Action\Catalog\UpdateCourseAction;
 use Central\Api\Application\Action\Catalog\UpdateLessonAction;
 use Central\Api\Application\Action\Catalog\UpdateModuleAction;
+use Central\Api\Application\Action\Assessment\AssessmentAssignmentAction;
 use Central\Api\Application\Action\Assessment\AssessmentStatsAction;
 use Central\Api\Application\Action\Assessment\DeleteAssessmentAction;
 use Central\Api\Application\Action\Assessment\DeleteBankAction;
@@ -1082,8 +1083,10 @@ return static function (App $app): void {
 
             $secure->group('/assessments', function (RouteCollectorProxy $a) use ($uuid): void {
                 $a->get('', ListAssessmentsAction::class)->setName('assessments.list');
-                // Before `/{id}`, or `stats` is read as an id.
+                // Before `/{id}`, or `stats`/`assignment-targets` read as ids.
                 $a->get('/stats', AssessmentStatsAction::class)->setName('assessments.stats');
+                $a->get('/assignment-targets', [AssessmentAssignmentAction::class, 'targets'])
+                    ->setName('assessments.assignment-targets');
                 $a->post('', SaveAssessmentAction::class)->setName('assessments.create');
                 $a->get('/{id:' . $uuid . '}', ShowAssessmentAction::class)->setName('assessments.show');
                 $a->put('/{id:' . $uuid . '}', SaveAssessmentAction::class)->setName('assessments.update');
@@ -1094,6 +1097,15 @@ return static function (App $app): void {
                     ->setName('assessments.status');
 
                 $a->group('/{id:' . $uuid . '}', function (RouteCollectorProxy $s) use ($uuid): void {
+                    // Who must take it.
+                    $s->get('/assignments', [AssessmentAssignmentAction::class, 'list'])
+                        ->setName('assessments.assignments.list');
+                    $s->post('/assignments', [AssessmentAssignmentAction::class, 'create'])
+                        ->setName('assessments.assignments.create');
+                    $s->delete('/assignments/{assignmentId:' . $uuid . '}', [
+                        AssessmentAssignmentAction::class, 'delete',
+                    ])->setName('assessments.assignments.delete');
+
                     // Before `/questions`, or `order` is read as a question id.
                     $s->put('/questions/order', [ManageAssessmentQuestionsAction::class, 'reorder'])
                         ->setName('assessments.questions.reorder');

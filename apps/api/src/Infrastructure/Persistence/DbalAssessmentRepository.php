@@ -28,6 +28,9 @@ final class DbalAssessmentRepository implements AssessmentRepository
                              a.shuffle_questions, a.shuffle_options, a.reveal_answers,
                              a.show_score_immediately, a.show_explanations, a.allow_backward_navigation,
                              a.requires_manual_grading, a.proctoring_level, a.random_question_count, a.created_by,
+                             a.training_id, a.welcome_message, a.completion_message,
+                             a.negative_marking, a.negative_marking_percentage, a.partial_credit,
+                             a.questions_per_page, a.show_question_numbers, a.show_progress_bar, a.grading_scale_id,
                              a.published_at, a.created_at, a.updated_at';
 
     /**
@@ -192,14 +195,21 @@ final class DbalAssessmentRepository implements AssessmentRepository
                                       passing_score, passing_type, question_selection,
                                       shuffle_questions, shuffle_options, reveal_answers,
                                       show_score_immediately, show_explanations,
-                                      allow_backward_navigation, random_question_count, created_by)
+                                      allow_backward_navigation, random_question_count,
+                                      proctoring_level, training_id, welcome_message, completion_message,
+                                      negative_marking, negative_marking_percentage, partial_credit,
+                                      questions_per_page, show_question_numbers, show_progress_bar,
+                                      grading_scale_id, created_by)
              VALUES (:tenant, :title, :description, :instructions, :kind, :status,
                      :difficulty, :course, :module, :category,
                      :timeLimit, :availableFrom, :availableUntil,
                      :grace, :maxAttempts, :gap,
                      :passingScore, :passingType, :selection,
                      :shuffleQuestions, :shuffleOptions, :reveal,
-                     :showScore, :showExplanations, :allowBack, :randomCount, :createdBy)
+                     :showScore, :showExplanations, :allowBack, :randomCount,
+                     :proctoring, :training, :welcome, :completion,
+                     :negMarking, :negMarkingPct, :partialCredit,
+                     :perPage, :showNumbers, :showProgress, :gradingScale, :createdBy)
              RETURNING id',
             $this->writeParams($assessment) + ['createdBy' => $assessment->createdBy],
         );
@@ -222,6 +232,12 @@ final class DbalAssessmentRepository implements AssessmentRepository
                 shuffle_options = :shuffleOptions, reveal_answers = :reveal,
                 show_score_immediately = :showScore, show_explanations = :showExplanations,
                 allow_backward_navigation = :allowBack, random_question_count = :randomCount,
+                proctoring_level = :proctoring, training_id = :training,
+                welcome_message = :welcome, completion_message = :completion,
+                negative_marking = :negMarking, negative_marking_percentage = :negMarkingPct,
+                partial_credit = :partialCredit, questions_per_page = :perPage,
+                show_question_numbers = :showNumbers, show_progress_bar = :showProgress,
+                grading_scale_id = :gradingScale,
                 updated_at = NOW()
              WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
             // Status excluded: publishing goes through setStatus().
@@ -325,13 +341,17 @@ final class DbalAssessmentRepository implements AssessmentRepository
                       grace_period_minutes, max_attempts, attempts_gap_hours, passing_score, passing_type,
                       question_selection, random_question_count, shuffle_questions, shuffle_options,
                       reveal_answers, show_score_immediately, show_explanations, allow_backward_navigation,
-                      requires_manual_grading, proctoring_level, created_by, created_at, updated_at)
+                      requires_manual_grading, proctoring_level, training_id, welcome_message, completion_message,
+                      negative_marking, negative_marking_percentage, partial_credit, questions_per_page,
+                      show_question_numbers, show_progress_bar, grading_scale_id, created_by, created_at, updated_at)
                  SELECT :newId, tenant_id, title || ' (Copy)', description, instructions, kind, 'draft', difficulty,
                         course_id, module_id, category_id, time_limit_minutes, available_from, available_until,
                         grace_period_minutes, max_attempts, attempts_gap_hours, passing_score, passing_type,
                         question_selection, random_question_count, shuffle_questions, shuffle_options,
                         reveal_answers, show_score_immediately, show_explanations, allow_backward_navigation,
-                        requires_manual_grading, proctoring_level, created_by, NOW(), NOW()
+                        requires_manual_grading, proctoring_level, training_id, welcome_message, completion_message,
+                        negative_marking, negative_marking_percentage, partial_credit, questions_per_page,
+                        show_question_numbers, show_progress_bar, grading_scale_id, created_by, NOW(), NOW()
                  FROM assessments WHERE id = :id AND tenant_id = :tenant",
                 ['newId' => $newId, 'id' => $id, 'tenant' => $tenantId],
             );
@@ -581,6 +601,17 @@ final class DbalAssessmentRepository implements AssessmentRepository
             'showExplanations' => $a->showExplanations ? 'true' : 'false',
             'allowBack'        => $a->allowBackwardNavigation ? 'true' : 'false',
             'randomCount'      => $a->randomQuestionCount,
+            'proctoring'       => $a->proctoringLevel->value,
+            'training'         => $a->trainingId,
+            'welcome'          => $a->welcomeMessage,
+            'completion'       => $a->completionMessage,
+            'negMarking'       => $a->negativeMarking ? 'true' : 'false',
+            'negMarkingPct'    => $a->negativeMarkingPercentage,
+            'partialCredit'    => $a->partialCredit ? 'true' : 'false',
+            'perPage'          => $a->questionsPerPage,
+            'showNumbers'      => $a->showQuestionNumbers ? 'true' : 'false',
+            'showProgress'     => $a->showProgressBar ? 'true' : 'false',
+            'gradingScale'     => $a->gradingScaleId,
         ];
     }
 
@@ -631,6 +662,16 @@ final class DbalAssessmentRepository implements AssessmentRepository
             allowBackwardNavigation: (bool) $row['allow_backward_navigation'],
             requiresManualGrading: (bool) $row['requires_manual_grading'],
             proctoringLevel: ProctoringLevel::tryFrom((string) $row['proctoring_level']) ?? ProctoringLevel::None,
+            trainingId: $this->text($row['training_id'] ?? null),
+            welcomeMessage: $this->text($row['welcome_message'] ?? null),
+            completionMessage: $this->text($row['completion_message'] ?? null),
+            negativeMarking: (bool) ($row['negative_marking'] ?? false),
+            negativeMarkingPercentage: (float) ($row['negative_marking_percentage'] ?? 0),
+            partialCredit: (bool) ($row['partial_credit'] ?? true),
+            questionsPerPage: (int) ($row['questions_per_page'] ?? 1),
+            showQuestionNumbers: (bool) ($row['show_question_numbers'] ?? true),
+            showProgressBar: (bool) ($row['show_progress_bar'] ?? true),
+            gradingScaleId: $this->text($row['grading_scale_id'] ?? null),
             createdBy: $this->text($row['created_by'] ?? null),
             publishedAt: $this->date($row['published_at'] ?? null),
             createdAt: $this->date($row['created_at'] ?? null),

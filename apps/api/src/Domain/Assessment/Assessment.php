@@ -44,6 +44,21 @@ final readonly class Assessment
         public bool $allowBackwardNavigation = true,
         public bool $requiresManualGrading = false,
         public ProctoringLevel $proctoringLevel = ProctoringLevel::None,
+        /** The training this assessment belongs to, alongside a course. */
+        public ?string $trainingId = null,
+        /** Shown on the start screen and after submission. */
+        public ?string $welcomeMessage = null,
+        public ?string $completionMessage = null,
+        /** A wrong answer costs a share of its points when this is on. */
+        public bool $negativeMarking = false,
+        public float $negativeMarkingPercentage = 0.0,
+        /** Partial credit on multi-answer questions. */
+        public bool $partialCredit = true,
+        public int $questionsPerPage = 1,
+        public bool $showQuestionNumbers = true,
+        public bool $showProgressBar = true,
+        /** The grading scale a score is banded through, when one is chosen. */
+        public ?string $gradingScaleId = null,
         public ?string $createdBy = null,
         public ?\DateTimeImmutable $publishedAt = null,
         public ?\DateTimeImmutable $createdAt = null,
@@ -194,6 +209,19 @@ final readonly class Assessment
             showScoreImmediately: filter_var($input['showScoreImmediately'] ?? true, FILTER_VALIDATE_BOOL),
             showExplanations: filter_var($input['showExplanations'] ?? true, FILTER_VALIDATE_BOOL),
             allowBackwardNavigation: filter_var($input['allowBackwardNavigation'] ?? true, FILTER_VALIDATE_BOOL),
+            proctoringLevel: ProctoringLevel::tryFrom(
+                strtolower(trim((string) ($input['proctoringLevel'] ?? 'none'))),
+            ) ?? ProctoringLevel::None,
+            trainingId: self::text($input['trainingId'] ?? null),
+            welcomeMessage: self::text($input['welcomeMessage'] ?? null),
+            completionMessage: self::text($input['completionMessage'] ?? null),
+            negativeMarking: filter_var($input['negativeMarking'] ?? false, FILTER_VALIDATE_BOOL),
+            negativeMarkingPercentage: max(0.0, min(100.0, (float) ($input['negativeMarkingPercentage'] ?? 0))),
+            partialCredit: filter_var($input['partialCredit'] ?? true, FILTER_VALIDATE_BOOL),
+            questionsPerPage: max(1, (int) ($input['questionsPerPage'] ?? 1)),
+            showQuestionNumbers: filter_var($input['showQuestionNumbers'] ?? true, FILTER_VALIDATE_BOOL),
+            showProgressBar: filter_var($input['showProgressBar'] ?? true, FILTER_VALIDATE_BOOL),
+            gradingScaleId: self::text($input['gradingScaleId'] ?? null),
         );
     }
 
@@ -307,6 +335,16 @@ final readonly class Assessment
             'allowBackwardNavigation' => $this->allowBackwardNavigation,
             'requiresManualGrading'   => $this->requiresManualGrading,
             'proctoringLevel'         => $this->proctoringLevel->value,
+            'trainingId'              => $this->trainingId,
+            'welcomeMessage'          => $this->welcomeMessage,
+            'completionMessage'       => $this->completionMessage,
+            'negativeMarking'         => $this->negativeMarking,
+            'negativeMarkingPercentage' => $this->negativeMarkingPercentage,
+            'partialCredit'           => $this->partialCredit,
+            'questionsPerPage'        => $this->questionsPerPage,
+            'showQuestionNumbers'     => $this->showQuestionNumbers,
+            'showProgressBar'         => $this->showProgressBar,
+            'gradingScaleId'          => $this->gradingScaleId,
             // Counted, not stored: the legacy total_questions disagreed with
             // reality in 16 of its 19 rows.
             'questionCount' => $this->questionCount,
