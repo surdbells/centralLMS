@@ -166,6 +166,74 @@ final class CompetencyAssessmentAction
     }
 
     /**
+     * Assigns a job profile to many people at once, starting an assessment for
+     * each so it appears on their self-assessment.
+     *
+     * This is how an employee is linked to the profile of their role: the
+     * assessment is the link, and the learner's `/mine` returns exactly the
+     * ones started for them. Assigning in bulk keeps that from being one small
+     * act repeated a hundred times. Someone who already has one for the profile
+     * and cycle is skipped, not failed, so re-running the assignment to catch
+     * new joiners is safe.
+     */
+    public function bulkStart(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $this->caller($request)->mustHave(Permission::CompetencyAssess);
+
+        $tenantId = $this->tenantId($request);
+        $body     = $this->body($request);
+
+        $profileId = trim((string) ($body['profileId'] ?? ''));
+        $cycle     = trim((string) ($body['cycle'] ?? '')) ?: 'default';
+        $userIds   = $this->ids($body['userIds'] ?? null);
+
+        $violations = [];
+        if ($profileId === '') {
+            $violations['profileId'] = 'Choose the job profile to assign.';
+        }
+        if ($userIds === []) {
+            $violations['userIds'] = 'Choose at least one person.';
+        }
+        if ($violations !== []) {
+            throw ValidationFailed::fromArray($violations);
+        }
+
+        $profile = $this->repository->findProfile($tenantId, $profileId);
+        if ($profile === null) {
+            throw new EntityNotFound('Job competency profile', $profileId);
+        }
+        if ($profile->requirements === []) {
+            throw new ConflictingState(
+                'That job profile has no competencies to assess against yet.',
+                'empty_profile',
+            );
+        }
+
+        $created = 0;
+        $skipped = 0;
+
+        foreach ($userIds as $userId) {
+            // Already linked for this profile and cycle — leave it be.
+            if ($this->repository->findAssessmentFor($tenantId, $userId, $profileId, $cycle) !== null) {
+                ++$skipped;
+                continue;
+            }
+            try {
+                $this->repository->startAssessment($tenantId, $userId, $profileId, $cycle);
+                ++$created;
+            } catch (UniqueConstraintViolationException) {
+                ++$skipped;
+            }
+        }
+
+        return Json::ok($response, [
+            'created' => $created,
+            'skipped' => $skipped,
+            'total'   => count($userIds),
+        ]);
+    }
+
+    /**
      * Records the learner's own levels and moves it to self-assessed.
      *
      * @param array<string, string> $args
@@ -452,6 +520,28 @@ final class CompetencyAssessmentAction
         foreach ($raw as $competencyId => $level) {
             if (is_string($competencyId) && $competencyId !== '' && is_numeric($level)) {
                 $out[$competencyId] = (int) $level;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * A de-duplicated list of the non-empty string ids in a request array.
+     *
+     * @return list<string>
+     */
+    private function ids(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $value) {
+            $id = is_string($value) ? trim($value) : '';
+            if ($id !== '' && !in_array($id, $out, true)) {
+                $out[] = $id;
             }
         }
 

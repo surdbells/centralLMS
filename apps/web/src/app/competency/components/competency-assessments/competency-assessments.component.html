@@ -14,7 +14,7 @@
            [(ngModel)]="cycleFilter" (keyup.enter)="load()" (blur)="load()" />
   </div>
   <button class="btn btn-primary btn-sm" (click)="openStart()">
-    <tui-icon icon="@tui.plus"></tui-icon> Start assessment
+    <tui-icon icon="@tui.plus"></tui-icon> Assign a profile
   </button>
 </div>
 
@@ -83,23 +83,35 @@
 <div class="overlay" *ngIf="modalOpen" (click)="closeStart()">
   <div class="overlay-panel" (click)="$event.stopPropagation()">
     <div class="overlay-head">
-      <h5 class="mb-0">Start an assessment</h5>
+      <h5 class="mb-0">Assign a profile</h5>
       <button class="btn btn-sm btn-icon" (click)="closeStart()"><tui-icon icon="@tui.x"></tui-icon></button>
     </div>
     <div class="overlay-body">
+      <p class="text-muted small mb-3">
+        Assign the job profile to the people whose role it is. Each gets an
+        assessment against it, which is what appears on their self-assessment.
+      </p>
+
       <div class="mb-3 position-relative">
-        <label class="form-label">Person <span class="text-danger">*</span></label>
-        <input class="form-control" placeholder="Search by name or email"
+        <label class="form-label">People <span class="text-danger">*</span></label>
+
+        <!-- Already-chosen people, as removable chips -->
+        <div class="picked-chips" *ngIf="selectedUsers.length">
+          <span class="picked-chip" *ngFor="let u of selectedUsers">
+            {{ u.fullName }}
+            <button type="button" class="chip-x" (click)="removeUser(u)" [attr.aria-label]="'Remove ' + u.fullName">
+              <tui-icon icon="@tui.x"></tui-icon>
+            </button>
+          </span>
+        </div>
+
+        <input class="form-control" placeholder="Search by name or email to add…"
                [ngModel]="userQuery" (ngModelChange)="onUserQuery($event)" />
-        <div class="user-results" *ngIf="userResults.length && !selectedUser">
+        <div class="user-results" *ngIf="userResults.length">
           <button class="user-result" *ngFor="let u of userResults" (click)="pickUser(u)">
             <span class="fw-medium">{{ u.fullName }}</span>
             <small class="text-muted">{{ u.email }}</small>
           </button>
-        </div>
-        <div class="picked mt-2" *ngIf="selectedUser">
-          <tui-icon icon="@tui.circle-check" class="text-success"></tui-icon>
-          {{ selectedUser.fullName }} <small class="text-muted">{{ selectedUser.email }}</small>
         </div>
       </div>
 
@@ -122,9 +134,9 @@
     </div>
     <div class="overlay-foot">
       <button class="btn btn-light" (click)="closeStart()">Cancel</button>
-      <button class="btn btn-primary" [disabled]="starting || !selectedUser || !selectedProfileId" (click)="start()">
+      <button class="btn btn-primary" [disabled]="starting || !selectedUsers.length || !selectedProfileId" (click)="start()">
         <span *ngIf="starting" class="spinner-border spinner-border-sm me-1"></span>
-        Start assessment
+        {{ selectedUsers.length > 1 ? 'Assign to ' + selectedUsers.length + ' people' : 'Assign' }}
       </button>
     </div>
   </div>

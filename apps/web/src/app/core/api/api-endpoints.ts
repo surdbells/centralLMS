@@ -504,6 +504,8 @@ export const Endpoints = {
   competencyAssessments: {
     list: '/competency-assessments',
     create: '/competency-assessments',
+    /** Assign a profile to many people at once. */
+    bulk: '/competency-assessments/bulk',
     /** The organisation-wide outcome for a cycle. */
     outcome: '/competency-assessments/outcome',
     /** The caller's own assessments, for self-assessment. */

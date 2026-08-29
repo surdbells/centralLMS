@@ -834,6 +834,9 @@ return static function (App $app): void {
                     ->setName('competency-assessments.list');
                 $a->post('', [CompetencyAssessmentAction::class, 'create'])
                     ->setName('competency-assessments.create');
+                // Assign a profile to many people at once — the bulk link.
+                $a->post('/bulk', [CompetencyAssessmentAction::class, 'bulkStart'])
+                    ->setName('competency-assessments.bulk');
                 $a->get('/{id:' . $uuid . '}', [CompetencyAssessmentAction::class, 'show'])
                     ->setName('competency-assessments.show');
                 // The individual report for one assessment, and its narrative.

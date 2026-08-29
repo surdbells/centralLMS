@@ -360,6 +360,22 @@ export class CompetencyService {
     });
   }
 
+  /**
+   * Assigns a profile to many people at once — the bulk link, so each person
+   * sees the assessment on their self-assessment. Those already assigned are
+   * skipped rather than failed.
+   */
+  assignProfile(
+    profileId: string,
+    userIds: string[],
+    cycle?: string,
+  ): Observable<{ created: number; skipped: number; total: number }> {
+    return this.api.post<{ created: number; skipped: number; total: number }>(
+      Endpoints.competencyAssessments.bulk,
+      { profileId, userIds, cycle },
+    );
+  }
+
   /** The learner records their own levels, moving it to self-assessed. */
   selfAssess(id: string, levels: LevelSubmission): Observable<CompetencyAssessment> {
     return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.self(id), { levels });

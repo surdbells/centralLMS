@@ -143,3 +143,37 @@
   gap: 0.5rem;
   border-top: 1px solid var(--bs-border-color, #eef0f3);
 }
+
+/* Chosen-people chips in the assign modal. */
+.picked-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.picked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.6rem;
+  background: rgba(var(--brand-primary-rgb, 31, 78, 121), 0.1);
+  color: var(--brand-primary, #1f4e79);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  .chip-x {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.9rem;
+
+    &:hover { opacity: 1; }
+  }
+}

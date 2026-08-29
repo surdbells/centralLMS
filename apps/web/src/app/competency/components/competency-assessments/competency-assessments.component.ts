@@ -51,12 +51,12 @@ export class CompetencyAssessmentsComponent implements OnInit {
     { value: 'finalized', label: 'Finalised', badge: 'bg-success-subtle text-success-emphasis' },
   ];
 
-  // Start modal
+  // Start modal — assign a profile to one or many people at once.
   modalOpen = false;
   starting = false;
   userQuery = '';
   userResults: User[] = [];
-  selectedUser: User | null = null;
+  selectedUsers: User[] = [];
   profiles: JobCompetencyProfile[] = [];
   selectedProfileId = '';
   cycle = new Date().getFullYear().toString();
@@ -107,7 +107,7 @@ export class CompetencyAssessmentsComponent implements OnInit {
 
   openStart(): void {
     this.modalOpen = true;
-    this.selectedUser = null;
+    this.selectedUsers = [];
     this.userQuery = '';
     this.userResults = [];
     this.selectedProfileId = '';
@@ -126,7 +126,6 @@ export class CompetencyAssessmentsComponent implements OnInit {
 
   onUserQuery(value: string): void {
     this.userQuery = value;
-    this.selectedUser = null;
     this.userSearch$.next(value);
   }
 
@@ -136,40 +135,62 @@ export class CompetencyAssessmentsComponent implements OnInit {
       return;
     }
     this.users.options(query, 8).subscribe({
-      next: (paged) => (this.userResults = paged.items),
+      next: (paged) => {
+        // Hide people already picked from the suggestions.
+        const chosen = new Set(this.selectedUsers.map((u) => u.id));
+        this.userResults = paged.items.filter((u) => !chosen.has(u.id));
+      },
       error: () => (this.userResults = []),
     });
   }
 
+  /** Adds a person to the assignment; the picker stays open to add more. */
   pickUser(user: User): void {
-    this.selectedUser = user;
-    this.userQuery = user.fullName;
+    if (!this.selectedUsers.some((u) => u.id === user.id)) {
+      this.selectedUsers = [...this.selectedUsers, user];
+    }
+    this.userQuery = '';
     this.userResults = [];
   }
 
+  removeUser(user: User): void {
+    this.selectedUsers = this.selectedUsers.filter((u) => u.id !== user.id);
+  }
+
   start(): void {
-    if (!this.selectedUser || !this.selectedProfileId) {
-      this.toast.error('Choose a person and a profile.');
+    if (this.selectedUsers.length === 0 || !this.selectedProfileId) {
+      this.toast.error('Choose at least one person and a profile.');
       return;
     }
     this.starting = true;
-    this.competency.startAssessment(this.selectedUser.id, this.selectedProfileId, this.cycle.trim() || undefined).subscribe({
-      next: (assessment) => {
-        this.starting = false;
-        this.closeStart();
-        this.toast.success('Assessment started.');
-        this.open(assessment);
-      },
-      error: (err) => {
-        this.starting = false;
-        if (err?.code === 'duplicate_assessment') {
-          this.toast.error('This person already has an assessment against that profile for this cycle.');
-        } else if (err?.code === 'empty_profile') {
-          this.toast.error('That profile has no competencies to assess against.');
-        } else {
-          this.toast.error('The assessment could not be started.');
-        }
-      },
-    });
+    this.competency
+      .assignProfile(
+        this.selectedProfileId,
+        this.selectedUsers.map((u) => u.id),
+        this.cycle.trim() || undefined,
+      )
+      .subscribe({
+        next: (result) => {
+          this.starting = false;
+          this.closeStart();
+          if (result.created > 0) {
+            const skipped = result.skipped > 0 ? ` (${result.skipped} already had one)` : '';
+            this.toast.success(
+              `Assigned to ${result.created} ${result.created === 1 ? 'person' : 'people'}${skipped}.`,
+            );
+          } else {
+            this.toast.error('Everyone chosen already has an assessment against that profile.');
+          }
+          this.load();
+        },
+        error: (err) => {
+          this.starting = false;
+          if (err?.code === 'empty_profile') {
+            this.toast.error('That profile has no competencies to assess against.');
+          } else {
+            this.toast.error('The assignment could not be completed.');
+          }
+        },
+      });
   }
 }
