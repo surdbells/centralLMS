@@ -133,7 +133,7 @@ interface ProctoringConfig {
   `]
 })
 export class ProctoringMonitorComponent implements OnInit, OnDestroy {
-  @Input() attemptId!: number;
+  @Input() attemptId!: string;
   @Input() config: ProctoringConfig = {
     webcam_enabled: false, webcam_snapshot_interval: 30, screen_share: false,
     tab_switch_detection: true, copy_paste_detection: true, right_click_disabled: true,

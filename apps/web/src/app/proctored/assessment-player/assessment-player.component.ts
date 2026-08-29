@@ -8,33 +8,27 @@
 import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil, interval } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil, interval } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
+import { AssessmentsService } from '../../services/assessments.service';
 import { QuestionRendererComponent, PlayerQuestion, QuestionAnswer } from '../question-renderer/question-renderer.component';
 import { ProctoringMonitorComponent } from '../proctoring-monitor/proctoring-monitor.component';
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
-
 interface AttemptData {
-  attempt_id: number; assessment_id: number; assessment_title: string;
+  attempt_id: string; assessment_id: string; assessment_title: string;
   time_limit_seconds: number|null; time_remaining_seconds: number|null;
   started_at: string; allow_back_navigation: boolean;
   show_question_numbers: boolean; one_question_per_page: boolean;
   sections: PlayerSection[]; total_questions: number;
+  // Populated when the proctoring slice lands; null keeps the monitor hidden.
   proctoring_config: any;
 }
 
 interface PlayerSection {
-  section_id: number; title: string; description: string;
+  section_id: string; title: string; description: string;
   questions: PlayerQuestion[];
-}
-
-interface QuestionNavItem {
-  question_id: number; index: number; section_index: number;
-  answered: boolean; flagged: boolean; current: boolean;
 }
 
 @Component({
@@ -312,15 +306,14 @@ interface QuestionNavItem {
   `]
 })
 export class AssessmentPlayerComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/attempt';
 
   attempt: AttemptData|null = null;
   loadError = '';
-  answers: Map<number, QuestionAnswer> = new Map();
+  answers: Map<string, QuestionAnswer> = new Map();
 
   currentSectionIndex = 0;
   currentQuestionIndex = 0;
@@ -337,6 +330,8 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
   autoSaveStatus: 'saving'|'saved'|'error'|null = null;
   private autoSaveTimeout: any;
   private questionStartTime = Date.now();
+  /** The question whose answer is waiting to be saved. */
+  private pendingAnswerId: string | null = null;
 
   get currentSection(): PlayerSection|null { return this.attempt?.sections[this.currentSectionIndex] || null; }
   get currentQuestion(): PlayerQuestion|null { return this.currentSection?.questions[this.currentQuestionIndex] || null; }
@@ -352,7 +347,7 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const attemptId = this.route.snapshot.paramMap.get('attemptId');
-    if (attemptId) this.loadAttempt(+attemptId);
+    if (attemptId) this.loadAttempt(attemptId);
     else this.loadError = 'No attempt ID. Please start from the assessment lobby.';
   }
 
@@ -367,62 +362,111 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
     if (this.attempt && !this.submitting) { e.preventDefault(); e.returnValue = ''; }
   }
 
-  loadAttempt(attemptId: number): void {
-    const fd = new FormData(); fd.append('action', 'get_attempt_data'); fd.append('attempt_id', attemptId.toString());
-    this.http.post<ApiResponse<AttemptData>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        if (r.status === 'success') {
-          this.attempt = r.data;
-          this.initAnswers();
-          this.loadSavedAnswers(attemptId);
-          if (this.attempt.time_limit_seconds) {
-            this.timeRemaining = this.attempt.time_remaining_seconds || this.attempt.time_limit_seconds;
-            this.startTimer();
+  loadAttempt(attemptId: string): void {
+    this.assessments.attempt(attemptId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (raw) => {
+        const paper = raw as unknown as Record<string, unknown>;
+        // The new API returns the attempt flat, with an `answers` array carrying
+        // each question and whatever the learner has put down so far.
+        const rows = Array.isArray(paper['answers']) ? (paper['answers'] as Array<Record<string, unknown>>) : [];
+        const questions = rows.map(row => this.toPlayerQuestion(row['question'] as Record<string, unknown>));
+
+        this.attempt = {
+          attempt_id: attemptId,
+          assessment_id: String(paper['assessmentId'] ?? ''),
+          assessment_title: String(paper['assessmentTitle'] ?? 'Assessment'),
+          time_limit_seconds: (paper['secondsRemaining'] != null || paper['expiresAt'] != null)
+            ? Number(paper['secondsRemaining'] ?? 0) : null,
+          time_remaining_seconds: paper['secondsRemaining'] != null ? Number(paper['secondsRemaining']) : null,
+          started_at: String(paper['startedAt'] ?? ''),
+          allow_back_navigation: true,
+          show_question_numbers: true,
+          one_question_per_page: true,
+          // One section holding every question — the new paper is flat.
+          sections: [{ section_id: 'all', title: '', description: '', questions }],
+          total_questions: questions.length,
+          proctoring_config: null,
+        };
+
+        // Seed a blank answer per question, then fill in what was saved.
+        for (const q of questions) {
+          this.answers.set(q.question_id, this.blankAnswer(q));
+        }
+        for (const row of rows) {
+          const q = row['question'] as Record<string, unknown>;
+          const qid = String(q['id'] ?? '');
+          const existing = this.answers.get(qid);
+          if (existing && row['answer'] != null) {
+            this.answers.set(qid, this.fromApiAnswer(existing, row['answer'] as Record<string, unknown>));
           }
-          this.startAutoSave();
-        } else { this.loadError = r.message || 'Failed to load.'; }
+        }
+
+        if (this.attempt.time_limit_seconds) {
+          this.timeRemaining = this.attempt.time_remaining_seconds || this.attempt.time_limit_seconds;
+          this.startTimer();
+        }
+        this.startAutoSave();
       },
-      error: () => { this.loadError = 'Failed to load attempt data.'; }
+      error: () => { this.loadError = 'Failed to load attempt data.'; },
     });
   }
 
-  initAnswers(): void {
-    if (!this.attempt) return;
-    for (const sec of this.attempt.sections) {
-      for (const q of sec.questions) {
-        if (!this.answers.has(q.question_id)) {
-          this.answers.set(q.question_id, {
-            question_id: q.question_id, answer_type: q.question_type,
-            selected_option_ids: [], text_answer: '', numeric_answer: null,
-            blank_answers: [], match_answers: [], order_answer: [],
-            file_url: '', hotspot_click: null, is_flagged: false, time_spent_seconds: 0
-          });
-        }
-      }
-    }
+  /** A blank answer scaffold for a question. */
+  private blankAnswer(q: PlayerQuestion): QuestionAnswer {
+    return {
+      question_id: q.question_id, answer_type: q.question_type,
+      selected_option_ids: [], text_answer: '', numeric_answer: null,
+      blank_answers: [], match_answers: [], order_answer: [],
+      file_url: '', hotspot_click: null, is_flagged: false, time_spent_seconds: 0,
+    };
   }
 
-  loadSavedAnswers(attemptId: number): void {
-    const fd = new FormData(); fd.append('action', 'get_saved_answers'); fd.append('attempt_id', attemptId.toString());
-    this.http.post<ApiResponse<any[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        if (r.status === 'success' && r.data) {
-          for (const saved of r.data) {
-            const existing = this.answers.get(saved.question_id);
-            if (existing) {
-              this.answers.set(saved.question_id, {
-                ...existing, ...saved,
-                selected_option_ids: saved.selected_option_ids ? (typeof saved.selected_option_ids === 'string' ? JSON.parse(saved.selected_option_ids) : saved.selected_option_ids) : [],
-                match_answers: saved.match_answers ? (typeof saved.match_answers === 'string' ? JSON.parse(saved.match_answers) : saved.match_answers) : [],
-                order_answer: saved.order_answer ? (typeof saved.order_answer === 'string' ? JSON.parse(saved.order_answer) : saved.order_answer) : [],
-                blank_answers: saved.blank_answers ? (typeof saved.blank_answers === 'string' ? JSON.parse(saved.blank_answers) : saved.blank_answers) : [],
-                hotspot_click: saved.hotspot_click ? (typeof saved.hotspot_click === 'string' ? JSON.parse(saved.hotspot_click) : saved.hotspot_click) : null
-              });
-            }
-          }
-        }
-      }
-    });
+  /** Maps one API question onto the shape the renderer reads. */
+  private toPlayerQuestion(q: Record<string, unknown>): PlayerQuestion {
+    const opts = Array.isArray(q['options']) ? (q['options'] as Array<Record<string, unknown>>) : [];
+    return {
+      question_id: String(q['id'] ?? ''),
+      question_text: String(q['text'] ?? ''),
+      question_type: this.mapType(String(q['type'] ?? '')),
+      points: Number(q['points'] ?? 1),
+      hint: (q['hint'] as string) ?? undefined,
+      required: true,
+      numeric_unit: undefined,
+      options: opts.map(o => ({
+        id: String(o['id'] ?? ''),
+        option_text: String(o['text'] ?? ''),
+        order_position: Number(o['sortOrder'] ?? 0),
+      })),
+    };
+  }
+
+  /** New-API question type -> the renderer's own type names. */
+  private mapType(apiType: string): string {
+    return ({
+      multiple_choice: 'multiple_choice',
+      multiple_choice_single: 'multiple_choice',
+      multiple_choice_multiple: 'multiple_response',
+      true_false: 'true_false',
+      short_answer: 'short_answer',
+      essay: 'long_answer',
+      numeric: 'numeric',
+      fill_in_blanks: 'fill_blank',
+      matching: 'matching',
+      ordering: 'ordering',
+    } as Record<string, string>)[apiType] ?? apiType;
+  }
+
+  /** Fills a saved API answer back into the renderer's answer shape. */
+  private fromApiAnswer(base: QuestionAnswer, api: Record<string, unknown>): QuestionAnswer {
+    const ids = Array.isArray(api['optionIds']) ? (api['optionIds'] as unknown[]).map(String) : [];
+    return {
+      ...base,
+      selected_option_ids: base.answer_type === 'ordering' ? base.selected_option_ids : ids,
+      order_answer: base.answer_type === 'ordering' ? ids : base.order_answer,
+      text_answer: typeof api['text'] === 'string' ? api['text'] : base.text_answer,
+      numeric_answer: typeof api['value'] === 'number' ? api['value'] : base.numeric_answer,
+      blank_answers: Array.isArray(api['texts']) ? (api['texts'] as unknown[]).map(String) : base.blank_answers,
+    };
   }
 
   // === Timer ===
@@ -481,7 +525,7 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
     return this.currentSectionIndex === lastSec && this.currentQuestionIndex === this.attempt.sections[lastSec].questions.length - 1;
   }
 
-  isCurrentQuestion(sectionId: number, questionId: number): boolean {
+  isCurrentQuestion(sectionId: string, questionId: string): boolean {
     return this.currentSection?.section_id === sectionId && this.currentQuestion?.question_id === questionId;
   }
 
@@ -493,19 +537,21 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
   }
 
   // === Answers ===
-  getAnswer(questionId: number): QuestionAnswer|undefined { return this.answers.get(questionId); }
+  getAnswer(questionId: string): QuestionAnswer|undefined { return this.answers.get(questionId); }
 
   onAnswerChange(answer: QuestionAnswer): void {
     this.answers.set(answer.question_id, answer);
+    // Save this one answer, debounced — the new API records them one at a time.
+    this.pendingAnswerId = answer.question_id;
     this.triggerAutoSave();
   }
 
-  isAnswered(questionId: number): boolean {
+  isAnswered(questionId: string): boolean {
     const a = this.answers.get(questionId);
     return a ? this.isAnswerFilled(a) : false;
   }
 
-  isFlagged(questionId: number): boolean { return this.answers.get(questionId)?.is_flagged || false; }
+  isFlagged(questionId: string): boolean { return this.answers.get(questionId)?.is_flagged || false; }
 
   isAnswerFilled(a: QuestionAnswer): boolean {
     if (a.selected_option_ids?.length) return true;
@@ -528,40 +574,57 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
 
   // === Auto-save ===
   startAutoSave(): void {
-    interval(30000).pipe(takeUntil(this.destroy$)).subscribe(() => this.saveAnswers());
+    // A steady heartbeat that saves the answer being worked on.
+    interval(30000).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      if (this.currentQuestion) this.saveOne(this.currentQuestion.question_id);
+    });
   }
 
   triggerAutoSave(): void {
     if (this.autoSaveTimeout) clearTimeout(this.autoSaveTimeout);
-    this.autoSaveTimeout = setTimeout(() => this.saveAnswers(), 3000);
+    this.autoSaveTimeout = setTimeout(() => {
+      const id = this.pendingAnswerId;
+      if (id) this.saveOne(id);
+    }, 1500);
   }
 
-  saveAnswers(): void {
+  /** Saves one question's answer through the new API. */
+  private saveOne(questionId: string): void {
     if (!this.attempt) return;
-    this.autoSaveStatus = 'saving';
+    const a = this.answers.get(questionId);
+    if (!a) return;
     this.saveTimeSpent();
-    const answersArray: any[] = [];
-    this.answers.forEach(a => answersArray.push({
-      ...a,
-      selected_option_ids: JSON.stringify(a.selected_option_ids || []),
-      match_answers: JSON.stringify(a.match_answers || []),
-      order_answer: JSON.stringify(a.order_answer || []),
-      blank_answers: JSON.stringify(a.blank_answers || []),
-      hotspot_click: JSON.stringify(a.hotspot_click)
-    }));
-    const fd = new FormData();
-    fd.append('action', 'save_answers');
-    fd.append('attempt_id', this.attempt.attempt_id.toString());
-    fd.append('answers', JSON.stringify(answersArray));
-    fd.append('time_remaining', this.timeRemaining.toString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        this.autoSaveStatus = r.status === 'success' ? 'saved' : 'error';
-        setTimeout(() => this.autoSaveStatus = null, 2000);
-      },
-      error: () => { this.autoSaveStatus = 'error'; setTimeout(() => this.autoSaveStatus = null, 3000); }
-    });
+    this.autoSaveStatus = 'saving';
+    this.assessments.saveAnswer(this.attempt.attempt_id, questionId, this.toApiAnswer(a))
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.autoSaveStatus = 'saved'; setTimeout(() => this.autoSaveStatus = null, 2000); },
+        error: () => { this.autoSaveStatus = 'error'; setTimeout(() => this.autoSaveStatus = null, 3000); },
+      });
     this.questionStartTime = Date.now();
+  }
+
+  /** The renderer's answer shape -> the payload the grader reads. */
+  private toApiAnswer(a: QuestionAnswer): Record<string, unknown> {
+    switch (a.answer_type) {
+      case 'multiple_choice':
+      case 'multiple_response':
+      case 'true_false':
+        return { optionIds: a.selected_option_ids ?? [] };
+      case 'ordering':
+        return { optionIds: a.order_answer ?? [] };
+      case 'short_answer':
+      case 'long_answer':
+        return { text: a.text_answer ?? '' };
+      case 'numeric':
+        return { value: a.numeric_answer };
+      case 'fill_blank':
+        return { texts: a.blank_answers ?? [] };
+      case 'matching':
+        return { pairs: Object.fromEntries((a.match_answers ?? []).map(m => [m.premise_id, m.response_id])) };
+      default:
+        return { optionIds: a.selected_option_ids ?? [] };
+    }
   }
 
   // === Submit ===
@@ -571,29 +634,24 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
     if (!this.attempt || this.submitting) return;
     this.submitting = true;
     this.saveTimeSpent();
-    const answersArray: any[] = [];
-    this.answers.forEach(a => answersArray.push({
-      ...a,
-      selected_option_ids: JSON.stringify(a.selected_option_ids || []),
-      match_answers: JSON.stringify(a.match_answers || []),
-      order_answer: JSON.stringify(a.order_answer || []),
-      blank_answers: JSON.stringify(a.blank_answers || []),
-      hotspot_click: JSON.stringify(a.hotspot_click)
-    }));
-    const fd = new FormData();
-    fd.append('action', 'submit_attempt');
-    fd.append('attempt_id', this.attempt.attempt_id.toString());
-    fd.append('answers', JSON.stringify(answersArray));
-    this.http.post<ApiResponse<{attempt_id: number}>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        this.submitting = false;
-        if (r.status === 'success') {
+    const attempt = this.attempt;
+    // Save every answer, then submit — answers already save on change, but this
+    // catches anything typed in the last moment.
+    const saves = Array.from(this.answers.entries()).map(([qid, a]) =>
+      this.assessments.saveAnswer(attempt.attempt_id, qid, this.toApiAnswer(a)).pipe(catchError(() => of(null))),
+    );
+    const finalize = () => {
+      this.assessments.submitAttempt(attempt.attempt_id).pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
+          this.submitting = false;
           if (this.timerInterval) clearInterval(this.timerInterval);
-          this.router.navigate(['/learner/assessments/results', this.attempt!.attempt_id]);
-        } else { alert(r.message || 'Submission failed. Please try again.'); }
-      },
-      error: () => { this.submitting = false; alert('Submission failed. Please check your connection.'); }
-    });
+          void this.router.navigate(['/learner/assessments', attempt.assessment_id, 'results', attempt.attempt_id]);
+        },
+        error: () => { this.submitting = false; alert('Submission failed. Please try again.'); },
+      });
+    };
+    if (saves.length === 0) { finalize(); return; }
+    forkJoin(saves).pipe(takeUntil(this.destroy$)).subscribe({ next: finalize, error: finalize });
   }
 
   forceSubmit(): void {
@@ -602,14 +660,12 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
   }
 
   // === Proctoring ===
-  onProctoringViolation(event: any): void {
-    // Log violation alongside current question context
-    const fd = new FormData();
-    fd.append('action', 'log_violation_context');
-    fd.append('attempt_id', this.attempt?.attempt_id.toString() || '');
-    fd.append('question_id', this.currentQuestion?.question_id.toString() || '');
-    fd.append('violation_type', event.type);
-    fd.append('current_index', this.currentGlobalIndex.toString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe();
+  onProctoringViolation(event: { type?: string } | undefined): void {
+    if (!this.attempt) return;
+    this.assessments.recordViolation(this.attempt.attempt_id, {
+      type: event?.type ?? 'unknown',
+      questionId: this.currentQuestion?.question_id ?? null,
+      questionIndex: this.currentGlobalIndex,
+    }).pipe(takeUntil(this.destroy$)).subscribe({ error: () => undefined });
   }
 }

@@ -10,13 +10,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TuiIcon } from '@taiga-ui/core';
 
-interface QuestionOption { id: number; option_text: string; order_position: number; image_url?: string; }
-interface MatchPair { id: number; premise: string; response: string; }
-interface OrderItem { id: number; item_text: string; }
+interface QuestionOption { id: string; option_text: string; order_position: number; image_url?: string; }
+interface MatchPair { id: string; premise: string; response: string; }
+interface OrderItem { id: string; item_text: string; }
 interface FillBlank { blank_index: number; placeholder?: string; }
 
 export interface PlayerQuestion {
-  question_id: number; question_text: string; question_type: string;
+  question_id: string; question_text: string; question_type: string;
   points: number; image_url?: string; hint?: string;
   time_limit_seconds?: number; required: boolean;
   options?: QuestionOption[]; match_pairs?: MatchPair[];
@@ -28,14 +28,14 @@ export interface PlayerQuestion {
 }
 
 export interface QuestionAnswer {
-  question_id: number;
+  question_id: string;
   answer_type: string;
-  selected_option_ids?: number[];
+  selected_option_ids?: string[];
   text_answer?: string;
   numeric_answer?: number|null;
   blank_answers?: string[];
-  match_answers?: {premise_id: number; response_id: number}[];
-  order_answer?: number[];
+  match_answers?: {premise_id: string; response_id: string}[];
+  order_answer?: string[];
   file_url?: string;
   hotspot_click?: {x: number; y: number}|null;
   is_flagged?: boolean;
@@ -310,16 +310,16 @@ export class QuestionRendererComponent implements OnChanges {
   @Input() savedAnswer?: QuestionAnswer;
   @Output() answerChange = new EventEmitter<QuestionAnswer>();
 
-  answer: QuestionAnswer = this.blankAnswer(0);
+  answer: QuestionAnswer = this.blankAnswer('');
   showHint = false;
 
   // Ordering
-  orderItems: {id: number; text: string}[] = [];
+  orderItems: {id: string; text: string}[] = [];
   orderDragIdx = -1;
 
   // Matching
-  matchSelections: (number|null)[] = [];
-  shuffledResponses: {id: number; text: string}[] = [];
+  matchSelections: (string|null)[] = [];
+  shuffledResponses: {id: string; text: string}[] = [];
 
   // Fill blank
   blankAnswers: string[] = [];
@@ -341,7 +341,7 @@ export class QuestionRendererComponent implements OnChanges {
     if (this.savedAnswer) {
       this.answer = { ...this.savedAnswer };
     } else {
-      this.answer = this.blankAnswer(this.question?.question_id || 0);
+      this.answer = this.blankAnswer(this.question?.question_id || '');
     }
     this.initTypeSpecific();
   }
@@ -388,7 +388,7 @@ export class QuestionRendererComponent implements OnChanges {
     }
   }
 
-  blankAnswer(qId: number): QuestionAnswer {
+  blankAnswer(qId: string): QuestionAnswer {
     return {
       question_id: qId, answer_type: this.question?.question_type || '',
       selected_option_ids: [], text_answer: '', numeric_answer: null,
@@ -398,14 +398,14 @@ export class QuestionRendererComponent implements OnChanges {
   }
 
   // === Selection handlers ===
-  isSelected(optId: number): boolean { return this.answer.selected_option_ids?.includes(optId) || false; }
+  isSelected(optId: string): boolean { return this.answer.selected_option_ids?.includes(optId) || false; }
 
-  selectSingle(optId: number): void {
+  selectSingle(optId: string): void {
     this.answer.selected_option_ids = [optId];
     this.emitChange();
   }
 
-  toggleOption(optId: number): void {
+  toggleOption(optId: string): void {
     const ids = this.answer.selected_option_ids || [];
     const idx = ids.indexOf(optId);
     if (idx >= 0) ids.splice(idx, 1); else ids.push(optId);
@@ -421,7 +421,7 @@ export class QuestionRendererComponent implements OnChanges {
   // === Matching sync ===
   syncMatches(): void {
     this.answer.match_answers = (this.question.match_pairs || []).map((p, i) => ({
-      premise_id: p.id, response_id: this.matchSelections[i] || 0
+      premise_id: p.id, response_id: this.matchSelections[i] || ''
     })).filter(m => m.response_id);
     this.emitChange();
   }
