@@ -29,7 +29,7 @@
   <div class="input-group input-group-sm search-box">
     <span class="input-group-text bg-transparent border-end-0"><tui-icon icon="@tui.search"></tui-icon></span>
     <input type="search" class="form-control border-start-0" placeholder="Search competencies"
-           [(ngModel)]="search" (keyup.enter)="load()" (search)="load()" />
+           [ngModel]="search" (ngModelChange)="onSearch($event)" />
   </div>
   <div class="fn-chips">
     <button class="fn-chip" [class.active]="!functionFilter" (click)="selectFunction('')">
@@ -73,7 +73,7 @@
       <span class="fn-count">{{ group.competencies.length }}</span>
     </div>
     <div class="comp-grid">
-      <div class="comp-card" *ngFor="let c of group.competencies" [class.expanded]="expandedId === c.id">
+      <div class="comp-card" *ngFor="let c of group.competencies">
         <div class="comp-card-head">
           <div class="comp-name">{{ c.name }}</div>
           <div class="dropdown">
@@ -100,23 +100,9 @@
           <span class="lvl-pill s" [class.on]="c.levels.skill" title="Skill">S</span>
           <span class="lvl-pill m" [class.on]="c.levels.mastery" title="Mastery">M</span>
           <button class="lvl-toggle" *ngIf="c.levels.knowledge || c.levels.skill || c.levels.mastery"
-                  (click)="toggleLevels(c.id)">
-            {{ expandedId === c.id ? 'Hide levels' : 'View levels' }}
-            <tui-icon [icon]="expandedId === c.id ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
+                  (click)="openLevels(c)">
+            View levels <tui-icon icon="@tui.maximize-2"></tui-icon>
           </button>
-        </div>
-
-        <!-- The behavioural anchors, on demand -->
-        <div class="lvl-detail" *ngIf="expandedId === c.id">
-          <div class="lvl-row" *ngIf="c.levels.knowledge">
-            <span class="lvl-tag k">Knowledge</span><p>{{ c.levels.knowledge }}</p>
-          </div>
-          <div class="lvl-row" *ngIf="c.levels.skill">
-            <span class="lvl-tag s">Skill</span><p>{{ c.levels.skill }}</p>
-          </div>
-          <div class="lvl-row" *ngIf="c.levels.mastery">
-            <span class="lvl-tag m">Mastery</span><p>{{ c.levels.mastery }}</p>
-          </div>
         </div>
 
         <div class="comp-meta">
@@ -124,6 +110,43 @@
           <span title="Times assessed"><tui-icon icon="@tui.clipboard-check"></tui-icon> {{ c.assessedCount }} assessed</span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Levels modal -->
+<div class="overlay" *ngIf="levelsModal as c" (click)="closeLevels()">
+  <div class="overlay-panel" (click)="$event.stopPropagation()">
+    <div class="overlay-head">
+      <div>
+        <h5 class="mb-0">{{ c.name }}</h5>
+        <small class="text-muted">{{ c.functionName }}</small>
+      </div>
+      <button class="btn btn-sm btn-icon" (click)="closeLevels()"><tui-icon icon="@tui.x"></tui-icon></button>
+    </div>
+    <div class="overlay-body">
+      <p class="text-muted" *ngIf="c.description">{{ c.description }}</p>
+      <div class="lvl-detail">
+        <div class="lvl-row" *ngIf="c.levels.knowledge">
+          <span class="lvl-tag k">Knowledge</span><p>{{ c.levels.knowledge }}</p>
+        </div>
+        <div class="lvl-row" *ngIf="c.levels.skill">
+          <span class="lvl-tag s">Skill</span><p>{{ c.levels.skill }}</p>
+        </div>
+        <div class="lvl-row" *ngIf="c.levels.mastery">
+          <span class="lvl-tag m">Mastery</span><p>{{ c.levels.mastery }}</p>
+        </div>
+        <p class="text-muted small mb-0"
+           *ngIf="!c.levels.knowledge && !c.levels.skill && !c.levels.mastery">
+          No behavioural anchors defined for this competency yet.
+        </p>
+      </div>
+    </div>
+    <div class="overlay-foot">
+      <button class="btn btn-light" (click)="closeLevels()">Close</button>
+      <button class="btn btn-primary" (click)="closeLevels(); openEdit(c)">
+        <tui-icon icon="@tui.pencil"></tui-icon> Edit
+      </button>
     </div>
   </div>
 </div>
@@ -197,10 +220,17 @@
       </button>
     </div>
     <div class="overlay-body">
-      <p class="text-muted small mb-3">
+      <p class="text-muted small mb-2">
         Upload the completed Job Competency Profile workbooks (.xlsx). Each function's
         competencies and its job profiles are read in. A re-import updates rather than
         duplicates.
+      </p>
+      <p class="small mb-3" *ngIf="!importResult">
+        Don't have one in this format?
+        <a href="javascript:void(0)" (click)="downloadTemplate()">
+          <tui-icon icon="@tui.download"></tui-icon> Download a blank template
+        </a>
+        to fill in.
       </p>
 
       <!-- Picker -->

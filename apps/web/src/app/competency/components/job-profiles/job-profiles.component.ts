@@ -147,12 +147,21 @@ export class JobProfilesComponent implements OnInit {
     this.jobTitle = profile.jobTitle;
     this.functionName = profile.functionName;
     this.description = profile.description ?? '';
-    this.requirements = profile.requirements.map((r) => ({
-      competencyId: r.competencyId,
-      requiredLevel: r.requiredLevel,
-      isCritical: r.isCritical,
-    }));
+    // The list omits each profile's requirements to avoid loading every one of
+    // every profile, so the editor fetches the full profile — otherwise it
+    // opens claiming "no competencies added yet" over a profile that has them.
+    this.requirements = [];
     this.modalOpen = true;
+    this.competency.getProfile(profile.id).subscribe({
+      next: (full) => {
+        this.requirements = full.requirements.map((r) => ({
+          competencyId: r.competencyId,
+          requiredLevel: r.requiredLevel,
+          isCritical: r.isCritical,
+        }));
+      },
+      error: () => this.toast.error('The profile could not be loaded.'),
+    });
   }
 
   closeModal(): void {

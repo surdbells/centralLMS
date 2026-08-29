@@ -375,10 +375,12 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
         next: (template) => {
           this.editingTemplate = template;
           this.templateForm = {
-            // Empty means "use the platform's", which is what the placeholder
-            // in each field says.
-            subject: template.subject ?? '',
-            body: template.body ?? '',
+            // Start from what would actually be sent: the organisation's own
+            // wording where it has set some, otherwise the platform default —
+            // so the editor opens on real content, never a blank page. Saving
+            // it as-is simply adopts the default wording as the org's own.
+            subject: template.subject ?? template.default?.title ?? '',
+            body: template.body ?? template.default?.body ?? '',
             enabled: template.enabled,
           };
         },

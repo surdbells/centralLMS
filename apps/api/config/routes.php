@@ -19,6 +19,7 @@ use Central\Api\Application\Action\Auth\RegisterAction;
 use Central\Api\Application\Action\Competency\CompetencyAction;
 use Central\Api\Application\Action\Competency\CompetencyAssessmentAction;
 use Central\Api\Application\Action\Competency\CompetencyImportAction;
+use Central\Api\Application\Action\Competency\CompetencyTemplateAction;
 use Central\Api\Application\Action\Competency\JobProfileAction;
 use Central\Api\Application\Action\Auth\SsoAction;
 use Central\Api\Application\Action\Settings\ManageEmailTemplatesAction;
@@ -789,6 +790,9 @@ return static function (App $app): void {
                 // Importing the completed JCP workbooks straight from the browser.
                 $c->post('/import', [CompetencyImportAction::class, 'import'])
                     ->setName('competencies.import');
+                // A blank workbook laid out the way the importer reads.
+                $c->get('/import/template', [CompetencyTemplateAction::class, 'import'])
+                    ->setName('competencies.import.template');
                 $c->get('/{id:' . $uuid . '}', [CompetencyAction::class, 'show'])->setName('competencies.show');
                 $c->put('/{id:' . $uuid . '}', [CompetencyAction::class, 'update'])->setName('competencies.update');
                 $c->delete('/{id:' . $uuid . '}', [CompetencyAction::class, 'delete'])

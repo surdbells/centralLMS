@@ -112,9 +112,7 @@ $border-radius-lg: 0.75rem;
 // Main Content Layout
 .settings-content {
   display: flex;
-  max-width: 1400px;
   margin: 0 auto;
-  padding: 1.5rem;
   gap: 1.5rem;
 
   @media (max-width: 992px) {

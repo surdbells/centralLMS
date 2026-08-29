@@ -34,7 +34,8 @@ $border-radius-lg: 0.75rem;
 
 // Header
 .page-header {
-  background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+  background: linear-gradient(135deg, var(--brand-primary, #{$primary-color}) 0%,
+    color-mix(in srgb, var(--brand-primary, #{$primary-color}) 78%, #000) 100%);
   padding: 1.5rem 2rem;
 
   .header-content {

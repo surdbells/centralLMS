@@ -482,6 +482,8 @@ export const Endpoints = {
     functions: '/competencies/functions',
     /** Uploading the completed JCP workbooks. */
     import: '/competencies/import',
+    /** A blank JCP workbook to fill in and upload. */
+    importTemplate: '/competencies/import/template',
     show: (id: string) => `/competencies/${id}`,
     update: (id: string) => `/competencies/${id}`,
     delete: (id: string) => `/competencies/${id}`,

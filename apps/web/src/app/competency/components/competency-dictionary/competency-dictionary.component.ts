@@ -1,8 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
+import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
+import { ApiClient, Endpoints } from '../../../core/api';
 import {
   CompetencyService,
   type Competency,
@@ -34,6 +37,8 @@ interface FunctionGroup {
 export class CompetencyDictionaryComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly toast = inject(HotToastService);
+  private readonly http = inject(HttpClient);
+  private readonly api = inject(ApiClient);
 
   loading = true;
   saving = false;
@@ -42,8 +47,9 @@ export class CompetencyDictionaryComponent implements OnInit {
   search = '';
   functionStats: CompetencyFunction[] = [];
   openMenuId: string | null = null;
-  /** The card whose level descriptors are expanded. */
-  expandedId: string | null = null;
+  /** The competency whose levels are shown in the modal. */
+  levelsModal: Competency | null = null;
+  private readonly searchChanged$ = new Subject<string>();
 
   get knownFunctions(): string[] {
     return this.functionStats.map((f) => f.function);
@@ -80,6 +86,40 @@ export class CompetencyDictionaryComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    // Live search: reload as the admin types, once they pause.
+    this.searchChanged$
+      .pipe(debounceTime(250), distinctUntilChanged())
+      .subscribe(() => this.load());
+  }
+
+  onSearch(value: string): void {
+    this.search = value;
+    this.searchChanged$.next(value);
+  }
+
+  /** Downloads the blank JCP workbook to fill in. */
+  downloadTemplate(): void {
+    this.http
+      .get(this.api.urlFor(Endpoints.competencies.importTemplate), { responseType: 'blob' })
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'JCP-template.xlsx';
+          link.click();
+          URL.revokeObjectURL(url);
+        },
+        error: () => this.toast.error('The template could not be downloaded.'),
+      });
+  }
+
+  openLevels(competency: Competency): void {
+    this.levelsModal = competency;
+  }
+
+  closeLevels(): void {
+    this.levelsModal = null;
   }
 
   load(): void {
@@ -108,10 +148,6 @@ export class CompetencyDictionaryComponent implements OnInit {
   selectFunction(fn: string): void {
     this.functionFilter = this.functionFilter === fn ? '' : fn;
     this.load();
-  }
-
-  toggleLevels(id: string): void {
-    this.expandedId = this.expandedId === id ? null : id;
   }
 
   private group(items: Competency[]): FunctionGroup[] {
