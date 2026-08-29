@@ -4,7 +4,8 @@
     <div class="d-flex align-items-center">
       <!-- Logo -->
       <a class="navbar-brand me-2 me-lg-3" routerLink="/administration">
-        <img src="/assets/img/logo.png" alt="Central LMS" class="logo-img">
+        <img [src]="branding.logoUrl() || '/assets/img/logo.png'"
+             [alt]="branding.organisation() || 'Central LMS'" class="logo-img">
       </a>
 
       <!-- Modules Dropdown -->

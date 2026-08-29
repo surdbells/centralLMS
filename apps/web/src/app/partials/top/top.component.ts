@@ -11,6 +11,7 @@ import { MyProfileService } from '../../services/my-profile.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiClient } from '../../core/api';
+import { BrandingService } from '../../core/branding.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
 export interface Notifications {
@@ -48,6 +49,8 @@ export class TopComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
+  /** The organisation's logo and name, painted by BrandingService. */
+  readonly branding = inject(BrandingService);
   private readonly toast = inject(HotToastService);
   private readonly destroy$ = new Subject<void>();
 

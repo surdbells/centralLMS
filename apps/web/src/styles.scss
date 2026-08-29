@@ -86,3 +86,89 @@ app-course-player main {
 }
 
 
+
+/* ==========================================================================
+   Organisation branding
+   --------------------------------------------------------------------------
+   BrandingService writes --brand-primary / --brand-secondary / --brand-accent
+   (and their -rgb triplets) onto :root the moment a signed-in tenant's colours
+   arrive. These defaults keep the app looking right before that, and the rules
+   below route Bootstrap's primary — buttons, links, badges, nav, focus rings —
+   through the brand colour, so a saved colour is seen everywhere at once
+   rather than nowhere.
+   ========================================================================== */
+:root {
+  --brand-primary: #303234;
+  --brand-primary-rgb: 48, 50, 52;
+  --brand-secondary: #6c757d;
+  --brand-secondary-rgb: 108, 117, 125;
+  --brand-accent: #2149e8;
+  --brand-accent-rgb: 33, 73, 232;
+
+  /* Bootstrap reads these for anything still driven by the framework var. */
+  --bs-primary: var(--brand-primary);
+  --bs-primary-rgb: var(--brand-primary-rgb);
+  --bs-link-color: var(--brand-primary);
+  --bs-link-color-rgb: var(--brand-primary-rgb);
+  --bs-link-hover-color: var(--brand-primary);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-bg: rgba(var(--brand-primary-rgb), 0.88);
+  --bs-btn-hover-border-color: rgba(var(--brand-primary-rgb), 0.88);
+  --bs-btn-active-bg: rgba(var(--brand-primary-rgb), 0.94);
+  --bs-btn-active-border-color: rgba(var(--brand-primary-rgb), 0.94);
+  --bs-btn-disabled-bg: rgba(var(--brand-primary-rgb), 0.55);
+  --bs-btn-disabled-border-color: rgba(var(--brand-primary-rgb), 0.55);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-bg: var(--brand-primary);
+  --bs-btn-hover-border-color: var(--brand-primary);
+  --bs-btn-active-bg: var(--brand-primary);
+  --bs-btn-active-border-color: var(--brand-primary);
+}
+
+.text-primary { color: var(--brand-primary) !important; }
+.bg-primary { background-color: var(--brand-primary) !important; }
+.border-primary { border-color: var(--brand-primary) !important; }
+.link-primary { color: var(--brand-primary) !important; }
+.btn-link { color: var(--brand-primary); }
+
+.badge.bg-primary,
+.badge.text-bg-primary { background-color: var(--brand-primary) !important; }
+
+.text-bg-primary {
+  color: #fff !important;
+  background-color: var(--brand-primary) !important;
+}
+
+/* Pills and tabs that mark the active item in the primary colour. */
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--brand-primary);
+}
+
+.progress-bar { background-color: var(--brand-primary); }
+.spinner-border.text-primary,
+.spinner-border-sm.text-primary { color: var(--brand-primary) !important; }
+
+/* Inputs and checks pick up the brand on focus. */
+.form-control:focus,
+.form-select:focus {
+  border-color: rgba(var(--brand-primary-rgb), 0.5);
+  box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.2);
+}
+
+.form-check-input:checked {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.form-check-input:focus {
+  border-color: rgba(var(--brand-primary-rgb), 0.5);
+  box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.2);
+}
