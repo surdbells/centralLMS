@@ -172,3 +172,27 @@ app-course-player main {
   border-color: rgba(var(--brand-primary-rgb), 0.5);
   box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.2);
 }
+
+/* Shared page-header back button — a consistent boxed chevron, brand-aware,
+   used so the Reports, Competency and other module headers line the back
+   control up beside the title the way the Courses screen does. */
+.page-back {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--bs-body-bg, #fff);
+  border: 2px solid var(--bs-border-color, #e5e7eb);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--bs-secondary-color, #6b7280);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: var(--brand-primary, #6d5ef6);
+    color: var(--brand-primary, #6d5ef6);
+    background: var(--bs-tertiary-bg, #f8f9fa);
+  }
+}

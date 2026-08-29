@@ -5,8 +5,9 @@ import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { TuiLoader } from '@taiga-ui/core';
-import { ApiError } from '../../core/api';
+import { ApiClient, ApiError, Endpoints } from '../../core/api';
 import { AuthService } from '../../core/auth/auth.service';
+import { BrandingService } from '../../core/branding.service';
 import { SsoService, type SsoProviderId, type SsoProviderOption } from '../../services/sso.service';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { TranslatePipe } from '../../translate.pipe';
@@ -33,6 +34,11 @@ export class LoginComponent implements OnInit {
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
+  private readonly api = inject(ApiClient);
+
+  /** The organisation's logo and name, when a tenant is known for this screen. */
+  logoUrl: string | null = null;
+  orgName: string | null = null;
 
   loading = false;
 
@@ -83,6 +89,38 @@ export class LoginComponent implements OnInit {
         error: () => (this.ssoProviders = []),
       });
     }
+
+    // Wear the organisation's logo, from the tenant in the URL or — the usual
+    // case at plain /login — the last one this browser signed in to.
+    this.loadBranding(this.tenantId || this.rememberedTenant());
+  }
+
+  private rememberedTenant(): string {
+    try {
+      return localStorage.getItem(BrandingService.LAST_TENANT_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  }
+
+  private loadBranding(tenantId: string): void {
+    if (!/^[0-9a-f-]{36}$/i.test(tenantId)) {
+      return;
+    }
+
+    this.api
+      .get<{ organisation: string | null; branding: Record<string, string | boolean> }>(
+        Endpoints.settings.public,
+        { tenantId },
+      )
+      .subscribe({
+        next: (settings) => {
+          const logo = settings.branding['logo_url'];
+          this.logoUrl = typeof logo === 'string' && logo.trim() !== '' ? logo.trim() : null;
+          this.orgName = settings.organisation;
+        },
+        error: () => undefined,
+      });
   }
 
   /**

@@ -46,13 +46,13 @@
                 <div>Storage Usage</div>
                 <div class="fw-bold fs-5 mt-1"><span class="progress-percentage unlimited">{{ formatFileSize(statistics?.bytesUsed ?? 0) }}</span> of <span class="progress-percentage unlimited">{{statistics?.limitBytes === null ? 'unlimited' : formatFileSize(statistics?.limitBytes ?? 0)}}</span>  </div>
               </div>
-              <div class="text-success align-self-center">
+              <div class="text-primary align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.server"></tui-icon>
               </div>
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ statistics?.total ?? 0 }} Total Files</div>
+            <div class="text-primary small">{{ statistics?.total ?? 0 }} Total Files</div>
           </div>
         </div>
       </div>
@@ -64,13 +64,13 @@
                 <div>Videos</div>
                 <div class="fw-bold fs-5 mt-1">{{ countOf('video') + ' files' }}</div>
               </div>
-              <div class="text-success align-self-center">
+              <div class="text-primary align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.video"></tui-icon>
               </div>
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ countOf('video') }} Files</div>
+            <div class="text-primary small">{{ countOf('video') }} Files</div>
           </div>
         </div>
       </div>
@@ -82,13 +82,13 @@
                 <div>AUDIO</div>
                 <div class="fw-bold fs-5 mt-1">{{ countOf('audio') + ' files' }}</div>
               </div>
-              <div class="text-success align-self-center">
+              <div class="text-primary align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.file-music"></tui-icon>
               </div>
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ countOf('audio') }} Files</div>
+            <div class="text-primary small">{{ countOf('audio') }} Files</div>
           </div>
         </div>
       </div>
@@ -100,13 +100,13 @@
                 <div>PDFS</div>
                 <div class="fw-bold fs-5 mt-1">{{ countOf('pdf') + ' files' }}</div>
               </div>
-              <div class="text-success align-self-center">
+              <div class="text-primary align-self-center">
                 <tui-icon class="fs-1"  icon="@tui.files"></tui-icon>
               </div>
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ countOf('pdf') }} Files</div>
+            <div class="text-primary small">{{ countOf('pdf') }} Files</div>
           </div>
         </div>
       </div>
@@ -118,13 +118,13 @@
                 <div>SCORM</div>
                 <div class="fw-bold fs-5 mt-1">{{ countOf('scorm') + ' files' }}</div>
               </div>
-              <div class="text-success align-self-center">
+              <div class="text-primary align-self-center">
                 <tui-icon class="fs-1" icon="@tui.package-2"></tui-icon>
               </div>
             </div>
           </div>
           <div class="card-footer p-3 text-center">
-            <div class="text-success small">{{ countOf('scorm') }} Files</div>
+            <div class="text-primary small">{{ countOf('scorm') }} Files</div>
           </div>
         </div>
       </div>

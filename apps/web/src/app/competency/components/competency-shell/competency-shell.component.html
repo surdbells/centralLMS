@@ -2,14 +2,12 @@
 <main class="main px-lg-6">
   <div class="container-fluid">
     <!-- Header -->
-    <div class="row align-items-center mb-4 mt-3">
-      <div (click)="goBack()" role="button" class="col-auto">
-        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-          <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-        </div>
+    <div class="d-flex align-items-start gap-3 mb-4 mt-3">
+      <div (click)="goBack()" role="button" class="page-back">
+        <tui-icon icon="@tui.chevron-left"></tui-icon>
       </div>
-      <div class="col">
-        <h1 class="h4 mb-0 d-flex align-items-center gap-2">
+      <div>
+        <h1 class="h4 fw-bold mb-1 d-flex align-items-center gap-2">
           <tui-icon icon="@tui.target" class="text-primary"></tui-icon>
           Competency Assurance
         </h1>

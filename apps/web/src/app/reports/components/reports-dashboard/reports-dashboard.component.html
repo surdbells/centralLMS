@@ -2,22 +2,17 @@
 
 <main class="main px-lg-6">
   <div class="container-fluid">
-    <div class="row align-items-center mb-7">
-      <div (click)="goBack()" role="button" class="col-auto">
-        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-          <i class="fs-5">
-            <tui-icon icon="@tui.chevron-left"></tui-icon>
-          </i>
-        </div>
-      </div>
-      <div class="col"></div>
-    </div>
-    <div class="reports-dashboard">
+    <div class="reports-dashboard pt-4">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 class="fw-bold mb-1">Reports & Analytics</h4>
-          <p class="text-muted mb-0 small">Comprehensive LMS reporting across {{ totalReports }} reports</p>
+      <div class="d-flex justify-content-between align-items-start mb-4 gap-3 flex-wrap">
+        <div class="d-flex align-items-start gap-3">
+          <div (click)="goBack()" role="button" class="page-back">
+            <tui-icon icon="@tui.chevron-left"></tui-icon>
+          </div>
+          <div>
+            <h4 class="fw-bold mb-1">Reports & Analytics</h4>
+            <p class="text-muted mb-0 small">Comprehensive LMS reporting across {{ totalReports }} reports</p>
+          </div>
         </div>
         <div class="d-flex gap-2">
           <a routerLink="/admin/reports/catalog" class="btn btn-primary">

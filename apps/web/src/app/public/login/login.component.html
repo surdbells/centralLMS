@@ -22,7 +22,9 @@
         <div class="card-header text-center">
           <div class="row align-items-center">
             <div class="col-6 text-start">
-              <img class="img-fluid" style="max-width: 140px" src="assets/img/logo.png" alt="User login portal for corporate training Africa" />
+              <img class="img-fluid" style="max-width: 140px; max-height: 56px; object-fit: contain"
+                   [src]="logoUrl || 'assets/img/logo.png'"
+                   [alt]="(orgName || 'Central LMS') + ' login portal'" />
             </div>
             <div class="col-6 text-end">
               <app-language-switcher></app-language-switcher>
@@ -31,7 +33,9 @@
         </div>
         <div class="card-body d-flex flex-column justify-content-center">
           <h1 class="fs-2">{{ 'Access Your Learning Dashboard' | translate }}</h1>
-          <p class="lead text-body-secondary">{{ 'Secure Login to Central LMS' | translate }}</p>
+          <p class="lead text-body-secondary">
+            {{ orgName ? ('Secure login to' | translate) + ' ' + orgName : ('Secure Login to Central LMS' | translate) }}
+          </p>
           <form (ngSubmit)="user_login()" method="post" class="mb-2">
             <div class="mb-2">
               <label for="email">{{ 'email' | translate }}</label>

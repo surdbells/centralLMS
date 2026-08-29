@@ -36,6 +36,13 @@ export class BrandingService {
   /** The tenant whose branding is currently applied, so it is fetched once. */
   private applied: string | null = null;
 
+  /**
+   * Where the last-branded tenant is remembered, so the sign-in screen — which
+   * has no session and no tenant of its own — can still wear the organisation's
+   * logo on the way back in.
+   */
+  static readonly LAST_TENANT_KEY = 'central.brandTenant';
+
   constructor() {
     // Signing in, signing out and switching organisation all move this.
     effect(() => {
@@ -46,6 +53,11 @@ export class BrandingService {
       }
 
       this.applied = tenantId;
+      try {
+        localStorage.setItem(BrandingService.LAST_TENANT_KEY, tenantId);
+      } catch {
+        // Private mode or storage disabled — the logo simply falls back.
+      }
       this.load(tenantId);
     });
   }

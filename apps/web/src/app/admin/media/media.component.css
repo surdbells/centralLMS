@@ -1,7 +1,7 @@
 :host {
-  --primary-gold: #39c645;
-  --primary-gold-light: rgba(57, 198, 69, 0.47);
-  --primary-gold-dark: #027e0c;
+  --primary-gold: var(--brand-primary, #39c645);
+  --primary-gold-light: rgba(var(--brand-primary-rgb, 57, 198, 69), 0.47);
+  --primary-gold-dark: var(--brand-primary, #027e0c);
   --primary-gold-subtle: rgba(255, 255, 255, 0.1);
 
   --dark-900: #1A1D24;
