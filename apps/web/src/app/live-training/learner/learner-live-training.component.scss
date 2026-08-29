@@ -8,6 +8,15 @@ $primary-light: #696969;
 $border-radius: 12px;
 $transition: all 0.2s ease;
 
+// The screen is now rendered on its own (its wrapper was removed to stop a
+// doubled navigation bar), so it carries its own content box: a centred column
+// with breathing room, rather than bleeding to the window edges.
+.learner-live-training {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3rem;
+}
+
 // Page Header
 .page-header {
   .page-title {

@@ -63,7 +63,11 @@ $type-text: #6c757d;
 // ==========================================
 
 .course-content-manager {
+  max-width: 1400px;
   margin: 0 auto;
+  // A content box with side padding, so the header actions and the cards do
+  // not run to the window edge (the "Collapse All" button was clipping).
+  padding: 1.5rem 2rem 3rem;
 }
 
 // ==========================================
