@@ -35,6 +35,7 @@ export class LoginComponent implements OnInit {
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
   private readonly api = inject(ApiClient);
+  private readonly branding = inject(BrandingService);
 
   /** The organisation's logo and name, when a tenant is known for this screen. */
   logoUrl: string | null = null;
@@ -115,9 +116,11 @@ export class LoginComponent implements OnInit {
       )
       .subscribe({
         next: (settings) => {
-          const logo = settings.branding['logo_url'];
-          this.logoUrl = typeof logo === 'string' && logo.trim() !== '' ? logo.trim() : null;
-          this.orgName = settings.organisation;
+          // Paint the colours, logo and favicon so the sign-in buttons wear
+          // the organisation's colour, not just its logo.
+          this.branding.apply(settings.organisation, settings.branding);
+          this.logoUrl = this.branding.logoUrl();
+          this.orgName = this.branding.organisation();
         },
         error: () => undefined,
       });

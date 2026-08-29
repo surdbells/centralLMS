@@ -27,19 +27,19 @@
   margin-left: .25rem;
 }
 .abayti_primary_background {
-  background-color: #c4ce39;
+  background-color: var(--brand-primary, #c4ce39);
 }
 
 .abayti_primary_color {
-  color: #c4ce39;
+  color: var(--brand-primary, #c4ce39);
 }
 
 .abayti_secondary_background {
-  background-color: #0E630E;
+  background-color: var(--brand-primary, #0E630E);
 }
 
 .abayti_secondary_color {
-  color: #0E630E;
+  color: var(--brand-primary, #0E630E);
 }
 
 .empty-state {

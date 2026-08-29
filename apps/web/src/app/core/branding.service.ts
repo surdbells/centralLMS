@@ -62,6 +62,16 @@ export class BrandingService {
     });
   }
 
+  /**
+   * Applies a public-settings payload directly — for the sign-in screen, which
+   * fetches branding itself (it has no session for the effect above to watch)
+   * but still wants the colours, logo and favicon painted.
+   */
+  apply(organisation: string | null, branding: Partial<Record<string, string | boolean>>): void {
+    this.organisation.set(organisation);
+    this.paint(branding);
+  }
+
   private load(tenantId: string): void {
     this.api.get<PublicBranding>(Endpoints.settings.public, { tenantId }).subscribe({
       next: (settings) => {
