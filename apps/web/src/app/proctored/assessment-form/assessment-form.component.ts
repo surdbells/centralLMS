@@ -7,26 +7,32 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
+import { ApiClient, Endpoints } from '../../core/api';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import {
+  AssessmentAdminService,
+  type AssessmentDetail,
+  type AssessmentInput,
+  type AssessmentSection as ApiSection,
+  type AttachedQuestion,
+  type AssignmentType,
+  type QuestionBank,
+} from '../assessment-admin.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
-
 interface AssessmentForm {
-  assessment_id: number | null;
+  assessment_id: string | null;
   title: string;
   description: string;
   instructions: string;
   assessment_type: 'quiz' | 'exam' | 'practice' | 'survey';
-  category_id: number | null;
+  category_id: string | null;
   status: 'draft' | 'published' | 'closed';
   // Time & Attempts
   time_limit_minutes: number;
@@ -58,17 +64,17 @@ interface AssessmentForm {
   availability_start: string;
   availability_end: string;
   // Integration
-  course_id: number | null;
-  training_id: number | null;
+  course_id: string | null;
+  training_id: string | null;
   // Grading
-  grading_scale_id: number | null;
+  grading_scale_id: string | null;
   // Messaging
   welcome_message: string;
   completion_message: string;
 }
 
 interface Section {
-  section_id: number;
+  section_id: string;
   title: string;
   description: string;
   sort_order: number;
@@ -78,8 +84,11 @@ interface Section {
 }
 
 interface SectionQuestion {
-  aq_id: number;
-  question_id: number;
+  // The question's id doubles as the assessment-question handle: the REST API
+  // keys attach/detach/points/section on the question id, so there is no
+  // separate `aq_id` any more.
+  aq_id: string;
+  question_id: string;
   question_text: string;
   question_type: string;
   points: number;
@@ -88,18 +97,18 @@ interface SectionQuestion {
 }
 
 interface Assignment {
-  assignment_id: number;
+  assignment_id: string;
   assignment_type: 'user' | 'department' | 'team' | 'branch' | 'all';
-  target_id: number;
+  target_id: string | null;
   target_name: string;
   due_date: string;
   created_at: string;
 }
 
-interface Category { category_id: number; name: string; }
-interface Course { id: number; title: string; }
-interface Training { id: number; title: string; }
-interface GradingScale { scale_id: number; name: string; }
+interface Category { category_id: string; name: string; }
+interface Course { id: string; title: string; }
+interface Training { id: string; title: string; }
+interface GradingScale { scale_id: string; name: string; }
 
 @Component({
   selector: 'app-assessment-form',
@@ -546,8 +555,8 @@ interface GradingScale { scale_id: number; name: string; }
               <input type="text" class="form-control form-control-sm" placeholder="Search questions..."
                      [(ngModel)]="pickerSearch" (input)="searchQuestions()">
               <select class="form-select form-select-sm" [(ngModel)]="pickerBank" (change)="searchQuestions()">
-                <option value="">All Banks</option>
-                <option *ngFor="let c of categories" [value]="c.category_id">{{ c.name }}</option>
+                <option value="">Choose a bank…</option>
+                <option *ngFor="let b of banks" [value]="b.id">{{ b.name }} ({{ b.questionCount }})</option>
               </select>
               <select class="form-select form-select-sm" [(ngModel)]="pickerType" (change)="searchQuestions()">
                 <option value="">All Types</option>
@@ -739,7 +748,8 @@ interface GradingScale { scale_id: number; name: string; }
   `]
 })
 export class AssessmentFormComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private api = inject(AssessmentAdminService);
+  private apiClient = inject(ApiClient);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
@@ -756,6 +766,7 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   courses: Course[] = [];
   trainings: Training[] = [];
   gradingScales: GradingScale[] = [];
+  banks: QuestionBank[] = [];
 
   // Question Picker
   showQuestionPicker = false;
@@ -795,11 +806,11 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const id = this.route.snapshot.params['id'];
-    if (id && id !== 'new') {
+    if (id && id !== 'new' && id !== 'create') {
       this.isEdit = true;
-      this.loadAssessment(+id);
-      this.loadSections(+id);
-      this.loadAssignments(+id);
+      this.form.assessment_id = id;
+      this.loadAssessment(id);
+      this.loadAssignments(id);
     }
     this.loadLookups();
   }
@@ -819,70 +830,210 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
     };
   }
 
+  /** REST assessment → the form this screen edits. */
+  private apiToForm(a: AssessmentDetail): AssessmentForm {
+    return {
+      ...this.getDefaultForm(),
+      assessment_id: a.id,
+      title: a.title,
+      description: a.description ?? '',
+      instructions: a.instructions ?? '',
+      assessment_type: ((a.kind as string) === 'assignment' ? 'practice' : a.kind) as AssessmentForm['assessment_type'],
+      category_id: a.categoryId,
+      status: (a.status === 'archived' ? 'closed' : a.status) as AssessmentForm['status'],
+      time_limit_minutes: a.timeLimitMinutes ?? 0,
+      max_attempts: a.maxAttempts ?? 0,
+      attempt_cooldown_hours: a.attemptsGapHours,
+      passing_score: a.passingScore,
+      passing_type: a.passingType,
+      negative_marking: a.negativeMarking,
+      negative_marking_percentage: a.negativeMarkingPercentage,
+      partial_credit: a.partialCredit,
+      questions_per_page: a.questionsPerPage,
+      navigation_type: a.allowBackwardNavigation ? 'free' : 'linear',
+      shuffle_questions: a.shuffleQuestions,
+      shuffle_options: a.shuffleOptions,
+      show_question_numbers: a.showQuestionNumbers,
+      show_progress_bar: a.showProgressBar,
+      show_explanations: a.showExplanations,
+      show_score: a.showScoreImmediately,
+      show_results: a.showScoreImmediately,
+      show_correct_answers: a.revealAnswers !== 'never',
+      results_release_type: this.revealToRelease(a.revealAnswers),
+      proctoring_level: a.proctoringLevel,
+      availability_start: a.availableFrom ?? '',
+      availability_end: a.availableUntil ?? '',
+      course_id: a.courseId,
+      training_id: a.trainingId,
+      grading_scale_id: a.gradingScaleId,
+      welcome_message: a.welcomeMessage ?? '',
+      completion_message: a.completionMessage ?? '',
+    };
+  }
+
+  /** The form → the REST input the API accepts. */
+  private formToInput(status: string): AssessmentInput {
+    const f = this.form;
+    return {
+      title: f.title.trim(),
+      kind: f.assessment_type,
+      description: f.description || null,
+      instructions: f.instructions || null,
+      categoryId: f.category_id || null,
+      courseId: f.course_id || null,
+      trainingId: f.training_id || null,
+      timeLimitMinutes: f.time_limit_minutes > 0 ? f.time_limit_minutes : null,
+      maxAttempts: f.max_attempts > 0 ? f.max_attempts : null,
+      attemptsGapHours: f.attempt_cooldown_hours,
+      passingScore: f.passing_score,
+      passingType: f.passing_type,
+      availableFrom: f.availability_start || null,
+      availableUntil: f.availability_end || null,
+      shuffleQuestions: f.shuffle_questions,
+      shuffleOptions: f.shuffle_options,
+      allowBackwardNavigation: f.navigation_type === 'free',
+      showScoreImmediately: f.show_score,
+      showExplanations: f.show_explanations,
+      revealAnswers: f.show_correct_answers ? this.releaseToReveal(f.results_release_type) : 'never',
+      proctoringLevel: f.proctoring_level,
+      negativeMarking: f.negative_marking,
+      negativeMarkingPercentage: f.negative_marking_percentage,
+      partialCredit: f.partial_credit,
+      questionsPerPage: f.questions_per_page,
+      showQuestionNumbers: f.show_question_numbers,
+      showProgressBar: f.show_progress_bar,
+      gradingScaleId: f.grading_scale_id || null,
+      // `status` is ignored by create/update; it goes through setStatus.
+    } as AssessmentInput;
+  }
+
+  private revealToRelease(reveal: string): AssessmentForm['results_release_type'] {
+    return reveal === 'immediately' ? 'immediate'
+      : reveal === 'after_deadline' ? 'after_close'
+      : reveal === 'after_all_attempts' ? 'manual'
+      : 'immediate';
+  }
+
+  private releaseToReveal(release: string): string {
+    return release === 'immediate' ? 'immediately'
+      : release === 'after_close' || release === 'date' ? 'after_deadline'
+      : 'after_all_attempts';
+  }
+
   // ==========================================
   // DATA LOADING
   // ==========================================
 
-  loadAssessment(id: number): void {
+  loadAssessment(id: string): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_assessment');
-    fd.append('assessment_id', id.toString());
-    this.http.post<ApiResponse<AssessmentForm>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) this.form = { ...this.getDefaultForm(), ...res.data }; this.loading = false; },
-        error: () => { this.loading = false; }
-      });
+    // The configuration and its questions come from the show response; the
+    // sections are their own call. Both are needed before the questions can be
+    // grouped under their sections.
+    forkJoin({
+      detail: this.api.detail(id),
+      sections: this.api.sections(id),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ detail, sections }) => {
+        this.form = this.apiToForm(detail);
+        this.sections = this.groupQuestions(sections, detail.questions);
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
   }
 
-  loadSections(id: number): void {
-    const fd = new FormData();
-    fd.append('action', 'get_assessment_sections');
-    fd.append('assessment_id', id.toString());
-    this.http.post<ApiResponse<Section[]>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) this.sections = (res.data || []).map(s => ({ ...s, is_collapsed: false, is_editing: false }));
-        }
-      });
+  /** Loads the sections afresh and re-groups the current questions under them. */
+  private reloadSections(id: string): void {
+    forkJoin({
+      detail: this.api.detail(id),
+      sections: this.api.sections(id),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ detail, sections }) => {
+        this.sections = this.groupQuestions(sections, detail.questions);
+      }
+    });
   }
 
-  loadAssignments(id: number): void {
-    const fd = new FormData();
-    fd.append('action', 'get_assignments');
-    fd.append('assessment_id', id.toString());
-    this.http.post<ApiResponse<Assignment[]>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) this.assignments = res.data || []; }
-      });
+  private groupQuestions(sections: ApiSection[], questions: AttachedQuestion[]): Section[] {
+    const mapped: Section[] = sections
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(s => ({
+        section_id: s.id,
+        title: s.title,
+        description: s.description ?? '',
+        sort_order: s.sortOrder,
+        questions: [] as SectionQuestion[],
+        is_collapsed: false,
+        is_editing: false,
+      }));
+
+    // A holding section for questions attached straight to the assessment,
+    // with no section of their own — so they are still visible and editable.
+    let loose: Section | null = null;
+    const byId = new Map(mapped.map(s => [s.section_id, s]));
+
+    for (const q of questions.slice().sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const vm: SectionQuestion = {
+        aq_id: q.id,
+        question_id: q.id,
+        question_text: q.text,
+        question_type: q.type,
+        points: q.pointsInThisAssessment,
+        sort_order: q.sortOrder,
+        is_required: q.isRequired,
+      };
+      const target = q.sectionId ? byId.get(q.sectionId) : null;
+      if (target) {
+        target.questions.push(vm);
+      } else {
+        loose ??= { section_id: '', title: 'Unsectioned', description: '', sort_order: -1, questions: [], is_collapsed: false, is_editing: false };
+        loose.questions.push(vm);
+      }
+    }
+
+    return loose ? [loose, ...mapped] : mapped;
+  }
+
+  loadAssignments(id: string): void {
+    this.api.assignments(id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rows) => {
+        this.assignments = rows.map(a => ({
+          assignment_id: a.id,
+          assignment_type: a.assignmentType,
+          target_id: a.targetId,
+          target_name: a.targetName ?? '',
+          due_date: a.dueDate ?? '',
+          created_at: a.createdAt ?? '',
+        }));
+      }
+    });
   }
 
   loadLookups(): void {
-    // Categories
-    const fd1 = new FormData();
-    fd1.append('action', 'get_categories');
-    this.http.post<ApiResponse<Category[]>>(`${GlobalComponent.baseURL}/user/question-bank`, fd1)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.categories = res.data || []; } });
-    // Courses
-    const fd2 = new FormData();
-    fd2.append('action', 'get_courses_lookup');
-    this.http.post<ApiResponse<Course[]>>(`${GlobalComponent.baseURL}/user/assessment`, fd2)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.courses = res.data || []; } });
-    // Trainings
-    const fd3 = new FormData();
-    fd3.append('action', 'get_trainings_lookup');
-    this.http.post<ApiResponse<Training[]>>(`${GlobalComponent.baseURL}/user/assessment`, fd3)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.trainings = res.data || []; } });
-    // Grading Scales
-    const fd4 = new FormData();
-    fd4.append('action', 'get_grading_scales');
-    this.http.post<ApiResponse<GradingScale[]>>(`${GlobalComponent.baseURL}/user/assessment`, fd4)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.gradingScales = res.data || []; } });
-    // Assignment targets
-    const fd5 = new FormData();
-    fd5.append('action', 'get_assignment_targets');
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd5)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.assignTargets = res.data; } });
+    // Categories are a lookup kind; courses and trainings their own resources.
+    this.apiClient.getPaged<{ id: string; name: string }>(Endpoints.lookups.list('category' as any), { perPage: 200 })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: (p) => { this.categories = p.items.map(r => ({ category_id: r.id, name: r.name })); }, error: () => undefined,
+      });
+    this.apiClient.getPaged<{ id: string; title: string }>(Endpoints.courses.list, { perPage: 200 })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: (p) => { this.courses = p.items.map(c => ({ id: c.id, title: c.title })); }, error: () => undefined,
+      });
+    this.apiClient.getPaged<{ id: string; title: string }>(Endpoints.trainings.list, { perPage: 200 })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: (p) => { this.trainings = p.items.map(t => ({ id: t.id, title: t.title })); }, error: () => undefined,
+      });
+    // Grading scales are not a resource yet; the dropdown degrades to none.
+    this.gradingScales = [];
+    // Question banks, for the picker.
+    this.api.banks().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (p) => { this.banks = p.items; }, error: () => undefined,
+    });
+    // Assignment targets — people and the groups.
+    this.api.assignmentTargets().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (t) => { this.assignTargets = t; }, error: () => undefined,
+    });
   }
 
   // ==========================================
@@ -896,27 +1047,32 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   private saveAssessment(status: string): void {
     if (!this.form.title.trim()) return;
     this.saving = true;
-    const fd = new FormData();
-    fd.append('action', this.isEdit ? 'update_assessment' : 'create_assessment');
-    fd.append('status', status);
-    Object.keys(this.form).forEach(key => {
-      const val = (this.form as any)[key];
-      if (val !== null && val !== undefined) fd.append(key, val.toString());
-    });
+    const input = this.formToInput(status);
 
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          this.saving = false;
-          if (res.code === 1) {
-            if (!this.isEdit && res.data?.assessment_id) {
-              this.router.navigate(['/admin/assessments', res.data.assessment_id, 'edit']);
-            }
-            this.form.status = status as any;
-          }
-        },
-        error: () => { this.saving = false; }
-      });
+    const save$ = this.isEdit && this.form.assessment_id
+      ? this.api.update(this.form.assessment_id, input)
+      : this.api.create(input);
+
+    save$.pipe(takeUntil(this.destroy$)).subscribe({
+      next: (saved) => {
+        const wasCreate = !this.isEdit;
+        this.form.assessment_id = saved.id;
+        // Publishing and closing go through the status route, not the save.
+        if (status !== saved.status && (status === 'published' || status === 'closed' || status === 'draft')) {
+          this.api.setStatus(saved.id, status as any).pipe(takeUntil(this.destroy$)).subscribe({
+            next: () => { this.form.status = status as any; },
+          });
+        } else {
+          this.form.status = saved.status as any;
+        }
+        this.saving = false;
+        if (wasCreate) {
+          this.isEdit = true;
+          this.router.navigate(['/admin/assessments', saved.id, 'edit']);
+        }
+      },
+      error: () => { this.saving = false; }
+    });
   }
 
   // ==========================================
@@ -924,44 +1080,32 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   // ==========================================
 
   addSection(): void {
-    if (!this.isEdit) { this.save(); return; }
-    const fd = new FormData();
-    fd.append('action', 'create_section');
-    fd.append('assessment_id', this.form.assessment_id!.toString());
-    fd.append('title', 'Section ' + (this.sections.length + 1));
-    fd.append('sort_order', this.sections.length.toString());
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
+    if (!this.isEdit || !this.form.assessment_id) { this.save(); return; }
+    const id = this.form.assessment_id;
+    this.api.createSection(id, { title: 'Section ' + (this.sections.length + 1), sortOrder: this.sections.length })
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.sections.push({
-              section_id: res.data.section_id, title: 'Section ' + (this.sections.length + 1),
-              description: '', sort_order: this.sections.length, questions: [], is_collapsed: false, is_editing: true
-            });
-          }
+        next: (created) => {
+          this.sections.push({
+            section_id: created.id, title: created.title,
+            description: created.description ?? '', sort_order: created.sortOrder,
+            questions: [], is_collapsed: false, is_editing: true
+          });
         }
       });
   }
 
   saveSection(s: Section): void {
-    const fd = new FormData();
-    fd.append('action', 'update_section');
-    fd.append('section_id', s.section_id.toString());
-    fd.append('title', s.title);
-    fd.append('description', s.description || '');
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
+    if (!this.form.assessment_id || !s.section_id) { s.is_editing = false; return; }
+    this.api.updateSection(this.form.assessment_id, s.section_id, { title: s.title, description: s.description || null })
       .pipe(takeUntil(this.destroy$)).subscribe({ next: () => { s.is_editing = false; } });
   }
 
   deleteSection(s: Section): void {
+    if (!this.form.assessment_id || !s.section_id) return;
     if (s.questions.length > 0 && !confirm('Delete section with ' + s.questions.length + ' questions?')) return;
-    const fd = new FormData();
-    fd.append('action', 'delete_section');
-    fd.append('section_id', s.section_id.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
+    this.api.deleteSection(this.form.assessment_id, s.section_id)
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) this.sections = this.sections.filter(x => x.section_id !== s.section_id); }
+        next: () => { this.sections = this.sections.filter(x => x.section_id !== s.section_id); }
       });
   }
 
@@ -973,12 +1117,10 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   }
 
   reorderSections(): void {
-    const fd = new FormData();
-    fd.append('action', 'reorder_sections');
-    fd.append('assessment_id', this.form.assessment_id!.toString());
-    fd.append('order', JSON.stringify(this.sections.map((s, i) => ({ section_id: s.section_id, sort_order: i }))));
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe();
+    if (!this.form.assessment_id) return;
+    // The holding "Unsectioned" group has no id and is not reordered.
+    const ids = this.sections.map(s => s.section_id).filter((id): id is string => !!id);
+    this.api.reorderSections(this.form.assessment_id, ids).pipe(takeUntil(this.destroy$)).subscribe();
   }
 
   // ==========================================
@@ -986,25 +1128,27 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   // ==========================================
 
   searchQuestions(): void {
-    const fd = new FormData();
-    fd.append('action', 'search_questions_for_assessment');
-    fd.append('assessment_id', (this.form.assessment_id || 0).toString());
-    if (this.pickerSearch) fd.append('search', this.pickerSearch);
-    if (this.pickerBank) fd.append('bank_id', this.pickerBank);
-    if (this.pickerType) fd.append('question_type', this.pickerType);
-
+    if (!this.pickerBank) {
+      // The REST question search is per-bank; pick one first.
+      this.availableQuestions = [];
+      return;
+    }
     const existingIds = new Set(this.sections.flatMap(s => s.questions.map(q => q.question_id)));
-
-    this.http.post<ApiResponse<any[]>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.availableQuestions = (res.data || []).map(q => ({
-              ...q, is_picked: false, is_existing: existingIds.has(q.question_id)
-            }));
-          }
-        }
-      });
+    this.api.bankQuestions(this.pickerBank, {
+      search: this.pickerSearch || undefined,
+      type: this.pickerType || undefined,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (paged) => {
+        this.availableQuestions = paged.items.map(q => ({
+          question_id: q.id,
+          question_text: q.text,
+          question_type: q.type,
+          default_points: q.points,
+          is_picked: false,
+          is_existing: existingIds.has(q.id),
+        }));
+      }
+    });
   }
 
   togglePickerQuestion(q: any): void {
@@ -1014,37 +1158,29 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
 
   addPickedQuestions(): void {
     const picked = this.availableQuestions.filter(q => q.is_picked && !q.is_existing);
-    if (picked.length === 0) return;
+    const id = this.form.assessment_id;
+    if (picked.length === 0 || !id) return;
 
-    const targetSection = this.pickerTargetSection || this.sections[this.sections.length - 1];
-    if (!targetSection) return;
+    const targetSection = this.pickerTargetSection || this.sections.find(s => s.section_id) || null;
+    const sectionId = targetSection?.section_id || null;
 
-    const fd = new FormData();
-    fd.append('action', 'bulk_add_questions');
-    fd.append('section_id', targetSection.section_id.toString());
-    fd.append('questions', JSON.stringify(picked.map(q => ({ question_id: q.question_id, points: q.default_points || 1 }))));
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.loadSections(this.form.assessment_id!);
-            this.showQuestionPicker = false;
-            this.pickerTargetSection = null;
-          }
-        }
-      });
+    // Attach each picked question at its bank points, into the target section.
+    forkJoin(picked.map(q =>
+      this.api.attachQuestion(id, q.question_id, q.default_points ?? null, sectionId)
+    )).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.reloadSections(id);
+        this.showQuestionPicker = false;
+        this.pickerTargetSection = null;
+      }
+    });
   }
 
   removeQuestion(s: Section, index: number): void {
     const q = s.questions[index];
-    const fd = new FormData();
-    fd.append('action', 'remove_question');
-    fd.append('aq_id', q.aq_id.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) s.questions.splice(index, 1); }
-      });
+    if (!this.form.assessment_id) return;
+    this.api.detachQuestion(this.form.assessment_id, q.question_id)
+      .pipe(takeUntil(this.destroy$)).subscribe({ next: () => { s.questions.splice(index, 1); } });
   }
 
   moveQuestion(s: Section, index: number, dir: number): void {
@@ -1057,45 +1193,36 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   moveToSection(fromSection: Section, qIndex: number, event: Event): void {
     const targetIdx = +(event.target as HTMLSelectElement).value;
     const targetSection = this.sections[targetIdx];
-    if (!targetSection || targetSection.section_id === fromSection.section_id) return;
+    if (!targetSection || targetSection.section_id === fromSection.section_id || !this.form.assessment_id) return;
 
     const q = fromSection.questions.splice(qIndex, 1)[0];
     targetSection.questions.push(q);
 
-    const fd = new FormData();
-    fd.append('action', 'move_question_to_section');
-    fd.append('aq_id', q.aq_id.toString());
-    fd.append('section_id', targetSection.section_id.toString());
-    fd.append('sort_order', (targetSection.questions.length - 1).toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
+    this.api.setQuestionSection(this.form.assessment_id, q.question_id, targetSection.section_id || null)
       .pipe(takeUntil(this.destroy$)).subscribe();
 
     (event.target as HTMLSelectElement).value = '';
   }
 
   updateQuestionPoints(q: SectionQuestion): void {
-    const fd = new FormData();
-    fd.append('action', 'update_question_points');
-    fd.append('aq_id', q.aq_id.toString());
-    fd.append('points', q.points.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
+    if (!this.form.assessment_id) return;
+    this.api.setQuestionPoints(this.form.assessment_id, q.question_id, q.points)
       .pipe(takeUntil(this.destroy$)).subscribe();
   }
 
   reorderQuestions(s: Section): void {
-    const fd = new FormData();
-    fd.append('action', 'reorder_questions');
-    fd.append('section_id', s.section_id.toString());
-    fd.append('order', JSON.stringify(s.questions.map((q, i) => ({ aq_id: q.aq_id, sort_order: i }))));
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe();
+    if (!this.form.assessment_id) return;
+    // Reorder keys on the whole assessment's question order; send this
+    // section's order within the flat list the API keeps.
+    const order = this.sections.flatMap(sec => sec.questions.map(q => q.question_id));
+    this.api.reorderQuestions(this.form.assessment_id, order).pipe(takeUntil(this.destroy$)).subscribe();
   }
 
   // ==========================================
   // ASSIGNMENTS
   // ==========================================
 
-  getAssignTargets(): { id: number; name: string }[] {
+  getAssignTargets(): { id: string; name: string }[] {
     switch (this.newAssignment.assignment_type) {
       case 'user': return this.assignTargets.users || [];
       case 'department': return this.assignTargets.departments || [];
@@ -1106,28 +1233,23 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   }
 
   addAssignment(): void {
-    const fd = new FormData();
-    fd.append('action', 'create_assignment');
-    fd.append('assessment_id', this.form.assessment_id!.toString());
-    fd.append('assignment_type', this.newAssignment.assignment_type);
-    if (this.newAssignment.target_id) fd.append('target_id', this.newAssignment.target_id);
-    if (this.newAssignment.due_date) fd.append('due_date', this.newAssignment.due_date);
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) { this.loadAssignments(this.form.assessment_id!); this.newAssignment.target_id = ''; }
-        }
-      });
+    const id = this.form.assessment_id;
+    if (!id) return;
+    this.api.createAssignment(
+      id,
+      this.newAssignment.assignment_type as AssignmentType,
+      this.newAssignment.assignment_type === 'all' ? null : (this.newAssignment.target_id || null),
+      this.newAssignment.due_date || null,
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { this.loadAssignments(id); this.newAssignment.target_id = ''; }
+    });
   }
 
   removeAssignment(a: Assignment): void {
-    const fd = new FormData();
-    fd.append('action', 'delete_assignment');
-    fd.append('assignment_id', a.assignment_id.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/assessment`, fd)
+    if (!this.form.assessment_id) return;
+    this.api.deleteAssignment(this.form.assessment_id, a.assignment_id)
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) this.assignments = this.assignments.filter(x => x.assignment_id !== a.assignment_id); }
+        next: () => { this.assignments = this.assignments.filter(x => x.assignment_id !== a.assignment_id); }
       });
   }
 

@@ -1114,6 +1114,9 @@ return static function (App $app): void {
                     $s->put('/questions/{questionId:' . $uuid . '}/section', [
                         ManageSectionsAction::class, 'assignQuestion',
                     ])->setName('assessments.questions.section');
+                    $s->put('/questions/{questionId:' . $uuid . '}', [
+                        ManageAssessmentQuestionsAction::class, 'updatePoints',
+                    ])->setName('assessments.questions.points');
                     $s->delete('/questions/{questionId:' . $uuid . '}', [
                         ManageAssessmentQuestionsAction::class, 'detach',
                     ])->setName('assessments.questions.detach');

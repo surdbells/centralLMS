@@ -53,6 +53,8 @@ final class ManageAssessmentQuestionsAction extends AssessmentAction
             throw ValidationFailed::fromArray(['pointsOverride' => 'Points cannot be negative.']);
         }
 
+        $sectionId = trim((string) ($body['sectionId'] ?? '')) ?: null;
+
         $attached = $this->assessments->attachQuestion(
             $tenantId,
             $assessmentId,
@@ -60,6 +62,7 @@ final class ManageAssessmentQuestionsAction extends AssessmentAction
             $override === null || $override === '' ? null : (float) $override,
             isset($body['sortOrder']) && $body['sortOrder'] !== '' ? (int) $body['sortOrder'] : null,
             filter_var($body['isRequired'] ?? true, FILTER_VALIDATE_BOOL),
+            $sectionId,
         );
 
         if (!$attached) {
@@ -85,6 +88,38 @@ final class ManageAssessmentQuestionsAction extends AssessmentAction
         $questionId = $args['questionId'] ?? '';
 
         if (!$this->assessments->detachQuestion($tenantId, $assessmentId, $questionId)) {
+            throw new EntityNotFound('Question', $questionId);
+        }
+
+        return Json::ok($response, $this->currentQuestions($tenantId, $assessmentId));
+    }
+
+    /**
+     * PUT /v1/assessments/{id}/questions/{questionId} — set its points.
+     *
+     * @param array<string, string> $args
+     */
+    public function updatePoints(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->editableAssessment($request, $args);
+        $assessmentId = $args['id'] ?? '';
+        $questionId = $args['questionId'] ?? '';
+
+        $raw = $this->body($request)['pointsOverride'] ?? null;
+
+        if ($raw !== null && $raw !== '' && (!is_numeric($raw) || (float) $raw < 0)) {
+            throw ValidationFailed::fromArray(['pointsOverride' => 'Points cannot be negative.']);
+        }
+
+        if (!$this->assessments->setQuestionPoints(
+            $tenantId,
+            $assessmentId,
+            $questionId,
+            $raw === null || $raw === '' ? null : (float) $raw,
+        )) {
             throw new EntityNotFound('Question', $questionId);
         }
 

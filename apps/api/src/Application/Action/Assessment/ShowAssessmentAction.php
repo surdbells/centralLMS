@@ -44,6 +44,7 @@ final class ShowAssessmentAction extends AssessmentAction
                         'pointsInThisAssessment' => $question->pointsIn($row['pointsOverride']),
                         'sortOrder'  => $row['sortOrder'],
                         'isRequired' => $row['isRequired'],
+                        'sectionId'  => $row['sectionId'],
                     ];
                 },
                 $rows,

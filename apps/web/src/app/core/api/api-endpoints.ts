@@ -249,9 +249,16 @@ export const Endpoints = {
     questions: (id: string) => `/assessments/${id}/questions`,
     detachQuestion: (id: string, questionId: string) =>
       `/assessments/${id}/questions/${questionId}`,
+    setQuestionPoints: (id: string, questionId: string) =>
+      `/assessments/${id}/questions/${questionId}`,
     reorderQuestions: (id: string) => `/assessments/${id}/questions/order`,
     setQuestionSection: (id: string, questionId: string) =>
       `/assessments/${id}/questions/${questionId}/section`,
+
+    assignments: (id: string) => `/assessments/${id}/assignments`,
+    deleteAssignment: (id: string, assignmentId: string) =>
+      `/assessments/${id}/assignments/${assignmentId}`,
+    assignmentTargets: '/assessments/assignment-targets',
   },
 
   banks: {

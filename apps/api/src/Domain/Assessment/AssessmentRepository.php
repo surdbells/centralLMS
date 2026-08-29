@@ -75,9 +75,18 @@ interface AssessmentRepository
         ?float $pointsOverride,
         ?int $sortOrder,
         bool $isRequired,
+        ?string $sectionId = null,
     ): bool;
 
     public function detachQuestion(string $tenantId, string $assessmentId, string $questionId): bool;
+
+    /** Sets one attached question's points override; null restores the default. */
+    public function setQuestionPoints(
+        string $tenantId,
+        string $assessmentId,
+        string $questionId,
+        ?float $pointsOverride,
+    ): bool;
 
     /**
      * @param list<string> $orderedQuestionIds

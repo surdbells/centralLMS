@@ -474,10 +474,11 @@ final class DbalAssessmentRepository implements AssessmentRepository
         ?float $pointsOverride,
         ?int $sortOrder,
         bool $isRequired,
+        ?string $sectionId = null,
     ): bool {
         $affected = $this->connection->executeStatement(
             'INSERT INTO assessment_questions
-                 (tenant_id, assessment_id, question_id, points_override, sort_order, is_required)
+                 (tenant_id, assessment_id, question_id, points_override, sort_order, is_required, section_id)
              VALUES (
                  :tenant, :assessment, :question, :points,
                  COALESCE(:sortOrder, (
@@ -485,7 +486,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
                      FROM assessment_questions
                      WHERE assessment_id = :assessment
                  )),
-                 :required
+                 :required, :section
              )
              ON CONFLICT (assessment_id, question_id) DO NOTHING',
             [
@@ -495,6 +496,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
                 'points'     => $pointsOverride,
                 'sortOrder'  => $sortOrder,
                 'required'   => $isRequired ? 'true' : 'false',
+                'section'    => $sectionId,
             ],
         );
 
@@ -503,6 +505,26 @@ final class DbalAssessmentRepository implements AssessmentRepository
         }
 
         return $affected > 0;
+    }
+
+    public function setQuestionPoints(
+        string $tenantId,
+        string $assessmentId,
+        string $questionId,
+        ?float $pointsOverride,
+    ): bool {
+        // A null override falls back to the question's own points — the same
+        // meaning it has on attach, so clearing it here restores the default.
+        return $this->connection->executeStatement(
+            'UPDATE assessment_questions SET points_override = :points
+             WHERE tenant_id = :tenant AND assessment_id = :assessment AND question_id = :question',
+            [
+                'points'     => $pointsOverride,
+                'tenant'     => $tenantId,
+                'assessment' => $assessmentId,
+                'question'   => $questionId,
+            ],
+        ) > 0;
     }
 
     public function detachQuestion(string $tenantId, string $assessmentId, string $questionId): bool
