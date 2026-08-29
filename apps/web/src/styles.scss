@@ -134,7 +134,10 @@ app-course-player main {
 }
 
 .text-primary { color: var(--brand-primary) !important; }
-.bg-primary { background-color: var(--brand-primary) !important; }
+/* Respect the `bg-opacity-*` utilities the way Bootstrap's own rule does —
+   a bare `background-color` here made every `.bg-primary.bg-opacity-10`
+   (e.g. the dashboard stat-icon tiles) render as a solid brand block. */
+.bg-primary { background-color: rgba(var(--brand-primary-rgb), var(--bs-bg-opacity, 1)) !important; }
 .border-primary { border-color: var(--brand-primary) !important; }
 .link-primary { color: var(--brand-primary) !important; }
 .btn-link { color: var(--brand-primary); }

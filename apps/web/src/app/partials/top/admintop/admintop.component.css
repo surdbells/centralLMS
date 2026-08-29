@@ -45,13 +45,19 @@
   display: inline;
 }
 
-/* Mega menu: a grid of modules, five to a row. */
+/* Mega menu: a grid of modules, five to a row.
+   The grid layout is scoped to `.show` so it only applies when Bootstrap has
+   opened the menu — an unconditional `display: grid` would override Bootstrap's
+   own `display: none` and the menu could never close. */
 .dropdown-menu-modules {
   width: min(920px, calc(100vw - 2rem));
   padding: 0.5rem 0.75rem 0.75rem;
   border: none;
   border-radius: 12px;
   margin-top: 0.5rem !important;
+}
+
+.dropdown-menu-modules.show {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0.25rem;
@@ -96,6 +102,8 @@
 @media (max-width: 991.98px) {
   .dropdown-menu-modules {
     width: 320px;
+  }
+  .dropdown-menu-modules.show {
     grid-template-columns: 1fr;
   }
   .dropdown-menu-modules .dropdown-item {

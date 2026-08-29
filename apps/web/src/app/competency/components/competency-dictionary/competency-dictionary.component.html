@@ -182,20 +182,26 @@
           <p class="text-muted small mb-2">Behavioural anchors, so two assessors read a level the same way.</p>
         </div>
         <div class="col-12">
-          <div class="input-group mb-2">
-            <span class="input-group-text lvl-badge k">K</span>
-            <input class="form-control" [(ngModel)]="form.knowledgeDescriptor"
-                   placeholder="Knowledge — knows the principles" />
+          <div class="lvl-editor mb-3">
+            <span class="lvl-badge k">K</span>
+            <app-rich-html-editor class="flex-grow-1"
+              [(ngModel)]="form.knowledgeDescriptor"
+              [minHeight]="90"
+              placeholder="Knowledge — knows the principles"></app-rich-html-editor>
           </div>
-          <div class="input-group mb-2">
-            <span class="input-group-text lvl-badge s">S</span>
-            <input class="form-control" [(ngModel)]="form.skillDescriptor"
-                   placeholder="Skill — applies them in practice" />
+          <div class="lvl-editor mb-3">
+            <span class="lvl-badge s">S</span>
+            <app-rich-html-editor class="flex-grow-1"
+              [(ngModel)]="form.skillDescriptor"
+              [minHeight]="90"
+              placeholder="Skill — applies them in practice"></app-rich-html-editor>
           </div>
-          <div class="input-group">
-            <span class="input-group-text lvl-badge m">M</span>
-            <input class="form-control" [(ngModel)]="form.masteryDescriptor"
-                   placeholder="Mastery — coaches others through it" />
+          <div class="lvl-editor">
+            <span class="lvl-badge m">M</span>
+            <app-rich-html-editor class="flex-grow-1"
+              [(ngModel)]="form.masteryDescriptor"
+              [minHeight]="90"
+              placeholder="Mastery — coaches others through it"></app-rich-html-editor>
           </div>
         </div>
       </div>

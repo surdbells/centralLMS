@@ -6,6 +6,7 @@ import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiClient, Endpoints } from '../../../core/api';
+import { RichHtmlEditorComponent } from '../../../shared/rich-html-editor/rich-html-editor.component';
 import {
   CompetencyService,
   type Competency,
@@ -30,7 +31,7 @@ interface FunctionGroup {
 @Component({
   selector: 'app-competency-dictionary',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, RichHtmlEditorComponent],
   templateUrl: './competency-dictionary.component.html',
   styleUrl: './competency-dictionary.component.scss',
 })

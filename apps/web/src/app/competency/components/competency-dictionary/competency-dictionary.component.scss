@@ -401,6 +401,33 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
   border-radius: 6px 0 0 6px;
 }
 
+// Each level's rich-text editor, with its letter badge alongside.
+.lvl-editor {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+
+  .lvl-badge {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    margin-top: 0.25rem;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.k { background: #64748b; }
+    &.s { background: #2563eb; }
+    &.m { background: #7c3aed; }
+  }
+
+  app-rich-html-editor { flex: 1 1 auto; min-width: 0; }
+}
+
 // --- import ----------------------------------------------------------------
 .file-drop {
   display: flex;
