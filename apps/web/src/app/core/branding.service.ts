@@ -32,6 +32,8 @@ export class BrandingService {
   /** The organisation's logo, or null to fall back to the default mark. */
   readonly logoUrl = signal<string | null>(null);
   readonly organisation = signal<string | null>(null);
+  /** The sign-in background image, or null to fall back to the default. */
+  readonly loginBackgroundUrl = signal<string | null>(null);
 
   /** The tenant whose branding is currently applied, so it is fetched once. */
   private applied: string | null = null;
@@ -114,6 +116,11 @@ export class BrandingService {
 
     const logo = branding['logo_url'];
     this.logoUrl.set(typeof logo === 'string' && logo.trim() !== '' ? logo.trim() : null);
+
+    const loginBg = branding['login_background_url'];
+    this.loginBackgroundUrl.set(
+      typeof loginBg === 'string' && loginBg.trim() !== '' ? loginBg.trim() : null,
+    );
 
     const favicon = branding['favicon_url'];
 

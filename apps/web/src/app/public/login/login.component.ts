@@ -40,6 +40,8 @@ export class LoginComponent implements OnInit {
   /** The organisation's logo and name, when a tenant is known for this screen. */
   logoUrl: string | null = null;
   orgName: string | null = null;
+  /** The organisation's sign-in background, from branding settings. */
+  loginBackgroundUrl: string | null = null;
 
   loading = false;
 
@@ -121,6 +123,7 @@ export class LoginComponent implements OnInit {
           this.branding.apply(settings.organisation, settings.branding);
           this.logoUrl = this.branding.logoUrl();
           this.orgName = this.branding.organisation();
+          this.loginBackgroundUrl = this.branding.loginBackgroundUrl();
         },
         error: () => undefined,
       });
