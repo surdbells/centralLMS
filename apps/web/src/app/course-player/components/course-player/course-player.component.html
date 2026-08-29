@@ -380,6 +380,22 @@
           <!-- Resources -->
           <div *ngIf="activeTab === 'resources'">
             <h3 class="cp-panel-title">Download Resources</h3>
+
+            <!-- Files attached to the course, any type -->
+            <div class="cp-res-grid" *ngIf="courseResources.length">
+              <div class="cp-res" *ngFor="let res of courseResources">
+                <span class="cp-res-badge badge-doc">{{ res.kind | uppercase }}</span>
+                <span class="cp-res-text">
+                  <span class="cp-res-title">{{ res.title }}</span>
+                  <span class="cp-res-meta">{{ res.originalFilename }}</span>
+                </span>
+                <button class="cp-res-act" (click)="downloadCourseResource(res)" title="Download">
+                  <i class="bi bi-download"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Lesson files, surfaced as resources -->
             <div class="cp-res-grid" *ngIf="resources.length">
               <div class="cp-res" *ngFor="let res of resources">
                 <span class="cp-res-badge" [class]="resourceBadge(res.type).cls">{{ resourceBadge(res.type).label }}</span>
@@ -392,7 +408,8 @@
                 </button>
               </div>
             </div>
-            <div class="cp-empty" *ngIf="resources.length === 0">
+
+            <div class="cp-empty" *ngIf="resources.length === 0 && courseResources.length === 0">
               <i class="bi bi-folder2-open"></i>
               <p>No downloadable resources in this course.</p>
             </div>

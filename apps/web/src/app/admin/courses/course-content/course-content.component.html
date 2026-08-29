@@ -262,6 +262,43 @@
       </div>
     </div>
   </div>
+
+  <!-- ==========================================
+  COURSE RESOURCES — downloadable files of any type
+  ========================================== -->
+  <div class="resources-section" *ngIf="!loading">
+    <div class="resources-head">
+      <div>
+        <h2 class="fs-5 mb-0"><i class="bi bi-paperclip me-2"></i>Resources</h2>
+        <p class="text-muted small mb-0">Files of any type, offered to learners in the player.</p>
+      </div>
+      <label class="btn btn-primary btn-sm mb-0">
+        <i class="bi bi-upload me-1"></i>
+        {{ uploadingResource ? 'Uploading…' : 'Add resource' }}
+        <input type="file" hidden (change)="onResourcePicked($event)" [disabled]="uploadingResource" />
+      </label>
+    </div>
+
+    <div class="resources-empty text-muted small" *ngIf="!resources.length">
+      No resources yet. Add slides, checklists, standards — anything a learner should be able to download.
+    </div>
+
+    <div class="resources-list" *ngIf="resources.length">
+      <div class="resource-row" *ngFor="let res of resources">
+        <span class="resource-badge">{{ res.kind | uppercase }}</span>
+        <div class="resource-meta">
+          <div class="resource-title">{{ res.title }}</div>
+          <div class="resource-sub">{{ res.originalFilename }} · {{ formatBytes(res.sizeBytes) }}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" (click)="downloadResource(res)" title="Download">
+          <i class="bi bi-download"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" (click)="deleteResource(res)" title="Remove">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ==========================================

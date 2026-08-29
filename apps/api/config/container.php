@@ -41,6 +41,7 @@ use Central\Api\Domain\Assessment\PaperBuilder;
 use Central\Api\Domain\Assessment\QuestionRepository;
 use Central\Api\Domain\Catalog\CourseRepository;
 use Central\Api\Domain\Catalog\CourseDiscussionRepository;
+use Central\Api\Domain\Catalog\CourseResourceRepository;
 use Central\Api\Domain\Competency\CompetencyRepository;
 use Central\Api\Domain\Catalog\LessonRepository;
 use Central\Api\Domain\Enrollment\EnrollmentRepository;
@@ -116,6 +117,7 @@ use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseDiscussionRepository;
 use Central\Api\Infrastructure\Persistence\DbalCompetencyRepository;
+use Central\Api\Infrastructure\Persistence\DbalCourseResourceRepository;
 use Central\Api\Infrastructure\Persistence\DbalProctoringRepository;
 use Central\Api\Infrastructure\Persistence\DbalBroadcastRepository;
 use Central\Api\Infrastructure\Persistence\DbalGradingAssignmentRepository;
@@ -439,6 +441,10 @@ return [
 
     CompetencyRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCompetencyRepository($c->get(Connection::class)),
+    ),
+
+    CourseResourceRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalCourseResourceRepository($c->get(Connection::class)),
     ),
 
     Grader::class => factory(static fn (): Grader => new Grader()),

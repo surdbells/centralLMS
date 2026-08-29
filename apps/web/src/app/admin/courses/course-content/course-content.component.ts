@@ -19,6 +19,10 @@ import {
   type QuestionType,
 } from '../../../services/assessments.service';
 import { MediaService, type MediaItem } from '../../../services/media.service';
+import {
+  CourseResourcesService,
+  type CourseResource,
+} from '../../../services/course-resources.service';
 import { ApiError } from '../../../core/api';
 
 /* The shapes this screen's template already reads. */
@@ -122,6 +126,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   private readonly coursesService = inject(CoursesService);
   private readonly assessmentsService = inject(AssessmentsService);
   private readonly mediaService = inject(MediaService);
+  private readonly resourcesService = inject(CourseResourcesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
@@ -129,6 +134,10 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   courseId = '';
   course: Course | null = null;
   modules: Module[] = [];
+
+  // Downloadable course resources (any file type).
+  resources: CourseResource[] = [];
+  uploadingResource = false;
 
   mediaFiles: MediaFile[] = [];
   filteredMediaFiles: MediaFile[] = [];
@@ -212,11 +221,83 @@ export class CourseContentComponent implements OnInit, OnDestroy {
     }
 
     this.loadContent();
+    this.loadResources();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // --- resources -----------------------------------------------------------
+
+  loadResources(): void {
+    this.resourcesService
+      .list(this.courseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resources) => (this.resources = resources),
+        error: () => undefined,
+      });
+  }
+
+  onResourcePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+    this.uploadingResource = true;
+    this.resourcesService
+      .upload(this.courseId, file, file.name)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resource) => {
+          this.resources = [...this.resources, resource];
+          this.uploadingResource = false;
+          this.successMessage = 'Resource added.';
+        },
+        error: () => {
+          this.uploadingResource = false;
+          this.error = 'The resource could not be uploaded.';
+        },
+      });
+    input.value = '';
+  }
+
+  downloadResource(resource: CourseResource): void {
+    this.resourcesService.download(this.courseId, resource);
+  }
+
+  deleteResource(resource: CourseResource): void {
+    if (!confirm(`Remove "${resource.title}"?`)) {
+      return;
+    }
+    this.resourcesService
+      .remove(this.courseId, resource.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.resources = this.resources.filter((r) => r.id !== resource.id);
+          this.successMessage = 'Resource removed.';
+        },
+        error: () => (this.error = 'The resource could not be removed.'),
+      });
+  }
+
+  /** Human file size for the resource list. */
+  formatBytes(bytes: number): string {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+    const units = ['KB', 'MB', 'GB'];
+    let value = bytes / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit++;
+    }
+    return `${value.toFixed(1)} ${units[unit]}`;
   }
 
   // --- loading -------------------------------------------------------------

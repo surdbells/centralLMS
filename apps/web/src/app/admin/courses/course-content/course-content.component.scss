@@ -1144,3 +1144,73 @@ $type-text: #6c757d;
     margin: 0.25rem 0;
   }
 }
+
+/* Course resources — downloadable files of any type. */
+.resources-section {
+  margin-top: 1.5rem;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.resources-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.resources-empty {
+  padding: 0.5rem 0;
+}
+
+.resources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #eef0f3;
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.resource-badge {
+  flex-shrink: 0;
+  min-width: 46px;
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-primary, #1f4e79);
+  border-radius: 6px;
+  padding: 0.35rem 0.4rem;
+}
+
+.resource-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.resource-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resource-sub {
+  font-size: 0.78rem;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -32,6 +32,7 @@ use Central\Api\Application\Action\Catalog\CourseStatisticsAction;
 use Central\Api\Application\Action\Catalog\DeleteCourseAction;
 use Central\Api\Application\Action\Catalog\DuplicateCourseAction;
 use Central\Api\Application\Action\Catalog\CourseOutlineAction;
+use Central\Api\Application\Action\Catalog\CourseResourceAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
 use Central\Api\Application\Action\Catalog\CreateModuleAction;
@@ -369,6 +370,18 @@ return static function (App $app): void {
 
                         $e->get('/{userId:' . $uuid . '}/history', EnrollmentHistoryAction::class)
                             ->setName('enrollments.history');
+                    });
+
+                    // Downloadable file resources — reference material of any
+                    // type, added by the course's editor and offered in the
+                    // player's Resources tab.
+                    $s->group('/resources', function (RouteCollectorProxy $r) use ($uuid): void {
+                        $r->get('', [CourseResourceAction::class, 'list'])->setName('courses.resources.list');
+                        $r->post('', [CourseResourceAction::class, 'upload'])->setName('courses.resources.add');
+                        $r->get('/{id:' . $uuid . '}/file', [CourseResourceAction::class, 'download'])
+                            ->setName('courses.resources.download');
+                        $r->delete('/{id:' . $uuid . '}', [CourseResourceAction::class, 'delete'])
+                            ->setName('courses.resources.delete');
                     });
 
                     $s->group('/modules', function (RouteCollectorProxy $m) use ($uuid): void {

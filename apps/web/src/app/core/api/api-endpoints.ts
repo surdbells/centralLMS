@@ -148,6 +148,10 @@ export const Endpoints = {
     outline: (id: string) => `/courses/${id}/outline`,
     selfEnroll: (id: string) => `/courses/${id}/enroll`,
     skills: (id: string) => `/courses/${id}/skills`,
+    /** Downloadable file resources attached to the course. */
+    resources: (id: string) => `/courses/${id}/resources`,
+    resourceFile: (id: string, resourceId: string) => `/courses/${id}/resources/${resourceId}/file`,
+    resourceDelete: (id: string, resourceId: string) => `/courses/${id}/resources/${resourceId}`,
   },
 
   modules: {

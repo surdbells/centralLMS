@@ -21,6 +21,10 @@ import {
 import { ScormAdapterService } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
 import { SessionStore } from '../../../core/auth/session.store';
+import {
+  CourseResourcesService,
+  type CourseResource,
+} from '../../../services/course-resources.service';
 import {HotToastService} from '@ngneat/hot-toast';
 
 @Component({
@@ -42,6 +46,8 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // UI State
   sidebarCollapsed = false;
   activeTab: 'transcript' | 'notes' | 'resources' = 'transcript';
+  /** Files attached to the course (any type), shown in the Resources tab. */
+  courseResources: CourseResource[] = [];
   sidebarTab: 'path' | 'learners' | 'discuss' = 'path';
   showCompletionModal = false;
   showRatingModal = false;
@@ -90,7 +96,8 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     private sanitizer: DomSanitizer,
     private scormAdapter: ScormAdapterService,
     private session: SessionStore,
-    public playerService: CoursePlayerService
+    public playerService: CoursePlayerService,
+    private courseResourcesService: CourseResourcesService,
   ) {}
 
   // Safe URL cache to avoid re-sanitizing
@@ -136,6 +143,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       if (courseId !== '') {
         this.courseId = courseId;
         this.loadCourse(courseId);
+        this.loadCourseResources(courseId);
       }
     });
 
@@ -900,6 +908,22 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
   downloadResource(url: string): void {
     window.open(url, '_blank', 'noopener');
+    this.onDocumentDownload();
+  }
+
+  /** The files an author attached to the course, of any type. */
+  loadCourseResources(courseId: string): void {
+    this.courseResourcesService
+      .list(courseId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resources) => (this.courseResources = resources),
+        error: () => undefined,
+      });
+  }
+
+  downloadCourseResource(resource: CourseResource): void {
+    this.courseResourcesService.download(this.courseId, resource);
     this.onDocumentDownload();
   }
 
