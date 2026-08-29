@@ -199,6 +199,14 @@ export const routes: Routes = [
     title: 'Competencies'
   },
   {
+    path: 'self-assessment',
+    loadComponent: () =>
+      import('./learner/self-assessment/self-assessment.component').then(
+        (m) => m.SelfAssessmentComponent,
+      ),
+    title: 'My Self-Assessment',
+  },
+  {
     path: 'skills',
     component: AdminSkillsPageComponent,
     title: 'Skills & Competencies'

@@ -60,6 +60,38 @@ final class CompetencyAssessmentAction
     }
 
     /**
+     * The caller's own assessments, for them to self-assess.
+     *
+     * Any signed-in person may read their own — this is the door the learner
+     * comes through, so it does not ask for `competency.view`, which is the
+     * assessor's permission for reading everyone's.
+     */
+    public function mine(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $caller = $this->caller($request);
+        [$page, $perPage] = $this->paging($request);
+
+        $result = $this->repository->assessments(
+            $this->tenantId($request),
+            $this->str($request->getQueryParams()['cycle'] ?? null),
+            null,
+            null,
+            null,
+            $page,
+            $perPage,
+            $caller->id,
+        );
+
+        return Json::page(
+            $response,
+            array_map(static fn (CompetencyAssessment $a): array => $a->toArray(), $result['items']),
+            $result['total'],
+            $page,
+            $perPage,
+        );
+    }
+
+    /**
      * @param array<string, string> $args
      */
     public function show(
@@ -67,9 +99,15 @@ final class CompetencyAssessmentAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        $this->caller($request)->mustHave(Permission::CompetencyView);
+        $assessment = $this->require($request, $args['id'] ?? '');
 
-        return Json::ok($response, $this->require($request, $args['id'] ?? '')->toArray());
+        // The subject may read their own; everyone else needs the assessor's
+        // reading permission.
+        if ($this->caller($request)->id !== $assessment->userId) {
+            $this->caller($request)->mustHave(Permission::CompetencyView);
+        }
+
+        return Json::ok($response, $assessment->toArray());
     }
 
     /**
@@ -137,7 +175,44 @@ final class CompetencyAssessmentAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        return $this->record($request, $response, $args, 'self', AssessmentStatus::SelfAssessed);
+        $caller     = $this->caller($request);
+        $tenantId   = $this->tenantId($request);
+        $assessment = $this->require($request, $args['id'] ?? '');
+
+        // The person being assessed does this for themselves. An assessor may
+        // also do it on their behalf; nobody else.
+        if ($caller->id !== $assessment->userId) {
+            $caller->mustHave(Permission::CompetencyAssess);
+        }
+
+        // Self-assessment belongs before the expert has reviewed. Re-opening a
+        // reviewed or finalised assessment to a fresh self-claim would discard
+        // a confirmed finding.
+        if (
+            $assessment->status !== AssessmentStatus::Draft
+            && $assessment->status !== AssessmentStatus::SelfAssessed
+        ) {
+            throw new ConflictingState(
+                'This assessment has already been reviewed.',
+                'already_reviewed',
+            );
+        }
+
+        $levels = $this->levels($this->body($request)['levels'] ?? null);
+
+        if ($levels !== []) {
+            $this->repository->recordLevels($tenantId, $assessment->id, 'self', $levels);
+        }
+
+        $updated = $this->repository->setStatus(
+            $tenantId,
+            $assessment->id,
+            AssessmentStatus::SelfAssessed,
+            null,
+            null,
+        );
+
+        return Json::ok($response, ($updated ?? $assessment)->toArray());
     }
 
     /**

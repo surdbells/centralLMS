@@ -294,10 +294,15 @@ final class DbalCompetencyRepository implements CompetencyRepository
         ?string $search,
         int $page,
         int $perPage,
+        ?string $userId = null,
     ): array {
         $where = ['a.tenant_id = :tenant', 'a.deleted_at IS NULL'];
         $params = ['tenant' => $tenantId];
 
+        if ($userId !== null && $userId !== '') {
+            $where[] = 'a.user_id = :userId';
+            $params['userId'] = $userId;
+        }
         if ($cycle !== null && $cycle !== '') {
             $where[] = 'a.cycle = :cycle';
             $params['cycle'] = $cycle;

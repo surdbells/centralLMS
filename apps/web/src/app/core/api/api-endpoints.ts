@@ -502,6 +502,8 @@ export const Endpoints = {
     create: '/competency-assessments',
     /** The organisation-wide outcome for a cycle. */
     outcome: '/competency-assessments/outcome',
+    /** The caller's own assessments, for self-assessment. */
+    mine: '/competency-assessments/mine',
     show: (id: string) => `/competency-assessments/${id}`,
     /** The learner records their own levels. */
     self: (id: string) => `/competency-assessments/${id}/self`,

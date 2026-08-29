@@ -812,6 +812,10 @@ return static function (App $app): void {
                 // `/outcome` before `/{id}` so it is not read as an id.
                 $a->get('/outcome', [CompetencyAssessmentAction::class, 'outcome'])
                     ->setName('competency-assessments.outcome');
+                // The caller's own, for self-assessment. Before `/{id}` so it
+                // is not read as an id.
+                $a->get('/mine', [CompetencyAssessmentAction::class, 'mine'])
+                    ->setName('competency-assessments.mine');
 
                 $a->get('', [CompetencyAssessmentAction::class, 'list'])
                     ->setName('competency-assessments.list');

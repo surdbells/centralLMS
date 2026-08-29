@@ -293,6 +293,11 @@ export class CompetencyService {
     return this.api.get<CompetencyAssessment>(Endpoints.competencyAssessments.show(id));
   }
 
+  /** The caller's own assessments — what a learner self-assesses against. */
+  getMyAssessments(cycle?: string): Observable<Paged<CompetencyAssessment>> {
+    return this.api.getPaged<CompetencyAssessment>(Endpoints.competencyAssessments.mine, { cycle });
+  }
+
   /** Starts an assessment for a person against a job profile. */
   startAssessment(userId: string, profileId: string, cycle?: string): Observable<CompetencyAssessment> {
     return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.create, {

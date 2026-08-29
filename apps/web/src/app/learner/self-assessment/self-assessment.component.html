@@ -1,0 +1,101 @@
+<app-top></app-top>
+
+<div class="sa-page">
+  <!-- Header -->
+  <div class="sa-header">
+    <div class="sa-header-inner">
+      <button class="sa-back" *ngIf="open" (click)="back()" aria-label="Back">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <div>
+        <h1>
+          <i class="bi bi-clipboard-check"></i>
+          {{ open ? open.jobTitle : 'My Self-Assessment' }}
+        </h1>
+        <p *ngIf="!open">Rate yourself on the competencies your role calls for.</p>
+        <p *ngIf="open">
+          {{ open.functionName }} · {{ open.cycle }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sa-body">
+    <!-- Loading -->
+    <div class="sa-loading" *ngIf="loading">
+      <div class="spinner-border" role="status"></div>
+    </div>
+
+    <!-- The list of the caller's assessments -->
+    <ng-container *ngIf="!loading && !open">
+      <div class="sa-empty" *ngIf="!assessments.length">
+        <i class="bi bi-clipboard"></i>
+        <h3>Nothing to assess yet</h3>
+        <p>When an assessment is started for you, it appears here for you to fill in.</p>
+      </div>
+
+      <div class="sa-list" *ngIf="assessments.length">
+        <div class="sa-card" *ngFor="let a of assessments">
+          <div class="sa-card-main">
+            <h3>{{ a.jobTitle || 'Assessment' }}</h3>
+            <p class="sa-meta">{{ a.functionName }} · {{ a.cycle }}</p>
+            <span class="sa-status" [attr.data-status]="a.status">{{ a.statusLabel }}</span>
+          </div>
+          <div class="sa-card-action">
+            <button class="btn btn-primary" *ngIf="canSelfAssess(a)" (click)="openAssessment(a)">
+              {{ a.status === 'self_assessed' ? 'Review my answers' : 'Start' }}
+            </button>
+            <button class="btn btn-outline-secondary" *ngIf="!canSelfAssess(a)" (click)="openAssessment(a)">
+              View
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Filling one in -->
+    <ng-container *ngIf="!loading && open as a">
+      <div class="sa-note" *ngIf="!canSelfAssess(a)">
+        <i class="bi bi-lock"></i>
+        This assessment has been reviewed, so your answers are shown but can no longer be changed.
+      </div>
+
+      <div class="sa-items">
+        <div class="sa-item" *ngFor="let item of a.items">
+          <div class="sa-item-head">
+            <div>
+              <h4>
+                {{ item.competencyName }}
+                <span class="sa-critical" *ngIf="item.isCritical" title="Critical to the role">
+                  <i class="bi bi-star-fill"></i>
+                </span>
+              </h4>
+              <p class="sa-required">Your role needs: <strong>{{ item.requiredLabel }}</strong></p>
+            </div>
+          </div>
+
+          <div class="sa-levels" role="radiogroup" [attr.aria-label]="item.competencyName">
+            <button
+              *ngFor="let opt of levelOptions"
+              type="button"
+              class="sa-level"
+              [class.selected]="levels[item.competencyId] === opt.value"
+              [disabled]="!canSelfAssess(a)"
+              (click)="setLevel(item.competencyId, opt.value)"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sa-actions" *ngIf="canSelfAssess(a)">
+        <button class="btn btn-light" (click)="back()" [disabled]="saving">Cancel</button>
+        <button class="btn btn-primary" (click)="submit()" [disabled]="saving">
+          <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
+          Submit my self-assessment
+        </button>
+      </div>
+    </ng-container>
+  </div>
+</div>

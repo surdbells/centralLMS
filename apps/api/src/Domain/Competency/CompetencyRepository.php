@@ -62,6 +62,7 @@ interface CompetencyRepository
         ?string $search,
         int $page,
         int $perPage,
+        ?string $userId = null,
     ): array;
 
     /** With its items, each carrying the competency's name and the gap. */
