@@ -39,7 +39,7 @@
         <div class="stat-card">
           <div class="stat-label">Workforce readiness</div>
           <div class="stat-value" [class]="readinessClass(r.gaps.readiness)">
-            {{ r.gaps.readiness !== null ? (r.gaps.readiness | number: '1.0-1') + '%' : '—' }}
+            {{ r.gaps.readiness !== null ? (r.gaps.readiness | number: '1.0-1') + '%' : '-' }}
           </div>
           <div class="stat-sub">{{ r.gaps.met }} of {{ r.gaps.requirements }} requirements met</div>
         </div>
@@ -121,7 +121,7 @@
                                [style.width.%]="f.readiness ?? 0"></div>
                         </div>
                         <span class="small text-nowrap" [class]="readinessClass(f.readiness)">
-                          {{ f.readiness !== null ? (f.readiness | number: '1.0-0') + '%' : '—' }}
+                          {{ f.readiness !== null ? (f.readiness | number: '1.0-0') + '%' : '-' }}
                         </span>
                       </div>
                     </td>
@@ -169,7 +169,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="!r.topGaps.length">
-                    <td colspan="3" class="text-center text-muted py-3">No gaps — everyone meets their profile.</td>
+                    <td colspan="3" class="text-center text-muted py-3">No gaps - everyone meets their profile.</td>
                   </tr>
                 </tbody>
               </table>

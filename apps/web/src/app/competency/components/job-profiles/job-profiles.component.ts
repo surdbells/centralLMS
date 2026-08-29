@@ -215,7 +215,7 @@ export class JobProfilesComponent implements OnInit {
       return;
     }
     if (!this.requirements.length) {
-      this.toast.error('Add at least one competency requirement — a profile that requires nothing measures nothing.');
+      this.toast.error('Add at least one competency requirement - a profile that requires nothing measures nothing.');
       return;
     }
     this.saving = true;
@@ -273,10 +273,10 @@ export class JobProfilesComponent implements OnInit {
   }
 
   levelLabel(level: ProficiencyLevel): string {
-    return this.levels.find((l) => l.value === level)?.label ?? '—';
+    return this.levels.find((l) => l.value === level)?.label ?? '-';
   }
 
   levelLetter(level: ProficiencyLevel): string {
-    return ['—', 'K', 'S', 'M'][level] ?? '—';
+    return ['-', 'K', 'S', 'M'][level] ?? '-';
   }
 }

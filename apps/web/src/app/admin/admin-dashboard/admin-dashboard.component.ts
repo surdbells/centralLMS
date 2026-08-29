@@ -293,7 +293,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       certified: { message: `${person} earned a certificate for "${subject}"`, icon: 'award', color: 'warning' },
     };
 
-    const line = said[entry.kind] ?? { message: `${person} — ${subject}`, icon: 'activity', color: 'secondary' };
+    const line = said[entry.kind] ?? { message: `${person} - ${subject}`, icon: 'activity', color: 'secondary' };
 
     return { ...line, date: entry.at ?? '' };
   }
@@ -320,7 +320,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   /** A rate. No sign: a completion rate of 100% has not gone up by 100%. */
   formatPercentage(value: number | null): string {
-    return value === null ? '—' : `${Math.round(value)}%`;
+    return value === null ? '-' : `${Math.round(value)}%`;
   }
 
   /**
@@ -332,7 +332,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
    * a triumph on the day an organisation is created.
    */
   formatGrowth(value: number | null): string {
-    return value === null ? '—' : `${value > 0 ? '+' : ''}${value}%`;
+    return value === null ? '-' : `${value > 0 ? '+' : ''}${value}%`;
   }
 
   formatStatus(status: string): string {

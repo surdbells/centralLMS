@@ -29,12 +29,12 @@
       <table class="ir-person">
         <tbody>
           <tr><th>Name:</th><td>{{ r.subject.name || r.assessment.userName }}</td></tr>
-          <tr><th>Email Address:</th><td class="ir-email">{{ r.subject.email || '—' }}</td></tr>
-          <tr><th>Job Grade:</th><td>{{ r.subject.jobTitle || r.assessment.jobTitle || '—' }}</td></tr>
-          <tr><th>Job Level:</th><td>{{ r.subject.level || r.assessment.jobTitle || '—' }}</td></tr>
-          <tr><th>JCP Type:</th><td>{{ r.assessment.functionName || '—' }}</td></tr>
-          <tr><th>Department</th><td>{{ r.subject.department || '—' }}</td></tr>
-          <tr><th>Division</th><td>{{ r.subject.division || '—' }}</td></tr>
+          <tr><th>Email Address:</th><td class="ir-email">{{ r.subject.email || '-' }}</td></tr>
+          <tr><th>Job Grade:</th><td>{{ r.subject.jobTitle || r.assessment.jobTitle || '-' }}</td></tr>
+          <tr><th>Job Level:</th><td>{{ r.subject.level || r.assessment.jobTitle || '-' }}</td></tr>
+          <tr><th>JCP Type:</th><td>{{ r.assessment.functionName || '-' }}</td></tr>
+          <tr><th>Department</th><td>{{ r.subject.department || '-' }}</td></tr>
+          <tr><th>Division</th><td>{{ r.subject.division || '-' }}</td></tr>
         </tbody>
       </table>
       <div class="ir-logo">
@@ -71,8 +71,8 @@
           </td>
           <td>{{ item.requiredLabel }}</td>
           <td>{{ item.selfLabel || 'Not Applicable' }}</td>
-          <td>{{ item.assessedLabel || '—' }}</td>
-          <td>{{ item.lineExecutiveLabel || item.assessedLabel || '—' }}</td>
+          <td>{{ item.assessedLabel || '-' }}</td>
+          <td>{{ item.lineExecutiveLabel || item.assessedLabel || '-' }}</td>
           <td [class.ir-prepared]="item.gap === 0" [class.ir-gap]="item.gap > 0">
             {{ readiness(item) }}
           </td>
@@ -91,8 +91,8 @@
           <th>Assessed Proficiency</th>
         </tr>
         <tr>
-          <td>{{ r.assessment.idealProficiencyTotal ?? '—' }}</td>
-          <td>{{ r.assessment.assessedProficiencyTotal ?? '—' }}</td>
+          <td>{{ r.assessment.idealProficiencyTotal ?? '-' }}</td>
+          <td>{{ r.assessment.assessedProficiencyTotal ?? '-' }}</td>
         </tr>
       </tbody>
     </table>
@@ -103,12 +103,12 @@
         <tr>
           <th>Line Executive's Decision</th>
           <td class="ir-decision" [class.placed]="isPlaced(r.assessment.lineExecutiveDecision)">
-            {{ r.assessment.lineExecutiveDecision || '—' }}
+            {{ r.assessment.lineExecutiveDecision || '-' }}
           </td>
         </tr>
         <tr>
           <th>Competency Rating</th>
-          <td>{{ r.assessment.readinessPercent != null ? (r.assessment.readinessPercent + '%') : '—' }}</td>
+          <td>{{ r.assessment.readinessPercent != null ? (r.assessment.readinessPercent + '%') : '-' }}</td>
         </tr>
         <tr>
           <th>Time-to-Competency</th>
@@ -117,7 +117,7 @@
       </tbody>
     </table>
 
-    <!-- Narrative — always shown, matching the exercise's report -->
+    <!-- Narrative - always shown, matching the exercise's report -->
     <table class="ir-notes">
       <tbody>
         <tr>

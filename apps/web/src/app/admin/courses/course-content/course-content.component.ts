@@ -699,7 +699,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       }),
       // The questions are not copied: they live in a bank, and both
       // assessments can draw on the same ones rather than owning duplicates.
-      'Assessment duplicated. Its questions are shared, not copied — attach the ones you want.',
+      'Assessment duplicated. Its questions are shared, not copied - attach the ones you want.',
     );
   }
 

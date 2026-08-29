@@ -141,9 +141,9 @@
               {{ version.versionLabel ?? ('v' + version.versionNumber) }}
               <span class="badge bg-success ms-1" *ngIf="version.isLatest">Current</span>
             </td>
-            <td>{{ version.uploaderName ?? '—' }}</td>
+            <td>{{ version.uploaderName ?? '-' }}</td>
             <td>{{ version.createdAt | date: 'dd MMM yyyy' }}</td>
-            <td>{{ version.versionNotes ?? '—' }}</td>
+            <td>{{ version.versionNotes ?? '-' }}</td>
             <td>
               <a role="button" class="btn btn-sm btn-secondary" (click)="openVersion(version)">View</a>
               <button

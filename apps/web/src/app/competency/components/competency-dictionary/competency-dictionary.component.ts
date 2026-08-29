@@ -304,7 +304,7 @@ export class CompetencyDictionaryComponent implements OnInit {
     return (
       {
         imported: 'Imported',
-        legacy_xls: 'Old .xls format — re-save as .xlsx',
+        legacy_xls: 'Old .xls format - re-save as .xlsx',
         no_competency_sheets: 'No competency sheets found',
         unreadable: 'Could not be read',
       }[status] ?? status

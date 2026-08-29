@@ -52,7 +52,7 @@
     <div class="col-4">
       <div class="mini-card">
         <div class="mini-label">Readiness</div>
-        <div class="mini-value">{{ a.readinessPercent !== null ? (a.readinessPercent | number: '1.0-0') + '%' : '—' }}</div>
+        <div class="mini-value">{{ a.readinessPercent !== null ? (a.readinessPercent | number: '1.0-0') + '%' : '-' }}</div>
       </div>
     </div>
     <div class="col-4">
@@ -85,8 +85,8 @@
   <!-- Editing banner -->
   <div class="edit-banner mb-2" *ngIf="editMode !== 'none'">
     <tui-icon icon="@tui.pencil"></tui-icon>
-    <span *ngIf="editMode === 'self'">Recording <strong>self-assessment</strong> — the level the person judges they hold.</span>
-    <span *ngIf="editMode === 'review'">Recording the <strong>expert review</strong> — the confirmed level wins over the self-claim.</span>
+    <span *ngIf="editMode === 'self'">Recording <strong>self-assessment</strong> - the level the person judges they hold.</span>
+    <span *ngIf="editMode === 'review'">Recording the <strong>expert review</strong> - the confirmed level wins over the self-claim.</span>
   </div>
 
   <!-- Items -->
@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <!-- Report notes — the qualitative side of the individual report -->
+  <!-- Report notes - the qualitative side of the individual report -->
   <div class="card border-0 shadow-sm mt-3">
     <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
       <div>
@@ -176,7 +176,7 @@
         <div class="col-md-6">
           <label class="form-label small fw-semibold">Gaps Closure Interventions</label>
           <textarea class="form-control" rows="3" [(ngModel)]="narrative.gapsClosureInterventions"
-                    placeholder="How the gaps are to be closed — training, on-the-job, exposure"></textarea>
+                    placeholder="How the gaps are to be closed - training, on-the-job, exposure"></textarea>
         </div>
         <div class="col-md-6">
           <label class="form-label small fw-semibold">Line Executive's Decision</label>

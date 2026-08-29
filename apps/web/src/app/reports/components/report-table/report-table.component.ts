@@ -159,7 +159,7 @@ export class ReportTableComponent implements OnChanges {
     const total = Number(seconds);
 
     if (!Number.isFinite(total) || total <= 0) {
-      return '—';
+      return '-';
     }
 
     const hours = Math.floor(total / 3600);

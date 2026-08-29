@@ -479,7 +479,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         this.loadStats();
 
         if (failed.length > 0) {
-          alert(`${results.length - failed.length} done, ${failed.length} refused — ${failed[0].message}`);
+          alert(`${results.length - failed.length} done, ${failed.length} refused - ${failed[0].message}`);
         }
       });
   }

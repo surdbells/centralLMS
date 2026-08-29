@@ -345,7 +345,7 @@
                   <tr *ngFor="let rule of rules">
                     <td>
                       <span class="text-capitalize">{{ rule.enrollment_type }}</span>
-                      <span class="text-muted"> — {{ ruleTarget(rule) }}</span>
+                      <span class="text-muted"> - {{ ruleTarget(rule) }}</span>
                     </td>
                     <td>
                       <span class="badge" [class.bg-success]="rule.is_active"
