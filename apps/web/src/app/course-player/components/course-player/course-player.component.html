@@ -24,12 +24,19 @@
       <button class="cp-back" (click)="router.navigate(['/learning'])">
         <i class="bi bi-arrow-left"></i><span>Back</span>
       </button>
+      <button class="cp-collapse-toggle" (click)="toggleSidebar()"
+              [attr.aria-pressed]="sidebarCollapsed"
+              [title]="sidebarCollapsed ? 'Show course content' : 'Hide course content'">
+        <i class="bi" [class.bi-layout-sidebar]="sidebarCollapsed"
+           [class.bi-layout-sidebar-inset]="!sidebarCollapsed"></i>
+        <span>{{ sidebarCollapsed ? 'Show contents' : 'Hide contents' }}</span>
+      </button>
       <button class="cp-close" (click)="router.navigate(['/learning'])" aria-label="Close">
         <i class="bi bi-x-lg"></i>
       </button>
     </header>
 
-    <div class="cp-body">
+    <div class="cp-body" [class.sidebar-collapsed]="sidebarCollapsed">
       <!-- ============ LEFT: COURSE CONTENT ============ -->
       <aside class="cp-sidebar">
         <div class="cp-sidebar-head">

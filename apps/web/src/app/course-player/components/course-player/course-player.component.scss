@@ -65,6 +65,24 @@ $cp-card: #ffffff;
   &:hover { color: $cp-purple; }
 }
 
+.cp-collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  margin-right: 12px;
+  border: 1px solid $cp-line;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $cp-ink;
+  i { font-size: 16px; }
+  &:hover { background: #f3f4f8; color: $cp-purple; }
+  span { @media (max-width: 640px) { display: none; } }
+}
+
 .cp-close {
   width: 38px;
   height: 38px;
@@ -82,6 +100,15 @@ $cp-card: #ffffff;
   grid-template-columns: 380px 1fr;
   gap: 0;
   align-items: start;
+  transition: grid-template-columns 0.2s ease;
+
+  // Collapsed: the content stage takes the whole width.
+  &.sidebar-collapsed {
+    grid-template-columns: 0 1fr;
+  }
+  &.sidebar-collapsed .cp-sidebar {
+    display: none;
+  }
 }
 
 // ---- sidebar ----------------------------------------------------------
