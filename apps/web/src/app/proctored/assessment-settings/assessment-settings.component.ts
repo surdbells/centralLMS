@@ -1,11 +1,17 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import {
+  AssessmentAdminService,
+  type Assessment,
+  type AssessmentInput,
+  type PassingType,
+  type ProctoringLevel,
+} from '../assessment-admin.service';
 
 interface AssessmentSettings {
   // Time & Attempts
@@ -15,7 +21,7 @@ interface AssessmentSettings {
   // Scoring
   passing_score: number;
   passing_score_type: string;
-  grading_scale_id: number | null;
+  grading_scale_id: string | null;
   negative_marking: boolean;
   negative_marking_penalty: number;
   allow_partial_credit: boolean;
@@ -40,8 +46,7 @@ interface AssessmentSettings {
   end_date: string;
 }
 
-interface GradingScale { id: number; name: string; description: string; }
-interface ApiResponse<T> { status: string; data: T; message?: string; }
+interface GradingScale { id: string; name: string; description: string; }
 
 @Component({
   selector: 'app-assessment-settings',
@@ -321,6 +326,9 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
         <span class="save-success" *ngIf="showSaved">
           <tui-icon icon="@tui.check" style="color:#22c55e"></tui-icon> Settings saved
         </span>
+        <span class="save-error" *ngIf="saveError">
+          <tui-icon icon="@tui.alert-triangle" style="color:#ef4444"></tui-icon> {{ saveError }}
+        </span>
       </div>
     </div>
   `,
@@ -450,6 +458,9 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
     .save-success {
       display: flex; align-items: center; gap: 6px; font-size: 14px; color: #22c55e; font-weight: 500;
     }
+    .save-error {
+      display: flex; align-items: center; gap: 6px; font-size: 14px; color: #ef4444; font-weight: 500;
+    }
 
     @media (max-width: 768px) {
       .settings-grid { grid-template-columns: 1fr; }
@@ -459,18 +470,25 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
   `]
 })
 export class AssessmentSettingsComponent implements OnInit, OnDestroy {
-  @Input() assessmentId!: number;
+  @Input() assessmentId!: string;
   @Input() settings!: AssessmentSettings;
   @Input() showSaveButton = false;
   @Output() settingsChange = new EventEmitter<AssessmentSettings>();
 
+  private admin = inject(AssessmentAdminService);
+  private route = inject(ActivatedRoute);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment';
 
+  /** The assessment as loaded, so a settings save keeps its other fields. */
+  private loaded: Assessment | null = null;
+
+  // No listing endpoint exists for grading scales yet, so the picker only
+  // offers "None"; the chosen id still round-trips on the assessment.
   gradingScales: GradingScale[] = [];
   hasTimeLimit = false;
   saving = false;
   showSaved = false;
+  saveError: string | null = null;
 
   proctoringLevels = [
     {
@@ -494,12 +512,32 @@ export class AssessmentSettingsComponent implements OnInit, OnDestroy {
     }
   ];
 
-  constructor(private http: HttpClient) {}
-
   ngOnInit(): void {
-    if (!this.settings) this.initDefaults();
-    this.hasTimeLimit = !!this.settings.time_limit_minutes;
-    this.loadGradingScales();
+    if (!this.assessmentId) {
+      this.assessmentId = this.route.snapshot.paramMap.get('id')
+        ?? this.route.parent?.snapshot.paramMap.get('id')
+        ?? '';
+    }
+
+    if (this.settings) {
+      // Embedded: a parent supplied the settings.
+      this.hasTimeLimit = !!this.settings.time_limit_minutes;
+    } else if (this.assessmentId) {
+      // Routed: load the assessment itself and map it in. Its own save button
+      // shows, since there is no parent form to save alongside.
+      this.showSaveButton = true;
+      this.initDefaults();
+      this.admin.get(this.assessmentId).pipe(takeUntil(this.destroy$)).subscribe({
+        next: (a) => {
+          this.loaded = a;
+          this.settings = this.fromAssessment(a);
+          this.hasTimeLimit = !!this.settings.time_limit_minutes;
+        },
+        error: () => { this.saveError = 'This assessment could not be loaded.'; },
+      });
+    } else {
+      this.initDefaults();
+    }
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
@@ -518,12 +556,61 @@ export class AssessmentSettingsComponent implements OnInit, OnDestroy {
     };
   }
 
-  loadGradingScales(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_grading_scales');
-    this.http.post<ApiResponse<GradingScale[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.status === 'success') this.gradingScales = res.data || []; }
-    });
+  /** Maps the assessment's own fields onto the settings-form shape. */
+  private fromAssessment(a: Assessment): AssessmentSettings {
+    return {
+      time_limit_minutes: a.timeLimitMinutes,
+      max_attempts: a.maxAttempts ?? 1,
+      cooldown_hours: a.attemptsGapHours,
+      passing_score: a.passingScore,
+      passing_score_type: a.passingType,
+      grading_scale_id: a.gradingScaleId,
+      negative_marking: a.negativeMarking,
+      negative_marking_penalty: a.negativeMarkingPercentage,
+      allow_partial_credit: a.partialCredit,
+      questions_per_page: a.questionsPerPage,
+      // The new API models navigation as a single "may go back" flag, so the
+      // three-way control collapses to free (back allowed) or linear.
+      navigation_type: a.allowBackwardNavigation ? 'free' : 'linear',
+      shuffle_questions: a.shuffleQuestions,
+      shuffle_options: a.shuffleOptions,
+      show_question_numbers: a.showQuestionNumbers,
+      show_progress_bar: a.showProgressBar,
+      show_results: a.showScoreImmediately || a.revealAnswers !== 'never' || a.showExplanations,
+      show_correct_answers: a.revealAnswers !== 'never',
+      show_explanations: a.showExplanations,
+      show_score: a.showScoreImmediately,
+      results_release_type: this.releaseTypeFrom(a),
+      results_release_date: '',
+      proctoring_level: a.proctoringLevel,
+      start_date: this.toLocalInput(a.availableFrom),
+      end_date: this.toLocalInput(a.availableUntil),
+    };
+  }
+
+  private releaseTypeFrom(a: Assessment): string {
+    if (a.showScoreImmediately) return 'immediate';
+    switch (a.revealAnswers) {
+      case 'after_deadline': return 'after_close';
+      case 'after_all_attempts': return 'manual';
+      default: return 'immediate';
+    }
+  }
+
+  /** ISO timestamp -> the value a <input type="datetime-local"> expects. */
+  private toLocalInput(iso: string | null): string {
+    return iso ? iso.slice(0, 16) : '';
+  }
+
+  /** When the answer key is shown, from the results controls. */
+  private revealAnswersValue(s: AssessmentSettings): string {
+    if (!s.show_results || !s.show_correct_answers) return 'never';
+    switch (s.results_release_type) {
+      case 'after_close': return 'after_deadline';
+      case 'manual': return 'after_all_attempts';
+      case 'date': return 'after_deadline';
+      default: return 'immediately';
+    }
   }
 
   emitChange(): void {
@@ -532,20 +619,61 @@ export class AssessmentSettingsComponent implements OnInit, OnDestroy {
 
   saveSettings(): void {
     this.saving = true;
-    const fd = new FormData();
-    fd.append('action', 'update_assessment_settings');
-    fd.append('assessment_id', this.assessmentId.toString());
-    fd.append('settings', JSON.stringify(this.settings));
+    this.saveError = null;
+    const s = this.settings;
+    const a = this.loaded;
 
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
+    // A full input built from the loaded assessment, so saving settings never
+    // blanks the title, questions or other fields the API also validates.
+    const input: AssessmentInput = {
+      title: a?.title ?? '',
+      kind: a?.kind ?? 'quiz',
+      description: a?.description ?? null,
+      instructions: a?.instructions ?? null,
+      difficulty: a?.difficulty ?? null,
+      courseId: a?.courseId ?? null,
+      moduleId: a?.moduleId ?? null,
+      categoryId: a?.categoryId ?? null,
+      trainingId: a?.trainingId ?? null,
+      welcomeMessage: a?.welcomeMessage ?? null,
+      completionMessage: a?.completionMessage ?? null,
+      questionSelection: a?.questionSelection,
+      randomQuestionCount: a?.randomQuestionCount ?? null,
+      gradingScaleId: s.grading_scale_id,
+      timeLimitMinutes: this.hasTimeLimit ? s.time_limit_minutes : null,
+      maxAttempts: s.max_attempts,
+      attemptsGapHours: s.cooldown_hours,
+      passingScore: s.passing_score,
+      passingType: s.passing_score_type as PassingType,
+      negativeMarking: s.negative_marking,
+      negativeMarkingPercentage: s.negative_marking_penalty,
+      partialCredit: s.allow_partial_credit,
+      questionsPerPage: s.questions_per_page,
+      shuffleQuestions: s.shuffle_questions,
+      shuffleOptions: s.shuffle_options,
+      showQuestionNumbers: s.show_question_numbers,
+      showProgressBar: s.show_progress_bar,
+      showExplanations: s.show_results && s.show_explanations,
+      showScoreImmediately: s.show_results && s.show_score && s.results_release_type === 'immediate',
+      revealAnswers: this.revealAnswersValue(s),
+      allowBackwardNavigation: s.navigation_type !== 'linear',
+      proctoringLevel: s.proctoring_level as ProctoringLevel,
+      availableFrom: s.start_date || null,
+      availableUntil: s.end_date || null,
+    };
+
+    this.admin.update(this.assessmentId, input).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (updated) => {
         this.saving = false;
-        if (res.status === 'success') {
-          this.showSaved = true;
-          setTimeout(() => this.showSaved = false, 3000);
-        }
+        this.loaded = updated;
+        this.showSaved = true;
+        setTimeout(() => this.showSaved = false, 3000);
       },
-      error: () => { this.saving = false; }
+      error: (err) => {
+        this.saving = false;
+        const e = err as { error?: { error?: { code?: string; message?: string } } };
+        this.saveError = e?.error?.error?.message || 'Settings could not be saved.';
+      }
     });
   }
 }
