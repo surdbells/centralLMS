@@ -1,14 +1,18 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { Subject, takeUntil, interval } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { Subject, forkJoin, takeUntil, interval } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import {
+  AssessmentAdminService,
+  type Assessment,
+  type AssessmentSection,
+} from '../assessment-admin.service';
 
 interface AssessmentDetail {
-  id: number;
+  id: string;
   title: string;
   description: string;
   type: string;
@@ -39,7 +43,7 @@ interface AssessmentDetail {
 }
 
 interface PreviewSection {
-  id: number;
+  id: string;
   title: string;
   description: string;
   sort_order: number;
@@ -47,8 +51,8 @@ interface PreviewSection {
 }
 
 interface PreviewQuestion {
-  id: number;
-  section_id: number;
+  id: string;
+  section_id: string;
   question_text: string;
   question_type: string;
   points: number;
@@ -60,7 +64,7 @@ interface PreviewQuestion {
 }
 
 interface QuestionState {
-  questionId: number;
+  questionId: string;
   sectionIndex: number;
   questionIndex: number;
   globalIndex: number;
@@ -71,7 +75,26 @@ interface QuestionState {
   pointsEarned?: number;
 }
 
-interface ApiResponse<T> { status: string; data: T; message?: string; }
+/**
+ * A question as the assessment show endpoint returns it, with the answer key.
+ * The AttachedQuestion type omits these review fields, so the preview reads
+ * them through this richer local shape.
+ */
+interface ApiReviewQuestion {
+  id: string;
+  type: string;
+  text: string;
+  points: number;
+  pointsInThisAssessment?: number;
+  sectionId: string | null;
+  sortOrder: number;
+  explanation?: string | null;
+  mediaUrl?: string | null;
+  numericAnswer?: number | null;
+  numericTolerance?: number | null;
+  modelAnswer?: string | null;
+  options?: Array<{ id: string; text: string; isCorrect?: boolean; matchText?: string | null }>;
+}
 
 type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
 
@@ -899,11 +922,12 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
   `]
 })
 export class AssessmentPreviewComponent implements OnInit, OnDestroy {
-  @Input() assessmentId!: number;
+  @Input() assessmentId!: string;
   @Output() onExit = new EventEmitter<void>();
 
+  private admin = inject(AssessmentAdminService);
+  private route = inject(ActivatedRoute);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment';
 
   loading = true;
   assessment: AssessmentDetail | null = null;
@@ -951,9 +975,12 @@ export class AssessmentPreviewComponent implements OnInit, OnDestroy {
     return this.allQuestions.length ? (this.answeredCount / this.allQuestions.length) * 100 : 0;
   }
 
-  constructor(private http: HttpClient) {}
-
   ngOnInit(): void {
+    if (!this.assessmentId) {
+      this.assessmentId = this.route.snapshot.paramMap.get('id')
+        ?? this.route.parent?.snapshot.paramMap.get('id')
+        ?? '';
+    }
     this.loadAssessment();
   }
 
@@ -962,21 +989,151 @@ export class AssessmentPreviewComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  /**
+   * The single legacy preview call becomes two: the assessment with its
+   * questions (and answer key) and the section metadata, stitched into the
+   * snake-cased shape the template already renders. Grading stays entirely
+   * client-side, so nothing is written.
+   */
   loadAssessment(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_assessment_preview');
-    fd.append('assessment_id', this.assessmentId.toString());
-
-    this.http.post<ApiResponse<AssessmentDetail>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.assessment = res.data;
-          this.buildQuestionList();
-        }
+    if (!this.assessmentId) { this.loading = false; return; }
+    forkJoin({
+      detail: this.admin.detail(this.assessmentId),
+      sections: this.admin.sections(this.assessmentId),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ detail, sections }) => {
+        this.assessment = this.toPreview(detail, sections);
+        this.buildQuestionList();
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
+  }
+
+  private toPreview(a: Assessment, sections: AssessmentSection[]): AssessmentDetail {
+    const questions = ((a as unknown as { questions?: ApiReviewQuestion[] }).questions) ?? [];
+    const bySection = new Map<string, PreviewQuestion[]>();
+    const unfiled: PreviewQuestion[] = [];
+    for (const q of questions) {
+      const mapped = this.toPreviewQuestion(q);
+      if (q.sectionId) {
+        const list = bySection.get(q.sectionId) ?? [];
+        list.push(mapped);
+        bySection.set(q.sectionId, list);
+      } else {
+        unfiled.push(mapped);
+      }
+    }
+
+    const previewSections: PreviewSection[] = sections.map((s) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description ?? '',
+      sort_order: s.sortOrder,
+      questions: (bySection.get(s.id) ?? []).sort((x, y) => x.sort_order - y.sort_order),
+    }));
+
+    // Questions attached without a section still need somewhere to render.
+    if (unfiled.length > 0) {
+      previewSections.push({
+        id: '', title: sections.length > 0 ? 'Other Questions' : '',
+        description: '', sort_order: previewSections.length,
+        questions: unfiled.sort((x, y) => x.sort_order - y.sort_order),
+      });
+    }
+
+    return {
+      id: a.id,
+      title: a.title,
+      description: a.description ?? '',
+      type: a.kind,
+      status: a.status,
+      time_limit_minutes: a.timeLimitMinutes,
+      passing_score: a.passingScore,
+      passing_score_type: a.passingType,
+      total_questions: a.questionCount,
+      total_points: a.totalPoints,
+      instructions: a.instructions ?? '',
+      welcome_message: a.welcomeMessage ?? '',
+      completion_message: a.completionMessage ?? '',
+      shuffle_questions: a.shuffleQuestions ? 1 : 0,
+      shuffle_options: a.shuffleOptions ? 1 : 0,
+      show_results: (a.showScoreImmediately || a.revealAnswers !== 'never' || a.showExplanations) ? 1 : 0,
+      show_correct_answers: a.revealAnswers !== 'never' ? 1 : 0,
+      show_explanations: a.showExplanations ? 1 : 0,
+      show_score: a.showScoreImmediately ? 1 : 0,
+      show_progress_bar: a.showProgressBar ? 1 : 0,
+      show_question_numbers: a.showQuestionNumbers ? 1 : 0,
+      questions_per_page: a.questionsPerPage,
+      // Navigation is a single "may go back" flag now; the third, section-based
+      // mode has no field, so it reads as free navigation.
+      navigation_type: a.allowBackwardNavigation ? 'free' : 'linear',
+      proctoring_level: a.proctoringLevel,
+      negative_marking: a.negativeMarking ? 1 : 0,
+      negative_marking_penalty: a.negativeMarkingPercentage,
+      allow_partial_credit: a.partialCredit ? 1 : 0,
+      sections: previewSections,
+    };
+  }
+
+  /**
+   * Maps one review question to the preview shape, deriving the flat
+   * `correct_answer` the client-side grader expects from the new payload's
+   * per-option isCorrect flags and the numeric/model-answer fields.
+   */
+  private toPreviewQuestion(q: ApiReviewQuestion): PreviewQuestion {
+    const type = this.mapType(q.type);
+    const options = (q.options ?? []).map((o) => ({
+      id: o.id, text: o.text, label: o.text,
+      is_correct: !!o.isCorrect,
+      // The matching template reads o.right; the new payload calls it matchText.
+      right: o.matchText ?? '', response: o.matchText ?? '',
+    }));
+
+    let correctAnswer: any = null;
+    switch (type) {
+      case 'multiple_choice':
+      case 'true_false':
+        correctAnswer = options.find((o) => o.is_correct)?.id ?? null;
+        break;
+      case 'multiple_select':
+        correctAnswer = options.filter((o) => o.is_correct).map((o) => o.id);
+        break;
+      case 'short_answer':
+      case 'fill_in_blank':
+        correctAnswer = q.modelAnswer ?? '';
+        break;
+      case 'numeric':
+        correctAnswer = q.numericAnswer ?? null;
+        break;
+      default:
+        correctAnswer = null;
+    }
+
+    return {
+      id: q.id,
+      section_id: q.sectionId ?? '',
+      question_text: q.text,
+      question_type: type,
+      points: q.pointsInThisAssessment ?? q.points,
+      options,
+      correct_answer: correctAnswer,
+      explanation: q.explanation ?? '',
+      media_url: q.mediaUrl ?? '',
+      sort_order: q.sortOrder,
+    };
+  }
+
+  /** New-API question types to the type strings this preview renders and grades. */
+  private mapType(apiType: string): string {
+    switch (apiType) {
+      case 'multiple_choice_single': return 'multiple_choice';
+      case 'multiple_choice_multiple': return 'multiple_select';
+      case 'multiple_response': return 'multiple_select';
+      case 'essay': return 'long_answer';
+      case 'fill_in_blanks': return 'fill_in_blank';
+      default: return apiType; // true_false, short_answer, long_answer, matching, ordering, numeric
+    }
   }
 
   buildQuestionList(): void {
@@ -1206,7 +1363,7 @@ export class AssessmentPreviewComponent implements OnInit, OnDestroy {
     return { correct, points };
   }
 
-  getQuestionState(questionId: number): QuestionState | undefined {
+  getQuestionState(questionId: string): QuestionState | undefined {
     return this.questionStates.find(s => s.questionId === questionId);
   }
 
