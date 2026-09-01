@@ -76,6 +76,9 @@ export interface AttachedQuestion {
   sortOrder: number;
   isRequired: boolean;
   sectionId: string | null;
+  /** Present because the show payload embeds the review shape of each question. */
+  difficulty?: string | null;
+  mediaUrl?: string | null;
 }
 
 /** The assessment with its attached questions, for the editor. */

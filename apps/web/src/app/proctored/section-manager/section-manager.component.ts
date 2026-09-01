@@ -1,15 +1,19 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { Subject, takeUntil } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import {
+  AssessmentAdminService,
+  type AssessmentSection,
+  type AttachedQuestion,
+} from '../assessment-admin.service';
 
 interface Section {
-  id: number;
-  assessment_id: number;
+  id: string;
+  assessment_id: string;
   title: string;
   description: string;
   sort_order: number;
@@ -23,15 +27,13 @@ interface Section {
 }
 
 interface SectionQuestion {
-  id: number;
+  id: string;
   question_text: string;
   question_type: string;
   points: number;
   sort_order: number;
   difficulty: string;
 }
-
-interface ApiResponse<T> { status: string; data: T; message?: string; }
 
 @Component({
   selector: 'app-section-manager',
@@ -41,6 +43,13 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
     <app-admintop></app-admintop>
 
     <div class="section-manager">
+      <!-- Not-editable / error banner -->
+      <div class="sm-error" *ngIf="editError">
+        <tui-icon icon="@tui.alert-triangle" style="font-size:16px"></tui-icon>
+        <span>{{ editError }}</span>
+        <button class="btn-icon" (click)="editError = null" title="Dismiss"><tui-icon icon="@tui.x"></tui-icon></button>
+      </div>
+
       <!-- Header -->
       <div class="sm-header">
         <div class="sm-header-left">
@@ -228,6 +237,13 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
     :host { display: block; }
     .section-manager { }
 
+    .sm-error {
+      display: flex; align-items: center; gap: 8px; background: #fffbeb;
+      border: 1px solid #fde68a; color: #92400e; padding: 10px 14px;
+      border-radius: 8px; font-size: 13px; margin-bottom: 12px;
+    }
+    .sm-error span { flex: 1; }
+
     .sm-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
@@ -310,9 +326,9 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
       font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
       text-transform: capitalize; flex-shrink: 0;
     }
-    .diff-easy { background: #d1fae5; color: #059669; }
-    .diff-medium { background: #fef3c7; color: #d97706; }
-    .diff-hard { background: #fce7f3; color: #db2777; }
+    .diff-easy, .diff-beginner { background: #d1fae5; color: #059669; }
+    .diff-medium, .diff-intermediate { background: #fef3c7; color: #d97706; }
+    .diff-hard, .diff-professional { background: #fce7f3; color: #db2777; }
     .sq-points { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #64748b; flex-shrink: 0; }
     .points-input {
       width: 48px; padding: 3px 6px; border: 1px solid #e2e8f0; border-radius: 4px;
@@ -404,18 +420,27 @@ interface ApiResponse<T> { status: string; data: T; message?: string; }
   `]
 })
 export class SectionManagerComponent implements OnInit, OnDestroy {
-  @Input() assessmentId!: number;
+  @Input() assessmentId!: string;
   @Input() sections: Section[] = [];
   @Output() sectionsChange = new EventEmitter<Section[]>();
-  @Output() onAddQuestions = new EventEmitter<number>();
+  @Output() onAddQuestions = new EventEmitter<string>();
   @Output() onSectionUpdated = new EventEmitter<void>();
 
+  private admin = inject(AssessmentAdminService);
+  private route = inject(ActivatedRoute);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment';
 
   loading = false;
+  editError: string | null = null;
   deleteTarget: Section | null = null;
-  activeMoveMenu: number | null = null;
+  activeMoveMenu: string | null = null;
+
+  /**
+   * Every question on the assessment in load order, filed or not. The
+   * assessment-wide reorder must name all of them, so the unfiled ones are
+   * kept here to append to any section-driven order.
+   */
+  private allQuestionIds: string[] = [];
 
   // Drag state - sections
   dragIndex: number | null = null;
@@ -424,15 +449,20 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
   // Drag state - questions
   questionDragSection: Section | null = null;
   questionDragIndex: number | null = null;
-  questionDragOverSection: number | null = null;
+  questionDragOverSection: string | null = null;
   questionDragOverIndex: number | null = null;
 
   get totalQuestions(): number { return this.sections.reduce((t, s) => t + (s.question_count || 0), 0); }
   get totalPoints(): number { return this.sections.reduce((t, s) => t + (s.total_points || 0), 0); }
 
-  constructor(private http: HttpClient) {}
-
   ngOnInit(): void {
+    // Mounted as its own route (:id/sections), so the assessment id comes
+    // from the route when a parent has not bound it.
+    if (!this.assessmentId) {
+      this.assessmentId = this.route.snapshot.paramMap.get('id')
+        ?? this.route.parent?.snapshot.paramMap.get('id')
+        ?? '';
+    }
     if (this.sections.length === 0 && this.assessmentId) this.loadSections();
     document.addEventListener('click', this.closeMenus);
   }
@@ -444,51 +474,95 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
 
   private closeMenus = () => { this.activeMoveMenu = null; };
 
+  /**
+   * The new API serves section metadata and the attached questions from two
+   * places: the sections list, and the assessment detail whose flat question
+   * list each carry a sectionId. They are stitched back together here.
+   */
   loadSections(): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_assessment_sections');
-    fd.append('assessment_id', this.assessmentId.toString());
-
-    this.http.post<ApiResponse<Section[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.sections = (res.data || []).map(s => ({
-            ...s, collapsed: false, editing: false, editTitle: s.title, editDescription: s.description
-          }));
-          this.sectionsChange.emit(this.sections);
+    forkJoin({
+      sections: this.admin.sections(this.assessmentId),
+      detail: this.admin.detail(this.assessmentId),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ sections, detail }) => {
+        const questions = detail.questions || [];
+        this.allQuestionIds = questions.map((q) => q.id);
+        const bySection = new Map<string, SectionQuestion[]>();
+        for (const q of questions) {
+          if (!q.sectionId) continue;
+          const list = bySection.get(q.sectionId) ?? [];
+          list.push(this.toSectionQuestion(q));
+          bySection.set(q.sectionId, list);
         }
+        this.sections = sections.map((s) => this.toSection(s, bySection.get(s.id) ?? []));
+        this.sectionsChange.emit(this.sections);
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
   }
 
-  addSection(): void {
-    const fd = new FormData();
-    fd.append('action', 'create_section');
-    fd.append('assessment_id', this.assessmentId.toString());
-    fd.append('title', `Section ${this.sections.length + 1}`);
-    fd.append('sort_order', this.sections.length.toString());
+  private toSection(s: AssessmentSection, questions: SectionQuestion[]): Section {
+    questions.sort((a, b) => a.sort_order - b.sort_order);
+    return {
+      id: s.id,
+      assessment_id: s.assessmentId,
+      title: s.title,
+      description: s.description ?? '',
+      sort_order: s.sortOrder,
+      question_count: s.questionCount,
+      total_points: s.totalPoints,
+      questions,
+      collapsed: false,
+      editing: false,
+      editTitle: s.title,
+      editDescription: s.description ?? '',
+    };
+  }
 
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          const newSection: Section = {
-            id: res.data.id || res.data.section_id,
+  private toSectionQuestion(q: AttachedQuestion): SectionQuestion {
+    return {
+      id: q.id,
+      question_text: q.text,
+      question_type: q.type,
+      points: q.pointsInThisAssessment,
+      sort_order: q.sortOrder,
+      difficulty: q.difficulty ?? '',
+    };
+  }
+
+  /**
+   * Turns whatever the API refused into a line the author can act on. A write
+   * to a published assessment is the common one -- the new API only lets a
+   * draft be edited.
+   */
+  private reportError(err: unknown): void {
+    const e = err as { error?: { error?: { code?: string; message?: string } }; message?: string };
+    const code = e?.error?.error?.code;
+    this.editError = code === 'assessment_not_editable'
+      ? 'This assessment is published, so its sections cannot be changed. Move it back to draft to edit.'
+      : (e?.error?.error?.message || e?.message || 'That change could not be saved.');
+  }
+
+  addSection(): void {
+    const title = `Section ${this.sections.length + 1}`;
+    this.admin.createSection(this.assessmentId, { title, sortOrder: this.sections.length })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: (created) => {
+          this.sections.push({
+            id: created.id,
             assessment_id: this.assessmentId,
-            title: `Section ${this.sections.length + 1}`,
-            description: '', sort_order: this.sections.length,
+            title, description: '', sort_order: this.sections.length,
             question_count: 0, total_points: 0, questions: [],
             collapsed: false, editing: true,
-            editTitle: `Section ${this.sections.length + 1}`, editDescription: ''
-          };
-          this.sections.push(newSection);
+            editTitle: title, editDescription: ''
+          });
           this.sectionsChange.emit(this.sections);
           this.onSectionUpdated.emit();
-        }
-      }
-    });
+        },
+        error: (err) => this.reportError(err),
+      });
   }
 
   startEdit(section: Section): void {
@@ -502,21 +576,17 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
   }
 
   saveSection(section: Section): void {
-    const fd = new FormData();
-    fd.append('action', 'update_section');
-    fd.append('section_id', section.id.toString());
-    fd.append('title', section.editTitle);
-    fd.append('description', section.editDescription);
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          section.title = section.editTitle;
-          section.description = section.editDescription;
-          section.editing = false;
-          this.onSectionUpdated.emit();
-        }
-      }
+    this.admin.updateSection(this.assessmentId, section.id, {
+      title: section.editTitle,
+      description: section.editDescription,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        section.title = section.editTitle;
+        section.description = section.editDescription;
+        section.editing = false;
+        this.onSectionUpdated.emit();
+      },
+      error: (err) => this.reportError(err),
     });
   }
 
@@ -525,22 +595,17 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
   }
 
   deleteSection(section: Section | null): void {
-    const fd = new FormData();
-    fd.append('action', 'delete_section');
-    if (section?.id !== undefined && section?.id !== null) {
-      fd.append('section_id', section.id.toString());
-    }
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.sections = this.sections.filter(s => s.id !== section?.id);
+    if (!section?.id) { this.deleteTarget = null; return; }
+    this.admin.deleteSection(this.assessmentId, section.id)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
+          this.sections = this.sections.filter(s => s.id !== section.id);
           this.deleteTarget = null;
           this.sectionsChange.emit(this.sections);
           this.onSectionUpdated.emit();
-        }
-      }
-    });
+        },
+        error: (err) => { this.deleteTarget = null; this.reportError(err); },
+      });
   }
 
   toggleCollapse(section: Section): void {
@@ -558,15 +623,12 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
   }
 
   private saveSectionOrder(): void {
-    const order = this.sections.map((s, i) => ({ id: s.id, sort_order: i }));
-    const fd = new FormData();
-    fd.append('action', 'reorder_sections');
-    fd.append('assessment_id', this.assessmentId.toString());
-    fd.append('order', JSON.stringify(order));
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.sectionsChange.emit(this.sections); this.onSectionUpdated.emit(); }
-    });
+    const order = this.sections.map((s) => s.id);
+    this.admin.reorderSections(this.assessmentId, order)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => { this.sectionsChange.emit(this.sections); this.onSectionUpdated.emit(); },
+        error: (err) => { this.reportError(err); this.loadSections(); },
+      });
   }
 
   // Section drag & drop
@@ -643,7 +705,7 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
     this.saveQuestionOrder(section);
   }
 
-  toggleMoveMenu(questionId: number): void {
+  toggleMoveMenu(questionId: string): void {
     this.activeMoveMenu = this.activeMoveMenu === questionId ? null : questionId;
   }
 
@@ -663,22 +725,17 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
   }
 
   removeQuestion(section: Section, question: SectionQuestion): void {
-    const fd = new FormData();
-    fd.append('action', 'remove_question');
-    fd.append('assessment_id', this.assessmentId.toString());
-    fd.append('question_id', question.id.toString());
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
+    this.admin.detachQuestion(this.assessmentId, question.id)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
           section.questions = section.questions!.filter(q => q.id !== question.id);
           section.question_count--;
           section.total_points -= question.points;
           this.sectionsChange.emit(this.sections);
           this.onSectionUpdated.emit();
-        }
-      }
-    });
+        },
+        error: (err) => this.reportError(err),
+      });
   }
 
   updateQuestionPoints(section: Section, question: SectionQuestion, points: number): void {
@@ -686,41 +743,45 @@ export class SectionManagerComponent implements OnInit, OnDestroy {
     question.points = points;
     section.total_points += (points - oldPoints);
 
-    const fd = new FormData();
-    fd.append('action', 'update_question_points');
-    fd.append('assessment_id', this.assessmentId.toString());
-    fd.append('question_id', question.id.toString());
-    fd.append('points', points.toString());
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.onSectionUpdated.emit(); }
-    });
+    // Null clears the per-assessment override; a number sets it.
+    this.admin.setQuestionPoints(this.assessmentId, question.id, points)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => { this.onSectionUpdated.emit(); },
+        error: (err) => this.reportError(err),
+      });
   }
 
-  private saveQuestionOrder(section: Section): void {
-    const order = section.questions!.map((q, i) => ({ id: q.id, sort_order: i }));
-    const fd = new FormData();
-    fd.append('action', 'reorder_questions');
-    fd.append('section_id', section.id.toString());
-    fd.append('order', JSON.stringify(order));
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => { this.onSectionUpdated.emit(); }
-    });
+  /**
+   * The new reorder is assessment-wide, not per-section: it must name every
+   * question in its final order. The order is composed by walking the sections
+   * in their current order and each section's questions in theirs, so a move
+   * inside one section is expressed as the whole paper's new order.
+   */
+  private saveQuestionOrder(_section: Section): void {
+    const filed = this.sections.flatMap((s) => (s.questions ?? []).map((q) => q.id));
+    // The reorder must name every question on the assessment, so unfiled ones
+    // (not shown in any section) are appended in their existing order.
+    const seen = new Set(filed);
+    const order = [...filed, ...this.allQuestionIds.filter((id) => !seen.has(id))];
+    if (order.length === 0) return;
+    this.admin.reorderQuestions(this.assessmentId, order)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => { this.onSectionUpdated.emit(); },
+        error: (err) => { this.reportError(err); this.loadSections(); },
+      });
   }
 
   private apiMoveQuestionToSection(question: SectionQuestion, toSection: Section): void {
-    const fd = new FormData();
-    fd.append('action', 'move_question_to_section');
-    fd.append('question_id', question.id.toString());
-    fd.append('section_id', toSection.id.toString());
-
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.sectionsChange.emit(this.sections);
-        this.onSectionUpdated.emit();
-      }
-    });
+    this.admin.setQuestionSection(this.assessmentId, question.id, toSection.id)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
+          // Persist the questions' new positions across the two sections too.
+          this.saveQuestionOrder(toSection);
+          this.sectionsChange.emit(this.sections);
+          this.onSectionUpdated.emit();
+        },
+        error: (err) => { this.reportError(err); this.loadSections(); },
+      });
   }
 
   getTypeIcon(type: string): string {
