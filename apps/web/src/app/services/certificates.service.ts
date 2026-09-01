@@ -68,6 +68,28 @@ export interface CertificateFilters {
   perPage?: number;
 }
 
+/**
+ * What a public verification returns.
+ *
+ * Deliberately thinner than a {@link Certificate}: a stranger checking a
+ * certificate is told it is genuine and who it names, but not the score or the
+ * holder's email. A miss comes back with the same shape and `isValid: false`
+ * rather than an error, so the caller reads `isValid`, not an HTTP status.
+ */
+export interface CertificateVerification {
+  found: boolean;
+  isValid: boolean;
+  message: string;
+  number: string | null;
+  learnerName: string | null;
+  title: string | null;
+  source: CertificateSource | null;
+  status: CertificateStatus | null;
+  statusLabel: string | null;
+  issuedAt: string | null;
+  validUntil: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -197,9 +219,22 @@ ${rendered.styles}
 </html>`;
   }
 
-  /** Confirms a certificate is genuine. Unauthenticated: a stranger checks it. */
-  verify(code: string): Observable<Certificate> {
-    return this.api.get<Certificate>(Endpoints.certificates.verify(code));
+  /**
+   * Confirms a certificate is genuine from its long hash. Unauthenticated: a
+   * stranger following a QR code or verification link checks it.
+   */
+  verify(hash: string): Observable<Certificate> {
+    return this.api.get<Certificate>(Endpoints.certificates.verify(hash));
+  }
+
+  /**
+   * Confirms a certificate from its short verification code.
+   *
+   * The typed code is not the hash the link carries, so it goes to the code
+   * endpoint rather than {@link verify}, which only recognises a hash.
+   */
+  verifyByCode(code: string): Observable<CertificateVerification> {
+    return this.api.post<CertificateVerification>(Endpoints.certificates.verifyByCode, { code });
   }
 
   issue(input: {

@@ -7,112 +7,24 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { TopComponent } from '../../partials/top/top.component';
+import {
+  CertificatesService,
+  type Certificate,
+  type CertificateVerification,
+} from '../../services/certificates.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
-
-interface Certificate {
-  certificate_id: number;
-  certificate_number: string;
-  verification_code: string;
-  template_id: number;
-  template_name: string;
-  assessment_id: number;
-  assessment_title: string;
-  attempt_id: number;
-  learner_id: number;
-  learner_name: string;
-  learner_email: string;
-  score: number;
-  max_score: number;
-  percentage: number;
-  grade: string;
-  issue_date: string;
-  expiry_date: string | null;
-  status: string;
-  days_until_expiry: number | null;
-  is_expired: boolean;
-  is_expiring_soon: boolean;
-  pdf_url: string | null;
-  verification_url: string;
-  verification_count: number;
-  download_count: number;
-  template: CertificateTemplate;
-  fields: CertificateField[];
-}
-
-interface CertificateTemplate {
-  template_id: number;
-  name: string;
-  orientation: string;
-  background_color: string;
-  background_image: string | null;
-  border_enabled: boolean;
-  border_style: string;
-  border_color: string;
-  logo_url: string | null;
-  logo_position: string;
-  signature_enabled: boolean;
-  signature_image: string | null;
-  signature_name: string;
-  signature_title: string;
-  qr_enabled: boolean;
-  content_template: string;
-}
-
-interface CertificateField {
-  field_id: number;
-  field_name: string;
-  field_value: string;
-  field_type: string;
-}
-
-interface CertificateListItem {
-  certificate_id: number;
-  certificate_number: string;
-  assessment_title: string;
-  assessment_type: string;
-  score: number;
-  percentage: number;
-  grade: string;
-  issue_date: string;
-  expiry_date: string | null;
-  status: string;
-  is_expired: boolean;
-  is_expiring_soon: boolean;
-  days_until_expiry: number | null;
-  pdf_url: string | null;
-}
-
-interface VerificationResult {
-  valid: boolean;
-  certificate: {
-    certificate_number: string;
-    learner_name: string;
-    assessment_title: string;
-    score: number;
-    percentage: number;
-    grade: string;
-    issue_date: string;
-    expiry_date: string | null;
-    status: string;
-  } | null;
-  message: string;
-}
+/** The detail read adds the resolved verification link on top of the register row. */
+type CertificateDetail = Certificate & { verificationUrl?: string };
 
 @Component({
   selector: 'app-certificate-viewer',
@@ -162,52 +74,53 @@ interface VerificationResult {
       <!-- Certificate Grid -->
       <div class="certificates-grid" *ngIf="!loading">
         <div class="certificate-card" *ngFor="let cert of filteredCertificates"
-             [class.expired]="cert.is_expired" [class.expiring]="cert.is_expiring_soon"
-             [class.revoked]="cert.status === 'revoked'" (click)="viewCertificate(cert.certificate_id)">
+             [class.expired]="isExpired(cert)" [class.expiring]="isExpiringSoon(cert)"
+             [class.revoked]="cert.status === 'revoked'" (click)="viewCertificate(cert.id)">
 
           <div class="cert-card-header">
             <div class="cert-icon"><tui-icon icon="@tui.award"></tui-icon></div>
-            <span class="cert-status-badge badge" [ngClass]="getStatusBadgeClass(cert.status)">
-              {{ getStatusLabel(cert.status) }}
+            <span class="cert-status-badge badge" [ngClass]="getStatusBadgeClass(displayStatus(cert))">
+              {{ getStatusLabel(displayStatus(cert)) }}
             </span>
           </div>
 
           <div class="cert-card-body">
-            <h6 class="cert-title">{{ cert.assessment_title }}</h6>
+            <h6 class="cert-title">{{ cert.title }}</h6>
             <div class="cert-number">
-              <tui-icon icon="@tui.hash" class="me-1"></tui-icon>{{ cert.certificate_number }}
+              <tui-icon icon="@tui.hash" class="me-1"></tui-icon>{{ cert.number }}
             </div>
             <div class="cert-meta">
               <div class="cert-meta-item">
                 <span class="meta-label">Score</span>
-                <span class="meta-value" [class.text-success]="cert.percentage >= 70"
-                      [class.text-danger]="cert.percentage < 50">
-                  {{ cert.percentage | number:'1.0-0' }}% ({{ cert.grade }})
+                <span class="meta-value" [class.text-success]="(cert.percentage ?? 0) >= 70"
+                      [class.text-danger]="cert.percentage !== null && cert.percentage < 50">
+                  <ng-container *ngIf="cert.percentage !== null">{{ cert.percentage | number:'1.0-0' }}%<span *ngIf="cert.grade"> ({{ cert.grade }})</span></ng-container>
+                  <span *ngIf="cert.percentage === null">-</span>
                 </span>
               </div>
               <div class="cert-meta-item">
                 <span class="meta-label">Issued</span>
-                <span class="meta-value">{{ formatDate(cert.issue_date) }}</span>
+                <span class="meta-value">{{ formatDate(cert.issuedAt) }}</span>
               </div>
               <div class="cert-meta-item">
-                <span class="meta-label">{{ cert.expiry_date ? 'Expires' : 'Validity' }}</span>
-                <span class="meta-value" [class.text-danger]="cert.is_expired" [class.text-warning]="cert.is_expiring_soon">
-                  <ng-container *ngIf="cert.expiry_date">
-                    {{ formatDate(cert.expiry_date) }}
-                    <small *ngIf="cert.days_until_expiry && cert.days_until_expiry > 0">({{ cert.days_until_expiry }}d left)</small>
+                <span class="meta-label">{{ cert.validUntil ? 'Expires' : 'Validity' }}</span>
+                <span class="meta-value" [class.text-danger]="isExpired(cert)" [class.text-warning]="isExpiringSoon(cert)">
+                  <ng-container *ngIf="cert.validUntil">
+                    {{ formatDate(cert.validUntil) }}
+                    <small *ngIf="cert.daysRemaining && cert.daysRemaining > 0">({{ cert.daysRemaining }}d left)</small>
                   </ng-container>
-                  <span *ngIf="!cert.expiry_date" class="text-success">No Expiry</span>
+                  <span *ngIf="!cert.validUntil" class="text-success">No Expiry</span>
                 </span>
               </div>
             </div>
           </div>
 
           <div class="cert-card-footer">
-            <button class="btn btn-sm btn-primary" (click)="viewCertificate(cert.certificate_id); $event.stopPropagation()">
+            <button class="btn btn-sm btn-primary" (click)="viewCertificate(cert.id); $event.stopPropagation()">
               <tui-icon icon="@tui.eye" class="me-1"></tui-icon> View
             </button>
-            <button class="btn btn-sm btn-secondary" *ngIf="cert.pdf_url"
-                    (click)="downloadCertificateFromList(cert); $event.stopPropagation()">
+            <button class="btn btn-sm btn-secondary"
+                    (click)="openForPrinting(cert.id); $event.stopPropagation()">
               <tui-icon icon="@tui.download" class="me-1"></tui-icon> Download
             </button>
           </div>
@@ -246,42 +159,26 @@ interface VerificationResult {
           <tui-icon [icon]="getDetailAlertIcon()" class="me-2"></tui-icon>
           <div>
             <strong>{{ getDetailAlertTitle() }}</strong>
-            <p class="mb-0 small" *ngIf="selectedCertificate.is_expiring_soon">
-              Expires {{ formatDate(selectedCertificate.expiry_date!) }} ({{ selectedCertificate.days_until_expiry }}d left)
+            <p class="mb-0 small" *ngIf="isExpiringSoon(selectedCertificate)">
+              Expires {{ formatDate(selectedCertificate.validUntil!) }} ({{ selectedCertificate.daysRemaining }}d left)
             </p>
           </div>
         </div>
 
-        <!-- Certificate Preview Card -->
-        <div class="certificate-preview-card" [style.background-color]="selectedCertificate.template.background_color">
-          <div class="cert-preview-border" *ngIf="selectedCertificate.template.border_enabled"
-               [style.border-color]="selectedCertificate.template.border_color"
-               [style.border-style]="selectedCertificate.template.border_style">
-
-            <div class="cert-logo-area" *ngIf="selectedCertificate.template.logo_url">
-              <img [src]="selectedCertificate.template.logo_url" alt="Logo" class="cert-logo-img">
-            </div>
-
-            <div class="cert-content-area" [innerHTML]="renderCertificateContent()"></div>
-
-            <div class="cert-signature-area" *ngIf="selectedCertificate.template.signature_enabled">
-              <img *ngIf="selectedCertificate.template.signature_image"
-                   [src]="selectedCertificate.template.signature_image" alt="Signature" class="sig-img">
-              <div class="sig-line"></div>
-              <div class="sig-name">{{ selectedCertificate.template.signature_name }}</div>
-              <div class="sig-title">{{ selectedCertificate.template.signature_title }}</div>
-            </div>
-
-            <div class="cert-footer-area">
-              <span class="cert-num-text">Certificate No: {{ selectedCertificate.certificate_number }}</span>
-            </div>
+        <!-- Certificate Preview (server-rendered, isolated) -->
+        <div class="certificate-preview-card">
+          <div class="text-center py-5 w-100" *ngIf="!previewDoc">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <span class="ms-2 text-muted">Rendering certificate...</span>
           </div>
+          <iframe *ngIf="previewDoc" class="cert-preview-frame" [srcdoc]="previewDoc"
+                  title="Certificate preview" sandbox="allow-same-origin"></iframe>
         </div>
 
         <!-- Action Bar -->
         <div class="cert-actions-bar mt-3">
           <div class="d-flex justify-content-center gap-2 flex-wrap">
-            <button class="btn btn-primary" *ngIf="selectedCertificate.pdf_url" (click)="downloadSelectedCertificate()">
+            <button class="btn btn-primary" (click)="openForPrinting(selectedCertificate.id)">
               <tui-icon icon="@tui.download" class="me-1"></tui-icon> Download PDF
             </button>
             <button class="btn btn-secondary" (click)="shareCertificate()">
@@ -290,7 +187,7 @@ interface VerificationResult {
             <button class="btn btn-secondary" (click)="verifyCertificate()">
               <tui-icon icon="@tui.shield" class="me-1"></tui-icon> Verify
             </button>
-            <button class="btn btn-secondary" (click)="printCertificate()">
+            <button class="btn btn-secondary" (click)="openForPrinting(selectedCertificate.id)">
               <tui-icon icon="@tui.printer" class="me-1"></tui-icon> Print
             </button>
           </div>
@@ -304,35 +201,35 @@ interface VerificationResult {
           <div class="card-body p-0">
             <table class="table table-sm mb-0">
               <tbody>
-                <tr><td class="text-muted fw-light" style="width:180px">Certificate Number</td><td><strong>{{ selectedCertificate.certificate_number }}</strong></td></tr>
-                <tr><td class="text-muted fw-light">Verification Code</td><td><code class="user-select-all">{{ selectedCertificate.verification_code }}</code>
-                  <button class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verification_code)"><tui-icon icon="@tui.copy"></tui-icon></button></td></tr>
-                <tr><td class="text-muted fw-light">Assessment</td><td>{{ selectedCertificate.assessment_title }}</td></tr>
-                <tr><td class="text-muted fw-light">Recipient</td><td>{{ selectedCertificate.learner_name }}</td></tr>
-                <tr><td class="text-muted fw-light">Score</td><td>{{ selectedCertificate.score | number:'1.0-1' }}/{{ selectedCertificate.max_score | number:'1.0-1' }} ({{ selectedCertificate.percentage | number:'1.0-0' }}%) - {{ selectedCertificate.grade }}</td></tr>
-                <tr><td class="text-muted fw-light">Issued</td><td>{{ formatDate(selectedCertificate.issue_date) }}</td></tr>
-                <tr><td class="text-muted fw-light">Expires</td><td><span *ngIf="selectedCertificate.expiry_date">{{ formatDate(selectedCertificate.expiry_date) }}</span><span *ngIf="!selectedCertificate.expiry_date" class="text-success">No Expiry (Lifetime)</span></td></tr>
-                <tr><td class="text-muted fw-light">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(selectedCertificate.status)">{{ getStatusLabel(selectedCertificate.status) }}</span></td></tr>
-                <tr><td class="text-muted fw-light">Verified</td><td>{{ selectedCertificate.verification_count }} time(s)</td></tr>
-                <tr><td class="text-muted fw-light">Downloaded</td><td>{{ selectedCertificate.download_count }} time(s)</td></tr>
-                <tr><td class="text-muted fw-light">Verify URL</td><td><a [href]="selectedCertificate.verification_url" target="_blank" class="text-break">{{ selectedCertificate.verification_url }}</a>
-                  <button class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verification_url)"><tui-icon icon="@tui.copy"></tui-icon></button></td></tr>
+                <tr><td class="text-muted fw-light" style="width:180px">Certificate Number</td><td><strong>{{ selectedCertificate.number }}</strong></td></tr>
+                <tr><td class="text-muted fw-light">Verification Code</td><td><code class="user-select-all">{{ selectedCertificate.verificationCode }}</code>
+                  <button class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationCode)"><tui-icon icon="@tui.copy"></tui-icon></button></td></tr>
+                <tr><td class="text-muted fw-light">Assessment</td><td>{{ selectedCertificate.title }}</td></tr>
+                <tr><td class="text-muted fw-light">Recipient</td><td>{{ selectedCertificate.learnerName }}</td></tr>
+                <tr *ngIf="selectedCertificate.percentage !== null"><td class="text-muted fw-light">Score</td><td>{{ selectedCertificate.percentage | number:'1.0-0' }}%<span *ngIf="selectedCertificate.grade"> - {{ selectedCertificate.grade }}</span></td></tr>
+                <tr><td class="text-muted fw-light">Issued</td><td>{{ formatDate(selectedCertificate.issuedAt) }}</td></tr>
+                <tr><td class="text-muted fw-light">Expires</td><td><span *ngIf="selectedCertificate.validUntil">{{ formatDate(selectedCertificate.validUntil) }}</span><span *ngIf="!selectedCertificate.validUntil" class="text-success">No Expiry (Lifetime)</span></td></tr>
+                <tr><td class="text-muted fw-light">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(displayStatus(selectedCertificate))">{{ getStatusLabel(displayStatus(selectedCertificate)) }}</span></td></tr>
+                <tr><td class="text-muted fw-light">Verified</td><td>{{ selectedCertificate.verificationCount }} time(s)</td></tr>
+                <tr><td class="text-muted fw-light">Downloaded</td><td>{{ selectedCertificate.downloadCount }} time(s)</td></tr>
+                <tr *ngIf="selectedCertificate.verificationUrl"><td class="text-muted fw-light">Verify URL</td><td><a [href]="selectedCertificate.verificationUrl" target="_blank" rel="noopener" class="text-break">{{ selectedCertificate.verificationUrl }}</a>
+                  <button class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationUrl)"><tui-icon icon="@tui.copy"></tui-icon></button></td></tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Dynamic Fields -->
-        <div class="card mt-3" *ngIf="selectedCertificate.fields?.length">
+        <!-- Additional Information (custom data) -->
+        <div class="card mt-3" *ngIf="customFields.length">
           <div class="card-header">
             <h6 class="mb-0"><tui-icon icon="@tui.list" class="me-2"></tui-icon> Additional Information</h6>
           </div>
           <div class="card-body p-0">
             <table class="table table-sm mb-0">
               <tbody>
-                <tr *ngFor="let field of selectedCertificate.fields">
-                  <td class="text-muted fw-light" style="width:180px">{{ formatFieldName(field.field_name) }}</td>
-                  <td>{{ field.field_value }}</td>
+                <tr *ngFor="let field of customFields">
+                  <td class="text-muted fw-light" style="width:180px">{{ formatFieldName(field.key) }}</td>
+                  <td>{{ field.value }}</td>
                 </tr>
               </tbody>
             </table>
@@ -374,17 +271,17 @@ interface VerificationResult {
           <div class="text-center py-3" *ngIf="verifying"><div class="spinner-border spinner-border-sm text-primary"></div><span class="ms-2">Verifying...</span></div>
           <div *ngIf="!verifying && verificationResult" class="text-center">
             <div class="mb-3" style="font-size: 3rem;">
-              <tui-icon [icon]="verificationResult.valid ? '@tui.check-circle' : '@tui.x-circle'"
-                        [class.text-success]="verificationResult.valid" [class.text-danger]="!verificationResult.valid"></tui-icon>
+              <tui-icon [icon]="verificationResult.isValid ? '@tui.check-circle' : '@tui.x-circle'"
+                        [class.text-success]="verificationResult.isValid" [class.text-danger]="!verificationResult.isValid"></tui-icon>
             </div>
-            <h6>{{ verificationResult.valid ? 'Certificate Verified!' : 'Verification Failed' }}</h6>
+            <h6>{{ verificationResult.isValid ? 'Certificate Verified!' : 'Verification Failed' }}</h6>
             <p class="text-muted">{{ verificationResult.message }}</p>
-            <div *ngIf="verificationResult.valid && verificationResult.certificate" class="text-start mt-3 border-top pt-3">
+            <div *ngIf="verificationResult.isValid" class="text-start mt-3 border-top pt-3">
               <table class="table table-sm"><tbody>
-                <tr><td class="text-muted">Recipient</td><td>{{ verificationResult.certificate.learner_name }}</td></tr>
-                <tr><td class="text-muted">Assessment</td><td>{{ verificationResult.certificate.assessment_title }}</td></tr>
-                <tr><td class="text-muted">Score</td><td>{{ verificationResult.certificate.percentage | number:'1.0-0' }}% ({{ verificationResult.certificate.grade }})</td></tr>
-                <tr><td class="text-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(verificationResult.certificate.status)">{{ getStatusLabel(verificationResult.certificate.status) }}</span></td></tr>
+                <tr><td class="text-muted">Recipient</td><td>{{ verificationResult.learnerName }}</td></tr>
+                <tr><td class="text-muted">Assessment</td><td>{{ verificationResult.title }}</td></tr>
+                <tr *ngIf="verificationResult.issuedAt"><td class="text-muted">Issued</td><td>{{ formatDate(verificationResult.issuedAt) }}</td></tr>
+                <tr><td class="text-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(verificationResult.status)">{{ verificationResult.statusLabel || getStatusLabel(verificationResult.status) }}</span></td></tr>
               </tbody></table>
             </div>
           </div>
@@ -431,27 +328,11 @@ interface VerificationResult {
     .certificate-preview-card {
       border: 1px solid #dee2e6; border-radius: 0.5rem; overflow: hidden;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto; aspect-ratio: 1.414/1;
+      display: flex; align-items: center; justify-content: center; background: #fff;
     }
 
-    .cert-preview-border {
-      height: 100%; padding: 2rem; border-width: 8px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; text-align: center; position: relative;
-    }
+    .cert-preview-frame { width: 100%; height: 100%; border: 0; display: block; }
 
-    .cert-logo-area { margin-bottom: 1.5rem; }
-    .cert-logo-img { max-height: 60px; max-width: 200px; }
-    .cert-content-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
-
-    .cert-signature-area {
-      margin-top: 1.5rem; text-align: center;
-      .sig-img { max-height: 50px; margin-bottom: 0.5rem; }
-      .sig-line { width: 200px; border-bottom: 1px solid #333; margin: 0 auto 0.25rem; }
-      .sig-name { font-weight: 700; font-size: 0.9rem; }
-      .sig-title { font-size: 0.8rem; color: #666; }
-    }
-
-    .cert-footer-area { margin-top: 1.5rem; }
-    .cert-num-text { font-size: 0.75rem; color: #999; font-family: monospace; }
     .cert-actions-bar { text-align: center; }
 
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
@@ -466,23 +347,25 @@ interface VerificationResult {
     @media (max-width: 768px) {
       .certificates-grid { grid-template-columns: 1fr; }
       .certificate-preview-card { max-width: 100%; }
-      .cert-preview-border { padding: 1rem; }
     }
   `]
 })
 export class CertificateViewerComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private certs = inject(CertificatesService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private sanitizer = inject(DomSanitizer);
   private destroy$ = new Subject<void>();
 
   // State
   viewMode: 'list' | 'detail' = 'list';
   loading = true;
   loadingDetail = false;
-  certificates: CertificateListItem[] = [];
-  filteredCertificates: CertificateListItem[] = [];
-  selectedCertificate: Certificate | null = null;
+  certificates: Certificate[] = [];
+  filteredCertificates: Certificate[] = [];
+  selectedCertificate: CertificateDetail | null = null;
+  previewDoc: SafeHtml | null = null;
+  customFields: Array<{ key: string; value: string }> = [];
   detailError: string | null = null;
 
   // Filters
@@ -494,11 +377,13 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   shareSuccess: string | null = null;
   showVerifyModal = false;
   verifying = false;
-  verificationResult: VerificationResult | null = null;
+  verificationResult: CertificateVerification | null = null;
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      const certId = +params['certificateId'] || +params['id'] || 0;
+      // Ids are UUID strings now, so read them as-is rather than coercing to
+      // a number (which would turn a UUID into NaN and load nothing).
+      const certId = (params['certificateId'] || params['id'] || '').toString();
       if (certId) {
         this.viewMode = 'detail';
         this.loadCertificateDetail(certId);
@@ -519,46 +404,50 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
 
   loadCertificates(): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_learner_certificates');
-
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/certificate`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.certificates = res.data || [];
-          this.filterCertificates();
-        }
+    this.certs.mine().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (list) => {
+        this.certificates = list || [];
+        this.filterCertificates();
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
   }
 
-  loadCertificateDetail(certId: number): void {
+  loadCertificateDetail(certId: string): void {
     this.loadingDetail = true;
     this.detailError = null;
-    const fd = new FormData();
-    fd.append('action', 'get_certificate_detail');
-    fd.append('certificate_id', certId.toString());
+    this.previewDoc = null;
+    this.customFields = [];
 
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/certificate`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1 && res.data) {
-          this.selectedCertificate = res.data;
-        } else {
-          this.detailError = res.message || 'Certificate not found';
+    forkJoin({
+      cert: this.certs.show(certId),
+      rendered: this.certs.render(certId).pipe(catchError(() => of(null))),
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ cert, rendered }) => {
+        this.selectedCertificate = cert as CertificateDetail;
+        this.customFields = this.toCustomFields(cert.customData);
+        if (rendered) {
+          const doc = `<!doctype html><html><head><meta charset="utf-8">`
+            + `<style>html,body{margin:0;padding:0}${rendered.styles}</style></head>`
+            + `<body>${rendered.html}</body></html>`;
+          this.previewDoc = this.sanitizer.bypassSecurityTrustHtml(doc);
         }
         this.loadingDetail = false;
       },
       error: () => {
-        this.detailError = 'Network error loading certificate';
+        this.detailError = 'Certificate not found';
         this.loadingDetail = false;
       }
     });
+  }
+
+  /** Flattens the free-form customData bag into printable name/value rows. */
+  private toCustomFields(data: Record<string, unknown>): Array<{ key: string; value: string }> {
+    if (!data) return [];
+    return Object.entries(data)
+      .filter(([, value]) => value !== null && value !== undefined && typeof value !== 'object')
+      .map(([key, value]) => ({ key, value: String(value) }));
   }
 
   // ==========================================
@@ -570,13 +459,13 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
     if (this.searchTerm) {
       const term = this.searchTerm.toLowerCase();
       filtered = filtered.filter(c =>
-        c.assessment_title.toLowerCase().includes(term) ||
-        c.certificate_number.toLowerCase().includes(term)
+        (c.title || '').toLowerCase().includes(term) ||
+        (c.number || '').toLowerCase().includes(term)
       );
     }
     if (this.statusFilter !== 'all') {
       if (this.statusFilter === 'expiring_soon') {
-        filtered = filtered.filter(c => c.is_expiring_soon);
+        filtered = filtered.filter(c => this.isExpiringSoon(c));
       } else {
         filtered = filtered.filter(c => c.status === this.statusFilter);
       }
@@ -588,7 +477,7 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   // NAVIGATION
   // ==========================================
 
-  viewCertificate(certId: number): void {
+  viewCertificate(certId: string): void {
     this.viewMode = 'detail';
     this.loadCertificateDetail(certId);
   }
@@ -596,6 +485,7 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   backToList(): void {
     this.viewMode = 'list';
     this.selectedCertificate = null;
+    this.previewDoc = null;
     this.detailError = null;
     if (this.certificates.length === 0) this.loadCertificates();
   }
@@ -604,36 +494,13 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   // CERTIFICATE ACTIONS
   // ==========================================
 
-  downloadCertificateFromList(cert: CertificateListItem): void {
-    if (cert.pdf_url) {
-      this.triggerDownload(cert.pdf_url, `certificate-${cert.certificate_number}.pdf`);
-      this.logDownload(cert.certificate_id);
-    }
-  }
-
-  downloadSelectedCertificate(): void {
-    if (this.selectedCertificate?.pdf_url) {
-      this.triggerDownload(this.selectedCertificate.pdf_url,
-        `certificate-${this.selectedCertificate.certificate_number}.pdf`);
-      this.logDownload(this.selectedCertificate.certificate_id);
-    }
-  }
-
-  private triggerDownload(url: string, filename: string): void {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  private logDownload(certId: number): void {
-    const fd = new FormData();
-    fd.append('action', 'log_certificate_download');
-    fd.append('certificate_id', certId.toString());
-    this.http.post(`${GlobalComponent.baseURL}/user/certificate`, fd).subscribe();
+  /**
+   * Opens the certificate as a printable page (the print dialogue is also
+   * where "Save as PDF" lives). Opening it records the download server-side,
+   * so there is no separate log call.
+   */
+  openForPrinting(certId: string): void {
+    this.certs.openForPrinting(certId).pipe(takeUntil(this.destroy$)).subscribe();
   }
 
   shareCertificate(): void {
@@ -643,20 +510,19 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
 
   shareVia(platform: string): void {
     if (!this.selectedCertificate) return;
-    const url = this.selectedCertificate.verification_url;
-    const title = `Certificate: ${this.selectedCertificate.assessment_title}`;
-
+    const url = this.selectedCertificate.verificationUrl
+      || `${window.location.origin}/verify/${this.selectedCertificate.verificationCode}`;
     switch (platform) {
       case 'linkedin':
         window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
         this.shareSuccess = 'Opening LinkedIn...';
         break;
       case 'email':
-        const subject = encodeURIComponent(`Certificate Verification - ${this.selectedCertificate.assessment_title}`);
+        const subject = encodeURIComponent(`Certificate Verification - ${this.selectedCertificate.title}`);
         const body = encodeURIComponent(
-          `I'd like to share my certificate for "${this.selectedCertificate.assessment_title}".\n\n` +
-          `Score: ${this.selectedCertificate.percentage}%\n` +
-          `Certificate #: ${this.selectedCertificate.certificate_number}\n` +
+          `I'd like to share my certificate for "${this.selectedCertificate.title}".\n\n` +
+          (this.selectedCertificate.percentage !== null ? `Score: ${this.selectedCertificate.percentage}%\n` : '') +
+          `Certificate #: ${this.selectedCertificate.number}\n` +
           `Verify at: ${url}`
         );
         window.open(`mailto:?subject=${subject}&body=${body}`);
@@ -675,30 +541,22 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
     this.verifying = true;
     this.verificationResult = null;
 
-    const fd = new FormData();
-    fd.append('action', 'verify_certificate');
-    fd.append('verification_code', this.selectedCertificate.verification_code);
-
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/certificate`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.verificationResult = res.data;
-        } else {
-          this.verificationResult = { valid: false, certificate: null, message: res.message || 'Verification failed' };
+    this.certs.verifyByCode(this.selectedCertificate.verificationCode)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.verificationResult = result;
+          this.verifying = false;
+        },
+        error: () => {
+          this.verificationResult = {
+            found: false, isValid: false, message: 'Network error during verification',
+            number: null, learnerName: null, title: null, source: null,
+            status: null, statusLabel: null, issuedAt: null, validUntil: null,
+          };
+          this.verifying = false;
         }
-        this.verifying = false;
-      },
-      error: () => {
-        this.verificationResult = { valid: false, certificate: null, message: 'Network error during verification' };
-        this.verifying = false;
-      }
-    });
-  }
-
-  printCertificate(): void {
-    window.print();
+      });
   }
 
   copyToClipboard(text: string): void {
@@ -713,48 +571,30 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // RENDERING
+  // STATUS DERIVATION
   // ==========================================
 
-  renderCertificateContent(): string {
-    if (!this.selectedCertificate?.template?.content_template) return '';
-    let content = this.selectedCertificate.template.content_template;
-    const fieldMap: { [key: string]: string } = {
-      '{{learner_name}}': this.selectedCertificate.learner_name,
-      '{{assessment_title}}': this.selectedCertificate.assessment_title,
-      '{{score}}': String(this.selectedCertificate.score),
-      '{{max_score}}': String(this.selectedCertificate.max_score),
-      '{{percentage}}': String(this.selectedCertificate.percentage),
-      '{{grade}}': this.selectedCertificate.grade,
-      '{{issue_date}}': this.formatDate(this.selectedCertificate.issue_date),
-      '{{expiry_date}}': this.selectedCertificate.expiry_date ? this.formatDate(this.selectedCertificate.expiry_date) : 'No Expiry',
-      '{{certificate_number}}': this.selectedCertificate.certificate_number,
-      '{{verification_code}}': this.selectedCertificate.verification_code,
-    };
-
-    // Replace dynamic fields
-    if (this.selectedCertificate.fields) {
-      for (const field of this.selectedCertificate.fields) {
-        fieldMap[`{{${field.field_name}}}`] = field.field_value;
-      }
-    }
-
-    for (const [placeholder, value] of Object.entries(fieldMap)) {
-      content = content.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
-    }
-    return content;
+  /** A live certificate inside its final month reads as "expiring soon". */
+  isExpiringSoon(cert: Certificate): boolean {
+    return cert.status === 'active' && cert.daysRemaining !== null
+      && cert.daysRemaining > 0 && cert.daysRemaining <= 30;
   }
 
-  getQRCodeUrl(): string {
-    if (!this.selectedCertificate) return '';
-    return `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(this.selectedCertificate.verification_url)}`;
+  isExpired(cert: Certificate): boolean {
+    return cert.status === 'expired';
+  }
+
+  /** The badge shows "Expiring Soon" ahead of a still-active certificate's real status. */
+  displayStatus(cert: Certificate | null): string {
+    if (!cert) return '';
+    return this.isExpiringSoon(cert) ? 'expiring_soon' : cert.status;
   }
 
   // ==========================================
   // FORMATTING HELPERS
   // ==========================================
 
-  formatDate(date: string): string {
+  formatDate(date: string | null): string {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }
@@ -763,42 +603,42 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
     return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
 
-  getStatusBadgeClass(status: string): string {
+  getStatusBadgeClass(status: string | null): string {
     const map: { [key: string]: string } = {
       'active': 'bg-success', 'expired': 'bg-danger', 'revoked': 'bg-secondary',
-      'expiring_soon': 'bg-warning text-dark', 'pending': 'bg-info'
+      'superseded': 'bg-secondary', 'expiring_soon': 'bg-warning text-dark', 'pending': 'bg-info'
     };
-    return map[status] || 'bg-secondary';
+    return map[status || ''] || 'bg-secondary';
   }
 
-  getStatusLabel(status: string): string {
+  getStatusLabel(status: string | null): string {
     const map: { [key: string]: string } = {
       'active': 'Active', 'expired': 'Expired', 'revoked': 'Revoked',
-      'expiring_soon': 'Expiring Soon', 'pending': 'Pending'
+      'superseded': 'Superseded', 'expiring_soon': 'Expiring Soon', 'pending': 'Pending'
     };
-    return map[status] || status;
+    return map[status || ''] || status || '-';
   }
 
   getDetailAlertClass(): string {
     if (!this.selectedCertificate) return 'alert-info';
-    if (this.selectedCertificate.is_expired) return 'alert-danger';
-    if (this.selectedCertificate.is_expiring_soon) return 'alert-warning';
+    if (this.isExpired(this.selectedCertificate)) return 'alert-danger';
+    if (this.isExpiringSoon(this.selectedCertificate)) return 'alert-warning';
     if (this.selectedCertificate.status === 'revoked') return 'alert-secondary';
     return 'alert-success';
   }
 
   getDetailAlertIcon(): string {
     if (!this.selectedCertificate) return '@tui.info';
-    if (this.selectedCertificate.is_expired) return '@tui.alert-triangle';
-    if (this.selectedCertificate.is_expiring_soon) return '@tui.clock';
+    if (this.isExpired(this.selectedCertificate)) return '@tui.alert-triangle';
+    if (this.isExpiringSoon(this.selectedCertificate)) return '@tui.clock';
     if (this.selectedCertificate.status === 'revoked') return '@tui.x-circle';
     return '@tui.check-circle';
   }
 
   getDetailAlertTitle(): string {
     if (!this.selectedCertificate) return '';
-    if (this.selectedCertificate.is_expired) return 'This certificate has expired';
-    if (this.selectedCertificate.is_expiring_soon) return 'This certificate is expiring soon';
+    if (this.isExpired(this.selectedCertificate)) return 'This certificate has expired';
+    if (this.isExpiringSoon(this.selectedCertificate)) return 'This certificate is expiring soon';
     if (this.selectedCertificate.status === 'revoked') return 'This certificate has been revoked';
     return 'This certificate is valid and active';
   }
