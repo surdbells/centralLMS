@@ -316,7 +316,7 @@ export class AssessmentsService {
   grade(
     attemptId: string,
     questionId: string,
-    marks: { pointsAwarded: number; feedback?: string },
+    marks: { pointsEarned: number; feedback?: string },
   ): Observable<unknown> {
     return this.api.put(Endpoints.attempts.grade(attemptId, questionId), marks);
   }
