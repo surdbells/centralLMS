@@ -7,22 +7,15 @@
 import { Component, OnInit, OnDestroy, inject, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService } from '../../services/assessments.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
-
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
 
 interface ProctoringPreset {
   preset_id: number;
@@ -114,6 +107,12 @@ interface ProctoringConfig {
             <tui-icon icon="@tui.save" *ngIf="!saving"></tui-icon> Save Settings
           </button>
         </div>
+      </div>
+
+      <div class="alert alert-warning d-flex align-items-center gap-2" *ngIf="saveError">
+        <tui-icon icon="@tui.alert-triangle"></tui-icon>
+        <span>{{ saveError }}</span>
+        <button type="button" class="btn-close ms-auto" (click)="saveError = null"></button>
       </div>
 
       <div class="settings-layout" *ngIf="!loading">
@@ -714,15 +713,17 @@ interface ProctoringConfig {
   `]
 })
 export class ProctoringSettingsComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
+  private route = inject(ActivatedRoute);
   private destroy$ = new Subject<void>();
 
-  @Input() assessmentId: number | null = null;
+  @Input() assessmentId: string | null = null;
   @Input() embedded = false;
   @Output() settingsSaved = new EventEmitter<ProctoringConfig>();
 
   loading = false;
   saving = false;
+  saveError: string | null = null;
   activePreset = '';
   presets: ProctoringPreset[] = [];
 
@@ -734,7 +735,14 @@ export class ProctoringSettingsComponent implements OnInit, OnDestroy {
   config: ProctoringConfig = this.getDefaultConfig();
 
   ngOnInit(): void {
-    this.loadPresets();
+    if (!this.assessmentId) {
+      this.assessmentId = this.route.snapshot.paramMap.get('id')
+        ?? this.route.parent?.snapshot.paramMap.get('id')
+        ?? null;
+    }
+    // The preset cards are client-side quick-apply templates; the server no
+    // longer serves a preset list independent of an assessment.
+    this.presets = this.getDefaultPresets();
     if (this.assessmentId) this.loadSettings();
   }
 
@@ -747,61 +755,103 @@ export class ProctoringSettingsComponent implements OnInit, OnDestroy {
   // DATA
   // ==========================================
 
-  loadPresets(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_proctoring_presets');
-
-    this.http.post<ApiResponse<ProctoringPreset[]>>(
-      `${GlobalComponent.baseURL}/user/proctoring`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.presets = res.data || [];
-        } else {
-          this.presets = this.getDefaultPresets();
-        }
-      },
-      error: () => { this.presets = this.getDefaultPresets(); }
-    });
-  }
-
   loadSettings(): void {
     if (!this.assessmentId) return;
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_proctoring_settings');
-    fd.append('assessment_id', this.assessmentId.toString());
-
-    this.http.post<ApiResponse<ProctoringConfig>>(
-      `${GlobalComponent.baseURL}/user/proctoring`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1 && res.data) {
-          this.config = { ...this.getDefaultConfig(), ...res.data };
-          this.activePreset = this.config.proctoring_level;
-        }
-        this.loading = false;
-      },
-      error: () => { this.loading = false; }
-    });
+    this.assessments.proctoringSettings(this.assessmentId)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: (payload) => {
+          const level = (payload['level'] as string) ?? 'none';
+          const settings = (payload['settings'] as Record<string, unknown>) ?? {};
+          this.config = this.fromApi(level, settings);
+          this.activePreset = level;
+          this.loading = false;
+        },
+        error: () => { this.loading = false; }
+      });
   }
 
   saveSettings(): void {
+    if (!this.assessmentId) {
+      // The new API only stores proctoring under an assessment; there is no
+      // tenant-wide default to save from the standalone page.
+      this.saveError = 'Open an assessment to save its proctoring settings.';
+      return;
+    }
     this.saving = true;
-    const fd = new FormData();
-    fd.append('action', 'save_proctoring_settings');
-    if (this.assessmentId) fd.append('assessment_id', this.assessmentId.toString());
-    fd.append('settings', JSON.stringify(this.config));
-
-    this.http.post<ApiResponse<any>>(
-      `${GlobalComponent.baseURL}/user/proctoring`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
+    this.saveError = null;
+    this.assessments.saveProctoringSettings(this.assessmentId, {
+      level: this.config.proctoring_level,
+      settings: this.toApiSettings(this.config),
+    } as Record<string, unknown>).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
         this.saving = false;
-        if (res.code === 1) this.settingsSaved.emit(this.config);
+        this.settingsSaved.emit(this.config);
       },
-      error: () => { this.saving = false; }
+      error: (err) => {
+        this.saving = false;
+        const e = err as { error?: { error?: { code?: string; message?: string } } };
+        this.saveError = e?.error?.error?.code === 'assessment_not_editable'
+          ? 'This assessment is published; move it back to draft to change proctoring.'
+          : (e?.error?.error?.message || 'Proctoring settings could not be saved.');
+      }
     });
+  }
+
+  /**
+   * Maps the new API's proctoring settings onto this screen's flat config.
+   * The new surface is narrower than the legacy one, so options it does not
+   * carry keep their defaults.
+   */
+  private fromApi(level: string, s: Record<string, unknown>): ProctoringConfig {
+    const b = (key: string, fallback = false): boolean =>
+      typeof s[key] === 'boolean' ? s[key] as boolean : fallback;
+    const n = (key: string, fallback: number): number =>
+      typeof s[key] === 'number' ? s[key] as number : fallback;
+
+    return {
+      ...this.getDefaultConfig(),
+      proctoring_level: level,
+      lock_browser: b('requireFullscreen') || b('preventCopyPaste') || b('preventTabSwitch'),
+      block_copy_paste: b('preventCopyPaste'),
+      block_right_click: b('preventRightClick'),
+      require_fullscreen: b('requireFullscreen'),
+      block_keyboard_shortcuts: b('detectDevTools'),
+      detect_tab_switch: b('preventTabSwitch'),
+      detect_window_blur: b('windowBlurDetection'),
+      max_violations_before_flag: n('maxTabSwitches', 5),
+      warn_on_violation: b('warnOnTabSwitch', true),
+      require_webcam: b('requireWebcam'),
+      require_face_detection: b('faceDetection'),
+      snapshot_interval_seconds: n('snapshotIntervalSeconds', n('webcamCheckIntervalSeconds', 60)),
+      detect_multiple_faces: b('flagMultipleFaces'),
+      detect_no_face: b('flagNoFace'),
+      record_screen: b('recordScreen'),
+      require_id_verification: b('requireIdVerification'),
+    };
+  }
+
+  /** The reverse: this screen's config onto the fields the new API stores. */
+  private toApiSettings(c: ProctoringConfig): Record<string, unknown> {
+    return {
+      preventTabSwitch: c.detect_tab_switch || c.block_new_tabs,
+      preventCopyPaste: c.block_copy_paste,
+      preventRightClick: c.block_right_click,
+      requireFullscreen: c.require_fullscreen || c.lock_browser,
+      detectDevTools: c.block_keyboard_shortcuts,
+      windowBlurDetection: c.detect_window_blur,
+      maxTabSwitches: c.max_violations_before_flag,
+      warnOnTabSwitch: c.warn_on_violation,
+      requireWebcam: c.require_webcam,
+      webcamCheckIntervalSeconds: c.snapshot_interval_seconds,
+      faceDetection: c.require_face_detection,
+      flagMultipleFaces: c.detect_multiple_faces,
+      flagNoFace: c.detect_no_face,
+      captureSnapshots: c.require_webcam,
+      snapshotIntervalSeconds: c.snapshot_interval_seconds,
+      recordScreen: c.record_screen,
+      requireIdVerification: c.require_id_verification,
+    };
   }
 
   // ==========================================
