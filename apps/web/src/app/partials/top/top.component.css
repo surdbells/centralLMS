@@ -45,16 +45,30 @@
   display: inline;
 }
 
+/* Mega menu: the module launcher lays its items out in a grid, matching the
+   admin top bar rather than a tall single-column list. */
 .dropdown-menu-modules {
-  width: 320px;
-  padding: 0.5rem 0;
+  width: min(760px, calc(100vw - 2rem));
+  padding: 0.5rem 0.75rem 0.75rem;
   border: none;
   border-radius: 12px;
   margin-top: 0.5rem !important;
 }
 
+.dropdown-menu-modules.show {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+}
+
+/* The header row and its divider run the full width of the grid. */
+.dropdown-menu-modules .dropdown-header,
+.dropdown-menu-modules > li:has(> .dropdown-divider) {
+  grid-column: 1 / -1;
+}
+
 .dropdown-menu-modules .dropdown-header {
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0.75rem 0.5rem 0.25rem;
   color: #6c757d;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -62,14 +76,35 @@
 }
 
 .dropdown-menu-modules .dropdown-item {
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin: 0.125rem 0;
+  padding: 0.75rem;
+  border-radius: 10px;
+  margin: 0;
+  height: 100%;
+  align-items: flex-start !important;
+  flex-direction: column;
+  gap: 0.5rem !important;
+  white-space: normal;
   transition: all 0.15s ease;
+}
+
+.dropdown-menu-modules .dropdown-item small {
+  font-size: 0.7rem;
+  line-height: 1.2;
 }
 
 .dropdown-menu-modules .dropdown-item:hover {
   background: rgba(201, 162, 39, 0.1);
+}
+
+/* One column on narrow screens so the grid never overflows. */
+@media (max-width: 991.98px) {
+  .dropdown-menu-modules.show {
+    grid-template-columns: 1fr;
+  }
+  .dropdown-menu-modules .dropdown-item {
+    flex-direction: row;
+    align-items: center !important;
+  }
 }
 
 .module-icon {
