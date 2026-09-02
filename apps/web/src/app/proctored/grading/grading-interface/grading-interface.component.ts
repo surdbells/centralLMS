@@ -7,37 +7,29 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../../global-component';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
+import { AssessmentsService } from '../../../services/assessments.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
-
 interface GradingDetails {
-  queue_id: number;
-  attempt_id: number;
-  answer_id: number;
-  assessment_id: number;
+  queue_id: string;    // attempt id
+  attempt_id: string;
+  answer_id: string;   // question id -- an answer is (attemptId, questionId) now
+  assessment_id: string;
   assessment_title: string;
-  question_id: number;
+  question_id: string;
   question_text: string;
   question_type: string;
   question_image: string | null;
   section_title: string;
   max_points: number;
-  learner_id: number;
+  learner_id: string;
   learner_name: string;
   learner_email: string;
   attempt_number: number;
@@ -46,7 +38,7 @@ interface GradingDetails {
   answer_data: any;
   file_urls: string[];
   has_rubric: boolean;
-  rubric_id: number | null;
+  rubric_id: string | null;
   rubric: RubricDetail | null;
   existing_grade: ExistingGrade | null;
   existing_comments: FeedbackComment[];
@@ -258,8 +250,7 @@ interface QuickFeedback {
           <!-- Feedback Comments -->
           <div class="grade-card feedback-card">
             <div class="card-header">
-              <h5><tui-icon icon="@tui.message-circle"></tui-icon> Feedback Comments</h5>
-              <span class="badge bg-secondary">{{ details.existing_comments.length }}</span>
+              <h5><tui-icon icon="@tui.message-circle"></tui-icon> Feedback</h5>
             </div>
             <div class="card-body">
               <!-- Existing Comments -->
@@ -277,32 +268,10 @@ interface QuickFeedback {
                 </div>
               </div>
 
-              <!-- Add Comment -->
+              <!-- Feedback for the learner, saved together with the grade -->
               <div class="add-comment">
-                <div class="comment-type-select">
-                  <button *ngFor="let ct of commentTypes" class="btn btn-sm"
-                          [ngClass]="newComment.type === ct.value ? 'btn-primary' : 'btn-secondary'"
-                          (click)="newComment.type = ct.value">
-                    <tui-icon [icon]="ct.icon"></tui-icon> {{ ct.label }}
-                  </button>
-                </div>
-                <textarea class="form-control" rows="3" placeholder="Add feedback comment..."
+                <textarea class="form-control" rows="3" placeholder="Feedback for the learner (saved with the grade)..."
                           [(ngModel)]="newComment.text"></textarea>
-                <div class="comment-actions">
-                  <!-- Quick Feedback -->
-                  <div class="quick-feedback-dropdown" *ngIf="showQuickFeedback">
-                    <div class="qf-item" *ngFor="let qf of quickFeedbackList" (click)="insertQuickFeedback(qf)">
-                      <strong>{{ qf.title }}</strong>
-                      <span>{{ qf.content }}</span>
-                    </div>
-                  </div>
-                  <button class="btn btn-sm btn-secondary" (click)="showQuickFeedback = !showQuickFeedback">
-                    <tui-icon icon="@tui.zap"></tui-icon> Quick
-                  </button>
-                  <button class="btn btn-sm btn-primary" (click)="addComment()" [disabled]="!newComment.text.trim()">
-                    <tui-icon icon="@tui.send"></tui-icon> Add Comment
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -440,9 +409,6 @@ interface QuickFeedback {
             <div class="submit-secondary">
               <button class="btn btn-primary btn-sm" (click)="submitAndNext()" [disabled]="saving || !hasNextItem">
                 Submit & Next <tui-icon icon="@tui.chevron-right"></tui-icon>
-              </button>
-              <button class="btn btn-secondary btn-sm" (click)="saveDraft()" [disabled]="saving">
-                <tui-icon icon="@tui.save"></tui-icon> Save Draft
               </button>
             </div>
           </div>
@@ -600,10 +566,15 @@ interface QuickFeedback {
   `]
 })
 export class GradingInterfaceComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
+
+  // The whole attempt is marked here now, one answer at a time.
+  private attempt: any = null;
+  private answers: any[] = [];
+  private currentIndex = 0;
 
   // Data
   details: GradingDetails | null = null;
@@ -638,10 +609,9 @@ export class GradingInterfaceComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {
-      const queueId = params['queueId'];
-      if (queueId) this.loadGradingDetails(+queueId);
+      const attemptId = (params['attemptId'] || params['id'] || '').toString();
+      if (attemptId) this.loadAttempt(attemptId);
     });
-    this.loadQuickFeedback();
   }
 
   ngOnDestroy(): void {
@@ -653,161 +623,148 @@ export class GradingInterfaceComponent implements OnInit, OnDestroy {
   // DATA LOADING
   // ==========================================
 
-  loadGradingDetails(queueId: number): void {
+  /**
+   * The whole attempt loads here now, and its answers are marked one at a time
+   * -- there is no single-answer queue item to fetch. It opens on the first
+   * answer still awaiting a marker.
+   */
+  loadAttempt(attemptId: string): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_grading_details');
-    fd.append('queue_id', queueId.toString());
-
-    this.http.post<ApiResponse<GradingDetails & { has_prev: boolean; has_next: boolean }>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.details = res.data;
-          this.hasPrevItem = res.data.has_prev || false;
-          this.hasNextItem = res.data.has_next || false;
-
-          // Initialize grading mode
-          if (this.details.has_rubric && this.details.rubric) {
-            this.gradingMode = 'rubric';
-          }
-
-          // Populate existing grade
-          if (this.details.existing_grade) {
-            this.gradeForm.score = this.details.existing_grade.score;
-            if (this.details.existing_grade.rubric_scores) {
-              for (const rs of this.details.existing_grade.rubric_scores) {
-                this.rubricScores[rs.criterion_id] = { level_id: rs.level_id, points: rs.points };
-                if (rs.comment) this.rubricComments[rs.criterion_id] = rs.comment;
-              }
-            }
-          }
-        }
+    this.assessments.attempt(attemptId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (raw) => {
+        this.attempt = raw as any;
+        this.answers = (this.attempt.answers || []);
+        const firstUngraded = this.answers.findIndex((a) => a.needsMarker && !a.isGraded);
+        this.showAnswer(firstUngraded >= 0 ? firstUngraded : 0);
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
   }
 
-  loadQuickFeedback(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_quick_feedback');
-    this.http.post<ApiResponse<QuickFeedback[]>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.code === 1) this.quickFeedbackList = res.data || []; }
-    });
+  /** Populates the single-answer view from the attempt's answer at `index`. */
+  private showAnswer(index: number): void {
+    const a = this.attempt;
+    const ans = this.answers[index];
+    if (!a || !ans) { this.details = null; return; }
+    const q = ans.question || {};
+    this.currentIndex = index;
+    this.hasPrevItem = index > 0;
+    this.hasNextItem = index < this.answers.length - 1;
+    this.gradingMode = 'simple';
+
+    this.details = {
+      queue_id: a.id, attempt_id: a.id, answer_id: q.id,
+      assessment_id: a.assessmentId, assessment_title: a.assessmentTitle ?? '',
+      question_id: q.id, question_text: q.text ?? '',
+      question_type: this.mapType(q.type),
+      question_image: q.mediaUrl ?? null, section_title: '',
+      max_points: ans.pointsPossible ?? q.points ?? 0,
+      learner_id: a.userId ?? '', learner_name: a.userName ?? 'Learner', learner_email: '',
+      attempt_number: a.attemptNumber ?? 1,
+      submitted_at: a.submittedAt ?? '',
+      answer_text: this.extractAnswerText(ans.answer),
+      answer_data: ans.answer,
+      file_urls: [],
+      has_rubric: false, rubric_id: null, rubric: null,
+      existing_grade: ans.isGraded ? ({ score: ans.pointsEarned ?? 0, feedback: ans.feedback ?? '', rubric_scores: [] } as unknown as ExistingGrade) : null,
+      existing_comments: [], grading_history: [],
+      question_context: ({
+        correct_answer: this.deriveCorrectAnswer(q),
+        explanation: q.explanation ?? '',
+        class_avg_score: null,
+        rubric_criteria_hints: null,
+      } as unknown as QuestionContext),
+    };
+    this.gradeForm.score = ans.isGraded ? (ans.pointsEarned ?? 0) : 0;
+    this.newComment.text = ans.feedback ?? '';
+  }
+
+  /** New-API question type -> the type strings this screen renders answers by. */
+  private mapType(t: string): string {
+    switch (t) {
+      case 'long_answer': return 'essay';
+      case 'fill_in_blanks': return 'fill_blank';
+      case 'multiple_choice_single':
+      case 'multiple_choice_multiple':
+      case 'true_false':
+      case 'numeric': return 'other';
+      default: return t; // short_answer, matching, ordering
+    }
+  }
+
+  private extractAnswerText(answer: any): string {
+    if (!answer) return '';
+    if (typeof answer.text === 'string') return answer.text;
+    if (Array.isArray(answer.texts)) return answer.texts.join(' | ');
+    if (answer.value !== undefined && answer.value !== null) return String(answer.value);
+    return '';
+  }
+
+  private deriveCorrectAnswer(q: any): string {
+    if (!q) return '';
+    if (q.modelAnswer) return q.modelAnswer;
+    if (q.numericAnswer !== undefined && q.numericAnswer !== null) return String(q.numericAnswer);
+    const correct = (q.options || []).filter((o: any) => o.isCorrect).map((o: any) => o.text);
+    return correct.join(', ');
   }
 
   // ==========================================
   // GRADING ACTIONS
   // ==========================================
 
+  /**
+   * Marks the current answer. The new API grades one answer by (attempt,
+   * question) with a single points value and an optional feedback note, so
+   * rubric scoring is unavailable; a bonus/penalty/override adjustment is
+   * folded into that value here rather than sent as its own record.
+   */
   submitGrade(): void {
     if (!this.details) return;
     this.saving = true;
-    const fd = new FormData();
-    fd.append('action', this.gradingMode === 'rubric' && this.details.has_rubric ? 'grade_with_rubric' : 'grade');
-    fd.append('queue_id', this.details.queue_id.toString());
-    fd.append('answer_id', this.details.answer_id.toString());
+    const score = this.adjustedScore();
 
-    if (this.gradingMode === 'rubric' && this.details.has_rubric) {
-      fd.append('rubric_id', this.details.rubric_id!.toString());
-      fd.append('rubric_scores', JSON.stringify(
-        Object.entries(this.rubricScores).map(([cid, data]) => ({
-          criterion_id: +cid, level_id: data.level_id, points: data.points,
-          comment: this.rubricComments[+cid] || ''
-        }))
-      ));
-      fd.append('total_score', this.getRubricTotalScore().toString());
-    } else {
-      fd.append('score', this.gradeForm.score.toString());
-    }
-
-    if (this.adjustment.type) {
-      fd.append('adjustment_type', this.adjustment.type);
-      fd.append('adjustment_value', this.adjustment.value.toString());
-      fd.append('adjustment_reason', this.adjustment.reason);
-    }
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          this.saving = false;
-          if (res.code === 1) { this.goBack(); }
-        },
-        error: () => { this.saving = false; }
-      });
-  }
-
-  submitAndNext(): void {
-    if (!this.details) return;
-    this.saving = true;
-    const fd = new FormData();
-    fd.append('action', 'grade_and_next');
-    fd.append('queue_id', this.details.queue_id.toString());
-    fd.append('answer_id', this.details.answer_id.toString());
-    fd.append('score', (this.gradingMode === 'rubric' ? this.getRubricTotalScore() : this.gradeForm.score).toString());
-
-    if (this.gradingMode === 'rubric' && this.details.has_rubric) {
-      fd.append('rubric_scores', JSON.stringify(
-        Object.entries(this.rubricScores).map(([cid, data]) => ({
-          criterion_id: +cid, level_id: data.level_id, points: data.points,
-          comment: this.rubricComments[+cid] || ''
-        }))
-      ));
-    }
-
-    this.http.post<ApiResponse<{ next_queue_id: number }>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
+    this.assessments.grade(this.details.attempt_id, this.details.answer_id, {
+      pointsEarned: score,
+      feedback: this.newComment.text?.trim() || undefined,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
         this.saving = false;
-        if (res.code === 1 && res.data.next_queue_id) {
-          this.router.navigate(['/admin/grading', res.data.next_queue_id]);
-        } else {
-          this.goBack();
-        }
+        this.answers[this.currentIndex].isGraded = true;
+        this.answers[this.currentIndex].pointsEarned = score;
+        this.answers[this.currentIndex].feedback = this.newComment.text?.trim() || null;
+        this.adjustment = { type: '', value: 0, reason: '' };
+        this.advance();
       },
       error: () => { this.saving = false; }
     });
   }
 
-  saveDraft(): void {
-    if (!this.details) return;
-    this.saving = true;
-    const fd = new FormData();
-    fd.append('action', 'save_grading_draft');
-    fd.append('queue_id', this.details.queue_id.toString());
-    fd.append('score', (this.gradingMode === 'rubric' ? this.getRubricTotalScore() : this.gradeForm.score).toString());
-    fd.append('grading_mode', this.gradingMode);
-    if (Object.keys(this.rubricScores).length) fd.append('rubric_scores', JSON.stringify(this.rubricScores));
+  /** The score after any bonus/penalty/override, clamped to the question's max. */
+  private adjustedScore(): number {
+    let score = this.gradeForm.score;
+    if (this.adjustment.type === 'bonus') score += this.adjustment.value;
+    else if (this.adjustment.type === 'penalty') score -= this.adjustment.value;
+    else if (this.adjustment.type === 'override') score = this.adjustment.value;
+    return Math.max(0, Math.min(score, this.details?.max_points ?? score));
+  }
 
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: () => { this.saving = false; },
-        error: () => { this.saving = false; }
-      });
+  /** After marking, move to the next answer still awaiting one, or finish. */
+  private advance(): void {
+    const next = this.answers.findIndex((a, i) => i > this.currentIndex && a.needsMarker && !a.isGraded);
+    const anyLeft = this.answers.findIndex((a) => a.needsMarker && !a.isGraded);
+    if (next >= 0) this.showAnswer(next);
+    else if (anyLeft >= 0) this.showAnswer(anyLeft);
+    else this.goBack();
+  }
+
+  submitAndNext(): void {
+    this.submitGrade();
   }
 
   addComment(): void {
-    if (!this.details || !this.newComment.text.trim()) return;
-    const fd = new FormData();
-    fd.append('action', 'add_comment');
-    fd.append('answer_id', this.details.answer_id.toString());
-    fd.append('comment_type', this.newComment.type);
-    fd.append('comment_text', this.newComment.text);
-
-    this.http.post<ApiResponse<FeedbackComment>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.details!.existing_comments.push(res.data);
-            this.newComment.text = '';
-          }
-        }
-      });
+    // The new API has no separate feedback-comment resource; the note is saved
+    // with the grade, so this leaves the text in place for submitGrade to send.
   }
 
   insertQuickFeedback(qf: QuickFeedback): void {
@@ -861,18 +818,10 @@ export class GradingInterfaceComponent implements OnInit, OnDestroy {
   goBack(): void { this.router.navigate(['/admin/grading']); }
 
   navigateItem(direction: 'prev' | 'next'): void {
-    if (!this.details) return;
-    const fd = new FormData();
-    fd.append('action', direction === 'next' ? 'get_next_queue_item' : 'get_prev_queue_item');
-    fd.append('current_queue_id', this.details.queue_id.toString());
-    this.http.post<ApiResponse<{ queue_id: number }>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1 && res.data.queue_id) {
-            this.router.navigate(['/admin/grading', res.data.queue_id]);
-          }
-        }
-      });
+    // Prev/next moves between this attempt's answers, held in memory -- there is
+    // no cross-attempt queue cursor on the new API.
+    const target = direction === 'next' ? this.currentIndex + 1 : this.currentIndex - 1;
+    if (target >= 0 && target < this.answers.length) this.showAnswer(target);
   }
 
   // ==========================================
