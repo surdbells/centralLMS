@@ -53,10 +53,21 @@ use Central\Api\Application\Action\Catalog\UpdateCourseAction;
 use Central\Api\Application\Action\Catalog\UpdateLessonAction;
 use Central\Api\Application\Action\Catalog\UpdateModuleAction;
 use Central\Api\Application\Action\Assessment\AssessmentAssignmentAction;
+use Central\Api\Application\Action\Assessment\AssessmentDashboardAction;
+use Central\Api\Application\Action\Assessment\AssessmentReportAction;
 use Central\Api\Application\Action\Assessment\AssessmentStatsAction;
 use Central\Api\Application\Action\Assessment\DeleteAssessmentAction;
 use Central\Api\Application\Action\Assessment\DeleteBankAction;
+use Central\Api\Application\Action\Assessment\DeleteQuestionAction;
 use Central\Api\Application\Action\Assessment\DuplicateAssessmentAction;
+use Central\Api\Application\Action\Assessment\DuplicateQuestionAction;
+use Central\Api\Application\Action\Assessment\ImportQuestionsAction;
+use Central\Api\Application\Action\Assessment\LearnerCatalogueAction;
+use Central\Api\Application\Action\Assessment\ListQuestionTagsAction;
+use Central\Api\Application\Action\Assessment\MoveQuestionAction;
+use Central\Api\Application\Action\Assessment\QuestionImageAction;
+use Central\Api\Application\Action\Assessment\QuestionStatisticsAction;
+use Central\Api\Application\Action\Assessment\QuestionTemplateAction;
 use Central\Api\Application\Action\Assessment\GradeAnswerAction;
 use Central\Api\Application\Action\Assessment\GradingQueueAction;
 use Central\Api\Application\Action\Assessment\ManageRubricsAction;
@@ -1107,6 +1118,9 @@ return static function (App $app): void {
 
             $secure->group('/question-banks', function (RouteCollectorProxy $b) use ($uuid): void {
                 $b->get('', ListBanksAction::class)->setName('banks.list');
+                // Before `/{id}`, or `statistics` reads as a bank id.
+                $b->get('/statistics', [QuestionStatisticsAction::class, 'overall'])
+                    ->setName('banks.statistics.all');
                 $b->post('', SaveBankAction::class)->setName('banks.create');
                 $b->get('/{id:' . $uuid . '}', ShowBankAction::class)->setName('banks.show');
                 $b->put('/{id:' . $uuid . '}', SaveBankAction::class)->setName('banks.update');
@@ -1114,10 +1128,29 @@ return static function (App $app): void {
 
                 $b->group('/{bankId:' . $uuid . '}/questions', function (RouteCollectorProxy $q) use ($uuid): void {
                     $q->get('', ListQuestionsAction::class)->setName('questions.list');
+                    // Literal segments before `/{id}`; the uuid constraint would
+                    // reject them anyway, declared first for hygiene.
+                    $q->get('/tags', ListQuestionTagsAction::class)->setName('questions.tags');
+                    $q->get('/statistics', [QuestionStatisticsAction::class, 'bank'])
+                        ->setName('questions.statistics');
+                    $q->post('/import', ImportQuestionsAction::class)->setName('questions.import');
                     $q->post('', SaveQuestionAction::class)->setName('questions.create');
                     $q->put('/{id:' . $uuid . '}', SaveQuestionAction::class)->setName('questions.update');
+                    $q->delete('/{id:' . $uuid . '}', DeleteQuestionAction::class)->setName('questions.delete');
+                    $q->post('/{id:' . $uuid . '}/duplicate', DuplicateQuestionAction::class)
+                        ->setName('questions.duplicate');
+                    $q->put('/{id:' . $uuid . '}/move', MoveQuestionAction::class)->setName('questions.move');
                 });
             });
+
+            // Question images: stored and served like avatars, header-auth'd, so
+            // `appAuthImg` fetches them with the bearer token.
+            $secure->post('/question-images', [QuestionImageAction::class, 'upload'])
+                ->setName('question-images.upload');
+            $secure->get('/question-images/{imageId:' . $uuid . '}', [QuestionImageAction::class, 'stream'])
+                ->setName('question-images.file');
+            $secure->get('/question-import-template', QuestionTemplateAction::class)
+                ->setName('questions.import.template');
 
             $secure->group('/assessments', function (RouteCollectorProxy $a) use ($uuid): void {
                 $a->get('', ListAssessmentsAction::class)->setName('assessments.list');

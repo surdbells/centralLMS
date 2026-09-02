@@ -33,7 +33,9 @@ final class ListQuestionsAction extends AssessmentAction
         $bank = $this->requireBank($request, $args['bankId'] ?? '');
         $listing = $this->listing($request);
 
-        $rawType = $request->getQueryParams()['type'] ?? null;
+        $query = $request->getQueryParams();
+        $rawType = $query['type'] ?? null;
+        $rawTag = $query['tag'] ?? null;
 
         $result = $this->questions->paginateQuestions(
             $this->tenantId($request),
@@ -42,6 +44,7 @@ final class ListQuestionsAction extends AssessmentAction
             $listing['perPage'],
             $listing['search'],
             is_string($rawType) && $rawType !== '' ? QuestionType::tryFrom($rawType) : null,
+            is_string($rawTag) && $rawTag !== '' ? $rawTag : null,
         );
 
         return Json::page(

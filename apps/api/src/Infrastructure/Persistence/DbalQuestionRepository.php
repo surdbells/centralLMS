@@ -177,6 +177,7 @@ final class DbalQuestionRepository implements QuestionRepository
         int $perPage,
         ?string $search = null,
         ?QuestionType $type = null,
+        ?string $tag = null,
     ): array {
         $where = 'tenant_id = :tenant AND bank_id = :bank AND deleted_at IS NULL';
         $params = ['tenant' => $tenantId, 'bank' => $bankId];
@@ -189,6 +190,14 @@ final class DbalQuestionRepository implements QuestionRepository
         if ($type !== null) {
             $where .= ' AND type = :type';
             $params['type'] = $type->value;
+        }
+
+        if ($tag !== null && trim($tag) !== '') {
+            $where .= ' AND EXISTS (
+                SELECT 1 FROM question_tags qt
+                WHERE qt.question_id = questions.id AND qt.tenant_id = :tenant AND qt.tag = :tag
+            )';
+            $params['tag'] = trim($tag);
         }
 
         $page = max(1, $page);
@@ -280,6 +289,7 @@ final class DbalQuestionRepository implements QuestionRepository
                 );
 
                 $this->writeOptions($tx, $question->tenantId, $id, $question->options);
+                $this->writeTags($tx, $question->tenantId, $id, $question->tags);
 
                 return $id;
             },
@@ -314,6 +324,13 @@ final class DbalQuestionRepository implements QuestionRepository
             );
 
             $this->writeOptions($tx, $question->tenantId, $question->id, $question->options);
+
+            $tx->executeStatement(
+                'DELETE FROM question_tags WHERE question_id = :id AND tenant_id = :tenant',
+                ['id' => $question->id, 'tenant' => $question->tenantId],
+            );
+
+            $this->writeTags($tx, $question->tenantId, $question->id, $question->tags);
         });
 
         return $this->findQuestion($question->tenantId, $question->id)
@@ -329,6 +346,93 @@ final class DbalQuestionRepository implements QuestionRepository
         ) > 0;
     }
 
+    public function moveQuestion(string $tenantId, string $questionId, string $fromBankId, string $toBankId): bool
+    {
+        return $this->connection->executeStatement(
+            'UPDATE questions SET bank_id = :to, updated_at = NOW()
+             WHERE id = :id AND tenant_id = :tenant AND bank_id = :from AND deleted_at IS NULL',
+            ['to' => $toBankId, 'id' => $questionId, 'tenant' => $tenantId, 'from' => $fromBankId],
+        ) > 0;
+    }
+
+    public function distinctTags(string $tenantId, string $bankId): array
+    {
+        /** @var list<string> $tags */
+        $tags = $this->connection->fetchFirstColumn(
+            'SELECT DISTINCT qt.tag
+             FROM question_tags qt
+             JOIN questions q ON q.id = qt.question_id
+             WHERE q.tenant_id = :tenant AND q.bank_id = :bank AND q.deleted_at IS NULL
+             ORDER BY qt.tag ASC',
+            ['tenant' => $tenantId, 'bank' => $bankId],
+        );
+
+        return array_map(static fn (mixed $t): string => (string) $t, $tags);
+    }
+
+    public function bankStatistics(string $tenantId, string $bankId): array
+    {
+        $totals = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_active) AS active
+             FROM questions
+             WHERE tenant_id = :tenant AND bank_id = :bank AND deleted_at IS NULL",
+            ['tenant' => $tenantId, 'bank' => $bankId],
+        ) ?: ['total' => 0, 'active' => 0];
+
+        return [
+            'total'        => (int) $totals['total'],
+            'active'       => (int) $totals['active'],
+            'byType'       => $this->groupCounts(
+                "SELECT type AS key, COUNT(*) AS count FROM questions
+                 WHERE tenant_id = :tenant AND bank_id = :bank AND deleted_at IS NULL
+                 GROUP BY type ORDER BY type",
+                ['tenant' => $tenantId, 'bank' => $bankId],
+                'type',
+            ),
+            'byDifficulty' => $this->groupCounts(
+                "SELECT COALESCE(difficulty, 'unspecified') AS key, COUNT(*) AS count FROM questions
+                 WHERE tenant_id = :tenant AND bank_id = :bank AND deleted_at IS NULL
+                 GROUP BY COALESCE(difficulty, 'unspecified') ORDER BY key",
+                ['tenant' => $tenantId, 'bank' => $bankId],
+                'difficulty',
+            ),
+        ];
+    }
+
+    public function overallStatistics(string $tenantId): array
+    {
+        $totals = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE is_active) AS active
+             FROM questions WHERE tenant_id = :tenant AND deleted_at IS NULL",
+            ['tenant' => $tenantId],
+        ) ?: ['total' => 0, 'active' => 0];
+
+        $banks = (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM question_banks WHERE tenant_id = :tenant AND deleted_at IS NULL',
+            ['tenant' => $tenantId],
+        );
+
+        return [
+            'totalQuestions'  => (int) $totals['total'],
+            'activeQuestions' => (int) $totals['active'],
+            'totalBanks'      => $banks,
+            'byType'          => $this->groupCounts(
+                "SELECT type AS key, COUNT(*) AS count FROM questions
+                 WHERE tenant_id = :tenant AND deleted_at IS NULL
+                 GROUP BY type ORDER BY type",
+                ['tenant' => $tenantId],
+                'type',
+            ),
+            'byDifficulty'    => $this->groupCounts(
+                "SELECT COALESCE(difficulty, 'unspecified') AS key, COUNT(*) AS count FROM questions
+                 WHERE tenant_id = :tenant AND deleted_at IS NULL
+                 GROUP BY COALESCE(difficulty, 'unspecified') ORDER BY key",
+                ['tenant' => $tenantId],
+                'difficulty',
+            ),
+        ];
+    }
+
     public function questionIsInUse(string $tenantId, string $id): bool
     {
         return $this->connection->fetchOne(
@@ -339,6 +443,21 @@ final class DbalQuestionRepository implements QuestionRepository
     }
 
     // --- internals --------------------------------------------------------
+
+    /**
+     * Runs a `GROUP BY` count query and returns rows keyed under $keyName.
+     *
+     * @param array<string, mixed> $params
+     *
+     * @return list<array<string, int|string>>
+     */
+    private function groupCounts(string $sql, array $params, string $keyName): array
+    {
+        return array_map(
+            static fn (array $r): array => [$keyName => (string) $r['key'], 'count' => (int) $r['count']],
+            $this->connection->fetchAllAssociative($sql, $params),
+        );
+    }
 
     /**
      * Loads options for a batch of questions in one query.
@@ -381,10 +500,58 @@ final class DbalQuestionRepository implements QuestionRepository
             );
         }
 
+        // Tags load in the same one-extra-query way the options do, so listing
+        // a bank stays two round trips whatever the page size.
+        $tagRows = $this->connection->fetchAllAssociative(
+            'SELECT question_id, tag FROM question_tags
+             WHERE tenant_id = :tenant AND question_id IN (:ids)
+             ORDER BY tag ASC',
+            ['tenant' => $tenantId, 'ids' => $ids],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $tagsByQuestion = [];
+
+        foreach ($tagRows as $row) {
+            $tagsByQuestion[(string) $row['question_id']][] = (string) $row['tag'];
+        }
+
         return array_map(
-            static fn (Question $q): Question => $q->withOptions($byQuestion[$q->id] ?? []),
+            static fn (Question $q): Question => $q
+                ->withOptions($byQuestion[$q->id] ?? [])
+                ->withTags($tagsByQuestion[$q->id] ?? []),
             $questions,
         );
+    }
+
+    /**
+     * @param list<string> $tags
+     */
+    private function writeTags(Connection $tx, string $tenantId, string $questionId, array $tags): void
+    {
+        // The primary key on (question_id, tag) is case-sensitive, so "Safety"
+        // and "safety" would both land. Dedupe case-insensitively here too — the
+        // first spelling wins — so persistence stays clean whatever built the
+        // question, not only the fromInput() path.
+        $seen = [];
+
+        foreach ($tags as $tag) {
+            $tag = trim($tag);
+            $key = mb_strtolower($tag);
+
+            if ($tag === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+
+            $tx->executeStatement(
+                'INSERT INTO question_tags (tenant_id, question_id, tag)
+                 VALUES (:tenant, :question, :tag)
+                 ON CONFLICT (question_id, tag) DO NOTHING',
+                ['tenant' => $tenantId, 'question' => $questionId, 'tag' => $tag],
+            );
+        }
     }
 
     /**

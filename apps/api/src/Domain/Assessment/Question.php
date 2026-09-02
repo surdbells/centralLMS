@@ -34,6 +34,8 @@ final readonly class Question
         public array $options = [],
         public ?\DateTimeImmutable $createdAt = null,
         public ?\DateTimeImmutable $updatedAt = null,
+        /** @var list<string> */
+        public array $tags = [],
     ) {
     }
 
@@ -123,7 +125,47 @@ final readonly class Question
             modelAnswer: self::text($input['modelAnswer'] ?? null),
             isActive: filter_var($input['isActive'] ?? true, FILTER_VALIDATE_BOOL),
             options: $options,
+            tags: self::tagsFromInput($input['tags'] ?? null),
         );
+    }
+
+    /**
+     * Tags may arrive as a list or a single comma-separated string. Either way
+     * they are trimmed, blanks dropped, and de-duplicated case-insensitively so
+     * "Safety" and "safety" do not both survive; the first spelling seen wins.
+     *
+     * @return list<string>
+     */
+    private static function tagsFromInput(mixed $raw): array
+    {
+        if (is_string($raw)) {
+            $raw = explode(',', $raw);
+        }
+
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $tags = [];
+        $seen = [];
+
+        foreach ($raw as $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $tag = trim((string) $value);
+            $key = mb_strtolower($tag);
+
+            if ($tag === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $tags[] = $tag;
+        }
+
+        return $tags;
     }
 
     /**
@@ -257,6 +299,34 @@ final readonly class Question
             options: $options,
             createdAt: $this->createdAt,
             updatedAt: $this->updatedAt,
+            tags: $this->tags,
+        );
+    }
+
+    /**
+     * @param list<string> $tags
+     */
+    public function withTags(array $tags): self
+    {
+        return new self(
+            id: $this->id,
+            tenantId: $this->tenantId,
+            bankId: $this->bankId,
+            type: $this->type,
+            text: $this->text,
+            points: $this->points,
+            explanation: $this->explanation,
+            hint: $this->hint,
+            mediaUrl: $this->mediaUrl,
+            difficulty: $this->difficulty,
+            numericAnswer: $this->numericAnswer,
+            numericTolerance: $this->numericTolerance,
+            modelAnswer: $this->modelAnswer,
+            isActive: $this->isActive,
+            options: $this->options,
+            createdAt: $this->createdAt,
+            updatedAt: $this->updatedAt,
+            tags: $tags,
         );
     }
 
@@ -313,6 +383,7 @@ final readonly class Question
                 static fn (QuestionOption $o): array => $o->toArrayForReview(),
                 $this->options,
             ),
+            'tags'      => $this->tags,
             'createdAt' => $this->createdAt?->format(\DateTimeInterface::ATOM),
             'updatedAt' => $this->updatedAt?->format(\DateTimeInterface::ATOM),
         ];

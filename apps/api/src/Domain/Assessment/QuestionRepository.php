@@ -36,6 +36,7 @@ interface QuestionRepository
         int $perPage,
         ?string $search = null,
         ?QuestionType $type = null,
+        ?string $tag = null,
     ): array;
 
     public function findQuestion(string $tenantId, string $id): ?Question;
@@ -68,6 +69,44 @@ interface QuestionRepository
     public function updateQuestion(Question $question): Question;
 
     public function softDeleteQuestion(string $tenantId, string $id): bool;
+
+    /**
+     * Moves a question to another bank of the same tenant.
+     *
+     * The separate operation `updateQuestion` deliberately refuses, because
+     * changing a question's bank changes what every assessment drawing on those
+     * banks contains; this is the explicit, deliberate way to do it.
+     */
+    public function moveQuestion(string $tenantId, string $questionId, string $fromBankId, string $toBankId): bool;
+
+    /**
+     * The distinct tags used across a bank's live questions, alphabetically.
+     *
+     * @return list<string>
+     */
+    public function distinctTags(string $tenantId, string $bankId): array;
+
+    /**
+     * Per-bank counts: total, active, and a breakdown by type and difficulty.
+     *
+     * @return array{
+     *     total: int, active: int,
+     *     byType: list<array{type: string, count: int}>,
+     *     byDifficulty: list<array{difficulty: string, count: int}>
+     * }
+     */
+    public function bankStatistics(string $tenantId, string $bankId): array;
+
+    /**
+     * Tenant-wide counts across every bank.
+     *
+     * @return array{
+     *     totalQuestions: int, activeQuestions: int, totalBanks: int,
+     *     byType: list<array{type: string, count: int}>,
+     *     byDifficulty: list<array{difficulty: string, count: int}>
+     * }
+     */
+    public function overallStatistics(string $tenantId): array;
 
     /**
      * Whether the question is used by any assessment.
