@@ -158,6 +158,52 @@ export interface AssessmentFilters {
   perPage?: number;
 }
 
+/** The admin dashboard payload (GET /assessments/dashboard). */
+export interface AssessmentDashboard {
+  stats: {
+    attemptsThisMonth: number;
+    attemptsChangePercent: number;
+    avgScore: number;
+    totalLearners: number;
+    activeLearners: number;
+    totalQuestions: number;
+  };
+  monthlyTrends: Array<{ month: string; attempts: number; passRate: number; avgScore: number }>;
+  recentActivity: Array<{ id: string; type: string; message: string; timestamp: string; userName: string | null; assessmentTitle: string | null }>;
+  difficultyBreakdown: Array<{ difficulty: string; count: number; avgScore: number; passRate: number }>;
+}
+
+/** One learner's row on the reports screen (GET /assessments/report/learners). */
+export interface ReportRow {
+  learner_id: string;
+  learner_name: string;
+  email: string;
+  department: string | null;
+  attempts: number;
+  best_score: number;
+  avg_score: number;
+  time_spent_avg: number;
+  passed: boolean;
+  certificate_issued: boolean;
+  last_attempt_date: string | null;
+  status: string;
+}
+
+/** Per-question analytics (GET /assessments/{id}/item-analysis). */
+export interface QuestionAnalytics {
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  total_attempts: number;
+  answered_count: number;
+  correct_count: number;
+  skipped_count: number;
+  correct_rate: number;
+  difficulty_index: number;
+  avg_time_seconds: number;
+  discrimination_index: number;
+}
+
 /** The fields the create/edit form sends. */
 export interface AssessmentInput {
   title: string;
@@ -219,6 +265,23 @@ export class AssessmentAdminService {
 
   stats(): Observable<AssessmentStats> {
     return this.api.get<AssessmentStats>(Endpoints.assessments.stats);
+  }
+
+  dashboard(range: string): Observable<AssessmentDashboard> {
+    return this.api.get<AssessmentDashboard>(Endpoints.assessments.dashboard, { range });
+  }
+
+  learnerReport(f: { assessmentId?: string; categoryId?: string; status?: string; range?: string } = {}): Observable<ReportRow[]> {
+    return this.api.get<ReportRow[]>(Endpoints.assessments.reportLearners, {
+      assessment: f.assessmentId || '',
+      category: f.categoryId || '',
+      status: f.status || '',
+      range: f.range || '30d',
+    });
+  }
+
+  itemAnalysis(assessmentId: string): Observable<QuestionAnalytics[]> {
+    return this.api.get<QuestionAnalytics[]>(Endpoints.assessments.itemAnalysis(assessmentId));
   }
 
   get(id: string): Observable<Assessment> {

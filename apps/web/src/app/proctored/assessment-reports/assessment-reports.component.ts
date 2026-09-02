@@ -18,14 +18,14 @@ interface Assessment { id: string; title: string; }
 interface Category { id: string; name: string; }
 
 interface ReportRow {
-  learner_id: number; learner_name: string; email: string; department: string;
+  learner_id: string; learner_name: string; email: string; department: string | null;
   attempts: number; best_score: number; avg_score: number;
-  last_attempt_date: string; status: string; time_spent_avg: number;
+  last_attempt_date: string | null; status: string; time_spent_avg: number;
   passed: boolean; certificate_issued: boolean;
 }
 
 interface QuestionAnalytics {
-  question_id: number; question_text: string; question_type: string;
+  question_id: string; question_text: string; question_type: string;
   correct_rate: number; avg_time_seconds: number;
   discrimination_index: number; difficulty_index: number;
   total_attempts: number; skipped_count: number;
@@ -277,19 +277,29 @@ export class AssessmentReportsComponent implements OnInit, OnDestroy {
 
   loadCategories(): void { /* no categories listing endpoint on the new API */ }
 
-  // The per-learner performance report has no endpoint on the new API yet, so
-  // it shows nothing with an explanation rather than a broken call.
   loadReport(): void {
-    this.loading = false;
-    this.reportData = [];
+    this.loading = true;
+    this.notice = null;
     this.page = 1;
-    this.notice = 'The learner-performance report is being rebuilt on the new API.';
+    this.admin.learnerReport({
+      assessmentId: this.filterAssessment,
+      categoryId: this.filterCategory,
+      status: this.filterStatus,
+      range: this.dateRange,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rows) => { this.reportData = rows; this.loading = false; },
+      error: () => { this.loading = false; this.reportData = []; this.notice = 'Could not load the report.'; },
+    });
   }
 
   loadQuestionAnalytics(): void {
-    this.loading = false;
-    this.questionData = [];
-    this.notice = 'Question item-analysis is being rebuilt on the new API.';
+    if (!this.filterAssessment) { this.questionData = []; return; }
+    this.loading = true;
+    this.notice = null;
+    this.admin.itemAnalysis(this.filterAssessment).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rows) => { this.questionData = rows; this.loading = false; },
+      error: () => { this.loading = false; this.questionData = []; this.notice = 'Could not load question analytics.'; },
+    });
   }
 
   sortBy(field: string): void {
@@ -300,11 +310,21 @@ export class AssessmentReportsComponent implements OnInit, OnDestroy {
   goToPage(p: number): void { if (p >= 1 && p <= this.totalPages) this.page = p; }
 
   exportReport(_format: string): void {
-    // No report data source yet, so there is nothing to export.
-    this.notice = 'Report export is being rebuilt on the new API.';
+    if (!this.reportData.length) { this.notice = 'There is nothing to export yet.'; return; }
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = ['Learner', 'Email', 'Department', 'Attempts', 'Best %', 'Avg %', 'Status', 'Certificate'];
+    const rows = this.reportData.map(r => [
+      esc(r.learner_name), esc(r.email), esc(r.department ?? ''), r.attempts,
+      r.best_score, r.avg_score, esc(r.status), r.certificate_issued ? 'Yes' : 'No',
+    ].join(','));
+    const blob = new Blob([[header.join(','), ...rows].join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'learner-report.csv'; a.click();
+    URL.revokeObjectURL(url);
   }
 
-  formatDate(d: string): string { if (!d) return '-'; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+  formatDate(d: string | null): string { if (!d) return '-'; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   formatDuration(sec: number): string { const m = Math.floor(sec / 60); return m >= 60 ? Math.floor(m/60) + 'h ' + (m%60) + 'm' : m + 'm'; }
   truncate(t: string, max: number): string { const s = (t||'').replace(/<[^>]*>/g, ''); return s.length > max ? s.substring(0, max) + '...' : s; }
 }

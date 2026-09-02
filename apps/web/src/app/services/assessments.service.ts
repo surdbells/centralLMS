@@ -414,6 +414,16 @@ export class AssessmentsService {
     return this.api.get<AttemptResult[]>(Endpoints.me.attempts, { limit });
   }
 
+  /** The learner's assessment catalogue, with their assignments and results. */
+  catalogue(opts: { assigned?: boolean; search?: string; categoryId?: string; kind?: string } = {}): Observable<LearnerAssessment[]> {
+    return this.api.get<LearnerAssessment[]>(Endpoints.me.assessments, {
+      assigned: opts.assigned ? 1 : undefined,
+      search: opts.search || undefined,
+      categoryId: opts.categoryId || undefined,
+      kind: opts.kind || undefined,
+    });
+  }
+
   // --- marking --------------------------------------------------------------
 
   /**
@@ -686,6 +696,34 @@ export interface AttemptResult extends Record<string, unknown> {
   passed: boolean | null;
   startedAt: string | null;
   submittedAt: string | null;
+}
+
+/** One row of the learner's assessment catalogue (GET /me/assessments). */
+export interface LearnerAssessment {
+  assessmentId: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  courseId: string | null;
+  courseTitle: string | null;
+  questionCount: number;
+  totalPoints: number;
+  timeLimitMinutes: number | null;
+  maxAttempts: number | null;
+  passingScore: number;
+  passingType: string;
+  proctoringLevel: string;
+  difficulty: string | null;
+  availableFrom: string | null;
+  availableUntil: string | null;
+  enrollmentStatus: string;
+  attemptCount: number;
+  bestScore: number | null;
+  isMandatory: boolean;
+  dueDate: string | null;
+  prerequisites: string[];
 }
 
 export interface ProctoringSettings extends Record<string, unknown> {

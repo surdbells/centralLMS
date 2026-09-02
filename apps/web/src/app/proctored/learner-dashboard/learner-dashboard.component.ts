@@ -13,7 +13,7 @@ import { Subject, forkJoin, of, takeUntil } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { TopComponent } from '../../partials/top/top.component';
-import { AssessmentsService, type AttemptResult } from '../../services/assessments.service';
+import { AssessmentsService, type AttemptResult, type LearnerAssessment } from '../../services/assessments.service';
 import { CertificatesService } from '../../services/certificates.service';
 import { GamificationService } from '../../services/gamification.service';
 
@@ -388,7 +388,8 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
       certs: this.certificates.mine().pipe(catchError(() => of([]))),
       game: this.gamification.mine().pipe(catchError(() => of(null))),
       board: this.gamification.leaderboard('all_time', 100).pipe(catchError(() => of(null))),
-    }).pipe(takeUntil(this.destroy$)).subscribe(({ attempts, certs, game, board }) => {
+      catalogue: this.assessments.catalogue({ assigned: true }).pipe(catchError(() => of([] as LearnerAssessment[]))),
+    }).pipe(takeUntil(this.destroy$)).subscribe(({ attempts, certs, game, board, catalogue }) => {
       const completed = attempts.filter(a => this.isScored(a));
       const passed = completed.filter(a => a.passed === true).length;
       const failed = completed.filter(a => a.passed === false).length;
@@ -427,7 +428,20 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
           passed: a.passed === true, grade: '', certificate_id: null,
         }));
 
-      this.upcomingAssessments = [];
+      // Assigned assessments the learner has not yet passed/completed, soonest
+      // due first (nulls last).
+      this.upcomingAssessments = catalogue
+        .filter(a => a.enrollmentStatus !== 'passed' && a.enrollmentStatus !== 'completed')
+        .sort((a, b) => {
+          if (!a.dueDate) return b.dueDate ? 1 : 0;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        })
+        .map(a => ({
+          assessment_id: a.assessmentId, title: a.title, assessment_type: a.kind,
+          due_date: a.dueDate, is_mandatory: a.isMandatory, time_limit_minutes: a.timeLimitMinutes ?? 0,
+          total_questions: a.questionCount, proctoring_level: a.proctoringLevel, category_name: a.categoryName ?? '',
+        }));
       this.skillProgress = [];
     });
   }

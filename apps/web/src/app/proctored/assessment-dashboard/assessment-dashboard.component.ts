@@ -184,7 +184,7 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
               <div class="ds"><span class="ds-val">{{ d.pass_rate | number:'1.0-0' }}%</span><span class="ds-lbl">Pass Rate</span></div>
             </div>
             <div class="diff-bar"><div class="diff-fill" [style.width.%]="d.pass_rate"
-                 [style.background]="d.difficulty==='easy'?'#22c55e':d.difficulty==='medium'?'#f59e0b':'#ef4444'"></div></div>
+                 [style.background]="d.difficulty==='beginner'?'#22c55e':d.difficulty==='intermediate'?'#f59e0b':'#ef4444'"></div></div>
           </div>
         </div>
       </div>
@@ -269,9 +269,9 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
 
     .diff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .diff-card { padding: 18px; border-radius: 10px; border: 1px solid #e2e8f0; }
-    .diff-card[data-diff="easy"] { border-left: 4px solid #22c55e; }
-    .diff-card[data-diff="medium"] { border-left: 4px solid #f59e0b; }
-    .diff-card[data-diff="hard"] { border-left: 4px solid #ef4444; }
+    .diff-card[data-diff="beginner"] { border-left: 4px solid #22c55e; }
+    .diff-card[data-diff="intermediate"] { border-left: 4px solid #f59e0b; }
+    .diff-card[data-diff="professional"] { border-left: 4px solid #ef4444; }
     .diff-card h4 { margin: 0 0 12px; font-size: 15px; color: #0f172a; }
     .diff-stats { display: flex; gap: 16px; margin-bottom: 12px; }
     .ds { text-align: center; }
@@ -310,34 +310,34 @@ export class AssessmentDashboardComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
   /**
-   * No single admin-dashboard endpoint exists, so the view is assembled from
-   * the authoring stats, the assessment listing (grouped for the type
-   * distribution and sorted for the top table), the marking queue and the
-   * certificate count. The time-series, activity feed, per-difficulty
-   * breakdown and the per-learner figures have no source and stay empty.
+   * The headline scalars, trend, activity feed and difficulty breakdown come
+   * from the dedicated dashboard endpoint; the type distribution and top table
+   * are still assembled from the authoring listing, and the pending-grading and
+   * certificate counts from their own sources.
    */
   loadDashboard(): void {
     forkJoin({
+      dash: this.admin.dashboard(this.dateRange).pipe(catchError(() => of(null))),
       stats: this.admin.stats().pipe(catchError(() => of(null))),
       list: this.admin.list({ perPage: 200 }).pipe(catchError(() => of(null))),
       awaiting: this.assessments.awaitingMarking().pipe(catchError(() => of(null))),
       certs: this.certificates.mine().pipe(catchError(() => of([]))),
-    }).pipe(takeUntil(this.destroy$)).subscribe(({ stats, list, awaiting, certs }) => {
+    }).pipe(takeUntil(this.destroy$)).subscribe(({ dash, stats, list, awaiting, certs }) => {
       const items = list?.items ?? [];
       this.stats = {
         total_assessments: stats?.total ?? items.length,
         published: stats?.published ?? 0,
         draft: stats?.draft ?? 0,
         total_attempts: stats?.totalAttempts ?? 0,
-        attempts_this_month: 0,
-        attempts_change_percent: 0,
-        avg_score: 0,
+        attempts_this_month: dash?.stats.attemptsThisMonth ?? 0,
+        attempts_change_percent: dash?.stats.attemptsChangePercent ?? 0,
+        avg_score: Math.round(dash?.stats.avgScore ?? 0),
         overall_pass_rate: Math.round(stats?.avgPassRate ?? 0),
-        total_learners: 0,
-        active_learners: 0,
+        total_learners: dash?.stats.totalLearners ?? 0,
+        active_learners: dash?.stats.activeLearners ?? 0,
         pending_grading: awaiting?.meta.total ?? 0,
         flagged_sessions: 0,
-        total_questions: 0,
+        total_questions: dash?.stats.totalQuestions ?? 0,
         total_certificates: certs.length,
       };
 
@@ -358,9 +358,16 @@ export class AssessmentDashboardComponent implements OnInit, OnDestroy {
           attempts: a.totalAttempts, avg_score: Math.round(a.avgScore ?? 0), pass_rate: Math.round(a.passRate ?? 0),
         }));
 
-      this.monthlyTrends = [];
-      this.recentActivity = [];
-      this.diffBreakdown = [];
+      this.monthlyTrends = (dash?.monthlyTrends ?? []).map(m => ({
+        month: m.month, attempts: m.attempts, pass_rate: m.passRate, avg_score: m.avgScore,
+      }));
+      this.recentActivity = (dash?.recentActivity ?? []).map(a => ({
+        id: a.id, type: a.type, message: a.message, timestamp: a.timestamp,
+        user_name: a.userName ?? '', assessment_title: a.assessmentTitle ?? '',
+      }));
+      this.diffBreakdown = (dash?.difficultyBreakdown ?? []).map(d => ({
+        difficulty: d.difficulty, count: d.count, avg_score: d.avgScore, pass_rate: d.passRate,
+      }));
       this.buildDonut();
     });
   }

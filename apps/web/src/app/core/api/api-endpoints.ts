@@ -209,6 +209,8 @@ export const Endpoints = {
     certificates: '/me/certificates',
     /** The assessments this person has sat — not a marker's queue. */
     attempts: '/me/attempts',
+    /** The learner's assessment catalogue (with their assignments and results). */
+    assessments: '/me/assessments',
     /** The ILT programmes this person is booked on — not a roster. */
     trainings: '/me/trainings',
     gamification: '/me/gamification',
@@ -232,6 +234,9 @@ export const Endpoints = {
     list: '/assessments',
     create: '/assessments',
     stats: '/assessments/stats',
+    dashboard: '/assessments/dashboard',
+    reportLearners: '/assessments/report/learners',
+    itemAnalysis: (id: string) => `/assessments/${id}/item-analysis`,
     show: (id: string) => `/assessments/${id}`,
     update: (id: string) => `/assessments/${id}`,
     delete: (id: string) => `/assessments/${id}`,

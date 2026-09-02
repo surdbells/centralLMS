@@ -12,6 +12,7 @@ import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import {TopComponent} from '../../partials/top/top.component';
+import { AssessmentsService, type LearnerAssessment } from '../../services/assessments.service';
 
 interface CatalogAssessment {
   assessment_id: string; title: string; description: string;
@@ -310,6 +311,7 @@ interface Category { id: string; name: string; count: number; }
 })
 export class AssessmentCatalogComponent implements OnInit, OnDestroy {
   private router = inject(Router);
+  private assessmentsApi = inject(AssessmentsService);
   private destroy$ = new Subject<void>();
 
   assessments: CatalogAssessment[] = [];
@@ -345,21 +347,74 @@ export class AssessmentCatalogComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
-  // The learner-facing catalogue -- what is assigned or available to this
-  // learner, with their enrolment status, prerequisites, ratings and due dates
-  // -- has no endpoint on the new API (assessments are reached through their
-  // course). So the browse view is empty with an explanation rather than a
-  // broken call; a learner still sees their sittings on the dashboard and
-  // history.
+  // The learner-facing catalogue: the published assessments available to this
+  // learner, with their assignment (mandatory + due date) and their own
+  // results. Ratings/reviews have no source and default to zero.
   loadCatalog(): void {
-    this.loading = false;
-    this.assessments = [];
-    this.categories = [];
-    this.notice = 'The assessment catalogue is being rebuilt on the new API. Open assessments from your courses in the meantime.';
-    this.applyFilters();
+    this.loading = true;
+    this.notice = null;
+    this.assessmentsApi.catalogue().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (rows) => {
+        this.assessments = rows.map((r) => this.toCatalog(r));
+        this.buildCategories();
+        this.loading = false;
+        this.applyFilters();
+      },
+      error: () => {
+        this.loading = false;
+        this.assessments = [];
+        this.notice = 'Could not load the assessment catalogue.';
+        this.applyFilters();
+      },
+    });
   }
 
-  loadCategories(): void { /* no category listing endpoint on the new API */ }
+  private toCatalog(r: LearnerAssessment): CatalogAssessment {
+    return {
+      assessment_id: r.assessmentId,
+      title: r.title,
+      description: r.description ?? '',
+      assessment_type: r.kind as CatalogAssessment['assessment_type'],
+      category_id: r.categoryId ?? '',
+      category_name: r.categoryName ?? '',
+      course_id: r.courseId,
+      course_title: r.courseTitle,
+      total_questions: r.questionCount,
+      total_points: r.totalPoints,
+      time_limit_minutes: r.timeLimitMinutes ?? 0,
+      max_attempts: r.maxAttempts ?? 0,
+      passing_score: r.passingScore,
+      passing_type: r.passingType as CatalogAssessment['passing_type'],
+      proctoring_level: r.proctoringLevel as CatalogAssessment['proctoring_level'],
+      difficulty: (r.difficulty ?? 'beginner') as CatalogAssessment['difficulty'],
+      thumbnail_url: '',
+      tags: [],
+      enrollment_status: r.enrollmentStatus as CatalogAssessment['enrollment_status'],
+      attempt_count: r.attemptCount,
+      best_score: r.bestScore,
+      avg_rating: 0,
+      review_count: 0,
+      estimated_duration_minutes: 0,
+      availability_start: r.availableFrom,
+      availability_end: r.availableUntil,
+      prerequisites: [],
+      is_mandatory: r.isMandatory,
+      due_date: r.dueDate,
+    };
+  }
+
+  private buildCategories(): void {
+    const map = new Map<string, Category>();
+    for (const a of this.assessments) {
+      if (!a.category_id) continue;
+      const existing = map.get(a.category_id);
+      if (existing) existing.count++;
+      else map.set(a.category_id, { id: a.category_id, name: a.category_name || 'Uncategorised', count: 1 });
+    }
+    this.categories = Array.from(map.values()).sort((x, y) => x.name.localeCompare(y.name));
+  }
+
+  loadCategories(): void { /* categories are derived from the catalogue payload */ }
 
   setTab(tab: string): void { this.activeTab = tab; this.currentPage = 1; this.applyFilters(); }
 
