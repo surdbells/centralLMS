@@ -1,6 +1,7 @@
 import type { HttpEvent, HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { catchError, filter, switchMap, take } from 'rxjs/operators';
 import { SessionStore } from '../../auth/session.store';
@@ -30,10 +31,23 @@ export function authInterceptor(
 ): Observable<HttpEvent<unknown>> {
   const store = inject(SessionStore);
   const refresher = inject(TokenRefresher);
+  const router = inject(Router);
   const session = store.session();
 
   if (session === null) {
-    return next(request);
+    // No session, but a protected endpoint still answered 401 (a page reached
+    // with a cleared session, e.g. a reload). Send them to sign in rather than
+    // leaving a dead shell. Auth routes are excluded so a rejected sign-in does
+    // not bounce.
+    return next(request).pipe(
+      catchError((failure: unknown) => {
+        if (shouldRetry(failure, request)) {
+          redirectToLogin(store, router);
+        }
+
+        return throwError(() => failure);
+      }),
+    );
   }
 
   return next(withToken(request, session.token)).pipe(
@@ -53,6 +67,12 @@ export function authInterceptor(
           const renewed = store.session();
 
           if (succeeded !== true || renewed === null) {
+            // The session is over. Clear it and send the person to sign in,
+            // rather than leaving them on a page whose every call 401s and
+            // whose header has quietly removed itself. Keep where they were so
+            // they land back after signing in.
+            redirectToLogin(store, router);
+
             return throwError(() => failure);
           }
 
@@ -65,6 +85,24 @@ export function authInterceptor(
 
 function withToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
   return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+}
+
+/**
+ * Ends the session locally and routes to sign-in, once.
+ *
+ * The session is cleared here as well as in AuthService because the refresh may
+ * have failed for a reason that never reached a clear (an absent refresh token).
+ * The login route itself is left alone so a failed sign-in does not loop.
+ */
+function redirectToLogin(store: SessionStore, router: Router): void {
+  store.clear();
+
+  const url = router.url.split('?')[0];
+  if (url === '/login' || url.endsWith('/login')) {
+    return;
+  }
+
+  void router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
 }
 
 /**

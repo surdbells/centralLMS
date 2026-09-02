@@ -25,6 +25,7 @@ import {proctoredAssessmentRoutes} from './proctored-assessment.routes';
 import {reportsRoutes} from './reports/reports.routes';
 import {usersRoutes} from './admin/users/users.routes';
 import {competencyRoutes} from './competency/competency.routes';
+import {authGuard} from './core/auth/auth.guard';
 export const routes: Routes = [
   ...learningPathRoutes,
   ...proctoredAssessmentRoutes,
@@ -77,6 +78,13 @@ export const routes: Routes = [
     component: LmsHomepageComponent,
     title: ''
   },
+  {
+    // Everything past sign-in. A visitor without a session is sent to /login
+    // rather than landing on a shell whose every call 401s. The `:tenantId/*`
+    // public routes stay outside this group, below.
+    path: '',
+    canActivate: [authGuard],
+    children: [
   {
     path: 'profile',
     component: UserProfileComponent,
@@ -250,6 +258,8 @@ export const routes: Routes = [
     path: 'mysettings',
     loadComponent: () => import('./learner/my-account.component').then(m => m.MyAccountComponent),
     title: 'My Account'
+  },
+    ],
   },
   {
     /**

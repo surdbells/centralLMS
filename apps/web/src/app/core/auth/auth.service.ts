@@ -86,6 +86,11 @@ export class AuthService {
     const session = this.store.session();
 
     if (session?.refreshToken === undefined) {
+      // An expired access token with no refresh token cannot be renewed, and
+      // keeping it would 401 every request forever. Clear it so the caller
+      // (the interceptor) treats this as a signed-out state and redirects.
+      this.signOutLocally();
+
       return of(false);
     }
 
