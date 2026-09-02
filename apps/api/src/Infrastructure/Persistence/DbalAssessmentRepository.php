@@ -7,6 +7,7 @@ namespace Central\Api\Infrastructure\Persistence;
 use Central\Api\Domain\Assessment\Assessment;
 use Central\Api\Domain\Assessment\AssessmentRepository;
 use Central\Api\Domain\Assessment\AssessmentStatus;
+use Central\Api\Domain\Assessment\LearnerAssessment;
 use Central\Api\Domain\Assessment\PassingType;
 use Central\Api\Domain\Assessment\ProctoringLevel;
 use Central\Api\Domain\Assessment\QuestionRepository;
@@ -14,6 +15,7 @@ use Central\Api\Domain\Assessment\QuestionSelectionMode;
 use Central\Api\Domain\Assessment\RevealAnswers;
 use Central\Api\Domain\Shared\Difficulty;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
 
 final class DbalAssessmentRepository implements AssessmentRepository
@@ -313,6 +315,439 @@ final class DbalAssessmentRepository implements AssessmentRepository
             'totalCompletions' => (int) ($attempts['total_completions'] ?? 0),
             'avgPassRate'      => (float) ($attempts['avg_pass_rate'] ?? 0),
         ];
+    }
+
+    public function learnerReport(
+        string $tenantId,
+        ?string $assessmentId,
+        ?string $categoryId,
+        ?string $status,
+        ?\DateTimeImmutable $since,
+    ): array {
+        $where = 'at.tenant_id = :tenant';
+        $params = ['tenant' => $tenantId];
+
+        if ($assessmentId !== null && $assessmentId !== '') {
+            $where .= ' AND at.assessment_id = :assessment';
+            $params['assessment'] = $assessmentId;
+        }
+
+        if ($categoryId !== null && $categoryId !== '') {
+            $where .= ' AND a.category_id = :category';
+            $params['category'] = $categoryId;
+        }
+
+        if ($since !== null) {
+            $where .= ' AND at.started_at >= :since';
+            $params['since'] = $since->format('Y-m-d H:i:sP');
+        }
+
+        // The per-learner status is derived in the inner query, then filtered in
+        // the outer WHERE so the status filter can key off the aggregate.
+        $outer = '';
+
+        if ($status !== null && $status !== '') {
+            $outer = ' WHERE rows.status = :statusFilter';
+            $params['statusFilter'] = $status;
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT * FROM (
+                SELECT u.id AS learner_id,
+                       btrim(u.first_name || ' ' || u.last_name) AS learner_name,
+                       u.email AS email,
+                       dept.name AS department,
+                       COUNT(at.id) AS attempts,
+                       ROUND(COALESCE(MAX(at.percentage), 0), 1) AS best_score,
+                       ROUND(COALESCE(AVG(at.percentage), 0), 1) AS avg_score,
+                       ROUND(COALESCE(AVG(at.time_spent_seconds), 0)) AS time_spent_avg,
+                       COALESCE(bool_or(at.passed), false) AS passed,
+                       MAX(COALESCE(at.submitted_at, at.started_at)) AS last_attempt_date,
+                       bool_or(EXISTS (
+                           SELECT 1 FROM certificates c
+                           WHERE c.tenant_id = at.tenant_id AND c.user_id = at.user_id
+                             AND c.assessment_id = at.assessment_id AND c.status = 'active'
+                       )) AS certificate_issued,
+                       CASE WHEN bool_or(at.passed) THEN 'passed'
+                            WHEN bool_or(at.status IN ('not_started', 'in_progress', 'grading')) THEN 'in_progress'
+                            ELSE 'failed' END AS status
+                FROM attempts at
+                JOIN users u ON u.id = at.user_id AND u.tenant_id = at.tenant_id AND u.deleted_at IS NULL
+                JOIN assessments a ON a.id = at.assessment_id AND a.tenant_id = at.tenant_id AND a.deleted_at IS NULL
+                LEFT JOIN lookups dept ON dept.id = u.department_id AND dept.kind = 'department'
+                WHERE {$where}
+                GROUP BY u.id, u.first_name, u.last_name, u.email, dept.name
+            ) rows{$outer}
+            ORDER BY rows.learner_name",
+            $params,
+        );
+
+        return array_map(
+            static fn (array $r): array => [
+                'learner_id'         => (string) $r['learner_id'],
+                'learner_name'       => (string) $r['learner_name'],
+                'email'              => (string) $r['email'],
+                'department'         => $r['department'] !== null ? (string) $r['department'] : null,
+                'attempts'           => (int) $r['attempts'],
+                'best_score'         => (float) $r['best_score'],
+                'avg_score'          => (float) $r['avg_score'],
+                'time_spent_avg'     => (int) $r['time_spent_avg'],
+                'passed'             => (bool) $r['passed'],
+                'certificate_issued' => (bool) $r['certificate_issued'],
+                'last_attempt_date'  => $r['last_attempt_date'] !== null
+                    ? (new \DateTimeImmutable((string) $r['last_attempt_date']))->format(\DateTimeInterface::ATOM)
+                    : null,
+                'status'             => (string) $r['status'],
+            ],
+            $rows,
+        );
+    }
+
+    public function itemAnalysis(string $tenantId, string $assessmentId): array
+    {
+        // Correctness credits a manually-graded answer awarded full marks, so a
+        // graded essay counts as "correct" for the p-value and correlation.
+        $corr = 'COALESCE(aa.is_correct, (aa.points_earned IS NOT NULL '
+            . 'AND aa.points_possible > 0 AND aa.points_earned >= aa.points_possible))';
+        $answered = "(aa.id IS NOT NULL AND aa.answer <> '{}'::jsonb)";
+
+        $rows = $this->connection->fetchAllAssociative(
+            "WITH scored AS (
+                SELECT at.id AS attempt_id, at.percentage::float8 AS total_score
+                FROM attempts at
+                WHERE at.tenant_id = :tenant AND at.assessment_id = :assessment AND at.percentage IS NOT NULL
+            )
+            SELECT q.id AS question_id, q.text AS question_text, q.type AS question_type,
+                   COUNT(aq.attempt_id) AS total_attempts,
+                   COUNT(*) FILTER (WHERE {$answered}) AS answered_count,
+                   COUNT(*) FILTER (WHERE {$corr}) AS correct_count,
+                   COUNT(aq.attempt_id) - COUNT(*) FILTER (WHERE {$answered}) AS skipped_count,
+                   ROUND(100.0 * COUNT(*) FILTER (WHERE {$corr}) / NULLIF(COUNT(aq.attempt_id), 0), 1) AS correct_rate,
+                   ROUND((COUNT(*) FILTER (WHERE {$corr}))::numeric / NULLIF(COUNT(aq.attempt_id), 0), 4) AS difficulty_index,
+                   ROUND(COALESCE(AVG(aa.time_spent_seconds) FILTER (WHERE aa.id IS NOT NULL), 0)) AS avg_time_seconds,
+                   ROUND(COALESCE(corr(({$corr})::int::float8, s.total_score), 0)::numeric, 4) AS discrimination_index
+            FROM scored s
+            JOIN attempt_questions aq ON aq.attempt_id = s.attempt_id
+            JOIN questions q ON q.id = aq.question_id AND q.tenant_id = :tenant
+            LEFT JOIN attempt_answers aa
+                ON aa.attempt_id = aq.attempt_id AND aa.question_id = aq.question_id AND aa.tenant_id = :tenant
+            LEFT JOIN assessment_questions asq ON asq.assessment_id = :assessment AND asq.question_id = q.id
+            GROUP BY q.id, q.text, q.type, asq.sort_order
+            ORDER BY asq.sort_order NULLS LAST, q.text",
+            ['tenant' => $tenantId, 'assessment' => $assessmentId],
+        );
+
+        return array_map(
+            static fn (array $r): array => [
+                'question_id'          => (string) $r['question_id'],
+                'question_text'        => (string) $r['question_text'],
+                'question_type'        => (string) $r['question_type'],
+                'total_attempts'       => (int) $r['total_attempts'],
+                'answered_count'       => (int) $r['answered_count'],
+                'correct_count'        => (int) $r['correct_count'],
+                'skipped_count'        => (int) $r['skipped_count'],
+                'correct_rate'         => (float) ($r['correct_rate'] ?? 0),
+                'difficulty_index'     => (float) ($r['difficulty_index'] ?? 0),
+                'avg_time_seconds'     => (int) $r['avg_time_seconds'],
+                'discrimination_index' => (float) ($r['discrimination_index'] ?? 0),
+            ],
+            $rows,
+        );
+    }
+
+    public function dashboard(string $tenantId, \DateTimeImmutable $now, \DateTimeImmutable $windowFrom): array
+    {
+        $nowParam = $now->format('Y-m-d H:i:sP');
+        $fromParam = $windowFrom->format('Y-m-d H:i:sP');
+        $base = ['tenant' => $tenantId, 'now' => $nowParam, 'from' => $fromParam];
+
+        $scalars = $this->connection->fetchAssociative(
+            "SELECT COUNT(DISTINCT t.user_id) AS total_learners,
+                    COUNT(DISTINCT t.user_id) FILTER (WHERE t.started_at >= :from) AS active_learners,
+                    ROUND(AVG(t.percentage) FILTER (WHERE t.status = 'graded' AND t.started_at >= :from), 1) AS avg_score,
+                    COUNT(*) FILTER (WHERE t.started_at >= date_trunc('month', :now::timestamptz)) AS attempts_this_month,
+                    COUNT(*) FILTER (
+                        WHERE t.started_at >= date_trunc('month', :now::timestamptz) - interval '1 month'
+                          AND t.started_at < date_trunc('month', :now::timestamptz)
+                    ) AS attempts_prev_month
+             FROM attempts t
+             JOIN assessments a ON a.id = t.assessment_id AND a.deleted_at IS NULL
+             WHERE t.tenant_id = :tenant",
+            $base,
+        ) ?: [];
+
+        $totalQuestions = (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM questions WHERE tenant_id = :tenant AND deleted_at IS NULL AND is_active',
+            ['tenant' => $tenantId],
+        );
+
+        $thisMonth = (int) ($scalars['attempts_this_month'] ?? 0);
+        $prevMonth = (int) ($scalars['attempts_prev_month'] ?? 0);
+        $changePercent = $prevMonth > 0
+            ? (int) round(100 * ($thisMonth - $prevMonth) / $prevMonth)
+            : ($thisMonth > 0 ? 100 : 0);
+
+        $trends = $this->connection->fetchAllAssociative(
+            "SELECT to_char(m.month, 'Mon') AS month,
+                    COUNT(t.id) AS attempts,
+                    COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE t.passed)
+                        / NULLIF(COUNT(*) FILTER (WHERE t.status = 'graded'), 0), 0), 0) AS pass_rate,
+                    COALESCE(ROUND(AVG(t.percentage) FILTER (WHERE t.status = 'graded'), 0), 0) AS avg_score
+             FROM generate_series(
+                    date_trunc('month', :now::timestamptz) - interval '5 months',
+                    date_trunc('month', :now::timestamptz),
+                    interval '1 month'
+                  ) AS m(month)
+             LEFT JOIN attempts t
+                ON date_trunc('month', t.started_at) = m.month AND t.tenant_id = :tenant
+                AND EXISTS (SELECT 1 FROM assessments a WHERE a.id = t.assessment_id AND a.deleted_at IS NULL)
+             GROUP BY m.month
+             ORDER BY m.month",
+            ['tenant' => $tenantId, 'now' => $nowParam],
+        );
+
+        $activityRows = $this->connection->fetchAllAssociative(
+            "(SELECT 'att:' || t.id || ':submitted' AS id, 'attempt' AS type, t.submitted_at AS ts,
+                     btrim(u.first_name || ' ' || u.last_name) AS user_name, a.title AS assessment_title
+              FROM attempts t
+              JOIN assessments a ON a.id = t.assessment_id AND a.deleted_at IS NULL
+              JOIN users u ON u.id = t.user_id
+              WHERE t.tenant_id = :tenant AND t.submitted_at IS NOT NULL)
+             UNION ALL
+             (SELECT 'att:' || t.id || ':graded', 'grading', t.graded_at,
+                     btrim(u.first_name || ' ' || u.last_name), a.title
+              FROM attempts t
+              JOIN assessments a ON a.id = t.assessment_id AND a.deleted_at IS NULL
+              JOIN users u ON u.id = t.user_id
+              WHERE t.tenant_id = :tenant AND t.graded_at IS NOT NULL)
+             UNION ALL
+             (SELECT 'asm:' || a.id || ':published', 'publish', a.published_at, NULL, a.title
+              FROM assessments a
+              WHERE a.tenant_id = :tenant AND a.deleted_at IS NULL AND a.published_at IS NOT NULL)
+             ORDER BY ts DESC NULLS LAST
+             LIMIT 15",
+            ['tenant' => $tenantId],
+        );
+
+        $difficulty = $this->connection->fetchAllAssociative(
+            "SELECT q.difficulty AS difficulty,
+                    COUNT(DISTINCT q.id) AS count,
+                    COALESCE(ROUND(AVG(100.0 * aa.points_earned / NULLIF(aa.points_possible, 0))
+                        FILTER (WHERE aa.graded_at IS NOT NULL AND aa.graded_at >= :from), 0), 0) AS avg_score,
+                    COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE aa.is_correct)
+                        / NULLIF(COUNT(*) FILTER (WHERE aa.is_correct IS NOT NULL AND aa.graded_at >= :from), 0), 0), 0) AS pass_rate
+             FROM questions q
+             LEFT JOIN attempt_answers aa ON aa.question_id = q.id AND aa.tenant_id = :tenant
+             WHERE q.tenant_id = :tenant AND q.deleted_at IS NULL AND q.is_active AND q.difficulty IS NOT NULL
+             GROUP BY q.difficulty
+             ORDER BY CASE q.difficulty
+                 WHEN 'beginner' THEN 1 WHEN 'intermediate' THEN 2 WHEN 'professional' THEN 3 ELSE 4 END",
+            ['tenant' => $tenantId, 'from' => $fromParam],
+        );
+
+        return [
+            'stats' => [
+                'attemptsThisMonth'     => $thisMonth,
+                'attemptsChangePercent' => $changePercent,
+                'avgScore'              => (float) ($scalars['avg_score'] ?? 0),
+                'totalLearners'         => (int) ($scalars['total_learners'] ?? 0),
+                'activeLearners'        => (int) ($scalars['active_learners'] ?? 0),
+                'totalQuestions'        => $totalQuestions,
+            ],
+            'monthlyTrends' => array_map(
+                static fn (array $r): array => [
+                    'month'    => (string) $r['month'],
+                    'attempts' => (int) $r['attempts'],
+                    'passRate' => (int) $r['pass_rate'],
+                    'avgScore' => (int) $r['avg_score'],
+                ],
+                $trends,
+            ),
+            'recentActivity' => array_map(
+                fn (array $r): array => $this->activityRow($r),
+                $activityRows,
+            ),
+            'difficultyBreakdown' => array_map(
+                static fn (array $r): array => [
+                    'difficulty' => (string) $r['difficulty'],
+                    'count'      => (int) $r['count'],
+                    'avgScore'   => (int) $r['avg_score'],
+                    'passRate'   => (int) $r['pass_rate'],
+                ],
+                $difficulty,
+            ),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $r
+     *
+     * @return array<string, mixed>
+     */
+    private function activityRow(array $r): array
+    {
+        $type = (string) $r['type'];
+        $user = $r['user_name'] !== null ? (string) $r['user_name'] : null;
+        $title = $r['assessment_title'] !== null ? (string) $r['assessment_title'] : null;
+
+        $message = match ($type) {
+            'attempt'  => trim(($user ?? 'Someone') . ' submitted ' . ($title ?? 'an assessment')),
+            'grading'  => trim(($title ?? 'An assessment') . ' graded for ' . ($user ?? 'a learner')),
+            'publish'  => trim(($title ?? 'An assessment') . ' was published'),
+            default    => (string) ($title ?? ''),
+        };
+
+        return [
+            'id'              => (string) $r['id'],
+            'type'            => $type,
+            'message'         => $message,
+            'timestamp'       => $r['ts'] !== null
+                ? (new \DateTimeImmutable((string) $r['ts']))->format(\DateTimeInterface::ATOM)
+                : null,
+            'userName'        => $user,
+            'assessmentTitle' => $title,
+        ];
+    }
+
+    public function catalogueForLearner(
+        string $tenantId,
+        string $userId,
+        bool $assignedOnly = false,
+        ?string $search = null,
+        ?string $categoryId = null,
+        ?string $kind = null,
+        int $limit = 500,
+    ): array {
+        $where = "a.tenant_id = :tenant AND a.deleted_at IS NULL AND a.status = 'published'";
+        $params = ['tenant' => $tenantId, 'user' => $userId];
+        $types = ['limit' => ParameterType::INTEGER];
+
+        if ($assignedOnly) {
+            $where .= ' AND m.assessment_id IS NOT NULL';
+        }
+
+        if ($categoryId !== null && $categoryId !== '') {
+            $where .= ' AND a.category_id = :category';
+            $params['category'] = $categoryId;
+        }
+
+        if ($kind !== null && $kind !== '') {
+            $where .= ' AND a.kind = :kind';
+            $params['kind'] = $kind;
+        }
+
+        if ($search !== null && trim($search) !== '') {
+            $where .= ' AND (a.title ILIKE :search OR a.description ILIKE :search)';
+            $params['search'] = '%' . trim($search) . '%';
+        }
+
+        $params['limit'] = max(1, min(500, $limit));
+
+        $rows = $this->connection->fetchAllAssociative(
+            "WITH me AS (
+                SELECT department_id, team_id, branch_id FROM users WHERE id = :user AND tenant_id = :tenant
+            ),
+            matched AS (
+                SELECT aa.assessment_id, MIN(aa.due_date) AS due_date
+                FROM assessment_assignments aa, me
+                WHERE aa.tenant_id = :tenant AND (
+                    aa.assignment_type = 'all'
+                    OR (aa.assignment_type = 'user' AND aa.target_id = :user)
+                    OR (aa.assignment_type = 'department' AND aa.target_id = me.department_id)
+                    OR (aa.assignment_type = 'team' AND aa.target_id = me.team_id)
+                    OR (aa.assignment_type = 'branch' AND aa.target_id = me.branch_id)
+                )
+                GROUP BY aa.assessment_id
+            ),
+            my_attempts AS (
+                SELECT assessment_id,
+                       COUNT(*) FILTER (WHERE status IN ('submitted','auto_submitted','grading','graded')) AS attempt_count,
+                       MAX(percentage) FILTER (WHERE status IN ('graded','auto_submitted')) AS best_score,
+                       bool_or(status IN ('in_progress','not_started')) AS has_open,
+                       bool_or(status IN ('submitted','grading')) AS has_submitted,
+                       bool_or(status = 'graded' AND passed) AS has_passed,
+                       bool_or(status = 'graded' AND NOT passed) AS has_failed
+                FROM attempts
+                WHERE tenant_id = :tenant AND user_id = :user
+                GROUP BY assessment_id
+            )
+            SELECT a.id, a.title, a.description, a.kind, a.category_id, a.course_id,
+                   a.time_limit_minutes, a.max_attempts, a.passing_score, a.passing_type,
+                   a.proctoring_level, a.difficulty, a.available_from, a.available_until,
+                   cat.name AS category_name, c.title AS course_title,
+                   {$this->derivedForCatalogue()},
+                   (m.assessment_id IS NOT NULL) AS is_mandatory,
+                   m.due_date AS due_date,
+                   COALESCE(ma.attempt_count, 0) AS attempt_count,
+                   ma.best_score AS best_score,
+                   COALESCE(ma.has_open, false) AS has_open,
+                   COALESCE(ma.has_submitted, false) AS has_submitted,
+                   COALESCE(ma.has_passed, false) AS has_passed,
+                   COALESCE(ma.has_failed, false) AS has_failed
+            FROM assessments a
+            LEFT JOIN lookups cat ON cat.id = a.category_id AND cat.kind = 'category'
+            LEFT JOIN courses c ON c.id = a.course_id AND c.tenant_id = a.tenant_id
+            LEFT JOIN matched m ON m.assessment_id = a.id
+            LEFT JOIN my_attempts ma ON ma.assessment_id = a.id
+            WHERE {$where}
+            ORDER BY (m.due_date IS NULL), m.due_date, a.title
+            LIMIT :limit",
+            $params,
+            $types,
+        );
+
+        return array_map(fn (array $r): LearnerAssessment => $this->hydrateLearnerAssessment($r), $rows);
+    }
+
+    private function derivedForCatalogue(): string
+    {
+        return '(SELECT COUNT(*) FROM assessment_questions aq WHERE aq.assessment_id = a.id) AS question_count,
+                COALESCE((
+                    SELECT SUM(COALESCE(aq.points_override, q.points))
+                    FROM assessment_questions aq JOIN questions q ON q.id = aq.question_id
+                    WHERE aq.assessment_id = a.id
+                ), 0) AS total_points';
+    }
+
+    /**
+     * @param array<string, mixed> $r
+     */
+    private function hydrateLearnerAssessment(array $r): LearnerAssessment
+    {
+        $isMandatory = (bool) $r['is_mandatory'];
+        $status = LearnerAssessment::statusFrom(
+            (bool) $r['has_open'],
+            (bool) $r['has_submitted'],
+            (bool) $r['has_passed'],
+            (bool) $r['has_failed'],
+            $isMandatory,
+        );
+
+        return new LearnerAssessment(
+            assessmentId: (string) $r['id'],
+            title: (string) $r['title'],
+            description: $r['description'] !== null ? (string) $r['description'] : null,
+            kind: (string) $r['kind'],
+            categoryId: $r['category_id'] !== null ? (string) $r['category_id'] : null,
+            categoryName: $r['category_name'] !== null ? (string) $r['category_name'] : null,
+            courseId: $r['course_id'] !== null ? (string) $r['course_id'] : null,
+            courseTitle: $r['course_title'] !== null ? (string) $r['course_title'] : null,
+            questionCount: (int) $r['question_count'],
+            totalPoints: (float) $r['total_points'],
+            timeLimitMinutes: $r['time_limit_minutes'] !== null ? (int) $r['time_limit_minutes'] : null,
+            maxAttempts: $r['max_attempts'] !== null ? (int) $r['max_attempts'] : null,
+            passingScore: (float) $r['passing_score'],
+            passingType: (string) $r['passing_type'],
+            proctoringLevel: (string) $r['proctoring_level'],
+            difficulty: $r['difficulty'] !== null ? (string) $r['difficulty'] : null,
+            availableFrom: $this->date($r['available_from'] ?? null),
+            availableUntil: $this->date($r['available_until'] ?? null),
+            enrollmentStatus: $status,
+            attemptCount: (int) $r['attempt_count'],
+            bestScore: $r['best_score'] !== null ? (float) $r['best_score'] : null,
+            isMandatory: $isMandatory,
+            dueDate: $this->date($r['due_date'] ?? null),
+        );
     }
 
     /**

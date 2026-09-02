@@ -35,6 +35,53 @@ interface AssessmentRepository
      */
     public function stats(string $tenantId): array;
 
+    /**
+     * One row per learner: their attempts on an assessment (or across all of
+     * them) aggregated for the reports screen. Plain associative rows, like
+     * {@see stats()}.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function learnerReport(
+        string $tenantId,
+        ?string $assessmentId,
+        ?string $categoryId,
+        ?string $status,
+        ?\DateTimeImmutable $since,
+    ): array;
+
+    /**
+     * Per-question statistics for one assessment: difficulty (p-value),
+     * discrimination (point-biserial), correct rate and time.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function itemAnalysis(string $tenantId, string $assessmentId): array;
+
+    /**
+     * The admin dashboard payload: headline scalars, a trailing-6-month trend,
+     * a recent-activity feed and a per-difficulty breakdown.
+     *
+     * @return array<string, mixed>
+     */
+    public function dashboard(string $tenantId, \DateTimeImmutable $now, \DateTimeImmutable $windowFrom): array;
+
+    /**
+     * A learner's assessment catalogue: published assessments resolved against
+     * their assignments and joined to their own attempt history.
+     *
+     * @return list<LearnerAssessment>
+     */
+    public function catalogueForLearner(
+        string $tenantId,
+        string $userId,
+        bool $assignedOnly = false,
+        ?string $search = null,
+        ?string $categoryId = null,
+        ?string $kind = null,
+        int $limit = 500,
+    ): array;
+
     /** Copies an assessment into a fresh draft, questions and sections included. */
     public function duplicate(string $tenantId, string $id): ?Assessment;
 

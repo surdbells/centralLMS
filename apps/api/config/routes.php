@@ -306,6 +306,7 @@ return static function (App $app): void {
             // The assessments this person has sat. Distinct from a marker's
             // queue at `/assessments/{id}/attempts` — see MyAttemptsAction.
             $secure->get('/me/attempts', MyAttemptsAction::class)->setName('me.attempts');
+            $secure->get('/me/assessments', LearnerCatalogueAction::class)->setName('me.assessments');
 
             // What the caller is booked on. Distinct from a programme's
             // roster, which is other people's names — see MyTrainingsAction.
@@ -1154,8 +1155,11 @@ return static function (App $app): void {
 
             $secure->group('/assessments', function (RouteCollectorProxy $a) use ($uuid): void {
                 $a->get('', ListAssessmentsAction::class)->setName('assessments.list');
-                // Before `/{id}`, or `stats`/`assignment-targets` read as ids.
+                // Before `/{id}`, or the literal segments read as ids.
                 $a->get('/stats', AssessmentStatsAction::class)->setName('assessments.stats');
+                $a->get('/dashboard', AssessmentDashboardAction::class)->setName('assessments.dashboard');
+                $a->get('/report/learners', [AssessmentReportAction::class, 'learners'])
+                    ->setName('assessments.report.learners');
                 $a->get('/assignment-targets', [AssessmentAssignmentAction::class, 'targets'])
                     ->setName('assessments.assignment-targets');
                 $a->post('', SaveAssessmentAction::class)->setName('assessments.create');
@@ -1223,6 +1227,10 @@ return static function (App $app): void {
 
                     // The marking queue. Needs `assessment.grade`.
                     $s->get('/attempts', [GradeAnswerAction::class, 'queue'])->setName('attempts.queue');
+
+                    // Per-question difficulty/discrimination for this assessment.
+                    $s->get('/item-analysis', [AssessmentReportAction::class, 'itemAnalysis'])
+                        ->setName('assessments.item-analysis');
                 });
             });
 
