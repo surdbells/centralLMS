@@ -7,29 +7,21 @@
 import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService } from '../../services/assessments.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
-
 interface Snapshot {
-  snapshot_id: number;
-  session_id: number;
-  attempt_id: number;
-  user_id: number;
+  snapshot_id: string;
+  session_id: string;
+  attempt_id: string;
+  user_id: string;
   learner_name: string;
   image_url: string;
   thumbnail_url: string;
@@ -55,7 +47,7 @@ interface AiAnalysis {
 }
 
 interface SnapshotSessionInfo {
-  session_id: number;
+  session_id: string;
   learner_name: string;
   learner_email: string;
   assessment_title: string;
@@ -100,6 +92,12 @@ interface SnapshotSessionInfo {
             <tui-icon icon="@tui.download"></tui-icon> Export
           </button>
         </div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice">
+        <tui-icon icon="@tui.info"></tui-icon>
+        <span>{{ notice }}</span>
+        <button type="button" class="btn-close ms-auto" (click)="notice = null"></button>
       </div>
 
       <!-- Session Info Bar -->
@@ -431,18 +429,20 @@ interface SnapshotSessionInfo {
   `]
 })
 export class SnapshotGalleryComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
 
-  @Input() sessionIdInput: number | null = null;
+  // Really an attempt id now -- sittings are addressed by attempt.
+  @Input() sessionIdInput: string | null = null;
 
   // Data
   snapshots: Snapshot[] = [];
   filteredSnapshots: Snapshot[] = [];
   sessionInfo: SnapshotSessionInfo | null = null;
-  sessionId: number | null = null;
+  sessionId: string | null = null;
+  notice: string | null = null;
 
   // State
   loading = false;
@@ -468,11 +468,9 @@ export class SnapshotGalleryComponent implements OnInit, OnDestroy {
   get multiFaceCount(): number { return this.snapshots.filter(s => s.faces_detected > 1).length; }
 
   ngOnInit(): void {
-    this.sessionId = this.sessionIdInput || +this.route.snapshot.params['sessionId'];
-    if (this.sessionId) {
-      this.loadSessionInfo();
-      this.loadSnapshots();
-    }
+    // Read the route param as-is: a UUID coerced with + would be NaN.
+    this.sessionId = this.sessionIdInput || this.route.snapshot.params['sessionId'] || null;
+    if (this.sessionId) this.loadSnapshots();
 
     // Keyboard nav
     document.addEventListener('keydown', this.onKeyDown.bind(this));
@@ -488,35 +486,68 @@ export class SnapshotGalleryComponent implements OnInit, OnDestroy {
   // DATA
   // ==========================================
 
-  loadSessionInfo(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_session_detail');
-    fd.append('session_id', this.sessionId!.toString());
-
-    this.http.post<ApiResponse<SnapshotSessionInfo>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.sessionInfo = res.data; } });
+  /**
+   * The sitting carries the snapshots and enough metadata to derive the header
+   * (counts and duration are worked out from the frames and the attempt rather
+   * than read from a prepared projection).
+   */
+  loadSnapshots(): void {
+    if (!this.sessionId) return;
+    this.loading = true;
+    this.assessments.sitting(this.sessionId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (payload) => {
+        const rows = (payload['snapshots'] as Record<string, unknown>[]) ?? [];
+        this.snapshots = rows.map((r) => this.toSnapshot(r));
+        this.sessionInfo = this.deriveInfo(payload);
+        this.applyFilter();
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
   }
 
-  loadSnapshots(): void {
-    this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_session_snapshots');
-    fd.append('session_id', this.sessionId!.toString());
+  private toSnapshot(r: Record<string, unknown>): Snapshot {
+    return {
+      snapshot_id: String(r['id'] ?? ''),
+      session_id: String(r['sessionId'] ?? this.sessionId ?? ''),
+      attempt_id: String(r['attemptId'] ?? this.sessionId ?? ''),
+      user_id: String(r['userId'] ?? ''),
+      learner_name: (r['learnerName'] as string) ?? '',
+      image_url: (r['imageUrl'] as string) ?? '',
+      thumbnail_url: (r['thumbnailUrl'] as string) ?? (r['imageUrl'] as string) ?? '',
+      faces_detected: Number(r['faceCount'] ?? (r['faceDetected'] ? 1 : 0)),
+      face_confidence: Number(r['faceConfidence'] ?? 0),
+      // The new payload carries no AI-analysis or per-snapshot violation link.
+      ai_analysis: null,
+      has_violation: (r['kind'] as string) === 'violation',
+      violation_type: '',
+      created_at: (r['capturedAt'] as string) ?? (r['createdAt'] as string) ?? '',
+      flagged: !!r['flagged'],
+      flag_reason: (r['flagReason'] as string) ?? '',
+    };
+  }
 
-    this.http.post<ApiResponse<Snapshot[]>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.snapshots = (res.data || []).map(s => ({
-              ...s,
-              ai_analysis: typeof s.ai_analysis === 'string' ? JSON.parse(s.ai_analysis) : s.ai_analysis
-            }));
-            this.applyFilter();
-          }
-          this.loading = false;
-        },
-        error: () => { this.loading = false; }
-      });
+  private deriveInfo(payload: Record<string, unknown>): SnapshotSessionInfo {
+    const session = (payload['session'] as Record<string, unknown>) ?? {};
+    const attempt = (payload['attempt'] as Record<string, unknown>) ?? {};
+    const trust = (payload['trust'] as Record<string, unknown>) ?? {};
+    const start = (attempt['startedAt'] as string) ?? '';
+    const end = (attempt['submittedAt'] as string) ?? '';
+    const minutes = start && end
+      ? Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000))
+      : 0;
+    return {
+      session_id: this.sessionId ?? '',
+      learner_name: (attempt['userName'] as string) ?? (session['learnerName'] as string) ?? '',
+      learner_email: (session['learnerEmail'] as string) ?? '',
+      assessment_title: (attempt['assessmentTitle'] as string) ?? (session['assessmentTitle'] as string) ?? '',
+      proctoring_level: (session['proctoringLevel'] as string) ?? '',
+      trust_score: Number(trust['score'] ?? 100),
+      total_snapshots: this.snapshots.length,
+      flagged_snapshots: this.snapshots.filter((s) => s.flagged).length,
+      started_at: start,
+      duration_minutes: minutes,
+    } as SnapshotSessionInfo;
   }
 
   // ==========================================
@@ -548,33 +579,15 @@ export class SnapshotGalleryComponent implements OnInit, OnDestroy {
   // ACTIONS
   // ==========================================
 
-  toggleFlag(s: Snapshot): void {
-    const fd = new FormData();
-    fd.append('action', s.flagged ? 'unflag_snapshot' : 'flag_snapshot');
-    fd.append('snapshot_id', s.snapshot_id.toString());
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) s.flagged = !s.flagged; }
-      });
+  // A snapshot's flag is set when it is captured; there is no reviewer route to
+  // toggle it afterwards on the new API yet.
+  toggleFlag(_s: Snapshot): void {
+    this.notice = 'Re-flagging a snapshot from review is being rebuilt.';
   }
 
+  // No snapshot-bundle export route; a reviewer opens a frame and saves it.
   downloadAll(): void {
-    const fd = new FormData();
-    fd.append('action', 'export_session_snapshots');
-    fd.append('session_id', this.sessionId!.toString());
-
-    this.http.post(`${GlobalComponent.baseURL}/user/proctoring`, fd, { responseType: 'blob' })
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (blob) => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `snapshots_session_${this.sessionId}.zip`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      });
+    this.notice = 'Bulk snapshot export is being rebuilt. Open a snapshot to save it individually.';
   }
 
   toggleView(): void { this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid'; }

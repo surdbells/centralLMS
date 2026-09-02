@@ -7,28 +7,20 @@
 import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService } from '../../services/assessments.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
-
 interface Violation {
-  violation_id: number;
-  session_id: number;
-  attempt_id: number;
-  user_id: number;
+  violation_id: string;
+  session_id: string;
+  attempt_id: string;
+  user_id: string;
   learner_name: string;
   assessment_title: string;
   violation_type: string;
@@ -352,11 +344,13 @@ interface ViolationType {
   `]
 })
 export class ViolationViewerComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
-  @Input() sessionId: number | null = null;
+  // In the new API a sitting is addressed by its attempt id, so this input is
+  // really an attempt id when the viewer is embedded in a sitting review.
+  @Input() sessionId: string | null = null;
   @Input() sessionMode = false;
 
   // Data
@@ -373,7 +367,7 @@ export class ViolationViewerComponent implements OnInit, OnDestroy {
   sortBy = 'newest';
   page = 1;
   pageSize = 20;
-  selectedIds: number[] = [];
+  selectedIds: string[] = [];
 
   // Modals
   showEvidenceModal = false;
@@ -398,23 +392,65 @@ export class ViolationViewerComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
   loadViolations(): void {
-    this.loading = true;
-    const fd = new FormData();
-    fd.append('action', this.sessionId ? 'get_session_violations' : 'get_all_violations');
-    if (this.sessionId) fd.append('session_id', this.sessionId.toString());
+    // Violations are reachable per sitting (by attempt id) only. There is no
+    // cross-sitting "all violations" list on the new API, so the global view
+    // shows nothing rather than a broken call.
+    if (!this.sessionId) {
+      this.violations = [];
+      this.applyFilters();
 
-    this.http.post<ApiResponse<Violation[]>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.violations = res.data || []; this.applyFilters(); } this.loading = false; },
-        error: () => { this.loading = false; }
-      });
+      return;
+    }
+    this.loading = true;
+    this.assessments.sitting(this.sessionId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (payload) => {
+        const rows = (payload['violations'] as Record<string, unknown>[]) ?? [];
+        this.violations = rows.map((r) => this.toViolation(r));
+        this.applyFilters();
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
   }
 
+  /** Maps a sitting's violation row onto this screen's shape. */
+  private toViolation(r: Record<string, unknown>): Violation {
+    const status = (r['status'] as string) ?? '';
+    return {
+      violation_id: String(r['id'] ?? ''),
+      session_id: String(r['sessionId'] ?? this.sessionId ?? ''),
+      attempt_id: String(r['attemptId'] ?? this.sessionId ?? ''),
+      user_id: String(r['userId'] ?? ''),
+      learner_name: (r['learnerName'] as string) ?? '',
+      assessment_title: (r['assessmentTitle'] as string) ?? '',
+      violation_type: (r['type'] as string) ?? '',
+      severity: (r['severity'] as string) ?? 'medium',
+      description: (r['description'] as string) ?? '',
+      evidence_url: (r['evidenceUrl'] as string) ?? '',
+      evidence_type: (r['evidenceType'] as string) ?? '',
+      ip_address: (r['ipAddress'] as string) ?? '',
+      created_at: (r['occurredAt'] as string) ?? (r['createdAt'] as string) ?? '',
+      dismissed: status === 'false_positive',
+      dismissed_by_name: (r['reviewedByName'] as string) ?? '',
+      dismissed_at: (r['reviewedAt'] as string) ?? '',
+      dismiss_reason: (r['notes'] as string) ?? '',
+    };
+  }
+
+  /** No violation-analytics route exists; the stats are totalled client-side. */
   loadStats(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_violation_stats');
-    this.http.post<ApiResponse<ViolationStats>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.violationStats = res.data; } });
+    const sev = { low: 0, medium: 0, high: 0, critical: 0 } as Record<string, number>;
+    const byType = new Map<string, number>();
+    for (const v of this.violations) {
+      if (sev[v.severity] !== undefined) sev[v.severity]++;
+      byType.set(v.violation_type, (byType.get(v.violation_type) ?? 0) + 1);
+    }
+    this.violationStats = {
+      total: this.violations.length,
+      by_severity: sev as ViolationStats['by_severity'],
+      by_type: Array.from(byType, ([type, count]) => ({ type, count })),
+      top_offenders: [],
+    };
   }
 
   // ==========================================
@@ -451,7 +487,7 @@ export class ViolationViewerComponent implements OnInit, OnDestroy {
   // ACTIONS
   // ==========================================
 
-  toggleSelect(id: number): void {
+  toggleSelect(id: string): void {
     const idx = this.selectedIds.indexOf(id);
     idx === -1 ? this.selectedIds.push(id) : this.selectedIds.splice(idx, 1);
   }
@@ -470,38 +506,29 @@ export class ViolationViewerComponent implements OnInit, OnDestroy {
 
   executeDismiss(): void {
     if (!this.dismissTarget) return;
-    const fd = new FormData();
-    fd.append('action', 'dismiss_violation');
-    fd.append('violation_id', this.dismissTarget.violation_id.toString());
-    fd.append('reason', this.dismissReason === 'other' ? this.dismissNote : this.dismissReason);
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
+    // Dismissing marks the violation a false positive -- the status the new
+    // review takes, which also removes it from the trust score. The reason and
+    // any note are carried across as free text.
+    const notes = this.dismissReason === 'other' ? this.dismissNote : this.dismissReason;
+    this.assessments.reviewViolation(this.dismissTarget.violation_id, { status: 'false_positive', notes })
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.dismissTarget!.dismissed = true;
-            this.showDismissModal = false;
-          }
+        next: () => {
+          this.dismissTarget!.dismissed = true;
+          this.showDismissModal = false;
         }
       });
   }
 
   bulkDismiss(): void {
-    const fd = new FormData();
-    fd.append('action', 'bulk_dismiss_violations');
-    fd.append('violation_ids', JSON.stringify(this.selectedIds));
-    fd.append('reason', 'bulk_dismiss');
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.violations.filter(v => this.selectedIds.includes(v.violation_id)).forEach(v => v.dismissed = true);
-            this.selectedIds = [];
-            this.applyFilters();
-          }
-        }
-      });
+    // No batch review route, so fan out one call per selected violation.
+    const ids = [...this.selectedIds];
+    for (const id of ids) {
+      this.assessments.reviewViolation(id, { status: 'false_positive', notes: 'bulk_dismiss' })
+        .pipe(takeUntil(this.destroy$)).subscribe();
+    }
+    this.violations.filter(v => ids.includes(v.violation_id)).forEach(v => v.dismissed = true);
+    this.selectedIds = [];
+    this.applyFilters();
   }
 
   // ==========================================

@@ -7,31 +7,23 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService } from '../../services/assessments.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
-
 interface ProctoringSession {
-  session_id: number;
-  attempt_id: number;
-  user_id: number;
+  session_id: string;
+  attempt_id: string;
+  user_id: string;
   learner_name: string;
   learner_email: string;
-  assessment_id: number;
+  assessment_id: string;
   assessment_title: string;
   proctoring_level: string;
   status: string;
@@ -67,7 +59,7 @@ interface SessionDetail extends ProctoringSession {
 }
 
 interface SessionViolation {
-  violation_id: number;
+  violation_id: string;
   violation_type: string;
   severity: string;
   description: string;
@@ -76,7 +68,7 @@ interface SessionViolation {
 }
 
 interface TimelineEvent {
-  event_id: number;
+  event_id: string;
   event_type: string;
   description: string;
   created_at: string;
@@ -110,6 +102,12 @@ interface SystemCheckResult {
           </h1>
           <p class="page-subtitle">Review and manage proctored assessment sessions</p>
         </div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice">
+        <tui-icon icon="@tui.info"></tui-icon>
+        <span>{{ notice }}</span>
+        <button type="button" class="btn-close ms-auto" (click)="notice = null"></button>
       </div>
 
       <!-- Stats -->
@@ -584,10 +582,13 @@ interface SystemCheckResult {
   `]
 })
 export class SessionReviewComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
+
+  // Some sitting-level actions have no route yet; this explains why when used.
+  notice: string | null = null;
 
   // Data
   sessions: ProctoringSession[] = [];
@@ -631,22 +632,58 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
 
   loadSessions(): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_proctoring_sessions');
-
-    this.http.post<ApiResponse<ProctoringSession[]>>(
-      `${GlobalComponent.baseURL}/user/proctoring`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.code === 1) { this.sessions = res.data || []; this.applyFilters(); } this.loading = false; },
+    // The reviewer queue of flagged sittings, keyed by attempt id.
+    this.assessments.flaggedSittings().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => {
+        this.sessions = (page.items || []).map((r) => this.toSession(r));
+        this.loadStats();
+        this.applyFilters();
+        this.loading = false;
+      },
       error: () => { this.loading = false; }
     });
   }
 
+  private toSession(r: Record<string, unknown>): ProctoringSession {
+    const attemptId = String(r['attemptId'] ?? r['id'] ?? '');
+    return {
+      session_id: String(r['sessionId'] ?? attemptId),
+      attempt_id: attemptId,
+      user_id: String(r['userId'] ?? ''),
+      learner_name: (r['learnerName'] as string) ?? (r['userName'] as string) ?? '',
+      learner_email: (r['learnerEmail'] as string) ?? '',
+      assessment_id: String(r['assessmentId'] ?? ''),
+      assessment_title: (r['assessmentTitle'] as string) ?? '',
+      proctoring_level: (r['proctoringLevel'] as string) ?? '',
+      status: (r['status'] as string) ?? '',
+      review_status: (r['reviewStatus'] as string) ?? 'pending_review',
+      trust_score: Number(r['trustScore'] ?? 100),
+      violation_count: Number(r['violationCount'] ?? 0),
+      snapshot_count: Number(r['snapshotCount'] ?? 0),
+      started_at: (r['startedAt'] as string) ?? '',
+      ended_at: (r['endedAt'] as string) ?? (r['submittedAt'] as string) ?? '',
+      duration_minutes: Number(r['durationMinutes'] ?? 0),
+      ip_address: (r['ipAddress'] as string) ?? '',
+      browser: (r['browser'] as string) ?? '',
+      os: (r['os'] as string) ?? '',
+      reviewed_by_name: (r['reviewedByName'] as string) ?? '',
+      reviewed_at: (r['reviewedAt'] as string) ?? '',
+      review_notes: (r['reviewNotes'] as string) ?? '',
+      flags: (r['flags'] as string[]) ?? [],
+    };
+  }
+
+  /** No session-stats route exists; the figures are totalled from the queue. */
   loadStats(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_proctoring_stats');
-    this.http.post<ApiResponse<SessionStats>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.stats = res.data; } });
+    const trust = this.sessions.map((s) => s.trust_score);
+    this.stats = {
+      total: this.sessions.length,
+      pending_review: this.sessions.filter((s) => s.review_status === 'pending_review').length,
+      flagged: this.sessions.filter((s) => s.review_status === 'flagged').length,
+      cleared: this.sessions.filter((s) => s.review_status === 'cleared').length,
+      terminated: this.sessions.filter((s) => s.status === 'terminated').length,
+      avg_trust_score: trust.length ? Math.round(trust.reduce((a, b) => a + b, 0) / trust.length) : 0,
+    };
   }
 
   openSessionDetail(s: ProctoringSession): void {
@@ -654,60 +691,65 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
     this.reviewNotes = s.review_notes || '';
     this.detailTab = 'violations';
     this.showDetailModal = true;
+    this.notice = null;
 
-    const fd = new FormData();
-    fd.append('action', 'get_session_detail');
-    fd.append('session_id', s.session_id.toString());
-    this.http.post<ApiResponse<SessionDetail>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => { if (res.code === 1) this.sessionDetail = res.data; } });
+    // The whole sitting, keyed by attempt id: session/attempt/trust, plus its
+    // violations and snapshots.
+    this.assessments.sitting(s.attempt_id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (payload) => { this.sessionDetail = this.toDetail(s, payload); }
+    });
+  }
+
+  private toDetail(s: ProctoringSession, payload: Record<string, unknown>): SessionDetail {
+    const trust = payload['trust'] as Record<string, unknown> | undefined;
+    const violations = ((payload['violations'] as Record<string, unknown>[]) ?? []).map((v) => ({
+      violation_id: String(v['id'] ?? ''),
+      violation_type: (v['type'] as string) ?? '',
+      severity: (v['severity'] as string) ?? 'medium',
+      description: (v['description'] as string) ?? '',
+      evidence_url: (v['evidenceUrl'] as string) ?? '',
+      created_at: (v['occurredAt'] as string) ?? (v['createdAt'] as string) ?? '',
+    }));
+    return {
+      ...s,
+      trust_score: trust ? Number(trust['score'] ?? s.trust_score) : s.trust_score,
+      violation_count: violations.length,
+      snapshot_count: ((payload['snapshots'] as unknown[]) ?? []).length,
+      violations,
+      // No structured timeline or system-check projection on the new API yet.
+      timeline: [],
+      system_check: {
+        browser: s.browser, os: s.os, webcam: false, microphone: false,
+        screen_share: false, bandwidth_kbps: 0, passed: true,
+      },
+    };
   }
 
   // ==========================================
   // ACTIONS
   // ==========================================
 
-  clearSession(s: ProctoringSession): void {
-    const fd = new FormData();
-    fd.append('action', 'review_session');
-    fd.append('session_id', s.session_id.toString());
-    fd.append('review_status', 'cleared');
-    fd.append('notes', this.reviewNotes);
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => {
-        if (res.code === 1) { s.review_status = 'cleared'; this.loadStats(); }
-      }});
+  // The new model reviews per violation, not per sitting: there is no
+  // clear/flag verdict or notes store for a whole sitting yet. These explain
+  // that rather than posting to a route that does not exist -- a reviewer signs
+  // a sitting off through its individual violations (the violations tab).
+  clearSession(_s: ProctoringSession): void {
+    this.notice = 'Sitting-level clear is being rebuilt. Review the individual violations to sign this sitting off.';
   }
 
-  flagSession(s: ProctoringSession): void {
-    const fd = new FormData();
-    fd.append('action', 'review_session');
-    fd.append('session_id', s.session_id.toString());
-    fd.append('review_status', 'flagged');
-    fd.append('notes', this.reviewNotes);
-
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => {
-        if (res.code === 1) { s.review_status = 'flagged'; this.loadStats(); }
-      }});
+  flagSession(_s: ProctoringSession): void {
+    this.notice = 'Sitting-level flag is being rebuilt. Mark the individual violations that concern you.';
   }
 
   saveReviewNotes(): void {
-    if (!this.selectedSession) return;
-    const fd = new FormData();
-    fd.append('action', 'update_review_notes');
-    fd.append('session_id', this.selectedSession.session_id.toString());
-    fd.append('notes', this.reviewNotes);
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/proctoring`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({ next: (res) => {
-        if (res.code === 1 && this.selectedSession) this.selectedSession.review_notes = this.reviewNotes;
-      }});
+    this.notice = 'Per-sitting notes are being rebuilt; add notes to a violation when you review it.';
   }
 
   openSnapshotGallery(): void {
     if (this.selectedSession) {
       this.showDetailModal = false;
-      this.router.navigate(['/admin/proctoring/snapshots', this.selectedSession.session_id]);
+      // Keyed by the attempt id now.
+      this.router.navigate(['/admin/proctoring/snapshots', this.selectedSession.attempt_id]);
     }
   }
 

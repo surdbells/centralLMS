@@ -363,8 +363,10 @@ export class AssessmentsService {
     return this.api.put(Endpoints.proctoring.review(attemptId), verdict);
   }
 
-  reviewViolation(violationId: string, verdict: { dismissed: boolean; notes?: string }):
-  Observable<unknown> {
+  reviewViolation(
+    violationId: string,
+    verdict: { status: 'valid' | 'false_positive' | 'inconclusive'; notes?: string },
+  ): Observable<unknown> {
     return this.api.put(Endpoints.proctoring.reviewViolation(violationId), verdict);
   }
 
