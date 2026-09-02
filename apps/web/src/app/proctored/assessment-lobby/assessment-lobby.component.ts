@@ -334,7 +334,11 @@ export class AssessmentLobbyComponent implements OnInit, OnDestroy {
   ): AssessmentInfo {
     const mine = attempts.filter(t => t.assessmentId === a.id);
     const active = mine.find(t => t.status === 'in_progress') ?? null;
-    const proctored = p?.isEnabled ?? false;
+    // The API returns { enabled, settings: { requireWebcam, requireFullscreen, … } };
+    // enablement is `enabled` (not `isEnabled`) and the flags live under `settings`.
+    const pr = p as unknown as Record<string, unknown> | null;
+    const settings = (pr?.['settings'] as Record<string, unknown>) ?? {};
+    const proctored = !!pr?.['enabled'];
     const type = (['quiz', 'exam', 'practice', 'survey'].includes(a.kind) ? a.kind : 'quiz') as AssessmentInfo['assessment_type'];
 
     return {
@@ -354,10 +358,10 @@ export class AssessmentLobbyComponent implements OnInit, OnDestroy {
       allow_review: a.revealAnswers !== 'never',
       allow_back_navigation: true,
       proctoring_level: proctored ? 'standard' : 'none',
-      requires_webcam: p?.requireWebcam ?? false,
-      requires_screen_share: false,
-      requires_id_verification: false,
-      requires_lockdown: p?.requireFullscreen ?? false,
+      requires_webcam: !!settings['requireWebcam'],
+      requires_screen_share: !!settings['recordScreen'],
+      requires_id_verification: !!settings['requireIdVerification'],
+      requires_lockdown: !!settings['requireFullscreen'],
       availability_start: null,
       availability_end: null,
       instructions: a.instructions ?? '',

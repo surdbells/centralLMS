@@ -406,9 +406,50 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
           this.startTimer();
         }
         this.startAutoSave();
+        this.loadProctoring(this.attempt.assessment_id);
       },
       error: () => { this.loadError = 'Failed to load attempt data.'; },
     });
+  }
+
+  /**
+   * Turns the assessment's proctoring settings into the monitor's config so the
+   * live monitor mounts and starts capturing. Without this the player left
+   * proctoring_config null and the monitor never ran, so a proctored sitting
+   * recorded nothing. If proctoring is off (or the tenant is not entitled) the
+   * call fails or returns disabled, and the exam simply runs unproctored.
+   */
+  private loadProctoring(assessmentId: string): void {
+    if (!assessmentId) return;
+
+    this.assessments.proctoringSettings(assessmentId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (raw) => {
+        const res = raw as unknown as Record<string, unknown>;
+        const settings = (res['settings'] as Record<string, unknown>) ?? {};
+        if (!this.attempt || !res['enabled']) return;
+        this.attempt.proctoring_config = this.toProctoringConfig(settings);
+      },
+      error: () => { /* proctoring not enabled / not entitled — unproctored sitting */ },
+    });
+  }
+
+  /** Maps the API's flat proctoring settings onto the monitor's ProctoringConfig. */
+  private toProctoringConfig(s: Record<string, unknown>): Record<string, unknown> {
+    const bool = (v: unknown, dflt: boolean) => (v === undefined || v === null ? dflt : !!v);
+    return {
+      webcam_enabled: bool(s['requireWebcam'], false) || bool(s['captureSnapshots'], false),
+      webcam_snapshot_interval: Number(s['snapshotIntervalSeconds'] ?? 30) || 30,
+      screen_share: bool(s['recordScreen'], false),
+      tab_switch_detection: bool(s['preventTabSwitch'], true),
+      copy_paste_detection: bool(s['preventCopyPaste'], true),
+      right_click_disabled: bool(s['preventRightClick'], true),
+      keyboard_shortcuts_disabled: bool(s['detectDevTools'], true),
+      browser_resize_detection: true,
+      multiple_face_detection: bool(s['flagMultipleFaces'], false),
+      no_face_detection: bool(s['flagNoFace'], false),
+      max_violations_before_terminate: Number(s['maxTabSwitches'] ?? 10) || 10,
+      snapshot_on_violation: bool(s['snapshotOnViolation'], true),
+    };
   }
 
   /** A blank answer scaffold for a question. */
