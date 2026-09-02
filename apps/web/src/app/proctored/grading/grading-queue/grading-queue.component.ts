@@ -7,49 +7,44 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../../global-component';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
+import { AssessmentsService, type QueuedAttempt } from '../../../services/assessments.service';
+import { SessionStore } from '../../../core/auth/session.store';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> {
-  code: number;
-  status: string;
-  data: T;
-  message: string;
-}
-
+/**
+ * One queue row. The new marking queue is per ATTEMPT, not per answer, so a
+ * row is a whole submission with a count of answers left to mark rather than a
+ * single question. The per-question fields are kept for the template but carry
+ * that summary; ids are UUID strings.
+ */
 interface GradingQueueItem {
-  queue_id: number;
-  attempt_id: number;
-  answer_id: number;
-  assessment_id: number;
+  queue_id: string;   // the attempt id -- the row's identity
+  attempt_id: string;
+  assessment_id: string;
   assessment_title: string;
   assessment_type: string;
-  question_id: number;
   question_text: string;
   question_type: string;
   section_title: string;
-  learner_id: number;
   learner_name: string;
   learner_email: string;
   learner_avatar: string | null;
-  assigned_grader_id: number | null;
+  assigned_grader_id: string | null;
   assigned_grader_name: string | null;
   status: string;
-  priority: string;
+  priority: string;      // display label derived from the numeric priority
+  priorityNum: number;   // what the API stores and prioritise() sends
+  awaiting: number;      // answers still to mark on this attempt
   max_points: number;
   submitted_at: string;
-  assigned_at: string | null;
-  graded_at: string | null;
   has_rubric: boolean;
-  rubric_id: number | null;
   rubric_name: string | null;
   attempt_number: number;
   answer_preview: string;
@@ -65,7 +60,7 @@ interface QueueStats {
 }
 
 interface GraderOption {
-  user_id: number;
+  user_id: string;
   full_name: string;
   email: string;
   pending_count: number;
@@ -266,7 +261,7 @@ interface GraderOption {
               <td class="col-assessment">
                 <div class="assessment-cell">
                   <span class="assessment-title">{{ item.assessment_title }}</span>
-                  <span class="badge badge-type" [ngClass]="'badge-' + item.assessment_type">
+                  <span class="badge badge-type" *ngIf="item.assessment_type" [ngClass]="'badge-' + item.assessment_type">
                     {{ item.assessment_type }}
                   </span>
                 </div>
@@ -278,10 +273,11 @@ interface GraderOption {
                 </div>
               </td>
               <td class="col-type">
-                <span class="badge badge-qtype" [ngClass]="'badge-' + item.question_type">
+                <span class="badge badge-qtype" *ngIf="item.question_type" [ngClass]="'badge-' + item.question_type">
                   <tui-icon [icon]="getQuestionTypeIcon(item.question_type)"></tui-icon>
                   {{ formatQuestionType(item.question_type) }}
                 </span>
+                <span class="text-muted" *ngIf="!item.question_type">-</span>
               </td>
               <td class="col-submitted">
                 <span class="submitted-time">{{ getTimeAgo(item.submitted_at) }}</span>
@@ -640,7 +636,8 @@ interface GraderOption {
   `]
 })
 export class GradingQueueComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
+  private session = inject(SessionStore);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
@@ -648,9 +645,12 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   Math = Math;
 
   // Data
+  private allItems: GradingQueueItem[] = [];   // the fetched queue, before client filters
   queueItems: (GradingQueueItem & { _showMenu?: boolean })[] = [];
   stats: QueueStats = { total_pending: 0, total_in_progress: 0, total_graded_today: 0, total_overdue: 0, my_assigned: 0, avg_grading_time_minutes: 0 };
-  assessmentOptions: { id: number; title: string }[] = [];
+  assessmentOptions: { id: string; title: string }[] = [];
+  // No grader roster endpoint exists, so the only assignee the queue can offer
+  // is the marker themselves.
   graderOptions: GraderOption[] = [];
 
   // State
@@ -660,7 +660,7 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   pageSize = 25;
   totalItems = 0;
   totalPages = 0;
-  selectedItems: number[] = [];
+  selectedItems: string[] = [];
   allSelected = false;
 
   // Filters
@@ -676,13 +676,15 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   showPreviewModal = false;
   showBulkAssignModal = false;
   previewItem: GradingQueueItem | null = null;
-  bulkAssignGraderId: number | null = null;
+  bulkAssignGraderId: string | null = null;
 
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(300), takeUntil(this.destroy$)).subscribe(() => this.applyFilters());
+    const me = this.session.userId();
+    if (me) {
+      this.graderOptions = [{ user_id: me, full_name: 'Me (assign to myself)', email: '', pending_count: 0 }];
+    }
     this.loadQueue();
-    this.loadStats();
-    this.loadFilterOptions();
   }
 
   ngOnDestroy(): void {
@@ -694,60 +696,114 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   // DATA LOADING
   // ==========================================
 
+  /**
+   * The new queue is a flat, attempt-level list scoped only by mine/unassigned;
+   * it carries no server-side search, status, priority or assessment filter and
+   * no paging, so those are applied on the client (mirroring assessment-history).
+   */
   loadQueue(): void {
     this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_grading_queue');
-    fd.append('page', this.currentPage.toString());
-    fd.append('per_page', this.pageSize.toString());
-    if (this.searchTerm) fd.append('search', this.searchTerm);
-    if (this.filters.status) fd.append('status', this.filters.status);
-    if (this.filters.priority) fd.append('priority', this.filters.priority);
-    if (this.filters.question_type) fd.append('question_type', this.filters.question_type);
-    if (this.filters.assessment_id) fd.append('assessment_id', this.filters.assessment_id);
-    if (this.filters.assigned_to) fd.append('assigned_to', this.filters.assigned_to);
-
-    this.http.post<ApiResponse<{ items: GradingQueueItem[]; total: number; pages: number }>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.code === 1) {
-          this.queueItems = res.data.items || [];
-          this.totalItems = res.data.total || 0;
-          this.totalPages = res.data.pages || 1;
-        }
+    this.assessments.gradingQueue({
+      mine: this.filters.assigned_to === 'me',
+      unassigned: this.filters.assigned_to === 'unassigned',
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: ({ items }) => {
+        this.allItems = (items || []).map((a) => this.toQueueItem(a));
+        this.buildAssessmentOptions();
+        this.computeStats();
+        this.applyView();
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
   }
 
-  loadStats(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_queue_stats');
-    this.http.post<ApiResponse<QueueStats>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.code === 1) this.stats = res.data; }
-    });
+  private toQueueItem(a: QueuedAttempt): GradingQueueItem {
+    const priorityNum = a.assignment?.priority ?? 0;
+    const awaiting = a.awaitingMarking ?? 0;
+    return {
+      queue_id: a.id,
+      attempt_id: a.id,
+      assessment_id: a.assessmentId,
+      assessment_title: a.assessmentTitle ?? '',
+      assessment_type: '',
+      question_text: `${awaiting} answer${awaiting === 1 ? '' : 's'} awaiting marking`,
+      question_type: '',
+      section_title: '',
+      learner_name: a.userName ?? 'Learner',
+      learner_email: '',
+      learner_avatar: null,
+      assigned_grader_id: a.assignment?.assignedTo ?? null,
+      assigned_grader_name: a.assignment?.assigneeName ?? null,
+      status: a.assignment ? (a.assignment.isOpen === false ? 'skipped' : 'in_progress') : 'pending',
+      priority: this.priorityLabel(priorityNum),
+      priorityNum,
+      awaiting,
+      max_points: 0,
+      submitted_at: a.submittedAt ?? '',
+      has_rubric: false,
+      rubric_name: null,
+      attempt_number: 1,
+      answer_preview: '',
+    };
   }
 
-  loadFilterOptions(): void {
-    const fd1 = new FormData();
-    fd1.append('action', 'get_queue_assessments');
-    this.http.post<ApiResponse<{ id: number; title: string }[]>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd1
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.code === 1) this.assessmentOptions = res.data || []; }
-    });
+  private priorityLabel(n: number): string {
+    return n > 0 ? 'high' : n < 0 ? 'low' : 'medium';
+  }
 
-    const fd2 = new FormData();
-    fd2.append('action', 'get_graders');
-    this.http.post<ApiResponse<GraderOption[]>>(
-      `${GlobalComponent.baseURL}/user/grading`, fd2
-    ).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.code === 1) this.graderOptions = res.data || []; }
-    });
+  private priorityValue(label: string): number {
+    return label === 'high' ? 1 : label === 'low' ? -1 : 0;
+  }
+
+  /** The distinct assessments present in the queue, for the filter dropdown. */
+  private buildAssessmentOptions(): void {
+    const seen = new Map<string, string>();
+    for (const it of this.allItems) {
+      if (it.assessment_id && !seen.has(it.assessment_id)) seen.set(it.assessment_id, it.assessment_title);
+    }
+    this.assessmentOptions = Array.from(seen, ([id, title]) => ({ id, title }));
+  }
+
+  /**
+   * What can be totalled from the attempt list itself. The workload figures the
+   * legacy stats endpoint gave (graded today, average grading time) have no
+   * source on the new API, so they stay zero rather than guess.
+   */
+  private computeStats(): void {
+    const me = this.session.userId();
+    this.stats = {
+      total_pending: this.allItems.filter((i) => i.status === 'pending').length,
+      total_in_progress: this.allItems.filter((i) => i.status === 'in_progress').length,
+      total_graded_today: 0,
+      total_overdue: this.allItems.filter((i) => this.isOverdue(i)).length,
+      my_assigned: this.allItems.filter((i) => i.assigned_grader_id === me).length,
+      avg_grading_time_minutes: 0,
+    };
+  }
+
+  /** Client-side search, status/priority/assessment filtering, and paging. */
+  private applyView(): void {
+    let rows = [...this.allItems];
+    const term = this.searchTerm.trim().toLowerCase();
+    if (term) {
+      rows = rows.filter((r) =>
+        r.learner_name.toLowerCase().includes(term) ||
+        r.assessment_title.toLowerCase().includes(term));
+    }
+    if (this.filters.status) {
+      rows = this.filters.status === 'overdue'
+        ? rows.filter((r) => this.isOverdue(r))
+        : rows.filter((r) => r.status === this.filters.status);
+    }
+    if (this.filters.priority) rows = rows.filter((r) => r.priority === this.filters.priority);
+    if (this.filters.assessment_id) rows = rows.filter((r) => r.assessment_id === this.filters.assessment_id);
+
+    this.totalItems = rows.length;
+    this.totalPages = Math.max(1, Math.ceil(rows.length / this.pageSize));
+    if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.queueItems = rows.slice(start, start + this.pageSize);
   }
 
   // ==========================================
@@ -793,20 +849,21 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
     this.selectedItems = this.allSelected ? this.queueItems.map(i => i.queue_id) : [];
   }
 
-  toggleSelection(id: number): void {
+  toggleSelection(id: string): void {
     const idx = this.selectedItems.indexOf(id);
     if (idx === -1) this.selectedItems.push(id); else this.selectedItems.splice(idx, 1);
     this.allSelected = this.selectedItems.length === this.queueItems.length;
   }
 
-  isSelected(id: number): boolean { return this.selectedItems.includes(id); }
+  isSelected(id: string): boolean { return this.selectedItems.includes(id); }
 
   // ==========================================
   // ACTIONS
   // ==========================================
 
   openGrading(item: GradingQueueItem): void {
-    this.router.navigate(['/admin/grading', item.queue_id]);
+    // Grading is keyed by the attempt now, not a queue-item id.
+    this.router.navigate(['/admin/grading', item.attempt_id]);
   }
 
   previewAnswer(item: GradingQueueItem): void {
@@ -815,14 +872,10 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   }
 
   assignToMe(item: GradingQueueItem & { _showMenu?: boolean }): void {
-    const fd = new FormData();
-    fd.append('action', 'assign_queue_item');
-    fd.append('queue_id', item.queue_id.toString());
-    fd.append('grader_id', 'me');
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.loadQueue(); this.loadStats(); } }
-      });
+    const me = this.session.userId();
+    if (!me) return;
+    this.assessments.assignForMarking(item.queue_id, me)
+      .pipe(takeUntil(this.destroy$)).subscribe({ next: () => this.loadQueue() });
   }
 
   assignToGrader(item: GradingQueueItem): void {
@@ -831,42 +884,39 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   }
 
   executeBulkAssign(): void {
-    if (!this.bulkAssignGraderId) return;
-    const fd = new FormData();
-    fd.append('action', 'bulk_assign_queue');
-    fd.append('queue_ids', JSON.stringify(this.selectedItems));
-    fd.append('grader_id', this.bulkAssignGraderId.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
+    // With no grader roster, assignment goes to the marker themselves.
+    const marker = this.bulkAssignGraderId || this.session.userId();
+    if (!marker || this.selectedItems.length === 0) return;
+    this.assessments.assignManyForMarking(this.selectedItems, [marker])
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => {
-          if (res.code === 1) {
-            this.showBulkAssignModal = false;
-            this.selectedItems = [];
-            this.bulkAssignGraderId = null;
-            this.loadQueue();
-            this.loadStats();
-          }
+        next: () => {
+          this.showBulkAssignModal = false;
+          this.selectedItems = [];
+          this.bulkAssignGraderId = null;
+          this.loadQueue();
         }
       });
   }
 
+  /** No single auto-assign route: claim every unassigned attempt for the marker. */
   autoAssign(): void {
-    const fd = new FormData();
-    fd.append('action', 'auto_assign_queue');
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
+    const me = this.session.userId();
+    if (!me) return;
+    this.assessments.gradingQueue({ unassigned: true })
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.loadQueue(); this.loadStats(); } }
+        next: ({ items }) => {
+          const ids = (items || []).map((a) => a.id);
+          if (ids.length === 0) return;
+          this.assessments.assignManyForMarking(ids, [me])
+            .pipe(takeUntil(this.destroy$)).subscribe({ next: () => this.loadQueue() });
+        }
       });
   }
 
   changePriority(item: GradingQueueItem, priority: string): void {
-    const fd = new FormData();
-    fd.append('action', 'update_queue_priority');
-    fd.append('queue_id', item.queue_id.toString());
-    fd.append('priority', priority);
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
+    this.assessments.prioritiseForMarking(item.queue_id, this.priorityValue(priority))
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { item.priority = priority; } }
+        next: () => { item.priority = priority; item.priorityNum = this.priorityValue(priority); }
       });
   }
 
@@ -875,25 +925,19 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
     this.changePriority(item, cycle[item.priority] || 'medium');
   }
 
+  /** No batch-priority route, so fan out one call per selected attempt. */
   bulkMarkPriority(priority: string): void {
-    const fd = new FormData();
-    fd.append('action', 'bulk_update_priority');
-    fd.append('queue_ids', JSON.stringify(this.selectedItems));
-    fd.append('priority', priority);
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.selectedItems = []; this.loadQueue(); } }
-      });
+    const value = this.priorityValue(priority);
+    for (const id of this.selectedItems) {
+      this.assessments.prioritiseForMarking(id, value).pipe(takeUntil(this.destroy$)).subscribe();
+    }
+    this.selectedItems = [];
+    setTimeout(() => this.loadQueue(), 300);
   }
 
   skipItem(item: GradingQueueItem): void {
-    const fd = new FormData();
-    fd.append('action', 'skip_queue_item');
-    fd.append('queue_id', item.queue_id.toString());
-    this.http.post<ApiResponse<any>>(`${GlobalComponent.baseURL}/user/grading`, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.code === 1) { this.loadQueue(); this.loadStats(); } }
-      });
+    this.assessments.skipForMarking(item.queue_id)
+      .pipe(takeUntil(this.destroy$)).subscribe({ next: () => this.loadQueue() });
   }
 
   // ==========================================
@@ -903,12 +947,12 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.loadQueue();
+    this.applyView();
   }
 
   onPageSizeChange(): void {
     this.currentPage = 1;
-    this.loadQueue();
+    this.applyView();
   }
 
   getPageNumbers(): (string | number)[] {
