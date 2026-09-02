@@ -8,24 +8,23 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService, type QuestionInput } from '../../services/assessments.service';
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
-interface QuestionBank { id: number; name: string; }
-interface Category { id: number; name: string; }
-interface QuestionOption { id?: number; option_text: string; is_correct: boolean; feedback: string; order_position: number; }
-interface MatchPair { id?: number; premise: string; response: string; order_position: number; }
-interface OrderItem { id?: number; item_text: string; correct_position: number; }
-interface FillBlank { id?: number; blank_index: number; acceptable_answers: string[]; case_sensitive: boolean; }
-interface HotspotArea { id?: number; shape: 'rect'|'circle'; x: number; y: number; width: number; height: number; label: string; is_correct: boolean; }
+interface QuestionBank { id: string; name: string; }
+interface Category { id: string; name: string; }
+interface QuestionOption { id?: string; option_text: string; is_correct: boolean; feedback: string; order_position: number; }
+interface MatchPair { id?: string; premise: string; response: string; order_position: number; }
+interface OrderItem { id?: string; item_text: string; correct_position: number; }
+interface FillBlank { id?: string; blank_index: number; acceptable_answers: string[]; case_sensitive: boolean; }
+interface HotspotArea { id?: string; shape: 'rect'|'circle'; x: number; y: number; width: number; height: number; label: string; is_correct: boolean; }
 
 interface QuestionForm {
-  question_id: number|null; bank_id: number|null; category_id: number|null;
+  question_id: string|null; bank_id: string|null; category_id: string|null;
   question_text: string; question_type: string; difficulty: string; points: number;
   time_limit_seconds: number|null; explanation: string; hint: string; tags: string;
   status: string; image_url: string;
@@ -440,11 +439,10 @@ interface QuestionForm {
 })
 export class QuestionFormComponent implements OnInit, OnDestroy {
   @ViewChild('questionTextarea') questionTextarea!: ElementRef<HTMLTextAreaElement>;
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/question-bank';
 
   isEdit = false;
   saving = false;
@@ -494,11 +492,9 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadBanks();
-    this.loadCategories();
-    this.loadTags();
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) { this.isEdit = true; this.loadQuestion(+id); }
+    this.isEdit = !!id;
+    this.loadBanks(id);
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
@@ -532,45 +528,71 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
     };
   }
 
-  loadBanks(): void {
-    const fd = new FormData(); fd.append('action', 'get_banks');
-    this.http.post<ApiResponse<QuestionBank[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { if (r.status === 'success') this.banks = r.data || []; } });
-  }
-
-  loadCategories(): void {
-    const fd = new FormData(); fd.append('action', 'get_categories');
-    this.http.post<ApiResponse<Category[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { if (r.status === 'success') this.categories = r.data || []; } });
-  }
-
-  loadTags(): void {
-    const fd = new FormData(); fd.append('action', 'get_all_tags');
-    this.http.post<ApiResponse<string[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { if (r.status === 'success') this.existingTags = r.data || []; } });
-  }
-
-  loadQuestion(id: number): void {
-    const fd = new FormData(); fd.append('action', 'get_question'); fd.append('question_id', id.toString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        if (r.status === 'success' && r.data) {
-          const q = r.data;
-          this.form = {
-            ...this.getBlankForm(), ...q,
-            tags: Array.isArray(q.tags) ? q.tags.join(', ') : (q.tags || ''),
-            options: q.options?.length ? q.options : this.getBlankForm().options,
-            match_pairs: q.match_pairs?.length ? q.match_pairs : this.getBlankForm().match_pairs,
-            order_items: q.order_items?.length ? q.order_items : this.getBlankForm().order_items,
-            fill_blanks: q.fill_blanks?.length ? q.fill_blanks.map((b: any) => ({
-              ...b, acceptable_answers: Array.isArray(b.acceptable_answers) ? b.acceptable_answers :
-                (typeof b.acceptable_answers === 'string' ? JSON.parse(b.acceptable_answers) : [''])
-            })) : this.getBlankForm().fill_blanks,
-            hotspot_areas: q.hotspot_areas || []
-          };
-        }
+  loadBanks(editId?: string | null): void {
+    // Categories and tags have no endpoint on the new API, so those controls
+    // stay empty rather than call routes that do not exist.
+    this.categories = [];
+    this.existingTags = [];
+    this.assessments.banks().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => {
+        this.banks = (page.items || []).map((b) => ({ id: b.id, name: b.name }));
+        // Edit-load: there is no single-question GET, and the route carries no
+        // bank id, so the question is found by scanning the banks' questions.
+        if (editId) this.loadQuestion(editId);
       }
     });
+  }
+
+  loadQuestion(id: string): void {
+    const lookups = this.banks.map((b) =>
+      this.assessments.bankQuestions(b.id).pipe(
+        map((page) => (page.items || []).map((q) => ({ bankId: b.id, q }))),
+        catchError(() => of([] as Array<{ bankId: string; q: Record<string, unknown> }>)),
+      ),
+    );
+    if (lookups.length === 0) return;
+    forkJoin(lookups).pipe(takeUntil(this.destroy$)).subscribe((results) => {
+      const flat = results.flat();
+      const hit = flat.find((x) => String((x.q as { id?: string }).id) === id);
+      if (hit) this.form = this.fromApiQuestion(hit.bankId, hit.q as Record<string, unknown>);
+      else this.showToast('This question could not be found to edit.', 'error');
+    });
+  }
+
+  /** Maps a bank question (review shape) back onto the form. */
+  private fromApiQuestion(bankId: string, q: Record<string, unknown>): QuestionForm {
+    const type = this.typeToForm((q['type'] as string) ?? 'multiple_choice_single');
+    const options = ((q['options'] as Record<string, unknown>[]) ?? []).map((o, i) => ({
+      id: o['id'] as string | undefined,
+      option_text: (o['text'] as string) ?? '',
+      is_correct: !!o['isCorrect'],
+      feedback: (o['feedback'] as string) ?? '',
+      order_position: (o['sortOrder'] as number) ?? i,
+    }));
+    const base = this.getBlankForm();
+    return {
+      ...base,
+      question_id: (q['id'] as string) ?? null,
+      bank_id: bankId,
+      question_text: (q['text'] as string) ?? '',
+      question_type: type,
+      difficulty: this.difficultyToForm((q['difficulty'] as string) ?? ''),
+      points: (q['points'] as number) ?? 1,
+      explanation: (q['explanation'] as string) ?? '',
+      hint: (q['hint'] as string) ?? '',
+      image_url: (q['mediaUrl'] as string) ?? '',
+      status: (q['isActive'] === false) ? 'inactive' : 'active',
+      numeric_answer: (q['numericAnswer'] as number) ?? null,
+      numeric_tolerance: (q['numericTolerance'] as number) ?? 0,
+      sample_answer: (q['modelAnswer'] as string) ?? '',
+      options: options.length ? options : base.options,
+      match_pairs: type === 'matching' && options.length
+        ? options.map((o, i) => ({ id: o.id, premise: o.option_text, response: String((((q['options'] as Record<string, unknown>[])[i]) || {})['matchText'] ?? ''), order_position: o.order_position }))
+        : base.match_pairs,
+      order_items: type === 'ordering' && options.length
+        ? options.map((o) => ({ id: o.id, item_text: o.option_text, correct_position: o.order_position }))
+        : base.order_items,
+    };
   }
 
   selectType(type: string): void {
@@ -636,14 +658,10 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   onImageSelect(e: Event): void { this.uploadImage(e, 'image_url'); }
   onHotspotSelect(e: Event): void { this.uploadImage(e, 'hotspot_image_url'); }
 
-  private uploadImage(e: Event, field: 'image_url'|'hotspot_image_url'): void {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const fd = new FormData(); fd.append('action', 'upload_image'); fd.append('image', file);
-    this.http.post<ApiResponse<{url: string}>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => { if (r.status === 'success') (this.form as any)[field] = r.data.url; },
-      error: () => this.showToast('Upload failed', 'error')
-    });
+  private uploadImage(_e: Event, _field: 'image_url'|'hotspot_image_url'): void {
+    // The assessment API has no question-image upload endpoint yet; paste an
+    // image URL into the field instead of uploading a file.
+    this.showToast('Image upload is being rebuilt. Paste an image URL instead.', 'error');
   }
 
   // === Rich Text ===
@@ -693,60 +711,94 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
 
   save(): void {
     if (!this.isValid()) { this.showToast('Please fix validation errors', 'error'); return; }
+    const bankId = this.form.bank_id;
+    if (!bankId) { this.showToast('Select a question bank', 'error'); return; }
     this.saving = true;
-    const fd = new FormData();
-    fd.append('action', this.isEdit ? 'update_question' : 'create_question');
-    if (this.form.question_id) fd.append('question_id', this.form.question_id.toString());
-    fd.append('bank_id', (this.form.bank_id || '').toString());
-    fd.append('category_id', (this.form.category_id || '').toString());
-    fd.append('question_text', this.form.question_text);
-    fd.append('question_type', this.form.question_type);
-    fd.append('difficulty', this.form.difficulty);
-    fd.append('points', this.form.points.toString());
-    fd.append('time_limit_seconds', (this.form.time_limit_seconds || 0).toString());
-    fd.append('explanation', this.form.explanation);
-    fd.append('hint', this.form.hint);
-    fd.append('tags', this.form.tags);
-    fd.append('status', this.form.status);
-    fd.append('image_url', this.form.image_url);
-
     const t = this.form.question_type;
-    if (t === 'multiple_choice' || t === 'multiple_response' || t === 'short_answer') {
-      fd.append('options', JSON.stringify(this.form.options));
-    } else if (t === 'true_false') {
-      fd.append('options', JSON.stringify(this.form.options));
-    } else if (t === 'numeric') {
-      fd.append('numeric_answer', (this.form.numeric_answer || 0).toString());
-      fd.append('numeric_tolerance', this.form.numeric_tolerance.toString());
-      fd.append('numeric_unit', this.form.numeric_unit);
-    } else if (t === 'fill_blank') {
-      fd.append('fill_blanks', JSON.stringify(this.form.fill_blanks));
-    } else if (t === 'matching') {
-      fd.append('match_pairs', JSON.stringify(this.form.match_pairs));
-    } else if (t === 'ordering') {
-      fd.append('order_items', JSON.stringify(this.form.order_items));
-    } else if (t === 'file_upload') {
-      fd.append('allowed_extensions', this.form.allowed_extensions);
-      fd.append('max_file_size_mb', this.form.max_file_size_mb.toString());
-    } else if (t === 'hotspot') {
-      fd.append('hotspot_image_url', this.form.hotspot_image_url);
-      fd.append('hotspot_areas', JSON.stringify(this.form.hotspot_areas));
-    }
-    if (t === 'long_answer' || t === 'short_answer' || t === 'file_upload') {
-      fd.append('sample_answer', this.form.sample_answer);
-    }
-    if (t === 'long_answer') { fd.append('max_length', this.form.max_length.toString()); }
 
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
+    const input: QuestionInput = {
+      type: this.typeToApi(t),
+      text: this.form.question_text,
+      points: this.form.points,
+      explanation: this.form.explanation || null,
+      hint: this.form.hint || null,
+      difficulty: this.difficultyToApi(this.form.difficulty),
+      isActive: this.form.status === 'active',
+      mediaUrl: this.form.image_url || null,
+      options: this.buildOptions(t),
+    };
+    if (t === 'numeric') {
+      input.numericAnswer = this.form.numeric_answer ?? 0;
+      input.numericTolerance = this.form.numeric_tolerance;
+    }
+    if (t === 'long_answer' || t === 'short_answer') {
+      input.modelAnswer = this.form.sample_answer || null;
+    }
+
+    const obs = this.isEdit && this.form.question_id
+      ? this.assessments.updateQuestion(bankId, this.form.question_id, input)
+      : this.assessments.createQuestion(bankId, input);
+
+    obs.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
         this.saving = false;
-        if (r.status === 'success') {
-          this.showToast(this.isEdit ? 'Question updated' : 'Question created', 'success');
-          setTimeout(() => this.goBack(), 1000);
-        } else { this.showToast(r.message || 'Save failed', 'error'); }
+        this.showToast(this.isEdit ? 'Question updated' : 'Question created', 'success');
+        setTimeout(() => this.goBack(), 1000);
       },
-      error: () => { this.saving = false; this.showToast('Save failed', 'error'); }
+      error: (err) => {
+        this.saving = false;
+        const e = err as { error?: { error?: { message?: string } } };
+        this.showToast(e?.error?.error?.message || 'Save failed', 'error');
+      }
     });
+  }
+
+  /** Builds the API option list for the types that carry one. */
+  private buildOptions(t: string): QuestionInput['options'] {
+    if (t === 'multiple_choice' || t === 'multiple_response' || t === 'true_false') {
+      return this.form.options.filter(o => o.option_text.trim())
+        .map((o, i) => ({ text: o.option_text, isCorrect: o.is_correct, feedback: o.feedback || null, sortOrder: i }));
+    }
+    if (t === 'matching') {
+      return this.form.match_pairs.filter(p => p.premise.trim())
+        .map((p, i) => ({ text: p.premise, matchText: p.response, isCorrect: true, sortOrder: i }));
+    }
+    if (t === 'ordering') {
+      return this.form.order_items.filter(o => o.item_text.trim())
+        .map((o) => ({ text: o.item_text, isCorrect: true, sortOrder: o.correct_position }));
+    }
+    // short/long/numeric/fill/file/hotspot carry no options on the new model.
+    return undefined;
+  }
+
+  private typeToApi(t: string): string {
+    const m: Record<string, string> = {
+      multiple_choice: 'multiple_choice_single', multiple_response: 'multiple_choice_multiple',
+      true_false: 'true_false', short_answer: 'short_answer', long_answer: 'long_answer',
+      numeric: 'numeric', fill_blank: 'fill_in_blanks', matching: 'matching', ordering: 'ordering',
+      file_upload: 'file_upload', hotspot: 'hotspot',
+    };
+    return m[t] || t;
+  }
+
+  private typeToForm(apiType: string): string {
+    const m: Record<string, string> = {
+      multiple_choice_single: 'multiple_choice', multiple_choice_multiple: 'multiple_response',
+      fill_in_blanks: 'fill_blank', long_answer: 'long_answer',
+    };
+    return m[apiType] || apiType;
+  }
+
+  private difficultyToApi(d: string): string {
+    return d === 'easy' ? 'easy' : d === 'hard' ? 'hard' : 'medium';
+  }
+
+  private difficultyToForm(apiD: string): string {
+    const m: Record<string, string> = {
+      beginner: 'easy', intermediate: 'medium', professional: 'hard',
+      easy: 'easy', medium: 'medium', hard: 'hard',
+    };
+    return m[apiD] || 'medium';
   }
 
   showToast(message: string, type: 'success'|'error'): void {

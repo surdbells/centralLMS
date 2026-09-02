@@ -59,6 +59,10 @@ export interface QuestionOption {
   text: string;
   isCorrect: boolean;
   feedback?: string | null;
+  /** Matching questions: the right-hand side this option pairs with. */
+  matchText?: string | null;
+  /** Ordering questions: this item's correct position. */
+  sortOrder?: number;
 }
 
 export interface Question {
@@ -75,12 +79,20 @@ export interface Question {
 }
 
 export interface QuestionInput {
-  type: QuestionType;
+  // The API validates against the canonical set (multiple_choice_single, ...)
+  // and folds the older names in, so a string is accepted here.
+  type: QuestionType | string;
   text: string;
   points?: number;
   explanation?: string | null;
   options?: QuestionOption[];
   isActive?: boolean;
+  difficulty?: string | null;
+  hint?: string | null;
+  modelAnswer?: string | null;
+  numericAnswer?: number | null;
+  numericTolerance?: number | null;
+  mediaUrl?: string | null;
 }
 
 export interface QuestionBank {
@@ -159,6 +171,11 @@ export class AssessmentsService {
 
   banks(): Observable<Paged<QuestionBank>> {
     return this.api.getPaged<QuestionBank>(Endpoints.banks.list, { perPage: 100 });
+  }
+
+  /** The questions in one bank, in their review shape (with the answer key). */
+  bankQuestions(bankId: string): Observable<Paged<Record<string, unknown>>> {
+    return this.api.getPaged<Record<string, unknown>>(Endpoints.questions.list(bankId), { perPage: 200 });
   }
 
   createQuestion(bankId: string, input: QuestionInput): Observable<Question> {
