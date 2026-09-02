@@ -194,7 +194,11 @@ final class MyProfileAction extends PeopleAction
 
         // The checksum makes the URL change when the picture does, so a
         // browser that cached the old one stops showing it.
-        $url = sprintf('/v1/users/%s/avatar?v=%s', $me->id, substr($stored['sha256'], 0, 12));
+        //
+        // Base-relative (no `/v1`): the client resolves it against the API base
+        // with urlFor(), which already carries the `/v1` prefix. Emitting the
+        // prefix here too produced `/v1/v1/users/...` and a broken image.
+        $url = sprintf('/users/%s/avatar?v=%s', $me->id, substr($stored['sha256'], 0, 12));
 
         return Json::ok($response, $this->people->update($this->with($me, ['avatarUrl' => $url]))->toArray());
     }

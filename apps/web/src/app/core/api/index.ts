@@ -11,6 +11,7 @@ export {
   type LookupPaths,
 } from './api-endpoints';
 export { ApiClient, type QueryParams, type UploadProgress } from './api.client';
+export { AuthImgDirective } from './auth-img.directive';
 export {
   ApiError,
   codeForStatus,

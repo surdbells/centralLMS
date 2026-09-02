@@ -10,7 +10,7 @@ import { NotificationsService } from '../../../services/notifications.service';
 import { MyProfileService } from '../../../services/my-profile.service';
 import { SessionStore } from '../../../core/auth/session.store';
 import { AuthService } from '../../../core/auth/auth.service';
-import { ApiClient } from '../../../core/api';
+import { ApiClient, AuthImgDirective } from '../../../core/api';
 import { BrandingService } from '../../../core/branding.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
@@ -46,6 +46,7 @@ export interface Notifications {
     RouterLink,
     RouterLinkActive,
     TuiIcon,
+    AuthImgDirective,
   ],
   templateUrl: './admintop.component.html',
   styleUrl: './admintop.component.css',

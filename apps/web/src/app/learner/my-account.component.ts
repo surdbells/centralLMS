@@ -9,7 +9,7 @@ import { MyProfileService, type Consents } from '../services/my-profile.service'
 import { UsersService } from '../services/users.service';
 import { RolesService } from '../services/roles.service';
 import { SessionStore } from '../core/auth/session.store';
-import { ApiClient, ApiError } from '../core/api';
+import { ApiError, AuthImgDirective } from '../core/api';
 import { TopComponent } from '../partials/top/top.component';
 
 /* The shapes this screen's template already reads. */
@@ -62,7 +62,7 @@ export interface LoginRecord {
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TopComponent, TuiIcon],
+  imports: [CommonModule, FormsModule, RouterLink, TopComponent, TuiIcon, AuthImgDirective],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -93,7 +93,7 @@ export interface LoginRecord {
               <div class="position-relative">
                 <div class="avatar-xl rounded-circle border border-4 border-white shadow-sm overflow-hidden"
                      [style.background-color]="!profile.avatar_url ? getColor(profile.full_name) : 'transparent'">
-                  <img *ngIf="profile.avatar_url" [src]="profile.avatar_url" class="w-100 h-100 object-fit-cover" alt="Avatar">
+                  <img *ngIf="profile.avatar_url" [appAuthImg]="profile.avatar_url" class="w-100 h-100 object-fit-cover" alt="Avatar">
                   <span *ngIf="!profile.avatar_url" class="avatar-letter">{{ profile.full_name.charAt(0).toUpperCase() }}</span>
                 </div>
                 <button class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow"
@@ -428,7 +428,6 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
   private readonly session = inject(SessionStore);
-  private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
@@ -511,7 +510,8 @@ export class MyAccountComponent implements OnInit, OnDestroy {
           this.profile = {
             full_name: me.fullName,
             email: me.email,
-            avatar_url: me.avatarUrl === null ? null : this.api.urlFor(me.avatarUrl),
+            // The base-relative path; AuthImgDirective fetches it with the token.
+            avatar_url: me.avatarUrl,
             roles: mine.map((role) => ({ role_name: role.name })),
             // The union of what their roles allow, worked out here from the
             // role list rather than fetched as a field that recomputed it.
@@ -676,7 +676,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
           if (this.profile !== null) {
             // The URL carries a checksum of the bytes, so the browser stops
             // showing the previous picture.
-            this.profile.avatar_url = me.avatarUrl === null ? null : this.api.urlFor(me.avatarUrl);
+            this.profile.avatar_url = me.avatarUrl;
           }
 
           this.cancelAvatarUpload();

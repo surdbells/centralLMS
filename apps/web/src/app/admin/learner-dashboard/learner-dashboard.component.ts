@@ -15,7 +15,7 @@ import { MyProfileService } from '../../services/my-profile.service';
 import { SkillsService } from '../../services/skills.service';
 import { GamificationService } from '../../services/gamification.service';
 import { CertificatesService } from '../../services/certificates.service';
-import { ApiClient, ApiError } from '../../core/api';
+import { ApiClient, ApiError, AuthImgDirective } from '../../core/api';
 
 /* The shapes this screen's template already reads. Each is filled in one
  * place — `adapt()` below — so the markup keeps the names it was written
@@ -198,7 +198,7 @@ export interface DashboardData {
 @Component({
   selector: 'app-learner-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RouterLink],
+  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, AuthImgDirective],
   templateUrl: './learner-dashboard.component.html',
   styleUrls: ['./learner-dashboard.component.css'],
 })
@@ -338,7 +338,8 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
     return {
       user: {
         full_name: profile.fullName,
-        avatar_url: profile.avatarUrl === null ? null : this.api.urlFor(profile.avatarUrl),
+        // Base-relative path; AuthImgDirective fetches it with the token.
+        avatar_url: profile.avatarUrl,
         job_title: profile.placement?.jobTitleName ?? '',
         department: profile.placement?.departmentName ?? '',
         joined_date: profile.createdAt,
@@ -421,7 +422,7 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
         total_learners: ranked.length,
         top_learners: ranked.slice(0, 10).map((r) => ({
           full_name: r.name ?? '',
-          avatar_url: r.avatarUrl === null ? null : this.api.urlFor(r.avatarUrl),
+          avatar_url: r.avatarUrl,
           points: r.points,
           rank: r.rank,
           is_me: r.isViewer,

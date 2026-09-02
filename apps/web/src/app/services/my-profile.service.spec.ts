@@ -69,9 +69,9 @@ describe('MyProfileService', () => {
     request.event({ type: 1, loaded: 50, total: 100 } as never);
     expect(received).toBeUndefined();
 
-    request.flush({ data: { id: 'u-1', avatarUrl: '/v1/users/u-1/avatar?v=abc' } });
+    request.flush({ data: { id: 'u-1', avatarUrl: '/users/u-1/avatar?v=abc' } });
 
-    expect(received?.avatarUrl).toBe('/v1/users/u-1/avatar?v=abc');
+    expect(received?.avatarUrl).toBe('/users/u-1/avatar?v=abc');
   });
 
   it('ends one session by id', () => {

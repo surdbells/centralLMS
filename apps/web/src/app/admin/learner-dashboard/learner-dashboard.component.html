@@ -33,7 +33,7 @@
         <div class="hero-card profile-card">
           <div class="profile-header">
             <div class="profile-avatar">
-              <img *ngIf="dashboard.user.avatar_url" [src]="dashboard.user.avatar_url" [alt]="dashboard.user.full_name">
+              <img *ngIf="dashboard.user.avatar_url" [appAuthImg]="dashboard.user.avatar_url" [alt]="dashboard.user.full_name">
               <div *ngIf="!dashboard.user.avatar_url" class="avatar-initials">
                 {{ getInitials(dashboard.user.full_name) }}
               </div>
@@ -523,7 +523,7 @@
                     'bronze': learner.rank === 3
                   }">{{ learner.rank }}</div>
                   <div class="learner-avatar">
-                    <img *ngIf="learner.avatar_url" [src]="learner.avatar_url" [alt]="learner.full_name">
+                    <img *ngIf="learner.avatar_url" [appAuthImg]="learner.avatar_url" [alt]="learner.full_name">
                     <span *ngIf="!learner.avatar_url">{{ getInitials(learner.full_name) }}</span>
                   </div>
                   <div class="learner-details">
