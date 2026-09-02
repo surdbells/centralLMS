@@ -8,14 +8,13 @@
 import { Component, OnDestroy, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService, type QuestionInput } from '../../services/assessments.service';
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
-interface QuestionBank { id: number; name: string; }
+interface QuestionBank { id: string; name: string; }
 interface ColumnMapping { source: string; target: string; }
 interface ParsedRow { [key: string]: string; }
 interface ValidationResult { row: number; valid: boolean; errors: string[]; data: ParsedRow; }
@@ -51,8 +50,13 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
             <tui-icon icon="@tui.upload-cloud" style="font-size:48px;color:#94a3b8"></tui-icon>
             <h3>Drop your file here</h3>
             <p>or click to browse</p>
-            <span class="hint">CSV, Excel (.xlsx, .xls)</span>
-            <input type="file" #fileInput hidden accept=".csv,.xlsx,.xls" (change)="onFileSelect($event)" />
+            <span class="hint">CSV files</span>
+            <input type="file" #fileInput hidden accept=".csv" (change)="onFileSelect($event)" />
+          </div>
+          <div class="alert alert-warning d-flex align-items-center gap-2" *ngIf="importError" style="margin-top:10px">
+            <tui-icon icon="@tui.alert-triangle"></tui-icon>
+            <span>{{ importError }}</span>
+            <button type="button" class="btn-close ms-auto" (click)="importError = null"></button>
           </div>
           <div class="file-info" *ngIf="selectedFile">
             <tui-icon icon="@tui.file-text" style="font-size:20px;color:#6366f1"></tui-icon>
@@ -239,9 +243,9 @@ export class QuestionImportComponent implements OnDestroy {
   @Output() onComplete = new EventEmitter<void>();
   @Output() onCancel = new EventEmitter<void>();
 
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/question-bank';
+  importError: string | null = null;
 
   steps = ['Upload', 'Map Columns', 'Validate', 'Import'];
   currentStep = 0;
@@ -289,9 +293,9 @@ export class QuestionImportComponent implements OnDestroy {
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
   loadBanks(): void {
-    const fd = new FormData(); fd.append('action', 'get_banks');
-    this.http.post<ApiResponse<QuestionBank[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { if (r.status === 'success') this.banks = r.data || []; } });
+    this.assessments.banks().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => { this.banks = (page.items || []).map((b) => ({ id: b.id, name: b.name })); },
+    });
   }
 
   // Step 1: File handling
@@ -314,18 +318,10 @@ export class QuestionImportComponent implements OnDestroy {
       };
       reader.readAsText(file);
     } else {
-      // For xlsx, upload to server for parsing
-      const fd = new FormData(); fd.append('action', 'parse_import_file'); fd.append('file', file);
-      this.http.post<ApiResponse<{columns: string[]; rows: ParsedRow[]}>>(this.apiUrl, fd)
-        .pipe(takeUntil(this.destroy$)).subscribe({
-          next: r => {
-            if (r.status === 'success') {
-              this.sourceColumns = r.data.columns;
-              this.parsedData = r.data.rows;
-              this.autoDetectMappings();
-            }
-          }
-        });
+      // Server-side spreadsheet parsing has no route on the new API; only CSV
+      // is parsed (in the browser) for now.
+      this.selectedFile = null;
+      this.importError = 'Only CSV files can be imported right now. Export your spreadsheet as CSV.';
     }
   }
 
@@ -407,41 +403,65 @@ export class QuestionImportComponent implements OnDestroy {
     });
   }
 
-  // Step 4: Import
+  // Step 4: Import.
+  //
+  // There is no batch-import endpoint on the new API, so each valid row is
+  // created individually through createQuestion. imported/skipped are counted
+  // from the results rather than returned by a server.
   executeImport(): void {
     this.importing = true; this.importDone = false; this.importProgress = 0;
     const validRows = this.validationResults.filter(r => r.valid);
     this.importStats = { total: this.validationResults.length, valid: validRows.length, invalid: this.invalidCount, imported: 0, skipped: this.invalidCount };
 
-    const fd = new FormData();
-    fd.append('action', 'import_questions');
-    fd.append('bank_id', this.targetBankId);
-    fd.append('default_difficulty', this.defaultDifficulty);
-    fd.append('on_error', this.onError);
-    fd.append('questions', JSON.stringify(validRows.map(r => r.data)));
+    if (validRows.length === 0) { this.importing = false; this.importDone = true; return; }
 
-    this.http.post<ApiResponse<{imported: number; skipped: number}>>(this.apiUrl, fd)
-      .pipe(takeUntil(this.destroy$)).subscribe({
-        next: r => {
-          this.importing = false; this.importDone = true;
-          if (r.status === 'success') {
-            this.importStats.imported = r.data.imported;
-            this.importStats.skipped = r.data.skipped;
-          }
-        },
-        error: () => {
-          this.importing = false; this.importDone = true;
-          this.importStats.imported = 0;
-        }
-      });
+    let done = 0;
+    forkJoin(validRows.map((r) =>
+      this.assessments.createQuestion(this.targetBankId, this.rowToInput(r.data)).pipe(
+        map(() => { done++; this.importProgress = done; return true; }),
+        catchError(() => { done++; this.importProgress = done; return of(false); }),
+      ),
+    )).pipe(takeUntil(this.destroy$)).subscribe((results) => {
+      const imported = results.filter(Boolean).length;
+      this.importStats.imported = imported;
+      this.importStats.skipped = this.invalidCount + (validRows.length - imported);
+      this.importProgress = this.importStats.total;
+      this.importing = false;
+      this.importDone = true;
+    });
+  }
 
-    // Simulate progress
-    const interval = setInterval(() => {
-      if (this.importProgress < this.importStats.total - 1 && this.importing) {
-        this.importProgress += Math.ceil(this.importStats.total / 10);
-        this.importProgress = Math.min(this.importProgress, this.importStats.total - 1);
-      } else { clearInterval(interval); this.importProgress = this.importStats.total; }
-    }, 300);
+  /** Turns one mapped CSV row into a question the API accepts. */
+  private rowToInput(row: ParsedRow): QuestionInput {
+    const type = this.typeToApi((row['question_type'] || '').trim().toLowerCase());
+    const input: QuestionInput = {
+      type,
+      text: row['question_text'] || '',
+      points: parseInt(row['points'], 10) || 1,
+      difficulty: (row['difficulty'] || this.defaultDifficulty).trim().toLowerCase(),
+      explanation: row['explanation'] || null,
+      hint: row['hint'] || null,
+    };
+    // Options come pipe-separated, with the correct one(s) named in correct_answer.
+    if (type === 'multiple_choice_single' || type === 'multiple_choice_multiple' || type === 'true_false') {
+      const opts = (row['options'] || '').split('|').map(o => o.trim()).filter(Boolean);
+      const correct = (row['correct_answer'] || '').split(/[|,]/).map(o => o.trim().toLowerCase()).filter(Boolean);
+      input.options = opts.map((text, i) => ({ text, isCorrect: correct.includes(text.toLowerCase()), sortOrder: i }));
+    } else if (type === 'short_answer' || type === 'long_answer') {
+      input.modelAnswer = row['correct_answer'] || null;
+    } else if (type === 'numeric') {
+      const n = parseFloat(row['correct_answer']);
+      if (!isNaN(n)) input.numericAnswer = n;
+    }
+    return input;
+  }
+
+  private typeToApi(t: string): string {
+    const m: Record<string, string> = {
+      multiple_choice: 'multiple_choice_single', multiple_response: 'multiple_choice_multiple',
+      essay: 'long_answer', fill_blank: 'fill_in_blanks',
+    };
+    return m[t] || t;
   }
 
   // Navigation
@@ -466,21 +486,13 @@ export class QuestionImportComponent implements OnDestroy {
     const headers = 'question_text,question_type,difficulty,points,options,correct_answer,explanation,tags,hint';
     const sample = '"What is 2+2?",multiple_choice,easy,1,"2|3|4|5",4,"Basic arithmetic","math,basics",""';
     const csv = headers + '\n' + sample;
-    if (format === 'csv') {
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'question_import_template.csv'; a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      const fd = new FormData(); fd.append('action', 'get_import_template'); fd.append('format', 'xlsx');
-      this.http.post(this.apiUrl, fd, { responseType: 'blob' }).pipe(takeUntil(this.destroy$)).subscribe({
-        next: blob => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = 'question_import_template.xlsx'; a.click();
-          URL.revokeObjectURL(url);
-        }
-      });
-    }
+    // Only CSV import is supported, so only the CSV template is offered; the
+    // Excel button falls back to the same CSV.
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'question_import_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+    if (format !== 'csv') this.importError = 'Excel import is being rebuilt; use the CSV template.';
   }
 
   formatSize(bytes: number): string {
