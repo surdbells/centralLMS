@@ -487,6 +487,8 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
     if (t === 'matching' && this.form.match_pairs.some(p => !p.premise.trim() || !p.response.trim())) e.push('All match pairs need text');
     if (t === 'ordering' && this.form.order_items.some(o => !o.item_text.trim())) e.push('All order items need text');
     if (t === 'hotspot' && !this.form.hotspot_image_url) e.push('Upload a hotspot image');
+    if (t === 'hotspot' && this.form.hotspot_areas.length < 2) e.push('Mark at least two hotspot regions');
+    if (t === 'hotspot' && !this.form.hotspot_areas.some(a => a.is_correct)) e.push('Mark at least one correct region');
     return e;
   }
 
@@ -592,7 +594,8 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
       explanation: (q['explanation'] as string) ?? '',
       hint: (q['hint'] as string) ?? '',
       tags: ((q['tags'] as string[]) ?? []).join(', '),
-      image_url: (q['mediaUrl'] as string) ?? '',
+      image_url: type === 'hotspot' ? '' : ((q['mediaUrl'] as string) ?? ''),
+      hotspot_image_url: type === 'hotspot' ? ((q['mediaUrl'] as string) ?? '') : '',
       status: (q['isActive'] === false) ? 'inactive' : 'active',
       numeric_answer: (q['numericAnswer'] as number) ?? null,
       numeric_tolerance: (q['numericTolerance'] as number) ?? 0,
@@ -604,6 +607,15 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
       order_items: type === 'ordering' && options.length
         ? options.map((o) => ({ id: o.id, item_text: o.option_text, correct_position: o.order_position }))
         : base.order_items,
+      hotspot_areas: type === 'hotspot' && options.length
+        ? options.map((o, i) => {
+            const geo = { shape: 'rect' as 'rect'|'circle', x: 0, y: 0, width: 40, height: 40 };
+            try {
+              Object.assign(geo, JSON.parse(String((((q['options'] as Record<string, unknown>[])[i]) || {})['matchText'] ?? '{}')));
+            } catch { /* a region without stored geometry keeps the defaults */ }
+            return { id: o.id, shape: geo.shape, x: geo.x, y: geo.y, width: geo.width, height: geo.height, label: o.option_text, is_correct: o.is_correct };
+          })
+        : base.hotspot_areas,
     };
   }
 
@@ -758,7 +770,9 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
       hint: this.form.hint || null,
       difficulty: this.difficultyToApi(this.form.difficulty),
       isActive: this.form.status === 'active',
-      mediaUrl: this.form.image_url || null,
+      // A hotspot keeps its image in a separate field; everything else in
+      // image_url. Either way it persists to the question's mediaUrl.
+      mediaUrl: (t === 'hotspot' ? this.form.hotspot_image_url : this.form.image_url) || null,
       tags: this.parseTags(this.form.tags),
       options: this.buildOptions(t),
     };
@@ -802,7 +816,25 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
       return this.form.order_items.filter(o => o.item_text.trim())
         .map((o) => ({ text: o.item_text, isCorrect: true, sortOrder: o.correct_position }));
     }
-    // short/long/numeric/fill/file/hotspot carry no options on the new model.
+    if (t === 'short_answer') {
+      // The accepted answers are correct options — the grader marks a short
+      // answer right when it matches the model answer OR any correct option.
+      return this.form.options.filter(o => o.option_text.trim())
+        .map((o, i) => ({ text: o.option_text.trim(), isCorrect: true, sortOrder: i }));
+    }
+    if (t === 'hotspot') {
+      // The schema has no coordinate columns, so each region is stored as an
+      // option: the label as text, its geometry packed into matchText so the
+      // editor can restore it, and is_correct carried through. (Auto-grading a
+      // hotspot still needs backend support; this just makes it saveable.)
+      return this.form.hotspot_areas.map((a, i) => ({
+        text: (a.label || '').trim() || `Region ${i + 1}`,
+        matchText: JSON.stringify({ shape: a.shape, x: a.x, y: a.y, width: a.width, height: a.height }),
+        isCorrect: a.is_correct,
+        sortOrder: i,
+      }));
+    }
+    // long/numeric/fill/file carry no options on the new model.
     return undefined;
   }
 

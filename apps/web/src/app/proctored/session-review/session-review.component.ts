@@ -794,7 +794,11 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
       result = result.filter(s => s.learner_name?.toLowerCase().includes(t) ||
         s.learner_email?.toLowerCase().includes(t) || s.assessment_title?.toLowerCase().includes(t));
     }
-    if (this.filterStatus) result = result.filter(s => s.review_status === this.filterStatus);
+    // 'terminated' is a lifecycle status, not a review verdict — the stat card
+    // counts s.status, so its filter must key off the same field, while the
+    // pending/cleared/flagged cards key off the review verdict.
+    if (this.filterStatus === 'terminated') result = result.filter(s => s.status === 'terminated');
+    else if (this.filterStatus) result = result.filter(s => s.review_status === this.filterStatus);
     if (this.filterLevel) result = result.filter(s => s.proctoring_level === this.filterLevel);
     if (this.filterTrustRange) {
       result = result.filter(s => {

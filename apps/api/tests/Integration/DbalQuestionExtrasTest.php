@@ -190,6 +190,62 @@ final class DbalQuestionExtrasTest extends TestCase
         self::assertSame(2, $stats['totalBanks']);
     }
 
+    #[Test]
+    public function short_answer_accepted_answers_persist_and_grade(): void
+    {
+        // The shape the question form now sends: accepted answers as correct
+        // options, plus a model answer.
+        $question = $this->questions->createQuestion(\Central\Api\Domain\Assessment\Question::fromInput(
+            \Ramsey\Uuid\Uuid::uuid4()->toString(),
+            $this->tenantA,
+            $this->bankA->id,
+            [
+                'type' => 'short_answer',
+                'text' => 'Capital of France?',
+                'modelAnswer' => 'Paris',
+                'options' => [
+                    ['text' => 'Paris', 'isCorrect' => true],
+                    ['text' => 'City of Light', 'isCorrect' => true],
+                ],
+            ],
+        ));
+
+        $read = $this->questions->findQuestion($this->tenantA, $question->id);
+        self::assertNotNull($read);
+        self::assertCount(2, $read->options);
+
+        // The grader marks the second accepted option (case-insensitively) right.
+        $result = (new \Central\Api\Domain\Assessment\Grader())->grade($read, ['text' => 'city of light'], 1.0);
+        self::assertTrue($result->isCorrect);
+    }
+
+    #[Test]
+    public function a_hotspot_question_with_regions_is_saveable(): void
+    {
+        // requiresOptions() is true for hotspot, so it needs >= 2 options; the
+        // form now sends one per region.
+        $question = $this->questions->createQuestion(\Central\Api\Domain\Assessment\Question::fromInput(
+            \Ramsey\Uuid\Uuid::uuid4()->toString(),
+            $this->tenantA,
+            $this->bankA->id,
+            [
+                'type' => 'hotspot',
+                'text' => 'Click the nucleus.',
+                'mediaUrl' => '/question-images/x',
+                'options' => [
+                    ['text' => 'Nucleus', 'isCorrect' => true, 'matchText' => '{"shape":"circle","x":10,"y":10,"width":20,"height":20}'],
+                    ['text' => 'Membrane', 'isCorrect' => false, 'matchText' => '{"shape":"rect","x":0,"y":0,"width":5,"height":5}'],
+                ],
+            ],
+        ));
+
+        $read = $this->questions->findQuestion($this->tenantA, $question->id);
+        self::assertNotNull($read);
+        self::assertCount(2, $read->options);
+        // The geometry round-trips through matchText for the editor to restore.
+        self::assertStringContainsString('circle', (string) $read->options[0]->matchText);
+    }
+
     // --- fixtures ---------------------------------------------------------
 
     /**
