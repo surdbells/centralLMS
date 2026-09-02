@@ -7,12 +7,9 @@
 
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { Subject, takeUntil, interval } from 'rxjs';
+import { Subject, takeUntil, interval, catchError, of } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
-
-interface ApiResponse<T> { status: string; data: T; message: string; }
+import { AssessmentsService } from '../../services/assessments.service';
 
 interface ViolationEvent {
   type: string; severity: 'low'|'medium'|'high'|'critical';
@@ -147,9 +144,8 @@ export class ProctoringMonitorComponent implements OnInit, OnDestroy {
   @ViewChild('videoEl') videoEl!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasEl') canvasEl!: ElementRef<HTMLCanvasElement>;
 
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/proctoring';
   private mediaStream: MediaStream|null = null;
   private screenStream: MediaStream|null = null;
 
@@ -167,6 +163,16 @@ export class ProctoringMonitorComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Open the proctoring session first: the new API refuses violations and
+    // snapshots until a sitting is running. Best-effort -- if proctoring is not
+    // enabled for the tenant this simply does nothing.
+    if (this.attemptId) {
+      this.assessments.openProctoringSession(this.attemptId, {
+        userAgent: navigator.userAgent,
+        screenWidth: screen.width,
+        screenHeight: screen.height,
+      }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe();
+    }
     if (this.config.webcam_enabled) this.initWebcam();
     if (this.config.screen_share) this.initScreenShare();
     this.attachEventListeners();
@@ -227,13 +233,15 @@ export class ProctoringMonitorComponent implements OnInit, OnDestroy {
     if (!ctx) return;
     ctx.drawImage(video, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-    const fd = new FormData();
-    fd.append('action', 'save_snapshot');
-    fd.append('attempt_id', this.attemptId.toString());
-    fd.append('snapshot', dataUrl);
-    fd.append('is_violation', isViolation ? '1' : '0');
-    fd.append('timestamp', new Date().toISOString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe();
+    // The new snapshots route takes an already-hosted imageUrl rather than raw
+    // bytes; there is no proctoring upload endpoint, so the captured frame is
+    // sent inline as a data URL. Best-effort -- dropped if the session is not
+    // open or proctoring is not enabled.
+    this.assessments.recordSnapshot(this.attemptId, {
+      imageUrl: dataUrl,
+      kind: isViolation ? 'violation' : 'periodic',
+      flagged: isViolation,
+    }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe();
   }
 
   // === Event Listeners ===
@@ -325,15 +333,14 @@ export class ProctoringMonitorComponent implements OnInit, OnDestroy {
     // Snapshot on violation
     if (this.config.snapshot_on_violation && this.webcamActive) this.captureSnapshot(true);
 
-    // Report to server
-    const fd = new FormData();
-    fd.append('action', 'report_violation');
-    fd.append('attempt_id', this.attemptId.toString());
-    fd.append('violation_type', type);
-    fd.append('severity', severity);
-    fd.append('description', description);
-    fd.append('timestamp', violation.timestamp.toISOString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe();
+    // Report to the server. The new API assigns the severity from the type and
+    // stamps its own time, so only the type and a description are sent. If the
+    // sitting has ended server-side, honour that as a termination too.
+    this.assessments.recordViolation(this.attemptId, { type, description })
+      .pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe((res) => {
+        const r = res as { action?: string; sittingEnded?: boolean } | null;
+        if (r && (r.sittingEnded || r.action === 'terminated')) this.onTerminate.emit();
+      });
 
     // Auto-terminate check
     if (this.violations.length >= this.config.max_violations_before_terminate) {
