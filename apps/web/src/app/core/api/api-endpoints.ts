@@ -343,7 +343,9 @@ export const Endpoints = {
   proctoring: {
     settings: (assessmentId: string) => `/assessments/${assessmentId}/proctoring`,
     openSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
-    checkSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/session`,
+    // Reports the pre-flight result; this is what transitions the session to
+    // 'active' so violations/snapshots are accepted (was wrongly '/session').
+    checkSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/check`,
     recordViolation: (attemptId: string) => `/attempts/${attemptId}/proctoring/violations`,
     recordSnapshot: (attemptId: string) => `/attempts/${attemptId}/proctoring/snapshots`,
     /** One assessment's flagged sittings. */

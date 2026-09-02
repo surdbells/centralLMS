@@ -7,7 +7,7 @@
 
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, takeUntil, interval, catchError, of } from 'rxjs';
+import { Subject, takeUntil, interval, catchError, of, switchMap } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { AssessmentsService } from '../../services/assessments.service';
 
@@ -163,15 +163,24 @@ export class ProctoringMonitorComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Open the proctoring session first: the new API refuses violations and
-    // snapshots until a sitting is running. Best-effort -- if proctoring is not
-    // enabled for the tenant this simply does nothing.
+    // Open the proctoring session, then report the pre-flight as passed to move
+    // it to 'active' -- the API refuses violations and snapshots until then
+    // ('session_not_active'). The learner already cleared the lobby's checks to
+    // reach the player, so passed:true is correct. Best-effort: if proctoring is
+    // not enabled for the tenant, both calls simply do nothing.
     if (this.attemptId) {
       this.assessments.openProctoringSession(this.attemptId, {
         userAgent: navigator.userAgent,
         screenWidth: screen.width,
         screenHeight: screen.height,
-      }).pipe(catchError(() => of(null)), takeUntil(this.destroy$)).subscribe();
+      }).pipe(
+        switchMap(() => this.assessments.proctoringCheck(this.attemptId, {
+          passed: true,
+          data: { userAgent: navigator.userAgent, screenWidth: screen.width, screenHeight: screen.height },
+        })),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$),
+      ).subscribe();
     }
     if (this.config.webcam_enabled) this.initWebcam();
     if (this.config.screen_share) this.initScreenShare();

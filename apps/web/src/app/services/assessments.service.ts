@@ -557,6 +557,19 @@ export class AssessmentsService {
     );
   }
 
+  /**
+   * Reports the pre-flight result. This is what moves the session from
+   * 'pending_check' to 'active' — until then the server refuses violations and
+   * snapshots with 'session_not_active'.
+   */
+  proctoringCheck(attemptId: string, result: { passed: boolean; data?: Record<string, unknown> }):
+  Observable<Record<string, unknown>> {
+    return this.api.post<Record<string, unknown>>(
+      Endpoints.proctoring.checkSession(attemptId),
+      result,
+    );
+  }
+
   recordViolation(attemptId: string, violation: Record<string, unknown>): Observable<unknown> {
     return this.api.post(Endpoints.proctoring.recordViolation(attemptId), violation);
   }
