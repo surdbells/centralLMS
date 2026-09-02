@@ -352,6 +352,10 @@ export const Endpoints = {
     allQueues: '/proctoring/queue',
     review: (attemptId: string) => `/attempts/${attemptId}/proctoring`,
     reviewViolation: (violationId: string) => `/proctoring/violations/${violationId}`,
+    reviewSession: (attemptId: string) => `/attempts/${attemptId}/proctoring/review`,
+    analytics: (attemptId: string) => `/attempts/${attemptId}/proctoring/analytics`,
+    export: (attemptId: string) => `/attempts/${attemptId}/proctoring/export`,
+    flagSnapshot: (snapshotId: string) => `/proctoring/snapshots/${snapshotId}/flag`,
   },
 
   // --- instructor-led training -----------------------------------------

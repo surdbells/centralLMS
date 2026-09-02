@@ -623,7 +623,7 @@ final class DbalProctoringRepository implements ProctoringRepository
         // Ordered by what the violations add up to, worst first, so the queue
         // opens on the sitting most in need of a person.
         $rows = $this->connection->fetchAllAssociative(
-            "SELECT ps.id, ps.attempt_id, ps.user_id, ps.status, ps.reviewed_at,
+            "SELECT ps.id, ps.attempt_id, ps.user_id, ps.status, ps.reviewed_at, ps.review_status,
                     NULLIF(btrim(concat_ws(' ', u.first_name, u.last_name)), '') AS user_name,
                     COALESCE(v.penalty, 0) AS penalty,
                     COALESCE(v.total, 0) AS violation_count,
@@ -656,6 +656,7 @@ final class DbalProctoringRepository implements ProctoringRepository
                 'userId'         => (string) $r['user_id'],
                 'userName'       => is_string($r['user_name'] ?? null) ? $r['user_name'] : null,
                 'status'         => (string) $r['status'],
+                'reviewStatus'   => (string) $r['review_status'],
                 'trustScore'     => $score,
                 'violationCount' => (int) $r['violation_count'],
                 'criticalCount'  => (int) $r['critical_count'],

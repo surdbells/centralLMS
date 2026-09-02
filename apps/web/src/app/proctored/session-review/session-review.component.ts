@@ -656,7 +656,11 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
       assessment_title: (r['assessmentTitle'] as string) ?? '',
       proctoring_level: (r['proctoringLevel'] as string) ?? '',
       status: (r['status'] as string) ?? '',
-      review_status: (r['reviewStatus'] as string) ?? 'pending_review',
+      // The API's verdict is pending/cleared/flagged; the screen's vocabulary
+      // spells the unreviewed state 'pending_review'.
+      review_status: ((r['reviewStatus'] as string) ?? 'pending') === 'pending'
+        ? 'pending_review'
+        : (r['reviewStatus'] as string),
       trust_score: Number(r['trustScore'] ?? 100),
       violation_count: Number(r['violationCount'] ?? 0),
       snapshot_count: Number(r['snapshotCount'] ?? 0),
@@ -729,20 +733,36 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
   // ACTIONS
   // ==========================================
 
-  // The new model reviews per violation, not per sitting: there is no
-  // clear/flag verdict or notes store for a whole sitting yet. These explain
-  // that rather than posting to a route that does not exist -- a reviewer signs
-  // a sitting off through its individual violations (the violations tab).
-  clearSession(_s: ProctoringSession): void {
-    this.notice = 'Sitting-level clear is being rebuilt. Review the individual violations to sign this sitting off.';
+  clearSession(s: ProctoringSession): void {
+    this.reviewSitting(s, 'cleared');
   }
 
-  flagSession(_s: ProctoringSession): void {
-    this.notice = 'Sitting-level flag is being rebuilt. Mark the individual violations that concern you.';
+  flagSession(s: ProctoringSession): void {
+    this.reviewSitting(s, 'flagged');
   }
 
   saveReviewNotes(): void {
-    this.notice = 'Per-sitting notes are being rebuilt; add notes to a violation when you review it.';
+    if (!this.selectedSession) return;
+    // Saving notes keeps the current verdict (mapped back to the API's word).
+    const current = this.selectedSession.review_status === 'pending_review'
+      ? 'pending'
+      : (this.selectedSession.review_status as 'cleared' | 'flagged');
+    this.reviewSitting(this.selectedSession, current);
+  }
+
+  private reviewSitting(s: ProctoringSession, status: 'cleared' | 'flagged' | 'pending'): void {
+    this.assessments.reviewSitting(s.attempt_id, {
+      status,
+      notes: this.reviewNotes.trim() || undefined,
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.notice = status === 'cleared' ? 'Sitting cleared.'
+          : status === 'flagged' ? 'Sitting flagged.' : 'Review notes saved.';
+        this.showDetailModal = false;
+        this.loadSessions();
+      },
+      error: () => { this.notice = 'Could not save the review.'; },
+    });
   }
 
   openSnapshotGallery(): void {

@@ -488,11 +488,27 @@ export class AssessmentsService {
     return this.api.get<Record<string, unknown>>(Endpoints.proctoring.review(attemptId));
   }
 
+  /** A sitting-level verdict: cleared, flagged, or pending (reopened). */
   reviewSitting(
     attemptId: string,
-    verdict: { outcome: string; notes?: string },
-  ): Observable<unknown> {
-    return this.api.put(Endpoints.proctoring.review(attemptId), verdict);
+    verdict: { status: 'cleared' | 'flagged' | 'pending'; notes?: string },
+  ): Observable<Record<string, unknown>> {
+    return this.api.put<Record<string, unknown>>(Endpoints.proctoring.reviewSession(attemptId), verdict);
+  }
+
+  /** The per-sitting analytics: violations by type/severity, snapshot tallies, trust. */
+  sittingAnalytics(attemptId: string): Observable<Record<string, unknown>> {
+    return this.api.get<Record<string, unknown>>(Endpoints.proctoring.analytics(attemptId));
+  }
+
+  /** The whole sitting as a downloadable evidence bundle. */
+  exportSitting(attemptId: string): Observable<Blob> {
+    return this.api.download(Endpoints.proctoring.export(attemptId));
+  }
+
+  /** Flag or unflag one captured frame. */
+  flagSnapshot(snapshotId: string, flagged: boolean, reason?: string): Observable<unknown> {
+    return this.api.put(Endpoints.proctoring.flagSnapshot(snapshotId), { flagged, reason });
   }
 
   reviewViolation(

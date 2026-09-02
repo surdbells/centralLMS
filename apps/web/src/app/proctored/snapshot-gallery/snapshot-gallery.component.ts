@@ -579,15 +579,36 @@ export class SnapshotGalleryComponent implements OnInit, OnDestroy {
   // ACTIONS
   // ==========================================
 
-  // A snapshot's flag is set when it is captured; there is no reviewer route to
-  // toggle it afterwards on the new API yet.
-  toggleFlag(_s: Snapshot): void {
-    this.notice = 'Re-flagging a snapshot from review is being rebuilt.';
+  toggleFlag(s: Snapshot): void {
+    const flagged = !s.flagged;
+    const reason = flagged ? (s.flag_reason || 'Flagged during review') : undefined;
+    this.assessments.flagSnapshot(s.snapshot_id, flagged, reason).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        s.flagged = flagged;
+        s.flag_reason = flagged ? (reason ?? '') : '';
+        if (this.lightboxSnapshot?.snapshot_id === s.snapshot_id) {
+          this.lightboxSnapshot.flagged = s.flagged;
+          this.lightboxSnapshot.flag_reason = s.flag_reason;
+        }
+        this.applyFilter();
+      },
+      error: () => { this.notice = 'Could not update the snapshot flag.'; },
+    });
   }
 
-  // No snapshot-bundle export route; a reviewer opens a frame and saves it.
+  // The whole sitting as a downloadable evidence bundle (session, trust,
+  // violations and every snapshot's metadata).
   downloadAll(): void {
-    this.notice = 'Bulk snapshot export is being rebuilt. Open a snapshot to save it individually.';
+    if (!this.sessionId) return;
+    this.assessments.exportSitting(this.sessionId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `proctoring-${this.sessionId}.json`; a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => { this.notice = 'Could not export the sitting.'; },
+    });
   }
 
   toggleView(): void { this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid'; }
