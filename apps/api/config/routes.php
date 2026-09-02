@@ -1297,6 +1297,12 @@ return static function (App $app): void {
                     // The reviewer's view, and the only route that returns
                     // recordings. Needs `proctoring.review`.
                     $p->get('', [ReviewProctoringAction::class, 'show'])->setName('proctoring.review.show');
+                    $p->get('/analytics', [ReviewProctoringAction::class, 'analytics'])
+                        ->setName('proctoring.review.analytics');
+                    $p->get('/export', [ReviewProctoringAction::class, 'export'])
+                        ->setName('proctoring.review.export');
+                    $p->put('/review', [ReviewProctoringAction::class, 'reviewSession'])
+                        ->setName('proctoring.review.session');
                 });
 
                 // Grading is declared before the plain answer route so
@@ -1314,6 +1320,10 @@ return static function (App $app): void {
             $secure->put('/proctoring/violations/{violationId:' . $uuid . '}', [
                 ReviewProctoringAction::class, 'review',
             ])->setName('proctoring.violations.review');
+
+            $secure->put('/proctoring/snapshots/{snapshotId:' . $uuid . '}/flag', [
+                ReviewProctoringAction::class, 'flagSnapshot',
+            ])->setName('proctoring.snapshots.flag');
 
             // Instructor-led training. Scheduling an online session books a
             // real meeting through the provider layer — the wiring the legacy

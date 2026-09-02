@@ -23,7 +23,7 @@ final class DbalProctoringRepository implements ProctoringRepository
                                      face_match_score, room_scan_completed, room_scan_video_url,
                                      screen_recording_url, webcam_recording_url,
                                      started_at, ended_at, total_active_seconds,
-                                     reviewed_by, reviewed_at, review_notes';
+                                     reviewed_by, reviewed_at, review_notes, review_status';
 
     /**
      * The columns `updateSession()` will write, and no others.
@@ -402,6 +402,90 @@ final class DbalProctoringRepository implements ProctoringRepository
         ) > 0;
     }
 
+    public function reviewSession(
+        string $tenantId,
+        string $sessionId,
+        string $status,
+        ?string $notes,
+        string $reviewerId,
+    ): ?ProctoringSession {
+        $affected = $this->connection->executeStatement(
+            'UPDATE proctoring_sessions
+             SET review_status = :status, review_notes = :notes,
+                 reviewed_by = :reviewer, reviewed_at = NOW(), updated_at = NOW()
+             WHERE id = :id AND tenant_id = :tenant',
+            [
+                'status'   => $status,
+                'notes'    => $notes,
+                'reviewer' => $reviewerId,
+                'id'       => $sessionId,
+                'tenant'   => $tenantId,
+            ],
+        );
+
+        return $affected > 0 ? $this->findSession($tenantId, $sessionId) : null;
+    }
+
+    /**
+     * A per-sitting breakdown: violations by type and by severity, the snapshot
+     * tallies and the trust score — computed from the rows, never cached.
+     *
+     * @return array{
+     *     violationCount: int, flaggedViolations: int,
+     *     byType: list<array{type: string, count: int}>,
+     *     bySeverity: list<array{severity: string, count: int}>,
+     *     snapshotCount: int, flaggedSnapshots: int,
+     *     trust: array<string, mixed>
+     * }
+     */
+    public function sessionAnalytics(string $tenantId, string $sessionId): array
+    {
+        $counts = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) AS total,
+                    COUNT(*) FILTER (WHERE review_status = 'valid') AS flagged
+             FROM proctoring_violations WHERE session_id = :session AND tenant_id = :tenant",
+            ['session' => $sessionId, 'tenant' => $tenantId],
+        ) ?: ['total' => 0, 'flagged' => 0];
+
+        $snaps = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE flagged) AS flagged
+             FROM proctoring_snapshots WHERE session_id = :session AND tenant_id = :tenant',
+            ['session' => $sessionId, 'tenant' => $tenantId],
+        ) ?: ['total' => 0, 'flagged' => 0];
+
+        return [
+            'violationCount'    => (int) $counts['total'],
+            'flaggedViolations' => (int) $counts['flagged'],
+            'byType'            => $this->violationGroup($tenantId, $sessionId, 'type'),
+            'bySeverity'        => $this->violationGroup($tenantId, $sessionId, 'severity'),
+            'snapshotCount'     => (int) $snaps['total'],
+            'flaggedSnapshots'  => (int) $snaps['flagged'],
+            'trust'             => $this->trustFor($tenantId, $sessionId)->toArray(),
+        ];
+    }
+
+    /**
+     * @return list<array{type?: string, severity?: string, count: int}>
+     */
+    private function violationGroup(string $tenantId, string $sessionId, string $column): array
+    {
+        // $column is a fixed literal chosen by the caller (never user input).
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %1$s AS key, COUNT(*) AS count FROM proctoring_violations
+                 WHERE session_id = :session AND tenant_id = :tenant
+                 GROUP BY %1$s ORDER BY count DESC',
+                $column,
+            ),
+            ['session' => $sessionId, 'tenant' => $tenantId],
+        );
+
+        return array_map(
+            static fn (array $r): array => [$column => (string) $r['key'], 'count' => (int) $r['count']],
+            $rows,
+        );
+    }
+
     // --- snapshots --------------------------------------------------------
 
     public function recordSnapshot(string $tenantId, ProctoringSession $session, array $snapshot): string
@@ -478,6 +562,33 @@ final class DbalProctoringRepository implements ProctoringRepository
                 'capturedAt'    => (string) $r['captured_at'],
             ];
         }, $rows);
+    }
+
+    public function flagSnapshot(string $tenantId, string $snapshotId, bool $flagged, ?string $reason): bool
+    {
+        return $this->connection->executeStatement(
+            'UPDATE proctoring_snapshots
+             SET flagged = :flagged, flag_reason = :reason
+             WHERE id = :id AND tenant_id = :tenant',
+            [
+                'flagged' => $flagged ? 'true' : 'false',
+                // Clearing a flag also clears its reason, so a stale note cannot
+                // linger on an unflagged frame.
+                'reason'  => $flagged ? $reason : null,
+                'id'      => $snapshotId,
+                'tenant'  => $tenantId,
+            ],
+        ) > 0;
+    }
+
+    public function findSnapshotSession(string $tenantId, string $snapshotId): ?string
+    {
+        $sessionId = $this->connection->fetchOne(
+            'SELECT session_id FROM proctoring_snapshots WHERE id = :id AND tenant_id = :tenant',
+            ['id' => $snapshotId, 'tenant' => $tenantId],
+        );
+
+        return is_string($sessionId) ? $sessionId : null;
     }
 
     public function reviewQueue(
@@ -612,6 +723,7 @@ final class DbalProctoringRepository implements ProctoringRepository
             reviewedBy: $this->text($row['reviewed_by'] ?? null),
             reviewedAt: $this->date($row['reviewed_at'] ?? null),
             reviewNotes: $this->text($row['review_notes'] ?? null),
+            reviewStatus: (string) ($row['review_status'] ?? 'pending'),
         );
     }
 

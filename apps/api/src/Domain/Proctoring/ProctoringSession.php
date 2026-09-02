@@ -39,6 +39,7 @@ final readonly class ProctoringSession
         public ?string $reviewedBy = null,
         public ?\DateTimeImmutable $reviewedAt = null,
         public ?string $reviewNotes = null,
+        public string $reviewStatus = 'pending',
     ) {
     }
 
@@ -99,9 +100,10 @@ final readonly class ProctoringSession
             'startedAt'         => $this->startedAt?->format(\DateTimeInterface::ATOM),
             'endedAt'           => $this->endedAt?->format(\DateTimeInterface::ATOM),
             'totalActiveSeconds' => $this->totalActiveSeconds,
-            'reviewedBy'  => $this->reviewedBy,
-            'reviewedAt'  => $this->reviewedAt?->format(\DateTimeInterface::ATOM),
-            'reviewNotes' => $this->reviewNotes,
+            'reviewedBy'   => $this->reviewedBy,
+            'reviewedAt'   => $this->reviewedAt?->format(\DateTimeInterface::ATOM),
+            'reviewNotes'  => $this->reviewNotes,
+            'reviewStatus' => $this->reviewStatus,
             ...$extra,
         ];
     }

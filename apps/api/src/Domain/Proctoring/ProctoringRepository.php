@@ -116,6 +116,25 @@ interface ProctoringRepository
         string $reviewerId,
     ): bool;
 
+    /**
+     * A reviewer's verdict on a whole sitting: cleared or flagged, with notes.
+     * Returns the updated session, or null when there is none to review.
+     */
+    public function reviewSession(
+        string $tenantId,
+        string $sessionId,
+        string $status,
+        ?string $notes,
+        string $reviewerId,
+    ): ?ProctoringSession;
+
+    /**
+     * A per-sitting breakdown of violations and snapshots plus the trust score.
+     *
+     * @return array<string, mixed>
+     */
+    public function sessionAnalytics(string $tenantId, string $sessionId): array;
+
     // --- snapshots --------------------------------------------------------
 
     /**
@@ -127,6 +146,16 @@ interface ProctoringRepository
      * @return list<array<string, mixed>>
      */
     public function snapshotsFor(string $tenantId, string $sessionId, bool $flaggedOnly = false): array;
+
+    /**
+     * Flags or unflags one snapshot for review. Unflagging clears its reason.
+     */
+    public function flagSnapshot(string $tenantId, string $snapshotId, bool $flagged, ?string $reason): bool;
+
+    /**
+     * The session a snapshot belongs to, or null if it is not this tenant's.
+     */
+    public function findSnapshotSession(string $tenantId, string $snapshotId): ?string;
 
     /**
      * Sittings that a person should look at, worst first.
