@@ -173,6 +173,18 @@ export class AssessmentsService {
     return this.api.getPaged<QuestionBank>(Endpoints.banks.list, { perPage: 100 });
   }
 
+  createBank(input: { name: string; description?: string | null }): Observable<QuestionBank> {
+    return this.api.post<QuestionBank>(Endpoints.banks.create, input);
+  }
+
+  updateBank(id: string, input: { name?: string; description?: string | null }): Observable<QuestionBank> {
+    return this.api.put<QuestionBank>(Endpoints.banks.update(id), input);
+  }
+
+  deleteBank(id: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.banks.delete(id));
+  }
+
   /** The questions in one bank, in their review shape (with the answer key). */
   bankQuestions(bankId: string): Observable<Paged<Record<string, unknown>>> {
     return this.api.getPaged<Record<string, unknown>>(Endpoints.questions.list(bankId), { perPage: 200 });

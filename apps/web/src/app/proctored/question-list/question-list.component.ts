@@ -7,35 +7,33 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentsService } from '../../services/assessments.service';
 
 // ==========================================
 // INTERFACES
 // ==========================================
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; total?: number; }
-
 interface Question {
-  id: number;
+  id: string;
   question_text: string;
   question_type: 'multiple_choice' | 'multiple_response' | 'true_false' | 'short_answer' | 'long_answer' | 'numeric' | 'fill_blank' | 'matching' | 'ordering' | 'file_upload' | 'hotspot';
   difficulty: 'easy' | 'medium' | 'hard';
   points: number;
-  bank_id: number;
+  bank_id: string;
   bank_name: string;
-  category_id: number;
+  category_id: string;
   category_name: string;
   tags: string[];
   status: 'active' | 'inactive' | 'archived';
   explanation: string;
   time_limit_seconds: number | null;
   usage_count: number;
-  created_by: number;
+  created_by: string;
   created_by_name: string;
   created_at: string;
   updated_at: string;
@@ -44,7 +42,7 @@ interface Question {
 }
 
 interface QuestionBank {
-  id: number;
+  id: string;
   name: string;
   description: string;
   question_count: number;
@@ -141,6 +139,11 @@ interface FilterState {
       </div>
 
       <!-- Filters Bar -->
+      <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice">
+        <tui-icon icon="@tui.info"></tui-icon>
+        <span>{{ notice }}</span>
+      </div>
+
       <div class="filters-bar">
         <div class="search-box">
           <tui-icon icon="@tui.search" style="font-size:16px;color:#94a3b8"></tui-icon>
@@ -686,16 +689,17 @@ interface FilterState {
   `]
 })
 export class QuestionListComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/question-bank';
   Math = Math;
 
   // Data
+  private allQuestions: Question[] = [];  // the selected bank's questions, before client filters
   questions: Question[] = [];
   banks: QuestionBank[] = [];
   allTags: string[] = [];
+  notice: string | null = null;
   stats: BankStats = { total_questions: 0, active_questions: 0, total_banks: 0, by_type: [], by_difficulty: [] };
 
   // State
@@ -749,12 +753,9 @@ export class QuestionListComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(() => {
       this.currentPage = 1;
-      this.loadQuestions();
+      this.applyView();
     });
     this.loadBanks();
-    this.loadStats();
-    this.loadQuestions();
-    this.loadTags();
   }
 
   ngOnDestroy(): void {
@@ -766,60 +767,122 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   // DATA LOADING
   // ==========================================
 
+  /**
+   * The new API lists questions only within a bank, so a bank must be chosen;
+   * there is no cross-bank list. Once a bank is picked its questions are
+   * fetched once and then searched, filtered, sorted and paged on the client.
+   */
   loadQuestions(): void {
-    this.loading = true;
-    const fd = new FormData();
-    fd.append('action', 'get_questions');
-    fd.append('page', this.currentPage.toString());
-    fd.append('per_page', this.pageSize.toString());
-    if (this.filters.search) fd.append('search', this.filters.search);
-    if (this.filters.bank_id) fd.append('bank_id', this.filters.bank_id);
-    if (this.filters.question_type) fd.append('question_type', this.filters.question_type);
-    if (this.filters.difficulty) fd.append('difficulty', this.filters.difficulty);
-    if (this.filters.status) fd.append('status', this.filters.status);
-    if (this.filters.tag) fd.append('tag', this.filters.tag);
-    fd.append('sort_by', this.filters.sort_by);
-    fd.append('sort_dir', this.filters.sort_dir);
+    const bankId = this.filters.bank_id;
+    if (!bankId) {
+      this.allQuestions = [];
+      this.notice = 'Choose a bank to list its questions. The new API lists questions within a bank.';
+      this.applyView();
 
-    this.http.post<ApiResponse<Question[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.questions = (res.data || []).map(q => ({
-            ...q,
-            tags: typeof q.tags === 'string' ? JSON.parse(q.tags as any) : (q.tags || []),
-            is_selected: false
-          }));
-          this.totalItems = res.total || this.questions.length;
-          this.totalPages = Math.ceil(this.totalItems / this.pageSize);
-        }
+      return;
+    }
+    this.notice = null;
+    this.loading = true;
+    const bankName = this.banks.find(b => b.id === bankId)?.name ?? '';
+    this.assessments.bankQuestions(bankId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => {
+        this.allQuestions = (page.items || []).map((r) => this.toQuestion(r, bankId, bankName));
+        this.computeStats();
+        this.applyView();
         this.loading = false;
       },
       error: () => { this.loading = false; this.showToast('Failed to load questions', 'error'); }
     });
   }
 
+  private toQuestion(r: Record<string, unknown>, bankId: string, bankName: string): Question {
+    return {
+      id: String(r['id'] ?? ''),
+      question_text: (r['text'] as string) ?? '',
+      question_type: this.typeToForm((r['type'] as string) ?? '') as Question['question_type'],
+      difficulty: this.difficultyToForm((r['difficulty'] as string) ?? '') as Question['difficulty'],
+      points: Number(r['points'] ?? 0),
+      bank_id: bankId,
+      bank_name: bankName,
+      category_id: '',
+      category_name: '',
+      tags: [],
+      status: (r['isActive'] === false) ? 'inactive' : 'active',
+      explanation: (r['explanation'] as string) ?? '',
+      time_limit_seconds: null,
+      usage_count: 0,
+      created_by: '',
+      created_by_name: '',
+      created_at: (r['createdAt'] as string) ?? '',
+      updated_at: (r['updatedAt'] as string) ?? '',
+      options: (r['options'] as any[]) ?? [],
+      is_selected: false,
+    };
+  }
+
+  private typeToForm(apiType: string): string {
+    const m: Record<string, string> = {
+      multiple_choice_single: 'multiple_choice', multiple_choice_multiple: 'multiple_response',
+      fill_in_blanks: 'fill_blank',
+    };
+    return m[apiType] || apiType;
+  }
+
+  private difficultyToForm(apiD: string): string {
+    const m: Record<string, string> = { beginner: 'easy', intermediate: 'medium', professional: 'hard' };
+    return m[apiD] || (apiD || 'medium');
+  }
+
+  /** Client-side search / type / difficulty / status filtering, sort and paging. */
+  private applyView(): void {
+    let rows = [...this.allQuestions];
+    const term = this.filters.search.trim().toLowerCase();
+    if (term) rows = rows.filter(q => q.question_text.toLowerCase().includes(term));
+    if (this.filters.question_type) rows = rows.filter(q => q.question_type === this.filters.question_type);
+    if (this.filters.difficulty) rows = rows.filter(q => q.difficulty === this.filters.difficulty);
+    if (this.filters.status) rows = rows.filter(q => q.status === this.filters.status);
+
+    const dir = this.filters.sort_dir === 'asc' ? 1 : -1;
+    const key = this.filters.sort_by;
+    rows.sort((a, b) => {
+      const av = (a as any)[key] ?? ''; const bv = (b as any)[key] ?? '';
+      return av > bv ? dir : av < bv ? -dir : 0;
+    });
+
+    this.totalItems = rows.length;
+    this.totalPages = Math.max(1, Math.ceil(rows.length / this.pageSize));
+    if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.questions = rows.slice(start, start + this.pageSize);
+  }
+
   loadBanks(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_banks');
-    this.http.post<ApiResponse<QuestionBank[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.status === 'success') this.banks = res.data || []; }
+    this.assessments.banks().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => {
+        this.banks = (page.items || []).map((b) => ({
+          id: b.id, name: b.name, description: b.description ?? '',
+          question_count: b.questionCount, status: 'active',
+        }));
+        this.loadQuestions();
+      }
     });
   }
 
-  loadStats(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_bank_stats');
-    this.http.post<ApiResponse<BankStats>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.status === 'success') this.stats = res.data; }
-    });
-  }
-
-  loadTags(): void {
-    const fd = new FormData();
-    fd.append('action', 'get_all_tags');
-    this.http.post<ApiResponse<string[]>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { if (res.status === 'success') this.allTags = res.data || []; }
-    });
+  /** No bank-stats route; the figures are totalled from the loaded bank. */
+  private computeStats(): void {
+    const byType = new Map<string, number>();
+    const byDiff = new Map<string, number>();
+    for (const q of this.allQuestions) {
+      byType.set(q.question_type, (byType.get(q.question_type) ?? 0) + 1);
+      byDiff.set(q.difficulty, (byDiff.get(q.difficulty) ?? 0) + 1);
+    }
+    this.stats = {
+      total_questions: this.allQuestions.length,
+      active_questions: this.allQuestions.filter(q => q.status === 'active').length,
+      total_banks: this.banks.length,
+      by_type: Array.from(byType, ([type, count]) => ({ type, count })),
+      by_difficulty: Array.from(byDiff, ([difficulty, count]) => ({ difficulty, count })),
+    };
   }
 
   // ==========================================
@@ -829,19 +892,20 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   setFilter(key: string, value: string): void {
     (this.filters as any)[key] = (this.filters as any)[key] === value ? '' : value;
     this.currentPage = 1;
-    this.loadQuestions();
+    this.applyView();
   }
 
   toggleTag(tag: string): void {
     this.filters.tag = this.filters.tag === tag ? '' : tag;
     this.currentPage = 1;
-    this.loadQuestions();
+    this.applyView();
   }
 
   clearFilters(): void {
-    this.filters = { search: '', bank_id: '', question_type: '', difficulty: '', status: '', tag: '', sort_by: 'created_at', sort_dir: 'desc' };
+    const bank = this.filters.bank_id;
+    this.filters = { search: '', bank_id: bank, question_type: '', difficulty: '', status: '', tag: '', sort_by: 'created_at', sort_dir: 'desc' };
     this.currentPage = 1;
-    this.loadQuestions();
+    this.applyView();
   }
 
   hasActiveFilters(): boolean {
@@ -864,7 +928,8 @@ export class QuestionListComponent implements OnInit, OnDestroy {
 
   get allSelected(): boolean { return this.questions.length > 0 && this.questions.every(q => q.is_selected); }
   get selectedCount(): number { return this.questions.filter(q => q.is_selected).length; }
-  get selectedIds(): number[] { return this.questions.filter(q => q.is_selected).map(q => q.id); }
+  get selectedIds(): string[] { return this.questions.filter(q => q.is_selected).map(q => q.id); }
+  private get selectedQuestions(): Question[] { return this.questions.filter(q => q.is_selected); }
 
   toggleSelectAll(): void {
     const val = !this.allSelected;
@@ -875,58 +940,36 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   clearSelection(): void { this.questions.forEach(q => q.is_selected = false); }
 
   bulkAction(action: string): void {
-    if (action === 'delete' && !confirm(`Delete ${this.selectedCount} questions? This cannot be undone.`)) return;
-    const fd = new FormData();
-    fd.append('action', 'bulk_action');
-    fd.append('bulk_action', action);
-    fd.append('question_ids', JSON.stringify(this.selectedIds));
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.showToast(`${this.selectedCount} questions updated`, 'success');
-          this.loadQuestions();
-          this.loadStats();
-        } else { this.showToast(res.message || 'Operation failed', 'error'); }
-      },
-      error: () => this.showToast('Operation failed', 'error')
+    if (action === 'delete') {
+      // No delete route for a bank question on the new API.
+      this.showToast('Deleting questions is being rebuilt on the new API.', 'error');
+
+      return;
+    }
+    // activate / deactivate: one isActive update per selected question.
+    const isActive = action === 'activate';
+    const targets = this.selectedQuestions;
+    if (targets.length === 0) return;
+    forkJoin(targets.map(q =>
+      this.assessments.updateQuestion(q.bank_id, q.id, { isActive }).pipe(catchError(() => of(null))),
+    )).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.showToast(`${targets.length} question(s) updated`, 'success');
+      this.loadQuestions();
     });
   }
 
+  // Moving a question between banks is not supported on the new API (a question
+  // is pinned to its bank).
   executeBulkMove(): void {
-    const fd = new FormData();
-    fd.append('action', 'bulk_move');
-    fd.append('question_ids', JSON.stringify(this.selectedIds));
-    fd.append('target_bank_id', this.bulkMoveTargetBank);
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.showToast('Questions moved successfully', 'success');
-          this.bulkMoveModal = false;
-          this.loadQuestions();
-          this.loadBanks();
-        } else { this.showToast(res.message || 'Move failed', 'error'); }
-      },
-      error: () => this.showToast('Move failed', 'error')
-    });
+    this.bulkMoveModal = false;
+    this.showToast('Moving questions between banks is being rebuilt.', 'error');
   }
 
+  // The new question model has no tags.
   executeBulkTag(): void {
-    const fd = new FormData();
-    fd.append('action', 'bulk_add_tags');
-    fd.append('question_ids', JSON.stringify(this.selectedIds));
-    fd.append('tags', this.bulkTagInput);
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.showToast('Tags added successfully', 'success');
-          this.bulkTagModal = false;
-          this.bulkTagInput = '';
-          this.loadQuestions();
-          this.loadTags();
-        } else { this.showToast(res.message || 'Failed', 'error'); }
-      },
-      error: () => this.showToast('Failed to add tags', 'error')
-    });
+    this.bulkTagModal = false;
+    this.bulkTagInput = '';
+    this.showToast('Question tags are being rebuilt on the new API.', 'error');
   }
 
   addBulkTag(tag: string): void {
@@ -937,23 +980,22 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** No server export route; a simple CSV is built from the loaded rows. */
   exportSelected(): void {
-    const fd = new FormData();
-    fd.append('action', 'export_questions');
-    fd.append('question_ids', JSON.stringify(this.selectedIds));
-    fd.append('format', 'csv');
-    this.http.post(this.apiUrl, fd, { responseType: 'blob' }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'questions_export.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-        this.showToast('Export downloaded', 'success');
-      },
-      error: () => this.showToast('Export failed', 'error')
-    });
+    const rows = this.selectedQuestions.length ? this.selectedQuestions : this.allQuestions;
+    if (rows.length === 0) { this.showToast('Nothing to export', 'error'); return; }
+    const esc = (v: string) => `"${(v || '').replace(/"/g, '""')}"`;
+    const csv = ['Question,Type,Difficulty,Points,Status']
+      .concat(rows.map(q => [
+        esc(this.truncate(q.question_text, 500)), q.question_type, q.difficulty, String(q.points), q.status,
+      ].join(',')))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'questions_export.csv'; a.click();
+    URL.revokeObjectURL(url);
+    this.showToast('Export downloaded', 'success');
   }
 
   // ==========================================
@@ -963,56 +1005,27 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   createQuestion(): void { this.router.navigate(['/admin/question-bank/create']); }
   editQuestion(q: Question | null): void { this.router.navigate(['/admin/question-bank/edit', q?.id]); }
 
+  // No single-question GET; the already-loaded row (from the bank list) is the
+  // preview.
   previewQuestion(q: Question | null): void {
-    if (!q) return;
-    const fd = new FormData();
-    fd.append('action', 'get_question');
-    fd.append('question_id', q.id.toString());
-    this.http.post<ApiResponse<Question>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.previewTarget = {
-            ...res.data,
-            tags: (res.data.tags || [])
-          };
-        }
-      }
-    });
+    if (q) this.previewTarget = q;
   }
 
-  duplicateQuestion(q: Question): void {
-    const fd = new FormData();
-    fd.append('action', 'duplicate_question');
-    fd.append('question_id', q.id.toString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.showToast('Question duplicated', 'success');
-          this.loadQuestions();
-          this.loadStats();
-        } else { this.showToast(res.message || 'Duplication failed', 'error'); }
-      },
-      error: () => this.showToast('Duplication failed', 'error')
-    });
+  // No question-duplicate route on the new API.
+  duplicateQuestion(_q: Question): void {
+    this.showToast('Duplicating a question is being rebuilt on the new API.', 'error');
   }
 
   confirmDelete(q: Question): void { this.deleteTarget = q; }
 
+  // No delete route for a bank question; deactivate it instead of removing it.
   executeDelete(q: Question): void {
-    const fd = new FormData();
-    fd.append('action', 'delete_question');
-    fd.append('question_id', q.id.toString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.showToast('Question deleted', 'success');
-          this.deleteTarget = null;
-          this.loadQuestions();
-          this.loadStats();
-        } else { this.showToast(res.message || 'Delete failed', 'error'); }
-      },
-      error: () => this.showToast('Delete failed', 'error')
-    });
+    this.deleteTarget = null;
+    this.assessments.updateQuestion(q.bank_id, q.id, { isActive: false })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => { this.showToast('Question deactivated (delete is being rebuilt).', 'success'); this.loadQuestions(); },
+        error: () => this.showToast('Could not update the question.', 'error'),
+      });
   }
 
   // ==========================================
@@ -1020,48 +1033,30 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   // ==========================================
 
   createBank(): void {
-    const fd = new FormData();
-    fd.append('action', 'create_bank');
-    fd.append('name', this.newBankName.trim());
-    fd.append('description', this.newBankDesc.trim());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') {
-          this.showToast('Bank created', 'success');
-          this.newBankName = '';
-          this.newBankDesc = '';
-          this.loadBanks();
-          this.loadStats();
-        } else { this.showToast(res.message || 'Failed', 'error'); }
-      },
-      error: () => this.showToast('Failed to create bank', 'error')
-    });
+    this.assessments.createBank({ name: this.newBankName.trim(), description: this.newBankDesc.trim() || null })
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => { this.showToast('Bank created', 'success'); this.newBankName = ''; this.newBankDesc = ''; this.loadBanks(); },
+        error: () => this.showToast('Failed to create bank', 'error'),
+      });
   }
 
   editBank(bank: QuestionBank): void {
     const newName = prompt('Bank name:', bank.name);
     if (newName && newName.trim()) {
-      const fd = new FormData();
-      fd.append('action', 'update_bank');
-      fd.append('bank_id', bank.id.toString());
-      fd.append('name', newName.trim());
-      this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-        next: (res) => { if (res.status === 'success') { this.showToast('Bank updated', 'success'); this.loadBanks(); } }
-      });
+      this.assessments.updateBank(bank.id, { name: newName.trim() })
+        .pipe(takeUntil(this.destroy$)).subscribe({
+          next: () => { this.showToast('Bank updated', 'success'); this.loadBanks(); },
+          error: () => this.showToast('Failed to update bank', 'error'),
+        });
     }
   }
 
   deleteBank(bank: QuestionBank): void {
     if (bank.question_count > 0) { this.showToast('Cannot delete bank with questions', 'error'); return; }
     if (!confirm(`Delete bank "${bank.name}"?`)) return;
-    const fd = new FormData();
-    fd.append('action', 'delete_bank');
-    fd.append('bank_id', bank.id.toString());
-    this.http.post<ApiResponse<any>>(this.apiUrl, fd).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => {
-        if (res.status === 'success') { this.showToast('Bank deleted', 'success'); this.loadBanks(); this.loadStats(); }
-        else { this.showToast(res.message || 'Failed', 'error'); }
-      }
+    this.assessments.deleteBank(bank.id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => { this.showToast('Bank deleted', 'success'); this.loadBanks(); },
+      error: () => this.showToast('Failed to delete bank', 'error'),
     });
   }
 
@@ -1072,7 +1067,7 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    this.loadQuestions();
+    this.applyView();
   }
 
   getPageNumbers(): number[] {
@@ -1089,7 +1084,7 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   // HELPERS
   // ==========================================
 
-  trackById(_: number, q: Question): number { return q.id; }
+  trackById(_: number, q: Question): string { return q.id; }
 
   truncate(text: string, max: number): string {
     if (!text) return '';
