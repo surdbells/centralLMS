@@ -16,7 +16,7 @@ import { AssessmentsService, type LearnerAssessment } from '../../services/asses
 
 interface CatalogAssessment {
   assessment_id: string; title: string; description: string;
-  assessment_type: 'quiz'|'exam'|'practice'|'survey';
+  assessment_type: 'quiz'|'exam'|'assignment'|'survey';
   category_id: string; category_name: string;
   course_id: string|null; course_title: string|null;
   total_questions: number; total_points: number;
@@ -81,7 +81,7 @@ interface Category { id: string; name: string; count: number; }
           <select class="fc" [(ngModel)]="filterType" (change)="applyFilters()">
             <option value="">All Types</option>
             <option value="quiz">Quiz</option><option value="exam">Exam</option>
-            <option value="practice">Practice</option><option value="survey">Survey</option>
+            <option value="assignment">Assignment</option><option value="survey">Survey</option>
           </select>
           <select class="fc" [(ngModel)]="filterDifficulty" (change)="applyFilters()">
             <option value="">Any Difficulty</option>
@@ -249,12 +249,12 @@ interface Category { id: string; name: string; count: number; }
     .ac-type { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
     .ac-type[data-type="quiz"] { background: #dbeafe; color: #1e40af; }
     .ac-type[data-type="exam"] { background: #fef2f2; color: #991b1b; }
-    .ac-type[data-type="practice"] { background: #d1fae5; color: #065f46; }
+    .ac-type[data-type="assignment"] { background: #d1fae5; color: #065f46; }
     .ac-type[data-type="survey"] { background: #fef3c7; color: #92400e; }
     .type-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
     .type-badge[data-type="quiz"] { background: #dbeafe; color: #1e40af; }
     .type-badge[data-type="exam"] { background: #fef2f2; color: #991b1b; }
-    .type-badge[data-type="practice"] { background: #d1fae5; color: #065f46; }
+    .type-badge[data-type="assignment"] { background: #d1fae5; color: #065f46; }
     .type-badge[data-type="survey"] { background: #fef3c7; color: #92400e; }
     .ac-proctored { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(99,102,241,0.15); color: #4f46e5; display: flex; align-items: center; gap: 3px; }
     .ac-body { padding: 14px 16px 0; flex: 1; }

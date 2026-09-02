@@ -54,19 +54,19 @@ interface QuestionAnalytics {
 
       <!-- Filters -->
       <div class="filter-row">
-        <select class="fc" [(ngModel)]="filterAssessment" (change)="loadReport()">
+        <select class="fc" [(ngModel)]="filterAssessment" (change)="onFilterChange()">
           <option value="">All Assessments</option>
           <option *ngFor="let a of assessments" [value]="a.id">{{ a.title }}</option>
         </select>
-        <select class="fc" [(ngModel)]="filterCategory" (change)="loadReport()">
+        <select class="fc" [(ngModel)]="filterCategory" (change)="onFilterChange()">
           <option value="">All Categories</option>
           <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
         </select>
-        <select class="fc" [(ngModel)]="filterStatus" (change)="loadReport()">
+        <select class="fc" [(ngModel)]="filterStatus" (change)="onFilterChange()">
           <option value="">All Statuses</option><option value="passed">Passed</option>
           <option value="failed">Failed</option><option value="in_progress">In Progress</option>
         </select>
-        <select class="fc" [(ngModel)]="dateRange" (change)="loadReport()">
+        <select class="fc" [(ngModel)]="dateRange" (change)="onFilterChange()">
           <option value="7d">Last 7 Days</option><option value="30d">Last 30 Days</option>
           <option value="90d">Last 90 Days</option><option value="all">All Time</option>
         </select>
@@ -264,8 +264,20 @@ export class AssessmentReportsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadAssessments();
+    // The Learner Performance tab is the default view; load it up front rather
+    // than waiting for the first filter change.
+    this.loadReport();
   }
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
+
+  /** A filter changed — reload whichever tab is showing. */
+  onFilterChange(): void {
+    if (this.activeTab === 'questions') {
+      this.loadQuestionAnalytics();
+    } else {
+      this.loadReport();
+    }
+  }
 
   loadAssessments(): void {
     // The assessment dropdown feeds off the authoring list; category options

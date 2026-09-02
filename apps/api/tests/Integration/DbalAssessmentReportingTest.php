@@ -204,6 +204,31 @@ final class DbalAssessmentReportingTest extends TestCase
     }
 
     #[Test]
+    public function catalogue_counts_an_auto_submitted_pass_as_passed(): void
+    {
+        // A fresh learner whose only attempt is an auto-submitted (timer-expiry)
+        // pass — the terminal status is 'auto_submitted', not 'graded'.
+        $learner = $this->createUser('Grace', 'Hopper', null);
+        $attempt = (string) $this->db()->fetchOne(
+            "INSERT INTO attempts
+                (tenant_id, assessment_id, user_id, attempt_number, status,
+                 raw_score, max_score, percentage, passed, time_spent_seconds,
+                 started_at, submitted_at, graded_at)
+             VALUES (:t, :a, :u, 1, 'auto_submitted', 9, 10, 90, true, 300,
+                 now() - interval '2 days', now() - interval '1 day', now() - interval '1 day')
+             RETURNING id",
+            ['t' => $this->tenant, 'a' => $this->assessmentId, 'u' => $learner],
+        );
+        self::assertNotSame('', $attempt);
+
+        $rows = $this->assessments->catalogueForLearner($this->tenant, $learner);
+        self::assertCount(1, $rows);
+        self::assertSame('passed', $rows[0]->enrollmentStatus);
+        self::assertSame(1, $rows[0]->attemptCount);
+        self::assertSame(90.0, $rows[0]->bestScore);
+    }
+
+    #[Test]
     public function catalogue_assigned_only_hides_unassigned_assessments(): void
     {
         // learner2 has no assignment, so assigned-only is empty for them...

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, filter, map, switchMap } from 'rxjs';
-import { ApiClient, Endpoints, type Paged } from '../core/api';
+import { EMPTY, Observable, expand, filter, map, reduce, switchMap } from 'rxjs';
+import { ApiClient, Endpoints, type Paged, type PageMeta } from '../core/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -208,16 +208,41 @@ export class AssessmentsService {
     return this.api.delete<void>(Endpoints.banks.delete(id));
   }
 
-  /** The questions in one bank, in their review shape (with the answer key). */
+  /**
+   * The questions in one bank, in their review shape (with the answer key).
+   *
+   * Fetches every page: the server caps perPage at 100, and the callers page
+   * client-side over the whole set, so a bank with more than 100 questions
+   * would otherwise silently lose the rest (and a truncated question could not
+   * be opened to edit).
+   */
   bankQuestions(
     bankId: string,
     opts: { tag?: string; type?: string } = {},
   ): Observable<Paged<Record<string, unknown>>> {
-    return this.api.getPaged<Record<string, unknown>>(Endpoints.questions.list(bankId), {
-      perPage: 200,
-      tag: opts.tag || undefined,
-      type: opts.type || undefined,
-    });
+    return this.allPages<Record<string, unknown>>((page) =>
+      this.api.getPaged<Record<string, unknown>>(Endpoints.questions.list(bankId), {
+        perPage: 100,
+        page,
+        tag: opts.tag || undefined,
+        type: opts.type || undefined,
+      }));
+  }
+
+  /**
+   * Follows the pagination all the way and returns one page with every item.
+   * Used where the caller filters/pages client-side over the full set.
+   */
+  private allPages<T>(fetchPage: (page: number) => Observable<Paged<T>>): Observable<Paged<T>> {
+    const emptyMeta: PageMeta = { total: 0, page: 1, perPage: 100, totalPages: 1 };
+
+    return fetchPage(1).pipe(
+      expand((res) => (res.meta.page < res.meta.totalPages ? fetchPage(res.meta.page + 1) : EMPTY)),
+      reduce<Paged<T>, Paged<T>>(
+        (acc, res) => ({ items: acc.items.concat(res.items), meta: res.meta }),
+        { items: [], meta: emptyMeta },
+      ),
+    );
   }
 
   createQuestion(bankId: string, input: QuestionInput): Observable<Question> {
@@ -469,12 +494,18 @@ export class AssessmentsService {
     );
   }
 
-  /** Every flagged sitting; `pending` for the ones not yet signed off. */
+  /**
+   * Every flagged sitting; `pending` for the ones not yet signed off. All
+   * pages: the review screen paginates and tallies stats client-side, so
+   * capping at one 100-row page would under-count a busy tenant.
+   */
   flaggedSittings(pending = false): Observable<Paged<Record<string, unknown>>> {
-    return this.api.getPaged<Record<string, unknown>>(Endpoints.proctoring.allQueues, {
-      pending: pending ? 1 : undefined,
-      perPage: 100,
-    });
+    return this.allPages<Record<string, unknown>>((page) =>
+      this.api.getPaged<Record<string, unknown>>(Endpoints.proctoring.allQueues, {
+        pending: pending ? 1 : undefined,
+        perPage: 100,
+        page,
+      }));
   }
 
   flaggedFor(assessmentId: string): Observable<Paged<Record<string, unknown>>> {

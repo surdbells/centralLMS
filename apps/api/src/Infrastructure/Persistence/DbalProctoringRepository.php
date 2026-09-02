@@ -409,17 +409,25 @@ final class DbalProctoringRepository implements ProctoringRepository
         ?string $notes,
         string $reviewerId,
     ): ?ProctoringSession {
+        // A 'pending' verdict reopens the sitting, so it must leave reviewed_at
+        // NULL — the pending queue filters on that. Stamping it would silently
+        // drop a still-pending sitting from the queue.
+        $reopening = $status === 'pending';
+
         $affected = $this->connection->executeStatement(
             'UPDATE proctoring_sessions
              SET review_status = :status, review_notes = :notes,
-                 reviewed_by = :reviewer, reviewed_at = NOW(), updated_at = NOW()
+                 reviewed_by = :reviewer,
+                 reviewed_at = CASE WHEN :reopening THEN NULL ELSE NOW() END,
+                 updated_at = NOW()
              WHERE id = :id AND tenant_id = :tenant',
             [
-                'status'   => $status,
-                'notes'    => $notes,
-                'reviewer' => $reviewerId,
-                'id'       => $sessionId,
-                'tenant'   => $tenantId,
+                'status'    => $status,
+                'notes'     => $notes,
+                'reviewer'  => $reopening ? null : $reviewerId,
+                'reopening' => $reopening ? 'true' : 'false',
+                'id'        => $sessionId,
+                'tenant'    => $tenantId,
             ],
         );
 

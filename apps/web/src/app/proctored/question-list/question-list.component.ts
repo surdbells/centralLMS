@@ -460,10 +460,10 @@ interface FilterState {
             <div class="preview-question" [innerHTML]="previewTarget.question_text"></div>
             <div class="preview-options" *ngIf="previewTarget.options?.length">
               <div *ngFor="let opt of previewTarget.options; let i = index" class="preview-option"
-                   [class.correct]="opt.is_correct">
+                   [class.correct]="opt.isCorrect || opt.is_correct">
                 <span class="opt-marker">{{ getOptionMarker(i) }}</span>
                 <span class="opt-text">{{ opt.text || opt.option_text }}</span>
-                <tui-icon *ngIf="opt.is_correct" icon="@tui.check" style="font-size:14px;color:#22c55e"></tui-icon>
+                <tui-icon *ngIf="opt.isCorrect || opt.is_correct" icon="@tui.check" style="font-size:14px;color:#22c55e"></tui-icon>
               </div>
             </div>
             <div class="preview-explanation" *ngIf="previewTarget.explanation">

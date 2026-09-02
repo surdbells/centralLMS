@@ -96,6 +96,29 @@ final class DbalProctoringReviewTest extends TestCase
     }
 
     #[Test]
+    public function a_pending_verdict_reopens_the_sitting_for_the_queue(): void
+    {
+        // First flag it (stamps reviewed_at)...
+        $flagged = $this->proctoring->reviewSession(
+            $this->tenant, $this->session->id, 'flagged', 'look again', $this->reviewer,
+        );
+        self::assertNotNull($flagged?->reviewedAt);
+
+        // ...then reopen it. 'pending' must clear reviewed_at so the pending
+        // queue (reviewed_at IS NULL) shows it again.
+        $reopened = $this->proctoring->reviewSession(
+            $this->tenant, $this->session->id, 'pending', 'still checking', $this->reviewer,
+        );
+        self::assertNotNull($reopened);
+        self::assertSame('pending', $reopened->reviewStatus);
+        self::assertNull($reopened->reviewedAt);
+
+        $pending = $this->proctoring->reviewQueue($this->tenant, null, 1, 50, pendingOnly: true);
+        $ids = array_column($pending['items'], 'sessionId');
+        self::assertContains($this->session->id, $ids);
+    }
+
+    #[Test]
     public function reviewing_an_unknown_sitting_returns_null(): void
     {
         self::assertNull($this->proctoring->reviewSession(

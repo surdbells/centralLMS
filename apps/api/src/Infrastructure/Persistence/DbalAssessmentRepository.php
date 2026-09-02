@@ -534,7 +534,7 @@ final class DbalAssessmentRepository implements AssessmentRepository
                     COUNT(DISTINCT q.id) AS count,
                     COALESCE(ROUND(AVG(100.0 * aa.points_earned / NULLIF(aa.points_possible, 0))
                         FILTER (WHERE aa.graded_at IS NOT NULL AND aa.graded_at >= :from), 0), 0) AS avg_score,
-                    COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE aa.is_correct)
+                    COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE aa.is_correct AND aa.graded_at >= :from)
                         / NULLIF(COUNT(*) FILTER (WHERE aa.is_correct IS NOT NULL AND aa.graded_at >= :from), 0), 0), 0) AS pass_rate
              FROM questions q
              LEFT JOIN attempt_answers aa ON aa.question_id = q.id AND aa.tenant_id = :tenant
@@ -665,8 +665,11 @@ final class DbalAssessmentRepository implements AssessmentRepository
                        MAX(percentage) FILTER (WHERE status IN ('graded','auto_submitted')) AS best_score,
                        bool_or(status IN ('in_progress','not_started')) AS has_open,
                        bool_or(status IN ('submitted','grading')) AS has_submitted,
-                       bool_or(status = 'graded' AND passed) AS has_passed,
-                       bool_or(status = 'graded' AND NOT passed) AS has_failed
+                       -- auto_submitted carries a real verdict (a timed paper
+                       -- that expired is graded, then stamped auto_submitted),
+                       -- so it counts toward passed/failed like graded does.
+                       bool_or(status IN ('graded','auto_submitted') AND passed) AS has_passed,
+                       bool_or(status IN ('graded','auto_submitted') AND NOT passed) AS has_failed
                 FROM attempts
                 WHERE tenant_id = :tenant AND user_id = :user
                 GROUP BY assessment_id

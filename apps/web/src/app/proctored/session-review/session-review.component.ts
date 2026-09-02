@@ -751,9 +751,16 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
   }
 
   private reviewSitting(s: ProctoringSession, status: 'cleared' | 'flagged' | 'pending'): void {
+    // The notes textarea (this.reviewNotes) belongs to the open modal's
+    // session. A Clear/Flag click on another row must carry THAT row's own
+    // notes, not the last-opened session's — otherwise one sitting's notes
+    // land on another.
+    const actingOnOpen = this.showDetailModal && this.selectedSession?.attempt_id === s.attempt_id;
+    const notes = (actingOnOpen ? this.reviewNotes : (s.review_notes || '')).trim() || undefined;
+
     this.assessments.reviewSitting(s.attempt_id, {
       status,
-      notes: this.reviewNotes.trim() || undefined,
+      notes,
     }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notice = status === 'cleared' ? 'Sitting cleared.'
