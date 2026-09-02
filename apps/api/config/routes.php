@@ -169,6 +169,15 @@ return static function (App $app): void {
         $v1->get('/settings/public', [TenantSettingsAction::class, 'publicSettings'])
             ->setName('settings.public');
 
+        // Certificate verification, also under /v1 so the signed-in app can
+        // reach it: its client prefixes every path with /v1, so a bare
+        // /verify came out as /v1/verify and 404ed. The root-level routes
+        // above stay for the public link a QR code carries.
+        $v1->get('/verify/{hash}', [VerifyCertificateAction::class, 'byHash'])
+            ->setName('certificates.verify.v1');
+        $v1->post('/verify', [VerifyCertificateAction::class, 'byCode'])
+            ->setName('certificates.verifyByCode.v1');
+
         $v1->group('/auth', function (RouteCollectorProxy $auth): void {
             $auth->post('/login', LoginAction::class)->setName('auth.login');
 
