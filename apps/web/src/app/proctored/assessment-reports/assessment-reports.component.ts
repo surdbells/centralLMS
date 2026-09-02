@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // =============================================
 // PROCTORED ASSESSMENT MODULE - PHASE 15
 // Admin: Assessment Reports Component
@@ -9,16 +8,14 @@ import { decodeSessionBlob } from '../../core/utils/session-blob';
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { AssessmentAdminService } from '../assessment-admin.service';
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
-interface Assessment { id: number; title: string; }
-interface Category { id: number; name: string; }
+interface Assessment { id: string; title: string; }
+interface Category { id: string; name: string; }
 
 interface ReportRow {
   learner_id: number; learner_name: string; email: string; department: string;
@@ -48,6 +45,11 @@ interface QuestionAnalytics {
           <button class="btn btn-outline" (click)="exportReport('csv')"><tui-icon icon="@tui.download" style="font-size:14px"></tui-icon> CSV</button>
           <button class="btn btn-outline" (click)="exportReport('pdf')"><tui-icon icon="@tui.file" style="font-size:14px"></tui-icon> PDF</button>
         </div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice">
+        <tui-icon icon="@tui.info"></tui-icon>
+        <span>{{ notice }}</span>
       </div>
 
       <!-- Filters -->
@@ -224,39 +226,16 @@ interface QuestionAnalytics {
   `]
 })
 export class AssessmentReportsComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private admin = inject(AssessmentAdminService);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment.php';
 
   assessments: Assessment[] = [];
   categories: Category[] = [];
   reportData: ReportRow[] = [];
   questionData: QuestionAnalytics[] = [];
   loading = false;
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
+  notice: string | null = null;
   activeTab = 'learners';
   filterAssessment = '';
   filterCategory = '';
@@ -284,41 +263,33 @@ export class AssessmentReportsComponent implements OnInit, OnDestroy {
   get failCount(): number { return this.reportData.filter(r => !r.passed && r.status === 'failed').length; }
 
   ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
-    this.loadAssessments(); this.loadCategories(); this.loadReport();
+    this.loadAssessments();
   }
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
   loadAssessments(): void {
-    const body: any = { action: 'get-assessments-list', token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<Assessment[]>>(this.apiUrl, body).pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { if (r.status === 'success') this.assessments = r.data || []; } });
-  }
-
-  loadCategories(): void {
-    const body: any = { action: 'get-categories', token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<Category[]>>(this.apiUrl, body).pipe(takeUntil(this.destroy$))
-      .subscribe({ next: r => { if (r.status === 'success') this.categories = r.data || []; } });
-  }
-
-  loadReport(): void {
-    this.loading = true;
-    const body: any = { action: 'get-learner-report', assessment_id: this.filterAssessment, category_id: this.filterCategory, status: this.filterStatus, range: this.dateRange, token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<ReportRow[]>>(this.apiUrl, body).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => { this.loading = false; if (r.status === 'success') { this.reportData = r.data || []; this.page = 1; } },
-      error: () => { this.loading = false; }
+    // The assessment dropdown feeds off the authoring list; category options
+    // have no listing endpoint yet, so that filter stays empty.
+    this.admin.list({ perPage: 200 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => { this.assessments = (page.items || []).map((a) => ({ id: a.id, title: a.title })); },
     });
+  }
+
+  loadCategories(): void { /* no categories listing endpoint on the new API */ }
+
+  // The per-learner performance report has no endpoint on the new API yet, so
+  // it shows nothing with an explanation rather than a broken call.
+  loadReport(): void {
+    this.loading = false;
+    this.reportData = [];
+    this.page = 1;
+    this.notice = 'The learner-performance report is being rebuilt on the new API.';
   }
 
   loadQuestionAnalytics(): void {
-    if (!this.filterAssessment) return;
-    this.loading = true;
-    const body: any = { action: 'get-question-analytics', assessment_id: this.filterAssessment, token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<QuestionAnalytics[]>>(this.apiUrl, body).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => { this.loading = false; if (r.status === 'success') this.questionData = r.data || []; },
-      error: () => { this.loading = false; }
-    });
+    this.loading = false;
+    this.questionData = [];
+    this.notice = 'Question item-analysis is being rebuilt on the new API.';
   }
 
   sortBy(field: string): void {
@@ -328,15 +299,9 @@ export class AssessmentReportsComponent implements OnInit, OnDestroy {
 
   goToPage(p: number): void { if (p >= 1 && p <= this.totalPages) this.page = p; }
 
-  exportReport(format: string): void {
-    const body: any = { action: 'export-report', assessment_id: this.filterAssessment, range: this.dateRange, token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post(this.apiUrl, body, { responseType: 'blob' }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url;
-        a.download = `assessment-report.${format}`; a.click(); URL.revokeObjectURL(url);
-      }
-    });
+  exportReport(_format: string): void {
+    // No report data source yet, so there is nothing to export.
+    this.notice = 'Report export is being rebuilt on the new API.';
   }
 
   formatDate(d: string): string { if (!d) return '-'; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }

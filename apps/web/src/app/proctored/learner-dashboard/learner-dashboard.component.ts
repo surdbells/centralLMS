@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // =============================================
 // PROCTORED ASSESSMENT MODULE - PHASE 15
 // Learner: Assessment Dashboard Component
@@ -9,14 +8,14 @@ import { decodeSessionBlob } from '../../core/utils/session-blob';
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
-import {TopComponent} from '../../partials/top/top.component';
-
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
+import { TopComponent } from '../../partials/top/top.component';
+import { AssessmentsService, type AttemptResult } from '../../services/assessments.service';
+import { CertificatesService } from '../../services/certificates.service';
+import { GamificationService } from '../../services/gamification.service';
 
 interface LearnerStats {
   total_assessments: number; completed: number; passed: number; failed: number;
@@ -26,23 +25,23 @@ interface LearnerStats {
 }
 
 interface ActiveAssessment {
-  assessment_id: number; title: string; assessment_type: string;
-  attempt_id: number; progress_percent: number; questions_answered: number;
+  assessment_id: string; title: string; assessment_type: string;
+  attempt_id: string; progress_percent: number; questions_answered: number;
   total_questions: number; time_remaining_seconds: number|null;
   started_at: string; proctoring_level: string;
 }
 
 interface UpcomingAssessment {
-  assessment_id: number; title: string; assessment_type: string;
+  assessment_id: string; title: string; assessment_type: string;
   due_date: string|null; is_mandatory: boolean; time_limit_minutes: number;
   total_questions: number; proctoring_level: string; category_name: string;
 }
 
 interface RecentResult {
-  attempt_id: number; assessment_id: number; title: string;
+  attempt_id: string; assessment_id: string; title: string;
   assessment_type: string; completed_at: string; score: number;
   max_score: number; percentage: number; passed: boolean;
-  grade: string; certificate_id: number|null;
+  grade: string; certificate_id: string|null;
 }
 
 interface SkillProgress { name: string; score: number; max: number; percentage: number; assessments_taken: number; }
@@ -348,39 +347,17 @@ interface SkillProgress { name: string; score: number; max: number; percentage: 
   `]
 })
 export class LearnerDashboardComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private assessments = inject(AssessmentsService);
+  private certificates = inject(CertificatesService);
+  private gamification = inject(GamificationService);
   router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment.php';
 
   stats: LearnerStats|null = null;
   activeAssessments: ActiveAssessment[] = [];
   upcomingAssessments: UpcomingAssessment[] = [];
   recentResults: RecentResult[] = [];
   skillProgress: SkillProgress[] = [];
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
   readonly CIRCUMFERENCE = 2 * Math.PI * 52;
   get ringDash(): string { return this.CIRCUMFERENCE.toString(); }
   get ringOffset(): string { return (this.CIRCUMFERENCE * (1 - (this.stats?.completion_rate || 0) / 100)).toString(); }
@@ -392,33 +369,78 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
     this.loadDashboard();
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
+  /**
+   * There is no single learner-dashboard endpoint on the new API, so the view
+   * is assembled: the attempt stats and in-progress/recent lists from the
+   * caller's own attempts, points and rank from gamification, and the
+   * certificate count from their certificates. What has no learner-facing
+   * source -- an assigned/upcoming list, live in-progress fields, per-skill
+   * assessment scores -- stays empty rather than guessed at.
+   */
   loadDashboard(): void {
-    const body: any = { action: 'get-learner-dashboard', token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<any>>(this.apiUrl, body).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        if (r.status === 'success') {
-          this.stats = r.data.stats;
-          this.activeAssessments = r.data.active || [];
-          this.upcomingAssessments = r.data.upcoming || [];
-          this.recentResults = r.data.recent_results || [];
-          this.skillProgress = r.data.skill_progress || [];
-        }
-      }
+    forkJoin({
+      attempts: this.assessments.myAttempts(200).pipe(catchError(() => of([] as AttemptResult[]))),
+      certs: this.certificates.mine().pipe(catchError(() => of([]))),
+      game: this.gamification.mine().pipe(catchError(() => of(null))),
+      board: this.gamification.leaderboard('all_time', 100).pipe(catchError(() => of(null))),
+    }).pipe(takeUntil(this.destroy$)).subscribe(({ attempts, certs, game, board }) => {
+      const completed = attempts.filter(a => this.isScored(a));
+      const passed = completed.filter(a => a.passed === true).length;
+      const failed = completed.filter(a => a.passed === false).length;
+      const inProgress = attempts.filter(a => a.status === 'in_progress');
+      const scores = completed.map(a => a.percentage ?? 0);
+
+      this.stats = {
+        total_assessments: attempts.length,
+        completed: completed.length,
+        passed, failed,
+        in_progress: inProgress.length,
+        avg_score: scores.length ? Math.round(scores.reduce((x, y) => x + y, 0) / scores.length) : 0,
+        total_points_earned: game?.points ?? 0,
+        certificates_earned: certs.length,
+        streak_days: 0,
+        ranking: game?.rank?.rank ?? 0,
+        total_learners: board?.entries.length ?? 0,
+        // No assigned/available denominator, so completion is of what was sat.
+        completion_rate: attempts.length ? Math.round((completed.length / attempts.length) * 100) : 0,
+      };
+
+      this.activeAssessments = inProgress.map(a => ({
+        assessment_id: a.assessmentId, title: a.assessmentTitle ?? 'Assessment',
+        assessment_type: '', attempt_id: a.id,
+        progress_percent: 0, questions_answered: 0, total_questions: 0,
+        time_remaining_seconds: null, started_at: a.startedAt ?? '', proctoring_level: '',
+      }));
+
+      this.recentResults = completed
+        .sort((a, b) => new Date(b.submittedAt ?? 0).getTime() - new Date(a.submittedAt ?? 0).getTime())
+        .slice(0, 6)
+        .map(a => ({
+          attempt_id: a.id, assessment_id: a.assessmentId, title: a.assessmentTitle ?? 'Assessment',
+          assessment_type: '', completed_at: a.submittedAt ?? '',
+          score: a.rawScore ?? 0, max_score: a.maxScore ?? 0, percentage: a.percentage ?? 0,
+          passed: a.passed === true, grade: '', certificate_id: null,
+        }));
+
+      this.upcomingAssessments = [];
+      this.skillProgress = [];
     });
+  }
+
+  private isScored(a: AttemptResult): boolean {
+    return a.status === 'graded' || a.status === 'auto_submitted';
   }
 
   resumeAttempt(a: ActiveAssessment): void {
     this.router.navigate(['/learner/assessments', a.assessment_id, 'attempt', a.attempt_id]);
   }
 
-  openAssessment(id: number): void {
+  openAssessment(id: string): void {
     this.router.navigate(['/learner/assessments', id, 'lobby']);
   }
 

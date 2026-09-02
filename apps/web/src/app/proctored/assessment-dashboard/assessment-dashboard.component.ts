@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // =============================================
 // PROCTORED ASSESSMENT MODULE - PHASE 15
 // Admin: Assessment Dashboard Component
@@ -9,14 +8,14 @@ import { decodeSessionBlob } from '../../core/utils/session-blob';
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
-
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
+import { AssessmentAdminService } from '../assessment-admin.service';
+import { AssessmentsService } from '../../services/assessments.service';
+import { CertificatesService } from '../../services/certificates.service';
 
 interface DashboardStats {
   total_assessments: number; published: number; draft: number;
@@ -29,8 +28,8 @@ interface DashboardStats {
 
 interface TypeDistribution { type: string; count: number; percentage: number; }
 interface MonthlyTrend { month: string; attempts: number; pass_rate: number; avg_score: number; }
-interface TopAssessment { assessment_id: number; title: string; type: string; attempts: number; avg_score: number; pass_rate: number; }
-interface RecentActivity { id: number; type: string; message: string; timestamp: string; user_name: string; assessment_title: string; }
+interface TopAssessment { assessment_id: string; title: string; type: string; attempts: number; avg_score: number; pass_rate: number; }
+interface RecentActivity { id: string; type: string; message: string; timestamp: string; user_name: string; assessment_title: string; }
 interface DifficultyBreakdown { difficulty: string; count: number; avg_score: number; pass_rate: number; }
 
 @Component({
@@ -286,34 +285,11 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
   `]
 })
 export class AssessmentDashboardComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
+  private admin = inject(AssessmentAdminService);
+  private assessments = inject(AssessmentsService);
+  private certificates = inject(CertificatesService);
   router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment.php';
-
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
 
   stats: DashboardStats|null = null;
   monthlyTrends: MonthlyTrend[] = [];
@@ -329,26 +305,63 @@ export class AssessmentDashboardComponent implements OnInit, OnDestroy {
   get maxAttempts(): number { return Math.max(...this.monthlyTrends.map(m => m.attempts), 1); }
 
   ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
     this.loadDashboard();
   }
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
+  /**
+   * No single admin-dashboard endpoint exists, so the view is assembled from
+   * the authoring stats, the assessment listing (grouped for the type
+   * distribution and sorted for the top table), the marking queue and the
+   * certificate count. The time-series, activity feed, per-difficulty
+   * breakdown and the per-learner figures have no source and stay empty.
+   */
   loadDashboard(): void {
-    const body = { action: 'get-admin-dashboard', range: this.dateRange, token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<any>>(this.apiUrl, body).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => {
-        if (r.status === 'success') {
-          this.stats = r.data.stats;
-          this.monthlyTrends = r.data.monthly_trends || [];
-          this.typeDistribution = r.data.type_distribution || [];
-          this.topAssessments = r.data.top_assessments || [];
-          this.recentActivity = r.data.recent_activity || [];
-          this.diffBreakdown = r.data.difficulty_breakdown || [];
-          this.buildDonut();
-        }
-      }
+    forkJoin({
+      stats: this.admin.stats().pipe(catchError(() => of(null))),
+      list: this.admin.list({ perPage: 200 }).pipe(catchError(() => of(null))),
+      awaiting: this.assessments.awaitingMarking().pipe(catchError(() => of(null))),
+      certs: this.certificates.mine().pipe(catchError(() => of([]))),
+    }).pipe(takeUntil(this.destroy$)).subscribe(({ stats, list, awaiting, certs }) => {
+      const items = list?.items ?? [];
+      this.stats = {
+        total_assessments: stats?.total ?? items.length,
+        published: stats?.published ?? 0,
+        draft: stats?.draft ?? 0,
+        total_attempts: stats?.totalAttempts ?? 0,
+        attempts_this_month: 0,
+        attempts_change_percent: 0,
+        avg_score: 0,
+        overall_pass_rate: Math.round(stats?.avgPassRate ?? 0),
+        total_learners: 0,
+        active_learners: 0,
+        pending_grading: awaiting?.meta.total ?? 0,
+        flagged_sessions: 0,
+        total_questions: 0,
+        total_certificates: certs.length,
+      };
+
+      // Type distribution, from the listing grouped by kind.
+      const byKind = new Map<string, number>();
+      for (const a of items) byKind.set(a.kind, (byKind.get(a.kind) ?? 0) + 1);
+      const totalKinds = items.length || 1;
+      this.typeDistribution = Array.from(byKind, ([type, count]) => ({
+        type, count, percentage: Math.round((count / totalKinds) * 100),
+      }));
+
+      // Top assessments, by attempts, from the embedded per-assessment stats.
+      this.topAssessments = [...items]
+        .sort((a, b) => b.totalAttempts - a.totalAttempts)
+        .slice(0, 5)
+        .map(a => ({
+          assessment_id: a.id, title: a.title, type: a.kind,
+          attempts: a.totalAttempts, avg_score: Math.round(a.avgScore ?? 0), pass_rate: Math.round(a.passRate ?? 0),
+        }));
+
+      this.monthlyTrends = [];
+      this.recentActivity = [];
+      this.diffBreakdown = [];
+      this.buildDonut();
     });
   }
 

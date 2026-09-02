@@ -1,4 +1,3 @@
-import { decodeSessionBlob } from '../../core/utils/session-blob';
 // =============================================
 // PROCTORED ASSESSMENT MODULE - PHASE 15
 // Learner: Assessment Catalog Component
@@ -9,20 +8,16 @@ import { decodeSessionBlob } from '../../core/utils/session-blob';
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
-import { GlobalComponent } from '../../global-component';
 import {TopComponent} from '../../partials/top/top.component';
 
-interface ApiResponse<T> { code: number; status: string; data: T; message: string; }
-
 interface CatalogAssessment {
-  assessment_id: number; title: string; description: string;
+  assessment_id: string; title: string; description: string;
   assessment_type: 'quiz'|'exam'|'practice'|'survey';
-  category_id: number; category_name: string;
-  course_id: number|null; course_title: string|null;
+  category_id: string; category_name: string;
+  course_id: string|null; course_title: string|null;
   total_questions: number; total_points: number;
   time_limit_minutes: number; max_attempts: number;
   passing_score: number; passing_type: 'percentage'|'points';
@@ -34,11 +29,11 @@ interface CatalogAssessment {
   avg_rating: number; review_count: number;
   estimated_duration_minutes: number;
   availability_start: string|null; availability_end: string|null;
-  prerequisites: {id: number; title: string; met: boolean}[];
+  prerequisites: {id: string; title: string; met: boolean}[];
   is_mandatory: boolean; due_date: string|null;
 }
 
-interface Category { id: number; name: string; count: number; }
+interface Category { id: string; name: string; count: number; }
 
 @Component({
   selector: 'app-assessment-catalog',
@@ -60,6 +55,11 @@ interface Category { id: number; name: string; count: number; }
                    placeholder="Search assessments..." class="hero-input" />
           </div>
         </div>
+      </div>
+
+      <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice" style="margin-bottom:16px">
+        <tui-icon icon="@tui.info"></tui-icon>
+        <span>{{ notice }}</span>
       </div>
 
       <!-- Quick Filters -->
@@ -309,37 +309,14 @@ interface Category { id: number; name: string; count: number; }
   `]
 })
 export class AssessmentCatalogComponent implements OnInit, OnDestroy {
-  private http = inject(HttpClient);
   private router = inject(Router);
   private destroy$ = new Subject<void>();
-  private apiUrl = GlobalComponent.baseURL + '/user/assessment.php';
-  session_data: any = ""
-  user_session = {
-    id: 0,
-    tenant_id: 0,
-    tenant: {
-      id: 0,
-      name: "",
-      status: "",
-    },
-    token: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    avatar: "",
-    is_2fa: false,
-    is_active: false,
-    account_locked: false,
-    is_admin: false,
-    is_content: false,
-    is_instructor: false,
-    is_learner: false,
-  };
+
   assessments: CatalogAssessment[] = [];
   filteredAssessments: CatalogAssessment[] = [];
   categories: Category[] = [];
-  loading = true;
+  loading = false;
+  notice: string | null = null;
 
   searchQuery = '';
   search$ = new Subject<string>();
@@ -362,29 +339,27 @@ export class AssessmentCatalogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.session_data = sessionStorage.getItem("SESSION");
-    this.user_session = decodeSessionBlob(this.session_data) ?? this.user_session;
     this.loadCatalog();
-    this.loadCategories();
     this.search$.pipe(debounceTime(400), distinctUntilChanged(), takeUntil(this.destroy$)).subscribe(() => this.applyFilters());
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
 
+  // The learner-facing catalogue -- what is assigned or available to this
+  // learner, with their enrolment status, prerequisites, ratings and due dates
+  // -- has no endpoint on the new API (assessments are reached through their
+  // course). So the browse view is empty with an explanation rather than a
+  // broken call; a learner still sees their sittings on the dashboard and
+  // history.
   loadCatalog(): void {
-    const body: any = { action: 'get-catalog', token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<CatalogAssessment[]>>(this.apiUrl, body).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => { this.loading = false; if (r.status === 'success') { this.assessments = r.data || []; this.applyFilters(); } },
-      error: () => { this.loading = false; }
-    });
+    this.loading = false;
+    this.assessments = [];
+    this.categories = [];
+    this.notice = 'The assessment catalogue is being rebuilt on the new API. Open assessments from your courses in the meantime.';
+    this.applyFilters();
   }
 
-  loadCategories(): void {
-    const body: any = { action: 'get-categories', token: this.user_session.token, user_id: this.user_session.id, tenant_id: this.user_session.tenant_id };
-    this.http.post<ApiResponse<Category[]>>(this.apiUrl, body).pipe(takeUntil(this.destroy$)).subscribe({
-      next: r => { if (r.status === 'success') this.categories = r.data || []; }
-    });
-  }
+  loadCategories(): void { /* no category listing endpoint on the new API */ }
 
   setTab(tab: string): void { this.activeTab = tab; this.currentPage = 1; this.applyFilters(); }
 
@@ -397,7 +372,7 @@ export class AssessmentCatalogComponent implements OnInit, OnDestroy {
     if (this.activeTab === 'mandatory') result = result.filter(a => a.is_mandatory);
     else if (this.activeTab === 'in_progress') result = result.filter(a => a.enrollment_status === 'in_progress' || a.enrollment_status === 'enrolled');
     else if (this.activeTab === 'completed') result = result.filter(a => a.enrollment_status === 'completed' || a.enrollment_status === 'passed');
-    if (this.filterCategory) result = result.filter(a => a.category_id === +this.filterCategory);
+    if (this.filterCategory) result = result.filter(a => a.category_id === this.filterCategory);
     if (this.filterType) result = result.filter(a => a.assessment_type === this.filterType);
     if (this.filterDifficulty) result = result.filter(a => a.difficulty === this.filterDifficulty);
     this.totalPages = Math.max(1, Math.ceil(result.length / this.pageSize));
