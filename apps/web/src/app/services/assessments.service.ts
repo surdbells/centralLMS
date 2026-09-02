@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, switchMap } from 'rxjs';
+import { Observable, filter, map, switchMap } from 'rxjs';
 import { ApiClient, Endpoints, type Paged } from '../core/api';
 
 // ---------------------------------------------------------------------------
@@ -74,8 +74,30 @@ export interface Question {
   points: number;
   explanation: string | null;
   hint: string | null;
+  mediaUrl?: string | null;
+  difficulty?: string | null;
   isActive: boolean;
+  tags?: string[];
   options: Array<QuestionOption & { id: string }>;
+}
+
+/** Per-bank or cross-bank question counts computed on the server. */
+export interface QuestionStatistics {
+  total?: number;
+  active?: number;
+  totalQuestions?: number;
+  activeQuestions?: number;
+  totalBanks?: number;
+  byType: Array<{ type: string; count: number }>;
+  byDifficulty: Array<{ difficulty: string; count: number }>;
+}
+
+/** The outcome of a spreadsheet import. */
+export interface QuestionImportResult {
+  total: number;
+  imported: number;
+  skipped: number;
+  errors: Array<{ row: number; message: string }>;
 }
 
 export interface QuestionInput {
@@ -93,6 +115,7 @@ export interface QuestionInput {
   numericAnswer?: number | null;
   numericTolerance?: number | null;
   mediaUrl?: string | null;
+  tags?: string[];
 }
 
 export interface QuestionBank {
@@ -186,8 +209,15 @@ export class AssessmentsService {
   }
 
   /** The questions in one bank, in their review shape (with the answer key). */
-  bankQuestions(bankId: string): Observable<Paged<Record<string, unknown>>> {
-    return this.api.getPaged<Record<string, unknown>>(Endpoints.questions.list(bankId), { perPage: 200 });
+  bankQuestions(
+    bankId: string,
+    opts: { tag?: string; type?: string } = {},
+  ): Observable<Paged<Record<string, unknown>>> {
+    return this.api.getPaged<Record<string, unknown>>(Endpoints.questions.list(bankId), {
+      perPage: 200,
+      tag: opts.tag || undefined,
+      type: opts.type || undefined,
+    });
   }
 
   createQuestion(bankId: string, input: QuestionInput): Observable<Question> {
@@ -196,6 +226,69 @@ export class AssessmentsService {
 
   updateQuestion(bankId: string, id: string, input: Partial<QuestionInput>): Observable<Question> {
     return this.api.put<Question>(Endpoints.questions.update(bankId, id), input);
+  }
+
+  deleteQuestion(bankId: string, id: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.questions.delete(bankId, id));
+  }
+
+  duplicateQuestion(bankId: string, id: string): Observable<Question> {
+    return this.api.post<Question>(Endpoints.questions.duplicate(bankId, id), {});
+  }
+
+  moveQuestion(bankId: string, id: string, targetBankId: string): Observable<Question> {
+    return this.api.put<Question>(Endpoints.questions.move(bankId, id), { targetBankId });
+  }
+
+  /** The distinct tags used across a bank's live questions. */
+  questionTags(bankId: string): Observable<string[]> {
+    return this.api
+      .get<{ tags: string[] }>(Endpoints.questions.tags(bankId))
+      .pipe(map((r) => r.tags ?? []));
+  }
+
+  bankStatistics(bankId: string): Observable<QuestionStatistics> {
+    return this.api.get<QuestionStatistics>(Endpoints.questions.statistics(bankId));
+  }
+
+  overallStatistics(): Observable<QuestionStatistics> {
+    return this.api.get<QuestionStatistics>(Endpoints.banks.statistics);
+  }
+
+  /** Uploads a question image and resolves to the stable, base-relative URL. */
+  uploadQuestionImage(file: File): Observable<string> {
+    const form = new FormData();
+    form.append('file', file);
+
+    return this.api.upload<{ mediaUrl: string }>(Endpoints.questionImages.upload, form).pipe(
+      filter((p) => p.state === 'done'),
+      map((p) => p.result!.mediaUrl),
+    );
+  }
+
+  /** Server-side spreadsheet import: one round trip, a summary back. */
+  importQuestions(
+    bankId: string,
+    file: File,
+    opts: { onError?: 'skip' | 'abort'; defaultDifficulty?: string } = {},
+  ): Observable<QuestionImportResult> {
+    const form = new FormData();
+    form.append('file', file);
+    if (opts.onError) {
+      form.append('onError', opts.onError);
+    }
+    if (opts.defaultDifficulty) {
+      form.append('defaultDifficulty', opts.defaultDifficulty);
+    }
+
+    return this.api.upload<QuestionImportResult>(Endpoints.questions.import(bankId), form).pipe(
+      filter((p) => p.state === 'done'),
+      map((p) => p.result!),
+    );
+  }
+
+  downloadImportTemplate(): Observable<Blob> {
+    return this.api.download(Endpoints.questions.importTemplate);
   }
 
   /**

@@ -787,11 +787,16 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     this.assessments.bankQuestions(bankId).pipe(takeUntil(this.destroy$)).subscribe({
       next: (page) => {
         this.allQuestions = (page.items || []).map((r) => this.toQuestion(r, bankId, bankName));
-        this.computeStats();
         this.applyView();
         this.loading = false;
       },
       error: () => { this.loading = false; this.showToast('Failed to load questions', 'error'); }
+    });
+
+    // The tag chips for this bank come from the server's distinct list.
+    this.assessments.questionTags(bankId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (tags) => { this.allTags = tags; },
+      error: () => { this.allTags = []; },
     });
   }
 
@@ -806,7 +811,7 @@ export class QuestionListComponent implements OnInit, OnDestroy {
       bank_name: bankName,
       category_id: '',
       category_name: '',
-      tags: [],
+      tags: (r['tags'] as string[]) ?? [],
       status: (r['isActive'] === false) ? 'inactive' : 'active',
       explanation: (r['explanation'] as string) ?? '',
       time_limit_seconds: null,
@@ -841,6 +846,7 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     if (this.filters.question_type) rows = rows.filter(q => q.question_type === this.filters.question_type);
     if (this.filters.difficulty) rows = rows.filter(q => q.difficulty === this.filters.difficulty);
     if (this.filters.status) rows = rows.filter(q => q.status === this.filters.status);
+    if (this.filters.tag) rows = rows.filter(q => (q.tags || []).includes(this.filters.tag));
 
     const dir = this.filters.sort_dir === 'asc' ? 1 : -1;
     const key = this.filters.sort_by;
@@ -863,26 +869,33 @@ export class QuestionListComponent implements OnInit, OnDestroy {
           id: b.id, name: b.name, description: b.description ?? '',
           question_count: b.questionCount, status: 'active',
         }));
+        this.loadStats();
         this.loadQuestions();
       }
     });
   }
 
-  /** No bank-stats route; the figures are totalled from the loaded bank. */
-  private computeStats(): void {
-    const byType = new Map<string, number>();
-    const byDiff = new Map<string, number>();
-    for (const q of this.allQuestions) {
-      byType.set(q.question_type, (byType.get(q.question_type) ?? 0) + 1);
-      byDiff.set(q.difficulty, (byDiff.get(q.difficulty) ?? 0) + 1);
-    }
-    this.stats = {
-      total_questions: this.allQuestions.length,
-      active_questions: this.allQuestions.filter(q => q.status === 'active').length,
-      total_banks: this.banks.length,
-      by_type: Array.from(byType, ([type, count]) => ({ type, count })),
-      by_difficulty: Array.from(byDiff, ([difficulty, count]) => ({ difficulty, count })),
-    };
+  /**
+   * Tenant-wide counts from the server, not totalled from one loaded bank.
+   *
+   * The whole stats row shares one population — the difficulty bar divides its
+   * counts by total_questions — so all four cards and the bar come from the
+   * same cross-bank figures. The canonical type/difficulty values are folded
+   * back to the form's easy/medium/hard so the badges and bar keep working.
+   */
+  private loadStats(): void {
+    this.assessments.overallStatistics().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (s) => {
+        this.stats = {
+          total_questions: s.totalQuestions ?? 0,
+          active_questions: s.activeQuestions ?? 0,
+          total_banks: s.totalBanks ?? 0,
+          by_type: (s.byType ?? []).map(t => ({ type: this.typeToForm(t.type), count: t.count })),
+          by_difficulty: (s.byDifficulty ?? []).map(d => ({ difficulty: this.difficultyToForm(d.difficulty), count: d.count })),
+        };
+      },
+      error: () => { /* leave the last-known figures rather than blanking them */ },
+    });
   }
 
   // ==========================================
@@ -940,36 +953,65 @@ export class QuestionListComponent implements OnInit, OnDestroy {
   clearSelection(): void { this.questions.forEach(q => q.is_selected = false); }
 
   bulkAction(action: string): void {
+    const targets = this.selectedQuestions;
+    if (targets.length === 0) return;
+
     if (action === 'delete') {
-      // No delete route for a bank question on the new API.
-      this.showToast('Deleting questions is being rebuilt on the new API.', 'error');
+      forkJoin(targets.map(q =>
+        this.assessments.deleteQuestion(q.bank_id, q.id).pipe(catchError(() => of(null))),
+      )).pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.showToast(`${targets.length} question(s) deleted`, 'success');
+        this.loadStats();
+        this.loadQuestions();
+      });
 
       return;
     }
     // activate / deactivate: one isActive update per selected question.
     const isActive = action === 'activate';
-    const targets = this.selectedQuestions;
-    if (targets.length === 0) return;
     forkJoin(targets.map(q =>
       this.assessments.updateQuestion(q.bank_id, q.id, { isActive }).pipe(catchError(() => of(null))),
     )).pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.showToast(`${targets.length} question(s) updated`, 'success');
+      this.loadStats();
       this.loadQuestions();
     });
   }
 
-  // Moving a question between banks is not supported on the new API (a question
-  // is pinned to its bank).
   executeBulkMove(): void {
-    this.bulkMoveModal = false;
-    this.showToast('Moving questions between banks is being rebuilt.', 'error');
+    const target = this.bulkMoveTargetBank;
+    const targets = this.selectedQuestions;
+    if (!target || targets.length === 0) { this.bulkMoveModal = false; return; }
+
+    forkJoin(targets.map(q =>
+      this.assessments.moveQuestion(q.bank_id, q.id, target).pipe(catchError(() => of(null))),
+    )).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.bulkMoveModal = false;
+      this.bulkMoveTargetBank = '';
+      this.showToast(`${targets.length} question(s) moved`, 'success');
+      this.loadStats();
+      this.loadQuestions();
+    });
   }
 
-  // The new question model has no tags.
   executeBulkTag(): void {
-    this.bulkTagModal = false;
-    this.bulkTagInput = '';
-    this.showToast('Question tags are being rebuilt on the new API.', 'error');
+    const newTags = this.bulkTagInput.split(',').map(t => t.trim()).filter(t => t);
+    const targets = this.selectedQuestions;
+    if (newTags.length === 0 || targets.length === 0) { this.bulkTagModal = false; return; }
+
+    // A partial update merges onto the stored question server-side, so sending
+    // only the merged tag set preserves the question's options and text; the
+    // set must include the existing tags because the body replaces the key.
+    forkJoin(targets.map(q => {
+      const merged = Array.from(new Set([...(q.tags || []), ...newTags]));
+
+      return this.assessments.updateQuestion(q.bank_id, q.id, { tags: merged }).pipe(catchError(() => of(null)));
+    })).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.bulkTagModal = false;
+      this.bulkTagInput = '';
+      this.showToast(`Tagged ${targets.length} question(s)`, 'success');
+      this.loadQuestions();
+    });
   }
 
   addBulkTag(tag: string): void {
@@ -1011,20 +1053,22 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     if (q) this.previewTarget = q;
   }
 
-  // No question-duplicate route on the new API.
-  duplicateQuestion(_q: Question): void {
-    this.showToast('Duplicating a question is being rebuilt on the new API.', 'error');
+  duplicateQuestion(q: Question): void {
+    this.assessments.duplicateQuestion(q.bank_id, q.id)
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => { this.showToast('Question duplicated', 'success'); this.loadStats(); this.loadQuestions(); },
+        error: () => this.showToast('Could not duplicate the question.', 'error'),
+      });
   }
 
   confirmDelete(q: Question): void { this.deleteTarget = q; }
 
-  // No delete route for a bank question; deactivate it instead of removing it.
   executeDelete(q: Question): void {
     this.deleteTarget = null;
-    this.assessments.updateQuestion(q.bank_id, q.id, { isActive: false })
+    this.assessments.deleteQuestion(q.bank_id, q.id)
       .pipe(takeUntil(this.destroy$)).subscribe({
-        next: () => { this.showToast('Question deactivated (delete is being rebuilt).', 'success'); this.loadQuestions(); },
-        error: () => this.showToast('Could not update the question.', 'error'),
+        next: () => { this.showToast('Question deleted', 'success'); this.loadStats(); this.loadQuestions(); },
+        error: () => this.showToast('Could not delete the question.', 'error'),
       });
   }
 

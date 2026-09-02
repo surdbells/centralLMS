@@ -14,6 +14,7 @@ import { map, catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { AssessmentsService, type QuestionInput } from '../../services/assessments.service';
+import { AuthImgDirective } from '../../core/api';
 
 interface QuestionBank { id: string; name: string; }
 interface Category { id: string; name: string; }
@@ -38,7 +39,7 @@ interface QuestionForm {
 @Component({
   selector: 'app-question-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, AuthImgDirective],
   template: `
     <app-admintop></app-admintop>
 
@@ -91,7 +92,8 @@ interface QuestionForm {
               <input type="file" #imgInput hidden accept="image/*" (change)="onImageSelect($event)" />
             </div>
             <div class="img-preview" *ngIf="form.image_url">
-              <img [src]="form.image_url" />
+              <img *ngIf="isInternalImage(form.image_url); else extImg" [appAuthImg]="form.image_url" />
+              <ng-template #extImg><img [src]="form.image_url" /></ng-template>
               <button class="btn btn-sm btn-outline" (click)="form.image_url=''"><tui-icon icon="@tui.x"></tui-icon> Remove</button>
             </div>
           </div>
@@ -254,7 +256,8 @@ interface QuestionForm {
             </div>
             <div *ngIf="form.hotspot_image_url" class="hs-editor">
               <div class="hs-img" (click)="addHotspot($event)" #hsContainer>
-                <img [src]="form.hotspot_image_url" />
+                <img *ngIf="isInternalImage(form.hotspot_image_url); else hsExt" [appAuthImg]="form.hotspot_image_url" />
+                <ng-template #hsExt><img [src]="form.hotspot_image_url" /></ng-template>
                 <div *ngFor="let a of form.hotspot_areas; let i=index" class="hs-area" [class.correct]="a.is_correct"
                      [style.left.px]="a.x" [style.top.px]="a.y" [style.width.px]="a.width" [style.height.px]="a.height"
                      [style.borderRadius]="a.shape==='circle'?'50%':'4px'">
@@ -446,6 +449,7 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
 
   isEdit = false;
   saving = false;
+  uploadingImage = false;
   banks: QuestionBank[] = [];
   categories: Category[] = [];
   existingTags: string[] = [];
@@ -529,13 +533,20 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   }
 
   loadBanks(editId?: string | null): void {
-    // Categories and tags have no endpoint on the new API, so those controls
-    // stay empty rather than call routes that do not exist.
+    // Categories have no endpoint on the new API, so that control stays empty.
     this.categories = [];
     this.existingTags = [];
     this.assessments.banks().pipe(takeUntil(this.destroy$)).subscribe({
       next: (page) => {
         this.banks = (page.items || []).map((b) => ({ id: b.id, name: b.name }));
+        // Tag suggestions: the distinct tags across the tenant's banks, merged.
+        if (this.banks.length) {
+          forkJoin(this.banks.map((b) =>
+            this.assessments.questionTags(b.id).pipe(catchError(() => of([] as string[]))),
+          )).pipe(takeUntil(this.destroy$)).subscribe((lists) => {
+            this.existingTags = Array.from(new Set(lists.flat())).sort();
+          });
+        }
         // Edit-load: there is no single-question GET, and the route carries no
         // bank id, so the question is found by scanning the banks' questions.
         if (editId) this.loadQuestion(editId);
@@ -580,6 +591,7 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
       points: (q['points'] as number) ?? 1,
       explanation: (q['explanation'] as string) ?? '',
       hint: (q['hint'] as string) ?? '',
+      tags: ((q['tags'] as string[]) ?? []).join(', '),
       image_url: (q['mediaUrl'] as string) ?? '',
       status: (q['isActive'] === false) ? 'inactive' : 'active',
       numeric_answer: (q['numericAnswer'] as number) ?? null,
@@ -658,10 +670,32 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   onImageSelect(e: Event): void { this.uploadImage(e, 'image_url'); }
   onHotspotSelect(e: Event): void { this.uploadImage(e, 'hotspot_image_url'); }
 
-  private uploadImage(_e: Event, _field: 'image_url'|'hotspot_image_url'): void {
-    // The assessment API has no question-image upload endpoint yet; paste an
-    // image URL into the field instead of uploading a file.
-    this.showToast('Image upload is being rebuilt. Paste an image URL instead.', 'error');
+  private uploadImage(e: Event, field: 'image_url'|'hotspot_image_url'): void {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.uploadingImage = true;
+    this.assessments.uploadQuestionImage(file).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (mediaUrl) => {
+        this.form[field] = mediaUrl;
+        this.uploadingImage = false;
+        this.showToast('Image uploaded', 'success');
+      },
+      error: (err) => {
+        this.uploadingImage = false;
+        const msg = (err as { error?: { error?: { message?: string } } })?.error?.error?.message;
+        this.showToast(msg || 'Image upload failed', 'error');
+      },
+    });
+    // Allow re-selecting the same file after a remove.
+    input.value = '';
+  }
+
+  /** Our uploaded images are base-relative and header-authed (appAuthImg); a
+   *  pasted absolute URL renders with a plain src. */
+  isInternalImage(url: string): boolean {
+    return !!url && url.startsWith('/');
   }
 
   // === Rich Text ===
@@ -725,6 +759,7 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
       difficulty: this.difficultyToApi(this.form.difficulty),
       isActive: this.form.status === 'active',
       mediaUrl: this.form.image_url || null,
+      tags: this.parseTags(this.form.tags),
       options: this.buildOptions(t),
     };
     if (t === 'numeric') {

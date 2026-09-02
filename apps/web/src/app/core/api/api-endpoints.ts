@@ -271,12 +271,25 @@ export const Endpoints = {
     show: (id: string) => `/question-banks/${id}`,
     update: (id: string) => `/question-banks/${id}`,
     delete: (id: string) => `/question-banks/${id}`,
+    statistics: '/question-banks/statistics',
   },
 
   questions: {
     list: (bankId: string) => `/question-banks/${bankId}/questions`,
     create: (bankId: string) => `/question-banks/${bankId}/questions`,
     update: (bankId: string, id: string) => `/question-banks/${bankId}/questions/${id}`,
+    delete: (bankId: string, id: string) => `/question-banks/${bankId}/questions/${id}`,
+    duplicate: (bankId: string, id: string) => `/question-banks/${bankId}/questions/${id}/duplicate`,
+    move: (bankId: string, id: string) => `/question-banks/${bankId}/questions/${id}/move`,
+    tags: (bankId: string) => `/question-banks/${bankId}/questions/tags`,
+    statistics: (bankId: string) => `/question-banks/${bankId}/questions/statistics`,
+    import: (bankId: string) => `/question-banks/${bankId}/questions/import`,
+    importTemplate: '/question-import-template',
+  },
+
+  questionImages: {
+    upload: '/question-images',
+    file: (id: string) => `/question-images/${id}`,
   },
 
   attempts: {
