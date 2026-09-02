@@ -207,3 +207,46 @@ app-course-player main {
     background: var(--bs-tertiary-bg, #f8f9fa);
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Page content alignment
+ *
+ * Every page renders the fixed top bar (<app-top>/<app-admintop>) followed by
+ * its own content wrapper. Those wrappers each rolled their own width — some
+ * centred at 1100-1200px, some full-bleed to the screen edge — so page content
+ * did not line up with the header, whose content sits inset by the navbar's
+ * px-3/px-lg-4 padding. Align them all to that same inset: full width, 1rem of
+ * side padding (1.5rem from the large breakpoint up), no centring. The nav and
+ * its spacer live *inside* <app-top>, so the general-sibling selector only ever
+ * matches a page's own content wrappers. Overlays a page appends at this level
+ * (modals, toasts, backdrops) are excluded — they position themselves and must
+ * not be reshaped.
+ * ------------------------------------------------------------------------- */
+:is(app-top, app-admintop) ~ *:not([class*="modal"]):not([class*="overlay"]):not([class*="backdrop"]):not([class*="toast"]):not([class*="dialog"]):not([class*="lightbox"]) {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 992px) {
+  :is(app-top, app-admintop) ~ *:not([class*="modal"]):not([class*="overlay"]):not([class*="backdrop"]):not([class*="toast"]):not([class*="dialog"]):not([class*="lightbox"]) {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* Pages that nest a bootstrap container inside their wrapper (e.g. a <main>):
+ * the wrapper already carries the inset above, so drop the inner container's
+ * own side padding rather than doubling it. */
+:is(app-top, app-admintop) ~ * > .container-fluid,
+:is(app-top, app-admintop) ~ * > .container {
+  --bs-gutter-x: 0;
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 0;
+  margin-right: 0;
+}
