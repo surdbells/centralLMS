@@ -755,6 +755,329 @@ final class DbalCompetencyRepository implements CompetencyRepository
         ];
     }
 
+    // --- the analytical reports ----------------------------------------------
+    //
+    // Each reads only finalised assessments and the stored `gap` column, the
+    // same semantics the outcome report uses, so every figure in the reports
+    // section agrees with the headline. The buckets are the gap categories:
+    // 0 met, 1 minor, 2 major, 3+ significant; estimated months are 3/6/12 on
+    // the standard estimates.
+
+    /**
+     * The org axes readiness can be broken down by. The org ones join
+     * `users` to its generated-kind lookup FK; 'function' is the competency's
+     * own axis and groups by the profile's function. Whitelisted so the
+     * dimension can be interpolated into the column/kind without any injection.
+     *
+     * @var array<string, array{column: string, kind: string}>
+     */
+    private const READINESS_DIMENSIONS = [
+        'department' => ['column' => 'department_id', 'kind' => 'department'],
+        'branch'     => ['column' => 'branch_id',     'kind' => 'branch'],
+        'team'       => ['column' => 'team_id',       'kind' => 'team'],
+        'level'      => ['column' => 'level_id',      'kind' => 'level'],
+        'job_title'  => ['column' => 'job_title_id',  'kind' => 'job_title'],
+    ];
+
+    public function readinessByDimension(string $tenantId, string $cycle, string $dimension): array
+    {
+        $params = ['tenant' => $tenantId, 'cycle' => $cycle];
+
+        // The five gap-bucket aggregates every group row carries. Identical
+        // across the two shapes below, so written once.
+        $aggregates =
+            "COUNT(DISTINCT a.user_id) AS people,
+             COUNT(i.*) AS requirements,
+             COUNT(i.*) FILTER (WHERE i.gap = 0) AS met,
+             COUNT(i.*) FILTER (WHERE i.gap = 1) AS minor,
+             COUNT(i.*) FILTER (WHERE i.gap = 2) AS major,
+             COUNT(i.*) FILTER (WHERE i.gap >= 3) AS significant,
+             ROUND(100.0 * COUNT(i.*) FILTER (WHERE i.gap = 0)
+                   / NULLIF(COUNT(i.*), 0), 1) AS readiness";
+
+        if ($dimension === 'function') {
+            $rows = $this->connection->fetchAllAssociative(
+                "SELECT p.function_name AS label, {$aggregates}
+                 FROM competency_assessments a
+                 JOIN job_competency_profiles p ON p.id = a.profile_id
+                 LEFT JOIN competency_assessment_items i ON i.assessment_id = a.id
+                 WHERE a.tenant_id = :tenant AND a.cycle = :cycle
+                   AND a.status = 'finalized' AND a.deleted_at IS NULL
+                 GROUP BY p.function_name
+                 ORDER BY readiness ASC NULLS LAST",
+                $params,
+            );
+        } else {
+            $map = self::READINESS_DIMENSIONS[$dimension] ?? self::READINESS_DIMENSIONS['department'];
+            $column = $map['column'];
+            $kind = $map['kind'];
+
+            $rows = $this->connection->fetchAllAssociative(
+                "SELECT COALESCE(lk.name, 'Unassigned') AS label, {$aggregates}
+                 FROM competency_assessments a
+                 JOIN users u ON u.id = a.user_id AND u.tenant_id = a.tenant_id
+                 LEFT JOIN lookups lk ON lk.id = u.{$column} AND lk.kind = '{$kind}'
+                 LEFT JOIN competency_assessment_items i ON i.assessment_id = a.id
+                 WHERE a.tenant_id = :tenant AND a.cycle = :cycle
+                   AND a.status = 'finalized' AND a.deleted_at IS NULL
+                 GROUP BY COALESCE(lk.name, 'Unassigned')
+                 ORDER BY readiness ASC NULLS LAST",
+                $params,
+            );
+        }
+
+        return array_map(
+            static function (array $r): array {
+                $minor = (int) $r['minor'];
+                $major = (int) $r['major'];
+                $significant = (int) $r['significant'];
+
+                return [
+                    'label'           => (string) $r['label'],
+                    'people'          => (int) $r['people'],
+                    'requirements'    => (int) $r['requirements'],
+                    'met'             => (int) $r['met'],
+                    'minor'           => $minor,
+                    'major'           => $major,
+                    'significant'     => $significant,
+                    'gaps'            => $minor + $major + $significant,
+                    'readiness'       => $r['readiness'] === null ? null : (float) $r['readiness'],
+                    'estimatedMonths' => $minor * 3 + $major * 6 + $significant * 12,
+                ];
+            },
+            $rows,
+        );
+    }
+
+    public function gapAnalysis(string $tenantId, string $cycle): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT c.name AS competency, c.function_name AS function,
+                    COUNT(*) AS assessed,
+                    COUNT(*) FILTER (WHERE i.gap > 0) AS with_gap,
+                    COUNT(*) FILTER (WHERE i.gap = 0) AS met,
+                    COUNT(*) FILTER (WHERE i.gap = 1) AS minor,
+                    COUNT(*) FILTER (WHERE i.gap = 2) AS major,
+                    COUNT(*) FILTER (WHERE i.gap >= 3) AS significant,
+                    COUNT(*) FILTER (WHERE i.gap > 0 AND req.is_critical) AS critical,
+                    ROUND(AVG(i.gap)::numeric, 2) AS avg_gap,
+                    ROUND(AVG(i.required_level)::numeric, 2) AS avg_required
+             FROM competency_assessment_items i
+             JOIN competency_assessments a ON a.id = i.assessment_id
+             JOIN competencies c ON c.id = i.competency_id
+             LEFT JOIN job_competency_requirements req
+                    ON req.profile_id = a.profile_id AND req.competency_id = i.competency_id
+             WHERE a.tenant_id = :tenant AND a.cycle = :cycle
+               AND a.status = 'finalized' AND a.deleted_at IS NULL
+             GROUP BY c.id, c.name, c.function_name
+             ORDER BY avg_gap DESC, with_gap DESC, competency ASC",
+            ['tenant' => $tenantId, 'cycle' => $cycle],
+        );
+
+        return array_map(
+            static function (array $r): array {
+                $minor = (int) $r['minor'];
+                $major = (int) $r['major'];
+                $significant = (int) $r['significant'];
+
+                return [
+                    'competency'      => (string) $r['competency'],
+                    'function'        => (string) $r['function'],
+                    'assessed'        => (int) $r['assessed'],
+                    'withGap'         => (int) $r['with_gap'],
+                    'met'             => (int) $r['met'],
+                    'minor'           => $minor,
+                    'major'           => $major,
+                    'significant'     => $significant,
+                    'critical'        => (int) $r['critical'],
+                    'avgGap'          => (float) $r['avg_gap'],
+                    'avgRequired'     => (float) $r['avg_required'],
+                    'estimatedMonths' => $minor * 3 + $major * 6 + $significant * 12,
+                ];
+            },
+            $rows,
+        );
+    }
+
+    public function criticalGaps(string $tenantId, string $cycle): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT a.id AS assessment_id,
+                    TRIM(u.first_name || ' ' || u.last_name) AS user_name,
+                    jt.name AS job_title,
+                    dept.name AS department,
+                    c.name AS competency,
+                    c.function_name AS function,
+                    i.required_level AS required_level,
+                    COALESCE(i.assessed_level, i.self_level, 0) AS demonstrated_level,
+                    i.gap AS gap
+             FROM competency_assessment_items i
+             JOIN competency_assessments a ON a.id = i.assessment_id
+             JOIN competencies c ON c.id = i.competency_id
+             JOIN job_competency_requirements req
+                  ON req.profile_id = a.profile_id AND req.competency_id = i.competency_id
+             JOIN users u ON u.id = a.user_id AND u.tenant_id = a.tenant_id
+             LEFT JOIN lookups jt ON jt.id = u.job_title_id AND jt.kind = 'job_title'
+             LEFT JOIN lookups dept ON dept.id = u.department_id AND dept.kind = 'department'
+             WHERE a.tenant_id = :tenant AND a.cycle = :cycle
+               AND a.status = 'finalized' AND a.deleted_at IS NULL
+               AND req.is_critical = true AND i.gap > 0
+             ORDER BY i.gap DESC, user_name ASC, competency ASC",
+            ['tenant' => $tenantId, 'cycle' => $cycle],
+        );
+
+        $labels = [1 => 'Minor', 2 => 'Major', 3 => 'Significant'];
+        $months = [1 => 3, 2 => 6, 3 => 12];
+
+        return array_map(
+            static function (array $r) use ($labels, $months): array {
+                $gap = (int) $r['gap'];
+                $bucket = min(3, $gap);
+
+                return [
+                    'assessmentId'      => (string) $r['assessment_id'],
+                    'userName'          => trim((string) $r['user_name']) !== '' ? (string) $r['user_name'] : 'Unknown',
+                    'jobTitle'          => $r['job_title'] === null ? null : (string) $r['job_title'],
+                    'department'        => $r['department'] === null ? null : (string) $r['department'],
+                    'competency'        => (string) $r['competency'],
+                    'function'          => (string) $r['function'],
+                    'requiredLevel'     => (int) $r['required_level'],
+                    'demonstratedLevel' => (int) $r['demonstrated_level'],
+                    'gap'               => $gap,
+                    'gapLabel'          => $labels[$bucket] ?? 'Significant',
+                    'estimatedMonths'   => $months[$bucket] ?? 12,
+                ];
+            },
+            $rows,
+        );
+    }
+
+    public function proficiencyDistribution(string $tenantId, string $cycle): array
+    {
+        $params = ['tenant' => $tenantId, 'cycle' => $cycle];
+
+        // The demonstrated level is what a person actually shows: the confirmed
+        // level, else their own, else none. The requirement is what the job
+        // asks. Both distributions read across every finalised item.
+        $levels =
+            "COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 0) AS none,
+             COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 1) AS knowledge,
+             COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 2) AS skill,
+             COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 3) AS mastery,
+             COUNT(*) AS total";
+
+        $from =
+            "FROM competency_assessment_items i
+             JOIN competency_assessments a ON a.id = i.assessment_id
+             WHERE a.tenant_id = :tenant AND a.cycle = :cycle
+               AND a.status = 'finalized' AND a.deleted_at IS NULL";
+
+        $overall = $this->connection->fetchAssociative("SELECT {$levels} {$from}", $params);
+        $overall = $overall === false ? [] : $overall;
+
+        $required = $this->connection->fetchAssociative(
+            "SELECT COUNT(*) FILTER (WHERE i.required_level = 1) AS knowledge,
+                    COUNT(*) FILTER (WHERE i.required_level = 2) AS skill,
+                    COUNT(*) FILTER (WHERE i.required_level = 3) AS mastery,
+                    COUNT(*) AS total
+             {$from}",
+            $params,
+        );
+        $required = $required === false ? [] : $required;
+
+        $byFunction = $this->connection->fetchAllAssociative(
+            "SELECT c.function_name AS label, {$levels}
+             FROM competency_assessment_items i
+             JOIN competency_assessments a ON a.id = i.assessment_id
+             JOIN competencies c ON c.id = i.competency_id
+             WHERE a.tenant_id = :tenant AND a.cycle = :cycle
+               AND a.status = 'finalized' AND a.deleted_at IS NULL
+             GROUP BY c.function_name
+             ORDER BY c.function_name ASC",
+            $params,
+        );
+
+        $level = static fn (array $r): array => [
+            'none'      => (int) ($r['none'] ?? 0),
+            'knowledge' => (int) ($r['knowledge'] ?? 0),
+            'skill'     => (int) ($r['skill'] ?? 0),
+            'mastery'   => (int) ($r['mastery'] ?? 0),
+            'total'     => (int) ($r['total'] ?? 0),
+        ];
+
+        return [
+            'demonstrated' => $level($overall),
+            'required'     => [
+                'none'      => 0,
+                'knowledge' => (int) ($required['knowledge'] ?? 0),
+                'skill'     => (int) ($required['skill'] ?? 0),
+                'mastery'   => (int) ($required['mastery'] ?? 0),
+                'total'     => (int) ($required['total'] ?? 0),
+            ],
+            'byFunction'   => array_map(
+                static fn (array $r): array => ['label' => (string) $r['label']] + $level($r),
+                $byFunction,
+            ),
+        ];
+    }
+
+    public function completion(string $tenantId, string $cycle): array
+    {
+        $params = ['tenant' => $tenantId, 'cycle' => $cycle];
+
+        // Completion counts every assessment in the cycle, not only finalised —
+        // the point of this report is how far through the exercise is.
+        $counts =
+            "COUNT(*) AS total,
+             COUNT(DISTINCT a.user_id) AS people,
+             COUNT(*) FILTER (WHERE a.status = 'draft') AS draft,
+             COUNT(*) FILTER (WHERE a.status = 'self_assessed') AS self_assessed,
+             COUNT(*) FILTER (WHERE a.status = 'reviewed') AS reviewed,
+             COUNT(*) FILTER (WHERE a.status = 'finalized') AS finalized";
+
+        $overall = $this->connection->fetchAssociative(
+            "SELECT {$counts}
+             FROM competency_assessments a
+             WHERE a.tenant_id = :tenant AND a.cycle = :cycle AND a.deleted_at IS NULL",
+            $params,
+        );
+        $overall = $overall === false ? [] : $overall;
+
+        $byDepartment = $this->connection->fetchAllAssociative(
+            "SELECT COALESCE(dept.name, 'Unassigned') AS label, {$counts}
+             FROM competency_assessments a
+             JOIN users u ON u.id = a.user_id AND u.tenant_id = a.tenant_id
+             LEFT JOIN lookups dept ON dept.id = u.department_id AND dept.kind = 'department'
+             WHERE a.tenant_id = :tenant AND a.cycle = :cycle AND a.deleted_at IS NULL
+             GROUP BY COALESCE(dept.name, 'Unassigned')
+             ORDER BY total DESC, label ASC",
+            $params,
+        );
+
+        $row = static function (array $r): array {
+            $total = (int) $r['total'];
+            $finalized = (int) $r['finalized'];
+
+            return [
+                'total'        => $total,
+                'people'       => (int) ($r['people'] ?? 0),
+                'draft'        => (int) $r['draft'],
+                'selfAssessed' => (int) $r['self_assessed'],
+                'reviewed'     => (int) $r['reviewed'],
+                'finalized'    => $finalized,
+                'completion'   => $total === 0 ? null : round(100 * $finalized / $total, 1),
+            ];
+        };
+
+        return [
+            'overall'      => $row($overall),
+            'byDepartment' => array_map(
+                static fn (array $r): array => ['label' => (string) $r['label']] + $row($r),
+                $byDepartment,
+            ),
+        ];
+    }
+
     public function cycles(string $tenantId): array
     {
         $rows = $this->connection->fetchFirstColumn(

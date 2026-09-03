@@ -1,0 +1,422 @@
+<!-- Toolbar: report picker + cycle + print -->
+<div class="cr-toolbar no-print">
+  <div class="cr-tabs">
+    @for (t of tabs; track t.key) {
+      <button type="button" class="cr-tab" [class.active]="active() === t.key" (click)="select(t.key)"
+              [title]="t.blurb">
+        <tui-icon [icon]="t.icon"></tui-icon>
+        <span>{{ t.label }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="cr-controls">
+    @if (active() !== 'individual' && cycles().length) {
+      <label class="text-muted small mb-0">Cycle</label>
+      <select class="form-select form-select-sm w-auto" [ngModel]="cycle()"
+              (ngModelChange)="onCycleChange($event)">
+        @for (c of cycles(); track c) { <option [value]="c">{{ c }}</option> }
+      </select>
+    }
+    @if (active() !== 'individual') {
+      <button class="btn btn-sm btn-outline-secondary" (click)="print()">
+        <i class="bi bi-printer me-1"></i> Print
+      </button>
+    }
+  </div>
+</div>
+
+<!-- Loading -->
+@if (loading() && active() !== 'individual') {
+  <div class="text-center py-5 text-muted">
+    <div class="spinner-border text-primary" role="status"></div>
+    <div class="mt-2">Reading the report…</div>
+  </div>
+}
+
+<!-- ================= READINESS ================= -->
+@if (active() === 'readiness' && !loading()) {
+  @if (readiness(); as r) {
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div class="text-muted small">
+        Share of requirements met, by <strong>{{ dimensionLabel(r.dimension) | lowercase }}</strong>,
+        across every finalised assessment in the cycle.
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small mb-0">Break down by</label>
+        <select class="form-select form-select-sm w-auto" [ngModel]="dimension()"
+                (ngModelChange)="onDimensionChange($event)">
+          @for (d of dimensions; track d.value) { <option [value]="d.value">{{ d.label }}</option> }
+        </select>
+      </div>
+    </div>
+
+    @if (!r.groups.length) {
+      <div class="empty-panel text-center py-5">
+        <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
+        <h5 class="mt-3 mb-1">Nothing finalised in this cycle yet</h5>
+        <p class="text-muted mb-0">Readiness is built from confirmed assessments.</p>
+      </div>
+    } @else {
+      <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>{{ dimensionLabel(r.dimension) }}</th>
+                <th class="text-center">People</th>
+                <th class="text-center">Requirements</th>
+                <th class="text-center">Met</th>
+                <th class="text-center">Open gaps</th>
+                <th style="width: 26%">Readiness</th>
+                <th class="text-end">Est. to close</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (g of r.groups; track g.label) {
+                <tr>
+                  <td class="fw-medium">{{ g.label }}</td>
+                  <td class="text-center">{{ g.people }}</td>
+                  <td class="text-center">{{ g.requirements }}</td>
+                  <td class="text-center text-success">{{ g.met }}</td>
+                  <td class="text-center" [class.text-danger]="g.gaps > 0">{{ g.gaps }}</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="progress flex-grow-1" style="height: 7px">
+                        <div class="progress-bar" [class]="readinessBar(g.readiness)"
+                             [style.width.%]="g.readiness ?? 0"></div>
+                      </div>
+                      <span class="small fw-semibold" [class]="readinessClass(g.readiness)"
+                            style="min-width: 3rem; text-align: right">
+                        {{ g.readiness !== null ? (g.readiness | number: '1.0-1') + '%' : '—' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-end small">{{ monthsLabel(g.estimatedMonths) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+}
+
+<!-- ================= GAP ANALYSIS ================= -->
+@if (active() === 'gaps' && !loading()) {
+  @if (gaps(); as r) {
+    <p class="text-muted small mb-3">
+      Every competency measured this cycle, widest average gap first — the development priorities.
+    </p>
+    @if (!r.competencies.length) {
+      <div class="empty-panel text-center py-5">
+        <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
+        <h5 class="mt-3 mb-1">Nothing finalised in this cycle yet</h5>
+      </div>
+    } @else {
+      <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Competency</th>
+                <th class="text-center">Assessed</th>
+                <th class="text-center">With gap</th>
+                <th class="text-center">Critical</th>
+                <th style="width: 20%">Spread</th>
+                <th class="text-center">Avg gap</th>
+                <th class="text-end">Est. to close</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of r.competencies; track c.competency) {
+                <tr>
+                  <td>
+                    <div class="fw-medium cr-competency">{{ c.competency }}</div>
+                    <small class="text-muted">{{ c.function }}</small>
+                  </td>
+                  <td class="text-center">{{ c.assessed }}</td>
+                  <td class="text-center" [class.text-danger]="c.withGap > 0">{{ c.withGap }}</td>
+                  <td class="text-center">
+                    @if (c.critical > 0) {
+                      <span class="badge bg-danger-subtle text-danger">{{ c.critical }}</span>
+                    } @else { <span class="text-muted">—</span> }
+                  </td>
+                  <td>
+                    <div class="gap-bar" [title]="c.met + ' met · ' + c.minor + ' minor · ' + c.major + ' major · ' + c.significant + ' significant'">
+                      <div class="seg met" [style.width.%]="pct(c.met, c.assessed)"></div>
+                      <div class="seg minor" [style.width.%]="pct(c.minor, c.assessed)"></div>
+                      <div class="seg major" [style.width.%]="pct(c.major, c.assessed)"></div>
+                      <div class="seg significant" [style.width.%]="pct(c.significant, c.assessed)"></div>
+                    </div>
+                  </td>
+                  <td class="text-center fw-semibold" [class.text-danger]="c.avgGap >= 1">
+                    {{ c.avgGap | number: '1.0-2' }}
+                  </td>
+                  <td class="text-end small">{{ monthsLabel(c.estimatedMonths) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-3 small mt-3 text-muted">
+        <span><i class="legend-dot met"></i> Met</span>
+        <span><i class="legend-dot minor"></i> Minor</span>
+        <span><i class="legend-dot major"></i> Major</span>
+        <span><i class="legend-dot significant"></i> Significant</span>
+      </div>
+    }
+  }
+}
+
+<!-- ================= CRITICAL GAPS ================= -->
+@if (active() === 'critical' && !loading()) {
+  @if (critical(); as r) {
+    <p class="text-muted small mb-3">
+      Everyone still short on a competency their job marks <strong>critical</strong> — the list a
+      placement decision cannot ignore.
+    </p>
+    @if (!r.rows.length) {
+      <div class="empty-panel text-center py-5">
+        <tui-icon icon="@tui.circle-check" class="empty-icon text-success"></tui-icon>
+        <h5 class="mt-3 mb-1">No critical gaps</h5>
+        <p class="text-muted mb-0">
+          Everyone assessed this cycle meets the competencies their job marks critical.
+        </p>
+      </div>
+    } @else {
+      <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Person</th>
+                <th>Competency</th>
+                <th class="text-center">Required</th>
+                <th class="text-center">Held</th>
+                <th class="text-center">Severity</th>
+                <th class="text-end">Est. to close</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of r.rows; track row.assessmentId + row.competency) {
+                <tr>
+                  <td>
+                    <div class="fw-medium">{{ row.userName }}</div>
+                    <small class="text-muted">
+                      {{ row.jobTitle || 'No job title' }}@if (row.department) { · {{ row.department }} }
+                    </small>
+                  </td>
+                  <td>
+                    <div class="cr-competency">{{ row.competency }}</div>
+                    <small class="text-muted">{{ row.function }}</small>
+                  </td>
+                  <td class="text-center">{{ levelName[row.requiredLevel] }}</td>
+                  <td class="text-center">{{ levelName[row.demonstratedLevel] }}</td>
+                  <td class="text-center">
+                    <span class="badge"
+                          [class.bg-warning-subtle]="row.gapLabel === 'Minor'"
+                          [class.text-warning-emphasis]="row.gapLabel === 'Minor'"
+                          [class.bg-orange-subtle]="row.gapLabel === 'Major'"
+                          [class.text-danger]="row.gapLabel === 'Significant'"
+                          [class.bg-danger-subtle]="row.gapLabel === 'Significant'"
+                          [ngClass]="row.gapLabel === 'Major' ? 'cr-badge-major' : ''">
+                      {{ row.gapLabel }}
+                    </span>
+                  </td>
+                  <td class="text-end small">{{ monthsLabel(row.estimatedMonths) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+}
+
+<!-- ================= PROFICIENCY DISTRIBUTION ================= -->
+@if (active() === 'distribution' && !loading()) {
+  @if (distribution(); as r) {
+    <p class="text-muted small mb-3">
+      How the levels people actually demonstrate compare with what their jobs require, across every
+      finalised item.
+    </p>
+    @if (r.demonstrated.total === 0) {
+      <div class="empty-panel text-center py-5">
+        <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
+        <h5 class="mt-3 mb-1">Nothing finalised in this cycle yet</h5>
+      </div>
+    } @else {
+      <div class="row g-3 mb-4">
+        @for (band of [{ key: 'demonstrated', title: 'Demonstrated', data: r.demonstrated },
+                        { key: 'required', title: 'Required', data: r.required }]; track band.key) {
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h6 class="card-title mb-3">{{ band.title }} levels</h6>
+                <div class="level-bar mb-2">
+                  <div class="seg none" [style.width.%]="pct(band.data.none, band.data.total)"></div>
+                  <div class="seg knowledge" [style.width.%]="pct(band.data.knowledge, band.data.total)"></div>
+                  <div class="seg skill" [style.width.%]="pct(band.data.skill, band.data.total)"></div>
+                  <div class="seg mastery" [style.width.%]="pct(band.data.mastery, band.data.total)"></div>
+                </div>
+                <div class="d-flex flex-wrap gap-3 small">
+                  @if (band.key === 'demonstrated') {
+                    <span><i class="legend-dot none"></i> None {{ band.data.none }}</span>
+                  }
+                  <span><i class="legend-dot knowledge"></i> Knowledge {{ band.data.knowledge }}</span>
+                  <span><i class="legend-dot skill"></i> Skill {{ band.data.skill }}</span>
+                  <span><i class="legend-dot mastery"></i> Mastery {{ band.data.mastery }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (r.byFunction.length) {
+        <div class="card border-0 shadow-sm">
+          <div class="card-body">
+            <h6 class="card-title mb-3">Demonstrated levels by function</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Function</th>
+                    <th style="width: 45%">Spread</th>
+                    <th class="text-center">None</th>
+                    <th class="text-center">Know.</th>
+                    <th class="text-center">Skill</th>
+                    <th class="text-center">Mastery</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (f of r.byFunction; track f.label) {
+                    <tr>
+                      <td class="fw-medium">{{ f.label }}</td>
+                      <td>
+                        <div class="level-bar">
+                          <div class="seg none" [style.width.%]="pct(f.none, f.total)"></div>
+                          <div class="seg knowledge" [style.width.%]="pct(f.knowledge, f.total)"></div>
+                          <div class="seg skill" [style.width.%]="pct(f.skill, f.total)"></div>
+                          <div class="seg mastery" [style.width.%]="pct(f.mastery, f.total)"></div>
+                        </div>
+                      </td>
+                      <td class="text-center">{{ f.none }}</td>
+                      <td class="text-center">{{ f.knowledge }}</td>
+                      <td class="text-center">{{ f.skill }}</td>
+                      <td class="text-center">{{ f.mastery }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  }
+}
+
+<!-- ================= COMPLETION ================= -->
+@if (active() === 'completion' && !loading()) {
+  @if (completion(); as r) {
+    <p class="text-muted small mb-3">
+      How far through the exercise this cycle is — every assessment by status, not only the finalised
+      ones.
+    </p>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Finalised</div>
+          <div class="stat-value text-success">
+            {{ r.overall.completion !== null ? (r.overall.completion | number: '1.0-1') + '%' : '—' }}
+          </div>
+          <div class="stat-sub">{{ r.overall.finalized }} of {{ r.overall.total }} assessments</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">People</div>
+          <div class="stat-value">{{ r.overall.people }}</div>
+          <div class="stat-sub">with an assessment</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">In progress</div>
+          <div class="stat-value">{{ r.overall.selfAssessed + r.overall.reviewed }}</div>
+          <div class="stat-sub">self-assessed or reviewed</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Not started</div>
+          <div class="stat-value">{{ r.overall.draft }}</div>
+          <div class="stat-sub">still in draft</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <h6 class="card-title mb-3">Where the assessments stand</h6>
+        <div class="status-bar mb-2">
+          <div class="seg draft" [style.width.%]="pct(r.overall.draft, r.overall.total)" title="Draft"></div>
+          <div class="seg self" [style.width.%]="pct(r.overall.selfAssessed, r.overall.total)" title="Self-assessed"></div>
+          <div class="seg reviewed" [style.width.%]="pct(r.overall.reviewed, r.overall.total)" title="Reviewed"></div>
+          <div class="seg finalized" [style.width.%]="pct(r.overall.finalized, r.overall.total)" title="Finalised"></div>
+        </div>
+        <div class="d-flex flex-wrap gap-3 small">
+          <span><i class="legend-dot draft"></i> Draft {{ r.overall.draft }}</span>
+          <span><i class="legend-dot self"></i> Self-assessed {{ r.overall.selfAssessed }}</span>
+          <span><i class="legend-dot reviewed"></i> Reviewed {{ r.overall.reviewed }}</span>
+          <span><i class="legend-dot finalized"></i> Finalised {{ r.overall.finalized }}</span>
+        </div>
+      </div>
+    </div>
+
+    @if (r.byDepartment.length) {
+      <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Draft</th>
+                <th class="text-center">Self</th>
+                <th class="text-center">Reviewed</th>
+                <th class="text-center">Finalised</th>
+                <th class="text-end">Complete</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of r.byDepartment; track d.label) {
+                <tr>
+                  <td class="fw-medium">{{ d.label }}</td>
+                  <td class="text-center">{{ d.total }}</td>
+                  <td class="text-center">{{ d.draft }}</td>
+                  <td class="text-center">{{ d.selfAssessed }}</td>
+                  <td class="text-center">{{ d.reviewed }}</td>
+                  <td class="text-center text-success">{{ d.finalized }}</td>
+                  <td class="text-end fw-semibold">
+                    {{ d.completion !== null ? (d.completion | number: '1.0-0') + '%' : '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  }
+}
+
+<!-- ================= INDIVIDUAL ================= -->
+@if (active() === 'individual') {
+  <app-report-viewer></app-report-viewer>
+}

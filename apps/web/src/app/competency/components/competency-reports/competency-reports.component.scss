@@ -1,0 +1,190 @@
+// The report picker + cycle/print controls.
+.cr-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.cr-tabs {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.cr-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--bs-border-color, #e5e7eb);
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-secondary-color, #6b7280);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+
+  tui-icon {
+    font-size: 1rem;
+  }
+
+  &:hover {
+    border-color: var(--brand-primary, #6d5ef6);
+    color: var(--brand-primary, #6d5ef6);
+  }
+
+  &.active {
+    background: var(--brand-primary, #6d5ef6);
+    border-color: var(--brand-primary, #6d5ef6);
+    color: #fff;
+  }
+}
+
+.cr-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// Long competency names wrap rather than stretching the table.
+.cr-competency {
+  max-width: 26rem;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+// --- shared visual language (matches the outcome report) -------------------
+.stat-card {
+  background: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-border-color, #e5e7eb);
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  height: 100%;
+
+  .stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--bs-secondary-color, #6b7280);
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .stat-sub {
+    font-size: 0.78rem;
+    color: var(--bs-secondary-color, #6b7280);
+    margin-top: 0.2rem;
+  }
+}
+
+// Gap spread (met / minor / major / significant).
+.gap-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bs-tertiary-bg, #f3f4f6);
+
+  .seg {
+    height: 100%;
+    transition: width 0.3s ease;
+
+    &.met { background: #16a34a; }
+    &.minor { background: #eab308; }
+    &.major { background: #f97316; }
+    &.significant { background: #dc2626; }
+  }
+}
+
+// Proficiency spread (none / knowledge / skill / mastery).
+.level-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bs-tertiary-bg, #f3f4f6);
+
+  .seg {
+    height: 100%;
+    transition: width 0.3s ease;
+
+    &.none { background: #cbd5e1; }
+    &.knowledge { background: #60a5fa; }
+    &.skill { background: #6366f1; }
+    &.mastery { background: #16a34a; }
+  }
+}
+
+// Assessment status spread (draft / self / reviewed / finalised).
+.status-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--bs-tertiary-bg, #f3f4f6);
+
+  .seg {
+    height: 100%;
+    transition: width 0.3s ease;
+
+    &.draft { background: #cbd5e1; }
+    &.self { background: #60a5fa; }
+    &.reviewed { background: #a78bfa; }
+    &.finalized { background: #16a34a; }
+  }
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+
+  &.met { background: #16a34a; }
+  &.minor { background: #eab308; }
+  &.major { background: #f97316; }
+  &.significant { background: #dc2626; }
+  &.none { background: #cbd5e1; }
+  &.knowledge { background: #60a5fa; }
+  &.skill { background: #6366f1; }
+  &.mastery { background: #16a34a; }
+  &.draft { background: #cbd5e1; }
+  &.self { background: #60a5fa; }
+  &.reviewed { background: #a78bfa; }
+  &.finalized { background: #16a34a; }
+}
+
+// Major severity has no bootstrap subtle utility of its own.
+.cr-badge-major {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.empty-panel {
+  background: var(--bs-tertiary-bg, #f9fafb);
+  border: 1px dashed var(--bs-border-color, #e5e7eb);
+  border-radius: 0.75rem;
+
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--bs-secondary-color, #9ca3af);
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

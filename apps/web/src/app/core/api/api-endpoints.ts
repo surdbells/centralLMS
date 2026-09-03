@@ -532,6 +532,14 @@ export const Endpoints = {
     bulk: '/competency-assessments/bulk',
     /** The organisation-wide outcome for a cycle. */
     outcome: '/competency-assessments/outcome',
+    /** The analytical reports section, each reading one cycle. */
+    reports: {
+      readiness: '/competency-assessments/reports/readiness',
+      gaps: '/competency-assessments/reports/gaps',
+      critical: '/competency-assessments/reports/critical',
+      distribution: '/competency-assessments/reports/distribution',
+      completion: '/competency-assessments/reports/completion',
+    },
     /** The caller's own assessments, for self-assessment. */
     mine: '/competency-assessments/mine',
     show: (id: string) => `/competency-assessments/${id}`,

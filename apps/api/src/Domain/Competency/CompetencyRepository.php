@@ -151,4 +151,50 @@ interface CompetencyRepository
      * @return list<string>
      */
     public function cycles(string $tenantId): array;
+
+    // --- the analytical reports -----------------------------------------------
+
+    /**
+     * Readiness for one cycle broken down by an org or competency axis.
+     *
+     * `$dimension` is one of department, branch, team, level, job_title
+     * (org axes joined through the user) or 'function' (the competency's own
+     * axis). Only finalised assessments count, and the stored gap decides the
+     * buckets, so each row agrees with the outcome headline.
+     *
+     * @return list<array{label: string, people: int, requirements: int, met: int, minor: int, major: int, significant: int, gaps: int, readiness: ?float, estimatedMonths: int}>
+     */
+    public function readinessByDimension(string $tenantId, string $cycle, string $dimension): array;
+
+    /**
+     * Every competency measured in the cycle, with how it is held across the
+     * organisation — the development-priorities table, widest average gap first.
+     *
+     * @return list<array{competency: string, function: string, assessed: int, withGap: int, met: int, minor: int, major: int, significant: int, critical: int, avgGap: float, avgRequired: float, estimatedMonths: int}>
+     */
+    public function gapAnalysis(string $tenantId, string $cycle): array;
+
+    /**
+     * Each person still short on a competency their job marks critical — the
+     * list a placement decision cannot ignore. One row per person-competency.
+     *
+     * @return list<array{assessmentId: string, userName: string, jobTitle: ?string, department: ?string, competency: string, function: string, requiredLevel: int, demonstratedLevel: int, gap: int, gapLabel: string, estimatedMonths: int}>
+     */
+    public function criticalGaps(string $tenantId, string $cycle): array;
+
+    /**
+     * How the demonstrated levels are spread against what the jobs require —
+     * overall and by function. Reads across every finalised item.
+     *
+     * @return array{demonstrated: array{none: int, knowledge: int, skill: int, mastery: int, total: int}, required: array{none: int, knowledge: int, skill: int, mastery: int, total: int}, byFunction: list<array{label: string, none: int, knowledge: int, skill: int, mastery: int, total: int}>}
+     */
+    public function proficiencyDistribution(string $tenantId, string $cycle): array;
+
+    /**
+     * How far through the exercise the cycle is — assessments by status, overall
+     * and by department. Counts every assessment, not only the finalised ones.
+     *
+     * @return array{overall: array{total: int, people: int, draft: int, selfAssessed: int, reviewed: int, finalized: int, completion: ?float}, byDepartment: list<array{label: string, total: int, people: int, draft: int, selfAssessed: int, reviewed: int, finalized: int, completion: ?float}>}
+     */
+    public function completion(string $tenantId, string $cycle): array;
 }

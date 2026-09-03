@@ -18,6 +18,7 @@ use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Action\Auth\RegisterAction;
 use Central\Api\Application\Action\Competency\CompetencyAction;
 use Central\Api\Application\Action\Competency\CompetencyAssessmentAction;
+use Central\Api\Application\Action\Competency\CompetencyReportAction;
 use Central\Api\Application\Action\Competency\CompetencyImportAction;
 use Central\Api\Application\Action\Competency\CompetencyTemplateAction;
 use Central\Api\Application\Action\Competency\JobProfileAction;
@@ -850,6 +851,19 @@ return static function (App $app): void {
                 // is not read as an id.
                 $a->get('/mine', [CompetencyAssessmentAction::class, 'mine'])
                     ->setName('competency-assessments.mine');
+
+                // The analytical reports section — all under `/reports/…`, and
+                // before `/{id}` so the literal is not parsed as an id.
+                $a->get('/reports/readiness', [CompetencyReportAction::class, 'readiness'])
+                    ->setName('competency-assessments.reports.readiness');
+                $a->get('/reports/gaps', [CompetencyReportAction::class, 'gaps'])
+                    ->setName('competency-assessments.reports.gaps');
+                $a->get('/reports/critical', [CompetencyReportAction::class, 'critical'])
+                    ->setName('competency-assessments.reports.critical');
+                $a->get('/reports/distribution', [CompetencyReportAction::class, 'distribution'])
+                    ->setName('competency-assessments.reports.distribution');
+                $a->get('/reports/completion', [CompetencyReportAction::class, 'completion'])
+                    ->setName('competency-assessments.reports.completion');
 
                 $a->get('', [CompetencyAssessmentAction::class, 'list'])
                     ->setName('competency-assessments.list');

@@ -70,8 +70,8 @@ export const competencyRoutes: Routes = [
       {
         path: 'reports',
         loadComponent: () =>
-          import('./components/report-viewer/report-viewer.component').then(
-            (m) => m.ReportViewerComponent,
+          import('./components/competency-reports/competency-reports.component').then(
+            (m) => m.CompetencyReportsComponent,
           ),
         title: 'Competency Reports',
       },

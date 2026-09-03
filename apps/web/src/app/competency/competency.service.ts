@@ -199,6 +199,117 @@ export interface OutcomeReport {
   }>;
 }
 
+// --- the analytical reports -------------------------------------------------
+
+/** The org and competency axes readiness can be grouped by. */
+export type ReadinessDimension =
+  | 'department'
+  | 'branch'
+  | 'team'
+  | 'level'
+  | 'job_title'
+  | 'function';
+
+/** One group's readiness — a department, a function, whatever the axis is. */
+export interface ReadinessGroup {
+  label: string;
+  people: number;
+  requirements: number;
+  met: number;
+  minor: number;
+  major: number;
+  significant: number;
+  gaps: number;
+  readiness: number | null;
+  estimatedMonths: number;
+}
+
+export interface ReadinessReport {
+  cycle: string;
+  dimension: ReadinessDimension;
+  dimensions: ReadinessDimension[];
+  groups: ReadinessGroup[];
+  cycles: string[];
+}
+
+/** One competency across the organisation — the development-priorities row. */
+export interface GapAnalysisRow {
+  competency: string;
+  function: string;
+  assessed: number;
+  withGap: number;
+  met: number;
+  minor: number;
+  major: number;
+  significant: number;
+  critical: number;
+  avgGap: number;
+  avgRequired: number;
+  estimatedMonths: number;
+}
+
+export interface GapAnalysisReport {
+  cycle: string;
+  competencies: GapAnalysisRow[];
+  cycles: string[];
+}
+
+/** One person still short on a competency their job marks critical. */
+export interface CriticalGapRow {
+  assessmentId: string;
+  userName: string;
+  jobTitle: string | null;
+  department: string | null;
+  competency: string;
+  function: string;
+  requiredLevel: number;
+  demonstratedLevel: number;
+  gap: number;
+  gapLabel: string;
+  estimatedMonths: number;
+}
+
+export interface CriticalGapsReport {
+  cycle: string;
+  rows: CriticalGapRow[];
+  cycles: string[];
+}
+
+/** A count of items at each proficiency level. */
+export interface LevelSpread {
+  none: number;
+  knowledge: number;
+  skill: number;
+  mastery: number;
+  total: number;
+}
+
+export interface DistributionReport {
+  cycle: string;
+  demonstrated: LevelSpread;
+  required: LevelSpread;
+  byFunction: Array<LevelSpread & { label: string }>;
+  cycles: string[];
+}
+
+/** Assessment counts by status, for the whole cycle or one department. */
+export interface CompletionRow {
+  total: number;
+  people: number;
+  draft: number;
+  selfAssessed: number;
+  reviewed: number;
+  finalized: number;
+  completion: number | null;
+}
+
+export interface CompletionReport {
+  cycle: string;
+  overall: CompletionRow;
+  byDepartment: Array<CompletionRow & { label: string }>;
+  cycles: string[];
+}
+
 export interface CompetencyFilters {
   search?: string;
   function?: string;
@@ -411,5 +522,50 @@ export class CompetencyService {
 
   getOutcome(cycle?: string): Observable<OutcomeReport> {
     return this.api.get<OutcomeReport>(Endpoints.competencyAssessments.outcome, cycle ? { cycle } : {});
+  }
+
+  // --- the analytical reports ---------------------------------------------
+  //
+  // Each reads one cycle, defaulting to the newest, and every figure is the
+  // API's — the browser groups and totals nothing, so a report cannot show a
+  // readiness the finalised assessments do not support.
+
+  getReadinessReport(dimension?: ReadinessDimension, cycle?: string): Observable<ReadinessReport> {
+    const params: Record<string, string> = {};
+    if (dimension) {
+      params['dimension'] = dimension;
+    }
+    if (cycle) {
+      params['cycle'] = cycle;
+    }
+    return this.api.get<ReadinessReport>(Endpoints.competencyAssessments.reports.readiness, params);
+  }
+
+  getGapAnalysis(cycle?: string): Observable<GapAnalysisReport> {
+    return this.api.get<GapAnalysisReport>(
+      Endpoints.competencyAssessments.reports.gaps,
+      cycle ? { cycle } : {},
+    );
+  }
+
+  getCriticalGaps(cycle?: string): Observable<CriticalGapsReport> {
+    return this.api.get<CriticalGapsReport>(
+      Endpoints.competencyAssessments.reports.critical,
+      cycle ? { cycle } : {},
+    );
+  }
+
+  getDistribution(cycle?: string): Observable<DistributionReport> {
+    return this.api.get<DistributionReport>(
+      Endpoints.competencyAssessments.reports.distribution,
+      cycle ? { cycle } : {},
+    );
+  }
+
+  getCompletion(cycle?: string): Observable<CompletionReport> {
+    return this.api.get<CompletionReport>(
+      Endpoints.competencyAssessments.reports.completion,
+      cycle ? { cycle } : {},
+    );
   }
 }
