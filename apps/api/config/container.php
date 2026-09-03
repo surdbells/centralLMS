@@ -122,11 +122,17 @@ use Central\Api\Domain\Saas\PlatformRepository;
 use Central\Api\Domain\Saas\OnboardingCodeRepository;
 use Central\Api\Domain\Saas\SubscriptionRepository;
 use Central\Api\Domain\Saas\InvoiceRepository;
+use Central\Api\Domain\Saas\PaymentRepository;
+use Central\Api\Application\Saas\BillingService;
+use Central\Api\Application\Saas\Payment\PaymentGateway;
+use Central\Api\Application\Saas\Payment\PaymentService;
 use Central\Api\Infrastructure\Persistence\DbalPlanRepository;
 use Central\Api\Infrastructure\Persistence\DbalPlatformRepository;
 use Central\Api\Infrastructure\Persistence\DbalOnboardingCodeRepository;
 use Central\Api\Infrastructure\Persistence\DbalSubscriptionRepository;
 use Central\Api\Infrastructure\Persistence\DbalInvoiceRepository;
+use Central\Api\Infrastructure\Persistence\DbalPaymentRepository;
+use Central\Api\Infrastructure\Payment\PaystackGateway;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseDiscussionRepository;
@@ -615,6 +621,34 @@ return [
     InvoiceRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalInvoiceRepository($c->get(Connection::class)),
     ),
+    PaymentRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalPaymentRepository($c->get(Connection::class)),
+    ),
+
+    // The payment gateway, chosen by config. One adapter behind the
+    // gateway-agnostic contract; its keys come from the environment.
+    PaymentGateway::class => factory(static function (ContainerInterface $c): PaymentGateway {
+        $payments = $c->get('settings')['payments'];
+        $provider = (string) ($payments['provider'] ?? 'paystack');
+
+        return match ($provider) {
+            'paystack' => new PaystackGateway(
+                (array) ($payments['paystack'] ?? []),
+                $c->get(HttpClientInterface::class),
+                $c->get(LoggerInterface::class),
+            ),
+            default => throw new \RuntimeException(sprintf('Unknown payment provider "%s".', $provider)),
+        };
+    }),
+    PaymentService::class => factory(static fn (ContainerInterface $c): PaymentService => new PaymentService(
+        $c->get(PaymentGateway::class),
+        $c->get(PaymentRepository::class),
+        $c->get(InvoiceRepository::class),
+        $c->get(BillingService::class),
+        $c->get(Clock::class),
+        $c->get(LoggerInterface::class),
+        (array) ($c->get('settings')['payments'] ?? []),
+    )),
 
     /**
      * One transport per channel, keyed by channel value.

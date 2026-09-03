@@ -1,8 +1,9 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
-import { BillingService, type Billing } from '../../services/billing.service';
+import { BillingService, type Billing, type Invoice } from '../../services/billing.service';
 import { TenantService, type Tenant } from '../../services/tenant.service';
 
 /**
@@ -32,6 +33,14 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
             <small class="text-muted">Your plan, your invoices, and what your organisation is using.</small>
           </div>
         </div>
+
+        @if (payBanner(); as pb) {
+          <div class="alert d-flex align-items-center gap-2" [class.alert-success]="pb.ok" [class.alert-warning]="!pb.ok">
+            <i class="bi" [class.bi-check-circle-fill]="pb.ok" [class.bi-exclamation-circle-fill]="!pb.ok"></i>
+            {{ pb.text }}
+            <button class="btn-close ms-auto" (click)="payBanner.set(null)"></button>
+          </div>
+        }
 
         @if (loading()) {
           <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
@@ -75,7 +84,7 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
                     </dl>
                     <div class="alert alert-light border mt-3 mb-0 small d-flex gap-2">
                       <i class="bi bi-info-circle"></i>
-                      <span>To change your plan or update payment, contact your account manager.</span>
+                      <span>To change your plan, contact your account manager. Outstanding invoices can be paid below.</span>
                     </div>
                   } @else {
                     <div class="text-center text-muted py-4">
@@ -129,7 +138,7 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
                     <div class="table-responsive">
                       <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
-                          <tr><th>Invoice</th><th>Description</th><th class="text-end">Amount</th><th>Status</th><th>Issued</th><th>Due</th></tr>
+                          <tr><th>Invoice</th><th>Description</th><th class="text-end">Amount</th><th>Status</th><th>Issued</th><th>Due</th><th></th></tr>
                         </thead>
                         <tbody>
                           @for (inv of invoices(); track inv.id) {
@@ -140,6 +149,14 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
                               <td><span class="badge {{ invBadge(inv.status) }}">{{ inv.status }}</span></td>
                               <td class="small">{{ inv.issuedAt | date:'d MMM y' }}</td>
                               <td class="small">{{ inv.status === 'paid' ? (inv.paidAt | date:'d MMM y') : (inv.dueAt | date:'d MMM y') }}</td>
+                              <td class="text-end">
+                                @if (inv.status === 'open' || inv.status === 'draft') {
+                                  <button class="btn btn-sm btn-success" [disabled]="paying() !== null" (click)="payInvoice(inv)">
+                                    @if (paying() === inv.id) { <span class="spinner-border spinner-border-sm"></span> }
+                                    @else { <i class="bi bi-credit-card me-1"></i>Pay now }
+                                  </button>
+                                }
+                              </td>
                             </tr>
                           }
                         </tbody>
@@ -159,24 +176,85 @@ export class BillingComponent implements OnInit {
   private readonly billing = inject(BillingService);
   private readonly tenants = inject(TenantService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly data = signal<Billing | null>(null);
   readonly tenant = signal<Tenant | null>(null);
   readonly loading = signal(true);
   readonly error = signal(false);
+  /** The invoice a payment is being started for, so its button spins. */
+  readonly paying = signal<string | null>(null);
+  readonly payBanner = signal<{ ok: boolean; text: string } | null>(null);
 
   readonly sub = computed(() => this.data()?.subscription ?? null);
   readonly invoices = computed(() => this.data()?.invoices ?? []);
 
   ngOnInit(): void {
     this.load();
+    this.confirmReturnFromGateway();
+  }
+
+  /** Sends the payer to the gateway to settle an outstanding invoice. */
+  payInvoice(inv: Invoice): void {
+    if (this.paying()) {
+      return;
+    }
+    this.paying.set(inv.id);
+    this.payBanner.set(null);
+
+    // Tear down on navigate-away: without this a slow response could redirect
+    // the whole browser to the gateway from a page the user already left.
+    this.billing.pay(inv.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (start) => {
+        if (start.authorizationUrl) {
+          // Off to the gateway's hosted checkout; it returns to this page.
+          window.location.href = start.authorizationUrl;
+        } else {
+          this.paying.set(null);
+          this.payBanner.set({ ok: false, text: 'Could not start the payment. Please try again.' });
+        }
+      },
+      error: () => {
+        this.paying.set(null);
+        this.payBanner.set({ ok: false, text: 'Payments are unavailable right now. Please try again shortly.' });
+      },
+    });
+  }
+
+  /**
+   * When the gateway returns the payer here it appends the reference. Confirm
+   * it, then strip it from the URL so a refresh does not re-confirm.
+   */
+  private confirmReturnFromGateway(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const reference = params.get('reference') ?? params.get('trxref');
+    if (!reference) {
+      return;
+    }
+
+    void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+
+    this.billing.confirm(reference).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (outcome) => {
+        this.payBanner.set(outcome.paid
+          ? { ok: true, text: 'Payment received — thank you. Your invoice is now settled.' }
+          : { ok: false, text: 'That payment did not complete. You can try paying again.' });
+        this.load();
+      },
+      // A charge may still land by webhook, so this is reassuring, not alarming.
+      error: () => this.payBanner.set({
+        ok: false,
+        text: 'We could not confirm the payment just now. If you were charged, it will update here shortly.',
+      }),
+    });
   }
 
   load(): void {
     this.loading.set(true);
     this.error.set(false);
 
-    this.billing.show().subscribe({
+    this.billing.show().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (b) => {
         this.data.set(b);
         this.loading.set(false);
@@ -188,7 +266,8 @@ export class BillingComponent implements OnInit {
     });
 
     // Usage is a bonus; a failure here should not blank the page.
-    this.tenants.show().subscribe({ next: (t) => this.tenant.set(t), error: () => this.tenant.set(null) });
+    this.tenants.show().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (t) => this.tenant.set(t), error: () => this.tenant.set(null) });
   }
 
   goBack(): void {

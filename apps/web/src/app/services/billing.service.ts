@@ -47,6 +47,18 @@ export interface Billing {
   invoices: Invoice[];
 }
 
+/** Where to send the payer to settle an invoice. */
+export interface PaymentStart {
+  reference: string;
+  authorizationUrl: string | null;
+}
+
+/** The outcome of confirming a payment on return from the gateway. */
+export interface PaymentOutcome {
+  paid: boolean;
+  status: string;
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -64,5 +76,15 @@ export class BillingService {
 
   show(): Observable<Billing> {
     return this.api.get<Billing>(Endpoints.billing.show);
+  }
+
+  /** Begins paying an invoice; the caller sends the payer to the returned URL. */
+  pay(invoiceId: string): Observable<PaymentStart> {
+    return this.api.post<PaymentStart>(Endpoints.billing.pay(invoiceId), {});
+  }
+
+  /** Confirms a payment once the payer is back from the gateway. */
+  confirm(reference: string): Observable<PaymentOutcome> {
+    return this.api.post<PaymentOutcome>(Endpoints.billing.confirmPayment, { reference });
   }
 }

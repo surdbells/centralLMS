@@ -124,6 +124,7 @@ use Central\Api\Application\Action\Saas\OnboardingAction;
 use Central\Api\Application\Action\Saas\OnboardingCodeAction;
 use Central\Api\Application\Action\Saas\OperatorBillingAction;
 use Central\Api\Application\Action\Saas\BillingAction;
+use Central\Api\Application\Action\Saas\PaymentWebhookAction;
 use Central\Api\Application\Action\People\ImportPeopleAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
@@ -262,6 +263,11 @@ return static function (App $app): void {
                 ->setName('onboarding.register');
         });
 
+        // The payment gateway's webhook. Public — the gateway has no session —
+        // and authenticated instead by the signature over the raw body, checked
+        // in the action. This is the authoritative confirmation of a payment.
+        $v1->post('/webhooks/paystack', PaymentWebhookAction::class)->setName('webhooks.paystack');
+
         // The bytes of one file, for a browser that cannot send a header.
         //
         // Outside the authenticated group by necessity: an `<img src>`, a
@@ -282,10 +288,15 @@ return static function (App $app): void {
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
 
-            // An organisation's own billing — its plan, period and invoices.
-            // Read-only for now; gated on billing.manage in the action, and
-            // scoped to the caller's own tenant with no id in the path.
+            // An organisation's own billing — its plan, period and invoices,
+            // and paying an outstanding one. Gated on billing.manage in the
+            // action, and scoped to the caller's own tenant with no id in the
+            // path.
             $secure->get('/billing', [BillingAction::class, 'show'])->setName('billing.show');
+            $secure->post('/billing/invoices/{id:' . $uuid . '}/pay', [BillingAction::class, 'pay'])
+                ->setName('billing.pay');
+            $secure->post('/billing/payments/confirm', [BillingAction::class, 'confirm'])
+                ->setName('billing.confirm');
 
             // --- SaaS operator console ------------------------------------
             //

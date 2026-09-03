@@ -108,6 +108,30 @@ return [
         ],
     ],
 
+    /**
+     * Collecting money for an invoice.
+     *
+     * A provider adapter, like mail and sms: one gateway chosen by
+     * `PAYMENTS_PROVIDER`, its keys read from the environment and never
+     * committed. `callback_url` is where the gateway returns the customer after
+     * they pay — a page in the tenant application that confirms the payment.
+     */
+    'payments' => [
+        'provider' => Env::get('PAYMENTS_PROVIDER', 'paystack'),
+        // Where the gateway returns the customer after paying — the tenant
+        // application's billing page, NOT the API (APP_URL is the API). Defaults
+        // off APP_WEB_URL, the same origin SSO and password-reset return to.
+        'callback_url' => rtrim(
+            (string) Env::get('PAYMENTS_CALLBACK_URL', rtrim((string) Env::get('APP_WEB_URL', ''), '/') . '/admin/billing'),
+            '/',
+        ),
+        'paystack' => [
+            'secret_key' => Env::get('PAYSTACK_SECRET_KEY', ''),
+            'public_key' => Env::get('PAYSTACK_PUBLIC_KEY', ''),
+            'base_url'   => rtrim((string) Env::get('PAYSTACK_BASE_URL', 'https://api.paystack.co'), '/'),
+        ],
+    ],
+
     'storage' => [
         /**
          * Where uploaded files go.

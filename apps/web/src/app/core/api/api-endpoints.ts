@@ -781,6 +781,10 @@ export const Endpoints = {
    */
   billing: {
     show: '/billing',
+    /** Start paying one outstanding invoice; returns where to send the payer. */
+    pay: (invoiceId: string) => `/billing/invoices/${invoiceId}/pay`,
+    /** Confirm a payment after the payer returns from the gateway. */
+    confirmPayment: '/billing/payments/confirm',
   },
 
   /** What this organisation's own transactional mail says. */
