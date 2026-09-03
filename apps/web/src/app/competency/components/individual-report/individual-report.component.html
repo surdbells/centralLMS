@@ -43,6 +43,13 @@
       </div>
     </div>
 
+    <!-- Competency profile radar: demonstrated proficiency vs the ideal -->
+    <app-competency-radar
+      [categories]="radarCategories"
+      [proficiency]="radarProficiency"
+      [ideal]="radarIdeal">
+    </app-competency-radar>
+
     <!-- Competency table -->
     <table class="ir-grid">
       <thead>

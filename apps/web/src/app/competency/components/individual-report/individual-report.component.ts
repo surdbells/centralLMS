@@ -1,4 +1,5 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core';
+import { Component, DestroyRef, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -8,6 +9,7 @@ import {
   type CompetencyReport,
   type AssessmentItem,
 } from '../../competency.service';
+import { CompetencyRadarComponent } from './competency-radar.component';
 
 /**
  * One person's competency report — the document the exercise produces for each
@@ -22,7 +24,7 @@ import {
 @Component({
   selector: 'app-individual-report',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CompetencyRadarComponent],
   templateUrl: './individual-report.component.html',
   styleUrl: './individual-report.component.scss',
 })
@@ -32,6 +34,7 @@ export class IndividualReportComponent implements OnInit, OnChanges {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly toast = inject(HotToastService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly branding = inject(BrandingService);
 
   /** When embedded (e.g. the report viewer), the assessment to show is fed in. */
@@ -41,6 +44,13 @@ export class IndividualReportComponent implements OnInit, OnChanges {
 
   loading = true;
   report: CompetencyReport | null = null;
+
+  // The radar's data, computed once when the report loads — not as getters,
+  // which would hand the chart a fresh array reference on every change
+  // detection and have it rebuild all its geometry each time.
+  radarCategories: string[] = [];
+  radarProficiency: number[] = [];
+  radarIdeal: number[] = [];
 
   /** Back to wherever the report was opened from, or the assessments list. */
   back(): void {
@@ -60,12 +70,18 @@ export class IndividualReportComponent implements OnInit, OnChanges {
       }
       return;
     }
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) {
-      this.loading = false;
-      return;
-    }
-    this.load(id);
+    // Subscribe rather than read the snapshot once: Angular reuses this
+    // component when only the :id changes (URL edit, back/forward between two
+    // reports), and a snapshot read would leave the whole report — the radar
+    // included — showing the previous assessment.
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = params.get('id');
+      if (id) {
+        this.load(id);
+      } else {
+        this.loading = false;
+      }
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -77,9 +93,15 @@ export class IndividualReportComponent implements OnInit, OnChanges {
   private load(id: string): void {
     this.loading = true;
     this.report = null;
+    this.radarCategories = [];
+    this.radarProficiency = [];
+    this.radarIdeal = [];
     this.competency.getReport(id).subscribe({
       next: (report) => {
         this.report = report;
+        this.radarCategories = report.assessment.items.map((i) => i.competencyName);
+        this.radarProficiency = report.assessment.items.map((i) => i.demonstratedLevel);
+        this.radarIdeal = report.assessment.items.map((i) => i.requiredLevel);
         this.loading = false;
       },
       error: () => {
