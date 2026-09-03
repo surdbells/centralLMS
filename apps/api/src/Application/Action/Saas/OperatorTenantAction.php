@@ -6,12 +6,15 @@ namespace Central\Api\Application\Action\Saas;
 
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Saas\BillingService;
 use Central\Api\Application\Saas\TenantProvisioner;
+use Central\Api\Domain\Saas\PlanRepository;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Saas\PlatformRepository;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -31,6 +34,9 @@ final class OperatorTenantAction
     public function __construct(
         private readonly PlatformRepository $platform,
         private readonly TenantProvisioner $provisioner,
+        private readonly BillingService $billing,
+        private readonly PlanRepository $plans,
+        private readonly Connection $connection,
     ) {
     }
 
@@ -106,16 +112,39 @@ final class OperatorTenantAction
             $status = 'active';
         }
 
+        $planId = $this->str($body['planId'] ?? null);
+
         try {
-            $result = $this->provisioner->provision(
-                name: (string) $name,
-                code: strtolower((string) $code),
-                contactEmail: (string) $email,
-                adminFirstName: $first,
-                adminLastName: $last,
-                password: $this->str($body['password'] ?? null),
-                planId: $this->str($body['planId'] ?? null),
-                status: $status,
+            // The organisation and its subscription are created together, on the
+            // one shared connection, so a failure in either rolls back both —
+            // never a tenant left on a plan with no subscription. (Onboarding
+            // does the same for the same reason.)
+            $result = $this->connection->transactional(
+                function () use ($name, $code, $email, $first, $last, $body, $planId, $status): array {
+                    $provisioned = $this->provisioner->provision(
+                        name: (string) $name,
+                        code: strtolower((string) $code),
+                        contactEmail: (string) $email,
+                        adminFirstName: $first,
+                        adminLastName: $last,
+                        password: $this->str($body['password'] ?? null),
+                        planId: $planId,
+                        status: $status,
+                    );
+
+                    // A subscription when it was put on a plan — a trial when it
+                    // starts on trial, otherwise straight onto the plan.
+                    if ($planId !== null) {
+                        $plan = $this->plans->find($planId);
+                        if ($plan !== null) {
+                            $status === 'trial'
+                                ? $this->billing->startTrial($provisioned['tenantId'], $plan, 'monthly')
+                                : $this->billing->assignPlan($provisioned['tenantId'], $plan);
+                        }
+                    }
+
+                    return $provisioned;
+                },
             );
         } catch (UniqueConstraintViolationException) {
             throw ValidationFailed::fromArray(['code' => 'That code, or that admin email, is already taken.']);
@@ -179,6 +208,18 @@ final class OperatorTenantAction
 
         if (!$this->platform->assignPlan($args['id'], $planId)) {
             throw new EntityNotFound('Organisation or plan', $args['id']);
+        }
+
+        // Keep the billing subscription in step with the plan the operator set:
+        // onto the new plan (keeping the existing cycle), or cancelled when the
+        // plan is removed.
+        if ($planId === null) {
+            $this->billing->cancel($args['id'], true);
+        } else {
+            $plan = $this->plans->find($planId);
+            if ($plan !== null) {
+                $this->billing->assignPlan($args['id'], $plan);
+            }
         }
 
         return Json::ok($response, $this->platform->findTenant($args['id']) ?? []);

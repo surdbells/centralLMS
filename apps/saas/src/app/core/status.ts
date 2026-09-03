@@ -1,4 +1,4 @@
-import type { TenantStatus } from './models';
+import type { InvoiceStatus, SubscriptionStatus, TenantStatus } from './models';
 
 /**
  * The badge class for an organisation's state.
@@ -23,4 +23,34 @@ export function statusMeaning(status: TenantStatus): string {
     case 'cancelled':
       return 'Closed. Kept for the record, not in use.';
   }
+}
+
+/** The badge class for a subscription's state, reusing the shared modifiers. */
+export function subscriptionBadgeClass(status: SubscriptionStatus): string {
+  const modifier: Record<SubscriptionStatus, string> = {
+    trialing: 'trial',
+    active: 'active',
+    past_due: 'suspended',
+    canceled: 'cancelled',
+  };
+
+  return `op-badge op-badge--${modifier[status]}`;
+}
+
+/** The badge class for an invoice's state. */
+export function invoiceBadgeClass(status: InvoiceStatus): string {
+  const modifier: Record<InvoiceStatus, string> = {
+    paid: 'active',
+    open: 'trial',
+    draft: 'muted',
+    void: 'muted',
+    uncollectible: 'cancelled',
+  };
+
+  return `op-badge op-badge--${modifier[status]}`;
+}
+
+/** Subscription status as a plain word for display. */
+export function subscriptionLabel(status: SubscriptionStatus): string {
+  return status === 'past_due' ? 'past due' : status;
 }

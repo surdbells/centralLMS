@@ -96,6 +96,7 @@ export class AdmintopComponent implements OnInit, OnDestroy {
     is_content: false,
     is_instructor: false,
     is_learner: false,
+    can_billing: false,
   };
 
   protected readonly sessionStorage = sessionStorage;
@@ -120,6 +121,7 @@ export class AdmintopComponent implements OnInit, OnDestroy {
       is_content: can('course.manage'),
       is_instructor: can('progress.manage'),
       is_learner: can('enrollment.self'),
+      can_billing: can('billing.manage'),
     };
 
     // The name and picture come from the person's own record rather than

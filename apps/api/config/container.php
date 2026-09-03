@@ -120,9 +120,13 @@ use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
 use Central\Api\Domain\Saas\PlanRepository;
 use Central\Api\Domain\Saas\PlatformRepository;
 use Central\Api\Domain\Saas\OnboardingCodeRepository;
+use Central\Api\Domain\Saas\SubscriptionRepository;
+use Central\Api\Domain\Saas\InvoiceRepository;
 use Central\Api\Infrastructure\Persistence\DbalPlanRepository;
 use Central\Api\Infrastructure\Persistence\DbalPlatformRepository;
 use Central\Api\Infrastructure\Persistence\DbalOnboardingCodeRepository;
+use Central\Api\Infrastructure\Persistence\DbalSubscriptionRepository;
+use Central\Api\Infrastructure\Persistence\DbalInvoiceRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseDiscussionRepository;
@@ -604,6 +608,12 @@ return [
     ),
     OnboardingCodeRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalOnboardingCodeRepository($c->get(Connection::class)),
+    ),
+    SubscriptionRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalSubscriptionRepository($c->get(Connection::class)),
+    ),
+    InvoiceRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalInvoiceRepository($c->get(Connection::class)),
     ),
 
     /**

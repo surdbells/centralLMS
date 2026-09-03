@@ -119,6 +119,68 @@ export interface ProvisionResult {
   readonly generatedPassword: string | null;
 }
 
+// --- billing ------------------------------------------------------------------
+
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled';
+export type BillingCycle = 'monthly' | 'yearly';
+export type InvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
+
+/** An organisation's billing arrangement. Amount in minor units. */
+export interface Subscription {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly planId: string | null;
+  readonly planName?: string | null;
+  readonly billingCycle: BillingCycle;
+  readonly status: SubscriptionStatus;
+  readonly amount: number;
+  readonly currency: string;
+  readonly currentPeriodStart: string | null;
+  readonly currentPeriodEnd: string | null;
+  readonly trialEndsAt: string | null;
+  readonly cancelAtPeriodEnd: boolean;
+  readonly canceledAt: string | null;
+  readonly startedAt: string | null;
+}
+
+/** A bill for one period. Amounts in minor units. */
+export interface Invoice {
+  readonly id: string;
+  readonly tenantId: string;
+  readonly subscriptionId: string | null;
+  readonly number: string;
+  readonly status: InvoiceStatus;
+  readonly description: string | null;
+  readonly amountDue: number;
+  readonly amountPaid: number;
+  readonly currency: string;
+  readonly periodStart: string | null;
+  readonly periodEnd: string | null;
+  readonly issuedAt: string | null;
+  readonly dueAt: string | null;
+  readonly paidAt: string | null;
+}
+
+/** One organisation's subscription and its invoices. */
+export interface TenantBilling {
+  readonly subscription: Subscription | null;
+  readonly invoices: readonly Invoice[];
+}
+
+/** An invoice with the organisation it belongs to named. */
+export interface InvoiceWithTenant extends Invoice {
+  readonly tenantName: string;
+  readonly tenantCode: string;
+}
+
+/** Platform-wide billing figures. */
+export interface BillingOverview {
+  readonly mrr: number;
+  readonly subscriptions: Record<string, number>;
+  readonly invoices: { readonly count: number; readonly open: number; readonly outstanding: number; readonly collected: number };
+  readonly recentInvoices: readonly InvoiceWithTenant[];
+}
+
 /** An onboarding code that gates public self-service sign-up. */
 export interface OnboardingCode {
   readonly id: string;

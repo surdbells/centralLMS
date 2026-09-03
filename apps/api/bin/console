@@ -10,6 +10,7 @@ use Central\Api\Application\Console\ApplyEnrollmentRulesCommand;
 use Central\Api\Application\Console\ConsumeMessagesCommand;
 use Central\Api\Application\Console\DispatchNotificationsCommand;
 use Central\Api\Application\Console\DispatchScheduledReportsCommand;
+use Central\Api\Application\Console\RunBillingCommand;
 use Central\Api\Application\Console\ImportCompetencyProfilesCommand;
 use Central\Api\Application\Console\ImportLegacyUsersCommand;
 use Central\Api\Application\Console\ProvisionTenantCommand;
@@ -90,6 +91,7 @@ $app->addCommands([
     $container->get(ProvisionTenantCommand::class),
     $container->get(ImportLegacyUsersCommand::class),
     $container->get(ImportCompetencyProfilesCommand::class),
+    $container->get(RunBillingCommand::class),
 ]);
 
 $app->run();

@@ -2,6 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiClient } from './api.client';
 import type {
+  BillingCycle,
+  BillingOverview,
+  Invoice,
   OnboardingCode,
   OnboardingCodeInput,
   Paged,
@@ -10,6 +13,7 @@ import type {
   PlatformMetrics,
   ProvisionRequest,
   ProvisionResult,
+  TenantBilling,
   TenantDetail,
   TenantRow,
   TenantStatus,
@@ -110,5 +114,41 @@ export class OperatorService {
 
   deleteCode(id: string): Observable<void> {
     return this.api.delete(`/operator/onboarding-codes/${id}`);
+  }
+
+  // --- billing --------------------------------------------------------------
+
+  /** Platform-wide billing figures for the billing dashboard. */
+  billingOverview(): Observable<BillingOverview> {
+    return this.api.get<BillingOverview>('/operator/billing');
+  }
+
+  /** One organisation's subscription and invoices. */
+  tenantBilling(tenantId: string): Observable<TenantBilling> {
+    return this.api.get<TenantBilling>(`/operator/tenants/${tenantId}/billing`);
+  }
+
+  setBillingCycle(tenantId: string, cycle: BillingCycle): Observable<TenantBilling> {
+    return this.api.put<TenantBilling>(`/operator/tenants/${tenantId}/billing/cycle`, { billingCycle: cycle });
+  }
+
+  cancelSubscription(tenantId: string, immediately: boolean): Observable<TenantBilling> {
+    return this.api.post<TenantBilling>(`/operator/tenants/${tenantId}/billing/cancel`, { immediately });
+  }
+
+  resumeSubscription(tenantId: string): Observable<TenantBilling> {
+    return this.api.post<TenantBilling>(`/operator/tenants/${tenantId}/billing/resume`);
+  }
+
+  issueInvoice(tenantId: string): Observable<TenantBilling> {
+    return this.api.post<TenantBilling>(`/operator/tenants/${tenantId}/billing/invoices`);
+  }
+
+  payInvoice(invoiceId: string): Observable<Invoice> {
+    return this.api.post<Invoice>(`/operator/invoices/${invoiceId}/pay`);
+  }
+
+  voidInvoice(invoiceId: string): Observable<Invoice> {
+    return this.api.post<Invoice>(`/operator/invoices/${invoiceId}/void`);
   }
 }

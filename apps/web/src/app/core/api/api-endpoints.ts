@@ -774,6 +774,15 @@ export const Endpoints = {
     update: '/tenant',
   },
 
+  /**
+   * The organisation's own billing — its subscription and invoices. Read-only
+   * from here; changing a plan or paying is the operator's until the payment
+   * gateway lands. Scoped to the caller's tenant with no id in the path.
+   */
+  billing: {
+    show: '/billing',
+  },
+
   /** What this organisation's own transactional mail says. */
   emailTemplates: {
     list: '/email-templates',

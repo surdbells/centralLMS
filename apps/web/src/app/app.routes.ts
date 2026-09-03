@@ -26,6 +26,7 @@ import {reportsRoutes} from './reports/reports.routes';
 import {usersRoutes} from './admin/users/users.routes';
 import {competencyRoutes} from './competency/competency.routes';
 import {libraryRoutes} from './library/library.routes';
+import {billingRoutes} from './admin/billing/billing.routes';
 import {authGuard} from './core/auth/auth.guard';
 export const routes: Routes = [
   ...learningPathRoutes,
@@ -34,6 +35,7 @@ export const routes: Routes = [
   ...usersRoutes,
   ...competencyRoutes,
   ...libraryRoutes,
+  ...billingRoutes,
   {
     /**
      * The application opens on the sign-in screen.

@@ -117,12 +117,17 @@ final class DbalPlatformRepository implements PlatformRepository
              GROUP BY p.name ORDER BY tenants DESC",
         );
 
-        // Monthly recurring revenue, on the current plan of every paying
-        // organisation — a headline figure, in the plan's minor units.
+        // Monthly recurring revenue from the active subscriptions, on the
+        // amount each captured when it was set — not re-read from the plan, so a
+        // re-price does not rewrite the figure — with a yearly price normalised
+        // to a month. The same computation the billing overview uses, so the two
+        // operator screens never disagree.
         $mrr = (int) $this->connection->fetchOne(
-            "SELECT COALESCE(SUM(p.price_monthly), 0)
-             FROM tenants t JOIN plans p ON p.id = t.plan_id
-             WHERE t.deleted_at IS NULL AND t.status = 'active'",
+            "SELECT COALESCE(SUM(
+                 CASE WHEN billing_cycle = 'yearly' THEN round(amount / 12.0) ELSE amount END
+             ), 0)
+             FROM subscriptions
+             WHERE status = 'active' AND amount > 0",
         );
 
         return [

@@ -122,6 +122,8 @@ use Central\Api\Application\Action\Saas\OperatorTenantAction;
 use Central\Api\Application\Action\Saas\PlanAction;
 use Central\Api\Application\Action\Saas\OnboardingAction;
 use Central\Api\Application\Action\Saas\OnboardingCodeAction;
+use Central\Api\Application\Action\Saas\OperatorBillingAction;
+use Central\Api\Application\Action\Saas\BillingAction;
 use Central\Api\Application\Action\People\ImportPeopleAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
@@ -280,6 +282,11 @@ return static function (App $app): void {
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
 
+            // An organisation's own billing — its plan, period and invoices.
+            // Read-only for now; gated on billing.manage in the action, and
+            // scoped to the caller's own tenant with no id in the path.
+            $secure->get('/billing', [BillingAction::class, 'show'])->setName('billing.show');
+
             // --- SaaS operator console ------------------------------------
             //
             // The platform operator, across every organisation. Authenticated
@@ -314,6 +321,24 @@ return static function (App $app): void {
                     ->setName('operator.codes.update');
                 $op->delete('/onboarding-codes/{id:' . $uuid . '}', [OnboardingCodeAction::class, 'delete'])
                     ->setName('operator.codes.delete');
+
+                // --- billing ---------------------------------------------
+                $op->get('/billing', [OperatorBillingAction::class, 'overview'])
+                    ->setName('operator.billing.overview');
+                $op->get('/tenants/{id:' . $uuid . '}/billing', [OperatorBillingAction::class, 'tenant'])
+                    ->setName('operator.billing.tenant');
+                $op->put('/tenants/{id:' . $uuid . '}/billing/cycle', [OperatorBillingAction::class, 'setCycle'])
+                    ->setName('operator.billing.cycle');
+                $op->post('/tenants/{id:' . $uuid . '}/billing/cancel', [OperatorBillingAction::class, 'cancel'])
+                    ->setName('operator.billing.cancel');
+                $op->post('/tenants/{id:' . $uuid . '}/billing/resume', [OperatorBillingAction::class, 'resume'])
+                    ->setName('operator.billing.resume');
+                $op->post('/tenants/{id:' . $uuid . '}/billing/invoices', [OperatorBillingAction::class, 'issueInvoice'])
+                    ->setName('operator.billing.invoice');
+                $op->post('/invoices/{id:' . $uuid . '}/pay', [OperatorBillingAction::class, 'payInvoice'])
+                    ->setName('operator.billing.pay');
+                $op->post('/invoices/{id:' . $uuid . '}/void', [OperatorBillingAction::class, 'voidInvoice'])
+                    ->setName('operator.billing.void');
             });
 
             // The organisation's own arrangements with Google and Entra.

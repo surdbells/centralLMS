@@ -8,6 +8,7 @@ import { date, daysUntil, money, ofLimit, storage } from '../core/format';
 import { statusBadgeClass, statusMeaning } from '../core/status';
 import { firstErrorMessage } from '../core/errors';
 import { environment } from '../../environments/environment';
+import { TenantBillingComponent } from './tenant-billing.component';
 
 const STATUSES: readonly TenantStatus[] = ['active', 'trial', 'suspended', 'cancelled'];
 
@@ -22,7 +23,7 @@ const STATUSES: readonly TenantStatus[] = ['active', 'trial', 'suspended', 'canc
 @Component({
   selector: 'app-tenant-detail',
   standalone: true,
-  imports: [FormsModule, RouterLink, DecimalPipe],
+  imports: [FormsModule, RouterLink, DecimalPipe, TenantBillingComponent],
   template: `
     @if (loading()) {
       <header class="op-topbar"><h1 class="op-topbar__title">Organisation</h1></header>
@@ -195,6 +196,11 @@ const STATUSES: readonly TenantStatus[] = ['active', 'trial', 'suspended', 'canc
               </a>
             </div>
           </div>
+        </div>
+
+        <div style="margin-top:1.75rem">
+          <h2 style="font-size:1.05rem;font-weight:700;margin:0 0 1rem">Billing</h2>
+          <app-tenant-billing [tenantId]="t.id" />
         </div>
       </div>
       }

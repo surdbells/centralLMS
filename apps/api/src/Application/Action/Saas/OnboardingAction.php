@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Saas;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Saas\BillingService;
 use Central\Api\Application\Saas\TenantProvisioner;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Saas\OnboardingCodeRepository;
@@ -49,6 +50,7 @@ final class OnboardingAction
         private readonly OnboardingCodeRepository $codes,
         private readonly PlanRepository $plans,
         private readonly TenantProvisioner $provisioner,
+        private readonly BillingService $billing,
         private readonly Connection $connection,
         private readonly Clock $clock,
     ) {
@@ -148,20 +150,22 @@ final class OnboardingAction
         $phone   = $this->str($body['phone'] ?? null);
         $industry = $this->str($body['industry'] ?? null);
         $size    = $this->str($body['companySize'] ?? null);
+        $cycle   = ($this->str($body['billingCycle'] ?? null) === 'yearly') ? 'yearly' : 'monthly';
 
         try {
-            // The use is spent and the organisation created in one transaction,
-            // on the one shared connection, so nothing can leave a use spent
-            // without a tenant (or a tenant without a use): a failure anywhere
-            // rolls both back. The conditional UPDATE inside spendUse locks the
-            // row, so two sign-ups racing on the last use serialise here.
+            // The use is spent, the organisation created, and its trial
+            // subscription started in one transaction on the one shared
+            // connection, so nothing can leave a use spent without a tenant (or
+            // a tenant without a use): a failure anywhere rolls all of it back.
+            // The conditional UPDATE inside spendUse locks the row, so two
+            // sign-ups racing on the last use serialise here.
             $result = $this->connection->transactional(
-                function () use ($code, $tenantCode, $companyName, $email, $firstName, $lastName, $password, $plan, $phone, $industry, $size): array {
+                function () use ($code, $tenantCode, $companyName, $email, $firstName, $lastName, $password, $plan, $phone, $industry, $size, $cycle): array {
                     if (!$this->codes->spendUse((string) $code->id)) {
                         throw ValidationFailed::fromArray(['onboardingCode' => 'This code has just been used up.']);
                     }
 
-                    return $this->provisioner->provision(
+                    $provisioned = $this->provisioner->provision(
                         name: (string) $companyName,
                         code: $tenantCode,
                         contactEmail: (string) $email,
@@ -174,6 +178,10 @@ final class OnboardingAction
                         industry: $industry,
                         companySize: $size,
                     );
+
+                    $this->billing->startTrial($provisioned['tenantId'], $plan, $cycle);
+
+                    return $provisioned;
                 },
             );
         } catch (UniqueConstraintViolationException) {

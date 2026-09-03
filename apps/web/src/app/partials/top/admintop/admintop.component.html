@@ -203,6 +203,13 @@
               <span class="nav-label">Settings</span>
             </a>
           </li>
+          <li class="nav-item" role="none" *ngIf="user_session.can_billing">
+            <a routerLink="/admin/billing" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.credit-card"></tui-icon>
+              <span class="nav-label">Billing</span>
+            </a>
+          </li>
         </ul>
       </div>
     </div>

@@ -34,6 +34,9 @@ import { SessionStore } from '../core/session.store';
           <a class="op-nav__link" routerLink="/plans" routerLinkActive="active">
             <i class="bi bi-tags"></i> Plans
           </a>
+          <a class="op-nav__link" routerLink="/billing" routerLinkActive="active">
+            <i class="bi bi-cash-stack"></i> Billing
+          </a>
           <a class="op-nav__link" routerLink="/codes" routerLinkActive="active">
             <i class="bi bi-key"></i> Onboarding codes
           </a>
