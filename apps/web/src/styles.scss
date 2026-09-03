@@ -214,18 +214,23 @@ app-course-player main {
  * Every page renders the fixed top bar (<app-top>/<app-admintop>) followed by
  * its own content wrapper. Those wrappers each rolled their own width — some
  * centred at 1100-1200px, some full-bleed to the screen edge — so page content
- * did not line up with the header, whose content sits inset by the navbar's
- * px-3/px-lg-4 padding. Align them all to that same inset: full width, 1rem of
- * side padding (1.5rem from the large breakpoint up), no centring. The nav and
- * its spacer live *inside* <app-top>, so the general-sibling selector only ever
- * matches a page's own content wrappers. Overlays a page appends at this level
- * (modals, toasts, backdrops) are excluded — they position themselves and must
- * not be reshaped.
+ * did not line up with the header.
+ *
+ * The header's own content is *not* full width: it sits in a `.container-fluid`
+ * capped at 1600px and centred (see the rule near the top of this file), inset
+ * by the navbar's px-3/px-lg-4 padding. So aligning to it means matching that
+ * box, not going full width — a page taken full-bleed spills past the header on
+ * a screen wider than 1600px, which is exactly what "content flowing out" was.
+ * Give every content wrapper the same 1600px centred box and the same 1rem /
+ * 1.5rem side padding. The nav and its spacer live *inside* <app-top>, so the
+ * general-sibling selector only ever matches a page's own content wrappers.
+ * Overlays a page appends at this level (modals, toasts, backdrops) are
+ * excluded — they position themselves and must not be reshaped.
  * ------------------------------------------------------------------------- */
 :is(app-top, app-admintop) ~ *:not([class*="modal"]):not([class*="overlay"]):not([class*="backdrop"]):not([class*="toast"]):not([class*="dialog"]):not([class*="lightbox"]) {
-  max-width: none !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+  max-width: 1600px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   padding-left: 1rem;
   padding-right: 1rem;
   box-sizing: border-box;

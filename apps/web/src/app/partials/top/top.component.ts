@@ -98,6 +98,15 @@ export class TopComponent implements OnInit, OnDestroy {
     const session = this.session.session();
 
     if (session === null) {
+      // A learner screen reached without a session. Some learner routes sit
+      // outside the auth guard, and a page whose header hangs off the session
+      // would otherwise render with no navigation and calls that all 401 —
+      // "the header hid but the content stayed" — so this bar is the
+      // guard-of-last-resort: send them to sign in, keeping where they were.
+      const url = this.router.url;
+      if (!url.startsWith('/login')) {
+        void this.router.navigate(['/login'], { queryParams: { returnUrl: url } });
+      }
       return;
     }
 

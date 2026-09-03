@@ -1,9 +1,9 @@
-<nav *ngIf="user_session.is_learner"  class="navbar bg-white border-bottom navbar-expand-lg fixed-top">
+<nav *ngIf="user_session.id"  class="navbar bg-white border-bottom navbar-expand-lg fixed-top">
   <div class="container-fluid px-3 px-lg-4">
     <!-- Left Section: Logo + Modules Dropdown -->
     <div class="d-flex align-items-center">
-      <!-- Logo -->
-      <a class="navbar-brand me-2 me-lg-3" routerLink="/administration">
+      <!-- Logo — the learner's home, not the administration dashboard. -->
+      <a class="navbar-brand me-2 me-lg-3" routerLink="/account">
         <img [src]="branding.logoUrl() || '/assets/img/logo.png'"
              [alt]="branding.organisation() || 'Central LMS'" class="logo-img">
       </a>
@@ -256,4 +256,4 @@
   overlapping, and it is inside the same `*ngIf` as the bar, so a screen
   shown to somebody the bar does not render for reserves nothing.
 -->
-<div *ngIf="user_session.is_learner" class="navbar-offset" aria-hidden="true"></div>
+<div *ngIf="user_session.id" class="navbar-offset" aria-hidden="true"></div>
