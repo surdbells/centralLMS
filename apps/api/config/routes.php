@@ -118,6 +118,8 @@ use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\Library\LibraryAction;
 use Central\Api\Application\Action\Library\ManageLibraryAction;
 use Central\Api\Application\Action\Library\StreamLibraryAction;
+use Central\Api\Application\Action\Saas\OperatorTenantAction;
+use Central\Api\Application\Action\Saas\PlanAction;
 use Central\Api\Application\Action\People\ImportPeopleAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
@@ -241,6 +243,11 @@ return static function (App $app): void {
             $t->get('/sso', [SsoAction::class, 'providers'])->setName('registration.sso');
         });
 
+        // The SaaS plan catalogue, for the public pricing page and the sign-up
+        // wizard — active, public plans only. No session: someone deciding
+        // whether to sign up does not have one yet.
+        $v1->get('/plans', [PlanAction::class, 'catalogue'])->setName('plans.catalogue');
+
         // The bytes of one file, for a browser that cannot send a header.
         //
         // Outside the authenticated group by necessity: an `<img src>`, a
@@ -260,6 +267,32 @@ return static function (App $app): void {
         // --- authenticated ------------------------------------------------
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
             $secure->get('/me', MeAction::class)->setName('me');
+
+            // --- SaaS operator console ------------------------------------
+            //
+            // The platform operator, across every organisation. Authenticated
+            // here; each action then requires a super admin — the only caller
+            // allowed to reach past a single tenant.
+            $secure->group('/operator', function (RouteCollectorProxy $op) use ($uuid): void {
+                $op->get('/dashboard', [OperatorTenantAction::class, 'dashboard'])
+                    ->setName('operator.dashboard');
+
+                $op->get('/tenants', [OperatorTenantAction::class, 'list'])->setName('operator.tenants.list');
+                $op->post('/tenants', [OperatorTenantAction::class, 'provision'])->setName('operator.tenants.provision');
+                $op->get('/tenants/{id:' . $uuid . '}', [OperatorTenantAction::class, 'show'])
+                    ->setName('operator.tenants.show');
+                $op->put('/tenants/{id:' . $uuid . '}/status', [OperatorTenantAction::class, 'updateStatus'])
+                    ->setName('operator.tenants.status');
+                $op->put('/tenants/{id:' . $uuid . '}/limits', [OperatorTenantAction::class, 'updateLimits'])
+                    ->setName('operator.tenants.limits');
+                $op->put('/tenants/{id:' . $uuid . '}/plan', [OperatorTenantAction::class, 'assignPlan'])
+                    ->setName('operator.tenants.plan');
+
+                $op->get('/plans', [PlanAction::class, 'list'])->setName('operator.plans.list');
+                $op->post('/plans', [PlanAction::class, 'create'])->setName('operator.plans.create');
+                $op->put('/plans/{id:' . $uuid . '}', [PlanAction::class, 'update'])->setName('operator.plans.update');
+                $op->delete('/plans/{id:' . $uuid . '}', [PlanAction::class, 'delete'])->setName('operator.plans.delete');
+            });
 
             // The organisation's own arrangements with Google and Entra.
             // No route here returns a client secret; there is nowhere to

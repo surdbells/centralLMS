@@ -117,6 +117,10 @@ use Central\Api\Infrastructure\Persistence\DbalDigitalLibraryRepository;
 use Central\Api\Infrastructure\Persistence\DbalEmailTemplateRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
+use Central\Api\Domain\Saas\PlanRepository;
+use Central\Api\Domain\Saas\PlatformRepository;
+use Central\Api\Infrastructure\Persistence\DbalPlanRepository;
+use Central\Api\Infrastructure\Persistence\DbalPlatformRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseDiscussionRepository;
@@ -587,6 +591,14 @@ return [
 
     TenantRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalTenantRepository($c->get(Connection::class)),
+    ),
+
+    // --- SaaS layer (plans, cross-tenant operator console) ----------------
+    PlanRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalPlanRepository($c->get(Connection::class)),
+    ),
+    PlatformRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalPlatformRepository($c->get(Connection::class)),
     ),
 
     /**
