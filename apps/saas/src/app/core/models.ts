@@ -119,6 +119,35 @@ export interface ProvisionResult {
   readonly generatedPassword: string | null;
 }
 
+/** An onboarding code that gates public self-service sign-up. */
+export interface OnboardingCode {
+  readonly id: string;
+  readonly code: string;
+  readonly description: string | null;
+  /** null = unlimited uses. */
+  readonly maxUses: number | null;
+  readonly usedCount: number;
+  /** null when unlimited, else uses left. */
+  readonly remainingUses: number | null;
+  /** null = every plan; otherwise the plan ids this code unlocks. */
+  readonly allowedPlanIds: readonly string[] | null;
+  readonly validFrom: string | null;
+  readonly validUntil: string | null;
+  readonly isActive: boolean;
+  readonly createdAt: string | null;
+}
+
+/** The fields an onboarding code is created or edited with. */
+export interface OnboardingCodeInput {
+  readonly code: string;
+  readonly description?: string | null;
+  readonly maxUses: number | null;
+  readonly allowedPlanIds: readonly string[] | null;
+  readonly validFrom: string | null;
+  readonly validUntil: string | null;
+  readonly isActive: boolean;
+}
+
 /** The fields a plan is created or edited with. */
 export interface PlanInput {
   readonly code?: string;

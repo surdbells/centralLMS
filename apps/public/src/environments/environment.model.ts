@@ -15,4 +15,12 @@ export interface PublicEnvironment {
    * which is the point.
    */
   readonly appUrl: string;
+
+  /**
+   * The new API, with the `/v1` prefix, no trailing slash.
+   *
+   * Self-service sign-up is the one thing this site asks the API for — the
+   * plan catalogue, an onboarding code, and provisioning an organisation.
+   */
+  readonly apiBaseUrl: string;
 }

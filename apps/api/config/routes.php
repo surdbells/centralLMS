@@ -120,6 +120,8 @@ use Central\Api\Application\Action\Library\ManageLibraryAction;
 use Central\Api\Application\Action\Library\StreamLibraryAction;
 use Central\Api\Application\Action\Saas\OperatorTenantAction;
 use Central\Api\Application\Action\Saas\PlanAction;
+use Central\Api\Application\Action\Saas\OnboardingAction;
+use Central\Api\Application\Action\Saas\OnboardingCodeAction;
 use Central\Api\Application\Action\People\ImportPeopleAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
@@ -248,6 +250,16 @@ return static function (App $app): void {
         // whether to sign up does not have one yet.
         $v1->get('/plans', [PlanAction::class, 'catalogue'])->setName('plans.catalogue');
 
+        // Public self-service sign-up. No session — a customer creating their
+        // own organisation does not have one — but gated by an operator-issued
+        // code, validated here and spent by the register call.
+        $v1->group('/onboarding', function (RouteCollectorProxy $on): void {
+            $on->post('/validate-code', [OnboardingAction::class, 'validateCode'])
+                ->setName('onboarding.validateCode');
+            $on->post('/register', [OnboardingAction::class, 'register'])
+                ->setName('onboarding.register');
+        });
+
         // The bytes of one file, for a browser that cannot send a header.
         //
         // Outside the authenticated group by necessity: an `<img src>`, a
@@ -292,6 +304,16 @@ return static function (App $app): void {
                 $op->post('/plans', [PlanAction::class, 'create'])->setName('operator.plans.create');
                 $op->put('/plans/{id:' . $uuid . '}', [PlanAction::class, 'update'])->setName('operator.plans.update');
                 $op->delete('/plans/{id:' . $uuid . '}', [PlanAction::class, 'delete'])->setName('operator.plans.delete');
+
+                // The onboarding codes that gate public sign-up.
+                $op->get('/onboarding-codes', [OnboardingCodeAction::class, 'list'])
+                    ->setName('operator.codes.list');
+                $op->post('/onboarding-codes', [OnboardingCodeAction::class, 'create'])
+                    ->setName('operator.codes.create');
+                $op->put('/onboarding-codes/{id:' . $uuid . '}', [OnboardingCodeAction::class, 'update'])
+                    ->setName('operator.codes.update');
+                $op->delete('/onboarding-codes/{id:' . $uuid . '}', [OnboardingCodeAction::class, 'delete'])
+                    ->setName('operator.codes.delete');
             });
 
             // The organisation's own arrangements with Google and Entra.

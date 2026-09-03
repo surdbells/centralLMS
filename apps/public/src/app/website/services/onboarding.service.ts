@@ -1,111 +1,145 @@
-// onboarding/services/onboarding.service.ts
+// website/services/onboarding.service.ts
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
+/** A plan as the new API's public catalogue returns it. Money in minor units. */
 export interface Plan {
-  plan_id: number; name: string; users_limit: number;
-  storage_limit_mb: number; price: number; billing_cycle: string;
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  priceMonthly: number;
+  priceYearly: number;
+  currency: string;
+  usersLimit: number | null;
+  storageLimitMb: number | null;
+  features: Record<string, unknown>;
+  trialDays: number;
+  isActive: boolean;
+  isPublic: boolean;
+  sortOrder: number;
 }
 
-export interface ContentPackage {
-  package_id: number; slug: string; name: string; description: string;
-  icon: string; color: string; courses_count: number;
-  assessments_count: number; certificates_count: number;
-  price: number; tags: string[]; is_popular: boolean;
+export interface CodeCheck {
+  valid: boolean;
+  error?: string;
+  description?: string | null;
+  /** null = every plan; otherwise the plan ids this code unlocks. */
+  allowedPlanIds?: string[] | null;
 }
 
 export interface ProvisionRequest {
-  onboarding_code: string;
-  company_name: string;
-  admin_email: string;
-  admin_first_name: string;
-  admin_last_name: string;
+  onboardingCode: string;
+  companyName: string;
+  adminEmail: string;
+  adminFirstName: string;
+  adminLastName: string;
   password: string;
-  company_size: string;
-  industry: string;
+  planId: string;
+  industry?: string;
+  companySize?: string;
   phone?: string;
-  plan_id: number;
-  content_packages: string[]; // slugs
 }
 
-export interface ProvisionResponse {
-  tenant_id: number;
-  subdomain: string;
-  domain: string;
-  admin_email: string;
-  tenant_code: string;
+export interface ProvisionedTenant {
+  id: string;
+  name: string;
+  code: string;
+  status: string;
+  adminEmail: string;
+  plan: { id: string; name: string };
 }
+
+/** Field-level messages the API returns on a 422, keyed by field. */
+export type FieldErrors = Record<string, string>;
 
 @Injectable({ providedIn: 'root' })
 export class OnboardingService {
+  private readonly http = inject(HttpClient);
+
   /**
-   * Still the legacy endpoint.
-   *
-   * Onboarding is choosing a plan and asking for an organisation to be
-   * created, and the new API has nothing for that yet — provisioning is
-   * `bin/console tenant:provision`, run by hand. Named here rather than
-   * reached through a shared constant so it is obvious this one page has
-   * not moved with the others.
+   * The new API — self-service now runs against it, not the legacy
+   * `onboarding.php`. Sign-up is gated by an operator-issued code, so there is
+   * no content-package or subdomain-availability call any more; the workspace
+   * code is derived and made unique server-side.
    */
-  private apiBase = 'https://api.centrallms.com/api/onboarding.php';
+  private readonly api = environment.apiBaseUrl;
 
-  constructor(private http: HttpClient) {}
-
-  /** Validate an onboarding code */
-  validateCode(code: string): Observable<{ valid: boolean; error?: string; allowed_plan_ids?: number[] | null }> {
-    return this.http.post<any>(this.apiBase, { action: 'validate-code', code }).pipe(
-      map(res => res.data || res),
-      catchError(() => of({ valid: false, error: 'Network error. Please try again.' }))
-    );
-  }
-
-  /** Get available plans */
+  /** The plans on offer, from the public catalogue. */
   getPlans(): Observable<Plan[]> {
-    return this.http.post<any>(this.apiBase, { action: 'plans' }).pipe(
-      map(res => res.data || []),
-      catchError(() => of([]))
+    return this.http.get<{ data: { plans: Plan[] } }>(`${this.api}/plans`).pipe(
+      map((res) => res.data?.plans ?? []),
+      catchError(() => of([])),
     );
   }
 
-  /** Get available content packages */
-  getContentPackages(): Observable<ContentPackage[]> {
-    return this.http.post<any>(this.apiBase, { action: 'content-packages' }).pipe(
-      map(res => res.data || []),
-      catchError(() => of([]))
+  /** Whether an onboarding code may be used, and which plans it unlocks. */
+  validateCode(code: string): Observable<CodeCheck> {
+    return this.http.post<{ data: CodeCheck }>(`${this.api}/onboarding/validate-code`, { code }).pipe(
+      map((res) => res.data),
+      catchError(() => of({ valid: false, error: 'Could not reach the server. Please try again.' })),
     );
   }
 
-  /** Check subdomain availability */
-  checkSubdomain(subdomain: string): Observable<{ available: boolean; subdomain: string; error?: string }> {
-    return this.http.post<any>(this.apiBase, { action: 'check-subdomain', subdomain }).pipe(
-      map(res => res.data || res),
-      catchError(() => of({ available: false, subdomain, error: 'Check failed' }))
+  /**
+   * Creates the organisation. Resolves to the new tenant, or the field errors /
+   * a message explaining why not — the wizard shows those against the step.
+   */
+  provision(
+    data: ProvisionRequest,
+  ): Observable<{ success: boolean; tenant?: ProvisionedTenant; error?: string; fields?: FieldErrors }> {
+    return this.http.post<{ data: { tenant: ProvisionedTenant } }>(`${this.api}/onboarding/register`, data).pipe(
+      map((res) => ({ success: true, tenant: res.data.tenant })),
+      catchError((failure: unknown) => {
+        const fields = fieldErrors(failure);
+
+        return of({
+          success: false,
+          fields: Object.keys(fields).length ? fields : undefined,
+          error: message(failure, 'Something went wrong creating your workspace. Please try again.'),
+        });
+      }),
     );
+  }
+}
+
+// --- error-envelope helpers --------------------------------------------------
+
+interface ApiFailure {
+  error?: { error?: { message?: string; details?: { violations?: Record<string, unknown> } } };
+}
+
+function violations(failure: unknown): Record<string, unknown> {
+  const body = (failure as ApiFailure | null)?.error?.error;
+
+  return body?.details?.violations && typeof body.details.violations === 'object'
+    ? body.details.violations
+    : {};
+}
+
+function fieldErrors(failure: unknown): FieldErrors {
+  const out: FieldErrors = {};
+  for (const [field, msg] of Object.entries(violations(failure))) {
+    if (typeof msg === 'string') {
+      out[field] = msg;
+    } else if (Array.isArray(msg) && typeof msg[0] === 'string') {
+      out[field] = msg[0];
+    }
   }
 
-  /** Check email availability */
-  checkEmail(email: string): Observable<{ available: boolean }> {
-    return this.http.post<any>(this.apiBase, { action: 'check-email', email }).pipe(
-      map(res => res.data || res),
-      catchError(() => of({ available: true })) // Fail open - real check happens on provision
-    );
-  }
+  return out;
+}
 
-  /** Full tenant provisioning */
-  provision(data: ProvisionRequest): Observable<{ success: boolean; data?: ProvisionResponse; error?: string }> {
-    return this.http.post<any>(this.apiBase, { action: 'provision', ...data }).pipe(
-      map(res => ({
-        success: res.status === 'success',
-        data: res.data || null,
-        error: res.status !== 'success' ? (res.message || 'Provisioning failed') : undefined
-      })),
-      catchError(err => of({
-        success: false,
-        error: err?.error?.message || 'Network error. Please try again.'
-      }))
-    );
+function message(failure: unknown, fallback: string): string {
+  const body = (failure as ApiFailure | null)?.error?.error;
+  if (typeof body?.message === 'string' && body.message.trim() !== '') {
+    return body.message;
   }
+  const first = Object.values(fieldErrors(failure))[0];
+
+  return first ?? fallback;
 }

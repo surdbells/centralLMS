@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiClient } from './api.client';
 import type {
+  OnboardingCode,
+  OnboardingCodeInput,
   Paged,
   Plan,
   PlanInput,
@@ -87,5 +89,26 @@ export class OperatorService {
 
   deletePlan(id: string): Observable<void> {
     return this.api.delete(`/operator/plans/${id}`);
+  }
+
+  // --- onboarding codes -----------------------------------------------------
+
+  /** Every onboarding code, newest first. */
+  codes(): Observable<readonly OnboardingCode[]> {
+    return this.api
+      .get<{ codes: readonly OnboardingCode[] }>('/operator/onboarding-codes')
+      .pipe(map((r) => r.codes));
+  }
+
+  createCode(input: OnboardingCodeInput): Observable<OnboardingCode> {
+    return this.api.post<OnboardingCode>('/operator/onboarding-codes', input);
+  }
+
+  updateCode(id: string, input: OnboardingCodeInput): Observable<OnboardingCode> {
+    return this.api.put<OnboardingCode>(`/operator/onboarding-codes/${id}`, input);
+  }
+
+  deleteCode(id: string): Observable<void> {
+    return this.api.delete(`/operator/onboarding-codes/${id}`);
   }
 }

@@ -119,8 +119,10 @@ use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
 use Central\Api\Domain\Saas\PlanRepository;
 use Central\Api\Domain\Saas\PlatformRepository;
+use Central\Api\Domain\Saas\OnboardingCodeRepository;
 use Central\Api\Infrastructure\Persistence\DbalPlanRepository;
 use Central\Api\Infrastructure\Persistence\DbalPlatformRepository;
+use Central\Api\Infrastructure\Persistence\DbalOnboardingCodeRepository;
 use Central\Api\Infrastructure\Persistence\DbalCertificateRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseDiscussionRepository;
@@ -599,6 +601,9 @@ return [
     ),
     PlatformRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalPlatformRepository($c->get(Connection::class)),
+    ),
+    OnboardingCodeRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalOnboardingCodeRepository($c->get(Connection::class)),
     ),
 
     /**

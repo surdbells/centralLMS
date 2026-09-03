@@ -43,6 +43,9 @@ final class TenantProvisioner
         ?string $planId = null,
         string $status = 'active',
         bool $superAdmin = false,
+        ?string $contactPhone = null,
+        ?string $industry = null,
+        ?string $companySize = null,
     ): array {
         $generated = null;
         if ($password === null || $password === '') {
@@ -55,7 +58,7 @@ final class TenantProvisioner
         $hash = $this->hasher->hash($password);
 
         $result = $this->connection->transactional(
-            function (Connection $c) use ($name, $code, $contactEmail, $adminFirstName, $adminLastName, $hash, $planId, $status, $role): array {
+            function (Connection $c) use ($name, $code, $contactEmail, $adminFirstName, $adminLastName, $hash, $planId, $status, $role, $contactPhone, $industry, $companySize): array {
                 // The plan's allowances become the tenant's limits; a trial gets
                 // its expiry from the plan's trial length.
                 $plan = $planId === null ? null : $c->fetchAssociative(
@@ -70,19 +73,23 @@ final class TenantProvisioner
 
                 $tenantId = $c->fetchOne(
                     "INSERT INTO tenants
-                         (name, code, status, contact_email, plan_id, users_limit, storage_limit_mb,
-                          subscription_expires_at, provisioned_at)
-                     VALUES (:name, :code, :status, :email, :plan, :users, :storage, :expires, NOW())
+                         (name, code, status, contact_email, contact_phone, industry, company_size,
+                          plan_id, users_limit, storage_limit_mb, subscription_expires_at, provisioned_at)
+                     VALUES (:name, :code, :status, :email, :phone, :industry, :size,
+                             :plan, :users, :storage, :expires, NOW())
                      RETURNING id",
                     [
-                        'name'    => $name,
-                        'code'    => $code,
-                        'status'  => $status,
-                        'email'   => $contactEmail,
-                        'plan'    => $planId,
-                        'users'   => $plan['users_limit'] ?? null,
-                        'storage' => $plan['storage_limit_mb'] ?? null,
-                        'expires' => $expiresAt,
+                        'name'     => $name,
+                        'code'     => $code,
+                        'status'   => $status,
+                        'email'    => $contactEmail,
+                        'phone'    => $contactPhone,
+                        'industry' => $industry,
+                        'size'     => $companySize,
+                        'plan'     => $planId,
+                        'users'    => $plan['users_limit'] ?? null,
+                        'storage'  => $plan['storage_limit_mb'] ?? null,
+                        'expires'  => $expiresAt,
                     ],
                 );
 

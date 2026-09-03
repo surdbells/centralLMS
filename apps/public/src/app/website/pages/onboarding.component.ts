@@ -1,12 +1,17 @@
-// homepage/pages/onboarding/onboarding.component.ts
-// Self-service tenant onboarding - multipage standalone wizard
+// website/pages/onboarding.component.ts
+// Self-service tenant onboarding — a standalone wizard against the new API.
+//
+// Gated by an operator-issued code, so sign-up is Code → Plan → Company →
+// Review → Setup. The legacy's content-package step is gone (the new API has
+// no such feature yet), and the workspace code is derived and made unique
+// server-side rather than checked here.
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
-import { OnboardingService, Plan, ContentPackage, ProvisionRequest, ProvisionResponse } from '../services/onboarding.service';
-import { Subject, debounceTime, switchMap } from 'rxjs';
+import { Subscription } from 'rxjs';
+import { OnboardingService, Plan, ProvisionRequest, ProvisionedTenant } from '../services/onboarding.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -57,7 +62,7 @@ import { environment } from '../../../environments/environment';
           <div class="text-center mb-4">
             <div class="step-icon"><i class="bi bi-key"></i></div>
             <h2>Enter Your Onboarding Code</h2>
-            <p class="text-muted">To create a new LMS workspace, please enter the onboarding code provided to you.</p>
+            <p class="text-muted">Creating a workspace needs a code from our team. Enter yours to begin.</p>
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Onboarding Code <span class="text-danger">*</span></label>
@@ -80,12 +85,6 @@ import { environment } from '../../../environments/environment';
             <span *ngIf="validatingCode" class="spinner-border spinner-border-sm me-2"></span>
             {{ validatingCode ? 'Verifying...' : 'Verify Code' }}
           </button>
-
-          <hr>
-            <h6>Or, start without a code</h6>
-           <button class="btn btn-primary btn-lg w-100" (click)="step = 2">
-            CONTINUE AS GUEST
-          </button>
         </div>
       </div>
 
@@ -94,39 +93,34 @@ import { environment } from '../../../environments/environment';
         <div class="wizard-card wide">
           <div class="text-center mb-4">
             <h2>Choose Your Plan</h2>
-            <p class="text-muted">All plans include a 14-day free trial. No credit card required.</p>
+            <p class="text-muted">Every plan starts with a free trial. No card required to begin.</p>
             <div class="billing-toggle mt-3">
               <span [class.active]="billingCycle === 'monthly'" (click)="billingCycle = 'monthly'">Monthly</span>
               <div class="toggle-pill" [class.yearly]="billingCycle === 'yearly'"
                    (click)="billingCycle = billingCycle === 'monthly' ? 'yearly' : 'monthly'">
                 <div class="toggle-dot"></div>
               </div>
-              <span [class.active]="billingCycle === 'yearly'" (click)="billingCycle = 'yearly'">
-                Yearly <span class="save-tag">Save 20%</span>
-              </span>
+              <span [class.active]="billingCycle === 'yearly'" (click)="billingCycle = 'yearly'">Yearly</span>
             </div>
           </div>
 
-          <div class="plans-grid" *ngIf="plans.length; else plansLoading">
-            <div class="plan-card" *ngFor="let plan of plans"
-                 [class.selected]="selectedPlanId === plan.plan_id"
-                 [class.popular]="plan.name === 'Professional'"
-                 (click)="selectPlan(plan.plan_id)">
-              <div class="plan-badge" *ngIf="plan.name === 'Professional'">Most Popular</div>
+          <div class="plans-grid" *ngIf="visiblePlans().length; else plansLoading">
+            <div class="plan-card" *ngFor="let plan of visiblePlans()"
+                 [class.selected]="selectedPlanId === plan.id"
+                 (click)="selectPlan(plan.id)">
               <div class="plan-check">
-                <i class="bi" [class]="selectedPlanId === plan.plan_id ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                <i class="bi" [class]="selectedPlanId === plan.id ? 'bi-check-circle-fill' : 'bi-circle'"></i>
               </div>
               <h4>{{ plan.name }}</h4>
               <div class="plan-price-row">
-                <span class="plan-price" *ngIf="plan.price > 0">
-                  {{ billingCycle === 'yearly' ? '₦' + (plan.price * 0.8 | number:'1.0-0') : '₦' + (plan.price | number:'1.0-0') }}
-                </span>
-                <span class="plan-price" *ngIf="plan.price === 0">Custom</span>
-                <span class="plan-per" *ngIf="plan.price > 0">/mo</span>
+                <span class="plan-price">{{ planPrice(plan) }}</span>
+                <span class="plan-per" *ngIf="planPer(plan)">/{{ planPer(plan) }}</span>
               </div>
+              <p class="text-muted small mb-2" *ngIf="plan.description">{{ plan.description }}</p>
               <div class="plan-limits">
-                <span><i class="bi bi-people me-1"></i>{{ plan.users_limit >= 999999 ? 'Unlimited' : (plan.users_limit | number) }} users</span>
-                <span><i class="bi bi-hdd me-1"></i>{{ plan.storage_limit_mb >= 999999 ? 'Unlimited' : (plan.storage_limit_mb / 1024 | number:'1.0-0') + ' GB' }} storage</span>
+                <span><i class="bi bi-people me-1"></i>{{ plan.usersLimit === null ? 'Unlimited' : (plan.usersLimit | number) }} users</span>
+                <span><i class="bi bi-hdd me-1"></i>{{ storageLabel(plan) }} storage</span>
+                <span><i class="bi bi-calendar-check me-1"></i>{{ plan.trialDays }}-day trial</span>
               </div>
             </div>
           </div>
@@ -141,7 +135,7 @@ import { environment } from '../../../environments/environment';
         <div class="wizard-card">
           <div class="text-center mb-4">
             <h2>About Your Organization</h2>
-            <p class="text-muted">This information sets up your LMS workspace and admin account.</p>
+            <p class="text-muted">This sets up your workspace and your administrator account.</p>
           </div>
           <div class="row g-3">
             <div class="col-12">
@@ -151,7 +145,7 @@ import { environment } from '../../../environments/environment';
                 <input type="text" class="form-control" [(ngModel)]="form.company_name" placeholder="Acme Corporation">
               </div>
               <div class="form-text" *ngIf="form.company_name.trim()">
-                Your LMS: <strong class="text-primary">{{ generateSubdomain() }}.lmsplatform.com</strong>
+                Your workspace: <strong class="text-primary">{{ generateSubdomain() }}</strong>
               </div>
             </div>
             <div class="col-md-6">
@@ -166,11 +160,8 @@ import { environment } from '../../../environments/environment';
               <label class="form-label fw-semibold">Admin Email <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                <input type="email" class="form-control" [(ngModel)]="form.admin_email"
-                       (blur)="onEmailBlur()" placeholder="admin@acme.com"
-                       [class.is-invalid]="emailTouched && !emailAvailable">
+                <input type="email" class="form-control" [(ngModel)]="form.admin_email" placeholder="admin@acme.com">
               </div>
-              <div class="invalid-feedback" *ngIf="emailTouched && !emailAvailable">This email is already registered.</div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
@@ -221,45 +212,8 @@ import { environment } from '../../../environments/environment';
         </div>
       </div>
 
-      <!-- ═══ STEP 4: Content Packages ═══ -->
+      <!-- ═══ STEP 4: Review ═══ -->
       <div class="wizard-content" *ngIf="step === 4">
-        <div class="wizard-card wide">
-          <div class="text-center mb-4">
-            <h2>Choose Content Packages</h2>
-            <p class="text-muted">Optional - Select course bundles to launch your training instantly, or start blank.</p>
-          </div>
-          <div class="content-list" *ngIf="contentPackages.length; else pkgLoading">
-            <div class="content-row" *ngFor="let pkg of contentPackages"
-                 [class.selected]="isSelected(pkg.slug)" (click)="togglePkg(pkg.slug)">
-              <div class="content-check">
-                <i class="bi" [class]="isSelected(pkg.slug) ? 'bi-check-square-fill' : 'bi-square'"></i>
-              </div>
-              <div class="content-icon" [style.background]="pkg.color + '12'" [style.color]="pkg.color">
-                <i class="bi" [class]="pkg.icon"></i>
-              </div>
-              <div class="content-info">
-                <h5>{{ pkg.name }} <span class="pop-badge" *ngIf="pkg.is_popular">Popular</span></h5>
-                <p>{{ pkg.description }}</p>
-                <div class="content-stats">
-                  <span>{{ pkg.courses_count }} courses</span>
-                  <span>{{ pkg.assessments_count }} assessments</span>
-                  <span>{{ pkg.certificates_count }} certs</span>
-                </div>
-              </div>
-              <div class="content-price">\${{ pkg.price | number:'1.0-0' }}</div>
-            </div>
-          </div>
-          <ng-template #pkgLoading>
-            <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
-          </ng-template>
-          <div class="content-total mt-3" *ngIf="selectedPkgs.length">
-            {{ selectedPkgs.length }} package(s) - Total: <strong>{{ getPackagesTotal() }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ STEP 5: Review ═══ -->
-      <div class="wizard-content" *ngIf="step === 5">
         <div class="wizard-card">
           <div class="text-center mb-4">
             <h2>Review & Confirm</h2>
@@ -269,14 +223,15 @@ import { environment } from '../../../environments/environment';
             <div class="review-block">
               <h6><i class="bi bi-tag me-2"></i>Plan</h6>
               <div *ngIf="getSelectedPlan() as p">
-                <strong>{{ p.name }}</strong> - {{ p.price > 0 ? ('₦' + (billingCycle === 'yearly' ? (p.price * 0.8 | number:'1.0-0') : (p.price | number:'1.0-0')) + '/mo') : 'Custom' }}
+                <strong>{{ p.name }}</strong> — {{ planPrice(p) }}<span *ngIf="planPer(p)">/{{ planPer(p) }}</span>
+                <div class="small text-muted mt-1">{{ p.trialDays }}-day free trial</div>
               </div>
             </div>
             <div class="review-block">
               <h6><i class="bi bi-building me-2"></i>Organization</h6>
               <strong>{{ form.company_name }}</strong>
               <div class="small text-muted">{{ form.company_size }} &bull; {{ form.industry }}</div>
-              <div class="small text-muted mt-1">URL: <code>{{ generateSubdomain() }}.lmsplatform.com</code></div>
+              <div class="small text-muted mt-1">Workspace: <code>{{ generateSubdomain() }}</code></div>
             </div>
             <div class="review-block">
               <h6><i class="bi bi-person-badge me-2"></i>Admin</h6>
@@ -284,30 +239,26 @@ import { environment } from '../../../environments/environment';
               <div class="small text-muted">{{ form.admin_email }}</div>
             </div>
             <div class="review-block">
-              <h6><i class="bi bi-collection me-2"></i>Content</h6>
-              <div *ngIf="selectedPkgs.length; else noPkgs">
-                <span class="badge bg-light text-dark border me-1 mb-1"
-                      *ngFor="let slug of selectedPkgs">{{ getPkgName(slug) }}</span>
-                <div class="small text-muted mt-1">Total: {{ getPackagesTotal() }}</div>
-              </div>
-              <ng-template #noPkgs><span class="text-muted">Starting with blank LMS</span></ng-template>
+              <h6><i class="bi bi-key me-2"></i>Code</h6>
+              <strong class="text-uppercase">{{ onboardingCode }}</strong>
+              <div class="small text-muted mt-1">Verified</div>
             </div>
           </div>
           <div class="review-info mt-3">
             <i class="bi bi-info-circle me-2"></i>
-            After setup you'll get a guided wizard to upload your logo, add employees, and create your first course.
+            After setup you can sign in straight away to upload your logo, add employees, and create your first course.
           </div>
         </div>
       </div>
 
-      <!-- ═══ STEP 6: Provisioning ═══ -->
-      <div class="wizard-content" *ngIf="step === 6">
+      <!-- ═══ STEP 5: Provisioning ═══ -->
+      <div class="wizard-content" *ngIf="step === 5">
         <div class="wizard-card narrow text-center">
           <!-- In progress -->
           <div *ngIf="provisioning && !provisioningSuccess">
             <div class="prov-spinner mb-4"><div class="prov-ring"></div><i class="bi bi-gear-fill prov-icon"></i></div>
             <h2>Setting Up Your LMS</h2>
-            <p class="text-muted mb-4">Please wait - this takes about 15 seconds.</p>
+            <p class="text-muted mb-4">Please wait — this only takes a moment.</p>
             <div class="prov-progress mb-2">
               <div class="prov-bar" [style.width.%]="provProgress"></div>
             </div>
@@ -323,11 +274,11 @@ import { environment } from '../../../environments/environment';
           <div *ngIf="provisioningSuccess && provResult">
             <div class="success-burst mb-3"><i class="bi bi-check-circle-fill"></i></div>
             <h2>Your LMS is Ready!</h2>
-            <p class="text-muted">Welcome to <strong>{{ form.company_name }}</strong>'s learning platform.</p>
+            <p class="text-muted">Welcome to <strong>{{ provResult.name }}</strong>'s learning platform.</p>
             <div class="success-info my-4">
-              <div class="info-row"><span>URL</span><strong>{{ provResult.domain }}</strong></div>
-              <div class="info-row"><span>Admin</span><strong>{{ provResult.admin_email }}</strong></div>
-              <div class="info-row"><span>Code</span><strong>{{ provResult.tenant_code }}</strong></div>
+              <div class="info-row"><span>Workspace</span><strong>{{ provResult.code }}</strong></div>
+              <div class="info-row"><span>Admin</span><strong>{{ provResult.adminEmail }}</strong></div>
+              <div class="info-row"><span>Plan</span><strong>{{ provResult.plan.name }}</strong></div>
             </div>
             <div class="next-steps-grid text-start mx-auto" style="max-width:440px">
               <h6 class="text-center mb-3">What's Next?</h6>
@@ -336,7 +287,7 @@ import { environment } from '../../../environments/environment';
               </div>
             </div>
             <button class="btn btn-primary btn-lg mt-4" (click)="goToLMS()">
-              Go to My LMS <i class="bi bi-arrow-right ms-2"></i>
+              Sign in to My LMS <i class="bi bi-arrow-right ms-2"></i>
             </button>
           </div>
         </div>
@@ -350,11 +301,10 @@ import { environment } from '../../../environments/environment';
           </button>
           <div class="flex-grow-1"></div>
           <span class="text-muted small">Step {{ step }} of {{ totalSteps }}</span>
-          <button class="btn btn-primary" *ngIf="step >= 2 && step <= 4" (click)="next()">
-            {{ step === 4 ? (selectedPkgs.length ? 'Continue' : 'Skip & Continue') : 'Continue' }}
-            <i class="bi bi-chevron-right ms-1"></i>
+          <button class="btn btn-primary" *ngIf="step >= 2 && step <= 3" (click)="next()">
+            Continue <i class="bi bi-chevron-right ms-1"></i>
           </button>
-          <button class="btn btn-primary btn-lg" *ngIf="step === 5" (click)="startProvisioning()" [disabled]="provisioning">
+          <button class="btn btn-primary btn-lg" *ngIf="step === 4" (click)="startProvisioning()" [disabled]="provisioning">
             <i class="bi bi-rocket-takeoff me-2"></i>Create My LMS
           </button>
         </div>
@@ -404,8 +354,6 @@ import { environment } from '../../../environments/environment';
     .plan-card { border: 2px solid #e9ecef; border-radius: 0.75rem; padding: 1.5rem; cursor: pointer; position: relative; transition: all 0.25s; }
     .plan-card:hover { border-color: rgba(14,99,14,0.3); }
     .plan-card.selected { border-color: #0E630E; background: rgba(14,99,14,0.03); box-shadow: 0 0 0 1px #0E630E; }
-    .plan-card.popular { border-color: rgba(14,99,14,0.25); }
-    .plan-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); padding: 0.15rem 0.75rem; background: linear-gradient(135deg, #0E630E, #024502); color: #fff; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; border-radius: 100px; white-space: nowrap; }
     .plan-check { position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.2rem; color: #0E630E; }
     .plan-card h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
     .plan-price-row { margin-bottom: 0.75rem; }
@@ -413,22 +361,6 @@ import { environment } from '../../../environments/environment';
     .plan-per { font-size: 0.85rem; color: #6c757d; }
     .plan-limits { display: flex; flex-direction: column; gap: 0.25rem; }
     .plan-limits span { font-size: 0.8rem; color: #6c757d; }
-
-    /* Content packages */
-    .content-list { display: flex; flex-direction: column; gap: 0.625rem; }
-    .content-row { display: flex; align-items: flex-start; gap: 0.875rem; padding: 1rem; border: 2px solid #e9ecef; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; }
-    .content-row:hover { border-color: rgba(14,99,14,0.2); background: #fafbfc; }
-    .content-row.selected { border-color: #0E630E; background: rgba(14,99,14,0.03); }
-    .content-check { font-size: 1.2rem; color: #0E630E; flex-shrink: 0; margin-top: 2px; }
-    .content-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
-    .content-info { flex: 1; min-width: 0; }
-    .content-info h5 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.2rem; }
-    .content-info p { font-size: 0.8rem; color: #6c757d; margin-bottom: 0.375rem; line-height: 1.5; }
-    .content-stats { display: flex; gap: 0.75rem; }
-    .content-stats span { font-size: 0.72rem; color: #adb5bd; }
-    .content-price { font-size: 1rem; font-weight: 700; flex-shrink: 0; white-space: nowrap; }
-    .content-total { text-align: center; padding: 0.625rem; background: #f8f9fa; border-radius: 0.5rem; font-size: 0.9rem; }
-    .pop-badge { background: rgba(201,162,39,0.15); color: #b38a1d; padding: 0.05rem 0.4rem; border-radius: 100px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; vertical-align: middle; margin-left: 0.25rem; }
 
     /* Review */
     .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; }
@@ -443,7 +375,6 @@ import { environment } from '../../../environments/environment';
     .prov-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 1.5rem; color: #0E630E; }
     .prov-progress { width: 100%; max-width: 380px; height: 6px; background: #e9ecef; border-radius: 100px; overflow: hidden; margin: 0 auto; }
     .prov-bar { height: 100%; background: linear-gradient(90deg, #0E630E, #28a745); border-radius: 100px; transition: width 0.5s; }
-    .prov-log { }
     .prov-msg { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0; font-size: 0.82rem; color: #6c757d; animation: fadeUp 0.3s ease; }
     .prov-msg.current { font-weight: 600; color: #212529; }
 
@@ -453,7 +384,6 @@ import { environment } from '../../../environments/environment';
     .info-row { text-align: center; }
     .info-row span { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: #6c757d; margin-bottom: 0.2rem; }
     .info-row strong { font-size: 0.9rem; }
-    .next-steps-grid { }
     .ns { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.875rem; background: #f8f9fa; border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
     .ns-num { width: 24px; height: 24px; border-radius: 50%; background: #0E630E; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
 
@@ -461,7 +391,6 @@ import { environment } from '../../../environments/environment';
     .pw-strength { display: flex; align-items: center; gap: 0.5rem; }
     .pw-bars { display: flex; gap: 3px; }
     .pw-bar { width: 28px; height: 4px; background: #dee2e6; border-radius: 2px; transition: background 0.3s; }
-    .pw-bar.on { }
 
     /* Footer */
     .wizard-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0.875rem 0; background: #fff; border-top: 1px solid #e9ecef; z-index: 100; }
@@ -481,19 +410,21 @@ import { environment } from '../../../environments/environment';
       .plans-grid { grid-template-columns: 1fr; }
       .review-grid { grid-template-columns: 1fr; }
       .wizard-card { padding: 1.5rem; }
-      .content-row { flex-wrap: wrap; }
     }
   `]
 })
-export class OnboardingComponent implements OnInit {
+export class OnboardingComponent implements OnInit, OnDestroy {
+  private svc = inject(OnboardingService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
   // Steps
   step = 1;
-  totalSteps = 6;
+  totalSteps = 5;
   steps = [
     { key: 'code', label: 'Verify Code', icon: 'bi-key', complete: false },
     { key: 'plan', label: 'Choose Plan', icon: 'bi-tag', complete: false },
     { key: 'company', label: 'Company Info', icon: 'bi-building', complete: false },
-    { key: 'content', label: 'Content Packs', icon: 'bi-collection', complete: false },
     { key: 'review', label: 'Review', icon: 'bi-check-circle', complete: false },
     { key: 'setup', label: 'Setup', icon: 'bi-rocket-takeoff', complete: false },
   ];
@@ -504,11 +435,12 @@ export class OnboardingComponent implements OnInit {
   codeValid = false;
   codeError = '';
   validatingCode = false;
-  allowedPlanIds: number[] | null = null;
+  /** null = all plans; otherwise the plan ids the code unlocks. */
+  allowedPlanIds: string[] | null = null;
 
   // Plans
   plans: Plan[] = [];
-  selectedPlanId: number | null = null;
+  selectedPlanId: string | null = null;
   billingCycle: 'monthly' | 'yearly' = 'monthly';
 
   // Form
@@ -520,25 +452,21 @@ export class OnboardingComponent implements OnInit {
   pwStrength = 0;
   pwLabel = '';
   pwColor = '';
-  emailTouched = false;
-  emailAvailable = true;
   error = '';
-
-  // Content
-  contentPackages: ContentPackage[] = [];
-  selectedPkgs: string[] = [];
 
   // Provisioning
   provisioning = false;
   provisioningSuccess = false;
   provProgress = 0;
   provMessages: string[] = [];
-  provResult: ProvisionResponse | null = null;
+  provResult: ProvisionedTenant | null = null;
+  private provAnim: ReturnType<typeof setInterval> | null = null;
+  private provSub: Subscription | null = null;
 
   nextSteps = [
     'Upload your logo & brand colors',
     'Add employees (CSV, manual, or HR integration)',
-    'Create your first course or use content packs',
+    'Create your first course',
     'Invite learners and start training'
   ];
 
@@ -553,22 +481,12 @@ export class OnboardingComponent implements OnInit {
     'Technology', 'Hospitality', 'Government', 'Non-Profit', 'Other'
   ];
 
-  constructor(
-    private svc: OnboardingService,
-    private router: Router,
-    private route: ActivatedRoute
-  ) {}
-
   ngOnInit(): void {
-    // Pre-select plan from route param
     const planParam = this.route.snapshot.paramMap.get('planId');
     if (planParam) {
-      this.selectedPlanId = +planParam;
+      this.selectedPlanId = planParam;
     }
-
-    // Load plans and content packages
     this.svc.getPlans().subscribe(p => this.plans = p);
-    this.svc.getContentPackages().subscribe(p => this.contentPackages = p);
   }
 
   // ── Navigation ──
@@ -584,6 +502,9 @@ export class OnboardingComponent implements OnInit {
   }
 
   goToStep(n: number): void {
+    // Not while the workspace is being created — the progress bar stays on
+    // screen, but its circles must not navigate away from an in-flight setup.
+    if (this.provisioning) return;
     if (n <= this.step || (n > 1 && this.steps[n - 2]?.complete)) {
       this.step = n;
       window.scrollTo(0, 0);
@@ -603,25 +524,24 @@ export class OnboardingComponent implements OnInit {
           this.error = 'Your onboarding code does not allow this plan.'; return false;
         }
         return true;
-      case 3:
+      case 3: {
         const f = this.form;
         if (!f.company_name.trim()) { this.error = 'Company name is required.'; return false; }
         if (!f.admin_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.admin_email)) { this.error = 'Valid email required.'; return false; }
-        if (!this.emailAvailable) { this.error = 'This email is already registered.'; return false; }
         if (!f.admin_first_name.trim() || !f.admin_last_name.trim()) { this.error = 'Name is required.'; return false; }
         if (!f.password || f.password.length < 8) { this.error = 'Password must be 8+ characters.'; return false; }
         if (f.password !== f.confirm_password) { this.error = 'Passwords do not match.'; return false; }
         if (!f.company_size) { this.error = 'Company size is required.'; return false; }
         if (!f.industry) { this.error = 'Industry is required.'; return false; }
         return true;
-      case 4: return true;
-      case 5: return true;
+      }
       default: return true;
     }
   }
 
   // ── Code validation ──
   validateCode(): void {
+    if (!this.onboardingCode.trim()) return;
     this.validatingCode = true;
     this.codeValidated = false;
     this.error = '';
@@ -629,45 +549,51 @@ export class OnboardingComponent implements OnInit {
       this.validatingCode = false;
       this.codeValidated = true;
       this.codeValid = res.valid;
-      this.codeError = res.error || '';
-      this.allowedPlanIds = (res as any).allowed_plan_ids || null;
+      this.codeError = res.error || 'That code is not valid.';
+      this.allowedPlanIds = res.allowedPlanIds ?? null;
       if (res.valid) {
-        // Auto-advance after brief delay
+        // If the code narrows the plans and the pre-selected one is not among
+        // them, drop it so the customer picks an allowed plan.
+        if (this.allowedPlanIds && this.selectedPlanId && !this.allowedPlanIds.includes(this.selectedPlanId)) {
+          this.selectedPlanId = null;
+        }
         setTimeout(() => this.next(), 600);
       }
     });
   }
 
-  // ── Plan ──
-  selectPlan(id: number): void { this.selectedPlanId = id; }
-  getSelectedPlan(): Plan | null { return this.plans.find(p => p.plan_id === this.selectedPlanId) || null; }
-
-  // ── Content packages ──
-  togglePkg(slug: string): void {
-    const i = this.selectedPkgs.indexOf(slug);
-    i >= 0 ? this.selectedPkgs.splice(i, 1) : this.selectedPkgs.push(slug);
+  // ── Plans ──
+  visiblePlans(): Plan[] {
+    if (!this.allowedPlanIds) return this.plans;
+    return this.plans.filter(p => this.allowedPlanIds!.includes(p.id));
   }
-  isSelected(slug: string): boolean { return this.selectedPkgs.includes(slug); }
-  getPkgName(slug: string): string { return this.contentPackages.find(p => p.slug === slug)?.name || slug; }
-  getPackagesTotal(): string {
-    const t = this.selectedPkgs.reduce((s, slug) => {
-      const pkg = this.contentPackages.find(p => p.slug === slug);
-      return s + (pkg?.price || 0);
-    }, 0);
-    return t > 0 ? `$${t.toLocaleString()}` : 'Free';
+  selectPlan(id: string): void { this.selectedPlanId = id; }
+  getSelectedPlan(): Plan | null { return this.plans.find(p => p.id === this.selectedPlanId) || null; }
+
+  /** The headline price for the chosen billing cycle, formatted, or "Custom". */
+  planPrice(p: Plan): string {
+    const minor = this.billingCycle === 'yearly' ? p.priceYearly : p.priceMonthly;
+    if (minor <= 0) return 'Custom';
+    return this.money(minor, p.currency);
+  }
+  planPer(p: Plan): string {
+    const minor = this.billingCycle === 'yearly' ? p.priceYearly : p.priceMonthly;
+    if (minor <= 0) return '';
+    return this.billingCycle === 'yearly' ? 'yr' : 'mo';
+  }
+  storageLabel(p: Plan): string {
+    if (p.storageLimitMb === null) return 'Unlimited';
+    if (p.storageLimitMb >= 1024) return `${Math.round(p.storageLimitMb / 1024)} GB`;
+    return `${p.storageLimitMb} MB`;
+  }
+  private money(minor: number, currency: string): string {
+    const symbol = currency === 'NGN' ? '₦' : currency === 'USD' ? '$' : currency + ' ';
+    return symbol + Math.round(minor / 100).toLocaleString('en-US');
   }
 
   // ── Form helpers ──
   generateSubdomain(): string {
-    return this.form.company_name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 30);
-  }
-
-  onEmailBlur(): void {
-    this.emailTouched = true;
-    if (!this.form.admin_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.admin_email)) {
-      this.emailAvailable = false; return;
-    }
-    this.svc.checkEmail(this.form.admin_email).subscribe(r => this.emailAvailable = r.available);
+    return this.form.company_name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 40) || 'your-workspace';
   }
 
   calcPwStrength(): void {
@@ -685,34 +611,32 @@ export class OnboardingComponent implements OnInit {
   // ── Provisioning ──
   startProvisioning(): void {
     if (!this.validateStep()) return;
-    this.steps[4].complete = true;
-    this.step = 6;
+    if (this.provisioning) return;
+    this.steps[3].complete = true;
+    this.step = 5;
     this.provisioning = true;
     this.provProgress = 0;
     this.provMessages = [];
 
     const req: ProvisionRequest = {
-      onboarding_code: this.onboardingCode.trim(),
-      company_name: this.form.company_name.trim(),
-      admin_email: this.form.admin_email.trim(),
-      admin_first_name: this.form.admin_first_name.trim(),
-      admin_last_name: this.form.admin_last_name.trim(),
+      onboardingCode: this.onboardingCode.trim(),
+      companyName: this.form.company_name.trim(),
+      adminEmail: this.form.admin_email.trim(),
+      adminFirstName: this.form.admin_first_name.trim(),
+      adminLastName: this.form.admin_last_name.trim(),
       password: this.form.password,
-      company_size: this.form.company_size,
-      industry: this.form.industry,
+      planId: this.selectedPlanId!,
+      industry: this.form.industry || undefined,
+      companySize: this.form.company_size || undefined,
       phone: this.form.phone || undefined,
-      plan_id: this.selectedPlanId!,
-      content_packages: this.selectedPkgs
     };
 
-    // Show animated progress while API call runs
     const msgs = [
-      'Creating your organization...', 'Setting up database...', 'Configuring admin account...',
-      'Creating departments & roles...', 'Setting up categories...', 'Preparing branding...',
-      'Installing content packages...', 'Finalizing...'
+      'Creating your organization...', 'Configuring your administrator...',
+      'Applying your plan...', 'Preparing your workspace...', 'Finalizing...'
     ];
     let i = 0;
-    const anim = setInterval(() => {
+    this.provAnim = setInterval(() => {
       if (i < msgs.length) {
         this.provMessages.push(msgs[i]);
         this.provProgress = Math.min(90, Math.round(((i + 1) / msgs.length) * 90));
@@ -720,30 +644,48 @@ export class OnboardingComponent implements OnInit {
       }
     }, 500);
 
-    // Actual API call
-    this.svc.provision(req).subscribe(res => {
-      clearInterval(anim);
-      if (res.success && res.data) {
+    this.provSub = this.svc.provision(req).subscribe(res => {
+      this.stopAnim();
+      if (res.success && res.tenant) {
         this.provProgress = 100;
         this.provMessages.push('Your LMS is ready!');
         setTimeout(() => {
           this.provisioning = false;
           this.provisioningSuccess = true;
-          this.provResult = res.data!;
-          this.steps[5].complete = true;
+          this.provResult = res.tenant!;
+          this.steps[4].complete = true;
         }, 600);
       } else {
         this.provisioning = false;
-        this.step = 5; // Go back to review
+        // Send them back to the step that owns the problem.
+        this.step = this.stepForFields(res.fields) ?? 4;
         this.error = res.error || 'Provisioning failed. Please try again.';
       }
     });
   }
 
   goToLMS(): void {
-    if (this.provResult?.domain) {
-      // In production: redirect to the new tenant subdomain
-      window.location.href = environment.appUrl + '/login';
-    }
+    window.location.href = environment.appUrl + '/login';
+  }
+
+  ngOnDestroy(): void {
+    // Navigating away mid-provision must not leave the progress timer firing or
+    // the request's subscription open against a destroyed component.
+    this.stopAnim();
+    this.provSub?.unsubscribe();
+  }
+
+  private stopAnim(): void {
+    if (this.provAnim !== null) { clearInterval(this.provAnim); this.provAnim = null; }
+  }
+
+  /** Which step a set of field errors belongs to, so we return there. */
+  private stepForFields(fields?: Record<string, string>): number | null {
+    if (!fields) return null;
+    const keys = Object.keys(fields);
+    if (keys.includes('onboardingCode')) return 1;
+    if (keys.includes('planId')) return 2;
+    if (keys.some(k => ['companyName', 'adminEmail', 'adminFirstName', 'adminLastName', 'password'].includes(k))) return 3;
+    return null;
   }
 }
