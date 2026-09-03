@@ -44,6 +44,7 @@ final class CompetencyImportAction
         }
 
         $files = $this->uploads($request);
+        $password = $this->password($request);
         $importer = new CompetencyWorkbookImporter($this->repository);
 
         $results = [];
@@ -54,7 +55,7 @@ final class CompetencyImportAction
             $path = $this->stash($file);
 
             try {
-                $summary = $importer->importFile($tenantId, $path, null, false, $name);
+                $summary = $importer->importFile($tenantId, $path, null, false, $name, $password);
             } catch (\Throwable) {
                 $results[] = ['file' => $name, 'status' => 'unreadable', 'functions' => []];
 
@@ -68,6 +69,13 @@ final class CompetencyImportAction
             if ($summary['legacyXls']) {
                 // An old .xls renamed to .xlsx — nothing the reader can open.
                 $results[] = ['file' => $name, 'status' => 'legacy_xls', 'functions' => []];
+
+                continue;
+            }
+
+            if ($summary['encrypted']) {
+                // Password-protected, and no password (or a wrong one) was given.
+                $results[] = ['file' => $name, 'status' => 'password_required', 'functions' => []];
 
                 continue;
             }
@@ -97,6 +105,23 @@ final class CompetencyImportAction
         }
 
         return Json::ok($response, ['totals' => $totals, 'files' => $results]);
+    }
+
+    /**
+     * The password to open, when one is sent alongside the workbooks. Optional:
+     * a plain upload needs none, and it is used only if a file turns out to be
+     * encrypted. Never logged.
+     */
+    private function password(ServerRequestInterface $request): ?string
+    {
+        $body = $request->getParsedBody();
+        if (!is_array($body) || !isset($body['password']) || !is_string($body['password'])) {
+            return null;
+        }
+
+        $password = trim($body['password']);
+
+        return $password === '' ? null : $password;
     }
 
     /**

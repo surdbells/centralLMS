@@ -35,6 +35,18 @@ RUN apk add --no-cache \
     && docker-php-ext-enable redis \
     && apk del .build-deps
 
+# --- workbook decryption -----------------------------------------------------
+# Several completed JCP workbooks are saved with a password to open. openspout
+# (and PHP) cannot read an encrypted OOXML file, so WorkbookDecryptor shells out
+# to msoffcrypto-tool to decrypt it first. The cryptography wheel it depends on
+# ships a musllinux build, so no compiler is needed here.
+#
+# NOTE for production (the aaPanel PHP-FPM host, which does not use this image):
+# install the same tool there — `pip install msoffcrypto-tool` — or encrypted
+# JCP uploads will be reported as needing a password with no way to open them.
+RUN apk add --no-cache python3 py3-pip \
+    && pip install --no-cache-dir --break-system-packages msoffcrypto-tool
+
 # --- opcache -----------------------------------------------------------------
 # validate_timestamps stays ON here. It is off in production, which is why a
 # deploy there needs an explicit FPM reload.

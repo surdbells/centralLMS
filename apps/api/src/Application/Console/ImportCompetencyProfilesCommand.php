@@ -42,6 +42,7 @@ final class ImportCompetencyProfilesCommand extends Command
             ->addOption('dir', null, InputOption::VALUE_REQUIRED, 'Directory of JCP workbooks')
             ->addOption('file', null, InputOption::VALUE_REQUIRED, 'A single workbook to import')
             ->addOption('function', null, InputOption::VALUE_REQUIRED, 'Override the function name (single file only)')
+            ->addOption('password', null, InputOption::VALUE_REQUIRED, 'Password to open any encrypted workbooks')
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Report what would change; write nothing');
     }
 
@@ -64,6 +65,7 @@ final class ImportCompetencyProfilesCommand extends Command
 
         $importer = new CompetencyWorkbookImporter($this->container->get(CompetencyRepository::class));
         $overrideFunction = $this->str($input->getOption('function'));
+        $password = $this->str($input->getOption('password'));
 
         $io->title($dryRun ? 'Competency import — DRY RUN (nothing will be written)' : 'Competency import');
 
@@ -73,7 +75,7 @@ final class ImportCompetencyProfilesCommand extends Command
             $io->section(basename($path));
 
             try {
-                $summary = $importer->importFile($tenantId, $path, $overrideFunction, $dryRun);
+                $summary = $importer->importFile($tenantId, $path, $overrideFunction, $dryRun, null, $password);
             } catch (\Throwable $e) {
                 $io->warning('Could not read the workbook: ' . $e->getMessage());
 
@@ -82,6 +84,14 @@ final class ImportCompetencyProfilesCommand extends Command
 
             if ($summary['legacyXls']) {
                 $io->warning('This is an old .xls workbook (renamed to .xlsx). Re-save it as .xlsx and import again.');
+
+                continue;
+            }
+
+            if ($summary['encrypted']) {
+                $io->warning($password === null
+                    ? 'This workbook is password-protected. Re-run with --password=<password>.'
+                    : 'This workbook is password-protected and the password did not open it.');
 
                 continue;
             }

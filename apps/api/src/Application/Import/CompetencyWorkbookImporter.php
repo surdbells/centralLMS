@@ -57,8 +57,10 @@ final class CompetencyWorkbookImporter
         'competency assessment', 'uon comments',
     ];
 
-    public function __construct(private readonly CompetencyRepository $repository)
-    {
+    public function __construct(
+        private readonly CompetencyRepository $repository,
+        private readonly WorkbookDecryptor $decryptor = new WorkbookDecryptor(),
+    ) {
     }
 
     /**
@@ -69,9 +71,15 @@ final class CompetencyWorkbookImporter
      * upload is read from a temporary path whose name is random — deriving the
      * function from that would name every function after the temp file.
      *
+     * `$password` opens a workbook saved with a password to open. Such a file is
+     * decrypted to a temporary copy that is read and then removed; when it is
+     * encrypted and no (or a wrong) password is given, the summary says so
+     * rather than reporting it as an unreadable legacy file.
+     *
      * @return array{
      *     file: string,
      *     legacyXls: bool,
+     *     encrypted: bool,
      *     empty: bool,
      *     functions: list<array{function: string, competencies: int, profiles: list<array{jobTitle: string, requirements: int}>}>,
      *     people: int
@@ -83,51 +91,83 @@ final class CompetencyWorkbookImporter
         ?string $functionOverride = null,
         bool $dryRun = false,
         ?string $originalName = null,
+        ?string $password = null,
     ): array {
         $name = $originalName ?? basename($path);
 
         $summary = [
             'file'      => $name,
             'legacyXls' => false,
+            'encrypted' => false,
             'empty'     => false,
             'functions' => [],
             'people'    => 0,
         ];
 
-        if ($this->isLegacyXls($path)) {
-            $summary['legacyXls'] = true;
+        // An OLE2 file is either a workbook encrypted with a password to open or
+        // a legacy BIFF .xls renamed to .xlsx — both wear the same signature.
+        // Decrypt the first when a password is given; report the rest for what
+        // they are. A plain .xlsx is a zip and skips all of this.
+        $readPath = $path;
+        $decrypted = null;
 
-            return $summary;
-        }
+        if ($this->decryptor->isOleContainer($path)) {
+            if (!$this->decryptor->isEncrypted($path)) {
+                $summary['legacyXls'] = true;
 
-        $parsed = $this->parseWorkbook($path);
-        $summary['people'] = $parsed['people'];
-
-        if ($parsed['sections'] === []) {
-            $summary['empty'] = true;
-
-            return $summary;
-        }
-
-        // A workbook with a single competency section is a whole function, and
-        // its file name names it better than the abbreviated sheet name. A
-        // workbook with several sections holds several sub-functions in one
-        // file, so each keeps the name read off its own sheet.
-        $single = count($parsed['sections']) === 1;
-
-        foreach ($parsed['sections'] as $section) {
-            if ($section['competencies'] === []) {
-                continue;
+                return $summary;
             }
 
-            $function = $single
-                ? ($functionOverride ?? $this->functionFromFileName($name))
-                : $section['function'];
+            if ($password === null || $password === '') {
+                $summary['encrypted'] = true;
 
-            $summary['functions'][] = $this->importSection($section, $function, $tenantId, $dryRun);
+                return $summary;
+            }
+
+            try {
+                $decrypted = $this->decryptor->decrypt($path, $password);
+                $readPath = $decrypted;
+            } catch (DecryptionFailed) {
+                $summary['encrypted'] = true;
+
+                return $summary;
+            }
         }
 
-        return $summary;
+        try {
+            $parsed = $this->parseWorkbook($readPath);
+            $summary['people'] = $parsed['people'];
+
+            if ($parsed['sections'] === []) {
+                $summary['empty'] = true;
+
+                return $summary;
+            }
+
+            // A workbook with a single competency section is a whole function,
+            // and its file name names it better than the abbreviated sheet name.
+            // A workbook with several sections holds several sub-functions in one
+            // file, so each keeps the name read off its own sheet.
+            $single = count($parsed['sections']) === 1;
+
+            foreach ($parsed['sections'] as $section) {
+                if ($section['competencies'] === []) {
+                    continue;
+                }
+
+                $function = $single
+                    ? ($functionOverride ?? $this->functionFromFileName($name))
+                    : $section['function'];
+
+                $summary['functions'][] = $this->importSection($section, $function, $tenantId, $dryRun);
+            }
+
+            return $summary;
+        } finally {
+            if ($decrypted !== null) {
+                @unlink($decrypted);
+            }
+        }
     }
 
     /**
@@ -260,14 +300,15 @@ final class CompetencyWorkbookImporter
                 $current = [
                     'function'     => $this->functionFromSheetName($sheet->getName()),
                     'competencies' => $this->readDictionary($sheet),
-                    'profiles'     => $pendingMapping ?? [],
+                    'profiles'     => $pendingMapping['profiles'] ?? [],
                 ];
                 $pendingMapping = null;
             } elseif ($isMapping) {
+                $mapping = $this->readMapping($sheet);
                 if ($current !== null && $current['profiles'] === []) {
-                    $current['profiles'] = $this->readMapping($sheet);
+                    $current['profiles'] = $mapping['profiles'];
                 } else {
-                    $pendingMapping = $this->readMapping($sheet);
+                    $pendingMapping = $mapping;
                 }
             } elseif ($this->isMetadataSheet($lower)) {
                 continue;
@@ -278,11 +319,48 @@ final class CompetencyWorkbookImporter
 
         if ($current !== null) {
             $sections[] = $current;
+        } elseif ($pendingMapping !== null && $pendingMapping['names'] !== []) {
+            // A workbook with a mapping sheet but no dictionary sheet: the
+            // mapping carries the competency names (column B) and the required
+            // levels itself, so the section is built from it. The K/S/M
+            // descriptors a dictionary would supply are simply absent — the
+            // requirements, which are what a profile needs, are all present.
+            $sections[] = $this->sectionFromMapping($pendingMapping);
         }
 
         $reader->close();
 
         return ['sections' => $sections, 'people' => $people];
+    }
+
+    /**
+     * Builds a section from a mapping sheet alone, for the workbooks that have
+     * no dictionary sheet. Competencies carry names but no descriptors.
+     *
+     * @param  array{profiles: array<string, array<string, ProficiencyLevel>>, names: array<string, string>} $mapping
+     * @return array{function: string, competencies: list<array{number: ?string, name: string, definition: ?string, knowledge: ?string, skill: ?string, mastery: ?string}>, profiles: array<string, array<string, ProficiencyLevel>>}
+     */
+    private function sectionFromMapping(array $mapping): array
+    {
+        $competencies = [];
+        foreach ($mapping['names'] as $number => $name) {
+            $competencies[] = [
+                'number'     => (string) $number,
+                'name'       => $name,
+                'definition' => null,
+                'knowledge'  => null,
+                'skill'      => null,
+                'mastery'    => null,
+            ];
+        }
+
+        // The function is a placeholder: a workbook reaching here has this as its
+        // only section, so importFile names it from the file name instead.
+        return [
+            'function'     => '',
+            'competencies' => $competencies,
+            'profiles'     => $mapping['profiles'],
+        ];
     }
 
     private function isMetadataSheet(string $lower): bool
@@ -294,6 +372,16 @@ final class CompetencyWorkbookImporter
         }
 
         return false;
+    }
+
+    /**
+     * Whether a dictionary row is the "Competency levels Definition" legend —
+     * the block explaining what Knowledge, Skill and Mastery mean — rather than
+     * a competency. Matched however it is spaced or cased.
+     */
+    private function isLegendRow(string $name): bool
+    {
+        return preg_match('/competency\s+levels?\s+definition/i', $name) === 1;
     }
 
     /**
@@ -314,7 +402,12 @@ final class CompetencyWorkbookImporter
             $cells = $this->cells($rowObj);
             $name = $this->str($cells[1] ?? null); // col B
 
-            if ($name === null || str_starts_with($name, '=')) {
+            // The "Competency levels Definition" block — an explanation whose
+            // cells hold the K/S/M definitions — some workbooks place between
+            // the header and the first competency. A few even number it, so it
+            // is matched by name: otherwise it is imported as a competency and,
+            // where numbered, picked up by the mapping as a requirement.
+            if ($name === null || str_starts_with($name, '=') || $this->isLegendRow($name)) {
                 continue;
             }
 
@@ -332,12 +425,20 @@ final class CompetencyWorkbookImporter
     }
 
     /**
-     * @return array<string, array<string, ProficiencyLevel>>
+     * Reads a mapping sheet: the required level per job level per competency,
+     * and the competency names as the sheet itself carries them (column B).
+     *
+     * The names are kept because some workbooks have a mapping sheet but no
+     * paired dictionary sheet — there the mapping is the only place the
+     * competency names live, and {@see parseWorkbook} builds the section from it.
+     *
+     * @return array{profiles: array<string, array<string, ProficiencyLevel>>, names: array<string, string>}
      */
     private function readMapping(Sheet $sheet): array
     {
         $jobLevels = [];   // column index → job title
         $profiles = [];    // job title → [competency number → level]
+        $names = [];       // competency number → name (column B)
 
         foreach ($sheet->getRowIterator() as $rowObj) {
             $cells = $this->cells($rowObj);
@@ -363,11 +464,16 @@ final class CompetencyWorkbookImporter
                 continue;
             }
 
-            // Data rows: the competency's number in column A, a level letter
-            // per job column.
+            // Data rows: the competency's number in column A, its name in
+            // column B, a level letter per job column.
             $number = $this->number($cells[0] ?? null);
             if ($number === null) {
                 continue;
+            }
+
+            $name = $this->str($cells[1] ?? null);
+            if ($name !== null && !str_starts_with($name, '=')) {
+                $names[$number] = $name;
             }
 
             foreach ($jobLevels as $col => $title) {
@@ -378,8 +484,11 @@ final class CompetencyWorkbookImporter
             }
         }
 
-        // Drop any job level that ended up requiring nothing.
-        return array_filter($profiles, static fn (array $reqs): bool => $reqs !== []);
+        return [
+            // Drop any job level that ended up requiring nothing.
+            'profiles' => array_filter($profiles, static fn (array $reqs): bool => $reqs !== []),
+            'names'    => $names,
+        ];
     }
 
     /**

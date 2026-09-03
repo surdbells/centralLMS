@@ -339,7 +339,7 @@ export type LevelSubmission = Record<string, ProficiencyLevel>;
 /** What one uploaded workbook turned into, or why it could not be read. */
 export interface ImportFileResult {
   file: string;
-  status: 'imported' | 'legacy_xls' | 'no_competency_sheets' | 'unreadable';
+  status: 'imported' | 'legacy_xls' | 'no_competency_sheets' | 'password_required' | 'unreadable';
   people?: number;
   functions: Array<{
     function: string;
@@ -406,12 +406,17 @@ export class CompetencyService {
    * Imports one or more completed JCP workbooks.
    *
    * The same parse the console importer runs, reached from the browser — each
-   * function's dictionary and its job profiles, in one upload.
+   * function's dictionary and its job profiles, in one upload. `password` opens
+   * any workbook saved with a password to open; it is sent only when given and
+   * used only for the files that turn out to be encrypted.
    */
-  importWorkbooks(files: File[]): Observable<UploadProgress<ImportResult>> {
+  importWorkbooks(files: File[], password?: string): Observable<UploadProgress<ImportResult>> {
     const form = new FormData();
     for (const file of files) {
       form.append('files[]', file, file.name);
+    }
+    if (password) {
+      form.append('password', password);
     }
     return this.api.upload<ImportResult>(Endpoints.competencies.import, form);
   }

@@ -83,6 +83,8 @@ export class CompetencyDictionaryComponent implements OnInit {
   importing = false;
   importProgress = 0;
   importFiles: File[] = [];
+  /** Optional — only some completed workbooks are saved with a password to open. */
+  importPassword = '';
   importResult: ImportResult | null = null;
 
   ngOnInit(): void {
@@ -250,6 +252,7 @@ export class CompetencyDictionaryComponent implements OnInit {
   openImport(): void {
     this.importOpen = true;
     this.importFiles = [];
+    this.importPassword = '';
     this.importResult = null;
     this.importProgress = 0;
   }
@@ -279,7 +282,7 @@ export class CompetencyDictionaryComponent implements OnInit {
     this.importProgress = 0;
     this.importResult = null;
 
-    this.competency.importWorkbooks(this.importFiles).subscribe({
+    this.competency.importWorkbooks(this.importFiles, this.importPassword || undefined).subscribe({
       next: (progress) => {
         this.importProgress = progress.progress;
         if (progress.state === 'done' && progress.result) {
@@ -306,6 +309,7 @@ export class CompetencyDictionaryComponent implements OnInit {
         imported: 'Imported',
         legacy_xls: 'Old .xls format - re-save as .xlsx',
         no_competency_sheets: 'No competency sheets found',
+        password_required: 'Password-protected - enter the password and retry',
         unreadable: 'Could not be read',
       }[status] ?? status
     );

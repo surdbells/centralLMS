@@ -254,6 +254,15 @@
         </li>
       </ul>
 
+      <!-- Password (only some workbooks are locked) -->
+      <div class="mt-3" *ngIf="importFiles.length && !importResult">
+        <label class="form-label small mb-1">Password <span class="text-muted fw-normal">(only if a workbook is locked)</span></label>
+        <input type="password" class="form-control form-control-sm" autocomplete="off"
+               placeholder="Leave blank for unprotected workbooks"
+               [(ngModel)]="importPassword" [disabled]="importing" />
+        <small class="text-muted">Used only for files that turn out to be password-protected.</small>
+      </div>
+
       <!-- Progress -->
       <div *ngIf="importing" class="mt-3">
         <div class="progress" style="height: 6px">
