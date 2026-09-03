@@ -115,6 +115,9 @@ use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
+use Central\Api\Application\Action\Library\LibraryAction;
+use Central\Api\Application\Action\Library\ManageLibraryAction;
+use Central\Api\Application\Action\Library\StreamLibraryAction;
 use Central\Api\Application\Action\People\ImportPeopleAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
@@ -248,6 +251,11 @@ return static function (App $app): void {
         // permission. The ticket names one file and lasts minutes.
         $v1->get('/media/{id:' . $uuid . '}/file', StreamMediaAction::class)
             ->setName('media.file');
+
+        // The digital library serves its bytes the same way, and only inline —
+        // there is deliberately no download route. See StreamLibraryAction.
+        $v1->get('/library/{id:' . $uuid . '}/file', StreamLibraryAction::class)
+            ->setName('library.file');
 
         // --- authenticated ------------------------------------------------
         $v1->group('', function (RouteCollectorProxy $secure) use ($uuid): void {
@@ -986,6 +994,31 @@ return static function (App $app): void {
                 $m->post('/{id:' . $uuid . '}/ticket', [ManageMediaAction::class, 'ticket'])
                     ->setName('media.ticket');
             });
+
+            // --- digital library ------------------------------------------
+            //
+            // A module distinct from the media library above: files shared with
+            // an audience, viewable inline but never downloaded. Viewers see
+            // only what is shared with them (`/library`); managers see and
+            // manage the whole shelf (`/library/manage`). The bytes come from
+            // the ticket-authed `/{id}/file` registered outside this group.
+            $secure->group('/library', function (RouteCollectorProxy $l) use ($uuid): void {
+                // Management — before `/{id}` so `manage` is not read as an id.
+                $l->get('/manage', [ManageLibraryAction::class, 'list'])
+                    ->setName('library.manage.list');
+                $l->post('/manage', [ManageLibraryAction::class, 'upload'])
+                    ->setName('library.manage.upload');
+                $l->put('/manage/{id:' . $uuid . '}', [ManageLibraryAction::class, 'update'])
+                    ->setName('library.manage.update');
+                $l->delete('/manage/{id:' . $uuid . '}', [ManageLibraryAction::class, 'delete'])
+                    ->setName('library.manage.delete');
+
+                // Viewing — the library as it is shared with the caller.
+                $l->get('', [LibraryAction::class, 'list'])->setName('library.list');
+                $l->post('/{id:' . $uuid . '}/ticket', [LibraryAction::class, 'ticket'])
+                    ->setName('library.ticket');
+            });
+
             // --- people ---------------------------------------------------
             //
             // `statistics`, `instructors` and `roles` are declared before

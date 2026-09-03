@@ -1,0 +1,133 @@
+.lib-main {
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.lib-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+
+  &.k-video { background: #4f46e5; }
+  &.k-audio { background: #0284c7; }
+  &.k-pdf { background: #dc2626; }
+  &.k-doc { background: #2563eb; }
+  &.k-image { background: #059669; }
+}
+
+.lib-badge {
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: capitalize;
+
+  &.k-video { background: #4f46e5; }
+  &.k-audio { background: #0284c7; }
+  &.k-pdf { background: #dc2626; }
+  &.k-doc { background: #2563eb; }
+  &.k-image { background: #059669; }
+}
+
+.empty-panel {
+  background: var(--bs-tertiary-bg, #f9fafb);
+  border: 1px dashed var(--bs-border-color, #e5e7eb);
+  border-radius: 0.75rem;
+
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--bs-secondary-color, #9ca3af);
+  }
+}
+
+// --- dialog ---
+.lib-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  background: rgba(2, 6, 23, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.lib-dialog {
+  width: min(560px, 96vw);
+  max-height: 94vh;
+  background: var(--bs-body-bg, #fff);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.lib-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--bs-border-color, #e5e7eb);
+}
+
+.lib-dialog-body {
+  padding: 1.25rem;
+  overflow-y: auto;
+}
+
+.lib-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--bs-border-color, #e5e7eb);
+}
+
+.lib-picklist {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--bs-border-color, #e5e7eb);
+  border-radius: 0.5rem;
+  padding: 0.35rem;
+}
+
+.lib-pick {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bs-tertiary-bg, #f3f4f6);
+  }
+}
+
+// --- preview modal (shared shape with the browse overlay) ---
+.lib-modal {
+  width: min(1000px, 96vw);
+  max-height: 94vh;
+  background: #0b0d12;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}

@@ -68,6 +68,9 @@ enum SystemRole: string
                 // A lesson embeds a file; playing it is part of reading the
                 // lesson, not a separate privilege.
                 Permission::MediaView,
+                // Everyone can open the digital library; the audience on each
+                // file decides what they actually see there.
+                Permission::LibraryView,
             ],
             self::Instructor => [
                 Permission::CourseManage,
@@ -109,6 +112,9 @@ enum SystemRole: string
                 Permission::CompetencyView,
                 Permission::CompetencyManage,
                 Permission::CompetencyAssess,
+                // Sharing files with the organisation through the digital
+                // library, and taking them down.
+                Permission::LibraryManage,
             ],
             self::TenantAdmin => [
                 Permission::RoleManage,

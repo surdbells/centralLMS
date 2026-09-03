@@ -47,6 +47,18 @@ RUN apk add --no-cache \
 RUN apk add --no-cache python3 py3-pip \
     && pip install --no-cache-dir --break-system-packages msoffcrypto-tool
 
+# --- office-document conversion ----------------------------------------------
+# The digital library shows PowerPoint and Word inline without a download, which
+# a browser cannot do directly. The conversion worker turns them into PDF with
+# headless LibreOffice (writer for Word, impress for PowerPoint; noto covers the
+# fonts). Only the worker runs the conversion, but api and worker share this
+# image. This is a large add (~hundreds of MB); it is why the image grew.
+#
+# NOTE for production (the aaPanel PHP-FPM host): install libreoffice there too,
+# or Office uploads to the library stay in "conversion failed" and cannot be
+# viewed. The binary is `soffice`; ConvertDocumentToPdfHandler finds it on PATH.
+RUN apk add --no-cache libreoffice-writer libreoffice-impress font-noto
+
 # --- opcache -----------------------------------------------------------------
 # validate_timestamps stays ON here. It is off in production, which is why a
 # deploy there needs an explicit FPM reload.

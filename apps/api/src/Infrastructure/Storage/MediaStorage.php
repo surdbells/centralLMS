@@ -77,6 +77,51 @@ final readonly class MediaStorage
     }
 
     /**
+     * Writes bytes the application produced, rather than a client upload, under
+     * a key — a converted PDF, a generated thumbnail. Measures size and
+     * checksum on the way through, like {@see store}, and closes the resource.
+     *
+     * @param  resource $stream
+     * @return array{size: int, sha256: string}
+     */
+    public function putStream(string $key, $stream): array
+    {
+        if (!is_resource($stream)) {
+            throw new \RuntimeException('The stream could not be read.');
+        }
+
+        rewind($stream);
+
+        $context = hash_init('sha256');
+        $size    = 0;
+
+        while (!feof($stream)) {
+            $chunk = fread($stream, 1_048_576);
+
+            if ($chunk === false) {
+                break;
+            }
+
+            $size += strlen($chunk);
+            hash_update($context, $chunk);
+        }
+
+        $sha256 = hash_final($context);
+
+        rewind($stream);
+
+        try {
+            $this->files->writeStream($key, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        return ['size' => $size, 'sha256' => $sha256];
+    }
+
+    /**
      * @return resource
      */
     public function read(string $key)

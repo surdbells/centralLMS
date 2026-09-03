@@ -1,0 +1,45 @@
+<div class="lv-stage" (contextmenu)="block($event)">
+  @if (loading) {
+    <div class="lv-msg">
+      <div class="spinner-border text-light" role="status"></div>
+      <div class="mt-2">Opening…</div>
+    </div>
+  } @else if (error || item === null) {
+    <div class="lv-msg">
+      <i class="bi bi-hourglass-split fs-1"></i>
+      <p class="mb-0 mt-2">
+        @if (item && !item.viewable) {
+          This document is still being prepared for viewing. Check back shortly.
+        } @else {
+          This file could not be opened.
+        }
+      </p>
+    </div>
+  } @else if (item && url) {
+    @switch (item.viewKind) {
+      @case ('video') {
+        <video
+          class="lv-media"
+          [src]="url"
+          controls
+          controlsList="nodownload noplaybackrate noremoteplayback"
+          disablePictureInPicture
+          (contextmenu)="block($event)"
+        ></video>
+      }
+      @case ('audio') {
+        <div class="lv-audio">
+          <i class="bi bi-music-note-beamed"></i>
+          <audio [src]="url" controls controlsList="nodownload noremoteplayback" (contextmenu)="block($event)"></audio>
+        </div>
+      }
+      @case ('image') {
+        <img class="lv-media" [src]="url" [alt]="item.title" draggable="false" (contextmenu)="block($event)" />
+      }
+      @default {
+        <!-- pdf (and Office documents, which are converted to pdf) -->
+        <iframe class="lv-frame" [src]="safeUrl" [title]="item.title"></iframe>
+      }
+    }
+  }
+</div>

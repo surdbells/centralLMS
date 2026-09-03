@@ -97,8 +97,17 @@ services:
     environment:
       APP_ENV: dev
       DB_HOST: db
+      # The internal Postgres port. Without this the worker falls back to the
+      # default (the host-mapped 5442) and every job that touches the database
+      # fails with "connection refused" — which mattered only once the library's
+      # document conversion became the first async job to need the database.
+      DB_PORT: "5432"
       REDIS_DSN: redis://redis:6379
       MESSENGER_TRANSPORT_DSN: redis://redis:6379/messages
+    # The same credentials the api loads, so the worker reaches the same database.
+    env_file:
+      - path: ../../apps/api/.env
+        required: false
     volumes:
       - ../../apps/api:/var/www/api
       - api-vendor:/var/www/api/vendor

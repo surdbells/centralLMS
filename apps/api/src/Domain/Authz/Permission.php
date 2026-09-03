@@ -91,6 +91,14 @@ enum Permission: string
     case CompetencyManage = 'competency.manage';
     case CompetencyAssess = 'competency.assess';
 
+    // --- digital library --------------------------------------------------
+    // A module distinct from the media library (which backs course content):
+    // files an administrator shares with an audience — a department, a role,
+    // everyone — viewable inline but never downloadable. Everyone can open the
+    // library and sees only what is shared with them; managing is the admin's.
+    case LibraryView   = 'library.view';
+    case LibraryManage = 'library.manage';
+
     /**
      * The module this permission belongs to, taken from its own name.
      *
@@ -160,6 +168,9 @@ enum Permission: string
             self::CompetencyView   => "See competencies, job profiles and assessment outcomes.",
             self::CompetencyManage => "Define competencies and job competency profiles.",
             self::CompetencyAssess => "Run and review competency assessments.",
+
+            self::LibraryView   => "Open the digital library and view the files shared with them.",
+            self::LibraryManage => "Upload, target and remove files in the digital library.",
         };
     }
 

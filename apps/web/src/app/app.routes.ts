@@ -25,6 +25,7 @@ import {proctoredAssessmentRoutes} from './proctored-assessment.routes';
 import {reportsRoutes} from './reports/reports.routes';
 import {usersRoutes} from './admin/users/users.routes';
 import {competencyRoutes} from './competency/competency.routes';
+import {libraryRoutes} from './library/library.routes';
 import {authGuard} from './core/auth/auth.guard';
 export const routes: Routes = [
   ...learningPathRoutes,
@@ -32,6 +33,7 @@ export const routes: Routes = [
   ...reportsRoutes,
   ...usersRoutes,
   ...competencyRoutes,
+  ...libraryRoutes,
   {
     /**
      * The application opens on the sign-in screen.

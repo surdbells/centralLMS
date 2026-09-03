@@ -110,6 +110,10 @@ use Central\Api\Infrastructure\Persistence\DbalAuditRepository;
 use Central\Api\Infrastructure\Persistence\DbalNoteRepository;
 use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
+use Central\Api\Application\Library\ConvertDocumentToPdf;
+use Central\Api\Application\Library\ConvertDocumentToPdfHandler;
+use Central\Api\Domain\Library\DigitalLibraryRepository;
+use Central\Api\Infrastructure\Persistence\DbalDigitalLibraryRepository;
 use Central\Api\Infrastructure\Persistence\DbalEmailTemplateRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
@@ -305,7 +309,17 @@ return [
             // Everything is routed async by default. A handler that must run
             // inline should be invoked directly rather than dispatched.
             new SendMessageMiddleware(new SendersLocator(['*' => ['async']], $senders)),
-            new HandleMessageMiddleware(new HandlersLocator([]), allowNoHandlers: true),
+            new HandleMessageMiddleware(new HandlersLocator([
+                // Office documents in the digital library are converted to PDF
+                // off the request, by the worker.
+                ConvertDocumentToPdf::class => [
+                    new ConvertDocumentToPdfHandler(
+                        $c->get(DigitalLibraryRepository::class),
+                        $c->get(MediaStorage::class),
+                        $c->get(LoggerInterface::class),
+                    ),
+                ],
+            ]), allowNoHandlers: true),
         ]);
     }),
 
@@ -433,6 +447,10 @@ return [
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
+    ),
+
+    DigitalLibraryRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalDigitalLibraryRepository($c->get(Connection::class)),
     ),
 
     CourseDiscussionRepository::class => factory(

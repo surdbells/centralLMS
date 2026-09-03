@@ -472,6 +472,21 @@ export const Endpoints = {
     ticket: (id: string) => `/media/${id}/ticket`,
   },
 
+  // --- digital library --------------------------------------------------
+  library: {
+    /** The library as it is shared with the caller. */
+    list: '/library',
+    /** A ticket to view one item's bytes (viewer). */
+    ticket: (id: string) => `/library/${id}/ticket`,
+    /** The bytes — inline only, ticket in the query string. */
+    file: (id: string) => `/library/${id}/file`,
+    // Management — the whole shelf.
+    manageList: '/library/manage',
+    upload: '/library/manage',
+    update: (id: string) => `/library/manage/${id}`,
+    delete: (id: string) => `/library/manage/${id}`,
+  },
+
   // --- notes ------------------------------------------------------------
   notes: {
     list: '/me/notes',
