@@ -42,8 +42,10 @@ export class ReportViewerComponent implements OnInit {
   selected: ReportSubjectRow | null = null;
 
   ngOnInit(): void {
-    // Everyone who has an assessment is someone a report can be produced for.
-    this.competency.getAssessments({ perPage: 200 }).subscribe({
+    // Only a finalized assessment yields a report — the report endpoint refuses
+    // anything still in draft/self-assessed/reviewed — so the picker offers only
+    // those. Filtered server-side so paging counts finalized assessments alone.
+    this.competency.getAssessments({ status: 'finalized', perPage: 200 }).subscribe({
       next: (paged) => {
         this.subjects = paged.items
           .map((a: CompetencyAssessment) => ({
