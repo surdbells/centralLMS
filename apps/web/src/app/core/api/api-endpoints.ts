@@ -818,7 +818,8 @@ export type LookupKind =
   | 'team'
   | 'level'
   | 'job_title'
-  | 'category';
+  | 'category'
+  | 'cycle';
 
 /** One kind's six paths, for a screen that manages a single kind. */
 export interface LookupPaths {

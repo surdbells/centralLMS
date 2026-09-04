@@ -11,12 +11,10 @@
   </div>
 
   <div class="cr-controls">
-    @if (active() !== 'individual' && cycles().length) {
+    @if (active() !== 'individual') {
       <label class="text-muted small mb-0">Cycle</label>
-      <select class="form-select form-select-sm w-auto" [ngModel]="cycle()"
-              (ngModelChange)="onCycleChange($event)">
-        @for (c of cycles(); track c) { <option [value]="c">{{ c }}</option> }
-      </select>
+      <app-cycle-select class="cr-cycle" size="sm" [ngModel]="cycle()"
+                        (ngModelChange)="onCycleChange($event)"></app-cycle-select>
     }
     @if (active() !== 'individual') {
       <button class="btn btn-sm btn-outline-secondary" (click)="print()">

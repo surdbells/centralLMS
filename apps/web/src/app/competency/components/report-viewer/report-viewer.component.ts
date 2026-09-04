@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HotToastService } from '@ngneat/hot-toast';
 import { IndividualReportComponent } from '../individual-report/individual-report.component';
+import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 import { CompetencyService, type CompetencyAssessment } from '../../competency.service';
 
 /** One person the viewer can pull a report for. */
@@ -26,7 +27,7 @@ interface ReportSubjectRow {
 @Component({
   selector: 'app-report-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, IndividualReportComponent],
+  imports: [CommonModule, FormsModule, IndividualReportComponent, CycleSelectComponent],
   templateUrl: './report-viewer.component.html',
   styleUrl: './report-viewer.component.scss',
 })
@@ -41,29 +42,58 @@ export class ReportViewerComponent implements OnInit {
   open = false;
   selected: ReportSubjectRow | null = null;
 
+  /** The cycle the picker is scoped to; '' means every cycle. */
+  cycle = '';
+
   ngOnInit(): void {
+    this.loadSubjects();
+  }
+
+  /** A cycle change re-scopes the picker and drops whoever was chosen. */
+  onCycleChange(cycle: string): void {
+    this.cycle = cycle;
+    this.selected = null;
+    this.search = '';
+    this.loadSubjects();
+  }
+
+  private loadSubjects(): void {
+    this.loading = true;
+    // The cycle this request is for. A quick second switch can leave two
+    // requests in flight; ignore whichever is no longer the chosen cycle so a
+    // slow earlier response cannot overwrite a faster later one.
+    const requested = this.cycle;
     // Only a finalized assessment yields a report — the report endpoint refuses
     // anything still in draft/self-assessed/reviewed — so the picker offers only
-    // those. Filtered server-side so paging counts finalized assessments alone.
-    this.competency.getAssessments({ status: 'finalized', perPage: 200 }).subscribe({
-      next: (paged) => {
-        this.subjects = paged.items
-          .map((a: CompetencyAssessment) => ({
-            assessmentId: a.id,
-            userName: a.userName ?? 'Unknown',
-            jobTitle: a.jobTitle ?? '',
-            functionName: a.functionName ?? '',
-            cycle: a.cycle,
-            status: a.statusLabel,
-          }))
-          .sort((x, y) => x.userName.localeCompare(y.userName));
-        this.loading = false;
-      },
-      error: () => {
-        this.toast.error('The list of people could not be loaded.');
-        this.loading = false;
-      },
-    });
+    // those, narrowed to the chosen cycle. Filtered server-side so paging counts
+    // finalized assessments in the cycle alone.
+    this.competency
+      .getAssessments({ status: 'finalized', cycle: requested || undefined, perPage: 200 })
+      .subscribe({
+        next: (paged) => {
+          if (requested !== this.cycle) {
+            return;
+          }
+          this.subjects = paged.items
+            .map((a: CompetencyAssessment) => ({
+              assessmentId: a.id,
+              userName: a.userName ?? 'Unknown',
+              jobTitle: a.jobTitle ?? '',
+              functionName: a.functionName ?? '',
+              cycle: a.cycle,
+              status: a.statusLabel,
+            }))
+            .sort((x, y) => x.userName.localeCompare(y.userName));
+          this.loading = false;
+        },
+        error: () => {
+          if (requested !== this.cycle) {
+            return;
+          }
+          this.toast.error('The list of people could not be loaded.');
+          this.loading = false;
+        },
+      });
   }
 
   get filtered(): ReportSubjectRow[] {

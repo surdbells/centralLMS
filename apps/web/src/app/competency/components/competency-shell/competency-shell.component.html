@@ -45,6 +45,13 @@
           <tui-icon icon="@tui.file-text"></tui-icon> Reports
         </a>
       </li>
+      @if (canManageCycles()) {
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/admin/competency/cycles" routerLinkActive="active">
+            <tui-icon icon="@tui.calendar"></tui-icon> Cycles
+          </a>
+        </li>
+      }
     </ul>
 
     <router-outlet></router-outlet>

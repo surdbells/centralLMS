@@ -12,6 +12,7 @@ import {
   type JobCompetencyProfile,
 } from '../../competency.service';
 import { UsersService, type User } from '../../../services/users.service';
+import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 
 /**
  * The register of assessments: who is being measured against which profile,
@@ -24,7 +25,7 @@ import { UsersService, type User } from '../../../services/users.service';
 @Component({
   selector: 'app-competency-assessments',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent],
   templateUrl: './competency-assessments.component.html',
   styleUrl: './competency-assessments.component.scss',
 })

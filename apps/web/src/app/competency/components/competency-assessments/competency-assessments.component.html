@@ -10,8 +10,9 @@
       <option value="">All statuses</option>
       <option *ngFor="let s of statuses" [value]="s.value">{{ s.label }}</option>
     </select>
-    <input class="form-control form-control-sm w-auto" placeholder="Cycle" style="max-width: 120px"
-           [(ngModel)]="cycleFilter" (keyup.enter)="load()" (blur)="load()" />
+    <app-cycle-select class="ca-cycle-filter" size="sm" [allowAll]="true" allLabel="All cycles"
+                      placeholder="All cycles" [(ngModel)]="cycleFilter"
+                      (ngModelChange)="load()"></app-cycle-select>
   </div>
   <button class="btn btn-primary btn-sm" (click)="openStart()">
     <tui-icon icon="@tui.plus"></tui-icon> Assign a profile
@@ -128,7 +129,7 @@
 
       <div class="mb-1">
         <label class="form-label">Cycle</label>
-        <input class="form-control" [(ngModel)]="cycle" placeholder="e.g. 2026" />
+        <app-cycle-select [(ngModel)]="cycle" placeholder="e.g. 2026"></app-cycle-select>
         <small class="text-muted">A label for the round - a year, a quarter. One assessment per person, profile and cycle.</small>
       </div>
     </div>

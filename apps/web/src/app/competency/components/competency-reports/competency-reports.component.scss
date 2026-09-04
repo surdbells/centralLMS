@@ -51,6 +51,12 @@
   gap: 0.5rem;
 }
 
+// The searchable cycle picker sits where the old <select> did.
+.cr-cycle {
+  display: inline-block;
+  width: 12rem;
+}
+
 // Long competency names wrap rather than stretching the table.
 .cr-competency {
   max-width: 26rem;

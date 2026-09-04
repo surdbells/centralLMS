@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
+import { SessionStore } from '../../../core/auth/session.store';
 
 /**
  * The frame every competency screen sits in.
@@ -18,6 +19,11 @@ import { AdmintopComponent } from '../../../partials/top/admintop/admintop.compo
   styleUrl: './competency-shell.component.scss',
 })
 export class CompetencyShellComponent {
+  private readonly session = inject(SessionStore);
+
+  /** Cycles are competency's reference data, so a competency manager sees the tab. */
+  readonly canManageCycles = computed(() => this.session.can()('competency.manage'));
+
   constructor(private readonly router: Router) {}
 
   goBack(): void {

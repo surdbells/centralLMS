@@ -27,9 +27,9 @@ final class SetLookupStatusAction extends LookupAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        $this->requireManage($request);
-
         $kind = $this->kind($args);
+        $this->requireManage($request, $kind);
+
         $tenantId = $this->tenantId($request);
         $id = $args['id'] ?? '';
 

@@ -22,6 +22,11 @@ enum LookupKind: string
     case Level = 'level';
     case JobTitle = 'job_title';
     case Category = 'category';
+    // An assessment cycle — the period an exercise runs for, "2026" or
+    // "2026 H1". Competency stores it by name on each assessment, so unlike the
+    // others it is referenced by value rather than by id (see the repository's
+    // rename cascade).
+    case Cycle = 'cycle';
 
     /**
      * Accepts the plural URL segment as well as the enum value, so
@@ -55,6 +60,7 @@ enum LookupKind: string
             self::Level      => 'levels',
             self::JobTitle   => 'job_titles',
             self::Category   => 'categories',
+            self::Cycle      => 'cycles',
         };
     }
 
@@ -67,6 +73,7 @@ enum LookupKind: string
             self::Level      => 'Level',
             self::JobTitle   => 'Job title',
             self::Category   => 'Category',
+            self::Cycle      => 'Cycle',
         };
     }
 
@@ -89,8 +96,8 @@ enum LookupKind: string
     public function usesCode(): bool
     {
         return match ($this) {
-            self::JobTitle, self::Category => false,
-            default                        => true,
+            self::JobTitle, self::Category, self::Cycle => false,
+            default                                     => true,
         };
     }
 

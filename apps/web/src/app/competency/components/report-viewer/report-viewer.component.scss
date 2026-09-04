@@ -35,6 +35,11 @@
   max-width: 520px;
 }
 
+.rv-cycle {
+  width: 13rem;
+  flex-shrink: 0;
+}
+
 .rv-picker-label {
   display: block;
   font-size: 0.72rem;

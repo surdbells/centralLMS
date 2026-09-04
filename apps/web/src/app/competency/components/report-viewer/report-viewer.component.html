@@ -7,6 +7,17 @@
         <p>Choose an employee to read and print their competency report.</p>
       </div>
 
+      <div class="rv-cycle">
+        <label class="rv-picker-label">Cycle</label>
+        <app-cycle-select
+          [allowAll]="true"
+          allLabel="All cycles"
+          placeholder="All cycles"
+          [ngModel]="cycle"
+          (ngModelChange)="onCycleChange($event)"
+        ></app-cycle-select>
+      </div>
+
       <div class="rv-picker" [class.open]="open">
         <label class="rv-picker-label">Employee</label>
         <div class="rv-input-wrap">
@@ -26,7 +37,10 @@
         <div class="rv-menu" *ngIf="open">
           <div class="rv-loading" *ngIf="loading">Loading…</div>
           <div class="rv-empty" *ngIf="!loading && filtered.length === 0">
-            No one matches “{{ search }}”.
+            <ng-container *ngIf="search.trim()">No one matches “{{ search }}”.</ng-container>
+            <ng-container *ngIf="!search.trim()">
+              No finalised reports {{ cycle ? 'in ' + cycle : 'yet' }}.
+            </ng-container>
           </div>
           <button
             type="button"

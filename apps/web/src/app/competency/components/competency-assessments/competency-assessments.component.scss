@@ -177,3 +177,9 @@
     &:hover { opacity: 1; }
   }
 }
+
+// The searchable cycle filter, sized like the small select beside it.
+.ca-cycle-filter {
+  display: inline-block;
+  width: 10rem;
+}

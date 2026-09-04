@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ReportViewerComponent } from '../report-viewer/report-viewer.component';
+import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 import {
   CompetencyService,
   type ReadinessReport,
@@ -39,7 +40,7 @@ interface ReportTab {
 @Component({
   selector: 'app-competency-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, ReportViewerComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, ReportViewerComponent, CycleSelectComponent],
   templateUrl: './competency-reports.component.html',
   styleUrl: './competency-reports.component.scss',
 })

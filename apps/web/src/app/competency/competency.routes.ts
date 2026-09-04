@@ -1,5 +1,6 @@
 // competency/competency.routes.ts
 import { Routes } from '@angular/router';
+import { permissionGuard } from '../admin/users/guards/role.guard';
 
 /**
  * Competency assurance — one module, four related screens under a shared shell.
@@ -74,6 +75,19 @@ export const competencyRoutes: Routes = [
             (m) => m.CompetencyReportsComponent,
           ),
         title: 'Competency Reports',
+      },
+      {
+        // Cycles are competency's own reference data — everyone reads them in
+        // the pickers, but adding, renaming or retiring one is part of running
+        // the exercise, so it sits with competency management.
+        path: 'cycles',
+        canActivate: [permissionGuard],
+        data: { permission: 'competency.manage' },
+        loadComponent: () =>
+          import('./components/cycle-management/cycle-management.component').then(
+            (m) => m.CycleManagementComponent,
+          ),
+        title: 'Assessment Cycles',
       },
     ],
   },

@@ -1,0 +1,72 @@
+.cm {
+  max-width: 900px;
+}
+
+.cm-head {
+  margin-bottom: 1rem;
+}
+
+.cm-add {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.25rem;
+
+  input {
+    max-width: 22rem;
+  }
+
+  .cm-desc-input {
+    flex: 1;
+    max-width: none;
+  }
+
+  button {
+    white-space: nowrap;
+  }
+}
+
+.cm-loading,
+.cm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: 2.5rem 1rem;
+  color: #98a2ad;
+
+  i {
+    font-size: 1.75rem;
+  }
+}
+
+.cm-table {
+  th {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: #6b7683;
+  }
+
+  .cm-status-col {
+    width: 7rem;
+  }
+
+  .cm-actions-col {
+    width: 15rem;
+  }
+}
+
+.cm-retired td:not(:last-child) {
+  opacity: .6;
+}
+
+@media (max-width: 640px) {
+  .cm-add {
+    flex-direction: column;
+
+    input {
+      max-width: none;
+    }
+  }
+}

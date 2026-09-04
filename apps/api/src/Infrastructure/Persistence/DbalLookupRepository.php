@@ -139,17 +139,38 @@ final class DbalLookupRepository implements LookupRepository
 
     public function update(Lookup $lookup): Lookup
     {
-        $this->connection->executeStatement(
-            'UPDATE lookups
-             SET code = :code, name = :name, description = :description, parent_id = :parent,
-                 sort_order = :sortOrder, is_active = :isActive,
-                 attributes = CAST(:attributes AS JSONB), updated_at = NOW()
-             WHERE id = :id AND tenant_id = :tenant AND kind = :kind AND deleted_at IS NULL',
-            [...$this->writeParams($lookup), 'id' => $lookup->id],
-        );
+        return $this->connection->transactional(function (Connection $tx) use ($lookup): Lookup {
+            // A cycle is named on each competency_assessments row rather than
+            // pointed at by id, so renaming one must carry those rows with it —
+            // otherwise they would drop out of every cycle-scoped view. This
+            // runs before the name changes, reading the old name off the lookup.
+            // The `cycle <> :new` clause makes it touch rows only on an actual
+            // rename: a save that changes only the description matches nothing.
+            if ($lookup->kind === LookupKind::Cycle) {
+                $tx->executeStatement(
+                    'UPDATE competency_assessments SET cycle = :new, updated_at = NOW()
+                     WHERE tenant_id = :tenant AND deleted_at IS NULL
+                       AND cycle <> :new
+                       AND cycle = (
+                           SELECT name FROM lookups
+                           WHERE id = :id AND tenant_id = :tenant AND kind = :kind
+                       )',
+                    ['new' => $lookup->name, 'tenant' => $lookup->tenantId, 'id' => $lookup->id, 'kind' => $lookup->kind->value],
+                );
+            }
 
-        return $this->find($lookup->tenantId, $lookup->kind, $lookup->id)
-            ?? throw new \RuntimeException('Updated lookup could not be read back.');
+            $tx->executeStatement(
+                'UPDATE lookups
+                 SET code = :code, name = :name, description = :description, parent_id = :parent,
+                     sort_order = :sortOrder, is_active = :isActive,
+                     attributes = CAST(:attributes AS JSONB), updated_at = NOW()
+                 WHERE id = :id AND tenant_id = :tenant AND kind = :kind AND deleted_at IS NULL',
+                [...$this->writeParams($lookup), 'id' => $lookup->id],
+            );
+
+            return $this->find($lookup->tenantId, $lookup->kind, $lookup->id)
+                ?? throw new \RuntimeException('Updated lookup could not be read back.');
+        });
     }
 
     public function setActive(string $tenantId, LookupKind $kind, string $id, bool $isActive): bool

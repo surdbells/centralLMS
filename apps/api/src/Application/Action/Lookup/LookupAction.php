@@ -74,9 +74,21 @@ abstract class LookupAction
     /**
      * @throws AccessDenied
      */
-    final protected function requireManage(ServerRequestInterface $request): void
+    final protected function requireManage(ServerRequestInterface $request, ?LookupKind $kind = null): void
     {
-        $this->caller($request)->mustHave(Permission::LookupManage);
+        $this->caller($request)->mustHave($this->managePermission($kind));
+    }
+
+    /**
+     * Who may edit a kind.
+     *
+     * Cycles are competency's own reference data — the periods its exercise runs
+     * for — so whoever manages competency manages them, without also needing the
+     * general reference-data privilege. Everything else is plain reference data.
+     */
+    private function managePermission(?LookupKind $kind): Permission
+    {
+        return $kind === LookupKind::Cycle ? Permission::CompetencyManage : Permission::LookupManage;
     }
 
     /**

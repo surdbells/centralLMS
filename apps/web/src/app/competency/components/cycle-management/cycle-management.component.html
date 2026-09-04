@@ -1,0 +1,111 @@
+<div class="cm">
+  <div class="cm-head">
+    <div>
+      <h2 class="h5 fw-bold mb-1">Assessment Cycles</h2>
+      <p class="text-muted small mb-0">
+        The periods an exercise runs for. New assessments and every report are filed under a cycle.
+      </p>
+    </div>
+  </div>
+
+  <!-- Add a cycle -->
+  <form class="cm-add" (ngSubmit)="add()">
+    <input
+      type="text"
+      class="form-control"
+      name="newName"
+      placeholder="New cycle, e.g. 2027 or 2027 H1"
+      [(ngModel)]="newName"
+      maxlength="80"
+      autocomplete="off" />
+    <input
+      type="text"
+      class="form-control cm-desc-input"
+      name="newDescription"
+      placeholder="Description (optional)"
+      [(ngModel)]="newDescription"
+      maxlength="255"
+      autocomplete="off" />
+    <button type="submit" class="btn btn-primary" [disabled]="!newName.trim() || creating()">
+      @if (creating()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+      Add cycle
+    </button>
+  </form>
+
+  <!-- The cycles -->
+  @if (loading()) {
+    <div class="cm-loading"><div class="spinner-border" role="status"></div></div>
+  } @else if (!cycles().length) {
+    <div class="cm-empty">
+      <i class="bi bi-calendar3"></i>
+      <p class="mb-0">No cycles yet. Add one above to start filing assessments under it.</p>
+    </div>
+  } @else {
+    <table class="table cm-table align-middle">
+      <thead>
+        <tr>
+          <th>Cycle</th>
+          <th>Description</th>
+          <th class="cm-status-col">Status</th>
+          <th class="cm-actions-col text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of cycles(); track row.id) {
+          <tr [class.cm-retired]="!row.isActive">
+            @if (editingId === row.id) {
+              <!-- Inline edit -->
+              <td>
+                <input type="text" class="form-control form-control-sm" name="editName-{{ row.id }}"
+                       [(ngModel)]="editName" maxlength="80" autocomplete="off" />
+              </td>
+              <td>
+                <input type="text" class="form-control form-control-sm" name="editDescription-{{ row.id }}"
+                       [(ngModel)]="editDescription" maxlength="255" autocomplete="off" />
+              </td>
+              <td>
+                <span class="badge" [class.text-bg-success]="row.isActive" [class.text-bg-secondary]="!row.isActive">
+                  {{ row.isActive ? 'Active' : 'Retired' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-primary me-1" (click)="saveEdit(row)"
+                        [disabled]="!editName.trim() || savingId() === row.id">
+                  @if (savingId() === row.id) { <span class="spinner-border spinner-border-sm"></span> }
+                  @else { Save }
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+              </td>
+            } @else {
+              <!-- Read row -->
+              <td class="fw-semibold">{{ row.name }}</td>
+              <td class="text-muted">{{ row.description || '—' }}</td>
+              <td>
+                <span class="badge" [class.text-bg-success]="row.isActive" [class.text-bg-secondary]="!row.isActive">
+                  {{ row.isActive ? 'Active' : 'Retired' }}
+                </span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="startEdit(row)" title="Rename">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm"
+                        [class.btn-outline-danger]="row.isActive"
+                        [class.btn-outline-success]="!row.isActive"
+                        (click)="toggleStatus(row)"
+                        [disabled]="savingId() === row.id"
+                        [title]="row.isActive ? 'Retire' : 'Reactivate'">
+                  <i class="bi" [class.bi-archive]="row.isActive" [class.bi-arrow-counterclockwise]="!row.isActive"></i>
+                  {{ row.isActive ? 'Retire' : 'Reactivate' }}
+                </button>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="text-muted small mb-0">
+      Retiring a cycle stops it being offered for new assessments; its finished work stays in the reports.
+    </p>
+  }
+</div>
