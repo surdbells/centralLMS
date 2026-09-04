@@ -246,7 +246,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         department: l.unit ?? '',
         avg_progress: Math.round(l.progress),
         days_inactive: l.daysInactive,
-        risk_level: l.risk,
+        risk_level: l.risk ?? '',
       })),
 
       upcoming_deadlines: d.upcomingDeadlines.map((dl) => ({
@@ -386,12 +386,16 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
-  getRiskColor(level: string): string {
+  getRiskColor(level: string | null | undefined): string {
+    // A learner can come back without a risk band; guard the lookup rather than
+    // let `.toLowerCase()` throw. An unguarded throw here aborts the whole
+    // template's change-detection pass, which (among other things) leaves every
+    // tui-icon rendered after it stuck as a blank coloured square.
     return ({
       high: 'danger',
       medium: 'warning',
       low: 'info',
-    } as Record<string, string>)[level.toLowerCase()] ?? 'secondary';
+    } as Record<string, string>)[(level ?? '').toLowerCase()] ?? 'secondary';
   }
 
   // --- the charts -----------------------------------------------------------
