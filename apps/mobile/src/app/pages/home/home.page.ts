@@ -61,10 +61,10 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         @if (data(); as d) {
         <!-- Stats -->
         <div class="stats rise">
-          <div class="stat"><span class="n">{{ d.overview.inProgress }}</span><span class="l">In progress</span></div>
-          <div class="stat"><span class="n">{{ d.overview.completed }}</span><span class="l">Completed</span></div>
-          <div class="stat"><span class="n">{{ d.overview.certificates }}</span><span class="l">Certificates</span></div>
-          <div class="stat"><span class="n">{{ d.streak.current }}🔥</span><span class="l">Day streak</span></div>
+          <div class="stat"><ion-icon name="book-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.overview.inProgress }}</span><span class="l">In progress</span></div>
+          <div class="stat"><ion-icon name="checkmark-circle-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.overview.completed }}</span><span class="l">Completed</span></div>
+          <div class="stat"><ion-icon name="ribbon-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.overview.certificates }}</span><span class="l">Certificates</span></div>
+          <div class="stat"><ion-icon name="flame-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.streak.current }}</span><span class="l">Day streak</span></div>
         </div>
 
         <!-- Continue learning -->
@@ -170,18 +170,30 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     </ion-content>
   `,
   styles: [`
-    .hero { padding: calc(env(safe-area-inset-top) + 16px) 20px 20px; background: linear-gradient(135deg, var(--brand-primary, var(--ion-color-primary)), var(--brand-primary-shade, var(--ion-color-primary-shade))); color: #fff; border-radius: 0 0 var(--app-r-lg) var(--app-r-lg); }
-    .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-    .hero-org { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hero-logo { flex: 0 0 auto; width: 42px; height: 42px; border-radius: var(--app-r-sm); background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: 0 6px 16px rgba(0,0,0,.16); }
+    .hero {
+      position: relative; overflow: hidden; isolation: isolate;
+      padding: calc(env(safe-area-inset-top) + 20px) 20px 34px;
+      color: #fff; border-radius: 0 0 28px 28px;
+      background:
+        radial-gradient(135% 80% at 86% -22%, color-mix(in srgb, var(--brand-primary, var(--ion-color-primary)) 40%, #ffffff) 0%, transparent 52%),
+        linear-gradient(155deg, var(--brand-primary, var(--ion-color-primary)) 0%, var(--brand-primary-shade, var(--ion-color-primary-shade)) 100%);
+      box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--brand-primary, #2400a0) 75%, transparent);
+    }
+    /* Soft light orbs for depth. */
+    .hero::before { content: ''; position: absolute; z-index: -1; top: -80px; right: -46px; width: 210px; height: 210px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.22), transparent 68%); }
+    .hero::after { content: ''; position: absolute; z-index: -1; bottom: -110px; left: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-primary, #2400a0) 20%, #ffffff), transparent 70%); opacity: .3; }
+    .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+    .hero-org { font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hero-logo { flex: 0 0 auto; width: 44px; height: 44px; border-radius: var(--app-r-sm); background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: 0 10px 22px -6px rgba(0,0,0,.35); }
     .hero-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .hero .hi { margin: 0; opacity: .9; font-size: .98rem; }
-    .hero h1 { margin: 3px 0 0; font-size: 1.7rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
+    .hero .hi { margin: 0; opacity: .86; font-size: 1rem; font-weight: 500; }
+    .hero h1 { margin: 4px 0 0; font-size: 1.95rem; line-height: 1.08; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
     .pad { padding: 0 16px; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 16px; margin: -22px 0 8px; }
-    .stat { background: var(--ion-card-background); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px 6px; text-align: center; box-shadow: var(--app-shadow); }
-    .stat .n { display: block; font-size: 1.15rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); color: var(--ion-color-primary); }
-    .stat .l { font-size: .66rem; color: var(--ion-color-medium); }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; padding: 0 16px; margin: -26px 0 8px; }
+    .stat { display: flex; flex-direction: column; align-items: center; gap: 1px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px 4px 11px; box-shadow: var(--app-shadow-lg); }
+    .stat .si { font-size: 17px; color: var(--ion-color-primary); margin-bottom: 3px; }
+    .stat .n { font-size: 1.28rem; line-height: 1; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); color: var(--app-ink); }
+    .stat .l { font-size: .64rem; color: var(--app-muted); }
     .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 18px 0 10px; }
     .act-head { display: flex; align-items: center; justify-content: space-between; }
     .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--app-tag-ink); background: var(--app-tag-bg); padding: 5px 10px; border-radius: var(--app-r-pill); }
