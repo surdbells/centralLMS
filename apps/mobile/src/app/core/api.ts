@@ -81,8 +81,12 @@ function unwrap<T>(response: unknown): { payload: T; meta?: PageMeta } {
   }
   const maybeError = (response as { error?: unknown }).error;
   if (maybeError != null && typeof maybeError === 'object') {
-    const { code, message } = maybeError as { code: string; message: string };
-    throw new ApiError(code, message);
+    const { code, message, details } = maybeError as {
+      code: string;
+      message: string;
+      details?: Record<string, string[]>;
+    };
+    throw new ApiError(code, message, 0, details ?? {});
   }
   const success = response as { data: T; meta?: PageMeta };
   return { payload: success.data, meta: success.meta };
@@ -94,9 +98,16 @@ function toApiError(err: unknown): ApiError {
     return err;
   }
   if (err instanceof HttpErrorResponse) {
-    const body = err.error as { error?: { code?: string; message?: string } } | null;
+    const body = err.error as {
+      error?: { code?: string; message?: string; details?: Record<string, string[]> };
+    } | null;
     if (body?.error) {
-      return new ApiError(body.error.code ?? 'error', body.error.message ?? 'Request failed.', err.status);
+      return new ApiError(
+        body.error.code ?? 'error',
+        body.error.message ?? 'Request failed.',
+        err.status,
+        body.error.details ?? {},
+      );
     }
     if (err.status === 0) {
       return new ApiError('network_error', 'Could not reach the server. Check your connection and try again.', 0);
@@ -125,8 +136,15 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly status = 0,
+    /** Per-field validation messages from a 422, keyed by field name. */
+    readonly details: Record<string, string[]> = {},
   ) {
     super(message);
     this.name = 'ApiError';
+  }
+
+  /** The first message for a field, if the server reported one. */
+  fieldError(field: string): string | null {
+    return this.details[field]?.[0] ?? null;
   }
 }

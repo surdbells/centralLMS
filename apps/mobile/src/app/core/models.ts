@@ -270,9 +270,23 @@ export interface CourseDetails {
 export interface Profile {
   id?: string;
   fullName?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
+  phone?: string | null;
+  locale?: string | null;
   jobTitle?: string | null;
   department?: string | null;
   avatarUrl?: string | null;
   [key: string]: unknown;
+}
+
+/** The tenant's rules for a valid password, from `/settings/public`. */
+export interface PasswordPolicy {
+  minimumLength: number;
+  requiresUppercase: boolean;
+  requiresLowercase: boolean;
+  requiresNumber: boolean;
+  requiresSymbol: boolean;
+  description?: string;
 }

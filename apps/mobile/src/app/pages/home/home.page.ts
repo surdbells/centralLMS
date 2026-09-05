@@ -25,32 +25,77 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div class="hero">
-        <div class="hero-top">
-          <span class="hero-org">{{ branding.organisation() || 'Central LMS' }}</span>
+      <!-- Top app-bar -->
+      <div class="topbar">
+        <div class="tb-brand">
           @if (branding.logoUrl(); as logo) {
-            <div class="hero-logo"><img [src]="logo" [alt]="branding.organisation() || 'Logo'" /></div>
+            <div class="tb-logo"><img [src]="logo" [alt]="branding.organisation() || 'Logo'" /></div>
+          }
+          <div class="tb-tx">
+            <p class="tb-org">{{ branding.organisation() || 'Central LMS' }}</p>
+            <p class="tb-tag">Learn. Grow. Succeed.</p>
+          </div>
+        </div>
+        <button class="tb-avatar" (click)="goProfile()" aria-label="Your profile">{{ initial(fullName()) }}</button>
+      </div>
+
+      <!-- Hero -->
+      <div class="hero rise">
+        <div class="hero-head">
+          <div class="hero-greet">
+            <p class="hi">{{ greeting() }} 👋</p>
+            <h1>{{ fullName() }}</h1>
+            <p class="sub">Keep learning, keep growing!</p>
+          </div>
+          @if (data()?.achievements?.rank; as r) {
+            <button class="badge" (click)="goAchievements()">
+              <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+              <span class="badge-tx">
+                <span class="badge-n">#{{ r.rank }}</span>
+                <span class="badge-l">{{ r.points }} points</span>
+              </span>
+            </button>
           }
         </div>
-        <p class="hi">Hello, {{ name() }} 👋</p>
-        <h1>Keep it going.</h1>
+
+        @if (data(); as d) {
+          <div class="hprog">
+            <div class="hp-top">
+              <span class="hp-title">Overall progress</span>
+              <button class="hp-link" (click)="goProgress()">View details</button>
+            </div>
+            <div class="hp-bar">
+              <app-progress [value]="d.overview.overallProgress / 100"></app-progress>
+              <span class="hp-pct">{{ d.overview.overallProgress }}%</span>
+            </div>
+          </div>
+
+          <div class="hstats">
+            <div class="hstat"><div class="hs-ic"><ion-icon name="book-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.enrolled }}</span><span class="hs-l">Enrolled</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="play-circle-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.inProgress }}</span><span class="hs-l">In Progress</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="trophy-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.completed }}</span><span class="hs-l">Completed</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="time-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ learningTime(d.overview.secondsSpent) }}</span><span class="hs-l">Learning</span></div></div>
+          </div>
+        }
+      </div>
+
+      <!-- Quick actions -->
+      <div class="quick surface rise">
+        @for (q of quickActions; track q.url) {
+          <button type="button" class="qa tappable" [attr.data-tone]="q.tone" (click)="go(q.url)">
+            <div class="qa-ic"><ion-icon [name]="q.icon" aria-hidden="true"></ion-icon></div>
+            <span class="qa-l">{{ q.label }}</span>
+          </button>
+        }
       </div>
 
       @if (loading()) {
-        <div class="stats">
-          @for (i of [1,2,3,4]; track i) {
-            <div class="stat">
-              <ion-skeleton-text animated style="width: 44%; height: 20px; margin: 2px auto 8px; border-radius: 6px;"></ion-skeleton-text>
-              <ion-skeleton-text animated style="width: 78%; height: 8px; margin: 0 auto; border-radius: 4px;"></ion-skeleton-text>
-            </div>
-          }
-        </div>
         <div class="pad">
           <ion-skeleton-text animated style="width: 46%; height: 18px; margin: 20px 0 12px; border-radius: 6px;"></ion-skeleton-text>
         </div>
         <div class="rail">
           <div class="rail-card">
-            <ion-skeleton-text animated style="width: 100%; height: 96px; --border-radius: 0;"></ion-skeleton-text>
+            <ion-skeleton-text animated style="width: 100%; height: 108px; --border-radius: 0;"></ion-skeleton-text>
             <div class="rc-body">
               <ion-skeleton-text animated style="width: 82%; height: 14px; border-radius: 5px;"></ion-skeleton-text>
               <ion-skeleton-text animated style="width: 100%; height: 7px; margin-top: 12px; border-radius: 4px;"></ion-skeleton-text>
@@ -59,18 +104,13 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         </div>
       } @else if (data()) {
         @if (data(); as d) {
-        <!-- Stats -->
-        <div class="stats rise">
-          <div class="stat"><ion-icon name="book-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.overview.inProgress }}</span><span class="l">In progress</span></div>
-          <div class="stat"><ion-icon name="checkmark-circle-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.overview.completed }}</span><span class="l">Completed</span></div>
-          <div class="stat"><ion-icon name="ribbon-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.overview.certificates }}</span><span class="l">Certificates</span></div>
-          <div class="stat"><ion-icon name="flame-outline" class="si" aria-hidden="true"></ion-icon><span class="n">{{ d.streak.current }}</span><span class="l">Day streak</span></div>
-        </div>
-
         <!-- Continue learning -->
         @if (d.courses.inProgress.length) {
           <div class="pad">
-            <div class="section-title">Continue learning</div>
+            <div class="act-head">
+              <div class="section-title">Continue learning</div>
+              <button class="see-all" (click)="goCourses()">See all</button>
+            </div>
           </div>
           <div class="rail">
             @for (c of d.courses.inProgress; track c.id) {
@@ -100,15 +140,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         <!-- Recent activity -->
         @if (d.recentActivity.length) {
           <div class="pad">
-            <div class="act-head">
-              <div class="section-title">Recent activity</div>
-              @if (d.achievements?.rank; as r) {
-                <button class="rank-chip tappable" (click)="goLeaderboard()">
-                  <ion-icon name="trophy-outline"></ion-icon> #{{ r.rank }} · {{ r.points }} pts
-                  <ion-icon name="chevron-forward" class="rc-chev"></ion-icon>
-                </button>
-              }
-            </div>
+            <div class="section-title">Recent activity</div>
             @for (a of d.recentActivity; track $index) {
               <div class="act">
                 <div class="act-ic" [style.background]="actTint(a)">
@@ -124,7 +156,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
           </div>
         }
 
-        <!-- Deadlines -->
+        <!-- Due soon -->
         @if (d.deadlines.length) {
           <div class="pad">
             <div class="section-title">Due soon</div>
@@ -174,35 +206,71 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     </ion-content>
   `,
   styles: [`
+    /* ── Top app-bar ── */
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(env(safe-area-inset-top) + 10px) 16px 8px; }
+    .tb-brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .tb-logo { flex: none; width: 42px; height: 42px; border-radius: var(--app-r-sm); background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: var(--app-shadow); border: var(--app-card-border); }
+    .tb-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .tb-tx { min-width: 0; }
+    .tb-org { margin: 0; font-family: var(--app-font-display); font-weight: 800; font-size: 1.02rem; color: var(--app-ink); letter-spacing: var(--app-display-tracking); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tb-tag { margin: 1px 0 0; font-size: .72rem; color: var(--app-muted); }
+    .tb-avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--app-accent-fill); color: var(--app-accent-ink); font-family: var(--app-font-display); font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: var(--app-btn-shadow); }
+
+    /* ── Hero ── */
     .hero {
       position: relative; overflow: hidden; isolation: isolate;
-      padding: calc(env(safe-area-inset-top) + 20px) 20px 34px;
-      color: #fff; border-radius: 0 0 28px 28px;
+      margin: 4px 12px 0; padding: 20px; color: #fff; border-radius: var(--app-r-lg);
       background:
-        radial-gradient(135% 80% at 86% -22%, color-mix(in srgb, var(--brand-primary, var(--ion-color-primary)) 40%, #ffffff) 0%, transparent 52%),
+        radial-gradient(135% 90% at 88% -20%, color-mix(in srgb, var(--brand-primary, var(--ion-color-primary)) 42%, #ffffff) 0%, transparent 54%),
         linear-gradient(155deg, var(--brand-primary, var(--ion-color-primary)) 0%, var(--brand-primary-shade, var(--ion-color-primary-shade)) 100%);
-      box-shadow: 0 18px 40px -22px color-mix(in srgb, var(--brand-primary, #2400a0) 75%, transparent);
+      box-shadow: 0 20px 44px -24px color-mix(in srgb, var(--brand-primary, #2400a0) 78%, transparent);
     }
-    /* Soft light orbs for depth. */
-    .hero::before { content: ''; position: absolute; z-index: -1; top: -80px; right: -46px; width: 210px; height: 210px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.22), transparent 68%); }
-    .hero::after { content: ''; position: absolute; z-index: -1; bottom: -110px; left: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--brand-primary, #2400a0) 20%, #ffffff), transparent 70%); opacity: .3; }
-    .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-    .hero-org { font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: rgba(255,255,255,.8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hero-logo { flex: 0 0 auto; width: 44px; height: 44px; border-radius: var(--app-r-sm); background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: 0 10px 22px -6px rgba(0,0,0,.35); }
-    .hero-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .hero .hi { margin: 0; opacity: .86; font-size: 1rem; font-weight: 500; }
-    .hero h1 { margin: 4px 0 0; font-size: 1.95rem; line-height: 1.08; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
+    .hero::before { content: ''; position: absolute; z-index: -1; top: -70px; right: -40px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.2), transparent 68%); }
+    .hero-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .hero-greet { min-width: 0; }
+    .hero .hi { margin: 0; opacity: .88; font-size: .95rem; font-weight: 500; }
+    .hero h1 { margin: 3px 0 0; font-size: 1.7rem; line-height: 1.1; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
+    .hero .sub { margin: 5px 0 0; opacity: .82; font-size: .84rem; }
+    .badge { flex: none; display: flex; align-items: center; gap: 8px; border: 0; cursor: pointer; color: #fff; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22); padding: 8px 12px; border-radius: var(--app-r-sm); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+    .badge > ion-icon { font-size: 22px; }
+    .badge-tx { display: flex; flex-direction: column; line-height: 1.1; }
+    .badge-n { font-family: var(--app-font-display); font-weight: 800; font-size: 1.02rem; }
+    .badge-l { font-size: .64rem; opacity: .82; white-space: nowrap; }
+
+    .hprog { margin-top: 18px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); border-radius: var(--app-r-sm); padding: 13px 14px; }
+    .hp-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    .hp-title { font-size: .82rem; font-weight: 600; }
+    .hp-link { border: 0; background: transparent; color: #fff; opacity: .9; font-size: .78rem; font-weight: 600; cursor: pointer; text-decoration: underline; }
+    .hp-bar { display: flex; align-items: center; gap: 12px; }
+    .hp-bar app-progress { flex: 1; --app-track: rgba(255,255,255,.28); --app-accent-fill: #fff; }
+    .hp-pct { flex: none; font-family: var(--app-font-display); font-weight: 800; font-size: .95rem; }
+
+    .hstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+    .hstat { background: rgba(255,255,255,.1); border-radius: var(--app-r-sm); padding: 10px 8px; display: flex; flex-direction: column; gap: 7px; }
+    .hs-ic { width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,.16); display: grid; place-items: center; }
+    .hs-ic ion-icon { font-size: 17px; color: #fff; }
+    .hs-tx { display: flex; flex-direction: column; line-height: 1.05; }
+    .hs-n { font-family: var(--app-font-display); font-weight: 800; font-size: 1.02rem; }
+    .hs-l { font-size: .6rem; opacity: .8; white-space: nowrap; }
+
+    /* ── Quick actions ── */
+    .quick { margin: 14px 12px 4px; padding: 14px 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .qa { display: flex; flex-direction: column; align-items: center; gap: 7px; border: 0; background: transparent; cursor: pointer; padding: 4px 2px; }
+    .qa-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); }
+    .qa-ic ion-icon { font-size: 23px; }
+    .qa-l { font-size: .66rem; font-weight: 600; color: var(--app-ink); text-align: center; line-height: 1.1; }
+    .qa[data-tone="blue"] { --tone: #3b6fe0; }
+    .qa[data-tone="green"] { --tone: #1f9d57; }
+    .qa[data-tone="purple"] { --tone: #7a52d8; }
+    .qa[data-tone="amber"] { --tone: #db8a1c; }
+    .qa[data-tone="pink"] { --tone: #db4a7e; }
+
+    /* ── Sections ── */
     .pad { padding: 0 16px; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; padding: 0 16px; margin: -26px 0 8px; }
-    .stat { display: flex; flex-direction: column; align-items: center; gap: 1px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px 4px 11px; box-shadow: var(--app-shadow-lg); }
-    .stat .si { font-size: 17px; color: var(--ion-color-primary); margin-bottom: 3px; }
-    .stat .n { font-size: 1.28rem; line-height: 1; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); color: var(--app-ink); }
-    .stat .l { font-size: .64rem; color: var(--app-muted); }
     .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 18px 0 10px; }
     .act-head { display: flex; align-items: center; justify-content: space-between; }
-    .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--app-tag-ink); background: var(--app-tag-bg); padding: 5px 8px 5px 10px; border-radius: var(--app-r-pill); border: 0; cursor: pointer; }
-    .rank-chip ion-icon { font-size: 14px; }
-    .rank-chip .rc-chev { font-size: 13px; opacity: .7; }
+    .see-all { border: 0; background: transparent; color: var(--ion-color-primary); font-weight: 600; font-size: .82rem; cursor: pointer; }
+
     .act { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
     .act + .act { border-top: 1px solid var(--app-hairline); }
     .act-ic { width: 40px; height: 40px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
@@ -211,6 +279,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .act-title { margin: 0; font-weight: 600; font-size: .92rem; }
     .act-body .muted { margin: 2px 0 0; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .act-time { flex: 0 0 auto; font-size: .74rem; }
+
     .rail { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 6px; scrollbar-width: none; }
     .rail::-webkit-scrollbar { display: none; }
     .rail-card { position: relative; overflow: hidden; flex: 0 0 80%; max-width: 320px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); box-shadow: var(--app-shadow-lg); }
@@ -222,7 +291,8 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .rc-body { padding: 10px 12px 12px; }
     .rc-title { margin: 0 0 8px; font-weight: 700; font-size: .95rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .rc-sub { margin: 6px 0 0; font-size: .78rem; }
-    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
+
+    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
     .row-ic { font-size: 24px; flex: 0 0 auto; }
     .mini-thumb { width: 44px; height: 44px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
     .mini-thumb span { color: #fff; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
@@ -241,6 +311,15 @@ export class HomePage implements OnInit {
   readonly data = signal<LearnerDashboard | null>(null);
   readonly loading = signal(true);
   readonly name = computed(() => firstName(this.session.session()?.name));
+  readonly fullName = computed(() => this.session.session()?.name || 'Learner');
+
+  readonly quickActions = [
+    { label: 'My Courses', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
+    { label: 'Assessments', icon: 'clipboard-outline', tone: 'green', url: '/assessments' },
+    { label: 'Certificates', icon: 'ribbon-outline', tone: 'purple', url: '/certificates' },
+    { label: 'Achievements', icon: 'medal-outline', tone: 'amber', url: '/achievements' },
+    { label: 'Library', icon: 'folder-open-outline', tone: 'pink', url: '/library' },
+  ];
 
   readonly thumb = thumbStyle;
   readonly initial = initialOf;
@@ -249,6 +328,16 @@ export class HomePage implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  greeting(): string {
+    const h = new Date().getHours();
+    return h < 12 ? 'Good morning,' : h < 18 ? 'Good afternoon,' : 'Good evening,';
+  }
+
+  learningTime(seconds: number): string {
+    const label = minutesLabel(Math.round((seconds ?? 0) / 60));
+    return label || '0m';
   }
 
   // --- recent activity presentation ---------------------------------------
@@ -289,8 +378,6 @@ export class HomePage implements OnInit {
   }
 
   actSub(a: ActivityEntry): string {
-    // For a points entry the subject is the reason ("certificate_earned"); for
-    // the rest it's the thing itself (a course or certificate name).
     return a.kind === 'points' ? this.humanize(a.subject) : (a.subject ?? '');
   }
 
@@ -325,11 +412,23 @@ export class HomePage implements OnInit {
     void this.router.navigate(['/courses', courseId]);
   }
 
+  go(url: string): void {
+    void this.router.navigateByUrl(url);
+  }
+
   goCourses(): void {
     void this.router.navigateByUrl('/tabs/courses');
   }
 
-  goLeaderboard(): void {
-    void this.router.navigateByUrl('/leaderboard');
+  goProfile(): void {
+    void this.router.navigateByUrl('/tabs/profile');
+  }
+
+  goProgress(): void {
+    void this.router.navigateByUrl('/tabs/progress');
+  }
+
+  goAchievements(): void {
+    void this.router.navigateByUrl('/achievements');
   }
 }

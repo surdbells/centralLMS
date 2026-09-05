@@ -11,6 +11,7 @@ import {
   Gamification,
   LeaderboardResult,
   LearnerDashboard,
+  PasswordPolicy,
   PointEvent,
   Profile,
 } from './models';
@@ -72,6 +73,36 @@ export class LearnerService {
 
   profile(): Observable<Profile> {
     return this.api.get<Profile>('/me/profile');
+  }
+
+  /** Save the editable fields of the profile — name, phone. Returns the fresh record. */
+  updateProfile(patch: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string | null;
+  }): Observable<Profile> {
+    return this.api.put<Profile>('/me/profile', patch);
+  }
+
+  /**
+   * Change this learner's own password. The API requires the current one — a
+   * session left open on a shared device shouldn't be enough to lock the owner
+   * out — and validates the new one against the tenant's policy.
+   */
+  changePassword(userId: string, currentPassword: string, password: string): Observable<void> {
+    return this.api
+      .post(`/users/${userId}/password`, { currentPassword, password })
+      .pipe(map(() => undefined));
+  }
+
+  /** The tenant's password rules, so the change-password screen can show them. */
+  passwordPolicy(tenantId: string): Observable<PasswordPolicy | null> {
+    return this.api
+      .get<{ passwordPolicy?: PasswordPolicy }>('/settings/public', { tenant: tenantId })
+      .pipe(
+        map((r) => r.passwordPolicy ?? null),
+        catchError(() => of(null)),
+      );
   }
 
   /** The standings for a period ('all_time' | 'monthly' | 'weekly' | 'daily'). */

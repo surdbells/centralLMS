@@ -16,9 +16,12 @@ import {
   checkmark, pricetagOutline, play, videocamOutline, imageOutline,
   documentOutline, musicalNotesOutline, folderOpenOutline, medalOutline,
   trailSignOutline, layersOutline, lockClosed, clipboardOutline,
-  shieldCheckmarkOutline, desktopOutline,
+  shieldCheckmarkOutline, desktopOutline, cameraOutline, createOutline,
+  colorPaletteOutline, informationCircleOutline, phonePortraitOutline,
+  sunnyOutline, moonOutline, callOutline, keyOutline,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
+import { ThemeService } from './core/theme.service';
 import { ToastHostComponent } from './components/toast/toast-host.component';
 
 addIcons({
@@ -35,7 +38,9 @@ addIcons({
   checkmark, pricetagOutline, play, videocamOutline, imageOutline,
   documentOutline, musicalNotesOutline, folderOpenOutline, medalOutline,
   trailSignOutline, layersOutline, lockClosed, clipboardOutline,
-  shieldCheckmarkOutline, desktopOutline,
+  shieldCheckmarkOutline, desktopOutline, cameraOutline, createOutline,
+  colorPaletteOutline, informationCircleOutline, phonePortraitOutline,
+  sunnyOutline, moonOutline, callOutline, keyOutline,
 });
 
 @Component({
@@ -48,6 +53,9 @@ export class AppComponent implements OnInit {
   // Instantiated here so it starts watching the session and paints the
   // remembered organisation's colours from the very first frame.
   private readonly branding = inject(BrandingService);
+  // Instantiated at boot so the remembered theme is stamped on <html>
+  // before the first paint, avoiding a flash of the wrong palette.
+  private readonly theme = inject(ThemeService);
 
   ngOnInit(): void {
     void initNative();
