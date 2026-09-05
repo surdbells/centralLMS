@@ -1,0 +1,29 @@
+{
+  "name": "@central/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Central LMS installable mobile app — a Capacitor shell that bundles the @central/web build and points it at the production API.",
+  "scripts": {
+    "build:web": "pnpm --filter @central/web build",
+    "sync": "cap sync",
+    "build": "pnpm run build:web && cap sync",
+    "add:android": "cap add android",
+    "add:ios": "cap add ios",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios",
+    "run:android": "cap run android",
+    "doctor": "cap doctor"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
+    "typescript": "^5.6.0"
+  }
+}

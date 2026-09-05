@@ -14,6 +14,7 @@ import { NG_EVENT_PLUGINS } from '@taiga-ui/event-plugins';
 import { I18nService } from './i18n.service';
 import { authInterceptor, requestIdInterceptor } from './core/api';
 import { enableBootstrapTabs } from './core/bootstrap-tabs';
+import { initNative } from './core/mobile/native';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -42,5 +43,9 @@ export const appConfig: ApplicationConfig = {
 
     // Bootstrap's tab handler, which the vendor bundle leaves unregistered.
     provideAppInitializer(() => enableBootstrapTabs()),
+
+    // Native shell wiring (status bar, hardware back, splash). A no-op in a
+    // browser, so it costs a web build nothing.
+    provideAppInitializer(() => initNative()),
   ],
 };

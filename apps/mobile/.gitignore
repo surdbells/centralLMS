@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# The native projects (android/, ios/) are generated with `cap add` and are not
+# committed — see this package's README. The repo's root .gitignore already
+# excludes them; they are regenerated from this config, so nothing here depends
+# on their being in git.
+
+# A local copy of the web build, if one is ever produced here instead of read
+# from ../web/dist.
+www/
