@@ -37,6 +37,32 @@ export function firstName(fullName: string | null | undefined): string {
   return (fullName ?? '').trim().split(/\s+/)[0] || 'there';
 }
 
+/** Human-readable file size, e.g. "2.4 MB". */
+export function fileSize(bytes: number | null | undefined): string {
+  const b = bytes ?? 0;
+  if (b < 1024) {
+    return `${b} B`;
+  }
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let size = b / 1024;
+  let i = 0;
+  while (size >= 1024 && i < units.length - 1) {
+    size /= 1024;
+    i++;
+  }
+  return `${size < 10 ? size.toFixed(1) : Math.round(size)} ${units[i]}`;
+}
+
+/** Seconds to "m:ss" (or "h:mm:ss" past an hour). */
+export function duration(seconds: number | null | undefined): string {
+  const s = Math.max(0, Math.round(seconds ?? 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+}
+
 /** "Just now", "3d ago", or a short date for anything older than a week. */
 export function timeAgo(iso: string | null | undefined): string {
   if (!iso) {

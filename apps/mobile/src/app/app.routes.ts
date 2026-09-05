@@ -52,6 +52,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/certificates/certificates.page').then((m) => m.CertificatesPage),
   },
+  {
+    path: 'library',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/library/library.page').then((m) => m.LibraryPage),
+  },
   { path: '', redirectTo: 'tabs/home', pathMatch: 'full' },
   { path: '**', redirectTo: 'tabs/home' },
 ];
