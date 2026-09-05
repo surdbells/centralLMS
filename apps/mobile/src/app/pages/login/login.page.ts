@@ -1,18 +1,17 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import {
-  IonContent, IonButton, IonSpinner, IonIcon,
-} from '@ionic/angular/standalone';
+import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth.service';
 import { ApiError } from '../../core/api';
 import { BrandingService } from '../../core/branding.service';
 import { FieldComponent } from '../../components/field/field.component';
+import { ButtonComponent } from '../../components/button/button.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, IonContent, IonButton, IonSpinner, IonIcon, FieldComponent],
+  imports: [FormsModule, IonContent, IonIcon, FieldComponent, ButtonComponent],
   template: `
     <ion-content [fullscreen]="true" class="login-bg">
       @if (branding.loginBackgroundUrl(); as bg) {
@@ -59,10 +58,7 @@ import { FieldComponent } from '../../components/field/field.component';
             <p class="err">{{ error() }}</p>
           }
 
-          <ion-button expand="block" class="submit" (click)="submit()" [disabled]="busy()">
-            @if (busy()) { <ion-spinner name="crescent"></ion-spinner> }
-            @else { Sign In }
-          </ion-button>
+          <app-button block size="lg" class="submit" [loading]="busy()" (click)="submit()">Sign In</app-button>
         </div>
 
         <p class="foot muted">Your organisation is chosen for you when you sign in.</p>
@@ -86,7 +82,7 @@ import { FieldComponent } from '../../components/field/field.component';
     .brand .muted { color: rgba(255,255,255,.82); margin-top: 4px; }
     .login-card { background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-lg); padding: 10px 12px 16px; box-shadow: var(--app-shadow-lg); }
     .field { display: block; margin-top: 12px; }
-    .submit { margin-top: 18px; --border-radius: var(--app-r-btn); --background: var(--app-accent-fill); --box-shadow: var(--app-btn-shadow); height: 50px; font-weight: 700; }
+    .submit { display: block; margin-top: 18px; }
     .err { margin: 12px 4px 0; color: var(--ion-color-danger); font-size: .85rem; font-weight: 500; }
     .foot { text-align: center; color: rgba(255,255,255,.75); margin-top: 18px; font-size: .82rem; }
   `],

@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  IonContent, IonRefresher, IonRefresherContent, IonIcon, IonProgressBar,
+  IonContent, IonRefresher, IonRefresherContent, IonIcon,
   IonSkeletonText, IonRippleEffect,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
@@ -10,13 +10,14 @@ import { BrandingService } from '../../core/branding.service';
 import { ActivityEntry, LearnerDashboard } from '../../core/models';
 import { firstName, initialOf, minutesLabel, thumbStyle, timeAgo } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { ProgressComponent } from '../../components/progress/progress.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
-    IonContent, IonRefresher, IonRefresherContent, IonIcon, IonProgressBar,
-    IonSkeletonText, IonRippleEffect, EmptyStateComponent,
+    IonContent, IonRefresher, IonRefresherContent, IonIcon,
+    IonSkeletonText, IonRippleEffect, EmptyStateComponent, ProgressComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -80,7 +81,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
                 </div>
                 <div class="rc-body">
                   <p class="rc-title">{{ c.courseTitle }}</p>
-                  <ion-progress-bar [value]="c.progressPercentage / 100"></ion-progress-bar>
+                  <app-progress [value]="c.progressPercentage / 100"></app-progress>
                   <p class="rc-sub muted">{{ c.progressPercentage }}% complete</p>
                 </div>
               </div>

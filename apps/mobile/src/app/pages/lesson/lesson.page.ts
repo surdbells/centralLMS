@@ -3,8 +3,9 @@ import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-  IonIcon, IonButton, IonSpinner, IonSkeletonText,
+  IonIcon, IonSkeletonText,
 } from '@ionic/angular/standalone';
+import { ButtonComponent } from '../../components/button/button.component';
 import { LearnerService } from '../../core/learner.service';
 import { Lesson } from '../../core/models';
 import { minutesLabel } from '../../core/ui';
@@ -16,7 +17,7 @@ import { ToastService } from '../../components/toast/toast.service';
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    IonIcon, IonButton, IonSpinner, IonSkeletonText, EmptyStateComponent,
+    IonIcon, IonSkeletonText, EmptyStateComponent, ButtonComponent,
   ],
   template: `
     <ion-header [translucent]="true">
@@ -49,10 +50,9 @@ import { ToastService } from '../../components/toast/toast.service';
               <span>Completed</span>
             </div>
           } @else {
-            <ion-button expand="block" class="cta" (click)="complete()" [disabled]="saving()">
-              @if (saving()) { <ion-spinner name="crescent"></ion-spinner> }
-              @else { <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon> Mark as complete }
-            </ion-button>
+            <app-button block size="lg" class="cta" icon="checkmark-circle-outline" [loading]="saving()" (click)="complete()">
+              Mark as complete
+            </app-button>
           }
         </div>
         }
@@ -71,7 +71,7 @@ import { ToastService } from '../../components/toast/toast.service';
     .stage { background: var(--ion-card-background); border-radius: 16px; padding: 40px 20px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
     .stage ion-icon { font-size: 56px; color: var(--ion-color-primary); }
     .stage p { margin: 14px 0 0; color: var(--ion-color-medium); line-height: 1.5; }
-    .cta { margin-top: 22px; --border-radius: 12px; height: 48px; font-weight: 700; }
+    .cta { display: block; margin-top: 22px; }
     .done { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ion-color-success); font-weight: 700; padding: 14px; }
     .done ion-icon { font-size: 24px; }
     .empty { text-align: center; padding: 60px 16px; color: var(--ion-color-medium); }

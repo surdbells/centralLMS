@@ -1,21 +1,20 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  IonContent, IonIcon, IonButton, IonList, IonItem, IonLabel, IonNote,
-} from '@ionic/angular/standalone';
+import { IonContent } from '@ionic/angular/standalone';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { LearnerService } from '../../core/learner.service';
 import { AuthService } from '../../core/auth.service';
 import { SessionStore } from '../../core/session';
 import { Profile } from '../../core/models';
 import { initialOf } from '../../core/ui';
+import { ListComponent, ItemComponent } from '../../components/list/list.component';
+import { ButtonComponent } from '../../components/button/button.component';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
   imports: [
-    IonContent, IonIcon, IonButton, IonList, IonItem, IonLabel, IonNote,
-    BrandHeaderComponent,
+    IonContent, BrandHeaderComponent, ListComponent, ItemComponent, ButtonComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -28,45 +27,29 @@ import { initialOf } from '../../core/ui';
       </div>
 
       @if (jobTitle() || department()) {
-        <ion-list inset="true">
-          @if (jobTitle()) {
-            <ion-item>
-              <ion-icon name="briefcase-outline" slot="start" color="primary"></ion-icon>
-              <ion-label>Role</ion-label>
-              <ion-note slot="end">{{ jobTitle() }}</ion-note>
-            </ion-item>
-          }
-          @if (department()) {
-            <ion-item>
-              <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
-              <ion-label>Department</ion-label>
-              <ion-note slot="end">{{ department() }}</ion-note>
-            </ion-item>
-          }
-        </ion-list>
+        <div class="pad">
+          <app-list>
+            @if (jobTitle()) { <app-item icon="briefcase-outline" [note]="jobTitle()">Role</app-item> }
+            @if (department()) { <app-item icon="business-outline" [note]="department()">Department</app-item> }
+          </app-list>
+        </div>
       }
 
-      <ion-list inset="true">
-        <ion-item button="true" (click)="go('/tabs/progress')">
-          <ion-icon name="ribbon-outline" slot="start" color="primary"></ion-icon>
-          <ion-label>My progress &amp; certificates</ion-label>
-        </ion-item>
-        <ion-item button="true" (click)="go('/tabs/courses')">
-          <ion-icon name="library-outline" slot="start" color="primary"></ion-icon>
-          <ion-label>My courses</ion-label>
-        </ion-item>
-      </ion-list>
+      <div class="pad">
+        <app-list>
+          <app-item icon="ribbon-outline" button (tap)="go('/tabs/progress')">My progress &amp; certificates</app-item>
+          <app-item icon="library-outline" button (tap)="go('/tabs/courses')">My courses</app-item>
+        </app-list>
+      </div>
 
       <div class="signout">
-        <ion-button expand="block" fill="clear" color="danger" (click)="logout()">
-          <ion-icon name="log-out-outline" slot="start"></ion-icon>
-          Sign out
-        </ion-button>
+        <app-button variant="ghost" block icon="log-out-outline" style="--btn-fg: var(--ion-color-danger)" (click)="logout()">Sign out</app-button>
         <p class="ver muted">Central LMS · learner app</p>
       </div>
     </ion-content>
   `,
   styles: [`
+    .pad { padding: 6px 16px; }
     .head { text-align: center; padding: 8px 16px 16px; }
     .avatar { width: 84px; height: 84px; border-radius: var(--app-r-lg); margin: 0 auto 12px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade)); }
     .head h1 { margin: 0; font-size: 1.3rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }

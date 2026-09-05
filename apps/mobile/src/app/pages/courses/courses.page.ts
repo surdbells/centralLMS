@@ -4,8 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import {
-  IonContent, IonSegment, IonSegmentButton,
-  IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
+  IonContent, IonIcon, IonSkeletonText,
   IonRippleEffect, IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
@@ -14,6 +13,9 @@ import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { SelectComponent, SelectOption } from '../../components/select/select.component';
+import { SegmentComponent } from '../../components/segment/segment.component';
+import { SearchComponent } from '../../components/search/search.component';
+import { ProgressComponent } from '../../components/progress/progress.component';
 
 type Tab = 'mine' | 'catalogue';
 
@@ -21,10 +23,9 @@ type Tab = 'mine' | 'catalogue';
   selector: 'app-courses',
   standalone: true,
   imports: [
-    IonContent, IonSegment, IonSegmentButton,
-    IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
+    IonContent, IonIcon, IonSkeletonText,
     IonRippleEffect, IonRefresher, IonRefresherContent, BrandHeaderComponent,
-    EmptyStateComponent, SelectComponent,
+    EmptyStateComponent, SelectComponent, SegmentComponent, SearchComponent, ProgressComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -35,16 +36,11 @@ type Tab = 'mine' | 'catalogue';
       <app-brand-header title="Courses"></app-brand-header>
 
       <div class="ca-controls">
-        <ion-segment [value]="tab()" (ionChange)="switch($any($event.detail.value))">
-          <ion-segment-button value="mine"><ion-label>My Courses</ion-label></ion-segment-button>
-          <ion-segment-button value="catalogue"><ion-label>Catalogue</ion-label></ion-segment-button>
-        </ion-segment>
-        <ion-searchbar
+        <app-segment [value]="tab()" (valueChange)="switch($any($event))" [segments]="tabs"></app-segment>
+        <app-search
           class="ca-search"
-          [value]="query()"
           placeholder="Search courses"
-          [debounce]="300"
-          (ionInput)="onSearch($any($event.target).value)"></ion-searchbar>
+          (search)="onSearch($event)"></app-search>
         @if (tab() === 'catalogue' && categoryOptions().length > 2) {
           <app-select
             class="ca-filter"
@@ -75,7 +71,7 @@ type Tab = 'mine' | 'catalogue';
                 <div class="thumb" [style]="thumb(c.courseTitle || '')"><span>{{ initial(c.courseTitle || '') }}</span></div>
                 <div class="body">
                   <p class="title">{{ c.courseTitle }}</p>
-                  <ion-progress-bar [value]="c.progressPercentage / 100"></ion-progress-bar>
+                  <app-progress [value]="c.progressPercentage / 100"></app-progress>
                   <p class="muted">{{ c.statusLabel }} · {{ c.progressPercentage }}%</p>
                 </div>
                 <ion-icon name="chevron-forward" class="chev"></ion-icon>
@@ -117,9 +113,9 @@ type Tab = 'mine' | 'catalogue';
     </ion-content>
   `,
   styles: [`
-    .ca-controls { padding: 2px 12px 0; }
-    .ca-search { --box-shadow: none; --background: var(--app-field); --border-radius: var(--app-r-sm); padding: 8px 4px 2px; }
-    .ca-filter { display: block; padding: 4px 4px 2px; }
+    .ca-controls { padding: 4px 16px 0; display: grid; gap: 10px; }
+    .ca-search { display: block; }
+    .ca-filter { display: block; }
     .pad { padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
     .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-sm); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
     .row-skeleton { box-shadow: none; }
@@ -139,6 +135,11 @@ type Tab = 'mine' | 'catalogue';
 export class CoursesPage implements OnInit {
   private readonly learner = inject(LearnerService);
   private readonly router = inject(Router);
+
+  readonly tabs = [
+    { value: 'mine', label: 'My Courses' },
+    { value: 'catalogue', label: 'Catalogue' },
+  ];
 
   readonly tab = signal<Tab>('mine');
   readonly query = signal('');

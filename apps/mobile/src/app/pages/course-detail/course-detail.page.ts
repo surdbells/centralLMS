@@ -2,8 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-  IonIcon, IonButton, IonProgressBar, IonSkeletonText, IonRippleEffect,
-  IonSpinner,
+  IonIcon, IonSkeletonText, IonRippleEffect,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { CourseDetails } from '../../core/models';
@@ -11,14 +10,16 @@ import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { SheetComponent } from '../../components/sheet/sheet.component';
 import { ToastService, ToastVariant } from '../../components/toast/toast.service';
+import { ButtonComponent } from '../../components/button/button.component';
+import { ProgressComponent } from '../../components/progress/progress.component';
 
 @Component({
   selector: 'app-course-detail',
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    IonIcon, IonButton, IonProgressBar, IonSkeletonText, IonRippleEffect, IonSpinner,
-    EmptyStateComponent, SheetComponent,
+    IonIcon, IonSkeletonText, IonRippleEffect,
+    EmptyStateComponent, SheetComponent, ButtonComponent, ProgressComponent,
   ],
   template: `
     <ion-header [translucent]="true">
@@ -52,17 +53,16 @@ import { ToastService, ToastVariant } from '../../components/toast/toast.service
 
           @if (c.isEnrolled) {
             <div class="prog">
-              <ion-progress-bar [value]="c.progressPercentage / 100"></ion-progress-bar>
+              <app-progress [value]="c.progressPercentage / 100"></app-progress>
               <p class="muted">{{ c.progressPercentage }}% complete</p>
             </div>
-            <ion-button expand="block" class="cta" (click)="continueCourse(c)">
-              <ion-icon name="play-outline" slot="start"></ion-icon>
+            <app-button block size="lg" class="cta" icon="play-outline" (click)="continueCourse(c)">
               {{ c.progressPercentage > 0 ? 'Continue' : 'Start course' }}
-            </ion-button>
+            </app-button>
           } @else {
-            <ion-button expand="block" class="cta" (click)="enrolOpen.set(true)">
+            <app-button block size="lg" class="cta" (click)="enrolOpen.set(true)">
               Enrol — it's free
-            </ion-button>
+            </app-button>
           }
 
           <app-sheet [(open)]="enrolOpen" title="Enrol in this course" [subtitle]="c.title">
@@ -74,13 +74,8 @@ import { ToastService, ToastVariant } from '../../components/toast/toast.service
               }
             </div>
             <p class="enrol-note muted">You'll be enrolled straight away and can start the first lesson right now.</p>
-            <ion-button actions expand="block" class="cta" (click)="enroll(c)" [disabled]="enrolling()">
-              @if (enrolling()) { <ion-spinner name="crescent"></ion-spinner> }
-              @else { Confirm enrolment }
-            </ion-button>
-            <ion-button actions expand="block" fill="clear" class="later" (click)="enrolOpen.set(false)">
-              Not now
-            </ion-button>
+            <app-button actions block size="lg" class="cta" [loading]="enrolling()" (click)="enroll(c)">Confirm enrolment</app-button>
+            <app-button actions block variant="ghost" class="later" style="--btn-fg: var(--app-muted)" (click)="enrolOpen.set(false)">Not now</app-button>
           </app-sheet>
 
           @if (c.description) {
@@ -127,8 +122,8 @@ import { ToastService, ToastVariant } from '../../components/toast/toast.service
     .meta span { display: inline-flex; align-items: center; gap: 4px; }
     .prog { margin: 16px 0 4px; }
     .prog .muted { margin: 6px 0 0; font-size: .8rem; }
-    .cta { margin: 16px 0 4px; --border-radius: var(--app-r-btn); --background: var(--app-accent-fill); --box-shadow: var(--app-btn-shadow); height: 50px; font-weight: 700; }
-    .later { --color: var(--app-muted); margin: 2px 0 0; height: 44px; }
+    .cta { display: block; margin: 16px 0 4px; }
+    .later { display: block; margin: 2px 0 0; }
     .enrol-facts { display: flex; flex-wrap: wrap; gap: 14px; color: var(--app-muted); font-size: .85rem; }
     .enrol-facts span { display: inline-flex; align-items: center; gap: 5px; }
     .enrol-facts ion-icon { font-size: 16px; }
