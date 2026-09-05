@@ -1,29 +1,33 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-  IonIcon, IonSkeletonText,
+  IonIcon, IonSkeletonText, IonSpinner,
 } from '@ionic/angular/standalone';
 import { ButtonComponent } from '../../components/button/button.component';
 import { LearnerService } from '../../core/learner.service';
+import { MediaService } from '../../core/media.service';
 import { Lesson } from '../../core/models';
 import { minutesLabel } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { ToastService } from '../../components/toast/toast.service';
+
+type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
 
 @Component({
   selector: 'app-lesson',
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    IonIcon, IonSkeletonText, EmptyStateComponent, ButtonComponent,
+    IonIcon, IonSkeletonText, IonSpinner, EmptyStateComponent, ButtonComponent,
   ],
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start"><ion-back-button [defaultHref]="'/courses/' + courseId"></ion-back-button></ion-buttons>
-        <ion-title>Lesson</ion-title>
+        <ion-title>{{ lesson()?.title || 'Lesson' }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -39,14 +43,54 @@ import { ToastService } from '../../components/toast/toast.service';
           <p class="type muted">{{ typeLabel(l.lessonType) }}{{ mins(l.durationMinutes) ? ' · ' + mins(l.durationMinutes) : '' }}</p>
           <h1 class="title">{{ l.title }}</h1>
 
-          <div class="stage">
-            <ion-icon [name]="stageIcon(l.lessonType)"></ion-icon>
-            <p>{{ stageHint(l.lessonType) }}</p>
-          </div>
+          @switch (renderMode()) {
+            @case ('html') {
+              <div class="lesson-html" [innerHTML]="l.contentText"></div>
+            }
+            @case ('video') {
+              @if (mediaUrl(); as u) {
+                <video [src]="u" class="lesson-media" controls playsinline></video>
+              } @else if (mediaLoading()) {
+                <div class="stage"><ion-spinner name="crescent"></ion-spinner></div>
+              } @else {
+                <div class="stage">
+                  <ion-icon name="play-circle-outline" aria-hidden="true"></ion-icon>
+                  <p>This video couldn't be loaded here. Mark it complete once you've watched it.</p>
+                </div>
+              }
+            }
+            @case ('audio') {
+              @if (mediaUrl(); as u) {
+                <div class="lesson-audio">
+                  <ion-icon name="musical-notes-outline" aria-hidden="true"></ion-icon>
+                  <audio [src]="u" controls></audio>
+                </div>
+              } @else if (mediaLoading()) {
+                <div class="stage"><ion-spinner name="crescent"></ion-spinner></div>
+              } @else {
+                <div class="stage"><ion-icon name="musical-notes-outline" aria-hidden="true"></ion-icon><p>This audio couldn't be loaded here.</p></div>
+              }
+            }
+            @case ('pdf') {
+              @if (safeFrame()) {
+                <iframe [src]="safeFrame()" class="lesson-frame" title="Lesson document"></iframe>
+              } @else if (mediaLoading()) {
+                <div class="stage"><ion-spinner name="crescent"></ion-spinner></div>
+              } @else {
+                <div class="stage"><ion-icon name="document-text-outline" aria-hidden="true"></ion-icon><p>This document couldn't be loaded here.</p></div>
+              }
+            }
+            @default {
+              <div class="stage">
+                <ion-icon [name]="stageIcon(l.lessonType)" aria-hidden="true"></ion-icon>
+                <p>{{ stageHint(l.lessonType) }}</p>
+              </div>
+            }
+          }
 
           @if (done()) {
             <div class="done">
-              <ion-icon name="checkmark-circle"></ion-icon>
+              <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
               <span>Completed</span>
             </div>
           } @else {
@@ -67,20 +111,48 @@ import { ToastService } from '../../components/toast/toast.service';
   styles: [`
     .pad { padding: 8px 16px 24px; }
     .type { text-transform: uppercase; letter-spacing: .04em; font-size: .72rem; margin: 8px 0 0; }
-    .title { margin: 4px 0 20px; font-size: 1.4rem; font-weight: 800; line-height: 1.25; }
-    .stage { background: var(--ion-card-background); border-radius: 16px; padding: 40px 20px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
-    .stage ion-icon { font-size: 56px; color: var(--ion-color-primary); }
-    .stage p { margin: 14px 0 0; color: var(--ion-color-medium); line-height: 1.5; }
-    .cta { display: block; margin-top: 22px; }
-    .done { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ion-color-success); font-weight: 700; padding: 14px; }
+    .title { margin: 4px 0 18px; font-family: var(--app-font-display); font-size: 1.4rem; font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); line-height: 1.2; }
+
+    .lesson-media { width: 100%; max-height: 60vh; border-radius: var(--app-r); background: #000; display: block; }
+    .lesson-frame { width: 100%; height: 72vh; border: var(--app-card-border); border-radius: var(--app-r); background: #fff; }
+    .lesson-audio { display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); padding: 16px; box-shadow: var(--app-shadow); }
+    .lesson-audio ion-icon { font-size: 30px; color: var(--ion-color-primary); flex: none; }
+    .lesson-audio audio { flex: 1; min-width: 0; }
+
+    .stage { background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); padding: 40px 20px; text-align: center; box-shadow: var(--app-shadow); }
+    .stage ion-icon { font-size: 52px; color: var(--ion-color-primary); }
+    .stage ion-spinner { --color: var(--ion-color-primary); }
+    .stage p { margin: 14px 0 0; color: var(--app-muted); line-height: 1.5; }
+
+    /* Rich text lesson body (innerHTML — pierced with ::ng-deep, scoped to :host). */
+    .lesson-html { color: var(--app-ink); font-size: 1rem; line-height: 1.65; }
+    :host ::ng-deep .lesson-html h1, :host ::ng-deep .lesson-html h2, :host ::ng-deep .lesson-html h3 {
+      font-family: var(--app-font-display); font-weight: var(--app-display-weight); line-height: 1.2; margin: 1.3em 0 .5em; letter-spacing: var(--app-display-tracking);
+    }
+    :host ::ng-deep .lesson-html h2 { font-size: 1.25rem; }
+    :host ::ng-deep .lesson-html h3 { font-size: 1.08rem; }
+    :host ::ng-deep .lesson-html p { margin: 0 0 1em; }
+    :host ::ng-deep .lesson-html ul, :host ::ng-deep .lesson-html ol { padding-left: 1.4em; margin: 0 0 1em; }
+    :host ::ng-deep .lesson-html li { margin: .3em 0; }
+    :host ::ng-deep .lesson-html a { color: var(--ion-color-primary); text-decoration: underline; }
+    :host ::ng-deep .lesson-html img { max-width: 100%; height: auto; border-radius: var(--app-r-sm); margin: .5em 0; }
+    :host ::ng-deep .lesson-html blockquote { margin: 0 0 1em; padding: 4px 0 4px 14px; border-left: 3px solid var(--app-line); color: var(--app-muted); }
+    :host ::ng-deep .lesson-html pre { background: var(--app-field); padding: 12px; border-radius: var(--app-r-sm); overflow-x: auto; }
+    :host ::ng-deep .lesson-html table { width: 100%; border-collapse: collapse; margin: 0 0 1em; display: block; overflow-x: auto; }
+    :host ::ng-deep .lesson-html th, :host ::ng-deep .lesson-html td { border: 1px solid var(--app-line); padding: 8px 10px; text-align: left; }
+
+    .cta { display: block; margin-top: 24px; }
+    .done { margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ion-color-success); font-weight: 700; padding: 14px; }
     .done ion-icon { font-size: 24px; }
   `],
 })
 export class LessonPage implements OnInit, OnDestroy {
   private readonly learner = inject(LearnerService);
+  private readonly media = inject(MediaService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly toast = inject(ToastService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   private backTimer?: ReturnType<typeof setTimeout>;
 
@@ -92,16 +164,42 @@ export class LessonPage implements OnInit, OnDestroy {
   private readonly markedDone = signal(false);
   readonly done = computed(() => this.markedDone() || !!this.lesson()?.isCompleted);
 
+  readonly mediaUrl = signal<string | null>(null);
+  readonly mediaLoading = signal(false);
+
   readonly mins = minutesLabel;
+
+  readonly renderMode = computed<RenderMode>(() => {
+    const l = this.lesson();
+    if (!l) {
+      return 'none';
+    }
+    const t = l.lessonType;
+    if ((t === 'text' || t === 'html') && l.contentText) {
+      return 'html';
+    }
+    if (t === 'video') { return 'video'; }
+    if (t === 'audio') { return 'audio'; }
+    if (t === 'pdf' || t === 'document') { return 'pdf'; }
+    return 'fallback';
+  });
+
+  readonly safeFrame = computed<SafeResourceUrl | null>(() => {
+    const u = this.mediaUrl();
+    return u ? this.sanitizer.bypassSecurityTrustResourceUrl(u) : null;
+  });
 
   ngOnInit(): void {
     this.courseId = this.route.snapshot.paramMap.get('courseId') ?? '';
     this.lessonId = this.route.snapshot.paramMap.get('lessonId') ?? '';
     this.learner.courseDetails(this.courseId).subscribe({
       next: (c) => {
-        const found = c.modules.flatMap((m) => m.lessons).find((l) => l.lessonId === this.lessonId);
-        this.lesson.set(found ?? null);
+        const found = c.modules.flatMap((m) => m.lessons).find((l) => l.lessonId === this.lessonId) ?? null;
+        this.lesson.set(found);
         this.loading.set(false);
+        if (found && ['video', 'audio', 'pdf', 'document'].includes(found.lessonType) && found.contentUrl) {
+          this.resolveMedia(found.contentUrl);
+        }
       },
       error: () => this.loading.set(false),
     });
@@ -113,6 +211,14 @@ export class LessonPage implements OnInit, OnDestroy {
     if (this.backTimer) {
       clearTimeout(this.backTimer);
     }
+  }
+
+  private resolveMedia(reference: string): void {
+    this.mediaLoading.set(true);
+    this.media.resolve(reference).subscribe({
+      next: (url) => { this.mediaUrl.set(url); this.mediaLoading.set(false); },
+      error: () => { this.mediaUrl.set(null); this.mediaLoading.set(false); },
+    });
   }
 
   complete(): void {
@@ -133,26 +239,28 @@ export class LessonPage implements OnInit, OnDestroy {
 
   typeLabel(t: string): string {
     const map: Record<string, string> = {
-      video: 'Video', text: 'Reading', document: 'Document', quiz: 'Quiz',
-      scorm: 'Interactive', audio: 'Audio', assignment: 'Assignment',
+      video: 'Video', text: 'Reading', html: 'Reading', document: 'Document',
+      pdf: 'Document', quiz: 'Quiz', scorm: 'Interactive', audio: 'Audio', assignment: 'Assignment',
     };
     return map[t] ?? 'Lesson';
   }
 
   stageIcon(t: string): string {
     const map: Record<string, string> = {
-      video: 'play-circle-outline', text: 'document-text-outline',
-      document: 'document-text-outline', quiz: 'help-circle-outline',
+      quiz: 'help-circle-outline', scorm: 'play-circle-outline', assignment: 'document-text-outline',
     };
     return map[t] ?? 'document-text-outline';
   }
 
   stageHint(t: string): string {
-    if (t === 'video') {
-      return 'This lesson is a video. Rich in-app playback is coming; mark it complete when you have watched it.';
-    }
     if (t === 'quiz') {
-      return 'This lesson is a quiz. Take it in the full course, then mark it complete here.';
+      return 'This lesson is a quiz. Take it in the full course on the web, then mark it complete here.';
+    }
+    if (t === 'scorm') {
+      return 'This is an interactive package best run on the web. Mark it complete when you have finished it.';
+    }
+    if (t === 'assignment') {
+      return 'This lesson is an assignment. Submit it on the web, then mark it complete here.';
     }
     return 'Open the lesson content, then mark it complete to record your progress.';
   }

@@ -136,6 +136,8 @@ function toCourseDetails(
           sortOrder: Number(l['sortOrder'] ?? 0),
           isCompleted: p?.['status'] === 'completed',
           progressPercentage: Number(p?.['progressPercentage'] ?? 0),
+          contentUrl: (l['contentUrl'] ?? null) as string | null,
+          contentText: (l['contentText'] ?? null) as string | null,
         };
       }),
     })),

@@ -236,6 +236,10 @@ export interface Lesson {
   sortOrder: number;
   isCompleted: boolean;
   progressPercentage: number;
+  /** A media reference (media:{id}, a /media/{id}/file URL, or an external link). */
+  contentUrl: string | null;
+  /** Rich HTML body, for text/html lessons. */
+  contentText: string | null;
 }
 
 export interface CourseModule {
