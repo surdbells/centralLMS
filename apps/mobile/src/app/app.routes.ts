@@ -62,6 +62,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/achievements/achievements.page').then((m) => m.AchievementsPage),
   },
+  {
+    path: 'paths',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/paths/paths.page').then((m) => m.PathsPage),
+  },
+  {
+    path: 'paths/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/paths/path-detail.page').then((m) => m.PathDetailPage),
+  },
   { path: '', redirectTo: 'tabs/home', pathMatch: 'full' },
   { path: '**', redirectTo: 'tabs/home' },
 ];

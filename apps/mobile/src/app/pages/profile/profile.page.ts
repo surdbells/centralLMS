@@ -42,6 +42,7 @@ import { ButtonComponent } from '../../components/button/button.component';
           <app-item icon="ribbon-outline" button (tap)="go('/certificates')">Certificates</app-item>
           <app-item icon="trophy-outline" button (tap)="go('/leaderboard')">Leaderboard</app-item>
           <app-item icon="folder-open-outline" button (tap)="go('/library')">Library</app-item>
+          <app-item icon="trail-sign-outline" button (tap)="go('/paths')">Learning paths</app-item>
           <app-item icon="library-outline" button (tap)="go('/tabs/courses')">My courses</app-item>
         </app-list>
       </div>
