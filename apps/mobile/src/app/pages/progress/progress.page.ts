@@ -5,13 +5,14 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { LearnerDashboard } from '../../core/models';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
+import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-progress',
   standalone: true,
   imports: [
     IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
-    BrandHeaderComponent,
+    BrandHeaderComponent, EmptyStateComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -28,7 +29,7 @@ import { BrandHeaderComponent } from '../../components/brand-header/brand-header
         } @else if (data()) {
         @if (data(); as d) {
           <!-- Ring -->
-          <div class="ring-card">
+          <div class="ring-card rise">
             <div class="ring" [style.--p]="d.overview.overallProgress">
               <div class="ring-in">
                 <span class="pct">{{ d.overview.overallProgress }}%</span>
@@ -85,19 +86,20 @@ import { BrandHeaderComponent } from '../../components/brand-header/brand-header
               </div>
             }
           } @else {
-            <div class="empty">
-              <ion-icon name="ribbon-outline"></ion-icon>
-              <p>No certificates yet — finish a course to earn one.</p>
-            </div>
+            <app-empty-state
+              icon="ribbon-outline"
+              title="No certificates yet"
+              message="Finish a course to earn your first one."></app-empty-state>
           }
           <div style="height: 16px"></div>
         }
         } @else {
-          <div class="empty">
-            <ion-icon name="cloud-offline-outline"></ion-icon>
-            <p>Couldn't load your progress.</p>
-            <a (click)="reload()">Try again</a>
-          </div>
+          <app-empty-state
+            icon="cloud-offline-outline"
+            title="Couldn't load your progress"
+            message="Check your connection and try again."
+            actionLabel="Try again"
+            (action)="reload()"></app-empty-state>
         }
       </div>
     </ion-content>

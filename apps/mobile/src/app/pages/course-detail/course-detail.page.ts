@@ -8,6 +8,7 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { CourseDetails } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
+import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-course-detail',
@@ -15,6 +16,7 @@ import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
     IonIcon, IonButton, IonProgressBar, IonSkeletonText, IonRippleEffect, IonSpinner,
+    EmptyStateComponent,
   ],
   template: `
     <ion-header [translucent]="true">
@@ -71,7 +73,7 @@ import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
           @for (m of c.modules; track m.moduleId || mi; let mi = $index) {
             @if (c.modules.length > 1) { <p class="module">{{ mi + 1 }}. {{ m.title }}</p> }
             @for (l of m.lessons; track l.lessonId || $index) {
-              <div class="lesson ion-activatable" [class.locked]="!c.isEnrolled" (click)="openLesson(c, l.lessonId)">
+              <div class="lesson ion-activatable tappable" [class.locked]="!c.isEnrolled" (click)="openLesson(c, l.lessonId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <ion-icon class="l-ic"
                   [name]="l.isCompleted ? 'checkmark-circle' : (c.isEnrolled ? 'play-circle-outline' : 'lock-closed-outline')"
@@ -87,11 +89,12 @@ import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
         </div>
         }
       } @else {
-        <div class="empty">
-          <ion-icon name="cloud-offline-outline"></ion-icon>
-          <p>Couldn't load this course.</p>
-          <a (click)="load()">Try again</a>
-        </div>
+        <app-empty-state
+          icon="cloud-offline-outline"
+          title="Couldn't load this course"
+          message="Check your connection and try again."
+          actionLabel="Try again"
+          (action)="load()"></app-empty-state>
       }
     </ion-content>
   `,

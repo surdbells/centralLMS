@@ -9,13 +9,14 @@ import { SessionStore } from '../../core/session';
 import { BrandingService } from '../../core/branding.service';
 import { LearnerDashboard } from '../../core/models';
 import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
+import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
     IonContent, IonRefresher, IonRefresherContent, IonIcon, IonProgressBar,
-    IonSkeletonText, IonRippleEffect,
+    IonSkeletonText, IonRippleEffect, EmptyStateComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -35,15 +36,30 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
       </div>
 
       @if (loading()) {
+        <div class="stats">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="stat">
+              <ion-skeleton-text animated style="width: 44%; height: 20px; margin: 2px auto 8px; border-radius: 6px;"></ion-skeleton-text>
+              <ion-skeleton-text animated style="width: 78%; height: 8px; margin: 0 auto; border-radius: 4px;"></ion-skeleton-text>
+            </div>
+          }
+        </div>
         <div class="pad">
-          <ion-skeleton-text animated style="width: 100%; height: 84px; border-radius: 16px;"></ion-skeleton-text>
-          <ion-skeleton-text animated style="width: 60%; height: 20px; margin-top: 20px;"></ion-skeleton-text>
-          <ion-skeleton-text animated style="width: 100%; height: 96px; border-radius: 16px; margin-top: 12px;"></ion-skeleton-text>
+          <ion-skeleton-text animated style="width: 46%; height: 18px; margin: 20px 0 12px; border-radius: 6px;"></ion-skeleton-text>
+        </div>
+        <div class="rail">
+          <div class="rail-card">
+            <ion-skeleton-text animated style="width: 100%; height: 96px; --border-radius: 0;"></ion-skeleton-text>
+            <div class="rc-body">
+              <ion-skeleton-text animated style="width: 82%; height: 14px; border-radius: 5px;"></ion-skeleton-text>
+              <ion-skeleton-text animated style="width: 100%; height: 7px; margin-top: 12px; border-radius: 4px;"></ion-skeleton-text>
+            </div>
+          </div>
         </div>
       } @else if (data()) {
         @if (data(); as d) {
         <!-- Stats -->
-        <div class="stats">
+        <div class="stats rise">
           <div class="stat"><span class="n">{{ d.overview.inProgress }}</span><span class="l">In progress</span></div>
           <div class="stat"><span class="n">{{ d.overview.completed }}</span><span class="l">Completed</span></div>
           <div class="stat"><span class="n">{{ d.overview.certificates }}</span><span class="l">Certificates</span></div>
@@ -57,7 +73,7 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
           </div>
           <div class="rail">
             @for (c of d.courses.inProgress; track c.id) {
-              <div class="rail-card ion-activatable" (click)="openCourse(c.courseId)">
+              <div class="rail-card ion-activatable tappable" (click)="openCourse(c.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <div class="thumb" [style]="thumb(c.courseTitle || '')">
                   <span>{{ initial(c.courseTitle || '') }}</span>
@@ -71,13 +87,12 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
             }
           </div>
         } @else {
-          <div class="pad">
-            <div class="empty">
-              <ion-icon name="school-outline"></ion-icon>
-              <p>Nothing in progress yet.</p>
-              <a (click)="goCourses()">Browse the catalogue →</a>
-            </div>
-          </div>
+          <app-empty-state
+            icon="school-outline"
+            title="Nothing in progress yet"
+            message="Pick a course and it'll show up here to pick back up."
+            actionLabel="Browse the catalogue"
+            (action)="goCourses()"></app-empty-state>
         }
 
         <!-- Deadlines -->
@@ -85,7 +100,7 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
           <div class="pad">
             <div class="section-title">Due soon</div>
             @for (dl of d.deadlines; track dl.enrollmentId) {
-              <div class="row ion-activatable" (click)="openCourse(dl.courseId)">
+              <div class="row ion-activatable tappable" (click)="openCourse(dl.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <ion-icon class="row-ic" [name]="dl.urgency === 'critical' ? 'alert-circle-outline' : 'calendar-outline'"
                           [style.color]="dl.urgency === 'normal' ? 'var(--ion-color-medium)' : 'var(--ion-color-warning)'"></ion-icon>
@@ -104,7 +119,7 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
           <div class="pad">
             <div class="section-title">Recommended for you</div>
             @for (r of d.recommended; track r.courseId) {
-              <div class="row ion-activatable" (click)="openCourse(r.courseId)">
+              <div class="row ion-activatable tappable" (click)="openCourse(r.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <div class="mini-thumb" [style]="thumb(r.title)"><span>{{ initial(r.title) }}</span></div>
                 <div class="row-body">
@@ -120,13 +135,12 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
         <div style="height: 12px"></div>
         }
       } @else {
-        <div class="pad">
-          <div class="empty">
-            <ion-icon name="cloud-offline-outline"></ion-icon>
-            <p>Couldn't load your dashboard.</p>
-            <a (click)="reload()">Try again</a>
-          </div>
-        </div>
+        <app-empty-state
+          icon="cloud-offline-outline"
+          title="Couldn't load your dashboard"
+          message="Check your connection and try again."
+          actionLabel="Try again"
+          (action)="reload()"></app-empty-state>
       }
     </ion-content>
   `,

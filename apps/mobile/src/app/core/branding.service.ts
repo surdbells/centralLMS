@@ -61,6 +61,11 @@ export class BrandingService {
       this.applied = tenantId;
       this.load(tenantId);
     });
+
+    // Re-tint when the OS switches between light and dark so the brand accent
+    // stays readable on either surface.
+    window.matchMedia?.('(prefers-color-scheme: dark)')
+      .addEventListener?.('change', () => this.paintColours(this.primary(), this.accent()));
   }
 
   /** Fetch public settings for a tenant, or — with none — the deployment default. */
@@ -124,12 +129,18 @@ export class BrandingService {
   private paintColours(primary: string | null, accent: string | null): void {
     const root = document.documentElement;
     if (primary) {
-      root.style.setProperty('--ion-color-primary', primary);
-      root.style.setProperty('--ion-color-primary-rgb', toRgb(primary) ?? '51, 22, 166');
-      root.style.setProperty('--ion-color-primary-shade', mix(primary, '#000000', 0.12));
-      root.style.setProperty('--ion-color-primary-tint', mix(primary, '#ffffff', 0.1));
-      root.style.setProperty('--ion-color-primary-contrast', contrastOf(primary));
-      // The app's own gradients and hero fields read these.
+      // A dark brand colour reads well as a hero background but poorly as an
+      // accent on a dark surface, so the Ionic accent is lightened in dark mode
+      // while the raw colour is kept for the hero gradients.
+      const dark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+      const ui = dark ? mix(primary, '#ffffff', 0.34) : primary;
+
+      root.style.setProperty('--ion-color-primary', ui);
+      root.style.setProperty('--ion-color-primary-rgb', toRgb(ui) ?? '51, 22, 166');
+      root.style.setProperty('--ion-color-primary-shade', mix(ui, '#000000', 0.12));
+      root.style.setProperty('--ion-color-primary-tint', mix(ui, '#ffffff', 0.1));
+      root.style.setProperty('--ion-color-primary-contrast', contrastOf(ui));
+      // The app's own gradients and hero fields read the raw colour.
       root.style.setProperty('--brand-primary', primary);
       root.style.setProperty('--brand-primary-shade', mix(primary, '#000000', 0.28));
     }

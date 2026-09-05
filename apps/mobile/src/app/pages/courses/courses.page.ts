@@ -12,6 +12,7 @@ import { LearnerService } from '../../core/learner.service';
 import { CatalogueCourse, Enrollment } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
+import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 type Tab = 'mine' | 'catalogue';
 
@@ -22,6 +23,7 @@ type Tab = 'mine' | 'catalogue';
     IonContent, IonSegment, IonSegmentButton,
     IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
     IonRippleEffect, IonRefresher, IonRefresherContent, BrandHeaderComponent,
+    EmptyStateComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -46,13 +48,19 @@ type Tab = 'mine' | 'catalogue';
 
       <div class="pad">
         @if (loading()) {
-          @for (i of [1,2,3,4]; track i) {
-            <ion-skeleton-text animated style="width:100%; height:72px; border-radius:14px; margin-bottom:10px;"></ion-skeleton-text>
+          @for (i of [1,2,3,4,5]; track i) {
+            <div class="row row-skeleton">
+              <ion-skeleton-text animated class="sk-thumb"></ion-skeleton-text>
+              <div class="body">
+                <ion-skeleton-text animated style="width:70%; height:14px; border-radius:5px;"></ion-skeleton-text>
+                <ion-skeleton-text animated style="width:45%; height:9px; margin-top:10px; border-radius:4px;"></ion-skeleton-text>
+              </div>
+            </div>
           }
         } @else if (tab() === 'mine') {
           @if (mine().length) {
             @for (c of mine(); track c.id) {
-              <div class="row ion-activatable" (click)="open(c.courseId)">
+              <div class="row ion-activatable tappable rise" (click)="open(c.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <div class="thumb" [style]="thumb(c.courseTitle || '')"><span>{{ initial(c.courseTitle || '') }}</span></div>
                 <div class="body">
@@ -64,16 +72,17 @@ type Tab = 'mine' | 'catalogue';
               </div>
             }
           } @else {
-            <div class="empty">
-              <ion-icon name="library-outline"></ion-icon>
-              <p>You're not enrolled in anything yet.</p>
-              <a (click)="switch('catalogue')">Explore the catalogue →</a>
-            </div>
+            <app-empty-state
+              icon="library-outline"
+              title="No courses yet"
+              message="You're not enrolled in anything. Explore what's on offer."
+              actionLabel="Explore the catalogue"
+              (action)="switch('catalogue')"></app-empty-state>
           }
         } @else {
           @if (catalogue().length) {
             @for (c of catalogue(); track c.id) {
-              <div class="row ion-activatable" (click)="open(c.id)">
+              <div class="row ion-activatable tappable rise" (click)="open(c.id)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <div class="thumb" [style]="thumb(c.title)"><span>{{ initial(c.title) }}</span></div>
                 <div class="body">
@@ -86,10 +95,10 @@ type Tab = 'mine' | 'catalogue';
               </div>
             }
           } @else {
-            <div class="empty">
-              <ion-icon name="search"></ion-icon>
-              <p>No courses{{ query() ? ' match “' + query() + '”' : ' available' }}.</p>
-            </div>
+            <app-empty-state
+              icon="search"
+              [title]="query() ? 'No matches' : 'Nothing here yet'"
+              [message]="query() ? 'No courses match “' + query() + '”.' : 'No courses are available right now.'"></app-empty-state>
           }
         }
       </div>
@@ -99,7 +108,9 @@ type Tab = 'mine' | 'catalogue';
     .ca-controls { padding: 2px 12px 0; }
     .ca-search { --box-shadow: none; --background: var(--ion-item-background); padding: 8px 4px 2px; }
     .pad { padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
-    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border-radius: 14px; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
+    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border-radius: var(--app-radius-sm); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-card-shadow); }
+    .row-skeleton { box-shadow: none; }
+    .sk-thumb { width: 52px; height: 52px; border-radius: 12px; flex: 0 0 auto; }
     .thumb { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
     .thumb span { color: #fff; font-weight: 800; font-size: 1.3rem; }
     .body { flex: 1; min-width: 0; }

@@ -8,13 +8,14 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { Lesson } from '../../core/models';
 import { minutesLabel } from '../../core/ui';
+import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-lesson',
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    IonIcon, IonButton, IonSpinner, IonSkeletonText,
+    IonIcon, IonButton, IonSpinner, IonSkeletonText, EmptyStateComponent,
   ],
   template: `
     <ion-header [translucent]="true">
@@ -55,10 +56,10 @@ import { minutesLabel } from '../../core/ui';
         </div>
         }
       } @else {
-        <div class="empty">
-          <ion-icon name="cloud-offline-outline"></ion-icon>
-          <p>Couldn't load this lesson.</p>
-        </div>
+        <app-empty-state
+          icon="cloud-offline-outline"
+          title="Couldn't load this lesson"
+          message="Go back and open it again."></app-empty-state>
       }
     </ion-content>
   `,
