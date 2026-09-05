@@ -97,6 +97,23 @@ export interface RecommendedCourse {
   enrolments: number;
 }
 
+export interface ActivityEntry {
+  kind: string;
+  at: string | null;
+  subject: string | null;
+  detail: string | null;
+}
+
+export interface Rank {
+  rank: number;
+  points: number;
+}
+
+export interface Achievements {
+  points: number;
+  rank: Rank | null;
+}
+
 export interface LearnerDashboard {
   overview: LearnerOverview;
   streak: Streak;
@@ -108,6 +125,8 @@ export interface LearnerDashboard {
   certificates: LearnerCertificate[];
   deadlines: Deadline[];
   recommended: RecommendedCourse[];
+  recentActivity: ActivityEntry[];
+  achievements?: Achievements;
 }
 
 /** A course in the catalogue (camelCase from `/courses/catalogue`). */

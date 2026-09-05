@@ -7,8 +7,8 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { SessionStore } from '../../core/session';
 import { BrandingService } from '../../core/branding.service';
-import { LearnerDashboard } from '../../core/models';
-import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
+import { ActivityEntry, LearnerDashboard } from '../../core/models';
+import { firstName, initialOf, minutesLabel, thumbStyle, timeAgo } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 
 @Component({
@@ -95,6 +95,30 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
             (action)="goCourses()"></app-empty-state>
         }
 
+        <!-- Recent activity -->
+        @if (d.recentActivity.length) {
+          <div class="pad">
+            <div class="act-head">
+              <div class="section-title">Recent activity</div>
+              @if (d.achievements?.rank; as r) {
+                <span class="rank-chip"><ion-icon name="trophy-outline"></ion-icon> #{{ r.rank }} · {{ r.points }} pts</span>
+              }
+            </div>
+            @for (a of d.recentActivity; track $index) {
+              <div class="act">
+                <div class="act-ic" [style.background]="actTint(a)">
+                  <ion-icon [name]="actIcon(a)" [style.color]="actColor(a)"></ion-icon>
+                </div>
+                <div class="act-body">
+                  <p class="act-title">{{ actTitle(a) }}</p>
+                  @if (actSub(a)) { <p class="muted">{{ actSub(a) }}</p> }
+                </div>
+                <span class="act-time muted">{{ ago(a.at) }}</span>
+              </div>
+            }
+          </div>
+        }
+
         <!-- Deadlines -->
         @if (d.deadlines.length) {
           <div class="pad">
@@ -158,6 +182,17 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     .stat .n { display: block; font-size: 1.15rem; font-weight: 800; color: var(--ion-color-primary); }
     .stat .l { font-size: .66rem; color: var(--ion-color-medium); }
     .section-title { font-size: 1.05rem; font-weight: 700; margin: 18px 0 10px; }
+    .act-head { display: flex; align-items: center; justify-content: space-between; }
+    .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--ion-color-primary); background: color-mix(in srgb, var(--ion-color-primary) 12%, transparent); padding: 5px 10px; border-radius: 20px; }
+    .rank-chip ion-icon { font-size: 14px; }
+    .act { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
+    .act + .act { border-top: 1px solid var(--app-hairline); }
+    .act-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+    .act-ic ion-icon { font-size: 20px; }
+    .act-body { flex: 1; min-width: 0; }
+    .act-title { margin: 0; font-weight: 600; font-size: .92rem; }
+    .act-body .muted { margin: 2px 0 0; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .act-time { flex: 0 0 auto; font-size: .74rem; }
     .rail { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 6px; scrollbar-width: none; }
     .rail::-webkit-scrollbar { display: none; }
     .rail-card { position: relative; overflow: hidden; flex: 0 0 78%; max-width: 300px; background: var(--ion-card-background); border-radius: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08); }
@@ -193,9 +228,58 @@ export class HomePage implements OnInit {
   readonly thumb = thumbStyle;
   readonly initial = initialOf;
   readonly mins = minutesLabel;
+  readonly ago = timeAgo;
 
   ngOnInit(): void {
     this.load();
+  }
+
+  // --- recent activity presentation ---------------------------------------
+
+  actIcon(a: ActivityEntry): string {
+    switch (a.kind) {
+      case 'certificate': return 'ribbon';
+      case 'completion': return 'checkmark-circle';
+      case 'enrollment': return 'book-outline';
+      case 'points': return 'trophy-outline';
+      case 'badge': return 'star';
+      default: return 'flame-outline';
+    }
+  }
+
+  actColor(a: ActivityEntry): string {
+    switch (a.kind) {
+      case 'certificate': return '#d98a1f';
+      case 'completion': return 'var(--ion-color-success)';
+      case 'points': case 'badge': return 'var(--ion-color-primary)';
+      default: return 'var(--ion-color-medium)';
+    }
+  }
+
+  actTint(a: ActivityEntry): string {
+    return `color-mix(in srgb, ${this.actColor(a)} 14%, transparent)`;
+  }
+
+  actTitle(a: ActivityEntry): string {
+    switch (a.kind) {
+      case 'points': return `+${a.detail ?? 0} points`;
+      case 'certificate': return 'Certificate earned';
+      case 'completion': return 'Course completed';
+      case 'enrollment': return 'Enrolled in a course';
+      case 'badge': return 'Badge earned';
+      default: return this.humanize(a.kind);
+    }
+  }
+
+  actSub(a: ActivityEntry): string {
+    // For a points entry the subject is the reason ("certificate_earned"); for
+    // the rest it's the thing itself (a course or certificate name).
+    return a.kind === 'points' ? this.humanize(a.subject) : (a.subject ?? '');
+  }
+
+  private humanize(value: string | null): string {
+    const s = (value ?? '').replace(/_/g, ' ').trim();
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
   }
 
   reload(ev?: CustomEvent): void {

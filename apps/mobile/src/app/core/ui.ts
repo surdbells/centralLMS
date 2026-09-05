@@ -36,3 +36,30 @@ export function minutesLabel(minutes: number | null | undefined): string {
 export function firstName(fullName: string | null | undefined): string {
   return (fullName ?? '').trim().split(/\s+/)[0] || 'there';
 }
+
+/** "Just now", "3d ago", or a short date for anything older than a week. */
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) {
+    return '';
+  }
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) {
+    return '';
+  }
+  const mins = Math.round((Date.now() - then) / 60000);
+  if (mins < 1) {
+    return 'Just now';
+  }
+  if (mins < 60) {
+    return `${mins}m ago`;
+  }
+  const hours = Math.round(mins / 60);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  const days = Math.round(hours / 24);
+  if (days < 7) {
+    return `${days}d ago`;
+  }
+  return new Date(then).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
