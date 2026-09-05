@@ -169,25 +169,25 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     </ion-content>
   `,
   styles: [`
-    .hero { padding: calc(env(safe-area-inset-top) + 16px) 20px 20px; background: linear-gradient(135deg, var(--brand-primary, var(--ion-color-primary)), var(--brand-primary-shade, var(--ion-color-primary-shade))); color: #fff; border-radius: 0 0 26px 26px; }
+    .hero { padding: calc(env(safe-area-inset-top) + 16px) 20px 20px; background: linear-gradient(135deg, var(--brand-primary, var(--ion-color-primary)), var(--brand-primary-shade, var(--ion-color-primary-shade))); color: #fff; border-radius: 0 0 var(--app-r-lg) var(--app-r-lg); }
     .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
     .hero-org { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hero-logo { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 12px; background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: 0 6px 16px rgba(0,0,0,.16); }
+    .hero-logo { flex: 0 0 auto; width: 42px; height: 42px; border-radius: var(--app-r-sm); background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: 0 6px 16px rgba(0,0,0,.16); }
     .hero-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .hero .hi { margin: 0; opacity: .9; font-size: .98rem; }
-    .hero h1 { margin: 3px 0 0; font-size: 1.7rem; font-weight: 800; letter-spacing: -.01em; }
+    .hero h1 { margin: 3px 0 0; font-size: 1.7rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
     .pad { padding: 0 16px; }
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 16px; margin: -22px 0 8px; }
-    .stat { background: var(--ion-card-background); border-radius: 14px; padding: 12px 6px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
-    .stat .n { display: block; font-size: 1.15rem; font-weight: 800; color: var(--ion-color-primary); }
+    .stat { background: var(--ion-card-background); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px 6px; text-align: center; box-shadow: var(--app-shadow); }
+    .stat .n { display: block; font-size: 1.15rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); color: var(--ion-color-primary); }
     .stat .l { font-size: .66rem; color: var(--ion-color-medium); }
-    .section-title { font-size: 1.05rem; font-weight: 700; margin: 18px 0 10px; }
+    .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 18px 0 10px; }
     .act-head { display: flex; align-items: center; justify-content: space-between; }
-    .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--ion-color-primary); background: color-mix(in srgb, var(--ion-color-primary) 12%, transparent); padding: 5px 10px; border-radius: 20px; }
+    .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--app-tag-ink); background: var(--app-tag-bg); padding: 5px 10px; border-radius: var(--app-r-pill); }
     .rank-chip ion-icon { font-size: 14px; }
     .act { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
     .act + .act { border-top: 1px solid var(--app-hairline); }
-    .act-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+    .act-ic { width: 40px; height: 40px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
     .act-ic ion-icon { font-size: 20px; }
     .act-body { flex: 1; min-width: 0; }
     .act-title { margin: 0; font-weight: 600; font-size: .92rem; }
@@ -195,16 +195,16 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     .act-time { flex: 0 0 auto; font-size: .74rem; }
     .rail { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 6px; scrollbar-width: none; }
     .rail::-webkit-scrollbar { display: none; }
-    .rail-card { position: relative; overflow: hidden; flex: 0 0 78%; max-width: 300px; background: var(--ion-card-background); border-radius: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.08); }
+    .rail-card { position: relative; overflow: hidden; flex: 0 0 78%; max-width: 300px; background: var(--ion-card-background); border: var(--app-card-border); border-radius: var(--app-r); box-shadow: var(--app-shadow); }
     .thumb { height: 96px; display: grid; place-items: center; }
-    .thumb span { color: #fff; font-size: 2.2rem; font-weight: 800; opacity: .95; }
+    .thumb span { color: #fff; font-size: 2.2rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); opacity: .95; }
     .rc-body { padding: 10px 12px 12px; }
     .rc-title { margin: 0 0 8px; font-weight: 700; font-size: .95rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .rc-sub { margin: 6px 0 0; font-size: .78rem; }
-    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border-radius: 14px; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
+    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
     .row-ic { font-size: 24px; flex: 0 0 auto; }
-    .mini-thumb { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; flex: 0 0 auto; }
-    .mini-thumb span { color: #fff; font-weight: 800; }
+    .mini-thumb { width: 44px; height: 44px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
+    .mini-thumb span { color: #fff; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
     .row-body { flex: 1; min-width: 0; }
     .row-title { margin: 0; font-weight: 600; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row-body .muted { margin: 2px 0 0; font-size: .78rem; }

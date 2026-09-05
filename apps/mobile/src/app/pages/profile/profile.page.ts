@@ -68,8 +68,8 @@ import { initialOf } from '../../core/ui';
   `,
   styles: [`
     .head { text-align: center; padding: 8px 16px 16px; }
-    .avatar { width: 84px; height: 84px; border-radius: 26px; margin: 0 auto 12px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade)); }
-    .head h1 { margin: 0; font-size: 1.3rem; font-weight: 800; }
+    .avatar { width: 84px; height: 84px; border-radius: var(--app-r-lg); margin: 0 auto 12px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade)); }
+    .head h1 { margin: 0; font-size: 1.3rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
     .head .email { margin: 4px 0 0; color: var(--ion-color-medium); font-size: .9rem; }
     .signout { padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
     .ver { text-align: center; margin-top: 8px; font-size: .76rem; }
