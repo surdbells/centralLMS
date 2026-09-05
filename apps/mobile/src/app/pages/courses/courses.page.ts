@@ -113,14 +113,14 @@ type Tab = 'mine' | 'catalogue';
     </ion-content>
   `,
   styles: [`
-    .ca-controls { padding: 4px 16px 0; display: grid; gap: 10px; }
+    .ca-controls { padding: 16px 16px 2px; display: grid; gap: 10px; }
     .ca-search { display: block; }
     .ca-filter { display: block; }
-    .pad { padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
-    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-sm); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
+    .pad { padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 13px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
     .row-skeleton { box-shadow: none; }
-    .sk-thumb { width: 52px; height: 52px; border-radius: 12px; flex: 0 0 auto; }
-    .thumb { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
+    .sk-thumb { width: 54px; height: 54px; border-radius: var(--app-r-sm); flex: 0 0 auto; }
+    .thumb { width: 54px; height: 54px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
     .thumb span { color: #fff; font-weight: 800; font-size: 1.3rem; }
     .body { flex: 1; min-width: 0; }
     .title { margin: 0 0 6px; font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -25,7 +25,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start"><ion-back-button defaultHref="/tabs/courses"></ion-back-button></ion-buttons>
-        <ion-title>Course</ion-title>
+        <ion-title>{{ course()?.title || 'Course' }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -40,11 +40,13 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         @if (course(); as c) {
         <div class="banner" [style]="thumb(c.title)">
           <span class="mark">{{ initial(c.title) }}</span>
+          <div class="banner-cap">
+            <span class="banner-cat">{{ c.categoryName || 'Course' }}</span>
+            <h1 class="banner-title">{{ c.title }}</h1>
+          </div>
         </div>
 
         <div class="pad">
-          <p class="cat muted">{{ c.categoryName || 'Course' }}</p>
-          <h1 class="title">{{ c.title }}</h1>
           <div class="meta muted">
             @if (mins(c.durationMinutes)) { <span><ion-icon name="time-outline"></ion-icon> {{ mins(c.durationMinutes) }}</span> }
             <span><ion-icon name="list-outline"></ion-icon> {{ lessonCount() }} lessons</span>
@@ -113,11 +115,13 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     </ion-content>
   `,
   styles: [`
-    .pad { padding: 0 16px; }
-    .banner { height: 150px; display: grid; place-items: center; }
-    .banner .mark { color: #fff; font-size: 3.4rem; font-weight: 800; opacity: .95; }
-    .cat { margin: 16px 0 0; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; }
-    .title { margin: 4px 0 10px; font-family: var(--app-font-display); font-size: 1.5rem; font-weight: var(--app-display-weight); line-height: 1.16; letter-spacing: var(--app-display-tracking); }
+    .pad { padding: 16px 16px 0; }
+    .banner { position: relative; overflow: hidden; height: 212px; border-radius: 0 0 26px 26px; }
+    .banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.16) 55%, rgba(0,0,0,.56) 100%); }
+    .banner .mark { position: absolute; top: 44%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,.92); font-family: var(--app-font-display); font-size: 5rem; font-weight: var(--app-display-weight); opacity: .45; }
+    .banner-cap { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 16px 18px 18px; }
+    .banner-cat { display: inline-block; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: rgba(255,255,255,.22); padding: 4px 9px; border-radius: 999px; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+    .banner-title { margin: 9px 0 0; font-family: var(--app-font-display); font-size: 1.62rem; line-height: 1.14; font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); color: #fff; text-wrap: balance; text-shadow: 0 2px 12px rgba(0,0,0,.3); }
     .meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: .82rem; }
     .meta span { display: inline-flex; align-items: center; gap: 4px; }
     .prog { margin: 16px 0 4px; }

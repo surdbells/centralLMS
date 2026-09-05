@@ -13,7 +13,7 @@ import {
   chevronForwardOutline, briefcaseOutline, businessOutline, cellularOutline,
   helpCircleOutline, alertCircle, warning, informationCircle, close,
   eyeOutline, eyeOffOutline, closeCircle, searchOutline, chevronDown,
-  checkmark, pricetagOutline,
+  checkmark, pricetagOutline, play,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
 import { ToastHostComponent } from './components/toast/toast-host.component';
@@ -29,7 +29,7 @@ addIcons({
   chevronForwardOutline, briefcaseOutline, businessOutline, cellularOutline,
   helpCircleOutline, alertCircle, warning, informationCircle, close,
   eyeOutline, eyeOffOutline, closeCircle, searchOutline, chevronDown,
-  checkmark, pricetagOutline,
+  checkmark, pricetagOutline, play,
 });
 
 @Component({

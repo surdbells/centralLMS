@@ -77,7 +77,8 @@ import { ProgressComponent } from '../../components/progress/progress.component'
               <div class="rail-card ion-activatable tappable" (click)="openCourse(c.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <div class="thumb" [style]="thumb(c.courseTitle || '')">
-                  <span>{{ initial(c.courseTitle || '') }}</span>
+                  <span class="rc-mark">{{ initial(c.courseTitle || '') }}</span>
+                  <span class="rc-play"><ion-icon name="play" aria-hidden="true"></ion-icon></span>
                 </div>
                 <div class="rc-body">
                   <p class="rc-title">{{ c.courseTitle }}</p>
@@ -208,9 +209,12 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .act-time { flex: 0 0 auto; font-size: .74rem; }
     .rail { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 6px; scrollbar-width: none; }
     .rail::-webkit-scrollbar { display: none; }
-    .rail-card { position: relative; overflow: hidden; flex: 0 0 78%; max-width: 300px; background: var(--ion-card-background); border: var(--app-card-border); border-radius: var(--app-r); box-shadow: var(--app-shadow); }
-    .thumb { height: 96px; display: grid; place-items: center; }
-    .thumb span { color: #fff; font-size: 2.2rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); opacity: .95; }
+    .rail-card { position: relative; overflow: hidden; flex: 0 0 80%; max-width: 320px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); box-shadow: var(--app-shadow-lg); }
+    .thumb { position: relative; overflow: hidden; height: 108px; display: grid; place-items: center; }
+    .thumb::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,.32)); }
+    .rc-mark { color: #fff; font-size: 2.6rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); opacity: .5; }
+    .rc-play { position: absolute; z-index: 1; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.94); display: grid; place-items: center; box-shadow: 0 6px 16px -4px rgba(0,0,0,.4); }
+    .rc-play ion-icon { font-size: 16px; color: var(--ion-color-primary); margin-left: 2px; }
     .rc-body { padding: 10px 12px 12px; }
     .rc-title { margin: 0 0 8px; font-weight: 700; font-size: .95rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .rc-sub { margin: 6px 0 0; font-size: .78rem; }
