@@ -24,6 +24,14 @@ return [
         'version'  => trim((string) @file_get_contents($root . '/VERSION')) ?: '0.1.0-dev',
     ],
 
+    'tenant' => [
+        // A single-organisation or on-prem deployment names its organisation
+        // here; then /settings/public serves that tenant's branding with no
+        // token. Left empty on a multi-tenant cloud, where the tenant comes
+        // from whoever signs in.
+        'default' => trim((string) Env::get('DEFAULT_TENANT_ID', '')),
+    ],
+
     'paths' => [
         'root'       => $root,
         'var'        => $root . '/var',

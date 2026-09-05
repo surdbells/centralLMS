@@ -90,6 +90,7 @@ use Central\Api\Domain\Messaging\MessagingRepository;
 use Central\Api\Domain\Audience\AudienceResolver;
 use Central\Api\Domain\Audit\AuditRepository;
 use Central\Api\Domain\Note\NoteRepository;
+use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Domain\Settings\SettingCatalogue;
 use Central\Api\Domain\Skill\SkillRepository;
 use Central\Api\Domain\Settings\SettingsRepository;
@@ -408,6 +409,17 @@ return [
     // --- things that need the raw settings array --------------------------
     VersionAction::class => factory(
         static fn (ContainerInterface $c) => new VersionAction($c->get('settings')),
+    ),
+
+    // Autowired but for the deployment's default tenant, which is a config
+    // string PHP-DI cannot resolve by type.
+    TenantSettingsAction::class => factory(
+        static fn (ContainerInterface $c) => new TenantSettingsAction(
+            $c->get(SettingsRepository::class),
+            $c->get(SettingCatalogue::class),
+            $c->get(TenantRepository::class),
+            (string) ($c->get('settings')['tenant']['default'] ?? ''),
+        ),
     ),
 
     GenerateOpenApiCommand::class => factory(

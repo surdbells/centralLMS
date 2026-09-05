@@ -45,6 +45,13 @@ export class BrandingService {
     // Paint the remembered brand immediately, so sign-in is already branded.
     this.applyStored();
 
+    // Signed out (the sign-in screen): ask for the deployment's default
+    // organisation. On an on-prem or single-tenant install the server returns
+    // that org's branding; on a multi-tenant cloud it returns neutral defaults.
+    if (!this.session.session()) {
+      this.load();
+    }
+
     // Once a session's tenant is known (or changes), fetch it fresh.
     effect(() => {
       const tenantId = this.session.session()?.tenantId ?? null;
@@ -56,8 +63,9 @@ export class BrandingService {
     });
   }
 
-  private load(tenantId: string): void {
-    this.api.get<PublicBranding>('/settings/public', { tenantId }).subscribe({
+  /** Fetch public settings for a tenant, or — with none — the deployment default. */
+  private load(tenantId?: string): void {
+    this.api.get<PublicBranding>('/settings/public', tenantId ? { tenantId } : undefined).subscribe({
       next: (s) => this.set(s.organisation, s.branding),
       // Silent: an org that set no branding looks the same as one whose fetch
       // failed, and the defaults are perfectly usable.

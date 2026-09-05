@@ -41,10 +41,25 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class TenantSettingsAction
 {
+    /**
+     * A well-formed UUID that matches no tenant, so reading settings for it
+     * yields the catalogue defaults — the neutral look for a deployment that
+     * has named no default organisation.
+     */
+    private const NO_TENANT = '00000000-0000-0000-0000-000000000000';
+
     public function __construct(
         private readonly SettingsRepository $settings,
         private readonly SettingCatalogue $catalogue,
         private readonly TenantRepository $tenants,
+        /**
+         * The deployment's default tenant (env DEFAULT_TENANT_ID), or ''. On an
+         * on-prem or single-organisation install this is set so the sign-in page
+         * wears that organisation's branding before anybody signs in; on a
+         * multi-tenant cloud it is left empty and the page stays neutral until a
+         * token names the tenant.
+         */
+        private readonly string $defaultTenantId = '',
     ) {
     }
 
@@ -153,22 +168,34 @@ final class TenantSettingsAction
     {
         $tenantId = trim((string) ($request->getQueryParams()['tenantId'] ?? ''));
 
-        if (preg_match('/^[0-9a-f-]{36}$/i', $tenantId) !== 1) {
-            throw ValidationFailed::fromArray(['tenantId' => 'Say which organisation.']);
+        // No organisation named — fall back to the deployment's default tenant
+        // (on-prem single-tenant, or a conglomerate's shared face). Still none,
+        // and we serve neutral defaults rather than refuse: the sign-in page
+        // falls back to the product's own look, and the organisation's branding
+        // loads once a token names the tenant.
+        if (!$this->isTenantId($tenantId)) {
+            $tenantId = $this->defaultTenantId;
         }
+        $named = $this->isTenantId($tenantId);
 
-        $settings = $this->settings->forTenant($tenantId);
+        $settings = $this->settings->forTenant($named ? $tenantId : self::NO_TENANT);
         $branding = [];
 
-        foreach ($this->catalogue->inCategory(SettingCategory::Branding) as $definition) {
-            $branding[$definition->key->value] = $settings->get($definition->key);
+        // Only a resolved organisation carries branding. With none, the response
+        // is empty and the client keeps its own neutral look, rather than being
+        // painted a catalogue default colour that belongs to no one.
+        if ($named) {
+            foreach ($this->catalogue->inCategory(SettingCategory::Branding) as $definition) {
+                $branding[$definition->key->value] = $settings->get($definition->key);
+            }
         }
 
         return Json::ok($response, [
             // The organisation's name and its own logo, so a sign-in or
             // registration screen can carry them. Branding that stops at
-            // the door of the application is not branding.
-            'organisation'   => $this->tenants->nameOf($tenantId),
+            // the door of the application is not branding. Null when no tenant
+            // resolved, so the client shows its own name.
+            'organisation'   => $named ? $this->tenants->nameOf($tenantId) : null,
             'branding'       => $branding,
             'passwordPolicy' => PasswordPolicy::from($settings)->toArray(),
         ]);
@@ -200,6 +227,11 @@ final class TenantSettingsAction
     }
 
     // --- plumbing ---------------------------------------------------------
+
+    private function isTenantId(string $value): bool
+    {
+        return preg_match('/^[0-9a-f-]{36}$/i', $value) === 1;
+    }
 
     private function caller(ServerRequestInterface $request): \Central\Api\Domain\Authz\AuthenticatedUser
     {

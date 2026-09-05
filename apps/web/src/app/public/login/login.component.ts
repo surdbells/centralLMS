@@ -107,14 +107,16 @@ export class LoginComponent implements OnInit {
   }
 
   private loadBranding(tenantId: string): void {
-    if (!/^[0-9a-f-]{36}$/i.test(tenantId)) {
-      return;
-    }
+    // With a tenant (from the URL or last sign-in) we ask for its branding; with
+    // none we ask anyway, so a single-tenant or on-prem deployment answers with
+    // its default organisation. A multi-tenant cloud answers neutral, which
+    // clears back to the product's own look.
+    const params = /^[0-9a-f-]{36}$/i.test(tenantId) ? { tenantId } : {};
 
     this.api
       .get<{ organisation: string | null; branding: Record<string, string | boolean> }>(
         Endpoints.settings.public,
-        { tenantId },
+        params,
       )
       .subscribe({
         next: (settings) => {
