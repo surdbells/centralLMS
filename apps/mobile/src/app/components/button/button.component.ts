@@ -29,13 +29,16 @@ export type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'danger' | 'subtle';
       [class.lg]="size() === 'lg'"
       [class.icon-only]="iconOnly()"
       [attr.type]="type()"
+      [attr.aria-label]="ariaLabel() || null"
+      [attr.aria-busy]="loading() ? 'true' : null"
       [disabled]="disabled() || loading()">
       @if (loading()) {
-        <ion-spinner name="crescent"></ion-spinner>
-      } @else {
-        @if (icon()) { <ion-icon [name]="icon()" aria-hidden="true"></ion-icon> }
-        <span class="lbl"><ng-content></ng-content></span>
+        <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+      } @else if (icon()) {
+        <ion-icon [name]="icon()" aria-hidden="true"></ion-icon>
       }
+      <!-- Kept in the tree while loading (visually hidden) so the button keeps its name. -->
+      <span class="lbl" [class.sr-only]="loading()"><ng-content></ng-content></span>
     </button>
   `,
   styles: [`
@@ -72,6 +75,11 @@ export type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'danger' | 'subtle';
     .ghost:not(:disabled):active, .outline:not(:disabled):active {
       background: var(--app-tag-bg); filter: none;
     }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
   `],
 })
 export class ButtonComponent {
@@ -82,5 +90,6 @@ export class ButtonComponent {
   readonly loading = input(false, { transform: booleanAttribute });
   readonly icon = input('');
   readonly iconOnly = input(false, { transform: booleanAttribute });
+  readonly ariaLabel = input('');
   readonly type = input<'button' | 'submit'>('button');
 }

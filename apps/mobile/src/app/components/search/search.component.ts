@@ -2,6 +2,11 @@ import {
   Component, ChangeDetectionStrategy, input, output, signal, OnDestroy,
 } from '@angular/core';
 import { IonIcon } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { searchOutline, closeCircle } from 'ionicons/icons';
+
+// Self-register the glyphs this component draws (offline-safe, host-independent).
+addIcons({ searchOutline, closeCircle });
 
 /**
  * A debounced search field replacing ion-searchbar. Solid field on the design

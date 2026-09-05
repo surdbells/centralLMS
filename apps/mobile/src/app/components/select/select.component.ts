@@ -4,7 +4,13 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IonIcon } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chevronDown, searchOutline, checkmark, closeCircle } from 'ionicons/icons';
 import { SheetComponent } from '../sheet/sheet.component';
+
+// Register the glyphs this component draws, so it renders offline regardless of
+// the host app's global icon registry.
+addIcons({ chevronDown, searchOutline, checkmark, closeCircle });
 
 export interface SelectOption {
   value: string;
@@ -51,6 +57,7 @@ export interface SelectOption {
             #box
             type="text"
             [placeholder]="searchPlaceholder()"
+            [attr.aria-label]="'Search ' + (label() || 'options')"
             [ngModel]="query()"
             (ngModelChange)="query.set($event)"
             autocapitalize="off"
@@ -64,9 +71,9 @@ export interface SelectOption {
         </div>
       }
 
-      <ul class="opts" role="listbox">
+      <ul class="opts" role="listbox" [attr.aria-label]="label() || 'Options'">
         @for (o of filtered(); track o.value) {
-          <li>
+          <li role="presentation">
             <button
               type="button"
               class="opt"
@@ -85,7 +92,9 @@ export interface SelectOption {
           </li>
         }
         @if (!filtered().length) {
-          <li class="empty">No matches for “{{ query() }}”</li>
+          <li class="empty" role="presentation">
+            @if (query().trim()) { No matches for “{{ query() }}” } @else { No options }
+          </li>
         }
       </ul>
     </app-sheet>

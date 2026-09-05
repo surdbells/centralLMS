@@ -126,10 +126,6 @@ type Tab = 'mine' | 'catalogue';
     .title { margin: 0 0 6px; font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .body .muted { margin: 6px 0 0; font-size: .78rem; }
     .chev { color: var(--ion-color-medium); flex: 0 0 auto; }
-    .empty { text-align: center; padding: 48px 16px; color: var(--ion-color-medium); }
-    .empty ion-icon { font-size: 42px; }
-    .empty p { margin: 12px 0 6px; }
-    .empty a { color: var(--ion-color-primary); font-weight: 600; }
   `],
 })
 export class CoursesPage implements OnInit {

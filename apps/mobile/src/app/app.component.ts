@@ -12,7 +12,8 @@ import {
   hourglassOutline, playOutline, listOutline, ribbonSharp, cloudOfflineOutline,
   chevronForwardOutline, briefcaseOutline, businessOutline, cellularOutline,
   helpCircleOutline, alertCircle, warning, informationCircle, close,
-  eyeOutline, eyeOffOutline, closeCircle,
+  eyeOutline, eyeOffOutline, closeCircle, searchOutline, chevronDown,
+  checkmark, pricetagOutline,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
 import { ToastHostComponent } from './components/toast/toast-host.component';
@@ -27,7 +28,8 @@ addIcons({
   hourglassOutline, playOutline, listOutline, ribbonSharp, cloudOfflineOutline,
   chevronForwardOutline, briefcaseOutline, businessOutline, cellularOutline,
   helpCircleOutline, alertCircle, warning, informationCircle, close,
-  eyeOutline, eyeOffOutline, closeCircle,
+  eyeOutline, eyeOffOutline, closeCircle, searchOutline, chevronDown,
+  checkmark, pricetagOutline,
 });
 
 @Component({

@@ -17,7 +17,7 @@ export interface SegmentOption {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="track" role="tablist">
+    <div class="track" role="group" [attr.aria-label]="ariaLabel() || null">
       <div
         class="thumb"
         [style.width]="thumbWidth()"
@@ -26,8 +26,7 @@ export interface SegmentOption {
         <button
           type="button"
           class="seg"
-          role="tab"
-          [attr.aria-selected]="s.value === value()"
+          [attr.aria-pressed]="s.value === value()"
           [class.on]="s.value === value()"
           (click)="value.set(s.value)">
           {{ s.label }}
@@ -66,6 +65,7 @@ export interface SegmentOption {
 export class SegmentComponent {
   readonly value = model('');
   readonly segments = input<SegmentOption[]>([]);
+  readonly ariaLabel = input('');
 
   activeIndex(): number {
     const i = this.segments().findIndex((s) => s.value === this.value());

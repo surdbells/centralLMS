@@ -112,6 +112,7 @@ export class SheetComponent {
 
   private wasOpen = false;
   private startY = 0;
+  private opener: HTMLElement | null = null;
 
   constructor() {
     effect(() => {
@@ -121,6 +122,8 @@ export class SheetComponent {
       }
       this.wasOpen = isOpen;
       if (isOpen) {
+        // Remember who opened us so focus can return there on close.
+        this.opener = (document.activeElement as HTMLElement | null) ?? null;
         this.mounted.set(true);
         this.lockScroll(true);
         // A short timer (not requestAnimationFrame, which browsers pause for
@@ -135,6 +138,12 @@ export class SheetComponent {
         this.drag.set(0);
         this.lockScroll(false);
         setTimeout(() => this.mounted.set(false), 320);
+        // Return focus to the control that opened the sheet.
+        const opener = this.opener;
+        this.opener = null;
+        if (opener?.isConnected) {
+          opener.focus({ preventScroll: true });
+        }
         this.dismissed.emit();
       }
     });
@@ -175,6 +184,48 @@ export class SheetComponent {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.dismiss();
+  }
+
+  // Keep Tab focus inside the panel while it's open (aria-modal contract).
+  @HostListener('document:keydown.tab', ['$event'])
+  onTab(event: KeyboardEvent): void {
+    this.trap(event, false);
+  }
+
+  @HostListener('document:keydown.shift.tab', ['$event'])
+  onShiftTab(event: KeyboardEvent): void {
+    this.trap(event, true);
+  }
+
+  private trap(event: KeyboardEvent, back: boolean): void {
+    if (!this.mounted()) {
+      return;
+    }
+    const panel = this.panel()?.nativeElement;
+    if (!panel) {
+      return;
+    }
+    const items = Array.from(
+      panel.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => el.offsetParent !== null);
+    const active = document.activeElement;
+    const inside = panel.contains(active);
+    if (!items.length) {
+      event.preventDefault();
+      panel.focus({ preventScroll: true });
+      return;
+    }
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (back && (active === first || active === panel || !inside)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!back && (active === last || !inside)) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   private lockScroll(lock: boolean): void {

@@ -137,9 +137,6 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .l-body { flex: 1; min-width: 0; }
     .l-title { margin: 0; font-weight: 600; font-size: .92rem; }
     .l-body .muted { margin: 2px 0 0; font-size: .76rem; }
-    .empty { text-align: center; padding: 60px 16px; color: var(--ion-color-medium); }
-    .empty ion-icon { font-size: 42px; }
-    .empty a { color: var(--ion-color-primary); font-weight: 600; }
   `],
 })
 export class CourseDetailPage implements OnInit {

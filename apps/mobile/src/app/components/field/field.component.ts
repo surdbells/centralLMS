@@ -44,6 +44,7 @@ let uid = 0;
         [attr.inputmode]="inputmode() || null"
         [attr.autocomplete]="autocomplete() || null"
         [attr.enterkeyhint]="enterkeyhint() || null"
+        [attr.aria-required]="required() ? 'true' : null"
         [attr.aria-invalid]="!!error() || null"
         [attr.aria-describedby]="(error() || hint()) ? id + '-msg' : null"
         (input)="onInput($event)"

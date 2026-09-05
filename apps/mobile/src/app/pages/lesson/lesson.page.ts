@@ -74,8 +74,6 @@ import { ToastService } from '../../components/toast/toast.service';
     .cta { display: block; margin-top: 22px; }
     .done { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ion-color-success); font-weight: 700; padding: 14px; }
     .done ion-icon { font-size: 24px; }
-    .empty { text-align: center; padding: 60px 16px; color: var(--ion-color-medium); }
-    .empty ion-icon { font-size: 42px; }
   `],
 })
 export class LessonPage implements OnInit, OnDestroy {

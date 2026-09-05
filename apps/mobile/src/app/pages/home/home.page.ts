@@ -210,10 +210,6 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .row-title { margin: 0; font-weight: 600; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .row-body .muted { margin: 2px 0 0; font-size: .78rem; }
     .chev { color: var(--ion-color-medium); flex: 0 0 auto; }
-    .empty { text-align: center; padding: 40px 16px; color: var(--ion-color-medium); }
-    .empty ion-icon { font-size: 40px; }
-    .empty p { margin: 10px 0 6px; }
-    .empty a { color: var(--ion-color-primary); font-weight: 600; }
   `],
 })
 export class HomePage implements OnInit {
