@@ -103,12 +103,25 @@ export class LoginPage {
       },
       error: (err: unknown) => {
         this.busy.set(false);
-        this.error.set(
-          err instanceof ApiError && err.code !== 'unknown_error'
-            ? err.message
-            : 'Could not sign in. Check your details and try again.',
-        );
+        this.error.set(this.messageFor(err));
       },
     });
+  }
+
+  private messageFor(err: unknown): string {
+    if (err instanceof ApiError) {
+      if (err.code === 'network_error') {
+        return err.message;
+      }
+      if (err.code === 'account_inactive') {
+        return err.message;
+      }
+      // Any other refusal on a sign-in attempt means the credentials were wrong.
+      if (err.status === 401 || err.status === 422 || err.status === 400) {
+        return 'Incorrect email or password.';
+      }
+      return err.message || 'Could not sign in. Please try again.';
+    }
+    return 'Could not sign in. Check your details and try again.';
   }
 }

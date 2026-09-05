@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import {
@@ -76,11 +76,13 @@ import { minutesLabel } from '../../core/ui';
     .empty ion-icon { font-size: 42px; }
   `],
 })
-export class LessonPage implements OnInit {
+export class LessonPage implements OnInit, OnDestroy {
   private readonly learner = inject(LearnerService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   private readonly toast = inject(ToastController);
+
+  private backTimer?: ReturnType<typeof setTimeout>;
 
   courseId = '';
   private lessonId = '';
@@ -105,6 +107,14 @@ export class LessonPage implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    // The completion toast schedules a back(); don't let it fire after the user
+    // has already navigated away.
+    if (this.backTimer) {
+      clearTimeout(this.backTimer);
+    }
+  }
+
   complete(): void {
     this.saving.set(true);
     this.learner.markLessonComplete(this.courseId, this.lessonId).subscribe({
@@ -113,7 +123,7 @@ export class LessonPage implements OnInit {
         this.markedDone.set(true);
         const t = await this.toast.create({ message: 'Lesson completed 🎉', duration: 1600, position: 'bottom', color: 'success' });
         await t.present();
-        setTimeout(() => this.location.back(), 900);
+        this.backTimer = setTimeout(() => this.location.back(), 900);
       },
       error: async () => {
         this.saving.set(false);

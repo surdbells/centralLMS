@@ -68,9 +68,9 @@ import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
           }
 
           <div class="section-title">Lessons</div>
-          @for (m of c.modules; track m.moduleId; let mi = $index) {
+          @for (m of c.modules; track m.moduleId || mi; let mi = $index) {
             @if (c.modules.length > 1) { <p class="module">{{ mi + 1 }}. {{ m.title }}</p> }
-            @for (l of m.lessons; track l.lessonId) {
+            @for (l of m.lessons; track l.lessonId || $index) {
               <div class="lesson ion-activatable" [class.locked]="!c.isEnrolled" (click)="openLesson(c, l.lessonId)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <ion-icon class="l-ic"
@@ -179,6 +179,8 @@ export class CourseDetailPage implements OnInit {
     const next = this.nextLessonId(c);
     if (next) {
       void this.router.navigate(['/courses', c.courseId, 'lessons', next]);
+    } else {
+      void this.note('This course has no lessons yet.');
     }
   }
 

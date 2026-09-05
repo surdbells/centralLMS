@@ -1,6 +1,7 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, map, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface PageMeta {
@@ -64,7 +65,13 @@ export class ApiClient {
   ): Observable<{ payload: T; meta?: PageMeta }> {
     return this.http
       .request<unknown>(method, this.base + path, { body, params: toParams(params), observe: 'body' })
-      .pipe(map((response) => unwrap<T>(response)));
+      .pipe(
+        map((response) => unwrap<T>(response)),
+        // A refused request arrives here as an HttpErrorResponse (Slim serves
+        // failures with a non-2xx status), so callers can rely on ApiError and
+        // read the server's own code/message rather than the raw HTTP error.
+        catchError((err: unknown) => throwError(() => toApiError(err))),
+      );
   }
 }
 
@@ -72,12 +79,31 @@ function unwrap<T>(response: unknown): { payload: T; meta?: PageMeta } {
   if (response === null || typeof response !== 'object') {
     return { payload: response as T };
   }
-  if ('error' in response) {
-    const { error } = response as { error: { code: string; message: string } };
-    throw new ApiError(error.code, error.message);
+  const maybeError = (response as { error?: unknown }).error;
+  if (maybeError != null && typeof maybeError === 'object') {
+    const { code, message } = maybeError as { code: string; message: string };
+    throw new ApiError(code, message);
   }
   const success = response as { data: T; meta?: PageMeta };
   return { payload: success.data, meta: success.meta };
+}
+
+/** Normalise anything thrown by the HTTP layer into an ApiError. */
+function toApiError(err: unknown): ApiError {
+  if (err instanceof ApiError) {
+    return err;
+  }
+  if (err instanceof HttpErrorResponse) {
+    const body = err.error as { error?: { code?: string; message?: string } } | null;
+    if (body?.error) {
+      return new ApiError(body.error.code ?? 'error', body.error.message ?? 'Request failed.', err.status);
+    }
+    if (err.status === 0) {
+      return new ApiError('network_error', 'Could not reach the server. Check your connection and try again.', 0);
+    }
+    return new ApiError('http_error', err.message || 'Request failed.', err.status);
+  }
+  return new ApiError('unknown_error', 'An unexpected error occurred.');
 }
 
 function toParams(params?: QueryParams): HttpParams | undefined {
@@ -93,11 +119,12 @@ function toParams(params?: QueryParams): HttpParams | undefined {
   return p;
 }
 
-/** A refused request, normalised to a code and message. */
+/** A refused request, normalised to a code, message and (when known) status. */
 export class ApiError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    readonly status = 0,
   ) {
     super(message);
     this.name = 'ApiError';

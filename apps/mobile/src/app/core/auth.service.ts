@@ -29,11 +29,16 @@ export class AuthService {
     );
   }
 
-  /** Best-effort server sign-out, then always clear the local session. */
+  /**
+   * Sign out. The best-effort server call is dispatched first — synchronously,
+   * so the interceptor still attaches the token that identifies the session to
+   * revoke — and then the local session is cleared immediately, not in the
+   * request's callback. Clearing synchronously means the very next navigation
+   * sees the signed-out state (otherwise guestGuard, still seeing a session,
+   * bounces the user back to Home).
+   */
   logout(): void {
-    this.api.post('/auth/logout', {}).subscribe({
-      next: () => this.store.clear(),
-      error: () => this.store.clear(),
-    });
+    this.api.post('/auth/logout', {}).subscribe({ next: () => {}, error: () => {} });
+    this.store.clear();
   }
 }

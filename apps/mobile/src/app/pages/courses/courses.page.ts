@@ -1,5 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { Observable, Subject, of } from 'rxjs';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import {
   IonContent, IonHeader, IonToolbar, IonTitle, IonSegment, IonSegmentButton,
   IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
@@ -124,46 +127,55 @@ export class CoursesPage implements OnInit {
   readonly initial = initialOf;
   readonly mins = minutesLabel;
 
+  private readonly destroyRef = inject(DestroyRef);
+  // Loads run through switchMap so a newer request (a keystroke, a tab switch)
+  // cancels the one in flight — no stale, out-of-order results and no empty
+  // state flashing while an older request is still resolving.
+  private readonly load$ = new Subject<CustomEvent | undefined>();
+
   ngOnInit(): void {
-    this.load();
+    this.load$
+      .pipe(
+        tap((ev) => { if (!ev) { this.loading.set(true); } }),
+        switchMap((ev) => {
+          const q = this.query().trim() || undefined;
+          const tab = this.tab();
+          const req: Observable<Enrollment[] | CatalogueCourse[]> =
+            tab === 'mine' ? this.learner.myEnrollments(undefined, q) : this.learner.catalogue(q);
+          return req.pipe(
+            map((rows) => ({ ev, tab, rows })),
+            catchError(() => of({ ev, tab, rows: [] as Enrollment[] | CatalogueCourse[] })),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(({ ev, tab, rows }) => {
+        if (tab === 'mine') {
+          this.mine.set(rows as Enrollment[]);
+        } else {
+          this.catalogue.set(rows as CatalogueCourse[]);
+        }
+        this.loading.set(false);
+        (ev?.target as { complete?: () => void })?.complete?.();
+      });
+
+    this.load$.next(undefined);
   }
 
   switch(tab: Tab): void {
     if (tab && tab !== this.tab()) {
       this.tab.set(tab);
-      this.load();
+      this.load$.next(undefined);
     }
   }
 
   onSearch(value: string): void {
     this.query.set(value ?? '');
-    this.load();
+    this.load$.next(undefined);
   }
 
   reload(ev?: CustomEvent): void {
-    this.load(ev);
-  }
-
-  private load(ev?: CustomEvent): void {
-    const q = this.query().trim() || undefined;
-    if (!ev) {
-      this.loading.set(true);
-    }
-    const done = () => {
-      this.loading.set(false);
-      (ev?.target as { complete?: () => void })?.complete?.();
-    };
-    if (this.tab() === 'mine') {
-      this.learner.myEnrollments(undefined, q).subscribe({
-        next: (rows) => { this.mine.set(rows); done(); },
-        error: () => { this.mine.set([]); done(); },
-      });
-    } else {
-      this.learner.catalogue(q).subscribe({
-        next: (rows) => { this.catalogue.set(rows); done(); },
-        error: () => { this.catalogue.set([]); done(); },
-      });
-    }
+    this.load$.next(ev);
   }
 
   open(courseId: string): void {
