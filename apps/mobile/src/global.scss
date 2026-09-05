@@ -1,0 +1,36 @@
+/* Ionic core + utilities */
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/* Brand theme */
+@import "./theme/variables.scss";
+
+/* A few app-wide conveniences */
+.ion-page ion-content {
+  --padding-bottom: 16px;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 4px 0 10px;
+  color: var(--ion-text-color);
+}
+
+.muted {
+  color: var(--ion-color-medium);
+}
+
+.card-grid {
+  display: grid;
+  gap: 12px;
+}

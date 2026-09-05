@@ -1,0 +1,169 @@
+/** The API shapes this app reads — a camelCase subset of what @central/web uses. */
+
+export interface LoginPayload {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    tenantId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    status: string;
+  };
+  permissions: string[];
+}
+
+export type EnrollmentStatus = 'not_started' | 'in_progress' | 'completed' | 'dropped';
+
+export interface Enrollment {
+  id: string;
+  courseId: string;
+  courseTitle: string | null;
+  courseThumbnailUrl: string | null;
+  courseLevel: string | null;
+  courseCategory: string | null;
+  status: EnrollmentStatus;
+  statusLabel: string;
+  isMandatory: boolean;
+  dueDate: string | null;
+  isOverdue: boolean;
+  daysRemaining: number | null;
+  progressPercentage: number;
+  lastLessonId: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  lastActivityAt: string | null;
+  enrolledAt: string | null;
+}
+
+export interface LearnerOverview {
+  enrolled: number;
+  completed: number;
+  inProgress: number;
+  notStarted: number;
+  overdue: number;
+  secondsSpent: number;
+  points: number;
+  certificates: number;
+  badges: number;
+  overallProgress: number;
+}
+
+export interface StreakDay {
+  date: string;
+  day: string;
+  active: boolean;
+}
+
+export interface Streak {
+  current: number;
+  longest: number;
+  isActive: boolean;
+  week: StreakDay[];
+}
+
+export interface LearnerCertificate {
+  id: string;
+  number: string;
+  title: string;
+  status: string;
+  statusLabel: string;
+  isValid: boolean;
+  issuedAt: string | null;
+  validUntil: string | null;
+  daysRemaining: number | null;
+}
+
+export interface Deadline {
+  enrollmentId: string;
+  courseId: string;
+  courseTitle: string;
+  thumbnailUrl: string | null;
+  dueDate: string;
+  daysRemaining: number;
+  progress: number;
+  urgency: 'normal' | 'warning' | 'critical';
+}
+
+export interface RecommendedCourse {
+  courseId: string;
+  title: string;
+  category: string;
+  level: string | null;
+  durationMinutes: number | null;
+  thumbnailUrl: string | null;
+  enrolments: number;
+}
+
+export interface LearnerDashboard {
+  overview: LearnerOverview;
+  streak: Streak;
+  courses: {
+    inProgress: Enrollment[];
+    notStarted: Enrollment[];
+    completed: Enrollment[];
+  };
+  certificates: LearnerCertificate[];
+  deadlines: Deadline[];
+  recommended: RecommendedCourse[];
+}
+
+/** A course in the catalogue (camelCase from `/courses/catalogue`). */
+export interface CatalogueCourse {
+  id: string;
+  title: string;
+  summary?: string;
+  description?: string;
+  thumbnailUrl: string | null;
+  durationMinutes: number;
+  level: string;
+  categoryName: string | null;
+  enrollmentCount?: number;
+}
+
+export interface Lesson {
+  lessonId: string;
+  title: string;
+  lessonType: string;
+  durationMinutes: number;
+  sortOrder: number;
+  isCompleted: boolean;
+  progressPercentage: number;
+}
+
+export interface CourseModule {
+  moduleId: string;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+  lessons: Lesson[];
+}
+
+export interface CourseDetails {
+  courseId: string;
+  enrollmentId: string;
+  status: EnrollmentStatus | 'none';
+  isEnrolled: boolean;
+  progressPercentage: number;
+  title: string;
+  description: string;
+  thumbnailUrl: string | null;
+  durationMinutes: number;
+  level: string;
+  objectives: string | null;
+  categoryName: string | null;
+  modules: CourseModule[];
+}
+
+/** `/me/profile` — read defensively; fields the app doesn't need are ignored. */
+export interface Profile {
+  id?: string;
+  fullName?: string;
+  email?: string;
+  jobTitle?: string | null;
+  department?: string | null;
+  avatarUrl?: string | null;
+  [key: string]: unknown;
+}

@@ -2,11 +2,13 @@
   "name": "@central/mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Central LMS installable mobile app — a Capacitor shell that bundles the @central/web build and points it at the production API.",
+  "description": "Central LMS — the learner app. An Ionic + Angular app in a Capacitor native shell, talking to the same API as @central/web.",
   "scripts": {
-    "build:web": "pnpm --filter @central/web build",
+    "dev": "ng serve --port 8100",
+    "build": "ng build",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "sync": "cap sync",
-    "build": "pnpm run build:web && cap sync",
+    "mobile": "pnpm run build && cap sync",
     "add:android": "cap add android",
     "add:ios": "cap add ios",
     "open:android": "cap open android",
@@ -15,15 +17,31 @@
     "doctor": "cap doctor"
   },
   "dependencies": {
+    "@angular/animations": "^19.2.11",
+    "@angular/common": "^19.2.0",
+    "@angular/compiler": "^19.2.0",
+    "@angular/core": "^19.2.0",
+    "@angular/forms": "^19.2.0",
+    "@angular/platform-browser": "^19.2.0",
+    "@angular/router": "^19.2.0",
     "@capacitor/android": "^8.5.1",
     "@capacitor/app": "^8.1.1",
     "@capacitor/core": "^8.5.1",
     "@capacitor/ios": "^8.5.1",
+    "@capacitor/keyboard": "^8.0.2",
     "@capacitor/splash-screen": "^8.0.2",
-    "@capacitor/status-bar": "^8.0.3"
+    "@capacitor/status-bar": "^8.0.3",
+    "@ionic/angular": "^8.4.3",
+    "ionicons": "^7.4.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
   },
   "devDependencies": {
+    "@angular-devkit/build-angular": "^19.2.7",
+    "@angular/cli": "^19.2.0",
+    "@angular/compiler-cli": "^19.2.0",
     "@capacitor/cli": "^8.5.1",
-    "typescript": "^5.6.0"
+    "typescript": "~5.7.2"
   }
 }

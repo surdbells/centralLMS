@@ -1,71 +1,63 @@
 # @central/mobile
 
-The Central LMS as an installable mobile app.
+The Central LMS **learner app** — an [Ionic](https://ionicframework.com) +
+Angular app in a [Capacitor](https://capacitorjs.com) native shell.
 
-This is a thin [Capacitor](https://capacitorjs.com) shell around **@central/web**.
-It bundles the web app's production build inside the native package and runs it
-in the device WebView; the app talks to the production API over HTTPS, and the
-tenant is resolved from whoever signs in — there is no subdomain on a device and
-none is needed. Keeping the web app as the single source means every screen the
-browser has, the app has, with no second UI to maintain.
+It is a purpose-built, touch-first experience (bottom tabs, native transitions,
+pull-to-refresh), not the admin web app in a WebView. It talks to the **same
+API** as `@central/web` — the tenant is resolved from whoever signs in, so there
+is no subdomain on a device and none is needed.
 
-- **App id:** `com.centrallms.app`
-- **App name:** Central LMS
-- **What ships in it:** `apps/web/dist/central/browser` (see `webDir` in
-  `capacitor.config.ts`)
-- **API it talks to:** whatever `apps/web/src/environments/environment.ts` sets
-  for a production build (`https://api.centrallms.com/v1`)
+- **App id:** `com.centrallms.app` · **Name:** Central LMS
+- **API:** `src/environments/environment.ts` (dev) / `environment.prod.ts` (the
+  production host that ships in the store)
+- **Design:** Ionic in `ios` mode for one consistent look across platforms; the
+  brand palette lives in `src/theme/variables.scss`.
 
-## The native projects are generated, not committed
+## Screens (v1 — learner core)
 
-`android/` and `ios/` are build artefacts (the repo's root `.gitignore` excludes
-them). They are recreated from this package's config, so after cloning you
-generate them once:
+| Screen | What it shows |
+| --- | --- |
+| Login | Email + password → `/auth/login`; the session is stored on device |
+| Home | Greeting, stats, **Continue learning**, deadlines, recommendations (`/dashboards/me`) |
+| Courses | **My Courses** (`/me/enrollments`) and the **Catalogue** (`/courses/catalogue`), searchable |
+| Course detail | Outline + your progress; enrol; open lessons |
+| Lesson | Lesson info + **Mark as complete** (records real progress) |
+| Progress | Overall ring, points, streak, **certificates** |
+| Profile | Identity + sign out |
+
+## Develop
 
 ```bash
-pnpm install
-pnpm --filter @central/mobile exec cap add android   # needs the Android SDK to later build
-pnpm --filter @central/mobile exec cap add ios        # needs macOS + Xcode to later build
+pnpm --filter @central/mobile dev      # ng serve on :8100 (an allowed CORS origin)
 ```
 
-## Build & open
+Sign in with a learner account; it uses the local API by default.
 
-From the repo root:
+## Build & ship
 
 ```bash
-# Builds @central/web and copies it into the native projects
-pnpm --filter @central/mobile build
-
-# Open the native project in its IDE to run on a device/emulator or make a release
+pnpm --filter @central/mobile mobile   # ng build (→ www) + cap sync
 pnpm --filter @central/mobile exec cap open android   # Android Studio
 pnpm --filter @central/mobile exec cap open ios        # Xcode (macOS only)
 ```
 
-`pnpm --filter @central/mobile exec cap sync` re-copies the web build and native
-plugins without a full rebuild. `... cap doctor` checks the toolchain.
+The native `android/` and `ios/` projects are **generated, not committed** (the
+repo's root `.gitignore` excludes them). Recreate them once after cloning:
 
-## Tooling you need to produce a build
+```bash
+pnpm --filter @central/mobile exec cap add android
+pnpm --filter @central/mobile exec cap add ios
+```
 
-Scaffolding, config and the web bundle are all cross-platform, but the final
-native build is not:
-
-- **Android:** JDK + the Android SDK / Android Studio. `ANDROID_HOME` must point
-  at the SDK. Then build/run from Android Studio, or `cap run android`.
-- **iOS:** macOS with Xcode (and CocoaPods). iOS cannot be built on Windows or
-  Linux.
-
-## Native niceties
-
-The web app wires these up when it detects it is running natively (see
-`apps/web/src/app/core/mobile/native.ts`, a no-op in a browser): the status bar
-is matched to the light chrome, the Android hardware-back button follows the
-router's history (only leaving the app when there is nowhere left to go), and
-the launch splash is dismissed once Angular has started.
+Producing an installable **APK/IPA** needs the Android SDK (`ANDROID_HOME`) for
+Android and macOS + Xcode for iOS — neither builds on a bare Windows/Linux box.
 
 ## Not done yet
 
-- **App icon & splash art** use Capacitor's defaults. To brand them, add
-  `@capacitor/assets` back as a dev dependency (approve its `sharp` build in
-  `pnpm-workspace.yaml`), drop a source icon/splash in `assets/`, and run
-  `capacitor-assets generate`.
-- **Push notifications, deep links, live-updates** are not configured.
+- **In-lesson content** (video/reading/quiz playback) — the lesson screen shows
+  the lesson and records completion; rich content rendering is the next step.
+- **Token refresh** — a 401 currently returns you to sign-in; a silent refresh
+  using the stored refresh token can slot into `core/auth.interceptor.ts`.
+- **App icon & splash art**, push notifications, deep links, offline caching.
+- More of the learner web module (paths, skills, self-assessment, notes).
