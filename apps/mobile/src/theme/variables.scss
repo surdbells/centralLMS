@@ -1,13 +1,31 @@
-/* Central LMS brand palette for Ionic.
-   Primary is the app's deep indigo (#2400a0-ish); the rest are Ionic defaults
-   tuned to sit with it. */
+/* ============================================================================
+   Central LMS — mobile design system.
+
+   Two expressions of one brand, switched by theme:
+     • Light = "Studio"  — crisp white ground, hairline detail, tight geometry,
+                           Hanken Grotesk. A considered, precise pro tool.
+     • Dark  = "Bold"    — deep indigo-black, gradient fills, generous corners,
+                           Bricolage Grotesque display over Figtree. Confident.
+
+   The brand accent is set at runtime, per tenant, by BrandingService (it writes
+   the `--ion-color-primary` family + `--brand-*` as inline styles that beat
+   these defaults). Every accent token below reads from those, so both themes
+   recolour to whatever organisation the learner belongs to.
+
+   Screens never hardcode a colour, radius, shadow or font — they read the
+   `--app-*` tokens defined here, so the whole app changes character with the
+   theme from this one file.
+   ============================================================================ */
+
+/* ─────────────────────────────  Studio (light)  ───────────────────────────── */
 :root {
-  --ion-color-primary: #3316a6;
-  --ion-color-primary-rgb: 51, 22, 166;
+  /* Brand accent — neutral defaults; BrandingService overrides per tenant. */
+  --ion-color-primary: #2400a0;
+  --ion-color-primary-rgb: 36, 0, 160;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #2d1392;
-  --ion-color-primary-tint: #472daf;
+  --ion-color-primary-shade: #1f008d;
+  --ion-color-primary-tint: #3a1aaa;
 
   --ion-color-secondary: #1f7a4d;
   --ion-color-secondary-rgb: 31, 122, 77;
@@ -16,36 +34,138 @@
   --ion-color-secondary-shade: #1b6b44;
   --ion-color-secondary-tint: #35875f;
 
-  --ion-color-success: #2d9d5b;
-  --ion-color-warning: #e8a33a;
+  --ion-color-success: #1f9d57;
+  --ion-color-success-rgb: 31, 157, 87;
+  --ion-color-warning: #e08a2b;
+  --ion-color-warning-rgb: 224, 138, 43;
   --ion-color-danger: #d64545;
+  --ion-color-danger-rgb: 214, 69, 69;
 
-  --ion-background-color: #f5f6fa;
-  --ion-background-color-rgb: 245, 246, 250;
-  --ion-text-color: #1b2330;
-  --ion-text-color-rgb: 27, 35, 48;
+  /* Ionic surfaces */
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #14161e;
+  --ion-text-color-rgb: 20, 22, 30;
+  --ion-color-medium: #6c7080;
+  --ion-color-medium-rgb: 108, 112, 128;
 
   --ion-toolbar-background: #ffffff;
   --ion-item-background: #ffffff;
   --ion-card-background: #ffffff;
   --ion-tab-bar-background: #ffffff;
-  --ion-tab-bar-border-color: rgba(17, 19, 28, 0.07);
+  --ion-tab-bar-border-color: #e7e8ee;
+  --ion-border-color: #e7e8ee;
 
-  --app-radius: 16px;
+  /* Type — the whole app inherits this via --ion-font-family (set in global). */
+  --app-font: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --app-font-display: var(--app-font);
+  --app-display-weight: 800;
+  --app-display-tracking: -0.02em;
+
+  /* Neutrals */
+  --app-ground: #ffffff;
+  --app-surface: #ffffff;
+  --app-elevated: #ffffff;   /* sheets, menus, popovers */
+  --app-field: #f4f5f8;
+  --app-ink: #14161e;
+  --app-muted: #6c7080;
+  --app-line: #e7e8ee;
+  --app-track: #ececf1;
+
+  /* Accent, derived from the live tenant brand */
+  --app-accent: var(--ion-color-primary);
+  --app-accent-fill: var(--ion-color-primary);
+  --app-accent-ink: var(--ion-color-primary-contrast);
+  --app-tag-bg: color-mix(in srgb, var(--ion-color-primary) 9%, #ffffff);
+  --app-tag-ink: var(--ion-color-primary);
+  --app-ring: color-mix(in srgb, var(--ion-color-primary) 26%, transparent);
+
+  /* Geometry */
+  --app-r: 13px;
+  --app-r-sm: 10px;
+  --app-r-btn: 10px;
+  --app-r-lg: 20px;
+  --app-r-pill: 6px;
+
+  /* Elevation — Studio leans on the hairline, not the shadow. */
+  --app-shadow: 0 1px 2px rgba(16, 18, 24, 0.05);
+  --app-shadow-lg: 0 14px 36px -12px rgba(16, 18, 24, 0.24);
+  --app-btn-shadow: none;
+  --app-card-border: 1px solid var(--app-line);
+
+  /* Legacy aliases (older components still reference these; they resolve to the
+     live tokens above, so those components move with the system for free). */
+  --app-radius: var(--app-r);
+  --app-radius-sm: var(--app-r-sm);
+  --app-card-shadow: var(--app-shadow);
+  --app-card-shadow-strong: var(--app-shadow-lg);
+  --app-hairline: var(--app-line);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ion-background-color: #0f1420;
-    --ion-background-color-rgb: 15, 20, 32;
-    --ion-text-color: #eef1f7;
-    --ion-text-color-rgb: 238, 241, 247;
-    --ion-toolbar-background: #161c2b;
-    --ion-item-background: #161c2b;
-    --ion-card-background: #161c2b;
-    --ion-tab-bar-background: #131826;
-    --ion-tab-bar-border-color: rgba(255, 255, 255, 0.08);
-    --ion-color-primary: #6d5cff;
-    --ion-color-primary-rgb: 109, 92, 255;
-  }
+/* ──────────────────────────────  Bold (dark)  ─────────────────────────────── */
+@mixin bold {
+  /* A dark ground wants a lighter accent; BrandingService lightens the tenant
+     colour in dark mode, and this is the neutral default when no brand is set. */
+  --ion-color-primary: #7c5cff;
+  --ion-color-primary-rgb: 124, 92, 255;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #4a1fd6;
+  --ion-color-primary-tint: #957bff;
+
+  --ion-color-success: #33c07a;
+  --ion-color-warning: #f0a94a;
+  --ion-color-danger: #ff6a6a;
+
+  --ion-background-color: #0e0b1f;
+  --ion-background-color-rgb: 14, 11, 31;
+  --ion-text-color: #f4f2ff;
+  --ion-text-color-rgb: 244, 242, 255;
+  --ion-color-medium: #a49bce;
+  --ion-color-medium-rgb: 164, 155, 206;
+
+  --ion-toolbar-background: #0e0b1f;
+  --ion-item-background: #181334;
+  --ion-card-background: #181334;
+  --ion-tab-bar-background: #120e2b;
+  --ion-tab-bar-border-color: rgba(255, 255, 255, 0.09);
+  --ion-border-color: rgba(255, 255, 255, 0.09);
+
+  --app-font: "Figtree Variable", "Figtree", system-ui, -apple-system, sans-serif;
+  --app-font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", var(--app-font);
+  --app-display-weight: 800;
+  --app-display-tracking: -0.01em;
+
+  --app-ground: #0e0b1f;
+  --app-surface: #181334;
+  --app-elevated: #201a44;
+  --app-field: #221a49;
+  --app-ink: #f4f2ff;
+  --app-muted: #a49bce;
+  --app-line: rgba(255, 255, 255, 0.09);
+  --app-track: rgba(255, 255, 255, 0.12);
+
+  --app-accent-fill: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade));
+  --app-accent-ink: #ffffff;
+  --app-tag-bg: color-mix(in srgb, var(--ion-color-primary) 20%, transparent);
+  --app-tag-ink: var(--ion-color-primary);
+  --app-ring: color-mix(in srgb, var(--ion-color-primary) 42%, transparent);
+
+  --app-r: 18px;
+  --app-r-sm: 13px;
+  --app-r-btn: 14px;
+  --app-r-lg: 24px;
+  --app-r-pill: 999px;
+
+  --app-shadow: 0 18px 44px -16px rgba(0, 0, 0, 0.66);
+  --app-shadow-lg: 0 28px 64px -18px rgba(0, 0, 0, 0.72);
+  --app-btn-shadow: 0 14px 30px -14px color-mix(in srgb, var(--ion-color-primary) 75%, transparent);
+  --app-card-border: 1px solid rgba(255, 255, 255, 0.06);
 }
+
+/* System dark — unless the app has explicitly forced light. */
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) { @include bold; }
+}
+/* Explicit toggle wins in both directions. */
+:root[data-theme="dark"] { @include bold; }

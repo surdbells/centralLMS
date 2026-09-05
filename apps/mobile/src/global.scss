@@ -11,24 +11,52 @@
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/* Brand theme */
+/* Design system tokens (Studio light / Bold dark) */
 @import "./theme/variables.scss";
 
-/* A few app-wide conveniences */
-.ion-page ion-content {
-  --padding-bottom: 16px;
+/* The whole app types in the theme's face — Hanken in Studio, Figtree in Bold.
+   Set at the root so every Ionic component and every screen inherits it. */
+:root {
+  --ion-font-family: var(--app-font);
+}
+body {
+  font-family: var(--app-font);
+  /* Bold's dark ground reads better with a hair less contrast on body copy. */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Type roles ─────────────────────────────────────────────────────────────
+   Display is where the two themes diverge most: Hanken (tight, refined) in
+   Studio, Bricolage Grotesque (expressive) in Bold. Headings opt in via the
+   .display class or the heading tags below. */
+.display,
+.app-hero-title {
+  font-family: var(--app-font-display);
+  font-weight: var(--app-display-weight);
+  letter-spacing: var(--app-display-tracking);
+  line-height: 1.08;
 }
 
 .section-title {
-  font-size: 1.05rem;
+  font-family: var(--app-font-display);
+  font-size: 1.06rem;
   font-weight: 700;
   margin: 4px 0 10px;
   color: var(--ion-text-color);
-  letter-spacing: -.01em;
+  letter-spacing: var(--app-display-tracking);
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .muted {
-  color: var(--ion-color-medium);
+  color: var(--app-muted);
 }
 
 .card-grid {
@@ -36,24 +64,28 @@
   gap: 12px;
 }
 
-/* Shared design tokens so every surface matches. */
-:root {
-  --app-radius: 16px;
-  --app-radius-sm: 12px;
-  --app-card-shadow: 0 6px 18px rgba(17, 19, 28, 0.06);
-  --app-card-shadow-strong: 0 10px 26px rgba(17, 19, 28, 0.1);
-  --app-hairline: rgba(17, 19, 28, 0.07);
-}
-:root:not([data-theme="light"]) {
-  @media (prefers-color-scheme: dark) {
-    --app-card-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    --app-card-shadow-strong: 0 12px 30px rgba(0, 0, 0, 0.45);
-    --app-hairline: rgba(255, 255, 255, 0.08);
-  }
+/* A few app-wide conveniences */
+.ion-page ion-content {
+  --padding-bottom: 16px;
 }
 
-/* Press feedback: tappable cards depress slightly. Applied via class so it
-   never touches Ionic's own controls. */
+/* ── Surfaces ────────────────────────────────────────────────────────────────
+   One card treatment for the whole app. In Studio the hairline carries the
+   edge and the shadow is barely there; in Bold the shadow floats the card off
+   a dark ground and the border is a faint highlight. Both come from tokens, so
+   a card written once is correct in both themes. */
+.surface {
+  background: var(--app-surface);
+  border: var(--app-card-border);
+  border-radius: var(--app-r);
+  box-shadow: var(--app-shadow);
+}
+.surface-lg {
+  border-radius: var(--app-r-lg);
+}
+
+/* ── Press feedback ──────────────────────────────────────────────────────────
+   Applied by class so it never touches Ionic's own controls. */
 .tappable {
   transition: transform 0.14s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.14s ease;
   -webkit-tap-highlight-color: transparent;
@@ -61,19 +93,19 @@
 .tappable:active {
   transform: scale(0.975);
 }
-
-/* One card surface for the whole app. */
-.surface {
-  background: var(--ion-card-background);
-  border-radius: var(--app-radius);
-  box-shadow: var(--app-card-shadow);
+@media (prefers-reduced-motion: reduce) {
+  .tappable:active { transform: none; }
 }
 
-/* Content fades up as a screen settles. */
+/* ── Entrance ────────────────────────────────────────────────────────────────
+   Content settles up as a screen mounts. */
 @keyframes app-rise {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 .rise {
   animation: app-rise 0.32s cubic-bezier(0.2, 0, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: none; }
 }

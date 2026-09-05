@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
@@ -13,6 +13,7 @@ import { CatalogueCourse, Enrollment } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { SelectComponent, SelectOption } from '../../components/select/select.component';
 
 type Tab = 'mine' | 'catalogue';
 
@@ -23,7 +24,7 @@ type Tab = 'mine' | 'catalogue';
     IonContent, IonSegment, IonSegmentButton,
     IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
     IonRippleEffect, IonRefresher, IonRefresherContent, BrandHeaderComponent,
-    EmptyStateComponent,
+    EmptyStateComponent, SelectComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -44,6 +45,15 @@ type Tab = 'mine' | 'catalogue';
           placeholder="Search courses"
           [debounce]="300"
           (ionInput)="onSearch($any($event.target).value)"></ion-searchbar>
+        @if (tab() === 'catalogue' && categoryOptions().length > 2) {
+          <app-select
+            class="ca-filter"
+            [(value)]="category"
+            [options]="categoryOptions()"
+            label="Category"
+            placeholder="All categories"
+            searchPlaceholder="Search categories"></app-select>
+        }
       </div>
 
       <div class="pad">
@@ -80,8 +90,8 @@ type Tab = 'mine' | 'catalogue';
               (action)="switch('catalogue')"></app-empty-state>
           }
         } @else {
-          @if (catalogue().length) {
-            @for (c of catalogue(); track c.id) {
+          @if (visibleCatalogue().length) {
+            @for (c of visibleCatalogue(); track c.id) {
               <div class="row ion-activatable tappable rise" (click)="open(c.id)">
                 <ion-ripple-effect></ion-ripple-effect>
                 <div class="thumb" [style]="thumb(c.title)"><span>{{ initial(c.title) }}</span></div>
@@ -97,8 +107,10 @@ type Tab = 'mine' | 'catalogue';
           } @else {
             <app-empty-state
               icon="search"
-              [title]="query() ? 'No matches' : 'Nothing here yet'"
-              [message]="query() ? 'No courses match “' + query() + '”.' : 'No courses are available right now.'"></app-empty-state>
+              [title]="query() || category() ? 'No matches' : 'Nothing here yet'"
+              [message]="emptyMessage()"
+              [actionLabel]="category() ? 'Clear category' : ''"
+              (action)="category.set('')"></app-empty-state>
           }
         }
       </div>
@@ -106,9 +118,10 @@ type Tab = 'mine' | 'catalogue';
   `,
   styles: [`
     .ca-controls { padding: 2px 12px 0; }
-    .ca-search { --box-shadow: none; --background: var(--ion-item-background); padding: 8px 4px 2px; }
+    .ca-search { --box-shadow: none; --background: var(--app-field); --border-radius: var(--app-r-sm); padding: 8px 4px 2px; }
+    .ca-filter { display: block; padding: 4px 4px 2px; }
     .pad { padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
-    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border-radius: var(--app-radius-sm); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-card-shadow); }
+    .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-sm); padding: 12px; margin-bottom: 10px; box-shadow: var(--app-shadow); }
     .row-skeleton { box-shadow: none; }
     .sk-thumb { width: 52px; height: 52px; border-radius: 12px; flex: 0 0 auto; }
     .thumb { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
@@ -129,9 +142,31 @@ export class CoursesPage implements OnInit {
 
   readonly tab = signal<Tab>('mine');
   readonly query = signal('');
+  readonly category = signal('');
   readonly loading = signal(true);
   readonly mine = signal<Enrollment[]>([]);
   readonly catalogue = signal<CatalogueCourse[]>([]);
+
+  /** The catalogue's distinct categories, as select options ("All" first). */
+  readonly categoryOptions = computed<SelectOption[]>(() => {
+    const names = Array.from(
+      new Set(this.catalogue().map((c) => c.categoryName).filter((n): n is string => !!n)),
+    ).sort((a, b) => a.localeCompare(b));
+    return [{ value: '', label: 'All categories' }, ...names.map((n) => ({ value: n, label: n }))];
+  });
+
+  /** The catalogue narrowed to the chosen category (client-side). */
+  readonly visibleCatalogue = computed(() => {
+    const cat = this.category();
+    return cat ? this.catalogue().filter((c) => c.categoryName === cat) : this.catalogue();
+  });
+
+  readonly emptyMessage = computed(() => {
+    if (this.category()) {
+      return `No courses in “${this.category()}”${this.query() ? ` matching “${this.query()}”` : ''}.`;
+    }
+    return this.query() ? `No courses match “${this.query()}”.` : 'No courses are available right now.';
+  });
 
   readonly thumb = thumbStyle;
   readonly initial = initialOf;
@@ -175,6 +210,7 @@ export class CoursesPage implements OnInit {
   switch(tab: Tab): void {
     if (tab && tab !== this.tab()) {
       this.tab.set(tab);
+      this.category.set('');
       this.load$.next(undefined);
     }
   }

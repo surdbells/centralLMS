@@ -21,7 +21,12 @@
               { "glob": "**/*", "input": "src/assets", "output": "assets" },
               "src/manifest.webmanifest"
             ],
-            "styles": ["src/global.scss"],
+            "styles": [
+              "node_modules/@fontsource-variable/hanken-grotesk/index.css",
+              "node_modules/@fontsource-variable/figtree/index.css",
+              "node_modules/@fontsource-variable/bricolage-grotesque/index.css",
+              "src/global.scss"
+            ],
             "scripts": [],
             "allowedCommonJsDependencies": []
           },

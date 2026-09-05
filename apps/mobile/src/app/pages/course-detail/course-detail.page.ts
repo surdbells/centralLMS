@@ -9,6 +9,7 @@ import { LearnerService } from '../../core/learner.service';
 import { CourseDetails } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { SheetComponent } from '../../components/sheet/sheet.component';
 
 @Component({
   selector: 'app-course-detail',
@@ -16,7 +17,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
     IonIcon, IonButton, IonProgressBar, IonSkeletonText, IonRippleEffect, IonSpinner,
-    EmptyStateComponent,
+    EmptyStateComponent, SheetComponent,
   ],
   template: `
     <ion-header [translucent]="true">
@@ -58,11 +59,28 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
               {{ c.progressPercentage > 0 ? 'Continue' : 'Start course' }}
             </ion-button>
           } @else {
-            <ion-button expand="block" class="cta" (click)="enroll(c)" [disabled]="enrolling()">
-              @if (enrolling()) { <ion-spinner name="crescent"></ion-spinner> }
-              @else { Enrol — it's free }
+            <ion-button expand="block" class="cta" (click)="enrolOpen.set(true)">
+              Enrol — it's free
             </ion-button>
           }
+
+          <app-sheet [(open)]="enrolOpen" title="Enrol in this course" [subtitle]="c.title">
+            <div class="enrol-facts">
+              <span><ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon> Free</span>
+              <span><ion-icon name="list-outline" aria-hidden="true"></ion-icon> {{ lessonCount() }} lessons</span>
+              @if (mins(c.durationMinutes)) {
+                <span><ion-icon name="time-outline" aria-hidden="true"></ion-icon> {{ mins(c.durationMinutes) }}</span>
+              }
+            </div>
+            <p class="enrol-note muted">You'll be enrolled straight away and can start the first lesson right now.</p>
+            <ion-button actions expand="block" class="cta" (click)="enroll(c)" [disabled]="enrolling()">
+              @if (enrolling()) { <ion-spinner name="crescent"></ion-spinner> }
+              @else { Confirm enrolment }
+            </ion-button>
+            <ion-button actions expand="block" fill="clear" class="later" (click)="enrolOpen.set(false)">
+              Not now
+            </ion-button>
+          </app-sheet>
 
           @if (c.description) {
             <div class="section-title">About</div>
@@ -103,16 +121,21 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     .banner { height: 150px; display: grid; place-items: center; }
     .banner .mark { color: #fff; font-size: 3.4rem; font-weight: 800; opacity: .95; }
     .cat { margin: 16px 0 0; text-transform: uppercase; font-size: .72rem; letter-spacing: .04em; }
-    .title { margin: 4px 0 10px; font-size: 1.4rem; font-weight: 800; line-height: 1.2; }
+    .title { margin: 4px 0 10px; font-family: var(--app-font-display); font-size: 1.5rem; font-weight: var(--app-display-weight); line-height: 1.16; letter-spacing: var(--app-display-tracking); }
     .meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: .82rem; }
     .meta span { display: inline-flex; align-items: center; gap: 4px; }
     .prog { margin: 16px 0 4px; }
     .prog .muted { margin: 6px 0 0; font-size: .8rem; }
-    .cta { margin: 16px 0 4px; --border-radius: 12px; height: 48px; font-weight: 700; }
-    .section-title { font-size: 1.05rem; font-weight: 700; margin: 22px 0 10px; }
+    .cta { margin: 16px 0 4px; --border-radius: var(--app-r-btn); --background: var(--app-accent-fill); --box-shadow: var(--app-btn-shadow); height: 50px; font-weight: 700; }
+    .later { --color: var(--app-muted); margin: 2px 0 0; height: 44px; }
+    .enrol-facts { display: flex; flex-wrap: wrap; gap: 14px; color: var(--app-muted); font-size: .85rem; }
+    .enrol-facts span { display: inline-flex; align-items: center; gap: 5px; }
+    .enrol-facts ion-icon { font-size: 16px; }
+    .enrol-note { margin: 12px 0 0; line-height: 1.45; font-size: .9rem; }
+    .section-title { font-family: var(--app-font-display); font-size: 1.08rem; font-weight: 700; margin: 22px 0 10px; letter-spacing: var(--app-display-tracking); }
     .desc { margin: 0; color: var(--ion-text-color); opacity: .85; line-height: 1.5; white-space: pre-line; }
     .module { font-weight: 700; margin: 16px 0 8px; font-size: .95rem; }
-    .lesson { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border-radius: 12px; padding: 12px; margin-bottom: 8px; box-shadow: 0 3px 10px rgba(0,0,0,.04); }
+    .lesson { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-sm); padding: 12px; margin-bottom: 8px; box-shadow: var(--app-shadow); }
     .lesson.locked { opacity: .7; }
     .l-ic { font-size: 24px; flex: 0 0 auto; }
     .l-body { flex: 1; min-width: 0; }
@@ -133,6 +156,7 @@ export class CourseDetailPage implements OnInit {
   readonly course = signal<CourseDetails | null>(null);
   readonly loading = signal(true);
   readonly enrolling = signal(false);
+  readonly enrolOpen = signal(false);
 
   readonly thumb = thumbStyle;
   readonly initial = initialOf;
@@ -160,6 +184,7 @@ export class CourseDetailPage implements OnInit {
     this.learner.selfEnroll(c.courseId).subscribe({
       next: async () => {
         this.enrolling.set(false);
+        this.enrolOpen.set(false);
         await this.note('You are enrolled. Enjoy the course!');
         this.load();
       },

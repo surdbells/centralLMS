@@ -83,12 +83,12 @@ import { BrandingService } from '../../core/branding.service';
     .brand-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .brand-mark { width: 68px; height: 68px; margin: 0 auto 12px; border-radius: 20px; background: rgba(255,255,255,.16); display: grid; place-items: center; }
     .brand-mark ion-icon { font-size: 36px; color: #fff; }
-    .brand h1 { font-size: 1.4rem; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+    .brand h1 { font-family: var(--app-font-display); font-size: 1.55rem; font-weight: var(--app-display-weight); margin: 0; letter-spacing: var(--app-display-tracking); }
     .brand .muted { color: rgba(255,255,255,.82); margin-top: 4px; }
-    .login-card { background: var(--ion-card-background); border-radius: var(--app-radius); padding: 10px 12px 16px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
-    .field { --background: var(--ion-color-light, #f2f3f7); --border-radius: 12px; margin-top: 12px; --padding-start: 12px; }
-    .field ion-icon { color: var(--ion-color-medium); margin-right: 8px; }
-    .submit { margin-top: 18px; --border-radius: 12px; height: 48px; font-weight: 700; }
+    .login-card { background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-lg); padding: 10px 12px 16px; box-shadow: var(--app-shadow-lg); }
+    .field { --background: var(--app-field); --border-radius: var(--app-r-sm); margin-top: 12px; --padding-start: 12px; }
+    .field ion-icon { color: var(--app-muted); margin-right: 8px; }
+    .submit { margin-top: 18px; --border-radius: var(--app-r-btn); --background: var(--app-accent-fill); --box-shadow: var(--app-btn-shadow); height: 50px; font-weight: 700; }
     .err { display: block; margin: 12px 4px 0; }
     .foot { text-align: center; color: rgba(255,255,255,.75); margin-top: 18px; font-size: .82rem; }
   `],
