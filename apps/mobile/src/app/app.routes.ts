@@ -47,6 +47,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/leaderboard/leaderboard.page').then((m) => m.LeaderboardPage),
   },
+  {
+    path: 'certificates',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/certificates/certificates.page').then((m) => m.CertificatesPage),
+  },
   { path: '', redirectTo: 'tabs/home', pathMatch: 'full' },
   { path: '**', redirectTo: 'tabs/home' },
 ];

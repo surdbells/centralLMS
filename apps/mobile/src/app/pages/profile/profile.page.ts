@@ -37,7 +37,8 @@ import { ButtonComponent } from '../../components/button/button.component';
 
       <div class="pad">
         <app-list>
-          <app-item icon="ribbon-outline" button (tap)="go('/tabs/progress')">My progress &amp; certificates</app-item>
+          <app-item icon="cellular-outline" button (tap)="go('/tabs/progress')">My progress</app-item>
+          <app-item icon="ribbon-outline" button (tap)="go('/certificates')">Certificates</app-item>
           <app-item icon="trophy-outline" button (tap)="go('/leaderboard')">Leaderboard</app-item>
           <app-item icon="library-outline" button (tap)="go('/tabs/courses')">My courses</app-item>
         </app-list>

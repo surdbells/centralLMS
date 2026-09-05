@@ -4,6 +4,7 @@ import { catchError } from 'rxjs/operators';
 import { ApiClient } from './api';
 import {
   CatalogueCourse,
+  Certificate,
   CourseDetails,
   Enrollment,
   EnrollmentStatus,
@@ -74,6 +75,13 @@ export class LearnerService {
   /** The standings for a period ('all_time' | 'monthly' | 'weekly' | 'daily'). */
   leaderboard(period: string): Observable<LeaderboardResult> {
     return this.api.get<LeaderboardResult>('/leaderboard', { period });
+  }
+
+  /** This learner's certificates, in full. */
+  certificates(): Observable<Certificate[]> {
+    return this.api
+      .getPaged<Certificate>('/me/certificates', { perPage: 100 })
+      .pipe(map((page) => page.items));
   }
 }
 

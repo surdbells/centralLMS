@@ -76,6 +76,28 @@ export interface LearnerCertificate {
   daysRemaining: number | null;
 }
 
+/** A learner's certificate, in full — from GET /me/certificates. */
+export interface Certificate {
+  id: string;
+  number: string;
+  verificationCode: string;
+  source: string;
+  sourceLabel: string;
+  title: string;
+  score: number | null;
+  percentage: number | null;
+  grade: string | null;
+  status: string;
+  statusLabel: string;
+  isValid: boolean;
+  pdfUrl: string | null;
+  issuedAt: string | null;
+  validFrom: string | null;
+  validUntil: string | null;
+  daysRemaining: number | null;
+  learnerName: string | null;
+}
+
 export interface Deadline {
   enrollmentId: string;
   courseId: string;
