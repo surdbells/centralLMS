@@ -109,6 +109,25 @@ export interface Rank {
   points: number;
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  points: number;
+  avatarUrl: string | null;
+  department: string | null;
+  level: { name?: string } | null;
+  isViewer: boolean;
+}
+
+export interface LeaderboardResult {
+  period: string;
+  periodLabel: string;
+  entries: LeaderboardEntry[];
+  /** The viewer's standing, sent only when they fall off the end of the board. */
+  viewer: { rank: number; points: number } | null;
+}
+
 export interface Achievements {
   points: number;
   rank: Rank | null;

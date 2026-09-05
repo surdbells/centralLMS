@@ -7,6 +7,7 @@ import {
   CourseDetails,
   Enrollment,
   EnrollmentStatus,
+  LeaderboardResult,
   LearnerDashboard,
   Profile,
 } from './models';
@@ -68,6 +69,11 @@ export class LearnerService {
 
   profile(): Observable<Profile> {
     return this.api.get<Profile>('/me/profile');
+  }
+
+  /** The standings for a period ('all_time' | 'monthly' | 'weekly' | 'daily'). */
+  leaderboard(period: string): Observable<LeaderboardResult> {
+    return this.api.get<LeaderboardResult>('/leaderboard', { period });
   }
 }
 

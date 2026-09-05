@@ -103,7 +103,10 @@ import { ProgressComponent } from '../../components/progress/progress.component'
             <div class="act-head">
               <div class="section-title">Recent activity</div>
               @if (d.achievements?.rank; as r) {
-                <span class="rank-chip"><ion-icon name="trophy-outline"></ion-icon> #{{ r.rank }} · {{ r.points }} pts</span>
+                <button class="rank-chip tappable" (click)="goLeaderboard()">
+                  <ion-icon name="trophy-outline"></ion-icon> #{{ r.rank }} · {{ r.points }} pts
+                  <ion-icon name="chevron-forward" class="rc-chev"></ion-icon>
+                </button>
               }
             </div>
             @for (a of d.recentActivity; track $index) {
@@ -197,8 +200,9 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .stat .l { font-size: .64rem; color: var(--app-muted); }
     .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 18px 0 10px; }
     .act-head { display: flex; align-items: center; justify-content: space-between; }
-    .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--app-tag-ink); background: var(--app-tag-bg); padding: 5px 10px; border-radius: var(--app-r-pill); }
+    .rank-chip { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; color: var(--app-tag-ink); background: var(--app-tag-bg); padding: 5px 8px 5px 10px; border-radius: var(--app-r-pill); border: 0; cursor: pointer; }
     .rank-chip ion-icon { font-size: 14px; }
+    .rank-chip .rc-chev { font-size: 13px; opacity: .7; }
     .act { display: flex; align-items: center; gap: 12px; padding: 10px 2px; }
     .act + .act { border-top: 1px solid var(--app-hairline); }
     .act-ic { width: 40px; height: 40px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
@@ -323,5 +327,9 @@ export class HomePage implements OnInit {
 
   goCourses(): void {
     void this.router.navigateByUrl('/tabs/courses');
+  }
+
+  goLeaderboard(): void {
+    void this.router.navigateByUrl('/leaderboard');
   }
 }
