@@ -155,6 +155,51 @@ export interface Achievements {
   rank: Rank | null;
 }
 
+export interface LevelProgress {
+  points: number;
+  current: string | null;
+  next: string | null;
+  pointsToNext: number | null;
+  percentToNext: number;
+  atTop: boolean;
+}
+
+export interface PointBreakdown {
+  reason: string;
+  label: string;
+  points: number;
+}
+
+export interface GamificationBadge {
+  id: string;
+  name: string;
+  icon?: string | null;
+  description?: string | null;
+}
+
+/** GET /me/gamification — the learner's points, level, badges and breakdown. */
+export interface Gamification {
+  points: number;
+  level: LevelProgress;
+  breakdown: PointBreakdown[];
+  badges: GamificationBadge[];
+  badgeCount: number;
+  rank: { rank: number; points: number; name?: string } | null;
+}
+
+/** One entry in the points ledger, from GET /me/gamification/history. */
+export interface PointEvent {
+  id: string;
+  points: number;
+  reason: string;
+  reasonLabel: string;
+  description: string | null;
+  subjectType: string | null;
+  subjectId: string | null;
+  subjectTitle: string | null;
+  earnedAt: string | null;
+}
+
 export interface LearnerDashboard {
   overview: LearnerOverview;
   streak: Streak;

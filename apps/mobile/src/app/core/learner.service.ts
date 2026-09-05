@@ -8,8 +8,10 @@ import {
   CourseDetails,
   Enrollment,
   EnrollmentStatus,
+  Gamification,
   LeaderboardResult,
   LearnerDashboard,
+  PointEvent,
   Profile,
 } from './models';
 
@@ -81,6 +83,18 @@ export class LearnerService {
   certificates(): Observable<Certificate[]> {
     return this.api
       .getPaged<Certificate>('/me/certificates', { perPage: 100 })
+      .pipe(map((page) => page.items));
+  }
+
+  /** Points, level, badges and the points breakdown. */
+  gamification(): Observable<Gamification> {
+    return this.api.get<Gamification>('/me/gamification');
+  }
+
+  /** The points ledger — where each award came from. */
+  pointsHistory(): Observable<PointEvent[]> {
+    return this.api
+      .getPaged<PointEvent>('/me/gamification/history', { perPage: 100 })
       .pipe(map((page) => page.items));
   }
 }
