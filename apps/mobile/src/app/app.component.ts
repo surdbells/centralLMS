@@ -11,9 +11,11 @@ import {
   documentTextOutline, ellipseOutline, star, alertCircleOutline, refresh,
   hourglassOutline, playOutline, listOutline, ribbonSharp, cloudOfflineOutline,
   chevronForwardOutline, briefcaseOutline, businessOutline, cellularOutline,
-  helpCircleOutline,
+  helpCircleOutline, alertCircle, warning, informationCircle, close,
+  eyeOutline, eyeOffOutline, closeCircle,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
+import { ToastHostComponent } from './components/toast/toast-host.component';
 
 addIcons({
   home, homeOutline, library, libraryOutline, ribbon, ribbonOutline,
@@ -24,14 +26,15 @@ addIcons({
   documentTextOutline, ellipseOutline, star, alertCircleOutline, refresh,
   hourglassOutline, playOutline, listOutline, ribbonSharp, cloudOfflineOutline,
   chevronForwardOutline, briefcaseOutline, businessOutline, cellularOutline,
-  helpCircleOutline,
+  helpCircleOutline, alertCircle, warning, informationCircle, close,
+  eyeOutline, eyeOffOutline, closeCircle,
 });
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [IonApp, IonRouterOutlet],
-  template: `<ion-app><ion-router-outlet></ion-router-outlet></ion-app>`,
+  imports: [IonApp, IonRouterOutlet, ToastHostComponent],
+  template: `<ion-app><ion-router-outlet></ion-router-outlet></ion-app><app-toast-host></app-toast-host>`,
 })
 export class AppComponent implements OnInit {
   // Instantiated here so it starts watching the session and paints the

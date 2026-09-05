@@ -2,16 +2,17 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  IonContent, IonInput, IonButton, IonSpinner, IonIcon, IonItem, IonNote,
+  IonContent, IonButton, IonSpinner, IonIcon,
 } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth.service';
 import { ApiError } from '../../core/api';
 import { BrandingService } from '../../core/branding.service';
+import { FieldComponent } from '../../components/field/field.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, IonContent, IonInput, IonButton, IonSpinner, IonIcon, IonItem, IonNote],
+  imports: [FormsModule, IonContent, IonButton, IonSpinner, IonIcon, FieldComponent],
   template: `
     <ion-content [fullscreen]="true" class="login-bg">
       @if (branding.loginBackgroundUrl(); as bg) {
@@ -31,33 +32,31 @@ import { BrandingService } from '../../core/branding.service';
         </div>
 
         <div class="login-card">
-          <ion-item lines="none" class="field">
-            <ion-icon slot="start" name="mail-outline" aria-hidden="true"></ion-icon>
-            <ion-input
-              label="Email"
-              labelPlacement="stacked"
-              type="email"
-              autocomplete="email"
-              inputmode="email"
-              placeholder="you@example.com"
-              [(ngModel)]="email"
-              (keyup.enter)="submit()"></ion-input>
-          </ion-item>
+          <app-field
+            class="field"
+            label="Email"
+            type="email"
+            icon="mail-outline"
+            placeholder="you@example.com"
+            autocomplete="email"
+            inputmode="email"
+            enterkeyhint="next"
+            [(ngModel)]="email"
+            (enter)="submit()"></app-field>
 
-          <ion-item lines="none" class="field">
-            <ion-icon slot="start" name="lock-closed-outline" aria-hidden="true"></ion-icon>
-            <ion-input
-              label="Password"
-              labelPlacement="stacked"
-              type="password"
-              autocomplete="current-password"
-              placeholder="Your password"
-              [(ngModel)]="password"
-              (keyup.enter)="submit()"></ion-input>
-          </ion-item>
+          <app-field
+            class="field"
+            label="Password"
+            type="password"
+            icon="lock-closed-outline"
+            placeholder="Your password"
+            autocomplete="current-password"
+            enterkeyhint="go"
+            [(ngModel)]="password"
+            (enter)="submit()"></app-field>
 
           @if (error()) {
-            <ion-note color="danger" class="err">{{ error() }}</ion-note>
+            <p class="err">{{ error() }}</p>
           }
 
           <ion-button expand="block" class="submit" (click)="submit()" [disabled]="busy()">
@@ -86,10 +85,9 @@ import { BrandingService } from '../../core/branding.service';
     .brand h1 { font-family: var(--app-font-display); font-size: 1.55rem; font-weight: var(--app-display-weight); margin: 0; letter-spacing: var(--app-display-tracking); }
     .brand .muted { color: rgba(255,255,255,.82); margin-top: 4px; }
     .login-card { background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-lg); padding: 10px 12px 16px; box-shadow: var(--app-shadow-lg); }
-    .field { --background: var(--app-field); --border-radius: var(--app-r-sm); margin-top: 12px; --padding-start: 12px; }
-    .field ion-icon { color: var(--app-muted); margin-right: 8px; }
+    .field { display: block; margin-top: 12px; }
     .submit { margin-top: 18px; --border-radius: var(--app-r-btn); --background: var(--app-accent-fill); --box-shadow: var(--app-btn-shadow); height: 50px; font-weight: 700; }
-    .err { display: block; margin: 12px 4px 0; }
+    .err { margin: 12px 4px 0; color: var(--ion-color-danger); font-size: .85rem; font-weight: 500; }
     .foot { text-align: center; color: rgba(255,255,255,.75); margin-top: 18px; font-size: .82rem; }
   `],
 })

@@ -40,6 +40,8 @@
   --ion-color-warning-rgb: 224, 138, 43;
   --ion-color-danger: #d64545;
   --ion-color-danger-rgb: 214, 69, 69;
+  /* Info tone (Ionic has no default) — a calm blue for informational toasts. */
+  --app-info: #2563eb;
 
   /* Ionic surfaces */
   --ion-background-color: #ffffff;
@@ -116,6 +118,7 @@
   --ion-color-success: #33c07a;
   --ion-color-warning: #f0a94a;
   --ion-color-danger: #ff6a6a;
+  --app-info: #7aa2ff;
 
   --ion-background-color: #0e0b1f;
   --ion-background-color-rgb: 14, 11, 31;

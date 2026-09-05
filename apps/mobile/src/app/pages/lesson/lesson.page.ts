@@ -3,12 +3,13 @@ import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-  IonIcon, IonButton, IonSpinner, IonSkeletonText, ToastController,
+  IonIcon, IonButton, IonSpinner, IonSkeletonText,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { Lesson } from '../../core/models';
 import { minutesLabel } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { ToastService } from '../../components/toast/toast.service';
 
 @Component({
   selector: 'app-lesson',
@@ -81,7 +82,7 @@ export class LessonPage implements OnInit, OnDestroy {
   private readonly learner = inject(LearnerService);
   private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
-  private readonly toast = inject(ToastController);
+  private readonly toast = inject(ToastService);
 
   private backTimer?: ReturnType<typeof setTimeout>;
 
@@ -119,17 +120,15 @@ export class LessonPage implements OnInit, OnDestroy {
   complete(): void {
     this.saving.set(true);
     this.learner.markLessonComplete(this.courseId, this.lessonId).subscribe({
-      next: async () => {
+      next: () => {
         this.saving.set(false);
         this.markedDone.set(true);
-        const t = await this.toast.create({ message: 'Lesson completed 🎉', duration: 1600, position: 'bottom', color: 'success' });
-        await t.present();
+        this.toast.success('Lesson completed 🎉', { duration: 1600 });
         this.backTimer = setTimeout(() => this.location.back(), 900);
       },
-      error: async () => {
+      error: () => {
         this.saving.set(false);
-        const t = await this.toast.create({ message: "Couldn't save progress. Try again.", duration: 2200, position: 'bottom', color: 'danger' });
-        await t.present();
+        this.toast.error("Couldn't save progress. Try again.");
       },
     });
   }

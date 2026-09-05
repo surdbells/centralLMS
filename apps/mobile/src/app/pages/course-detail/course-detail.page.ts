@@ -3,13 +3,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
   IonIcon, IonButton, IonProgressBar, IonSkeletonText, IonRippleEffect,
-  IonSpinner, ToastController,
+  IonSpinner,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { CourseDetails } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { SheetComponent } from '../../components/sheet/sheet.component';
+import { ToastService, ToastVariant } from '../../components/toast/toast.service';
 
 @Component({
   selector: 'app-course-detail',
@@ -150,7 +151,7 @@ export class CourseDetailPage implements OnInit {
   private readonly learner = inject(LearnerService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly toast = inject(ToastController);
+  private readonly toast = inject(ToastService);
 
   private courseId = '';
   readonly course = signal<CourseDetails | null>(null);
@@ -182,22 +183,22 @@ export class CourseDetailPage implements OnInit {
   enroll(c: CourseDetails): void {
     this.enrolling.set(true);
     this.learner.selfEnroll(c.courseId).subscribe({
-      next: async () => {
+      next: () => {
         this.enrolling.set(false);
         this.enrolOpen.set(false);
-        await this.note('You are enrolled. Enjoy the course!');
+        this.note('You are enrolled. Enjoy the course!', 'success');
         this.load();
       },
-      error: async () => {
+      error: () => {
         this.enrolling.set(false);
-        await this.note("Couldn't enrol just now. Try again.", 'danger');
+        this.note("Couldn't enrol just now. Try again.", 'error');
       },
     });
   }
 
-  async openLesson(c: CourseDetails, lessonId: string): Promise<void> {
+  openLesson(c: CourseDetails, lessonId: string): void {
     if (!c.isEnrolled) {
-      await this.note('Enrol to start the lessons.');
+      this.note('Enrol to start the lessons.');
       return;
     }
     void this.router.navigate(['/courses', c.courseId, 'lessons', lessonId]);
@@ -208,7 +209,7 @@ export class CourseDetailPage implements OnInit {
     if (next) {
       void this.router.navigate(['/courses', c.courseId, 'lessons', next]);
     } else {
-      void this.note('This course has no lessons yet.');
+      this.note('This course has no lessons yet.');
     }
   }
 
@@ -231,8 +232,7 @@ export class CourseDetailPage implements OnInit {
     return map[t] ?? 'Lesson';
   }
 
-  private async note(message: string, color = 'dark'): Promise<void> {
-    const t = await this.toast.create({ message, duration: 2200, position: 'bottom', color });
-    await t.present();
+  private note(message: string, variant: ToastVariant = 'info'): void {
+    this.toast.show(variant, message);
   }
 }
