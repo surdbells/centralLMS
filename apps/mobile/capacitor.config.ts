@@ -16,13 +16,14 @@ const config: CapacitorConfig = {
   webDir: 'www',
   plugins: {
     SplashScreen: {
-      // The app hides this as soon as Angular has bootstrapped (see the web
-      // app's native initializer), for a snappy start. autoHide stays on as a
-      // safety net with a short cap, so a JS failure early in boot can never
-      // leave the splash stuck on screen.
+      // The app hides this as soon as Angular has bootstrapped (see the app's
+      // native initializer), for a snappy start. autoHide stays on as a safety
+      // net with a short cap, so a JS failure early in boot can never leave the
+      // splash stuck on screen. The brand indigo matches the generated splash
+      // art so there is no flash of a different colour behind it.
       launchAutoHide: true,
       launchShowDuration: 1500,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#3316a6',
       showSpinner: false,
       androidScaleType: 'CENTER_CROP',
     },

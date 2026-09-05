@@ -14,7 +14,10 @@
     "open:android": "cap open android",
     "open:ios": "cap open ios",
     "run:android": "cap run android",
-    "doctor": "cap doctor"
+    "doctor": "cap doctor",
+    "art": "node scripts/generate-source-art.mjs",
+    "assets": "capacitor-assets generate --iconBackgroundColor '#3316a6' --iconBackgroundColorDark '#161c2b' --splashBackgroundColor '#3316a6' --splashBackgroundColorDark '#0f1420'",
+    "brand": "pnpm run art && pnpm run assets"
   },
   "dependencies": {
     "@angular/animations": "^19.2.11",
@@ -41,7 +44,9 @@
     "@angular-devkit/build-angular": "^19.2.7",
     "@angular/cli": "^19.2.0",
     "@angular/compiler-cli": "^19.2.0",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.1",
+    "sharp": "^0.33.5",
     "typescript": "~5.7.2"
   }
 }

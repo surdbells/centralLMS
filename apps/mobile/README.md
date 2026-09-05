@@ -50,6 +50,23 @@ pnpm --filter @central/mobile exec cap add android
 pnpm --filter @central/mobile exec cap add ios
 ```
 
+## App icon & splash
+
+The branded icon and splash (a graduation-cap mark on the brand indigo) are
+generated from source art in `assets/`. That art is itself generated from an
+SVG by `scripts/generate-source-art.mjs`, so the whole chain is reproducible:
+
+```bash
+pnpm --filter @central/mobile brand   # regenerate the source art, then fan it
+                                       # out into the native projects + web
+```
+
+`brand` runs `art` (SVG → the `assets/*.png` sources + the web favicon) then
+`assets` (`@capacitor/assets`, which writes every platform size into `android/`,
+`ios/` and the PWA icons). Edit the SVG in the script to change the mark. The
+native output lands in the generated (uncommitted) native projects, so re-run
+`brand` after `cap add`.
+
 Producing an installable **APK/IPA** needs the Android SDK (`ANDROID_HOME`) for
 Android and macOS + Xcode for iOS — neither builds on a bare Windows/Linux box.
 
@@ -59,5 +76,5 @@ Android and macOS + Xcode for iOS — neither builds on a bare Windows/Linux box
   the lesson and records completion; rich content rendering is the next step.
 - **Token refresh** — a 401 currently returns you to sign-in; a silent refresh
   using the stored refresh token can slot into `core/auth.interceptor.ts`.
-- **App icon & splash art**, push notifications, deep links, offline caching.
+- Push notifications, deep links, offline caching.
 - More of the learner web module (paths, skills, self-assessment, notes).
