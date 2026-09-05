@@ -18,7 +18,8 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              { "glob": "**/*", "input": "src/assets", "output": "assets" }
+              { "glob": "**/*", "input": "src/assets", "output": "assets" },
+              "src/manifest.webmanifest"
             ],
             "styles": ["src/global.scss"],
             "scripts": [],

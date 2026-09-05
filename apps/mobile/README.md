@@ -61,11 +61,17 @@ pnpm --filter @central/mobile brand   # regenerate the source art, then fan it
                                        # out into the native projects + web
 ```
 
-`brand` runs `art` (SVG → the `assets/*.png` sources + the web favicon) then
+`brand` runs `art` (SVG → the `assets/*.png` sources + the web favicon), then
 `assets` (`@capacitor/assets`, which writes every platform size into `android/`,
-`ios/` and the PWA icons). Edit the SVG in the script to change the mark. The
-native output lands in the generated (uncommitted) native projects, so re-run
-`brand` after `cap add`.
+`ios/` and the PWA icons and updates `src/manifest.webmanifest`), then
+`finalize-manifest.mjs` (which corrects the manifest icon types `@capacitor/assets`
+leaves as `image/png`). Edit the SVG in the script to change the mark. The native
+output lands in the generated (uncommitted) native projects, so re-run `brand`
+after `cap add`.
+
+The web build is also an **installable PWA**: `src/manifest.webmanifest` (name,
+theme colour, standalone display, the icon set) is linked from `index.html` and
+copied to the build root, so `www/` can be served and installed to a home screen.
 
 Producing an installable **APK/IPA** needs the Android SDK (`ANDROID_HOME`) for
 Android and macOS + Xcode for iOS — neither builds on a bare Windows/Linux box.

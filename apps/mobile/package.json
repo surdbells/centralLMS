@@ -16,8 +16,8 @@
     "run:android": "cap run android",
     "doctor": "cap doctor",
     "art": "node scripts/generate-source-art.mjs",
-    "assets": "capacitor-assets generate --iconBackgroundColor '#3316a6' --iconBackgroundColorDark '#161c2b' --splashBackgroundColor '#3316a6' --splashBackgroundColorDark '#0f1420'",
-    "brand": "pnpm run art && pnpm run assets"
+    "assets": "capacitor-assets generate --pwaManifestPath src/manifest.webmanifest --iconBackgroundColor '#3316a6' --iconBackgroundColorDark '#161c2b' --splashBackgroundColor '#3316a6' --splashBackgroundColorDark '#0f1420'",
+    "brand": "pnpm run art && pnpm run assets && node scripts/finalize-manifest.mjs"
   },
   "dependencies": {
     "@angular/animations": "^19.2.11",
