@@ -1,9 +1,9 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonButton, IonList,
-  IonItem, IonLabel, IonNote,
+  IonContent, IonIcon, IonButton, IonList, IonItem, IonLabel, IonNote,
 } from '@ionic/angular/standalone';
+import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { LearnerService } from '../../core/learner.service';
 import { AuthService } from '../../core/auth.service';
 import { SessionStore } from '../../core/session';
@@ -14,15 +14,13 @@ import { initialOf } from '../../core/ui';
   selector: 'app-profile',
   standalone: true,
   imports: [
-    IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonButton, IonList,
-    IonItem, IonLabel, IonNote,
+    IonContent, IonIcon, IonButton, IonList, IonItem, IonLabel, IonNote,
+    BrandHeaderComponent,
   ],
   template: `
-    <ion-header [translucent]="true">
-      <ion-toolbar><ion-title>Profile</ion-title></ion-toolbar>
-    </ion-header>
-
     <ion-content [fullscreen]="true">
+      <app-brand-header title="Profile"></app-brand-header>
+
       <div class="head">
         <div class="avatar">{{ initial(name()) }}</div>
         <h1>{{ name() }}</h1>
@@ -69,7 +67,7 @@ import { initialOf } from '../../core/ui';
     </ion-content>
   `,
   styles: [`
-    .head { text-align: center; padding: calc(env(safe-area-inset-top) + 12px) 16px 16px; }
+    .head { text-align: center; padding: 8px 16px 16px; }
     .avatar { width: 84px; height: 84px; border-radius: 26px; margin: 0 auto 12px; display: grid; place-items: center; color: #fff; font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade)); }
     .head h1 { margin: 0; font-size: 1.3rem; font-weight: 800; }
     .head .email { margin: 4px 0 0; color: var(--ion-color-medium); font-size: .9rem; }

@@ -6,6 +6,7 @@ import {
 } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth.service';
 import { ApiError } from '../../core/api';
+import { BrandingService } from '../../core/branding.service';
 
 @Component({
   selector: 'app-login',
@@ -13,10 +14,19 @@ import { ApiError } from '../../core/api';
   imports: [FormsModule, IonContent, IonInput, IonButton, IonSpinner, IonIcon, IonItem, IonNote],
   template: `
     <ion-content [fullscreen]="true" class="login-bg">
+      @if (branding.loginBackgroundUrl(); as bg) {
+        <div class="login-photo" [style.background-image]="'url(' + bg + ')'"></div>
+      }
+      <div class="login-scrim"></div>
+
       <div class="login-wrap">
         <div class="brand">
-          <div class="brand-mark"><ion-icon name="school-outline"></ion-icon></div>
-          <h1>Central LMS</h1>
+          @if (branding.logoUrl(); as logo) {
+            <div class="brand-logo"><img [src]="logo" [alt]="branding.organisation() || 'Logo'" /></div>
+          } @else {
+            <div class="brand-mark"><ion-icon name="school-outline"></ion-icon></div>
+          }
+          <h1>{{ branding.organisation() || 'Central LMS' }}</h1>
           <p class="muted">Sign in to keep learning</p>
         </div>
 
@@ -61,13 +71,20 @@ import { ApiError } from '../../core/api';
     </ion-content>
   `,
   styles: [`
-    .login-bg { --background: linear-gradient(180deg, var(--ion-color-primary) 0%, var(--ion-color-primary-shade) 100%); }
-    .login-wrap { min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); }
+    .login-bg { --background: var(--brand-primary, var(--ion-color-primary)); }
+    .login-photo { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .32; }
+    .login-scrim { position: absolute; inset: 0;
+      background: linear-gradient(180deg,
+        color-mix(in srgb, var(--brand-primary, #2400a0) 62%, transparent) 0%,
+        var(--brand-primary-shade, var(--ion-color-primary-shade)) 82%); }
+    .login-wrap { position: relative; z-index: 1; min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); }
     .brand { text-align: center; color: #fff; margin-bottom: 24px; }
+    .brand-logo { width: 116px; height: 116px; margin: 0 auto 16px; border-radius: 28px; background: #fff; display: grid; place-items: center; padding: 16px; box-shadow: 0 18px 40px rgba(0,0,0,.28); }
+    .brand-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .brand-mark { width: 68px; height: 68px; margin: 0 auto 12px; border-radius: 20px; background: rgba(255,255,255,.16); display: grid; place-items: center; }
     .brand-mark ion-icon { font-size: 36px; color: #fff; }
-    .brand h1 { font-size: 1.6rem; font-weight: 800; margin: 0; }
-    .brand .muted { color: rgba(255,255,255,.8); margin-top: 4px; }
+    .brand h1 { font-size: 1.4rem; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+    .brand .muted { color: rgba(255,255,255,.82); margin-top: 4px; }
     .login-card { background: var(--ion-card-background); border-radius: var(--app-radius); padding: 10px 12px 16px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
     .field { --background: var(--ion-color-light, #f2f3f7); --border-radius: 12px; margin-top: 12px; --padding-start: 12px; }
     .field ion-icon { color: var(--ion-color-medium); margin-right: 8px; }
@@ -79,6 +96,7 @@ import { ApiError } from '../../core/api';
 export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  readonly branding = inject(BrandingService);
 
   email = '';
   password = '';

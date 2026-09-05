@@ -4,13 +4,14 @@ import { Router } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import {
-  IonContent, IonHeader, IonToolbar, IonTitle, IonSegment, IonSegmentButton,
+  IonContent, IonSegment, IonSegmentButton,
   IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
   IonRippleEffect, IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { CatalogueCourse, Enrollment } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
+import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 
 type Tab = 'mine' | 'catalogue';
 
@@ -18,34 +19,30 @@ type Tab = 'mine' | 'catalogue';
   selector: 'app-courses',
   standalone: true,
   imports: [
-    IonContent, IonHeader, IonToolbar, IonTitle, IonSegment, IonSegmentButton,
+    IonContent, IonSegment, IonSegmentButton,
     IonLabel, IonSearchbar, IonIcon, IonProgressBar, IonSkeletonText,
-    IonRippleEffect, IonRefresher, IonRefresherContent,
+    IonRippleEffect, IonRefresher, IonRefresherContent, BrandHeaderComponent,
   ],
   template: `
-    <ion-header [translucent]="true">
-      <ion-toolbar>
-        <ion-title>Courses</ion-title>
-      </ion-toolbar>
-      <ion-toolbar>
-        <ion-segment [value]="tab()" (ionChange)="switch($any($event.detail.value))">
-          <ion-segment-button value="mine"><ion-label>My Courses</ion-label></ion-segment-button>
-          <ion-segment-button value="catalogue"><ion-label>Catalogue</ion-label></ion-segment-button>
-        </ion-segment>
-      </ion-toolbar>
-      <ion-toolbar>
-        <ion-searchbar
-          [value]="query()"
-          placeholder="Search courses"
-          [debounce]="300"
-          (ionInput)="onSearch($any($event.target).value)"></ion-searchbar>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content [fullscreen]="true">
       <ion-refresher slot="fixed" (ionRefresh)="reload($event)">
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
+
+      <app-brand-header title="Courses"></app-brand-header>
+
+      <div class="ca-controls">
+        <ion-segment [value]="tab()" (ionChange)="switch($any($event.detail.value))">
+          <ion-segment-button value="mine"><ion-label>My Courses</ion-label></ion-segment-button>
+          <ion-segment-button value="catalogue"><ion-label>Catalogue</ion-label></ion-segment-button>
+        </ion-segment>
+        <ion-searchbar
+          class="ca-search"
+          [value]="query()"
+          placeholder="Search courses"
+          [debounce]="300"
+          (ionInput)="onSearch($any($event.target).value)"></ion-searchbar>
+      </div>
 
       <div class="pad">
         @if (loading()) {
@@ -99,7 +96,9 @@ type Tab = 'mine' | 'catalogue';
     </ion-content>
   `,
   styles: [`
-    .pad { padding: 12px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .ca-controls { padding: 2px 12px 0; }
+    .ca-search { --box-shadow: none; --background: var(--ion-item-background); padding: 8px 4px 2px; }
+    .pad { padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); }
     .row { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--ion-card-background); border-radius: 14px; padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
     .thumb { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; flex: 0 0 auto; }
     .thumb span { color: #fff; font-weight: 800; font-size: 1.3rem; }

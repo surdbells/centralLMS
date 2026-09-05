@@ -1,27 +1,25 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import {
-  IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonSkeletonText,
-  IonRefresher, IonRefresherContent,
+  IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { LearnerDashboard } from '../../core/models';
+import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 
 @Component({
   selector: 'app-progress',
   standalone: true,
   imports: [
-    IonContent, IonHeader, IonToolbar, IonTitle, IonIcon, IonSkeletonText,
-    IonRefresher, IonRefresherContent,
+    IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
+    BrandHeaderComponent,
   ],
   template: `
-    <ion-header [translucent]="true">
-      <ion-toolbar><ion-title>Progress</ion-title></ion-toolbar>
-    </ion-header>
-
     <ion-content [fullscreen]="true">
       <ion-refresher slot="fixed" (ionRefresh)="reload($event)">
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
+
+      <app-brand-header title="Progress"></app-brand-header>
 
       <div class="pad">
         @if (loading()) {

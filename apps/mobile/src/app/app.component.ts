@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
+import { BrandingService } from './core/branding.service';
 import {
   home, homeOutline, library, libraryOutline, ribbon, ribbonOutline,
   person, personOutline, bookOutline, timeOutline, chevronForward,
@@ -33,6 +34,10 @@ addIcons({
   template: `<ion-app><ion-router-outlet></ion-router-outlet></ion-app>`,
 })
 export class AppComponent implements OnInit {
+  // Instantiated here so it starts watching the session and paints the
+  // remembered organisation's colours from the very first frame.
+  private readonly branding = inject(BrandingService);
+
   ngOnInit(): void {
     void initNative();
   }

@@ -6,6 +6,7 @@ import {
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { SessionStore } from '../../core/session';
+import { BrandingService } from '../../core/branding.service';
 import { LearnerDashboard } from '../../core/models';
 import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
 
@@ -23,6 +24,12 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
       </ion-refresher>
 
       <div class="hero">
+        <div class="hero-top">
+          <span class="hero-org">{{ branding.organisation() || 'Central LMS' }}</span>
+          @if (branding.logoUrl(); as logo) {
+            <div class="hero-logo"><img [src]="logo" [alt]="branding.organisation() || 'Logo'" /></div>
+          }
+        </div>
         <p class="hi">Hello, {{ name() }} 👋</p>
         <h1>Keep it going.</h1>
       </div>
@@ -124,9 +131,13 @@ import { firstName, initialOf, minutesLabel, thumbStyle } from '../../core/ui';
     </ion-content>
   `,
   styles: [`
-    .hero { padding: calc(env(safe-area-inset-top) + 20px) 20px 18px; background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade)); color: #fff; border-radius: 0 0 24px 24px; }
-    .hero .hi { margin: 0; opacity: .85; font-size: .95rem; }
-    .hero h1 { margin: 2px 0 0; font-size: 1.7rem; font-weight: 800; }
+    .hero { padding: calc(env(safe-area-inset-top) + 16px) 20px 20px; background: linear-gradient(135deg, var(--brand-primary, var(--ion-color-primary)), var(--brand-primary-shade, var(--ion-color-primary-shade))); color: #fff; border-radius: 0 0 26px 26px; }
+    .hero-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .hero-org { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hero-logo { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 12px; background: #fff; display: grid; place-items: center; padding: 5px; box-shadow: 0 6px 16px rgba(0,0,0,.16); }
+    .hero-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .hero .hi { margin: 0; opacity: .9; font-size: .98rem; }
+    .hero h1 { margin: 3px 0 0; font-size: 1.7rem; font-weight: 800; letter-spacing: -.01em; }
     .pad { padding: 0 16px; }
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 16px; margin: -22px 0 8px; }
     .stat { background: var(--ion-card-background); border-radius: 14px; padding: 12px 6px; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
@@ -159,6 +170,7 @@ export class HomePage implements OnInit {
   private readonly learner = inject(LearnerService);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
+  readonly branding = inject(BrandingService);
 
   readonly data = signal<LearnerDashboard | null>(null);
   readonly loading = signal(true);
