@@ -63,6 +63,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/achievements/achievements.page').then((m) => m.AchievementsPage),
   },
   {
+    path: 'assessments',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/assessments/assessments.page').then((m) => m.AssessmentsPage),
+  },
+  {
+    path: 'assessments/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/assessments/assessment-detail.page').then((m) => m.AssessmentDetailPage),
+  },
+  {
     path: 'paths',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/paths/paths.page').then((m) => m.PathsPage),

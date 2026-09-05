@@ -15,7 +15,8 @@ import {
   eyeOutline, eyeOffOutline, closeCircle, searchOutline, chevronDown,
   checkmark, pricetagOutline, play, videocamOutline, imageOutline,
   documentOutline, musicalNotesOutline, folderOpenOutline, medalOutline,
-  trailSignOutline, layersOutline, lockClosed,
+  trailSignOutline, layersOutline, lockClosed, clipboardOutline,
+  shieldCheckmarkOutline, desktopOutline,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
 import { ToastHostComponent } from './components/toast/toast-host.component';
@@ -33,7 +34,8 @@ addIcons({
   eyeOutline, eyeOffOutline, closeCircle, searchOutline, chevronDown,
   checkmark, pricetagOutline, play, videocamOutline, imageOutline,
   documentOutline, musicalNotesOutline, folderOpenOutline, medalOutline,
-  trailSignOutline, layersOutline, lockClosed,
+  trailSignOutline, layersOutline, lockClosed, clipboardOutline,
+  shieldCheckmarkOutline, desktopOutline,
 });
 
 @Component({
