@@ -323,7 +323,7 @@ export class HomePage implements OnInit {
   readonly avatarUrl = signal<string | null>(null);
 
   readonly quickActions = [
-    { label: 'Resources', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
+    { label: 'My Courses', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
     { label: 'Assessments', icon: 'clipboard-outline', tone: 'green', url: '/assessments' },
     { label: 'Certificates', icon: 'ribbon-outline', tone: 'purple', url: '/certificates' },
     { label: 'Achievements', icon: 'medal-outline', tone: 'amber', url: '/achievements' },
