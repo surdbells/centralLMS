@@ -1,13 +1,19 @@
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { Observable, catchError, map, of } from 'rxjs';
 import { ApiClient } from './api';
 import { SessionStore } from './session';
 
 interface PublicBranding {
+  /** The resolved tenant — null when a code named no organisation, or none is set. */
+  tenantId: string | null;
   organisation: string | null;
   branding: Partial<Record<string, string | boolean>>;
 }
 
 interface StoredBrand {
+  tenantId: string | null;
+  /** The institution code the learner typed, so the brand refreshes on relaunch. */
+  code: string | null;
   organisation: string | null;
   logoUrl: string | null;
   loginBackgroundUrl: string | null;
@@ -17,6 +23,17 @@ interface StoredBrand {
 }
 
 const STORAGE_KEY = 'central.mobile.brand';
+
+/** The Ionic accent family we paint per-tenant — cleared to fall back to defaults. */
+const PAINTED = [
+  '--ion-color-primary', '--ion-color-primary-rgb', '--ion-color-primary-shade',
+  '--ion-color-primary-tint', '--ion-color-primary-contrast', '--brand-primary', '--brand-primary-shade',
+];
+
+const BLANK: StoredBrand = {
+  tenantId: null, code: null, organisation: null, logoUrl: null,
+  loginBackgroundUrl: null, primary: null, accent: null, secondary: null,
+};
 
 /**
  * Wears the organisation's identity — its name, logo and colours — the way the
@@ -39,17 +56,32 @@ export class BrandingService {
   readonly primary = signal<string | null>(null);
   readonly accent = signal<string | null>(null);
 
+  /** The tenant the app is currently wearing (from a code, a default, or a session). */
+  readonly tenantId = signal<string | null>(null);
+  /** The institution code that resolved this tenant, if the learner named one. */
+  readonly code = signal<string | null>(null);
+  /** True once we know the tenant — either resolved, defaulted, or confirmed absent. */
+  readonly resolved = signal(false);
+  /** Whether an organisation is in hand; when false, the app needs an institution code. */
+  readonly hasTenant = computed(() => this.tenantId() !== null);
+
   private applied: string | null = null;
+  private markReady!: () => void;
+  private readonly readyPromise = new Promise<void>((resolve) => (this.markReady = resolve));
 
   constructor() {
     // Paint the remembered brand immediately, so sign-in is already branded.
     this.applyStored();
 
-    // Signed out (the sign-in screen): ask for the deployment's default
-    // organisation. On an on-prem or single-tenant install the server returns
-    // that org's branding; on a multi-tenant cloud it returns neutral defaults.
+    // Signed out (the sign-in screen): refresh the brand. If the learner has
+    // already named their institution, ask by that code; otherwise ask for the
+    // deployment's default (on-prem/single-tenant returns it, a multi-tenant
+    // cloud with no default returns nothing — which sends them to name one).
     if (!this.session.session()) {
-      this.load();
+      const code = this.code();
+      this.load(code ? { code } : undefined);
+    } else {
+      this.ready();
     }
 
     // Once a session's tenant is known (or changes), fetch it fresh.
@@ -59,7 +91,7 @@ export class BrandingService {
         return;
       }
       this.applied = tenantId;
-      this.load(tenantId);
+      this.load({ tenantId });
     });
 
     // Re-tint when the effective theme changes so the brand accent stays
@@ -87,17 +119,68 @@ export class BrandingService {
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
   }
 
-  /** Fetch public settings for a tenant, or — with none — the deployment default. */
-  private load(tenantId?: string): void {
-    this.api.get<PublicBranding>('/settings/public', tenantId ? { tenantId } : undefined).subscribe({
-      next: (s) => this.set(s.organisation, s.branding),
+  /**
+   * Resolves an institution from the code a learner typed, wearing its brand on
+   * success. `true` when the code named an organisation, `false` when it named
+   * none (unknown code) or the request failed — the screen keeps them there to
+   * try again.
+   */
+  resolveByCode(code: string): Observable<boolean> {
+    const trimmed = code.trim();
+    if (!trimmed) {
+      return of(false);
+    }
+    return this.api.get<PublicBranding>('/settings/public', { code: trimmed }).pipe(
+      map((s) => {
+        if (!s.tenantId) {
+          return false;
+        }
+        this.set(s, trimmed);
+        return true;
+      }),
+      catchError(() => of(false)),
+    );
+  }
+
+  /** Forget the chosen institution — "not your organisation?" — back to a blank slate. */
+  clearTenant(): void {
+    this.applyBrand(BLANK);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* the in-memory reset still stands */
+    }
+  }
+
+  /** Resolves once the first public-settings load has settled, for route guards. */
+  whenReady(): Promise<void> {
+    return this.readyPromise;
+  }
+
+  private ready(): void {
+    if (!this.resolved()) {
+      this.resolved.set(true);
+      this.markReady();
+    }
+  }
+
+  /** Fetch public settings by code, by tenant id, or — with neither — the default. */
+  private load(by?: { tenantId?: string; code?: string }): void {
+    const params = by?.code ? { code: by.code } : by?.tenantId ? { tenantId: by.tenantId } : undefined;
+    this.api.get<PublicBranding>('/settings/public', params).subscribe({
+      next: (s) => {
+        this.set(s, by?.code ?? this.code());
+        this.ready();
+      },
       // Silent: an org that set no branding looks the same as one whose fetch
-      // failed, and the defaults are perfectly usable.
-      error: () => undefined,
+      // failed, and the defaults are perfectly usable. Still "ready" — the
+      // guards must not hang on a flaky network.
+      error: () => this.ready(),
     });
   }
 
-  private set(organisation: string | null, branding: Partial<Record<string, string | boolean>>): void {
+  private set(s: PublicBranding, code: string | null): void {
+    const branding = s.branding ?? {};
     const str = (key: string): string | null => {
       const v = branding[key];
       return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
@@ -108,7 +191,10 @@ export class BrandingService {
     };
 
     const brand: StoredBrand = {
-      organisation,
+      tenantId: s.tenantId ?? null,
+      // Only remember the code once it actually named a tenant.
+      code: s.tenantId ? code : null,
+      organisation: s.organisation,
       logoUrl: str('logo_url'),
       loginBackgroundUrl: str('login_background_url'),
       primary: colour('primary_color'),
@@ -128,7 +214,7 @@ export class BrandingService {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        this.applyBrand(JSON.parse(raw) as StoredBrand);
+        this.applyBrand({ ...BLANK, ...(JSON.parse(raw) as Partial<StoredBrand>) });
       }
     } catch {
       /* no stored brand, or unreadable — fall back to the defaults */
@@ -136,6 +222,8 @@ export class BrandingService {
   }
 
   private applyBrand(brand: StoredBrand): void {
+    this.tenantId.set(brand.tenantId);
+    this.code.set(brand.code);
     this.organisation.set(brand.organisation);
     this.logoUrl.set(brand.logoUrl);
     this.loginBackgroundUrl.set(brand.loginBackgroundUrl);
@@ -161,6 +249,12 @@ export class BrandingService {
       // The app's own gradients and hero fields read the raw colour.
       root.style.setProperty('--brand-primary', primary);
       root.style.setProperty('--brand-primary-shade', mix(primary, '#000000', 0.28));
+    } else {
+      // No brand colour (cleared, or an org that set none) — drop the overrides
+      // so the product's own default accent from the stylesheet shows through.
+      for (const property of PAINTED) {
+        root.style.removeProperty(property);
+      }
     }
     root.style.setProperty('--brand-accent', accent ?? primary ?? '#2149e8');
   }

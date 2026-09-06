@@ -110,7 +110,7 @@ export class LearnerService {
   /** The tenant's password rules, so the change-password screen can show them. */
   passwordPolicy(tenantId: string): Observable<PasswordPolicy | null> {
     return this.api
-      .get<{ passwordPolicy?: PasswordPolicy }>('/settings/public', { tenant: tenantId })
+      .get<{ passwordPolicy?: PasswordPolicy }>('/settings/public', { tenantId })
       .pipe(
         map((r) => r.passwordPolicy ?? null),
         catchError(() => of(null)),

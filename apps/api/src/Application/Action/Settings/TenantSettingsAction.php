@@ -166,14 +166,21 @@ final class TenantSettingsAction
      */
     public function publicSettings(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $tenantId = trim((string) ($request->getQueryParams()['tenantId'] ?? ''));
+        $query    = $request->getQueryParams();
+        $code     = trim((string) ($query['code'] ?? ''));
+        $tenantId = trim((string) ($query['tenantId'] ?? ''));
 
-        // No organisation named — fall back to the deployment's default tenant
-        // (on-prem single-tenant, or a conglomerate's shared face). Still none,
-        // and we serve neutral defaults rather than refuse: the sign-in page
-        // falls back to the product's own look, and the organisation's branding
-        // loads once a token names the tenant.
-        if (!$this->isTenantId($tenantId)) {
+        // A device has no subdomain, so a learner names their institution by its
+        // short code. Resolve that first; an unknown code resolves to nothing,
+        // and the client can tell "no such institution" from "no default tenant".
+        if ($code !== '') {
+            $tenantId = $this->tenants->findByCode($code)?->id ?? '';
+        } elseif (!$this->isTenantId($tenantId)) {
+            // No code and no explicit id — fall back to the deployment's default
+            // tenant (on-prem single-tenant, or a conglomerate's shared face).
+            // Still none, and we serve neutral defaults rather than refuse: the
+            // sign-in page falls back to the product's own look, and the
+            // organisation's branding loads once a token names the tenant.
             $tenantId = $this->defaultTenantId;
         }
         $named = $this->isTenantId($tenantId);
@@ -191,6 +198,11 @@ final class TenantSettingsAction
         }
 
         return Json::ok($response, [
+            // The resolved tenant id, so a device that named its institution by
+            // code can carry the tenant into sign-in — the same context a
+            // subdomain gives the web app. Null when nothing resolved (an
+            // unknown code, or a multi-tenant cloud with no default).
+            'tenantId'       => $named ? $tenantId : null,
             // The organisation's name and its own logo, so a sign-in or
             // registration screen can carry them. Branding that stops at
             // the door of the application is not branding. Null when no tenant

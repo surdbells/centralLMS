@@ -40,6 +40,21 @@ final class DbalTenantRepository implements TenantRepository
         return $row === false ? null : $this->hydrate($row);
     }
 
+    public function findByCode(string $code): ?Tenant
+    {
+        $code = strtolower(trim($code));
+        if ($code === '') {
+            return null;
+        }
+
+        $row = $this->connection->fetchAssociative(
+            sprintf('SELECT %s FROM tenants WHERE LOWER(code) = :code AND deleted_at IS NULL', self::COLUMNS),
+            ['code' => $code],
+        );
+
+        return $row === false ? null : $this->hydrate($row);
+    }
+
     public function nameOf(string $tenantId): ?string
     {
         $name = $this->connection->fetchOne(

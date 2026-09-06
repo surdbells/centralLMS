@@ -61,7 +61,13 @@ import { ButtonComponent } from '../../components/button/button.component';
           <app-button block size="lg" class="submit" [loading]="busy()" (click)="submit()">Sign In</app-button>
         </div>
 
-        <p class="foot muted">Your organisation is chosen for you when you sign in.</p>
+        @if (branding.code()) {
+          <button type="button" class="change" (click)="changeInstitution()">
+            Not {{ branding.organisation() || 'your institution' }}? <span>Change</span>
+          </button>
+        } @else {
+          <p class="foot muted">Your organisation is chosen for you when you sign in.</p>
+        }
       </div>
     </ion-content>
   `,
@@ -85,6 +91,8 @@ import { ButtonComponent } from '../../components/button/button.component';
     .submit { display: block; margin-top: 18px; }
     .err { margin: 12px 4px 0; color: var(--ion-color-danger); font-size: .85rem; font-weight: 500; }
     .foot { text-align: center; color: rgba(255,255,255,.75); margin-top: 18px; font-size: .82rem; }
+    .change { display: block; margin: 18px auto 0; border: 0; background: transparent; color: rgba(255,255,255,.82); font-size: .84rem; cursor: pointer; }
+    .change span { font-weight: 700; text-decoration: underline; color: #fff; }
   `],
 })
 export class LoginPage {
@@ -97,6 +105,12 @@ export class LoginPage {
   readonly busy = signal(false);
   readonly error = signal('');
 
+  /** Wrong organisation — forget it and go back to name another. */
+  changeInstitution(): void {
+    this.branding.clearTenant();
+    void this.router.navigateByUrl('/institution', { replaceUrl: true });
+  }
+
   submit(): void {
     if (this.busy()) {
       return;
@@ -108,7 +122,7 @@ export class LoginPage {
     }
     this.busy.set(true);
     this.error.set('');
-    this.auth.login(email, this.password).subscribe({
+    this.auth.login(email, this.password, this.branding.tenantId()).subscribe({
       next: () => {
         this.busy.set(false);
         void this.router.navigateByUrl('/tabs/home', { replaceUrl: true });

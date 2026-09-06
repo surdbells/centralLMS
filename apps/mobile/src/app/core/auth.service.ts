@@ -10,9 +10,15 @@ export class AuthService {
   private readonly api = inject(ApiClient);
   private readonly store = inject(SessionStore);
 
-  /** Signs in and stores the session; the tenant comes from the account. */
-  login(email: string, password: string): Observable<void> {
-    return this.api.post<LoginPayload>('/auth/login', { email, password }).pipe(
+  /**
+   * Signs in and stores the session. On a device there is no subdomain, so when
+   * the learner has named their institution the tenant rides along in the body
+   * — the same context the web app takes from the host — letting the same email
+   * hold accounts in more than one organisation.
+   */
+  login(email: string, password: string, tenantId?: string | null): Observable<void> {
+    const body = tenantId ? { email, password, tenantId } : { email, password };
+    return this.api.post<LoginPayload>('/auth/login', body).pipe(
       tap((p) => {
         if (p.user.status && p.user.status !== 'active') {
           throw new ApiError('account_inactive', 'This account is not active.');

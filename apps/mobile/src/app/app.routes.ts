@@ -1,7 +1,12 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/auth.guard';
+import { authGuard, guestGuard, institutionGuard } from './core/auth.guard';
 
 export const routes: Routes = [
+  {
+    path: 'institution',
+    canActivate: [institutionGuard],
+    loadComponent: () => import('./pages/institution/institution.page').then((m) => m.InstitutionPage),
+  },
   {
     path: 'login',
     canActivate: [guestGuard],

@@ -9,6 +9,16 @@ interface TenantRepository
     public function find(string $tenantId): ?Tenant;
 
     /**
+     * Resolves an organisation from its short code (case-insensitive).
+     *
+     * The public counterpart to {@see find()}: a device has no subdomain, so a
+     * learner names their institution by the code it was given, and the sign-in
+     * screen turns it into the tenant whose branding to wear and whose users to
+     * authenticate against.
+     */
+    public function findByCode(string $code): ?Tenant;
+
+    /**
      * The name alone.
      *
      * Wanted in several places that need nothing else — a certificate, an
