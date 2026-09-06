@@ -254,7 +254,7 @@ type Tab = 'xp' | 'badges' | 'certificates';
 
     /* Period sheet */
     .opts { display: grid; gap: 8px; }
-    .opt { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; cursor: pointer;
+    .opt { display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left; cursor: pointer; color: var(--app-ink);
       padding: 14px; border-radius: var(--app-r); border: 1.5px solid var(--app-line); background: var(--app-field); }
     .opt.active { border-color: var(--ion-color-primary); background: color-mix(in srgb, var(--ion-color-primary) 8%, var(--app-field)); }
     .opt-t { font-size: .96rem; font-weight: 600; }

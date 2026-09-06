@@ -126,7 +126,7 @@ interface Row {
 
     /* Profile card */
     .pcard {
-      width: 100%; text-align: left; border: 0; cursor: pointer;
+      width: 100%; text-align: left; border: 0; cursor: pointer; color: var(--app-ink);
       display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px;
       padding: 16px; margin-bottom: 22px;
       background: var(--app-surface); border: 1px solid var(--app-card-border);
@@ -158,7 +158,7 @@ interface Row {
 
     /* Rows */
     .row {
-      width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer;
+      width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer; color: var(--app-ink);
       display: flex; align-items: center; gap: 13px; padding: 13px 14px;
       transition: background .12s ease;
     }
@@ -186,7 +186,7 @@ interface Row {
     /* Theme sheet */
     .opts { display: grid; gap: 8px; }
     .opt {
-      display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; cursor: pointer;
+      display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; cursor: pointer; color: var(--app-ink);
       padding: 13px 14px; border-radius: var(--app-r); border: 1.5px solid var(--app-line);
       background: var(--app-field); transition: border-color .12s ease, background .12s ease;
     }
