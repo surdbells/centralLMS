@@ -75,6 +75,13 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
   readonly sharing = signal(false);
   readonly handUp = signal(false);
 
+  // Whether we captured a local mic / camera. Either can be false when the
+  // device is missing or the learner denied permission — the class then runs
+  // view-only rather than dropping them out of it.
+  readonly hasMic = signal(true);
+  readonly hasCam = signal(true);
+  readonly viewOnly = computed(() => !this.hasMic() && !this.hasCam());
+
   readonly panel = signal<'none' | 'chat' | 'people'>('none');
   readonly participants = signal<Participant[]>([]);
   readonly messages = signal<ChatMessage[]>([]);
@@ -175,22 +182,47 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
       this.participants.update((list) => list.filter((p) => p.uid !== String(user.uid)));
     });
 
+    // A failed join is a real error (bad token, no network) — let it throw to
+    // the caller, which shows the error screen.
     await client.join(token.appId, token.channel, token.rtcToken, token.uid);
 
-    this.micTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    this.camTrack = await AgoraRTC.createCameraVideoTrack();
-    await client.publish([this.micTrack, this.camTrack]);
+    // Mic and camera are best-effort. A learner who denies permission or has no
+    // device still joins to watch, listen and use chat, rather than being
+    // ejected from the class — so capture each independently and publish
+    // whatever we got, if anything.
+    const toPublish: any[] = [];
+    try {
+      this.micTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      toPublish.push(this.micTrack);
+    } catch {
+      this.micTrack = null;
+      this.hasMic.set(false);
+      this.micOn.set(false);
+    }
+    try {
+      this.camTrack = await AgoraRTC.createCameraVideoTrack();
+      toPublish.push(this.camTrack);
+    } catch {
+      this.camTrack = null;
+      this.hasCam.set(false);
+      this.camOn.set(false);
+    }
+    if (toPublish.length > 0) {
+      // Staying in the channel matters more than publishing — swallow a publish
+      // failure and remain connected as a viewer.
+      try { await client.publish(toPublish); } catch { /* view-only */ }
+    }
 
     this.participants.set([{
       uid: token.uid,
       name: token.displayName + ' (You)',
       isLocal: true,
       isHost: token.isHost,
-      hasVideo: true,
-      hasAudio: true,
+      hasVideo: !!this.camTrack,
+      hasAudio: !!this.micTrack,
       handUp: false,
     }]);
-    this.playInto('local', this.camTrack);
+    if (this.camTrack) { this.playInto('local', this.camTrack); }
   }
 
   private async startRtm(AgoraRTM: any, token: RoomToken): Promise<void> {

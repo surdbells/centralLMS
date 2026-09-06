@@ -20,6 +20,7 @@
     <header class="room-bar">
       <div class="room-title"><span class="live-dot"></span> {{ sessionTitle() }}</div>
       <div class="room-meta">
+        @if (viewOnly()) { <span class="view-only"><i class="bi bi-eye-fill"></i> View only</span> }
         <span><i class="bi bi-people-fill"></i> {{ count() }}</span>
         @if (handsUp() > 0) { <span class="hands"><i class="bi bi-hand-index-thumb-fill"></i> {{ handsUp() }}</span> }
       </div>
@@ -89,11 +90,13 @@
     </div>
 
     <footer class="room-controls">
-      <button (click)="toggleMic()" [class.off]="!micOn()" title="Microphone">
+      <button (click)="toggleMic()" [class.off]="!micOn()" [disabled]="!hasMic()"
+              [title]="hasMic() ? 'Microphone' : 'No microphone available'">
         <i class="bi" [class.bi-mic-fill]="micOn()" [class.bi-mic-mute-fill]="!micOn()"></i>
         <span>{{ micOn() ? 'Mute' : 'Unmute' }}</span>
       </button>
-      <button (click)="toggleCam()" [class.off]="!camOn()" [disabled]="sharing()" title="Camera">
+      <button (click)="toggleCam()" [class.off]="!camOn()" [disabled]="sharing() || !hasCam()"
+              [title]="hasCam() ? 'Camera' : 'No camera available'">
         <i class="bi" [class.bi-camera-video-fill]="camOn()" [class.bi-camera-video-off-fill]="!camOn()"></i>
         <span>Camera</span>
       </button>

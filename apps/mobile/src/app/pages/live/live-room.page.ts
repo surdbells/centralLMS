@@ -62,6 +62,7 @@ interface ChatMessage {
         <header class="bar">
           <span class="dot"></span>
           <span class="title">{{ sessionTitle() }}</span>
+          @if (viewOnly()) { <span class="view-only"><ion-icon name="eye-outline"></ion-icon> View only</span> }
           <span class="meta"><ion-icon name="people"></ion-icon> {{ count() }}</span>
         </header>
 
@@ -118,8 +119,8 @@ interface ChatMessage {
         }
 
         <footer class="controls">
-          <button (click)="toggleMic()" [class.off]="!micOn()"><ion-icon [name]="micOn() ? 'mic' : 'mic-off'"></ion-icon></button>
-          <button (click)="toggleCam()" [class.off]="!camOn()" [disabled]="sharing()"><ion-icon [name]="camOn() ? 'videocam' : 'videocam-off'"></ion-icon></button>
+          <button (click)="toggleMic()" [class.off]="!micOn()" [disabled]="!hasMic()"><ion-icon [name]="micOn() ? 'mic' : 'mic-off'"></ion-icon></button>
+          <button (click)="toggleCam()" [class.off]="!camOn()" [disabled]="sharing() || !hasCam()"><ion-icon [name]="camOn() ? 'videocam' : 'videocam-off'"></ion-icon></button>
           <button (click)="toggleShare()" [class.on]="sharing()"><ion-icon name="desktop-outline"></ion-icon></button>
           <button (click)="toggleHand()" [class.on]="handUp()"><ion-icon name="hand-left"></ion-icon></button>
           <button (click)="openPanel('chat')" [class.on]="panel() === 'chat'">
@@ -147,6 +148,9 @@ interface ChatMessage {
     .bar .dot { width: 8px; height: 8px; border-radius: 50%; background: #e0665f; flex: none; animation: pulse 2s infinite; }
     .bar .title { font-weight: 600; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bar .meta { display: flex; align-items: center; gap: 5px; color: #9aa4b4; font-size: .9rem; flex: none; }
+    .bar .view-only { display: inline-flex; align-items: center; gap: 4px; flex: none; color: #cbd2dc;
+      background: rgba(255,255,255,.09); border-radius: 999px; padding: 3px 9px; font-size: .74rem; }
+    .bar .view-only ion-icon { font-size: 13px; }
     @keyframes pulse { 50% { opacity: .4; } }
 
     .grid { flex: 1; display: grid; gap: 8px; padding: 10px; align-content: center; grid-template-columns: 1fr; min-height: 0; overflow-y: auto; }
@@ -216,6 +220,12 @@ export class LiveRoomPage implements OnInit, OnDestroy {
   readonly camOn = signal(true);
   readonly sharing = signal(false);
   readonly handUp = signal(false);
+  // Whether we captured a local mic / camera. Either can be false when the
+  // device is missing or permission was denied — the class then runs view-only
+  // rather than dropping the learner out of it.
+  readonly hasMic = signal(true);
+  readonly hasCam = signal(true);
+  readonly viewOnly = computed(() => !this.hasMic() && !this.hasCam());
   readonly panel = signal<'chat' | 'people' | null>(null);
   readonly participants = signal<Participant[]>([]);
   readonly messages = signal<ChatMessage[]>([]);
@@ -293,16 +303,34 @@ export class LiveRoomPage implements OnInit, OnDestroy {
       this.participants.update((list) => list.filter((p) => p.uid !== String(user.uid)));
     });
 
+    // A failed join is a real error (bad token, no network) — let it throw.
     await client.join(token.appId, token.channel, token.rtcToken, token.uid);
-    this.micTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    this.camTrack = await AgoraRTC.createCameraVideoTrack();
-    await client.publish([this.micTrack, this.camTrack]);
+
+    // Mic and camera are best-effort: a learner who denies permission or has no
+    // device still joins to watch, listen and use chat rather than being
+    // ejected. Capture each independently and publish whatever we got.
+    const toPublish: any[] = [];
+    try {
+      this.micTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      toPublish.push(this.micTrack);
+    } catch {
+      this.micTrack = null; this.hasMic.set(false); this.micOn.set(false);
+    }
+    try {
+      this.camTrack = await AgoraRTC.createCameraVideoTrack();
+      toPublish.push(this.camTrack);
+    } catch {
+      this.camTrack = null; this.hasCam.set(false); this.camOn.set(false);
+    }
+    if (toPublish.length > 0) {
+      try { await client.publish(toPublish); } catch { /* stay connected, view-only */ }
+    }
 
     this.participants.set([{
       uid: token.uid, name: token.displayName + ' (You)', isLocal: true, isHost: token.isHost,
-      hasVideo: true, hasAudio: true, handUp: false,
+      hasVideo: !!this.camTrack, hasAudio: !!this.micTrack, handUp: false,
     }]);
-    this.playInto('local', this.camTrack);
+    if (this.camTrack) { this.playInto('local', this.camTrack); }
   }
 
   private async startRtm(AgoraRTM: any, token: RoomToken): Promise<void> {

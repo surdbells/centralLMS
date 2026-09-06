@@ -42,8 +42,10 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #e0665f; box-shadow: 0 0 0 4px rgba(224,102,95,.18);
     animation: pulse 2s infinite; flex: none; }
-  .room-meta { display: flex; gap: 14px; font-size: .9rem; color: #9aa4b4; flex: none; }
+  .room-meta { display: flex; align-items: center; gap: 14px; font-size: .9rem; color: #9aa4b4; flex: none; }
   .room-meta .hands { color: #f0b23c; }
+  .room-meta .view-only { display: inline-flex; align-items: center; gap: 5px; color: #cbd2dc;
+    background: rgba(255,255,255,.08); border-radius: 999px; padding: 3px 10px; font-size: .8rem; }
 }
 
 @keyframes pulse { 50% { opacity: .5; } }
