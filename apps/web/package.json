@@ -51,6 +51,8 @@
         "@taiga-ui/layout": "^4.33.0",
         "@taiga-ui/legacy": "^4.69.0",
         "@taiga-ui/polymorpheus": "^4.9.0",
+        "agora-rtc-sdk-ng": "^4.24.8",
+        "agora-rtm": "^2.3.0",
         "angular-datatables": "^19.0.0",
         "animate.css": "^4.1.1",
         "apexcharts": "^5.3.3",

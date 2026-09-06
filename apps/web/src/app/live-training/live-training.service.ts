@@ -5,6 +5,20 @@ import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { ApiClient, Endpoints } from '../core/api';
 
+/** What the in-app room needs to connect: identity, channel and short-lived tokens. */
+export interface RoomTokenResponse {
+  appId: string;
+  channel: string;
+  uid: string;
+  displayName: string;
+  rtcToken: string;
+  rtmToken: string;
+  role: 'host' | 'audience';
+  isHost: boolean;
+  expiresInSeconds: number;
+  sessionTitle: string;
+}
+
 export type { CheckInResult } from './live-training.interfaces';
 import {
   EnrollmentRule,
@@ -87,7 +101,7 @@ export interface TrainingSession {
   venue_capacity: number | null;
   venue_map_url: string | null;
   // Virtual
-  video_platform: 'zoom' | 'google_meet' | 'microsoft_teams' | null;
+  video_platform: 'zoom' | 'google_meet' | 'microsoft_teams' | 'agora' | null;
   meeting_id: string | null;
   meeting_password: string | null;
   meeting_url: string | null;
@@ -609,6 +623,22 @@ export class LiveTrainingService {
 
   getIntegrations(): Observable<VideoIntegration[]> {
     return this.api.get<VideoIntegration[]>(Endpoints.integrations.list);
+  }
+
+  /** The RTC/RTM tokens to open a session's in-app (Agora) room. */
+  getRoomToken(sessionId: string): Observable<RoomTokenResponse> {
+    return this.api.get<RoomTokenResponse>(Endpoints.integrations.roomToken(sessionId));
+  }
+
+  /**
+   * Books the meeting behind a virtual session. With no platform it uses the
+   * organisation's default (the in-app option, unless an external one was
+   * deliberately defaulted); pass one to force it. Returns the updated session.
+   */
+  bookSessionMeeting(trainingId: string, sessionId: string, platform?: string): Observable<TrainingSession> {
+    return this.api
+      .post<SessionPayload>(Endpoints.sessions.meeting(trainingId, sessionId), platform ? { platform } : {})
+      .pipe(map((payload) => toSession(payload)));
   }
 
   saveIntegration(data: Partial<VideoIntegration>): Observable<VideoIntegration> {

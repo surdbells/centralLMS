@@ -14,6 +14,7 @@ use Central\Api\Domain\Ilt\AttendanceMode;
 use Central\Api\Domain\Ilt\AttendanceStatus;
 use Central\Api\Domain\Ilt\MeetingProviderId;
 use Central\Api\Domain\Ilt\TrainingRepository;
+use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Ilt\MeetingProviderFactory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -36,6 +37,7 @@ final class SessionRoomTokenAction
     public function __construct(
         private readonly TrainingRepository $trainings,
         private readonly MeetingProviderFactory $providers,
+        private readonly PersonRepository $people,
     ) {
     }
 
@@ -87,9 +89,10 @@ final class SessionRoomTokenAction
             throw new AccessDenied(Permission::IltSessionView->value);
         }
 
-        $channel = $session->externalMeetingId;
-        $ttl     = $this->providers->agoraTokenTtl();
-        $builder = $this->providers->agoraTokenBuilder();
+        $channel     = $session->externalMeetingId;
+        $ttl         = $this->providers->agoraTokenTtl();
+        $builder     = $this->providers->agoraTokenBuilder();
+        $displayName = $this->people->find($tenantId, $userId)?->fullName() ?: $user->email;
 
         // A learner opening the room is attendance — recorded once, best-effort,
         // never blocking the join, never for an instructor or a signed-off list.
@@ -117,6 +120,7 @@ final class SessionRoomTokenAction
             'appId'            => $this->providers->agoraAppId(),
             'channel'          => $channel,
             'uid'              => $userId,
+            'displayName'      => $displayName,
             'rtcToken'         => $builder->rtcToken($channel, $userId, $ttl),
             'rtmToken'         => $builder->rtmToken($userId, $ttl),
             'role'             => $isInstructor ? 'host' : 'audience',

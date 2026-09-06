@@ -268,7 +268,7 @@ export interface TrainingSession {
   venue_capacity: number | null;
   venue_map_url: string | null;
   // Virtual
-  video_platform: 'zoom' | 'google_meet' | 'microsoft_teams' | null;
+  video_platform: 'zoom' | 'google_meet' | 'microsoft_teams' | 'agora' | null;
   meeting_id: string | null;
   meeting_password: string | null;
   meeting_url: string | null;

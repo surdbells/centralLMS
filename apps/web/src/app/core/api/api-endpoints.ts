@@ -430,6 +430,8 @@ export const Endpoints = {
     update: (provider: string) => `/ilt/integrations/${provider}`,
     disconnect: (provider: string) => `/ilt/integrations/${provider}`,
     providers: '/ilt/providers',
+    // The RTC/RTM tokens for a session's in-app (Agora) room.
+    roomToken: (sessionId: string) => `/ilt/sessions/${sessionId}/room-token`,
   },
 
   // --- certificates -----------------------------------------------------

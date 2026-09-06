@@ -79,6 +79,13 @@ export const LIVE_TRAINING_ROUTES: Routes = [
     component: QrScannerComponent,
     data: { title: 'Scan Attendance' }
   },
+  // In-app (Agora) live class room — full-screen and lazy, so the video SDKs
+  // only load when a class actually starts.
+  {
+    path: 'room/:sessionId',
+    loadComponent: () => import('./room/live-room.component').then((m) => m.LiveRoomComponent),
+    data: { title: 'Live class' }
+  },
   // Learner Routes (default)
   {
     path: 'training/:trainingId',

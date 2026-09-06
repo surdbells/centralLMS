@@ -297,6 +297,12 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   joinSession(session: TrainingSession): void {
+    // An in-app (Agora) class opens the room inside the LMS; the external
+    // platforms open their own join link in a new tab.
+    if (session.video_platform === 'agora') {
+      void this.router.navigate(['/live-training/room', session.session_id]);
+      return;
+    }
     if (session.join_url) {
       window.open(session.join_url, '_blank');
     }

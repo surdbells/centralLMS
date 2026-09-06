@@ -1,0 +1,123 @@
+@if (phase() === 'loading') {
+  <div class="room-status">
+    <div class="spinner-border" role="status"></div>
+    <p>Joining the class…</p>
+  </div>
+} @else if (phase() === 'error') {
+  <div class="room-status error">
+    <i class="bi bi-camera-video-off"></i>
+    <p>{{ errorMsg() }}</p>
+    <button class="btn btn-outline-light" (click)="backToTraining()">Back to trainings</button>
+  </div>
+} @else if (phase() === 'left') {
+  <div class="room-status">
+    <i class="bi bi-check2-circle"></i>
+    <p>You’ve left the class.</p>
+    <button class="btn btn-outline-light" (click)="backToTraining()">Back to trainings</button>
+  </div>
+} @else {
+  <div class="room">
+    <header class="room-bar">
+      <div class="room-title"><span class="live-dot"></span> {{ sessionTitle() }}</div>
+      <div class="room-meta">
+        <span><i class="bi bi-people-fill"></i> {{ count() }}</span>
+        @if (handsUp() > 0) { <span class="hands"><i class="bi bi-hand-index-thumb-fill"></i> {{ handsUp() }}</span> }
+      </div>
+    </header>
+
+    <div class="room-main" [class.with-panel]="panel() !== 'none'">
+      <div class="video-grid" [attr.data-n]="count() > 9 ? 'many' : count()">
+        @for (p of people(); track p.uid) {
+          <div class="tile" [class.local]="p.isLocal">
+            <div class="tile-video" [id]="tileId(p)"></div>
+            @if (!p.hasVideo) {
+              <div class="tile-avatar">{{ initial(p.name) }}</div>
+            }
+            @if (p.handUp) { <span class="tile-hand"><i class="bi bi-hand-index-thumb-fill"></i></span> }
+            <div class="tile-label">
+              @if (!p.hasAudio) { <i class="bi bi-mic-mute-fill muted-ic"></i> }
+              <span class="tile-name">{{ p.name }}</span>
+              @if (p.isHost) { <span class="host-badge">Host</span> }
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (panel() !== 'none') {
+        <aside class="room-panel">
+          <div class="panel-tabs">
+            <button [class.active]="panel() === 'chat'" (click)="openPanel('chat')">Chat</button>
+            <button [class.active]="panel() === 'people'" (click)="panel.set('people')">People · {{ count() }}</button>
+          </div>
+
+          @if (panel() === 'chat') {
+            <div class="chat-log">
+              @if (!chatReady()) { <p class="panel-hint">Chat is connecting…</p> }
+              @for (m of messages(); track m.id) {
+                <div class="msg" [class.mine]="m.mine">
+                  @if (!m.mine) { <span class="msg-name">{{ m.name }}</span> }
+                  <span class="msg-text">{{ m.text }}</span>
+                </div>
+              } @empty {
+                @if (chatReady()) { <p class="panel-hint">No messages yet. Say hello 👋</p> }
+              }
+            </div>
+            <form class="chat-input" (ngSubmit)="sendMessage()">
+              <input [(ngModel)]="chatDraft" name="chatDraft" autocomplete="off"
+                     placeholder="Message the class…" [disabled]="!chatReady()" />
+              <button type="submit" [disabled]="!chatReady() || !chatDraft.trim()" aria-label="Send">
+                <i class="bi bi-send-fill"></i>
+              </button>
+            </form>
+          } @else {
+            <ul class="people-list">
+              @for (p of people(); track p.uid) {
+                <li>
+                  <span class="p-avatar">{{ initial(p.name) }}</span>
+                  <span class="p-name">{{ p.name }} @if (p.isHost) { <em>Host</em> }</span>
+                  @if (p.handUp) { <i class="bi bi-hand-index-thumb-fill p-hand"></i> }
+                  <i class="bi p-mic" [class.bi-mic-fill]="p.hasAudio" [class.bi-mic-mute-fill]="!p.hasAudio"></i>
+                </li>
+              }
+            </ul>
+            @if (isHost() && handsUp() > 0) {
+              <button class="lower-hands" (click)="lowerAllHands()">Lower all hands</button>
+            }
+          }
+        </aside>
+      }
+    </div>
+
+    <footer class="room-controls">
+      <button (click)="toggleMic()" [class.off]="!micOn()" title="Microphone">
+        <i class="bi" [class.bi-mic-fill]="micOn()" [class.bi-mic-mute-fill]="!micOn()"></i>
+        <span>{{ micOn() ? 'Mute' : 'Unmute' }}</span>
+      </button>
+      <button (click)="toggleCam()" [class.off]="!camOn()" [disabled]="sharing()" title="Camera">
+        <i class="bi" [class.bi-camera-video-fill]="camOn()" [class.bi-camera-video-off-fill]="!camOn()"></i>
+        <span>Camera</span>
+      </button>
+      <button (click)="toggleShare()" [class.active]="sharing()" title="Share screen">
+        <i class="bi bi-display-fill"></i>
+        <span>{{ sharing() ? 'Stop share' : 'Share' }}</span>
+      </button>
+      <button (click)="toggleHand()" [class.active]="handUp()" title="Raise hand">
+        <i class="bi bi-hand-index-thumb-fill"></i>
+        <span>Hand</span>
+      </button>
+      <button (click)="openPanel('chat')" [class.active]="panel() === 'chat'" title="Chat">
+        <i class="bi bi-chat-dots-fill"></i>
+        <span>Chat</span>
+        @if (unread() > 0) { <b class="ctl-badge">{{ unread() }}</b> }
+      </button>
+      <button (click)="openPanel('people')" [class.active]="panel() === 'people'" title="People">
+        <i class="bi bi-people-fill"></i>
+        <span>People</span>
+      </button>
+      <button class="leave-btn" (click)="leave()" title="Leave">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Leave</span>
+      </button>
+    </footer>
+  </div>
+}

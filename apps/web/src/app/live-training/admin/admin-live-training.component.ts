@@ -114,7 +114,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   sessionStatuses = ['scheduled', 'ongoing', 'completed', 'cancelled'];
   trainingStatuses = ['draft', 'published', 'ongoing', 'completed', 'cancelled'];
   attendanceStatuses = ['present', 'late', 'absent'];
-  videoPlatforms = ['zoom', 'google_meet', 'microsoft_teams'];
+  videoPlatforms = ['agora', 'zoom', 'google_meet', 'microsoft_teams'];
   instructorRoles = ['primary', 'co_instructor', 'assistant'];
   reminderChannels = ['email', 'in_app', 'sms', 'whatsapp'];
 
