@@ -72,7 +72,7 @@ import { ButtonComponent } from '../../components/button/button.component';
       background: linear-gradient(180deg,
         color-mix(in srgb, var(--brand-primary, #2400a0) 62%, transparent) 0%,
         var(--brand-primary-shade, var(--ion-color-primary-shade)) 82%); }
-    .login-wrap { position: relative; z-index: 1; min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 24px 20px calc(24px + env(safe-area-inset-bottom)); }
+    .login-wrap { position: relative; z-index: 1; min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom)); }
     .brand { text-align: center; color: #fff; margin-bottom: 24px; }
     .brand-logo { width: 116px; height: 116px; margin: 0 auto 16px; border-radius: 28px; background: #fff; display: grid; place-items: center; padding: 16px; box-shadow: 0 18px 40px rgba(0,0,0,.28); }
     .brand-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }

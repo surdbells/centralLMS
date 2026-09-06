@@ -88,6 +88,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     </ion-content>
   `,
   styles: [`
+    ion-content { --padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     .pad { padding: 12px 16px 0; }
     .hdr { display: flex; align-items: center; gap: 13px; margin-top: 8px; }
     .hdr-ic { flex: none; width: 52px; height: 52px; border-radius: var(--app-r-sm); display: grid; place-items: center; background: var(--app-tag-bg); color: var(--app-tag-ink); }

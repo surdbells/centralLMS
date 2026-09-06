@@ -115,6 +115,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     </ion-content>
   `,
   styles: [`
+    ion-content { --padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     .pad { padding: 16px 16px 0; }
     .banner { position: relative; overflow: hidden; height: 212px; border-radius: 0 0 26px 26px; }
     .banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,.16) 55%, rgba(0,0,0,.56) 100%); }

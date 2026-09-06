@@ -109,6 +109,7 @@ type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
     </ion-content>
   `,
   styles: [`
+    ion-content { --padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     .pad { padding: 8px 16px 24px; }
     .type { text-transform: uppercase; letter-spacing: .04em; font-size: .72rem; margin: 8px 0 0; }
     .title { margin: 4px 0 18px; font-family: var(--app-font-display); font-size: 1.4rem; font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); line-height: 1.2; }

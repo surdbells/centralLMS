@@ -104,6 +104,7 @@ import { ToastService } from '../../components/toast/toast.service';
     </ion-content>
   `,
   styles: [`
+    ion-content { --padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
     .pad { padding: 16px 16px 0; }
     .banner {
       position: relative; overflow: hidden; height: 172px; border-radius: 0 0 26px 26px; color: #fff;
