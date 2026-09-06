@@ -7,6 +7,11 @@ is a **static Angular build served by Nginx**, and **PostgreSQL 16** and
 **Redis** run as native services. A long-running **queue worker** consumes
 background jobs.
 
+> This is **one** deployment path (the reference production topology). For every
+> option across all surfaces — alternative web hosting (Netlify/Vercel/Cloudflare/
+> S3/Docker) and the complete **mobile** deployment (PWA, iOS App Store, Android
+> Play Store) — see the umbrella [Deployment Guide & Runbook](./deployment-guide.md).
+
 > Conventions: commands run as a sudo-capable user unless noted. Replace
 > `lms.example.com` / `api.lms.example.com` with your own hostnames and every
 > `CHANGE_ME` with a real secret. Never commit real secrets to git.
