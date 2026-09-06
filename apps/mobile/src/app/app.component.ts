@@ -20,6 +20,8 @@ import {
   colorPaletteOutline, informationCircleOutline, phonePortraitOutline,
   sunnyOutline, moonOutline, callOutline, keyOutline,
   arrowBack, funnelOutline, trashOutline,
+  videocam, videocamOff, videocamOffOutline, mic, micOff, handLeft, send,
+  people, chatbubbleEllipses, exitOutline, radioOutline,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
 import { ThemeService } from './core/theme.service';
@@ -43,6 +45,8 @@ addIcons({
   colorPaletteOutline, informationCircleOutline, phonePortraitOutline,
   sunnyOutline, moonOutline, callOutline, keyOutline,
   arrowBack, funnelOutline, trashOutline,
+  videocam, videocamOff, videocamOffOutline, mic, micOff, handLeft, send,
+  people, chatbubbleEllipses, exitOutline, radioOutline,
 });
 
 @Component({

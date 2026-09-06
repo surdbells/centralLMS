@@ -169,6 +169,7 @@ interface Row {
     .ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
       background: color-mix(in srgb, var(--tone) 15%, transparent); }
     .ic ion-icon { font-size: 19px; color: var(--tone); }
+    .ic[data-tone="red"]    { --tone: var(--tone-red); }
     .ic[data-tone="blue"]   { --tone: var(--tone-blue); }
     .ic[data-tone="green"]  { --tone: var(--tone-green); }
     .ic[data-tone="purple"] { --tone: var(--tone-purple); }
@@ -229,6 +230,7 @@ export class ProfilePage {
   ];
 
   readonly learning: Row[] = [
+    { icon: 'videocam-outline', tone: 'red', title: 'Live Classes', sub: 'Join upcoming sessions', url: '/live' },
     { icon: 'cellular-outline', tone: 'blue', title: 'My Progress', sub: 'Track your course completion', url: '/tabs/progress' },
     { icon: 'medal-outline', tone: 'amber', title: 'Achievements', sub: 'Points, levels and badges', url: '/achievements' },
     { icon: 'ribbon-outline', tone: 'purple', title: 'Certificates', sub: 'Your earned credentials', url: '/certificates' },

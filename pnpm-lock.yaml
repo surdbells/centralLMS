@@ -74,6 +74,12 @@ importers:
       '@ionic/angular':
         specifier: ^8.4.3
         version: 8.8.19(2c4530315723877fdcee729a1f2daed6)
+      agora-rtc-sdk-ng:
+        specifier: ^4.24.8
+        version: 4.24.8
+      agora-rtm:
+        specifier: ^2.3.0
+        version: 2.3.0(agora-rtc-sdk-ng@4.24.8)
       ionicons:
         specifier: ^7.4.0
         version: 7.4.0

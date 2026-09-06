@@ -262,11 +262,12 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
     .hs-l { font-size: .72rem; opacity: .82; white-space: nowrap; }
 
     /* ── Quick actions ── */
-    .quick { margin: 14px 12px 4px; padding: 14px 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .quick { margin: 14px 12px 4px; padding: 16px 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 4px; }
     .qa { display: flex; flex-direction: column; align-items: center; gap: 7px; border: 0; background: transparent; cursor: pointer; padding: 4px 2px; }
     .qa-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); }
     .qa-ic ion-icon { font-size: 23px; }
     .qa-l { font-size: .62rem; font-weight: 600; color: var(--app-ink); text-align: center; line-height: 1.1; white-space: nowrap; letter-spacing: -.01em; }
+    .qa[data-tone="red"] { --tone: var(--tone-red); }
     .qa[data-tone="blue"] { --tone: var(--tone-blue); }
     .qa[data-tone="green"] { --tone: var(--tone-green); }
     .qa[data-tone="purple"] { --tone: var(--tone-purple); }
@@ -323,6 +324,7 @@ export class HomePage implements OnInit {
   readonly avatarUrl = signal<string | null>(null);
 
   readonly quickActions = [
+    { label: 'Live Classes', icon: 'videocam-outline', tone: 'red', url: '/live' },
     { label: 'My Courses', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
     { label: 'Assessments', icon: 'clipboard-outline', tone: 'green', url: '/assessments' },
     { label: 'Certificates', icon: 'ribbon-outline', tone: 'purple', url: '/certificates' },

@@ -97,6 +97,16 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/profile/change-password.page').then((m) => m.ChangePasswordPage),
   },
+  {
+    path: 'live',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/live/live.page').then((m) => m.LivePage),
+  },
+  {
+    path: 'live/room/:sessionId',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/live/live-room.page').then((m) => m.LiveRoomPage),
+  },
   { path: '', redirectTo: 'tabs/home', pathMatch: 'full' },
   { path: '**', redirectTo: 'tabs/home' },
 ];
