@@ -43,6 +43,16 @@
   /* Info tone (Ionic has no default) — a calm blue for informational toasts. */
   --app-info: #2563eb;
 
+  /* Semantic accent "tones" for tinted icon squares (Home quick-actions,
+     Settings rows, …). Saturated mid-tones that read on both a light and a
+     dark tinted surface, so one set serves both themes. Reference these —
+     never re-declare the hex per screen, or they drift. */
+  --tone-blue: #3b6fe0;
+  --tone-green: #1f9d57;
+  --tone-purple: #7a52d8;
+  --tone-amber: #d98a1c;
+  --tone-pink: #db4a7e;
+
   /* Ionic surfaces */
   --ion-background-color: #ffffff;
   --ion-background-color-rgb: 255, 255, 255;

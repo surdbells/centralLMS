@@ -26,7 +26,7 @@ type Tab = 'mine' | 'catalogue';
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Learning paths" subtitle="Guided routes to a goal" back></app-brand-header>
+      <app-brand-header title="Learning Paths" subtitle="Guided routes to a goal" back></app-brand-header>
 
       <div class="ctrls">
         <app-segment [value]="tab()" (valueChange)="switch($any($event))" [segments]="tabs"></app-segment>

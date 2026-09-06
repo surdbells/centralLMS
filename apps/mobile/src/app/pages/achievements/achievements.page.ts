@@ -130,7 +130,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .ach-level app-progress { --app-track: rgba(255,255,255,.25); }
     .ach-level-hint { margin: 8px 0 0; font-size: .78rem; opacity: .82; }
 
-    .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 22px 0 10px; }
+    .section-title { margin: 22px 0 10px; }
 
     .ach-card { background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r); box-shadow: var(--app-shadow); overflow: hidden; }
     .ach-brow { display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; }

@@ -267,15 +267,15 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
     .qa-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); }
     .qa-ic ion-icon { font-size: 23px; }
     .qa-l { font-size: .62rem; font-weight: 600; color: var(--app-ink); text-align: center; line-height: 1.1; white-space: nowrap; letter-spacing: -.01em; }
-    .qa[data-tone="blue"] { --tone: #3b6fe0; }
-    .qa[data-tone="green"] { --tone: #1f9d57; }
-    .qa[data-tone="purple"] { --tone: #7a52d8; }
-    .qa[data-tone="amber"] { --tone: #db8a1c; }
-    .qa[data-tone="pink"] { --tone: #db4a7e; }
+    .qa[data-tone="blue"] { --tone: var(--tone-blue); }
+    .qa[data-tone="green"] { --tone: var(--tone-green); }
+    .qa[data-tone="purple"] { --tone: var(--tone-purple); }
+    .qa[data-tone="amber"] { --tone: var(--tone-amber); }
+    .qa[data-tone="pink"] { --tone: var(--tone-pink); }
 
     /* ── Sections ── */
     .pad { padding: 0 16px; }
-    .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 18px 0 10px; }
+    .section-title { margin: 18px 0 10px; }
     .act-head { display: flex; align-items: center; justify-content: space-between; }
     .see-all { border: 0; background: transparent; color: var(--ion-color-primary); font-weight: 600; font-size: .82rem; cursor: pointer; }
 

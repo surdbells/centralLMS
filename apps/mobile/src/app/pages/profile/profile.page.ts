@@ -121,8 +121,8 @@ interface Row {
     .wrap { padding: calc(12px + env(safe-area-inset-top)) 16px 8px; max-width: 640px; margin: 0 auto; }
 
     .head { padding: 6px 2px 14px; }
-    .head h1 { margin: 0; font-size: 1.7rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); }
-    .head p { margin: 3px 0 0; color: var(--app-muted); font-size: .9rem; }
+    .head h1 { margin: 0; font-size: 1.5rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking); line-height: 1.15; }
+    .head p { margin: 4px 0 0; color: var(--app-muted); font-size: .88rem; }
 
     /* Profile card */
     .pcard {
@@ -169,11 +169,11 @@ interface Row {
     .ic { flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
       background: color-mix(in srgb, var(--tone) 15%, transparent); }
     .ic ion-icon { font-size: 19px; color: var(--tone); }
-    .ic[data-tone="blue"]   { --tone: #3b6fe0; }
-    .ic[data-tone="green"]  { --tone: #1f9d57; }
-    .ic[data-tone="purple"] { --tone: #7a52d8; }
-    .ic[data-tone="amber"]  { --tone: #d98a1c; }
-    .ic[data-tone="pink"]   { --tone: #db4a7e; }
+    .ic[data-tone="blue"]   { --tone: var(--tone-blue); }
+    .ic[data-tone="green"]  { --tone: var(--tone-green); }
+    .ic[data-tone="purple"] { --tone: var(--tone-purple); }
+    .ic[data-tone="amber"]  { --tone: var(--tone-amber); }
+    .ic[data-tone="pink"]   { --tone: var(--tone-pink); }
     .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     .t { font-size: .96rem; font-weight: 550; letter-spacing: -.005em; }
     .s { font-size: .78rem; color: var(--app-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

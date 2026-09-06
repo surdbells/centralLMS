@@ -63,6 +63,13 @@ type Tab = 'mine' | 'catalogue';
               </div>
             </div>
           }
+        } @else if (failed()) {
+          <app-empty-state
+            icon="cloud-offline-outline"
+            title="Couldn't load courses"
+            message="Check your connection and try again."
+            actionLabel="Try again"
+            (action)="reload()"></app-empty-state>
         } @else if (tab() === 'mine') {
           @if (mine().length) {
             @for (c of mine(); track c.id) {
@@ -123,7 +130,7 @@ type Tab = 'mine' | 'catalogue';
     .thumb { width: 54px; height: 54px; border-radius: var(--app-r-sm); display: grid; place-items: center; flex: 0 0 auto; }
     .thumb span { color: #fff; font-weight: 800; font-size: 1.3rem; }
     .body { flex: 1; min-width: 0; }
-    .title { margin: 0 0 6px; font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .title { margin: 0 0 6px; font-weight: 600; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .body .muted { margin: 6px 0 0; font-size: .78rem; }
     .chev { color: var(--ion-color-medium); flex: 0 0 auto; }
   `],
@@ -141,6 +148,7 @@ export class CoursesPage implements OnInit {
   readonly query = signal('');
   readonly category = signal('');
   readonly loading = signal(true);
+  readonly failed = signal(false);
   readonly mine = signal<Enrollment[]>([]);
   readonly catalogue = signal<CatalogueCourse[]>([]);
 
@@ -178,20 +186,21 @@ export class CoursesPage implements OnInit {
   ngOnInit(): void {
     this.load$
       .pipe(
-        tap((ev) => { if (!ev) { this.loading.set(true); } }),
+        tap((ev) => { if (!ev) { this.loading.set(true); } this.failed.set(false); }),
         switchMap((ev) => {
           const q = this.query().trim() || undefined;
           const tab = this.tab();
           const req: Observable<Enrollment[] | CatalogueCourse[]> =
             tab === 'mine' ? this.learner.myEnrollments(undefined, q) : this.learner.catalogue(q);
           return req.pipe(
-            map((rows) => ({ ev, tab, rows })),
-            catchError(() => of({ ev, tab, rows: [] as Enrollment[] | CatalogueCourse[] })),
+            map((rows) => ({ ev, tab, rows, error: false })),
+            catchError(() => of({ ev, tab, rows: [] as Enrollment[] | CatalogueCourse[], error: true })),
           );
         }),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe(({ ev, tab, rows }) => {
+      .subscribe(({ ev, tab, rows, error }) => {
+        this.failed.set(error);
         if (tab === 'mine') {
           this.mine.set(rows as Enrollment[]);
         } else {

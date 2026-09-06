@@ -133,7 +133,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .enrol-facts span { display: inline-flex; align-items: center; gap: 5px; }
     .enrol-facts ion-icon { font-size: 16px; }
     .enrol-note { margin: 12px 0 0; line-height: 1.45; font-size: .9rem; }
-    .section-title { font-family: var(--app-font-display); font-size: 1.08rem; font-weight: 700; margin: 22px 0 10px; letter-spacing: var(--app-display-tracking); }
+    .section-title { margin: 22px 0 10px; }
     .desc { margin: 0; color: var(--ion-text-color); opacity: .85; line-height: 1.5; white-space: pre-line; }
     .module { font-weight: 700; margin: 16px 0 8px; font-size: .95rem; }
     .lesson { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; background: var(--app-surface); border: var(--app-card-border); border-radius: var(--app-r-sm); padding: 12px; margin-bottom: 8px; box-shadow: var(--app-shadow); }

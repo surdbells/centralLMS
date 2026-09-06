@@ -110,7 +110,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
     .take.proctored ion-icon { color: var(--ion-color-warning); }
     .take p { margin: 0; font-size: .88rem; line-height: 1.45; }
 
-    .section-title { font-family: var(--app-font-display); font-size: 1.05rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 24px 0 10px; }
+    .section-title { margin: 24px 0 10px; }
     .at { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 10px; }
     .at-n { flex: none; font-family: var(--app-font-display); font-weight: 800; font-size: .9rem; color: var(--app-muted); }
     .at-body { flex: 1; min-width: 0; }

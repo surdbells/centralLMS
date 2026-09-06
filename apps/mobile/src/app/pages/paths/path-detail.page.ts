@@ -128,7 +128,7 @@ import { ToastService } from '../../components/toast/toast.service';
     .prog-pts { margin: 10px 0 0; font-size: .78rem; }
     .cta { display: block; margin-top: 18px; }
 
-    .section-title { font-family: var(--app-font-display); font-size: 1.08rem; font-weight: 700; letter-spacing: var(--app-display-tracking); margin: 24px 0 10px; }
+    .section-title { margin: 24px 0 10px; }
     .desc { margin: 0; color: var(--ion-text-color); opacity: .85; line-height: 1.5; white-space: pre-line; }
     .objectives { list-style: none; margin: 0; padding: 0; }
     .objectives li { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 10px; font-size: .92rem; color: var(--app-ink); }
