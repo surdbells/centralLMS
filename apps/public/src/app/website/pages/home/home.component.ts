@@ -51,10 +51,23 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   features = [
     { title: 'Learning Management System', desc: 'Streamlines delivery, automates reporting, supports compliance. Full SCORM 1.2/2004 and xAPI.', badge: 'Core LMS', color: '#0A4F2A', size: 'lg', stat: '127+', statLabel: 'Reports' },
     { title: 'Proctored Assessments', desc: 'AI-powered proctoring with webcam monitoring, trust scoring, and automated grading.', badge: 'Assessments', color: '#DC2626', size: 'md', stat: null, statLabel: null },
-    { title: 'Live Training & ILT', desc: 'Physical, virtual, hybrid sessions. Zoom, Teams, Meet integration. QR attendance.', badge: 'Live Training', color: '#0891B2', size: 'md', stat: null, statLabel: null },
+    { title: 'Live Classes & ILT', desc: 'Run classes in-app with built-in HD video, screen-share, chat & raise-hand — or connect Zoom, Teams & Google Meet. Physical, virtual & hybrid, with QR attendance.', badge: 'Live Video', color: '#0891B2', size: 'md', stat: null, statLabel: null },
     { title: 'Gamification & Certificates', desc: 'Points, badges, leaderboards, streaks, and auto-generated certificates with QR.', badge: 'Engagement', color: '#C9A227', size: 'md', stat: null, statLabel: null },
     { title: 'Advanced Reporting', desc: '77 admin + 43 learner + 7 assessment reports, plus custom report builder.', badge: '127+ Reports', color: '#BE185D', size: 'lg', stat: '23', statLabel: 'Categories' },
     { title: 'Messaging & Collaboration', desc: 'DMs, group chats, channels, broadcasts with reactions, mentions, and moderation.', badge: 'Communication', color: '#7C3AED', size: 'md', stat: null, statLabel: null },
+    { title: 'Competency & Skills', desc: 'Competency dictionaries, role profiles, skills-gap analysis, and cycle-based assessment outcomes.', badge: 'Competency', color: '#6F42C1', size: 'md', stat: null, statLabel: null },
+    { title: 'Learning Paths', desc: 'Sequenced, role-based journeys that guide every learner from onboarding to mastery.', badge: 'Journeys', color: '#D97706', size: 'md', stat: null, statLabel: null },
+    { title: 'Digital Library', desc: 'Audience-targeted, view-only resource sharing with on-the-fly document conversion.', badge: 'Content', color: '#059669', size: 'md', stat: null, statLabel: null },
+  ];
+  integrations = [
+    { icon: 'bi-camera-video-fill', title: 'In-App HD Video', desc: 'Built-in live classrooms — video, screen-share, chat & raise-hand, right inside Central LMS. No external link, no extra app. The default for every live class.', color: '#0A4F2A' },
+    { icon: 'bi-camera-reels-fill', title: 'Zoom', desc: 'Schedule and launch Zoom meetings from a session, with attendance pulled back automatically.', color: '#2D8CFF' },
+    { icon: 'bi-people-fill', title: 'Microsoft Teams', desc: 'Host sessions in Teams for organisations standardised on Microsoft 365, with attendance sync.', color: '#4B53BC' },
+    { icon: 'bi-camera-video', title: 'Google Meet', desc: 'Run classes over Google Meet and keep scheduling, joining and attendance in one place.', color: '#00897B' },
+    { icon: 'bi-file-earmark-code-fill', title: 'SCORM & xAPI', desc: 'Import and play SCORM 1.2 / 2004 and xAPI content — bring your existing courseware with you.', color: '#0284C7' },
+    { icon: 'bi-shield-lock-fill', title: 'Single Sign-On', desc: 'SSO so your people sign in with the identity they already have, with role-based access control.', color: '#BE185D' },
+    { icon: 'bi-plug-fill', title: 'HRIS & Enterprise Apps', desc: 'Sync users, roles and structure with your HRIS and enterprise systems for hands-off administration.', color: '#D97706' },
+    { icon: 'bi-credit-card-2-front-fill', title: 'Payments', desc: 'Sell courses and take payments in multiple currencies with built-in checkout (Paystack).', color: '#C9A227' },
   ];
   approach = [
     { title: 'Needs Assessment', desc: 'Understand your goals and requirements.' },

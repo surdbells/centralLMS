@@ -133,6 +133,22 @@
     </div>
   </div></section>
 
+    <!-- ══ INTEGRATIONS ══ -->
+  <section class="ws-section" data-section="integrations"><div class="ws-container">
+    <div class="section-header">
+      <span class="eyebrow reveal" [class.visible]="sv['integrations']">Integrations</span>
+      <h2 class="display-lg reveal stagger-1" [class.visible]="sv['integrations']">Runs Your Way. <em>Connects to Everything.</em></h2>
+      <p class="body-lg reveal stagger-2" [class.visible]="sv['integrations']">Host live classes right inside Central LMS with built-in HD video — or plug into the meeting platform, content standards and business systems your teams already use.</p>
+    </div>
+    <div class="enable-grid">
+      <div class="enable-card glass-card reveal" *ngFor="let n of integrations; let i=index" [class.visible]="sv['integrations']" [class]="'stagger-'+((i % 4)+1)" data-section="integrations">
+        <div class="enable-icon" [style.background]="n.color+'10'" [style.color]="n.color"><i class="bi" [class]="n.icon"></i></div>
+        <h3>{{ n.title }}</h3>
+        <p>{{ n.desc }}</p>
+      </div>
+    </div>
+  </div></section>
+
     <!-- ══ MOBILE APP ══ -->
   <section class="ws-section" data-section="mobile">
     <div class="ws-container">
