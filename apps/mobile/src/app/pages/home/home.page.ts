@@ -11,13 +11,14 @@ import { ActivityEntry, LearnerDashboard } from '../../core/models';
 import { firstName, initialOf, minutesLabel, thumbStyle, timeAgo } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { ProgressComponent } from '../../components/progress/progress.component';
+import { AvatarComponent } from '../../components/avatar/avatar.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
     IonContent, IonRefresher, IonRefresherContent, IonIcon,
-    IonSkeletonText, IonRippleEffect, EmptyStateComponent, ProgressComponent,
+    IonSkeletonText, IonRippleEffect, EmptyStateComponent, ProgressComponent, AvatarComponent,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -36,7 +37,13 @@ import { ProgressComponent } from '../../components/progress/progress.component'
             <p class="tb-tag">Learn. Grow. Succeed.</p>
           </div>
         </div>
-        <button class="tb-avatar" (click)="goProfile()" aria-label="Your profile">{{ initial(fullName()) }}</button>
+        <button class="tb-avatar" [class.has-photo]="avatarUrl()" (click)="goProfile()" aria-label="Your profile">
+          @if (avatarUrl(); as u) {
+            <app-avatar [url]="u" [name]="fullName()" [size]="42"></app-avatar>
+          } @else {
+            {{ initial(fullName()) }}
+          }
+        </button>
       </div>
 
       <!-- Hero -->
@@ -214,7 +221,8 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .tb-tx { min-width: 0; }
     .tb-org { margin: 0; font-family: var(--app-font-display); font-weight: 800; font-size: 1.02rem; color: var(--app-ink); letter-spacing: var(--app-display-tracking); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tb-tag { margin: 1px 0 0; font-size: .72rem; color: var(--app-muted); }
-    .tb-avatar { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--app-accent-fill); color: var(--app-accent-ink); font-family: var(--app-font-display); font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: var(--app-btn-shadow); }
+    .tb-avatar { flex: none; width: 42px; height: 42px; padding: 0; border-radius: 50%; border: 0; overflow: hidden; display: grid; place-items: center; background: var(--app-accent-fill); color: var(--app-accent-ink); font-family: var(--app-font-display); font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: var(--app-btn-shadow); }
+    .tb-avatar.has-photo { background: transparent; box-shadow: none; }
 
     /* ── Hero ── */
     .hero {
@@ -245,20 +253,20 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     .hp-bar app-progress { flex: 1; --app-track: rgba(255,255,255,.28); --app-accent-fill: #fff; }
     .hp-pct { flex: none; font-family: var(--app-font-display); font-weight: 800; font-size: .95rem; }
 
-    .hstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
-    .hstat { background: rgba(255,255,255,.1); border-radius: var(--app-r-sm); padding: 10px 8px; display: flex; flex-direction: column; gap: 7px; }
-    .hs-ic { width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,.16); display: grid; place-items: center; }
-    .hs-ic ion-icon { font-size: 17px; color: #fff; }
-    .hs-tx { display: flex; flex-direction: column; line-height: 1.05; }
-    .hs-n { font-family: var(--app-font-display); font-weight: 800; font-size: 1.02rem; }
-    .hs-l { font-size: .6rem; opacity: .8; white-space: nowrap; }
+    .hstats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 12px; }
+    .hstat { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.12); border-radius: var(--app-r-sm); padding: 12px 13px; display: flex; flex-direction: row; align-items: center; gap: 11px; }
+    .hs-ic { flex: none; width: 38px; height: 38px; border-radius: 11px; background: rgba(255,255,255,.16); display: grid; place-items: center; }
+    .hs-ic ion-icon { font-size: 20px; color: #fff; }
+    .hs-tx { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+    .hs-n { font-family: var(--app-font-display); font-weight: 800; font-size: 1.25rem; }
+    .hs-l { font-size: .72rem; opacity: .82; white-space: nowrap; }
 
     /* ── Quick actions ── */
     .quick { margin: 14px 12px 4px; padding: 14px 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
     .qa { display: flex; flex-direction: column; align-items: center; gap: 7px; border: 0; background: transparent; cursor: pointer; padding: 4px 2px; }
     .qa-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone); }
     .qa-ic ion-icon { font-size: 23px; }
-    .qa-l { font-size: .66rem; font-weight: 600; color: var(--app-ink); text-align: center; line-height: 1.1; }
+    .qa-l { font-size: .62rem; font-weight: 600; color: var(--app-ink); text-align: center; line-height: 1.1; white-space: nowrap; letter-spacing: -.01em; }
     .qa[data-tone="blue"] { --tone: #3b6fe0; }
     .qa[data-tone="green"] { --tone: #1f9d57; }
     .qa[data-tone="purple"] { --tone: #7a52d8; }
@@ -312,9 +320,10 @@ export class HomePage implements OnInit {
   readonly loading = signal(true);
   readonly name = computed(() => firstName(this.session.session()?.name));
   readonly fullName = computed(() => this.session.session()?.name || 'Learner');
+  readonly avatarUrl = signal<string | null>(null);
 
   readonly quickActions = [
-    { label: 'My Courses', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
+    { label: 'Resources', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
     { label: 'Assessments', icon: 'clipboard-outline', tone: 'green', url: '/assessments' },
     { label: 'Certificates', icon: 'ribbon-outline', tone: 'purple', url: '/certificates' },
     { label: 'Achievements', icon: 'medal-outline', tone: 'amber', url: '/achievements' },
@@ -328,6 +337,16 @@ export class HomePage implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  // ionViewWillEnter (not ngOnInit) so a picture changed over in Edit Profile
+  // shows when the learner returns to the Home tab — the tab stays cached, so
+  // ngOnInit never runs again.
+  ionViewWillEnter(): void {
+    this.learner.profile().subscribe({
+      next: (p) => this.avatarUrl.set((p.avatarUrl as string) || null),
+      error: () => this.avatarUrl.set(null),
+    });
   }
 
   greeting(): string {

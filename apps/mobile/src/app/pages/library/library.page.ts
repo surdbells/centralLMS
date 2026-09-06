@@ -23,7 +23,7 @@ import { LibraryViewerComponent } from '../../components/library-viewer/library-
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Library" subtitle="Files shared with you"></app-brand-header>
+      <app-brand-header title="Library" subtitle="Files shared with you" back></app-brand-header>
 
       <div class="pad">
         <app-search placeholder="Search the library" (search)="onSearch($event)"></app-search>

@@ -19,6 +19,7 @@ import {
   shieldCheckmarkOutline, desktopOutline, cameraOutline, createOutline,
   colorPaletteOutline, informationCircleOutline, phonePortraitOutline,
   sunnyOutline, moonOutline, callOutline, keyOutline,
+  arrowBack, funnelOutline, trashOutline,
 } from 'ionicons/icons';
 import { initNative } from './core/native';
 import { ThemeService } from './core/theme.service';
@@ -41,6 +42,7 @@ addIcons({
   shieldCheckmarkOutline, desktopOutline, cameraOutline, createOutline,
   colorPaletteOutline, informationCircleOutline, phonePortraitOutline,
   sunnyOutline, moonOutline, callOutline, keyOutline,
+  arrowBack, funnelOutline, trashOutline,
 });
 
 @Component({

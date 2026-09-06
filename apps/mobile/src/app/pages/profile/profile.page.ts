@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
@@ -11,6 +11,7 @@ import { initialOf } from '../../core/ui';
 import { ListComponent } from '../../components/list/list.component';
 import { ButtonComponent } from '../../components/button/button.component';
 import { SheetComponent } from '../../components/sheet/sheet.component';
+import { AvatarComponent } from '../../components/avatar/avatar.component';
 
 interface Row {
   readonly icon: string;
@@ -23,7 +24,7 @@ interface Row {
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [IonContent, IonIcon, ListComponent, ButtonComponent, SheetComponent],
+  imports: [IonContent, IonIcon, ListComponent, ButtonComponent, SheetComponent, AvatarComponent],
   template: `
     <ion-content [fullscreen]="true">
       <div class="wrap">
@@ -37,7 +38,7 @@ interface Row {
         <!-- Profile card -->
         <button class="pcard" (click)="go('/profile/edit')" aria-label="Edit profile">
           <span class="pc-av">
-            {{ initial(name()) }}
+            <app-avatar [url]="avatarUrl()" [name]="name()" [size]="60"></app-avatar>
             <span class="pc-cam" aria-hidden="true"><ion-icon name="camera-outline"></ion-icon></span>
           </span>
           <span class="pc-tx">
@@ -133,12 +134,7 @@ interface Row {
       transition: transform .12s ease;
     }
     .pcard:active { transform: scale(.99); }
-    .pc-av {
-      position: relative; width: 60px; height: 60px; border-radius: var(--app-r);
-      display: grid; place-items: center; color: #fff; font-size: 1.5rem;
-      font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking);
-      background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade));
-    }
+    .pc-av { position: relative; width: 60px; height: 60px; flex: none; }
     .pc-cam {
       position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 999px;
       display: grid; place-items: center; background: var(--app-elevated, var(--app-surface));
@@ -205,7 +201,7 @@ interface Row {
     .opt-chk { flex: none; font-size: 20px; color: var(--ion-color-primary); }
   `],
 })
-export class ProfilePage implements OnInit {
+export class ProfilePage {
   private readonly learner = inject(LearnerService);
   private readonly auth = inject(AuthService);
   private readonly session = inject(SessionStore);
@@ -219,6 +215,7 @@ export class ProfilePage implements OnInit {
   readonly email = computed(() => this.session.session()?.email || this.profile()?.email || '');
   readonly org = computed(() => this.branding.organisation() || '');
   readonly role = computed(() => (this.profile()?.jobTitle as string) || 'Learner');
+  readonly avatarUrl = computed(() => (this.profile()?.avatarUrl as string) || null);
 
   readonly mode = this.theme.mode;
   readonly themeOpen = signal(false);
@@ -252,7 +249,9 @@ export class ProfilePage implements OnInit {
     return m.charAt(0).toUpperCase() + m.slice(1);
   });
 
-  ngOnInit(): void {
+  // ionViewWillEnter (not ngOnInit) so returning from Edit Profile re-reads the
+  // record — a changed name or a new photo shows without a manual refresh.
+  ionViewWillEnter(): void {
     this.learner.profile().subscribe({
       next: (p) => this.profile.set(p),
       error: () => this.profile.set(null),

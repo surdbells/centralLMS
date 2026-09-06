@@ -21,7 +21,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Achievements" subtitle="Your points and progress"></app-brand-header>
+      <app-brand-header title="Achievements" subtitle="Your points and progress" back></app-brand-header>
 
       <div class="pad">
         @if (loading()) {

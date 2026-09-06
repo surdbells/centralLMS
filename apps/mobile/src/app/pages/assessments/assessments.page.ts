@@ -18,7 +18,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Assessments" subtitle="Quizzes and exams for you"></app-brand-header>
+      <app-brand-header title="Assessments" subtitle="Quizzes and exams for you" back></app-brand-header>
 
       <div class="pad">
         @if (loading()) {

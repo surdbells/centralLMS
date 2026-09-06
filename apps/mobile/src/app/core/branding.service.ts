@@ -62,10 +62,29 @@ export class BrandingService {
       this.load(tenantId);
     });
 
-    // Re-tint when the OS switches between light and dark so the brand accent
-    // stays readable on either surface.
+    // Re-tint when the effective theme changes so the brand accent stays
+    // readable on either surface — both when the OS scheme flips…
     window.matchMedia?.('(prefers-color-scheme: dark)')
       .addEventListener?.('change', () => this.paintColours(this.primary(), this.accent()));
+    // …and when the in-app theme toggle stamps `data-theme` on the root, which
+    // overrides the OS scheme (a dark choice under a light OS, or vice-versa).
+    new MutationObserver(() => this.paintColours(this.primary(), this.accent()))
+      .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
+
+  /**
+   * The effective dark state: the in-app theme toggle wins (it stamps
+   * `data-theme` on the root), and with no explicit choice we follow the OS.
+   */
+  private isDark(): boolean {
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark') {
+      return true;
+    }
+    if (attr === 'light') {
+      return false;
+    }
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
   }
 
   /** Fetch public settings for a tenant, or — with none — the deployment default. */
@@ -132,8 +151,7 @@ export class BrandingService {
       // A dark brand colour reads well as a hero background but poorly as an
       // accent on a dark surface, so the Ionic accent is lightened in dark mode
       // while the raw colour is kept for the hero gradients.
-      const dark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
-      const ui = dark ? mix(primary, '#ffffff', 0.34) : primary;
+      const ui = this.isDark() ? mix(primary, '#ffffff', 0.34) : primary;
 
       root.style.setProperty('--ion-color-primary', ui);
       root.style.setProperty('--ion-color-primary-rgb', toRgb(ui) ?? '51, 22, 166');

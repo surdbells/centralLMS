@@ -146,8 +146,12 @@ export interface LeaderboardResult {
   period: string;
   periodLabel: string;
   entries: LeaderboardEntry[];
-  /** The viewer's standing, sent only when they fall off the end of the board. */
-  viewer: { rank: number; points: number } | null;
+  /**
+   * The viewer's own standing, sent as a full entry (name, avatar, level and
+   * all) only when they fall off the end of the board — so it can be pinned
+   * to the bottom with their real identity, not a placeholder.
+   */
+  viewer: LeaderboardEntry | null;
 }
 
 export interface Achievements {

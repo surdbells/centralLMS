@@ -84,6 +84,18 @@ export class LearnerService {
     return this.api.put<Profile>('/me/profile', patch);
   }
 
+  /** Upload a new profile picture (JPEG/PNG/GIF/WebP, under 2 MB). Returns the fresh record. */
+  uploadAvatar(file: File): Observable<Profile> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.api.post<Profile>('/me/avatar', form);
+  }
+
+  /** Remove the profile picture, falling back to the initials avatar. */
+  removeAvatar(): Observable<Profile> {
+    return this.api.delete<Profile>('/me/avatar');
+  }
+
   /**
    * Change this learner's own password. The API requires the current one — a
    * session left open on a shared device shouldn't be enough to lock the owner

@@ -1,22 +1,27 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
+  IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, IonIcon, IonSpinner,
 } from '@ionic/angular/standalone';
 import { LearnerService } from '../../core/learner.service';
 import { SessionStore } from '../../core/session';
+import { ApiError } from '../../core/api';
 import { ToastService } from '../../components/toast/toast.service';
 import { FieldComponent } from '../../components/field/field.component';
 import { ButtonComponent } from '../../components/button/button.component';
+import { AvatarComponent } from '../../components/avatar/avatar.component';
 import { Profile } from '../../core/models';
+
+const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_BYTES = 2 * 1024 * 1024;
 
 @Component({
   selector: 'app-edit-profile',
   standalone: true,
   imports: [
-    IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    FormsModule, FieldComponent, ButtonComponent,
+    IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, IonIcon, IonSpinner,
+    FormsModule, FieldComponent, ButtonComponent, AvatarComponent,
   ],
   template: `
     <ion-header [translucent]="true">
@@ -29,12 +34,29 @@ import { Profile } from '../../core/models';
     <ion-content [fullscreen]="true">
       <div class="wrap">
         <div class="avatar-row">
-          <span class="av">{{ initial() }}</span>
+          <button type="button" class="av-btn" (click)="pickFile()" [disabled]="uploading()" aria-label="Change profile picture">
+            <app-avatar [url]="avatarUrl()" [name]="shownName()" [size]="78"></app-avatar>
+            <span class="av-cam" [class.busy]="uploading()">
+              @if (uploading()) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                <ion-icon name="camera-outline" aria-hidden="true"></ion-icon>
+              }
+            </span>
+          </button>
           <div class="who">
             <p class="nm">{{ shownName() }}</p>
             <p class="em">{{ email() }}</p>
+            <div class="av-actions">
+              <button type="button" class="lnk" (click)="pickFile()" [disabled]="uploading()">Change photo</button>
+              @if (avatarUrl()) {
+                <button type="button" class="lnk danger" (click)="removePhoto()" [disabled]="uploading()">Remove</button>
+              }
+            </div>
           </div>
         </div>
+
+        <input #file type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden (change)="onFile($event)" />
 
         <form (ngSubmit)="save()">
           <app-field label="First name" icon="person-outline" [required]="true"
@@ -61,13 +83,21 @@ import { Profile } from '../../core/models';
   `,
   styles: [`
     .wrap { padding: 18px 16px calc(28px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; }
-    .avatar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-    .av { width: 58px; height: 58px; border-radius: var(--app-r); display: grid; place-items: center; color: #fff;
-      font-size: 1.45rem; font-family: var(--app-font-display); font-weight: var(--app-display-weight); letter-spacing: var(--app-display-tracking);
-      background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade)); }
+    .avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+    .av-btn { position: relative; width: 78px; height: 78px; flex: none; padding: 0; border: 0; background: transparent; cursor: pointer; }
+    .av-btn:disabled { cursor: default; }
+    .av-cam { position: absolute; right: -2px; bottom: -2px; width: 28px; height: 28px; border-radius: 50%;
+      display: grid; place-items: center; background: var(--ion-color-primary); color: #fff;
+      border: 2px solid var(--app-surface); box-shadow: var(--app-shadow); }
+    .av-cam ion-icon { font-size: 15px; }
+    .av-cam ion-spinner { width: 15px; height: 15px; --color: #fff; }
     .who { min-width: 0; }
     .nm { margin: 0; font-size: 1.05rem; font-weight: 650; letter-spacing: -.01em; }
     .em { margin: 2px 0 0; font-size: .84rem; color: var(--app-muted); }
+    .av-actions { display: flex; gap: 14px; margin-top: 8px; }
+    .lnk { border: 0; background: transparent; padding: 0; font-size: .84rem; font-weight: 600; cursor: pointer; color: var(--ion-color-primary); }
+    .lnk.danger { color: var(--ion-color-danger); }
+    .lnk:disabled { opacity: .5; cursor: default; }
     form { display: grid; gap: 15px; }
     .actions { margin-top: 10px; }
   `],
@@ -78,19 +108,22 @@ export class EditProfilePage implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
+  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('file');
+
   readonly firstName = signal('');
   readonly lastName = signal('');
   readonly phone = signal('');
+  readonly avatarUrl = signal<string | null>(null);
 
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly uploading = signal(false);
   readonly submitted = signal(false);
 
   readonly email = computed(() => this.session.session()?.email || '');
   readonly shownName = computed(() =>
     `${this.firstName()} ${this.lastName()}`.trim() || this.session.session()?.name || 'Learner',
   );
-  readonly initial = computed(() => (this.shownName().trim()[0] || 'L').toUpperCase());
 
   ngOnInit(): void {
     this.learner.profile().subscribe({
@@ -98,9 +131,62 @@ export class EditProfilePage implements OnInit {
         this.firstName.set((p.firstName as string) || '');
         this.lastName.set((p.lastName as string) || '');
         this.phone.set((p.phone as string) || '');
+        this.avatarUrl.set((p.avatarUrl as string) || null);
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
+    });
+  }
+
+  pickFile(): void {
+    if (!this.uploading()) {
+      this.fileInput()?.nativeElement.click();
+    }
+  }
+
+  onFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // let the same file be chosen again after a cancel
+    if (!file) {
+      return;
+    }
+    if (!ACCEPTED.includes(file.type)) {
+      this.toast.error('Choose a JPEG, PNG, GIF or WebP image.', { title: 'Unsupported file' });
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      this.toast.error('Keep the image under 2 MB.', { title: 'Too large' });
+      return;
+    }
+
+    this.uploading.set(true);
+    this.learner.uploadAvatar(file).subscribe({
+      next: (p) => {
+        this.uploading.set(false);
+        this.avatarUrl.set((p.avatarUrl as string) || null);
+        this.toast.success('Profile picture updated.', { title: 'Saved' });
+      },
+      error: (err: unknown) => {
+        this.uploading.set(false);
+        const msg = err instanceof ApiError ? err.fieldError('file') || err.message : 'Upload failed.';
+        this.toast.error(msg, { title: 'Upload failed' });
+      },
+    });
+  }
+
+  removePhoto(): void {
+    this.uploading.set(true);
+    this.learner.removeAvatar().subscribe({
+      next: () => {
+        this.uploading.set(false);
+        this.avatarUrl.set(null);
+        this.toast.info('Profile picture removed.');
+      },
+      error: () => {
+        this.uploading.set(false);
+        this.toast.error('We couldn’t remove the picture. Please try again.');
+      },
     });
   }
 

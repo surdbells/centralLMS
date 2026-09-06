@@ -40,6 +40,10 @@ export class ApiClient {
     return this.raw<T>('PUT', path, body).pipe(map((r) => r.payload));
   }
 
+  delete<T>(path: string): Observable<T> {
+    return this.raw<T>('DELETE', path).pipe(map((r) => r.payload));
+  }
+
   getPaged<T>(path: string, params?: QueryParams): Observable<Paged<T>> {
     return this.raw<T[]>('GET', path, undefined, params).pipe(
       map(({ payload, meta }) => {

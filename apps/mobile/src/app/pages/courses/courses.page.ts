@@ -33,7 +33,7 @@ type Tab = 'mine' | 'catalogue';
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Courses"></app-brand-header>
+      <app-brand-header title="Courses" subtitle="Browse and continue your learning"></app-brand-header>
 
       <div class="ca-controls">
         <app-segment [value]="tab()" (valueChange)="switch($any($event))" [segments]="tabs"></app-segment>
