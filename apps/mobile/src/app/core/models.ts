@@ -159,10 +159,20 @@ export interface Achievements {
   rank: Rank | null;
 }
 
+/** One rung of the gamification ladder, as the API serialises it. */
+export interface LevelTier {
+  id: string;
+  number: number;
+  name: string;
+  requiredPoints: number;
+  iconUrl?: string | null;
+  rewards?: unknown;
+}
+
 export interface LevelProgress {
   points: number;
-  current: string | null;
-  next: string | null;
+  current: LevelTier | null;
+  next: LevelTier | null;
   pointsToNext: number | null;
   percentToNext: number;
   atTop: boolean;

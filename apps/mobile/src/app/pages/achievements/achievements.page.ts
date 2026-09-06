@@ -47,12 +47,12 @@ import { ProgressComponent } from '../../components/progress/progress.component'
             @if (g.level.current || g.level.next) {
               <div class="ach-level">
                 <div class="ach-level-top">
-                  <span>{{ g.level.current || 'Getting started' }}</span>
-                  @if (g.level.next) { <span class="muted">{{ g.level.next }}</span> }
+                  <span>{{ g.level.current?.name || 'Getting started' }}</span>
+                  @if (g.level.next) { <span class="muted">{{ g.level.next.name }}</span> }
                 </div>
                 <app-progress [value]="g.level.percentToNext / 100"></app-progress>
                 @if (g.level.pointsToNext) {
-                  <p class="ach-level-hint">{{ g.level.pointsToNext }} points to {{ g.level.next }}</p>
+                  <p class="ach-level-hint">{{ g.level.pointsToNext }} points to {{ g.level.next?.name }}</p>
                 }
               </div>
             }
