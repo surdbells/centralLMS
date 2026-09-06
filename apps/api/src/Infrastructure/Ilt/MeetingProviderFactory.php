@@ -45,6 +45,12 @@ final class MeetingProviderFactory implements MeetingProviderResolver
      */
     public function forTenant(string $tenantId, MeetingProviderId $platform): MeetingProvider
     {
+        // Agora needs no per-tenant connection — it is built straight from the
+        // deployment's own credentials.
+        if ($platform === MeetingProviderId::Agora) {
+            return $this->buildAgora();
+        }
+
         $integration = $this->integrations->find($tenantId, $platform);
 
         if ($integration === null || !$integration->isUsable()) {
@@ -61,17 +67,74 @@ final class MeetingProviderFactory implements MeetingProviderResolver
      */
     public function defaultForTenant(string $tenantId): MeetingProvider
     {
+        // A tenant that has deliberately connected and defaulted an external
+        // platform keeps it; everyone else gets the in-app option, which needs
+        // no setup — so a fresh organisation can run a class on day one.
         $integration = $this->integrations->findDefault($tenantId);
+        if ($integration !== null && $integration->isUsable()) {
+            return $this->build($integration);
+        }
 
-        if ($integration === null || !$integration->isUsable()) {
+        if ($this->isPlatformAvailable(MeetingProviderId::Agora)) {
+            return $this->buildAgora();
+        }
+
+        throw new MeetingProviderError(
+            MeetingProviderId::Zoom,
+            'This organisation has no video conferencing platform connected. '
+            . 'Connect one in Settings before scheduling virtual sessions.',
+        );
+    }
+
+    /**
+     * The in-app provider, from deployment config — no integration row.
+     *
+     * @throws MeetingProviderError when the deployment has set no Agora keys
+     */
+    public function buildAgora(): AgoraMeetingProvider
+    {
+        if (!$this->isPlatformAvailable(MeetingProviderId::Agora)) {
             throw new MeetingProviderError(
-                MeetingProviderId::Zoom,
-                'This organisation has no video conferencing platform connected. '
-                . 'Connect one in Settings before scheduling virtual sessions.',
+                MeetingProviderId::Agora,
+                'In-app video is not configured for this deployment.',
             );
         }
 
-        return $this->build($integration);
+        $config = (array) ($this->appConfig['agora'] ?? []);
+
+        return new AgoraMeetingProvider(
+            (string) ($config['app_id'] ?? ''),
+            (string) ($config['app_web_url'] ?? ''),
+        );
+    }
+
+    /** A builder for this deployment's Agora RTC/RTM tokens. */
+    public function agoraTokenBuilder(): AgoraTokenBuilder
+    {
+        $config = (array) ($this->appConfig['agora'] ?? []);
+
+        return new AgoraTokenBuilder(
+            (string) ($config['app_id'] ?? ''),
+            (string) ($config['app_certificate'] ?? ''),
+        );
+    }
+
+    public function agoraAppId(): string
+    {
+        return (string) (((array) ($this->appConfig['agora'] ?? []))['app_id'] ?? '');
+    }
+
+    /** How long an issued token lives, in seconds. */
+    public function agoraTokenTtl(): int
+    {
+        $ttl = (int) (((array) ($this->appConfig['agora'] ?? []))['token_ttl'] ?? 14400);
+
+        return $ttl > 0 ? $ttl : 14400;
+    }
+
+    public function isAgoraAvailable(): bool
+    {
+        return $this->isPlatformAvailable(MeetingProviderId::Agora);
     }
 
     public function build(VideoIntegration $integration): MeetingProvider&VideoOAuthFlow
@@ -137,6 +200,13 @@ final class MeetingProviderFactory implements MeetingProviderResolver
     {
         $config = (array) ($this->appConfig[$platform->value] ?? []);
 
+        // Agora is keyed on its App ID + Certificate, not an OAuth client pair.
+        if ($platform === MeetingProviderId::Agora) {
+            return (bool) ($config['enabled'] ?? false)
+                && ($config['app_id'] ?? '') !== ''
+                && ($config['app_certificate'] ?? '') !== '';
+        }
+
         return ($config['enabled'] ?? false)
             && ($config['client_id'] ?? '') !== ''
             && ($config['client_secret'] ?? '') !== '';
@@ -152,9 +222,13 @@ final class MeetingProviderFactory implements MeetingProviderResolver
     public function describeForTenant(string $tenantId): array
     {
         $connected = [];
+        $hasExternalDefault = false;
 
         foreach ($this->integrations->findAllForTenant($tenantId) as $integration) {
             $connected[$integration->platform->value] = $integration;
+            if ($integration->isDefault && $integration->isUsable()) {
+                $hasExternalDefault = true;
+            }
         }
 
         $described = [];
@@ -164,11 +238,29 @@ final class MeetingProviderFactory implements MeetingProviderResolver
                 continue;
             }
 
+            if ($platform === MeetingProviderId::Agora) {
+                // Always ready — there is no connection to make — and the default
+                // whenever no external platform has been deliberately defaulted.
+                $described[] = [
+                    'id'                       => $platform->value,
+                    'label'                    => $platform->label(),
+                    'inApp'                    => true,
+                    'connected'                => true,
+                    'isDefault'                => !$hasExternalDefault,
+                    'expiresAt'                => null,
+                    'supportsCloudRecording'   => $platform->supportsCloudRecording(),
+                    'supportsWaitingRoom'      => $platform->supportsWaitingRoom(),
+                    'supportsAttendanceReport' => $platform->supportsAttendanceReport(),
+                ];
+                continue;
+            }
+
             $integration = $connected[$platform->value] ?? null;
 
             $described[] = [
                 'id'                       => $platform->value,
                 'label'                    => $platform->label(),
+                'inApp'                    => false,
                 'connected'                => $integration?->isUsable() ?? false,
                 'isDefault'                => $integration !== null && $integration->isDefault,
                 'expiresAt'                => $integration?->tokenExpiresAt?->format(\DateTimeInterface::ATOM),

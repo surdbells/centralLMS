@@ -140,6 +140,7 @@ use Central\Api\Application\Action\Certificate\VerifyCertificateAction;
 use Central\Api\Application\Action\HealthAction;
 use Central\Api\Application\Action\Ilt\AttendanceAction;
 use Central\Api\Application\Action\Ilt\ListMeetingProvidersAction;
+use Central\Api\Application\Action\Ilt\SessionRoomTokenAction;
 use Central\Api\Application\Action\Ilt\ManageSessionsAction;
 use Central\Api\Application\Action\Ilt\MyTrainingsAction;
 use Central\Api\Application\Action\Ilt\ManageTrainingsAction;
@@ -1530,9 +1531,14 @@ return static function (App $app): void {
                 });
             });
 
-            $secure->group('/ilt', function (RouteCollectorProxy $ilt): void {
+            $secure->group('/ilt', function (RouteCollectorProxy $ilt) use ($uuid): void {
                 $ilt->get('/providers', ListMeetingProvidersAction::class)
                     ->setName('ilt.providers');
+
+                // The RTC/RTM tokens for a session's in-app (Agora) room. Any
+                // enrolled learner or its instructor may take one for themselves.
+                $ilt->get('/sessions/{sessionId:' . $uuid . '}/room-token', SessionRoomTokenAction::class)
+                    ->setName('ilt.session.roomToken');
 
                 // Each tenant connects its own Zoom, Google or Teams
                 // account, so meetings appear in their own console.

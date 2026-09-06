@@ -197,6 +197,22 @@ return [
             // only for a single-tenant deployment.
             'tenant_id'     => Env::get('MS_TENANT_ID', 'common'),
         ],
+        // Agora is the in-app option: the class runs inside the LMS rather than
+        // on an external platform, so there is no per-tenant OAuth. The whole
+        // deployment shares one App ID + App Certificate, and every session gets
+        // a channel with per-user tokens minted from them. Available (and the
+        // default) whenever these are set — no tenant has to connect anything.
+        'agora' => [
+            'enabled'         => Env::bool('AGORA_ENABLED', false),
+            'app_id'          => Env::get('AGORA_APP_ID', ''),
+            'app_certificate' => Env::get('AGORA_APP_CERTIFICATE', ''),
+            // How long an issued RTC/RTM token is valid — long enough to cover a
+            // full class plus a late arrival re-fetching one.
+            'token_ttl'       => Env::int('AGORA_TOKEN_TTL', 14400),
+            // Where the in-app room lives, so a session's join link (in emails,
+            // reminders) points back into the SPA rather than at an external URL.
+            'app_web_url'     => rtrim((string) Env::get('AGORA_ROOM_BASE_URL', (string) Env::get('APP_WEB_URL', '')), '/'),
+        ],
     ],
 
     'security' => [
