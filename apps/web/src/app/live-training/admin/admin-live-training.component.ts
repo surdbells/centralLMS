@@ -66,6 +66,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
   // Session Management
   selectedSession: TrainingSession | null = null;
+  settingUpVideo: string | null = null;
   qrCodeData: { qr_token: string; expires_at: string } | null = null;
 
   // Enrollment
@@ -389,6 +390,29 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Books the meeting behind a virtual session — for the in-app option this is
+   * what mints its room and join link. Uses the session's chosen platform, or
+   * the organisation's default (in-app) when none was picked.
+   */
+  setupVideo(session: TrainingSession): void {
+    if (!this.selectedTraining) return;
+    this.settingUpVideo = session.session_id;
+    this.liveTrainingService
+      .bookSessionMeeting(this.selectedTraining.training_id, session.session_id, session.video_platform || undefined)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.settingUpVideo = null;
+          this.loadTrainingDetails(this.selectedTraining!);
+        },
+        error: err => {
+          console.error('Error setting up video:', err);
+          this.settingUpVideo = null;
+        }
+      });
+  }
+
   confirmDeleteSession(session: TrainingSession): void {
     this.deleteType = 'session';
     this.deleteId = session.session_id;
@@ -646,6 +670,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       case 'zoom': return 'bi-camera-video-fill';
       case 'google_meet': return 'bi-google';
       case 'microsoft_teams': return 'bi-microsoft-teams';
+      case 'agora': return 'bi-broadcast';
       default: return 'bi-link-45deg';
     }
   }

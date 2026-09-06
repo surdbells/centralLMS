@@ -371,6 +371,16 @@
                   <button class="btn btn-outline-info" (click)="openInstructorModal(session)" title="Manage Instructors">
                     <i class="bi bi-person-badge"></i>
                   </button>
+                  <button class="btn btn-outline-primary" (click)="setupVideo(session)"
+                          title="Set up the video call" [disabled]="settingUpVideo === session.session_id"
+                          *ngIf="session.session_type !== 'physical' && !session.join_url">
+                    <i class="bi" [ngClass]="settingUpVideo === session.session_id ? 'bi-hourglass-split' : 'bi-camera-reels'"></i>
+                  </button>
+                  <a class="btn btn-success" [routerLink]="['/live-training/room', session.session_id]"
+                     title="Open the in-app room"
+                     *ngIf="session.video_platform === 'agora' && session.join_url">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                  </a>
                   <button class="btn btn-primary" (click)="openQRModal(session)"
                           title="QR Code" *ngIf="session.session_type !== 'virtual'">
                     <i class="bi bi-qr-code"></i>
