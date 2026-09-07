@@ -7,13 +7,14 @@ import { timeAgo } from '../../core/ui';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { ProgressComponent } from '../../components/progress/progress.component';
+import { TranslatePipe } from '../../core/translate.pipe';
 
 @Component({
   selector: 'app-achievements',
   standalone: true,
   imports: [
     IonContent, IonIcon, IonRefresher, IonRefresherContent, IonSkeletonText,
-    BrandHeaderComponent, EmptyStateComponent, ProgressComponent,
+    BrandHeaderComponent, EmptyStateComponent, ProgressComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -21,7 +22,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Achievements" subtitle="Your points and progress" back></app-brand-header>
+      <app-brand-header [title]="'actions.achievements' | translate" [subtitle]="'achievements.subtitle' | translate" back></app-brand-header>
 
       <div class="pad">
         @if (loading()) {
@@ -29,9 +30,9 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         } @else if (failed()) {
           <app-empty-state
             icon="cloud-offline-outline"
-            title="Couldn't load your achievements"
-            message="Check your connection and try again."
-            actionLabel="Try again"
+            [title]="'achievements.load_error_title' | translate"
+            [message]="'common.offline' | translate"
+            [actionLabel]="'common.retry' | translate"
             (action)="load()"></app-empty-state>
         } @else if (game()) {
           @if (game(); as g) {
@@ -39,7 +40,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
           <div class="ach-hero">
             <div class="ach-pts">
               <span class="ach-pts-n">{{ g.points }}</span>
-              <span class="ach-pts-l">points earned</span>
+              <span class="ach-pts-l">{{ 'achievements.points_earned' | translate }}</span>
             </div>
             @if (g.rank; as r) {
               <div class="ach-rank"><ion-icon name="trophy-outline" aria-hidden="true"></ion-icon> #{{ r.rank }}</div>
@@ -47,19 +48,19 @@ import { ProgressComponent } from '../../components/progress/progress.component'
             @if (g.level.current || g.level.next) {
               <div class="ach-level">
                 <div class="ach-level-top">
-                  <span>{{ g.level.current?.name || 'Getting started' }}</span>
+                  <span>{{ g.level.current?.name || ('achievements.getting_started' | translate) }}</span>
                   @if (g.level.next) { <span class="muted">{{ g.level.next.name }}</span> }
                 </div>
                 <app-progress [value]="g.level.percentToNext / 100"></app-progress>
                 @if (g.level.pointsToNext) {
-                  <p class="ach-level-hint">{{ g.level.pointsToNext }} points to {{ g.level.next?.name }}</p>
+                  <p class="ach-level-hint">{{ 'achievements.points_to_next' | translate:{ points: g.level.pointsToNext, level: g.level.next?.name } }}</p>
                 }
               </div>
             }
           </div>
 
           @if (g.badges.length) {
-            <div class="section-title">Badges</div>
+            <div class="section-title">{{ 'achievements.badges' | translate }}</div>
             <div class="ach-badges">
               @for (b of g.badges; track b.id) {
                 <div class="ach-badge">
@@ -71,7 +72,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
           }
 
           @if (g.breakdown.length) {
-            <div class="section-title">Where your points come from</div>
+            <div class="section-title">{{ 'achievements.points_source' | translate }}</div>
             <div class="ach-card">
               @for (b of g.breakdown; track b.reason) {
                 <div class="ach-brow">
@@ -83,7 +84,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
           }
 
           @if (history().length) {
-            <div class="section-title">Points history</div>
+            <div class="section-title">{{ 'achievements.points_history' | translate }}</div>
             @for (h of history(); track h.id) {
               <div class="ach-hrow">
                 <span class="ach-hpts">+{{ h.points }}</span>
@@ -99,8 +100,8 @@ import { ProgressComponent } from '../../components/progress/progress.component'
           @if (!g.points && !history().length) {
             <app-empty-state
               icon="trophy-outline"
-              title="No points yet"
-              message="Finish courses and pass assessments to start earning."></app-empty-state>
+              [title]="'achievements.no_points_title' | translate"
+              [message]="'achievements.no_points_msg' | translate"></app-empty-state>
           }
           }
         }

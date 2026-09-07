@@ -24,6 +24,8 @@ import {
   type CourseResource,
 } from '../../../services/course-resources.service';
 import { ApiError } from '../../../core/api';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /* The shapes this screen's template already reads. */
 
@@ -118,7 +120,7 @@ export interface MediaFile {
 @Component({
   selector: 'app-course-content',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent],
+  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent, TranslatePipe],
   templateUrl: './course-content.component.html',
   styleUrls: ['./course-content.component.scss'],
 })
@@ -129,6 +131,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   private readonly resourcesService = inject(CourseResourcesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   courseId = '';
@@ -176,27 +179,27 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   deleteName = '';
 
   readonly contentTypes: Array<{ value: LessonContentType; label: string; icon: string; mediaType?: MediaItem['kind'] }> = [
-    { value: 'video', label: 'Video', icon: 'bi-camera-video', mediaType: 'video' },
-    { value: 'audio', label: 'Audio', icon: 'bi-music-note-beamed', mediaType: 'audio' },
-    { value: 'pdf', label: 'PDF', icon: 'bi-file-earmark-pdf', mediaType: 'pdf' },
-    { value: 'scorm', label: 'SCORM', icon: 'bi-box-seam', mediaType: 'scorm' },
-    { value: 'text', label: 'Text', icon: 'bi-file-text' },
-    { value: 'html', label: 'Rich Content', icon: 'bi-code-slash' },
+    { value: 'video', label: 'admin.course_content.type_video', icon: 'bi-camera-video', mediaType: 'video' },
+    { value: 'audio', label: 'admin.course_content.type_audio', icon: 'bi-music-note-beamed', mediaType: 'audio' },
+    { value: 'pdf', label: 'admin.course_content.type_pdf', icon: 'bi-file-earmark-pdf', mediaType: 'pdf' },
+    { value: 'scorm', label: 'admin.course_content.type_scorm', icon: 'bi-box-seam', mediaType: 'scorm' },
+    { value: 'text', label: 'admin.course_content.type_text', icon: 'bi-file-text' },
+    { value: 'html', label: 'admin.course_content.type_rich', icon: 'bi-code-slash' },
   ];
 
   readonly assessmentTypes = [
-    { value: 'quiz', label: 'Quiz', icon: 'bi-question-circle' },
-    { value: 'exam', label: 'Exam', icon: 'bi-mortarboard' },
-    { value: 'survey', label: 'Survey', icon: 'bi-clipboard-check' },
+    { value: 'quiz', label: 'admin.course_content.type_quiz', icon: 'bi-question-circle' },
+    { value: 'exam', label: 'admin.course_content.type_exam', icon: 'bi-mortarboard' },
+    { value: 'survey', label: 'admin.course_content.type_survey', icon: 'bi-clipboard-check' },
   ];
 
   readonly questionTypes: Array<{ value: ScreenQuestionType; label: string }> = [
-    { value: 'single_choice', label: 'Single Choice' },
-    { value: 'multiple_choice', label: 'Multiple Choice' },
-    { value: 'multiple_response', label: 'Multiple Response' },
-    { value: 'true_false', label: 'True / False' },
-    { value: 'short_answer', label: 'Short Answer' },
-    { value: 'essay', label: 'Essay' },
+    { value: 'single_choice', label: 'admin.course_content.qtype_single' },
+    { value: 'multiple_choice', label: 'admin.course_content.qtype_multiple' },
+    { value: 'multiple_response', label: 'admin.course_content.qtype_response' },
+    { value: 'true_false', label: 'admin.course_content.qtype_tf' },
+    { value: 'short_answer', label: 'admin.course_content.qtype_short' },
+    { value: 'essay', label: 'admin.course_content.qtype_essay' },
   ];
 
   loadingMedia = false;
@@ -214,7 +217,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       ?? '';
 
     if (this.courseId === '') {
-      this.error = 'No course was named in the address.';
+      this.error = this.i18n.t('admin.course_content.error_no_course');
       this.loading = false;
 
       return;
@@ -255,11 +258,11 @@ export class CourseContentComponent implements OnInit, OnDestroy {
         next: (resource) => {
           this.resources = [...this.resources, resource];
           this.uploadingResource = false;
-          this.successMessage = 'Resource added.';
+          this.successMessage = this.i18n.t('admin.course_content.toast_resource_added');
         },
         error: () => {
           this.uploadingResource = false;
-          this.error = 'The resource could not be uploaded.';
+          this.error = this.i18n.t('admin.course_content.toast_resource_upload_failed');
         },
       });
     input.value = '';
@@ -270,7 +273,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   }
 
   deleteResource(resource: CourseResource): void {
-    if (!confirm(`Remove "${resource.title}"?`)) {
+    if (!confirm(this.i18n.t('admin.course_content.toast_remove_resource_confirm', { title: resource.title }))) {
       return;
     }
     this.resourcesService
@@ -279,9 +282,9 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.resources = this.resources.filter((r) => r.id !== resource.id);
-          this.successMessage = 'Resource removed.';
+          this.successMessage = this.i18n.t('admin.course_content.toast_resource_removed');
         },
-        error: () => (this.error = 'The resource could not be removed.'),
+        error: () => (this.error = this.i18n.t('admin.course_content.toast_resource_remove_failed')),
       });
   }
 
@@ -404,7 +407,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       ? this.coursesService.createModule(this.courseId, input)
       : this.coursesService.updateModule(this.courseId, this.currentModule.module_id, input);
 
-    this.run(saved, 'Module saved.', () => (this.showModuleModal = false));
+    this.run(saved, this.i18n.t('admin.course_content.toast_module_saved'), () => (this.showModuleModal = false));
   }
 
   duplicateModule(module: Module, event: Event): void {
@@ -436,7 +439,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
 
           if (lessons.length === 0) {
             this.saving = false;
-            this.successMessage = 'Module duplicated.';
+            this.successMessage = this.i18n.t('admin.course_content.toast_module_duplicated');
             this.loadContent();
 
             return;
@@ -445,7 +448,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
           forkJoin(lessons).pipe(takeUntil(this.destroy$)).subscribe({
             next: () => {
               this.saving = false;
-              this.successMessage = `"${module.title}" was duplicated with ${lessons.length} lesson(s).`;
+              this.successMessage = this.i18n.t('admin.course_content.toast_module_duplicated_with', { title: module.title, count: lessons.length });
               this.loadContent();
             },
             error: (e: ApiError) => this.failed(e),
@@ -467,7 +470,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       .reorderModules(this.courseId, this.modules.map((m) => m.module_id))
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => (this.successMessage = 'Order saved.'),
+        next: () => (this.successMessage = this.i18n.t('admin.course_content.toast_order_saved')),
         error: (e: ApiError) => {
           this.error = e.message;
           this.loadContent();
@@ -592,7 +595,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       ? this.coursesService.createLesson(this.courseId, moduleId, input)
       : this.coursesService.updateLesson(this.courseId, moduleId, this.currentLesson.lesson_id, input);
 
-    this.run(saved, 'Lesson saved.', () => (this.showLessonModal = false));
+    this.run(saved, this.i18n.t('admin.course_content.toast_lesson_saved'), () => (this.showLessonModal = false));
   }
 
   duplicateLesson(lesson: Lesson, event: Event): void {
@@ -608,7 +611,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
         durationMinutes: lesson.duration_minutes,
         isMandatory: lesson.is_mandatory,
       }),
-      'Lesson duplicated.',
+      this.i18n.t('admin.course_content.toast_lesson_duplicated'),
     );
   }
 
@@ -623,7 +626,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       .reorderLessons(this.courseId, module.module_id, module.lessons.map((l) => l.lesson_id))
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => (this.successMessage = 'Order saved.'),
+        next: () => (this.successMessage = this.i18n.t('admin.course_content.toast_order_saved')),
         error: (e: ApiError) => {
           this.error = e.message;
           this.loadContent();
@@ -682,7 +685,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       ? this.assessmentsService.create(input)
       : this.assessmentsService.update(this.currentAssessment.assessment_id, input);
 
-    this.run(saved, 'Assessment saved.', () => (this.showAssessmentModal = false));
+    this.run(saved, this.i18n.t('admin.course_content.toast_assessment_saved'), () => (this.showAssessmentModal = false));
   }
 
   duplicateAssessment(assessment: Assessment, event: Event): void {
@@ -699,7 +702,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       }),
       // The questions are not copied: they live in a bank, and both
       // assessments can draw on the same ones rather than owning duplicates.
-      'Assessment duplicated. Its questions are shared, not copied - attach the ones you want.',
+      this.i18n.t('admin.course_content.toast_assessment_duplicated'),
     );
   }
 
@@ -866,7 +869,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   private questionSaved(): void {
     this.saving = false;
     this.showQuestionFormModal = false;
-    this.successMessage = 'Question saved.';
+    this.successMessage = this.i18n.t('admin.course_content.toast_question_saved');
     this.loadQuestions();
   }
 
@@ -880,7 +883,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
     this.run(
       this.assessmentsService.detachQuestion(assessmentId, question.question_id),
       // Taken off this assessment, not destroyed: another one may use it.
-      'Question removed from this assessment. It stays in the bank.',
+      this.i18n.t('admin.course_content.toast_question_removed'),
       () => this.loadQuestions(),
     );
   }
@@ -904,7 +907,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
         explanation: question.explanation || null,
         options: question.options.map((o) => ({ text: o.option_text, isCorrect: o.is_correct })),
       }),
-      'Question duplicated into the bank.',
+      this.i18n.t('admin.course_content.toast_question_duplicated'),
       () => this.loadQuestions(),
     );
   }
@@ -922,7 +925,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
       .reorderQuestions(assessmentId, this.questions.map((q) => q.question_id))
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => (this.successMessage = 'Order saved.'),
+        next: () => (this.successMessage = this.i18n.t('admin.course_content.toast_order_saved')),
         error: (e: ApiError) => {
           this.error = e.message;
           this.loadQuestions();
@@ -955,7 +958,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
           ? this.assessmentsService.setStatus(this.deleteId, 'archived')
           : this.assessmentsService.detachQuestion(this.selectedAssessmentId ?? '', this.deleteId);
 
-    this.run(call, `"${this.deleteName}" was removed.`, () => {
+    this.run(call, this.i18n.t('admin.course_content.toast_removed', { name: this.deleteName }), () => {
       this.showDeleteConfirm = false;
 
       if (this.deleteType === 'question') {

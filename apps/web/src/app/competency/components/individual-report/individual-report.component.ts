@@ -10,6 +10,8 @@ import {
   type AssessmentItem,
 } from '../../competency.service';
 import { CompetencyRadarComponent } from './competency-radar.component';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * One person's competency report — the document the exercise produces for each
@@ -24,7 +26,7 @@ import { CompetencyRadarComponent } from './competency-radar.component';
 @Component({
   selector: 'app-individual-report',
   standalone: true,
-  imports: [CommonModule, CompetencyRadarComponent],
+  imports: [CommonModule, CompetencyRadarComponent, TranslatePipe],
   templateUrl: './individual-report.component.html',
   styleUrl: './individual-report.component.scss',
 })
@@ -35,6 +37,7 @@ export class IndividualReportComponent implements OnInit, OnChanges {
   private readonly location = inject(Location);
   private readonly toast = inject(HotToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
   readonly branding = inject(BrandingService);
 
   /** When embedded (e.g. the report viewer), the assessment to show is fed in. */
@@ -105,7 +108,7 @@ export class IndividualReportComponent implements OnInit, OnChanges {
         this.loading = false;
       },
       error: () => {
-        this.toast.error('The report could not be loaded.');
+        this.toast.error(this.i18n.t('competency.report.load_error'));
         this.loading = false;
       },
     });
@@ -131,7 +134,16 @@ export class IndividualReportComponent implements OnInit, OnChanges {
 
   /** "Prepared" when the gap is closed, otherwise the gap's own label. */
   readiness(item: AssessmentItem): string {
-    return item.gap === 0 ? 'Prepared' : `${item.gapLabel} Gap`;
+    if (item.gap === 0) {
+      return this.i18n.t('competency.report.prepared');
+    }
+    const severity: Record<string, string> = {
+      Minor: 'competency.gap.minor',
+      Major: 'competency.gap.major',
+      Significant: 'competency.gap.significant',
+    };
+    const label = severity[item.gapLabel] ? this.i18n.t(severity[item.gapLabel]) : item.gapLabel;
+    return this.i18n.t('competency.report.gap_named', { label });
   }
 
   /** Whether a decision reads as a positive placement, for the green cell. */
@@ -143,7 +155,9 @@ export class IndividualReportComponent implements OnInit, OnChanges {
   timeToCompetency(months: number): string {
     const years = Math.floor(months / 12);
     const rem = months % 12;
-    return `${years} year${years === 1 ? '' : 's'} / ${rem} month${rem === 1 ? '' : 's'}`;
+    const yearWord = this.i18n.t(years === 1 ? 'competency.report.year' : 'competency.report.years');
+    const monthWord = this.i18n.t(rem === 1 ? 'competency.report.month' : 'competency.report.months');
+    return `${years} ${yearWord} / ${rem} ${monthWord}`;
   }
 
   print(): void {

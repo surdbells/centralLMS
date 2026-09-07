@@ -15,11 +15,13 @@ import {
 } from '../live-training.service';
 import {TuiDialog, TuiIcon} from '@taiga-ui/core';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learner-live-training',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiDialog, TuiIcon, TopComponent],
+  imports: [CommonModule, FormsModule, TuiDialog, TuiIcon, TopComponent, TranslatePipe],
   templateUrl: './learner-live-training.component.html',
   styleUrls: ['./learner-live-training.component.scss']
 })
@@ -50,6 +52,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   showSessionDetailModal = false;
 
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   constructor(private liveTrainingService: LiveTrainingService) {}
 
@@ -177,7 +180,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
           // signed off, not being enrolled — and each is worth reading. The
           // old line reached into `err.error.message`, which an ApiError does
           // not have, so every failure read "Failed to mark attendance".
-          this.scanMessage = err.message ?? 'That could not be marked. Please try again.';
+          this.scanMessage = err.message ?? this.i18n.t('live.learner.mark_failed');
         }
       });
   }
@@ -313,7 +316,7 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
     const sessionDateTime = new Date(`${session.session_date}T${session.start_time}`);
     const diff = sessionDateTime.getTime() - now.getTime();
 
-    if (diff < 0) return 'Started';
+    if (diff < 0) return this.i18n.t('live.common.started');
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));

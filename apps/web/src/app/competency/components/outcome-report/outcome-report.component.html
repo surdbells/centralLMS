@@ -1,17 +1,16 @@
 <!-- Loading -->
 <div *ngIf="loading" class="text-center py-5 text-muted">
   <div class="spinner-border text-primary" role="status"></div>
-  <div class="mt-2">Reading the outcome…</div>
+  <div class="mt-2">{{ 'competency.outcome.reading' | translate }}</div>
 </div>
 
 <ng-container *ngIf="!loading && report as r">
   <!-- Cycle selector -->
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <div class="text-muted small">
-      Across every <strong>finalised</strong> assessment in the cycle.
+    <div class="text-muted small" [innerHTML]="'competency.outcome.intro' | translate">
     </div>
     <div class="d-flex align-items-center gap-2" *ngIf="r.cycles.length">
-      <label class="text-muted small mb-0">Cycle</label>
+      <label class="text-muted small mb-0">{{ 'competency.common.cycle' | translate }}</label>
       <select class="form-select form-select-sm w-auto" [ngModel]="cycle"
               (ngModelChange)="onCycleChange($event)">
         <option *ngFor="let c of r.cycles" [value]="c">{{ c }}</option>
@@ -22,13 +21,12 @@
   <!-- Nothing finalised yet -->
   <div *ngIf="r.coverage.finalized === 0" class="empty-panel text-center py-5">
     <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
-    <h5 class="mt-3 mb-1">Nothing finalised in this cycle yet</h5>
+    <h5 class="mt-3 mb-1">{{ 'competency.reports.nothing_finalised' | translate }}</h5>
     <p class="text-muted mb-3">
-      The outcome is built from confirmed assessments. Start one, record the
-      levels, and finalise it to see it here.
+      {{ 'competency.outcome.empty_text' | translate }}
     </p>
     <a routerLink="/admin/competency/assessments" class="btn btn-primary btn-sm">
-      Go to assessments
+      {{ 'competency.outcome.go_to_assessments' | translate }}
     </a>
   </div>
 
@@ -37,34 +35,34 @@
     <div class="row g-3 mb-4">
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">Workforce readiness</div>
+          <div class="stat-label">{{ 'competency.outcome.workforce_readiness' | translate }}</div>
           <div class="stat-value" [class]="readinessClass(r.gaps.readiness)">
             {{ r.gaps.readiness !== null ? (r.gaps.readiness | number: '1.0-1') + '%' : '-' }}
           </div>
-          <div class="stat-sub">{{ r.gaps.met }} of {{ r.gaps.requirements }} requirements met</div>
+          <div class="stat-sub">{{ 'competency.outcome.requirements_met' | translate: { met: r.gaps.met, total: r.gaps.requirements } }}</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">People assessed</div>
+          <div class="stat-label">{{ 'competency.outcome.people_assessed' | translate }}</div>
           <div class="stat-value">{{ r.coverage.people }}</div>
-          <div class="stat-sub">{{ r.coverage.finalized }} finalised</div>
+          <div class="stat-sub">{{ 'competency.outcome.n_finalised' | translate: { count: r.coverage.finalized } }}</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">Open gaps</div>
+          <div class="stat-label">{{ 'competency.common.open_gaps' | translate }}</div>
           <div class="stat-value text-danger">
             {{ r.gaps.minor + r.gaps.major + r.gaps.significant }}
           </div>
-          <div class="stat-sub">{{ r.gaps.significant }} significant</div>
+          <div class="stat-sub">{{ 'competency.outcome.n_significant' | translate: { count: r.gaps.significant } }}</div>
         </div>
       </div>
       <div class="col-6 col-lg-3">
         <div class="stat-card">
-          <div class="stat-label">Est. to close all</div>
+          <div class="stat-label">{{ 'competency.outcome.est_close_all' | translate }}</div>
           <div class="stat-value">{{ monthsLabel(r.gaps.estimatedMonths) }}</div>
-          <div class="stat-sub">on the standard estimates</div>
+          <div class="stat-sub">{{ 'competency.outcome.standard_estimates' | translate }}</div>
         </div>
       </div>
     </div>
@@ -72,22 +70,22 @@
     <!-- Gap distribution bar -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body">
-        <h6 class="card-title mb-3">Where the requirements stand</h6>
+        <h6 class="card-title mb-3">{{ 'competency.outcome.where_stand' | translate }}</h6>
         <div class="gap-bar mb-2">
           <div class="seg met" [style.width.%]="r.gaps.requirements ? (r.gaps.met / r.gaps.requirements) * 100 : 0"
-               [title]="'Met: ' + r.gaps.met"></div>
+               [title]="'competency.outcome.title_met' | translate: { count: r.gaps.met }"></div>
           <div class="seg minor" [style.width.%]="r.gaps.requirements ? (r.gaps.minor / r.gaps.requirements) * 100 : 0"
-               [title]="'Minor: ' + r.gaps.minor"></div>
+               [title]="'competency.outcome.title_minor' | translate: { count: r.gaps.minor }"></div>
           <div class="seg major" [style.width.%]="r.gaps.requirements ? (r.gaps.major / r.gaps.requirements) * 100 : 0"
-               [title]="'Major: ' + r.gaps.major"></div>
+               [title]="'competency.outcome.title_major' | translate: { count: r.gaps.major }"></div>
           <div class="seg significant" [style.width.%]="r.gaps.requirements ? (r.gaps.significant / r.gaps.requirements) * 100 : 0"
-               [title]="'Significant: ' + r.gaps.significant"></div>
+               [title]="'competency.outcome.title_significant' | translate: { count: r.gaps.significant }"></div>
         </div>
         <div class="d-flex flex-wrap gap-3 small">
-          <span><i class="legend-dot met"></i> Met {{ r.gaps.met }}</span>
-          <span><i class="legend-dot minor"></i> Minor {{ r.gaps.minor }}</span>
-          <span><i class="legend-dot major"></i> Major {{ r.gaps.major }}</span>
-          <span><i class="legend-dot significant"></i> Significant {{ r.gaps.significant }}</span>
+          <span><i class="legend-dot met"></i> {{ 'competency.gap.met' | translate }} {{ r.gaps.met }}</span>
+          <span><i class="legend-dot minor"></i> {{ 'competency.gap.minor' | translate }} {{ r.gaps.minor }}</span>
+          <span><i class="legend-dot major"></i> {{ 'competency.gap.major' | translate }} {{ r.gaps.major }}</span>
+          <span><i class="legend-dot significant"></i> {{ 'competency.gap.significant' | translate }} {{ r.gaps.significant }}</span>
         </div>
       </div>
     </div>
@@ -97,14 +95,14 @@
       <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-body">
-            <h6 class="card-title mb-3">Readiness by function</h6>
+            <h6 class="card-title mb-3">{{ 'competency.outcome.readiness_by_function' | translate }}</h6>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
                 <thead>
                   <tr>
-                    <th>Function</th>
-                    <th class="text-center">People</th>
-                    <th style="width: 35%">Readiness</th>
+                    <th>{{ 'competency.common.function' | translate }}</th>
+                    <th class="text-center">{{ 'competency.reports.th_people' | translate }}</th>
+                    <th style="width: 35%">{{ 'competency.common.readiness' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -127,7 +125,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="!r.byFunction.length">
-                    <td colspan="3" class="text-center text-muted py-3">No functions to report.</td>
+                    <td colspan="3" class="text-center text-muted py-3">{{ 'competency.outcome.no_functions' | translate }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -140,15 +138,15 @@
       <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
           <div class="card-body">
-            <h6 class="card-title mb-3">Development priorities</h6>
-            <p class="text-muted small mb-3">The competencies with the widest gaps across the organisation.</p>
+            <h6 class="card-title mb-3">{{ 'competency.outcome.dev_priorities' | translate }}</h6>
+            <p class="text-muted small mb-3">{{ 'competency.outcome.dev_priorities_hint' | translate }}</p>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
                 <thead>
                   <tr>
-                    <th>Competency</th>
-                    <th class="text-center">With gap</th>
-                    <th class="text-center">Avg gap</th>
+                    <th>{{ 'competency.reports.th_competency' | translate }}</th>
+                    <th class="text-center">{{ 'competency.reports.th_with_gap' | translate }}</th>
+                    <th class="text-center">{{ 'competency.reports.th_avg_gap' | translate }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,7 +167,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="!r.topGaps.length">
-                    <td colspan="3" class="text-center text-muted py-3">No gaps - everyone meets their profile.</td>
+                    <td colspan="3" class="text-center text-muted py-3">{{ 'competency.outcome.no_gaps' | translate }}</td>
                   </tr>
                 </tbody>
               </table>

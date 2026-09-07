@@ -4,7 +4,7 @@
 @if (loading()) {
   <div class="loading-container">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
   </div>
 } @else if (path()) {
@@ -18,8 +18,8 @@
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-3">
               <ol class="breadcrumb breadcrumb-light">
-                <li class="breadcrumb-item"><a routerLink="/learner">Learning</a></li>
-                <li class="breadcrumb-item"><a routerLink="/learner/paths">Paths</a></li>
+                <li class="breadcrumb-item"><a routerLink="/learner">{{ 'paths.breadcrumb_learning' | translate }}</a></li>
+                <li class="breadcrumb-item"><a routerLink="/learner/paths">{{ 'paths.breadcrumb_paths' | translate }}</a></li>
                 <li class="breadcrumb-item active">{{ path()!.title }}</li>
               </ol>
             </nav>
@@ -30,11 +30,11 @@
                 {{ getSkillLevel(path()!.skill_level).label }}
               </span>
               @if (path()!.is_mandatory) {
-                <span class="badge bg-danger">Mandatory</span>
+                <span class="badge bg-danger">{{ 'paths.mandatory' | translate }}</span>
               }
               @if (path()!.certificate_enabled) {
                 <span class="badge bg-warning text-dark">
-                  <i class="bi bi-award me-1"></i>Certificate
+                  <i class="bi bi-award me-1"></i>{{ 'paths.certificate' | translate }}
                 </span>
               }
             </div>
@@ -53,16 +53,16 @@
               }
               <div class="meta-item">
                 <i class="bi bi-collection"></i>
-                <span>{{ path()!.total_items }} items</span>
+                <span>{{ 'paths.items_count' | translate:{ count: path()!.total_items } }}</span>
               </div>
               <div class="meta-item">
                 <i class="bi bi-people"></i>
-                <span>{{ path()!.total_enrollments }} enrolled</span>
+                <span>{{ 'paths.enrolled_count' | translate:{ count: path()!.total_enrollments } }}</span>
               </div>
               @if (ratingSummary()?.avg_rating) {
                 <div class="meta-item">
                   <i class="bi bi-star-fill text-warning"></i>
-                  <span>{{ ratingSummary()!.avg_rating | number:'1.1-1' }} ({{ ratingSummary()!.total_reviews }} reviews)</span>
+                  <span>{{ ratingSummary()!.avg_rating | number:'1.1-1' }} ({{ 'paths.reviews_count' | translate:{ count: ratingSummary()!.total_reviews } }})</span>
                 </div>
               }
             </div>
@@ -80,7 +80,7 @@
             <div class="card progress-card mb-4">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0">Your Progress</h5>
+                  <h5 class="mb-0">{{ 'paths.your_progress' | translate }}</h5>
                   <span class="progress-percentage">{{ enrollment()!.progress_percentage | number:'1.0-0' }}%</span>
                 </div>
                 <div class="progress mb-3" style="height: 8px;">
@@ -93,22 +93,22 @@
                 <div class="progress-stats">
                   <div class="stat">
                     <span class="stat-value">{{ completedCount() }}/{{ totalCount() }}</span>
-                    <span class="stat-label">Items Completed</span>
+                    <span class="stat-label">{{ 'paths.items_completed' | translate }}</span>
                   </div>
                   <div class="stat">
                     <span class="stat-value">{{ formatMinutes(enrollment()!.total_time_spent_minutes) || '0m' }}</span>
-                    <span class="stat-label">Time Spent</span>
+                    <span class="stat-label">{{ 'paths.time_spent' | translate }}</span>
                   </div>
                   <div class="stat">
                     <span class="stat-value">{{ enrollment()!.total_points_earned }}</span>
-                    <span class="stat-label">Points Earned</span>
+                    <span class="stat-label">{{ 'paths.points_earned' | translate }}</span>
                   </div>
                   @if (enrollment()!.due_date) {
                     <div class="stat">
                       <span class="stat-value" [class.text-danger]="enrollment()!.is_overdue">
                         {{ enrollment()!.due_date | date:'MMM d' }}
                       </span>
-                      <span class="stat-label">Due Date</span>
+                      <span class="stat-label">{{ 'paths.due_date' | translate }}</span>
                     </div>
                   }
                 </div>
@@ -120,7 +120,7 @@
           <div class="card content-card mb-4">
             <div class="card-header">
               <h5 class="mb-0">
-                <i class="bi bi-list-check me-2"></i>Path Content
+                <i class="bi bi-list-check me-2"></i>{{ 'paths.path_content' | translate }}
               </h5>
             </div>
             <div class="card-body p-0">
@@ -147,7 +147,7 @@
                       </div>
                       <div class="section-info">
                         <h6 class="section-title">{{ sectionData.section.section_title }}</h6>
-                        <span class="section-meta">{{ sectionData.section.items_total }} items</span>
+                        <span class="section-meta">{{ 'paths.items_count' | translate:{ count: sectionData.section.items_total } }}</span>
                       </div>
                       <i class="bi section-chevron" [class.bi-chevron-down]="!isSectionExpanded(sectionData.section.section_id)" [class.bi-chevron-up]="isSectionExpanded(sectionData.section.section_id)"></i>
                     </div>
@@ -193,11 +193,11 @@
                                 {{ getItemType(item.item_type!).label }}
                                 @if (item.estimated_duration_minutes) {
                                   <span class="separator">•</span>
-                                  {{ item.estimated_duration_minutes }} min
+                                  {{ 'paths.minutes' | translate:{ count: item.estimated_duration_minutes } }}
                                 }
                                 @if (item.points_value) {
                                   <span class="separator">•</span>
-                                  {{ item.points_value }} pts
+                                  {{ 'paths.points' | translate:{ count: item.points_value } }}
                                 }
                               </span>
                             </div>
@@ -255,7 +255,7 @@
                             {{ getItemType(item.item_type!).label }}
                             @if (item.estimated_duration_minutes) {
                               <span class="separator">•</span>
-                              {{ item.estimated_duration_minutes }} min
+                              {{ 'paths.minutes' | translate:{ count: item.estimated_duration_minutes } }}
                             }
                           </span>
                         </div>
@@ -272,25 +272,25 @@
                 <!-- Not enrolled: Show preview -->
                 <div class="preview-notice">
                   <i class="bi bi-lock"></i>
-                  <p>Enroll to access the full content</p>
+                  <p>{{ 'paths.enroll_notice' | translate }}</p>
                 </div>
                 <div class="preview-items">
                   <div class="content-item preview">
                     <div class="item-icon"><i class="bi bi-collection-play"></i></div>
                     <div class="item-info">
-                      <span class="item-title">{{ path()!.total_courses }} Courses</span>
+                      <span class="item-title">{{ 'paths.courses_count' | translate:{ count: path()!.total_courses } }}</span>
                     </div>
                   </div>
                   <div class="content-item preview">
                     <div class="item-icon"><i class="bi bi-clipboard-check"></i></div>
                     <div class="item-info">
-                      <span class="item-title">{{ path()!.total_assessments }} Assessments</span>
+                      <span class="item-title">{{ 'paths.assessments_count' | translate:{ count: path()!.total_assessments } }}</span>
                     </div>
                   </div>
                   <div class="content-item preview">
                     <div class="item-icon"><i class="bi bi-collection"></i></div>
                     <div class="item-info">
-                      <span class="item-title">{{ path()!.total_items }} Total Items</span>
+                      <span class="item-title">{{ 'paths.total_items_count' | translate:{ count: path()!.total_items } }}</span>
                     </div>
                   </div>
                 </div>
@@ -302,7 +302,7 @@
           @if (path()!.description) {
             <div class="card mb-4">
               <div class="card-header">
-                <h5 class="mb-0">About This Path</h5>
+                <h5 class="mb-0">{{ 'paths.about' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div [innerHTML]="path()!.description"></div>
@@ -314,7 +314,7 @@
           @if (path()!.learning_objectives && path()!.learning_objectives.length > 0) {
             <div class="card mb-4">
               <div class="card-header">
-                <h5 class="mb-0">What You'll Learn</h5>
+                <h5 class="mb-0">{{ 'paths.what_youll_learn' | translate }}</h5>
               </div>
               <div class="card-body">
                 <ul class="objectives-list">
@@ -327,7 +327,7 @@
                 </ul>
                 @if (path()!.learning_objectives.length > 4) {
                   <button class="btn btn-link p-0" (click)="showAllObjectives.set(!showAllObjectives())">
-                    {{ showAllObjectives() ? 'Show Less' : 'Show All ' + path()!.learning_objectives.length + ' Objectives' }}
+                    {{ showAllObjectives() ? ('paths.show_less' | translate) : ('paths.show_all_objectives' | translate:{ count: path()!.learning_objectives.length }) }}
                   </button>
                 }
               </div>
@@ -338,14 +338,14 @@
           <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="mb-0">
-                Reviews
+                {{ 'paths.reviews' | translate }}
                 @if (ratingSummary()) {
                   <span class="text-muted small ms-2">({{ ratingSummary()!.total_reviews }})</span>
                 }
               </h5>
               @if (isEnrolled() && !showReviewForm()) {
                 <button class="btn btn-sm btn-outline-primary" (click)="openReviewForm()">
-                  <i class="bi bi-pencil me-1"></i>{{ myReview() ? 'Edit your review' : 'Write a review' }}
+                  <i class="bi bi-pencil me-1"></i>{{ myReview() ? ('paths.edit_review' | translate) : ('paths.write_review' | translate) }}
                 </button>
               }
             </div>
@@ -353,19 +353,19 @@
               @if (reviewSubmitted()) {
                 <div class="alert alert-success">
                   <i class="bi bi-check-circle me-1"></i>
-                  Thank you. Your review will appear here once it has been checked.
+                  {{ 'paths.review_thanks' | translate }}
                 </div>
               }
 
               @if (showReviewForm()) {
                 <div class="mb-4">
                   <div class="mb-3">
-                    <label class="form-label d-block">Your rating</label>
+                    <label class="form-label d-block">{{ 'paths.your_rating' | translate }}</label>
                     @for (star of [1, 2, 3, 4, 5]; track star) {
                       <button
                         type="button"
                         class="btn btn-link p-0 me-1"
-                        [attr.aria-label]="star + ' stars'"
+                        [attr.aria-label]="'paths.stars' | translate:{ count: star }"
                         (click)="reviewRating.set(star)">
                         <i class="bi fs-4"
                            [class.bi-star-fill]="star <= reviewRating()"
@@ -375,12 +375,12 @@
                     }
                   </div>
                   <div class="mb-3">
-                    <label class="form-label" for="review-title">Title</label>
+                    <label class="form-label" for="review-title">{{ 'paths.review_title_label' | translate }}</label>
                     <input id="review-title" type="text" class="form-control" maxlength="120"
                            [ngModel]="reviewTitle()" (ngModelChange)="reviewTitle.set($event)">
                   </div>
                   <div class="mb-3">
-                    <label class="form-label" for="review-text">Your review</label>
+                    <label class="form-label" for="review-text">{{ 'paths.your_review' | translate }}</label>
                     <textarea id="review-text" class="form-control" rows="4"
                               [ngModel]="reviewText()" (ngModelChange)="reviewText.set($event)"></textarea>
                   </div>
@@ -388,22 +388,22 @@
                     <div class="alert alert-danger py-2">{{ reviewError() }}</div>
                   }
                   <button class="btn btn-primary me-2" [disabled]="savingReview()" (click)="submitReview()">
-                    {{ savingReview() ? 'Saving…' : 'Submit review' }}
+                    {{ savingReview() ? ('paths.saving' | translate) : ('paths.submit_review' | translate) }}
                   </button>
-                  <button class="btn btn-outline-secondary" (click)="closeReviewForm()">Cancel</button>
+                  <button class="btn btn-outline-secondary" (click)="closeReviewForm()">{{ 'cancel' | translate }}</button>
                 </div>
               }
 
               @if (myReview() && myReview()!.moderation_status === 'pending' && !reviewSubmitted()) {
                 <div class="alert alert-info py-2">
                   <i class="bi bi-hourglass-split me-1"></i>
-                  Your review is waiting to be checked, so it is not on this page yet.
+                  {{ 'paths.review_pending' | translate }}
                 </div>
               }
               @if (myReview() && myReview()!.moderation_status === 'rejected') {
                 <div class="alert alert-warning py-2">
                   <i class="bi bi-exclamation-triangle me-1"></i>
-                  Your review was not published.
+                  {{ 'paths.review_rejected' | translate }}
                   @if (myReview()!.rejection_reason) {
                     <span>{{ myReview()!.rejection_reason }}</span>
                   }
@@ -411,7 +411,7 @@
               }
 
               @if (reviews().length === 0) {
-                <p class="text-muted mb-0">No reviews yet.</p>
+                <p class="text-muted mb-0">{{ 'paths.no_reviews' | translate }}</p>
               } @else {
                 @for (review of reviews(); track review.review_id) {
                   <div class="border-bottom pb-3 mb-3">
@@ -435,16 +435,16 @@
                     <p class="mb-2">{{ review.review_text }}</p>
                     @if (review.instructor_response) {
                       <div class="ps-3 border-start">
-                        <strong class="small">Response</strong>
+                        <strong class="small">{{ 'paths.response' | translate }}</strong>
                         <p class="mb-0 small">{{ review.instructor_response }}</p>
                       </div>
                     }
                     <div class="mt-2">
                       <button class="btn btn-sm btn-link p-0 me-3" (click)="markHelpful(review)">
-                        <i class="bi bi-hand-thumbs-up me-1"></i>Helpful ({{ review.helpful_count }})
+                        <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'paths.helpful' | translate:{ count: review.helpful_count } }}
                       </button>
                       <button class="btn btn-sm btn-link p-0 text-muted" (click)="reportReview(review)">
-                        <i class="bi bi-flag me-1"></i>Report
+                        <i class="bi bi-flag me-1"></i>{{ 'paths.report' | translate }}
                       </button>
                     </div>
                   </div>
@@ -476,31 +476,31 @@
                 >
                   @if (enrolling()) {
                     <span class="spinner-border spinner-border-sm me-2"></span>
-                    Enrolling...
+                    {{ 'paths.enrolling' | translate }}
                   } @else {
                     <i class="bi bi-play-circle me-2"></i>
-                    {{ path()!.is_free ? 'Enroll Now' : 'Buy Now' }}
+                    {{ path()!.is_free ? ('paths.enroll_now' | translate) : ('paths.buy_now' | translate) }}
                   }
                 </button>
               } @else if (!enrollment()!.started_at) {
                 <!-- Enrolled but not started -->
                 <button class="btn btn-primary btn-lg w-100 mb-3" (click)="startPath()">
-                  <i class="bi bi-play-fill me-2"></i>Start Learning
+                  <i class="bi bi-play-fill me-2"></i>{{ 'paths.start_learning' | translate }}
                 </button>
               } @else if (!isCompleted()) {
                 <!-- In Progress -->
                 <button class="btn btn-primary btn-lg w-100 mb-3" (click)="continuePath()">
-                  <i class="bi bi-play-fill me-2"></i>Continue Learning
+                  <i class="bi bi-play-fill me-2"></i>{{ 'paths.continue_learning' | translate }}
                 </button>
               } @else {
                 <!-- Completed -->
                 <div class="completion-badge mb-3">
                   <i class="bi bi-trophy-fill"></i>
-                  <span>Completed!</span>
+                  <span>{{ 'paths.completed' | translate }}</span>
                 </div>
                 @if (path()!.certificate_enabled && enrollment()!.certificate_id) {
                   <a [routerLink]="['/certificates', enrollment()!.certificate_id]" class="btn btn-success w-100 mb-3">
-                    <i class="bi bi-award me-2"></i>View Certificate
+                    <i class="bi bi-award me-2"></i>{{ 'paths.view_certificate' | translate }}
                   </a>
                 }
               }
@@ -510,22 +510,22 @@
                 <div class="quick-stat">
                   <i class="bi bi-clock"></i>
                   <div>
-                    <span class="value">{{ formatDuration(path()!.estimated_duration_hours) || 'Self-paced' }}</span>
-                    <span class="label">Duration</span>
+                    <span class="value">{{ formatDuration(path()!.estimated_duration_hours) || ('paths.self_paced' | translate) }}</span>
+                    <span class="label">{{ 'paths.duration' | translate }}</span>
                   </div>
                 </div>
                 <div class="quick-stat">
                   <i class="bi bi-bar-chart"></i>
                   <div>
                     <span class="value">{{ getSkillLevel(path()!.skill_level).label }}</span>
-                    <span class="label">Level</span>
+                    <span class="label">{{ 'paths.level' | translate }}</span>
                   </div>
                 </div>
                 <div class="quick-stat">
                   <i class="bi bi-trophy"></i>
                   <div>
                     <span class="value">{{ path()!.total_points }}</span>
-                    <span class="label">Total Points</span>
+                    <span class="label">{{ 'paths.total_points' | translate }}</span>
                   </div>
                 </div>
               </div>
@@ -533,7 +533,7 @@
               @if (isEnrolled() && !isCompleted()) {
                 <hr>
                 <button class="btn btn-link text-danger p-0" (click)="withdraw()">
-                  <i class="bi bi-box-arrow-left me-1"></i>Withdraw from Path
+                  <i class="bi bi-box-arrow-left me-1"></i>{{ 'paths.withdraw' | translate }}
                 </button>
               }
             </div>
@@ -543,7 +543,7 @@
           @if (path()!.tags && path()!.tags.length > 0) {
             <div class="card mb-4">
               <div class="card-header">
-                <h6 class="mb-0">Tags</h6>
+                <h6 class="mb-0">{{ 'paths.tags' | translate }}</h6>
               </div>
               <div class="card-body">
                 <div class="tags">

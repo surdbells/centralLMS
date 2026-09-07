@@ -5,15 +5,15 @@
   <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
-        <h1 class="h3 mb-1">Skills</h1>
-        <p class="text-muted mb-0">Manage skills that learners can acquire through courses</p>
+        <h1 class="h3 mb-1">{{ 'nav.skills' | translate }}</h1>
+        <p class="text-muted mb-0">{{ 'admin_skills.subtitle' | translate }}</p>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary" (click)="openNewCategoryModal()">
-          <i class="bi bi-folder-plus me-2"></i>New Category
+          <i class="bi bi-folder-plus me-2"></i>{{ 'admin_skills.new_category' | translate }}
         </button>
         <button class="btn btn-primary" (click)="openNewSkillModal()">
-          <i class="bi bi-plus-lg me-2"></i>New Skill
+          <i class="bi bi-plus-lg me-2"></i>{{ 'admin_skills.new_skill' | translate }}
         </button>
       </div>
     </div>
@@ -28,7 +28,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ summary.total_skills }}</div>
-          <div class="stat-label">Total Skills</div>
+          <div class="stat-label">{{ 'admin_skills.total_skills' | translate }}</div>
         </div>
       </div>
     </div>
@@ -39,7 +39,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ summary.active_skills }}</div>
-          <div class="stat-label">Active</div>
+          <div class="stat-label">{{ 'common.active' | translate }}</div>
         </div>
       </div>
     </div>
@@ -50,7 +50,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ summary.total_categories }}</div>
-          <div class="stat-label">Categories</div>
+          <div class="stat-label">{{ 'skills.categories' | translate }}</div>
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ summary.courses_with_skills }}</div>
-          <div class="stat-label">Courses</div>
+          <div class="stat-label">{{ 'nav.courses' | translate }}</div>
         </div>
       </div>
     </div>
@@ -72,7 +72,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ summary.learners_with_skills }}</div>
-          <div class="stat-label">Learners</div>
+          <div class="stat-label">{{ 'admin_skills.learners' | translate }}</div>
         </div>
       </div>
     </div>
@@ -82,17 +82,17 @@
   <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'skills'" (click)="onTabChange('skills')">
-        <i class="bi bi-star me-2"></i>Skills
+        <i class="bi bi-star me-2"></i>{{ 'nav.skills' | translate }}
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'categories'" (click)="onTabChange('categories')">
-        <i class="bi bi-folder me-2"></i>Categories
+        <i class="bi bi-folder me-2"></i>{{ 'skills.categories' | translate }}
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'analytics'" (click)="onTabChange('analytics')">
-        <i class="bi bi-graph-up me-2"></i>Analytics & Reports
+        <i class="bi bi-graph-up me-2"></i>{{ 'admin_skills.analytics_reports' | translate }}
       </button>
     </li>
   </ul>
@@ -105,13 +105,13 @@
         <div class="col-md-4">
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Search skills..."
+            <input type="text" class="form-control" placeholder="{{ 'admin_skills.search_skills' | translate }}"
                    [(ngModel)]="searchTerm" (input)="onSearch()">
           </div>
         </div>
         <div class="col-md-3">
           <select class="form-select" [(ngModel)]="selectedCategoryId" (change)="onFilterChange()">
-            <option [ngValue]="null">All Categories</option>
+            <option [ngValue]="null">{{ 'paths.all_categories' | translate }}</option>
             <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
               {{ cat.name }}
             </option>
@@ -119,7 +119,7 @@
         </div>
         <div class="col-md-2">
           <select class="form-select" [(ngModel)]="selectedLevel" (change)="onFilterChange()">
-            <option value="">All Levels</option>
+            <option value="">{{ 'skills.all_levels' | translate }}</option>
             <option *ngFor="let lvl of levels" [value]="lvl">{{ lvl | titlecase }}</option>
           </select>
         </div>
@@ -127,7 +127,7 @@
           <div class="form-check form-switch mt-2">
             <input class="form-check-input" type="checkbox" id="showInactive"
                    [(ngModel)]="showInactive" (change)="onFilterChange()">
-            <label class="form-check-label" for="showInactive">Show inactive</label>
+            <label class="form-check-label" for="showInactive">{{ 'admin_skills.show_inactive' | translate }}</label>
           </div>
         </div>
       </div>
@@ -140,27 +140,27 @@
           <thead>
           <tr>
             <th style="width: 40px;"></th>
-            <th>Skill</th>
-            <th>Category</th>
-            <th class="text-center">Level</th>
-            <th class="text-center">Courses</th>
-            <th class="text-center">Learners</th>
-            <th class="text-center">Status</th>
-            <th class="text-end" style="width: 140px;">Actions</th>
+            <th>{{ 'admin_skills.col_skill' | translate }}</th>
+            <th>{{ 'admin_skills.col_category' | translate }}</th>
+            <th class="text-center">{{ 'paths.level' | translate }}</th>
+            <th class="text-center">{{ 'nav.courses' | translate }}</th>
+            <th class="text-center">{{ 'admin_skills.learners' | translate }}</th>
+            <th class="text-center">{{ 'common.status' | translate }}</th>
+            <th class="text-end" style="width: 140px;">{{ 'common.actions' | translate }}</th>
           </tr>
           </thead>
           <tbody>
           <tr *ngIf="loading">
             <td colspan="8" class="text-center py-5">
               <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
               </div>
             </td>
           </tr>
           <tr *ngIf="!loading && filteredSkills.length === 0">
             <td colspan="8" class="text-center py-5 text-muted">
               <i class="bi bi-inbox display-4 d-block mb-2"></i>
-              No skills found
+              {{ 'admin_skills.no_skills_found' | translate }}
             </td>
           </tr>
           <tr *ngFor="let skill of filteredSkills; trackBy: trackBySkillId">
@@ -203,18 +203,18 @@
             </td>
             <td class="text-center">
                 <span class="badge" [ngClass]="skill.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                  {{ skill.is_active ? 'Active' : 'Inactive' }}
+                  {{ skill.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
                 </span>
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
-                <button class="btn btn-secondary" (click)="viewSkillDetail(skill.skill_id)" title="View Details">
+                <button class="btn btn-secondary" (click)="viewSkillDetail(skill.skill_id)" title="{{ 'admin_skills.view_details' | translate }}">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button class="btn btn-secondary" (click)="openEditSkillModal(skill)" title="Edit">
+                <button class="btn btn-secondary" (click)="openEditSkillModal(skill)" title="{{ 'common.edit' | translate }}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-outline-danger" (click)="confirmDeleteSkill(skill)" title="Delete">
+                <button class="btn btn-outline-danger" (click)="confirmDeleteSkill(skill)" title="{{ 'common.delete' | translate }}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -236,7 +236,7 @@
             <div class="d-flex justify-content-between align-items-start mb-2">
               <h5 class="category-name mb-0">{{ category.name }}</h5>
               <span class="badge" [ngClass]="category.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                {{ category.is_active ? 'Active' : 'Inactive' }}
+                {{ category.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
               </span>
             </div>
             <p class="text-muted small mb-3" *ngIf="category.description">
@@ -244,10 +244,10 @@
             </p>
             <div class="d-flex justify-content-between align-items-center">
               <span class="skill-count">
-                <i class="bi bi-star me-1"></i>{{ category.skill_count }} skill(s)
+                <i class="bi bi-star me-1"></i>{{ 'skills.skill_count' | translate:{ count: category.skill_count } }}
               </span>
               <div class="btn-group btn-group-sm">
-                <button class="btn btn-secondary" (click)="viewCategoryDetail(category.category_id)" title="View Details">
+                <button class="btn btn-secondary" (click)="viewCategoryDetail(category.category_id)" title="{{ 'admin_skills.view_details' | translate }}">
                   <i class="bi bi-eye"></i>
                 </button>
                 <button class="btn btn-secondary" (click)="openEditCategoryModal(category)">
@@ -267,9 +267,9 @@
         <div class="category-card empty-state">
           <div class="text-center py-4">
             <i class="bi bi-folder-plus display-4 text-muted mb-3"></i>
-            <p class="text-muted mb-3">No categories yet</p>
+            <p class="text-muted mb-3">{{ 'admin_skills.no_categories' | translate }}</p>
             <button class="btn btn-primary btn-sm" (click)="openNewCategoryModal()">
-              Create First Category
+              {{ 'admin_skills.create_first_category' | translate }}
             </button>
           </div>
         </div>
@@ -285,31 +285,31 @@
     <li class="nav-item">
       <button class="nav-link" [class.active]="analyticsSubTab === 'overview'"
               (click)="onAnalyticsSubTabChange('overview')">
-        <i class="bi bi-bar-chart me-2"></i>Overview
+        <i class="bi bi-bar-chart me-2"></i>{{ 'admin_skills.overview' | translate }}
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="analyticsSubTab === 'top-skills'"
               (click)="onAnalyticsSubTabChange('top-skills')">
-        <i class="bi bi-trophy me-2"></i>Top Skills
+        <i class="bi bi-trophy me-2"></i>{{ 'admin_skills.top_skills' | translate }}
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="analyticsSubTab === 'skill-gaps'"
               (click)="onAnalyticsSubTabChange('skill-gaps')">
-        <i class="bi bi-exclamation-triangle me-2"></i>Skill Gaps
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ 'admin_skills.skill_gaps' | translate }}
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="analyticsSubTab === 'course-skills'"
               (click)="onAnalyticsSubTabChange('course-skills')">
-        <i class="bi bi-link-45deg me-2"></i>Course Skills
+        <i class="bi bi-link-45deg me-2"></i>{{ 'admin_skills.course_skills' | translate }}
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="analyticsSubTab === 'user-lookup'"
               (click)="onAnalyticsSubTabChange('user-lookup')">
-        <i class="bi bi-person-badge me-2"></i>User Lookup
+        <i class="bi bi-person-badge me-2"></i>{{ 'admin_skills.user_lookup' | translate }}
       </button>
     </li>
   </ul>
@@ -319,27 +319,27 @@
     <div class="card">
       <div class="card-header">
         <h5 class="card-title mb-0">
-          <i class="bi bi-bar-chart me-2"></i>Skill Adoption Statistics
+          <i class="bi bi-bar-chart me-2"></i>{{ 'admin_skills.adoption_stats' | translate }}
         </h5>
       </div>
       <div class="card-body p-0">
         <div *ngIf="loading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
           </div>
         </div>
         <div class="table-responsive" *ngIf="!loading && skillStats.length > 0">
           <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
-              <th>Skill</th>
-              <th>Category</th>
-              <th>Level</th>
-              <th class="text-center">Courses</th>
-              <th class="text-center">Acquired</th>
-              <th class="text-center">In Progress</th>
-              <th class="text-center">Adoption</th>
-              <th>Status</th>
+              <th>{{ 'admin_skills.col_skill' | translate }}</th>
+              <th>{{ 'admin_skills.col_category' | translate }}</th>
+              <th>{{ 'paths.level' | translate }}</th>
+              <th class="text-center">{{ 'nav.courses' | translate }}</th>
+              <th class="text-center">{{ 'skills.acquired' | translate }}</th>
+              <th class="text-center">{{ 'skills.in_progress' | translate }}</th>
+              <th class="text-center">{{ 'admin_skills.adoption' | translate }}</th>
+              <th>{{ 'common.status' | translate }}</th>
               <th></th>
             </tr>
             </thead>
@@ -380,12 +380,12 @@
               </td>
               <td>
                   <span class="badge" [ngClass]="stat.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                    {{ stat.is_active ? 'Active' : 'Inactive' }}
+                    {{ stat.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
                   </span>
               </td>
               <td>
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-secondary" (click)="viewSkillDetail(stat.skill_id)" title="View Details">
+                  <button class="btn btn-secondary" (click)="viewSkillDetail(stat.skill_id)" title="{{ 'admin_skills.view_details' | translate }}">
                     <i class="bi bi-eye"></i>
                   </button>
                   <button class="btn btn-secondary" (click)="viewSkillLearners(stat)" title="View Learners">
@@ -402,7 +402,7 @@
         </div>
         <div *ngIf="!loading && skillStats.length === 0" class="text-center py-5 text-muted">
           <i class="bi bi-bar-chart display-4 mb-3 d-block"></i>
-          <p>No skill statistics available</p>
+          <p>{{ 'admin_skills.no_stats' | translate }}</p>
         </div>
       </div>
     </div>
@@ -415,7 +415,7 @@
         <div class="card">
           <div class="card-header">
             <h5 class="card-title mb-0">
-              <i class="bi bi-trophy text-warning me-2"></i>Top 10 Skills by Adoption
+              <i class="bi bi-trophy text-warning me-2"></i>{{ 'admin_skills.top_10_skills' | translate }}
             </h5>
           </div>
           <div class="card-body">
@@ -432,11 +432,11 @@
                 </div>
                 <div class="top-skill-info">
                   <div class="fw-medium">{{ skill.name }}</div>
-                  <small class="text-muted">{{ skill.category_name || 'Uncategorized' }}</small>
+                  <small class="text-muted">{{ skill.category_name || ('skills.uncategorized' | translate) }}</small>
                 </div>
                 <div class="top-skill-count">
                   <span class="fw-bold text-success">{{ skill.learners_acquired }}</span>
-                  <small class="text-muted d-block">learners</small>
+                  <small class="text-muted d-block">{{ 'admin_skills.learners_lower' | translate }}</small>
                 </div>
                 <div class="top-skill-bar">
                   <div class="progress" style="height: 6px;">
@@ -449,7 +449,7 @@
             </div>
             <div *ngIf="!loading && topSkills.length === 0" class="text-center py-4 text-muted">
               <i class="bi bi-trophy display-4 mb-3 d-block"></i>
-              <p>No skills have been acquired yet</p>
+              <p>{{ 'admin_skills.no_skills_acquired' | translate }}</p>
             </div>
           </div>
         </div>
@@ -457,22 +457,22 @@
       <div class="col-lg-4">
         <div class="card bg-light border-0">
           <div class="card-body">
-            <h6 class="text-muted mb-3">Quick Stats</h6>
+            <h6 class="text-muted mb-3">{{ 'admin_skills.quick_stats' | translate }}</h6>
             <div class="d-flex justify-content-between mb-2">
-              <span>Total Skills:</span>
+              <span>{{ 'admin_skills.total_skills_label' | translate }}</span>
               <strong>{{ summary?.total_skills || 0 }}</strong>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Total Learners:</span>
+              <span>{{ 'admin_skills.total_learners_label' | translate }}</span>
               <strong>{{ summary?.learners_with_skills || 0 }}</strong>
             </div>
             <div class="d-flex justify-content-between mb-2">
-              <span>Mapped Courses:</span>
+              <span>{{ 'admin_skills.mapped_courses_label' | translate }}</span>
               <strong>{{ summary?.courses_with_skills || 0 }}</strong>
             </div>
             <hr>
             <p class="text-muted small mb-0">
-              Top skills represent the most acquired competencies across your learner base.
+              {{ 'admin_skills.top_skills_note' | translate }}
             </p>
           </div>
         </div>
@@ -485,9 +485,9 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="bi bi-exclamation-triangle text-warning me-2"></i>Skill Gap Analysis
+          <i class="bi bi-exclamation-triangle text-warning me-2"></i>{{ 'admin_skills.gap_analysis' | translate }}
         </h5>
-        <small class="text-muted">Skills with lowest adoption rates</small>
+        <small class="text-muted">{{ 'admin_skills.gap_subtitle' | translate }}</small>
       </div>
       <div class="card-body p-0">
         <div *ngIf="loading" class="text-center py-5">
@@ -497,12 +497,12 @@
           <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
-              <th>Skill</th>
-              <th>Category</th>
-              <th class="text-center">Courses</th>
-              <th class="text-center">Acquired</th>
-              <th class="text-center">Total Users</th>
-              <th>Adoption Rate</th>
+              <th>{{ 'admin_skills.col_skill' | translate }}</th>
+              <th>{{ 'admin_skills.col_category' | translate }}</th>
+              <th class="text-center">{{ 'nav.courses' | translate }}</th>
+              <th class="text-center">{{ 'skills.acquired' | translate }}</th>
+              <th class="text-center">{{ 'admin_skills.total_users' | translate }}</th>
+              <th>{{ 'admin_skills.adoption_rate' | translate }}</th>
               <th></th>
             </tr>
             </thead>
@@ -551,7 +551,7 @@
               </td>
               <td>
                 <button class="btn btn-sm btn-primary" (click)="viewSkillCourses(gap)">
-                  <i class="bi bi-book me-1"></i>Courses
+                  <i class="bi bi-book me-1"></i>{{ 'nav.courses' | translate }}
                 </button>
               </td>
             </tr>
@@ -560,15 +560,14 @@
         </div>
         <div *ngIf="!loading && skillGaps.length === 0" class="text-center py-5 text-muted">
           <i class="bi bi-check-circle display-4 mb-3 d-block text-success"></i>
-          <p>No skill gaps identified</p>
+          <p>{{ 'admin_skills.no_gaps' | translate }}</p>
         </div>
       </div>
     </div>
 
     <div class="alert alert-info mt-4">
       <i class="bi bi-lightbulb me-2"></i>
-      <strong>Tip:</strong> Skills with low adoption rates may need more course mappings or promotional efforts.
-      Consider creating new courses or updating existing ones to include these skills.
+      <strong>{{ 'admin_skills.tip' | translate }}</strong> {{ 'admin_skills.gap_tip_text' | translate }}
     </div>
   </div>
 
@@ -577,20 +576,20 @@
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="bi bi-link-45deg me-2"></i>Course Skills Assignment
+          <i class="bi bi-link-45deg me-2"></i>{{ 'admin_skills.course_skills_assignment' | translate }}
         </h5>
         <button class="btn btn-sm btn-primary" (click)="loadCourses()" *ngIf="courses.length === 0 && !coursesLoading">
-          <i class="bi bi-arrow-repeat me-2"></i>Load Courses
+          <i class="bi bi-arrow-repeat me-2"></i>{{ 'admin_skills.load_courses' | translate }}
         </button>
       </div>
       <div class="card-body">
         <p class="text-muted mb-4">
-          Assign skills to courses. Learners will acquire these skills upon course completion.
+          {{ 'admin_skills.course_skills_intro' | translate }}
         </p>
 
         <div *ngIf="coursesLoading" class="text-center py-4">
           <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-2 text-muted">Loading courses...</p>
+          <p class="mt-2 text-muted">{{ 'admin_skills.loading_courses' | translate }}</p>
         </div>
 
         <div class="course-grid" *ngIf="!coursesLoading && courses.length > 0">
@@ -604,7 +603,7 @@
             </div>
             <div class="course-skill-actions">
               <button class="btn btn-sm btn-primary" (click)="openCourseSkillsModal(course)">
-                <i class="bi bi-link-45deg me-1"></i>Manage Skills
+                <i class="bi bi-link-45deg me-1"></i>{{ 'admin_skills.manage_skills' | translate }}
               </button>
             </div>
           </div>
@@ -612,7 +611,7 @@
 
         <div *ngIf="!coursesLoading && courses.length === 0" class="text-center py-5 text-muted">
           <i class="bi bi-book display-4 mb-3 d-block"></i>
-          <p>Click "Load Courses" to view available courses</p>
+          <p>{{ 'admin_skills.load_courses_hint' | translate }}</p>
         </div>
       </div>
     </div>
@@ -623,24 +622,24 @@
     <div class="card">
       <div class="card-header">
         <h5 class="card-title mb-0">
-          <i class="bi bi-person-badge me-2"></i>Learner Skill Lookup
+          <i class="bi bi-person-badge me-2"></i>{{ 'admin_skills.learner_lookup' | translate }}
         </h5>
       </div>
       <div class="card-body">
         <div class="row mb-4">
           <div class="col-md-6">
-            <label class="form-label">Select Learner</label>
+            <label class="form-label">{{ 'admin_skills.select_learner' | translate }}</label>
             <div class="input-group mb-2">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
               <input type="text" class="form-control" [(ngModel)]="userSearchTerm"
-                     placeholder="Search by name or email..." (input)="onUserSearch()">
+                     placeholder="{{ 'admin_skills.search_user_placeholder' | translate }}" (input)="onUserSearch()">
               <button class="btn btn-secondary" (click)="userSearchTerm = ''; onUserSearch()" *ngIf="userSearchTerm">
                 <i class="bi bi-x"></i>
               </button>
             </div>
             <div *ngIf="usersLoading" class="text-center py-3">
               <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-              <span class="ms-2">Loading users...</span>
+              <span class="ms-2">{{ 'admin_skills.loading_users' | translate }}</span>
             </div>
             <div class="user-select-list" *ngIf="!usersLoading && filteredUsers.length > 0">
               <div class="user-select-item"
@@ -659,18 +658,18 @@
               </div>
             </div>
             <div *ngIf="!usersLoading && filteredUsers.length === 0" class="text-center py-3 text-muted">
-              <i class="bi bi-person-x me-2"></i>No users found
+              <i class="bi bi-person-x me-2"></i>{{ 'admin_skills.no_users' | translate }}
             </div>
           </div>
           <div class="col-md-6" *ngIf="targetUserId">
             <div class="selected-user-card">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
-                  <h6 class="mb-1">Selected: {{ selectedUserName }}</h6>
-                  <small class="text-muted">User ID: {{ targetUserId }}</small>
+                  <h6 class="mb-1">{{ 'admin_skills.selected' | translate:{ name: selectedUserName } }}</h6>
+                  <small class="text-muted">{{ 'admin_skills.user_id_label' | translate:{ id: targetUserId } }}</small>
                 </div>
                 <button class="btn btn-sm btn-secondary" (click)="clearUserLookup()">
-                  <i class="bi bi-x-lg me-1"></i>Clear
+                  <i class="bi bi-x-lg me-1"></i>{{ 'common.clear' | translate }}
                 </button>
               </div>
             </div>
@@ -680,7 +679,7 @@
         <!-- Loading State -->
         <div *ngIf="userLookupLoading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-2 text-muted">Loading skill data...</p>
+          <p class="mt-2 text-muted">{{ 'admin_skills.loading_skill_data' | translate }}</p>
         </div>
 
         <!-- User Skills Results -->
@@ -694,7 +693,7 @@
                 </div>
                 <div class="stat-content">
                   <div class="stat-value">{{ getUserAcquiredCount() }}</div>
-                  <div class="stat-label">Acquired</div>
+                  <div class="stat-label">{{ 'skills.acquired' | translate }}</div>
                 </div>
               </div>
             </div>
@@ -705,7 +704,7 @@
                 </div>
                 <div class="stat-content">
                   <div class="stat-value">{{ getUserInProgressCount() }}</div>
-                  <div class="stat-label">In Progress</div>
+                  <div class="stat-label">{{ 'skills.in_progress' | translate }}</div>
                 </div>
               </div>
             </div>
@@ -716,14 +715,14 @@
                 </div>
                 <div class="stat-content">
                   <div class="stat-value">{{ userSkillProgress.length }}</div>
-                  <div class="stat-label">Total Available</div>
+                  <div class="stat-label">{{ 'admin_skills.total_available' | translate }}</div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Acquired Skills -->
-          <h6 class="mb-3"><i class="bi bi-check-circle text-success me-2"></i>Acquired Skills</h6>
+          <h6 class="mb-3"><i class="bi bi-check-circle text-success me-2"></i>{{ 'admin_skills.acquired_skills' | translate }}</h6>
           <div class="row g-3 mb-4" *ngIf="userSkills.length > 0">
             <div class="col-md-4" *ngFor="let skill of userSkills">
               <div class="skill-card-compact">
@@ -732,7 +731,7 @@
                 </div>
                 <div class="skill-info">
                   <div class="fw-medium">{{ skill.skill_name }}</div>
-                  <small class="text-muted">{{ skill.category_name || 'Uncategorized' }}</small>
+                  <small class="text-muted">{{ skill.category_name || ('skills.uncategorized' | translate) }}</small>
                 </div>
                 <span class="badge" [ngClass]="getLevelBadgeClass(skill.highest_proficiency)">
                   {{ skill.highest_proficiency | titlecase }}
@@ -741,21 +740,21 @@
             </div>
           </div>
           <div class="text-muted mb-4" *ngIf="userSkills.length === 0">
-            <i class="bi bi-info-circle me-2"></i>This user hasn't acquired any skills yet.
+            <i class="bi bi-info-circle me-2"></i>{{ 'admin_skills.no_user_skills' | translate }}
           </div>
 
           <!-- Skill Progress -->
-          <h6 class="mb-3"><i class="bi bi-list-check text-info me-2"></i>All Skill Progress</h6>
+          <h6 class="mb-3"><i class="bi bi-list-check text-info me-2"></i>{{ 'admin_skills.all_skill_progress' | translate }}</h6>
           <div class="table-responsive">
             <table class="table table-sm">
               <thead class="table-light">
               <tr>
-                <th>Skill</th>
-                <th>Category</th>
-                <th class="text-center">Courses</th>
-                <th class="text-center">Completed</th>
-                <th>Progress</th>
-                <th>Status</th>
+                <th>{{ 'admin_skills.col_skill' | translate }}</th>
+                <th>{{ 'admin_skills.col_category' | translate }}</th>
+                <th class="text-center">{{ 'nav.courses' | translate }}</th>
+                <th class="text-center">{{ 'skills.completed' | translate }}</th>
+                <th>{{ 'skills.progress' | translate }}</th>
+                <th>{{ 'common.status' | translate }}</th>
               </tr>
               </thead>
               <tbody>
@@ -777,9 +776,9 @@
                   </div>
                 </td>
                 <td>
-                  <span class="badge bg-success" *ngIf="progress.is_acquired">Acquired</span>
-                  <span class="badge bg-warning" *ngIf="!progress.is_acquired && progress.in_progress_courses > 0">In Progress</span>
-                  <span class="badge bg-secondary" *ngIf="!progress.is_acquired && progress.in_progress_courses === 0">Not Started</span>
+                  <span class="badge bg-success" *ngIf="progress.is_acquired">{{ 'skills.acquired' | translate }}</span>
+                  <span class="badge bg-warning" *ngIf="!progress.is_acquired && progress.in_progress_courses > 0">{{ 'skills.in_progress' | translate }}</span>
+                  <span class="badge bg-secondary" *ngIf="!progress.is_acquired && progress.in_progress_courses === 0">{{ 'admin_skills.not_started' | translate }}</span>
                 </td>
               </tr>
               </tbody>
@@ -790,12 +789,12 @@
         <div *ngIf="!userLookupLoading && targetUserId && userSkills.length === 0 && userSkillProgress.length === 0"
              class="text-center py-4 text-muted">
           <i class="bi bi-person-x display-4 mb-3 d-block"></i>
-          <p>No skill data found for {{ selectedUserName }}</p>
+          <p>{{ 'admin_skills.no_skill_data' | translate:{ name: selectedUserName } }}</p>
         </div>
 
         <div *ngIf="!targetUserId" class="text-center py-4 text-muted">
           <i class="bi bi-arrow-left display-4 mb-3 d-block"></i>
-          <p>Select a learner from the list to view their skill profile</p>
+          <p>{{ 'admin_skills.select_learner_hint' | translate }}</p>
         </div>
       </div>
     </div>
@@ -808,38 +807,38 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ isEditMode ? 'Edit Skill' : 'New Skill' }}</h5>
+        <h5 class="modal-title">{{ (isEditMode ? 'admin_skills.edit_skill' : 'admin_skills.new_skill') | translate }}</h5>
         <button type="button" class="btn-close" (click)="closeSkillModal()"></button>
       </div>
       <div class="modal-body">
         <div class="row g-3">
           <div class="col-md-8">
-            <label class="form-label">Skill Name <span class="text-danger">*</span></label>
+            <label class="form-label">{{ 'admin_skills.skill_name' | translate }} <span class="text-danger">*</span></label>
             <input type="text" class="form-control" [(ngModel)]="editingSkill.name"
-                   placeholder="e.g., Project Management">
+                   placeholder="{{ 'admin_skills.skill_name_placeholder' | translate }}">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Category</label>
+            <label class="form-label">{{ 'admin_skills.col_category' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingSkill.category_id">
-              <option [ngValue]="null">No Category</option>
+              <option [ngValue]="null">{{ 'admin_skills.no_category' | translate }}</option>
               <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
                 {{ cat.name }}
               </option>
             </select>
           </div>
           <div class="col-12">
-            <label class="form-label">Description</label>
+            <label class="form-label">{{ 'common.description' | translate }}</label>
             <textarea class="form-control" rows="2" [(ngModel)]="editingSkill.description"
-                      placeholder="Brief description of this skill"></textarea>
+                      placeholder="{{ 'admin_skills.skill_desc_placeholder' | translate }}"></textarea>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Level</label>
+            <label class="form-label">{{ 'paths.level' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingSkill.level">
               <option *ngFor="let lvl of levels" [value]="lvl">{{ lvl | titlecase }}</option>
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Icon</label>
+            <label class="form-label">{{ 'admin_skills.icon' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingSkill.icon">
               <option *ngFor="let ico of iconOptions" [value]="ico">
                 {{ ico.replace('bi-', '') | titlecase }}
@@ -847,7 +846,7 @@
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Color</label>
+            <label class="form-label">{{ 'admin_skills.color' | translate }}</label>
             <div class="color-picker">
               <button *ngFor="let color of colorPresets" type="button" class="color-swatch"
                       [style.background]="color" [class.active]="editingSkill.color === color"
@@ -859,18 +858,18 @@
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="skillActive"
                      [(ngModel)]="editingSkill.is_active">
-              <label class="form-check-label" for="skillActive">Active</label>
+              <label class="form-check-label" for="skillActive">{{ 'common.active' | translate }}</label>
             </div>
           </div>
           <div class="col-12">
-            <label class="form-label">Preview</label>
+            <label class="form-label">{{ 'admin_skills.preview' | translate }}</label>
             <div class="skill-preview">
               <div class="skill-icon-lg" [style.background]="(editingSkill.color || '#303234') + '20'"
                    [style.color]="editingSkill.color || '#303234'">
                 <i [class]="editingSkill.icon || 'bi-star'"></i>
               </div>
               <div class="skill-preview-info">
-                <div class="fw-medium">{{ editingSkill.name || 'Skill Name' }}</div>
+                <div class="fw-medium">{{ editingSkill.name || ('admin_skills.skill_name' | translate) }}</div>
                 <span class="badge" [ngClass]="getLevelBadgeClass(editingSkill.level || 'intermediate')">
                   {{ (editingSkill.level || 'intermediate') | titlecase }}
                 </span>
@@ -880,11 +879,11 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeSkillModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeSkillModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveSkill()"
                 [disabled]="saving || !editingSkill.name?.trim()">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          {{ isEditMode ? 'Update' : 'Create' }} Skill
+          {{ (isEditMode ? 'admin_skills.update_skill' : 'admin_skills.create_skill') | translate }}
         </button>
       </div>
     </div>
@@ -898,22 +897,22 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">{{ isEditMode ? 'Edit Category' : 'New Category' }}</h5>
+        <h5 class="modal-title">{{ (isEditMode ? 'admin_skills.edit_category' : 'admin_skills.new_category') | translate }}</h5>
         <button type="button" class="btn-close" (click)="closeCategoryModal()"></button>
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label">Category Name <span class="text-danger">*</span></label>
+          <label class="form-label">{{ 'admin_skills.category_name' | translate }} <span class="text-danger">*</span></label>
           <input type="text" class="form-control" [(ngModel)]="editingCategory.name"
-                 placeholder="e.g., Technical Skills">
+                 placeholder="{{ 'admin_skills.category_name_placeholder' | translate }}">
         </div>
         <div class="mb-3">
-          <label class="form-label">Description</label>
+          <label class="form-label">{{ 'common.description' | translate }}</label>
           <textarea class="form-control" rows="2" [(ngModel)]="editingCategory.description"
-                    placeholder="Brief description"></textarea>
+                    placeholder="{{ 'admin_skills.brief_description' | translate }}"></textarea>
         </div>
         <div class="mb-3">
-          <label class="form-label">Color</label>
+          <label class="form-label">{{ 'admin_skills.color' | translate }}</label>
           <div class="color-picker">
             <button *ngFor="let color of colorPresets" type="button" class="color-swatch"
                     [style.background]="color" [class.active]="editingCategory.color === color"
@@ -924,15 +923,15 @@
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" id="categoryActive"
                  [(ngModel)]="editingCategory.is_active">
-          <label class="form-check-label" for="categoryActive">Active</label>
+          <label class="form-check-label" for="categoryActive">{{ 'common.active' | translate }}</label>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeCategoryModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeCategoryModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveCategory()"
                 [disabled]="saving || !editingCategory.name?.trim()">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          {{ isEditMode ? 'Update' : 'Create' }} Category
+          {{ (isEditMode ? 'admin_skills.update_category' : 'admin_skills.create_category') | translate }}
         </button>
       </div>
     </div>
@@ -947,21 +946,21 @@
     <div class="modal-content">
       <div class="modal-header border-0">
         <h5 class="modal-title text-danger">
-          <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete
+          <i class="bi bi-exclamation-triangle me-2"></i>{{ 'admin_skills.confirm_delete' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
       </div>
       <div class="modal-body text-center">
         <p class="mb-0">
-          Are you sure you want to delete <strong>{{ deleteName }}</strong>?
+          {{ 'admin_skills.delete_confirm_prefix' | translate }} <strong>{{ deleteName }}</strong>?
         </p>
-        <p class="text-muted small mt-2">This action cannot be undone.</p>
+        <p class="text-muted small mt-2">{{ 'admin_skills.cannot_undo' | translate }}</p>
       </div>
       <div class="modal-footer border-0 justify-content-center">
-        <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Delete
+          {{ 'common.delete' | translate }}
         </button>
       </div>
     </div>
@@ -976,14 +975,14 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-people me-2"></i>Learners with "{{ selectedSkill?.name }}"
+          <i class="bi bi-people me-2"></i>{{ 'admin_skills.learners_with' | translate }} "{{ selectedSkill?.name }}"
         </h5>
         <button type="button" class="btn-close" (click)="closeLearnersModal()"></button>
       </div>
       <div class="modal-body">
         <div *ngIf="skillLearners.length === 0" class="text-center py-4 text-muted">
           <i class="bi bi-people display-4 d-block mb-2"></i>
-          No learners have acquired this skill yet
+          {{ 'admin_skills.no_learners' | translate }}
         </div>
         <div class="learner-list" *ngIf="skillLearners.length > 0">
           <div class="learner-item" *ngFor="let learner of skillLearners">
@@ -1000,7 +999,7 @@
                 {{ learner.highest_proficiency | titlecase }}
               </span>
               <small class="text-muted d-block mt-1">
-                {{ learner.courses_completed }} course(s) · {{ formatDate(learner.skill_acquired_at) }}
+                {{ 'skills.course_count' | translate:{ count: learner.courses_completed } }} · {{ formatDate(learner.skill_acquired_at) }}
               </small>
             </div>
           </div>
@@ -1018,14 +1017,14 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-book me-2"></i>Courses teaching "{{ selectedSkill?.name }}"
+          <i class="bi bi-book me-2"></i>{{ 'admin_skills.courses_teaching' | translate }} "{{ selectedSkill?.name }}"
         </h5>
         <button type="button" class="btn-close" (click)="closeCoursesModal()"></button>
       </div>
       <div class="modal-body">
         <div *ngIf="skillCourses.length === 0" class="text-center py-4 text-muted">
           <i class="bi bi-book display-4 d-block mb-2"></i>
-          No courses are linked to this skill yet
+          {{ 'admin_skills.no_courses_linked' | translate }}
         </div>
         <div class="course-list" *ngIf="skillCourses.length > 0">
           <div class="course-item" *ngFor="let course of skillCourses">
@@ -1036,11 +1035,11 @@
             <div class="course-info">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="fw-medium">{{ course.title }}</span>
-                <span class="badge bg-warning-subtle text-warning" *ngIf="course.is_primary">Primary</span>
+                <span class="badge bg-warning-subtle text-warning" *ngIf="course.is_primary">{{ 'skills.primary' | translate }}</span>
               </div>
               <small class="text-muted">
-                {{ course.category_name || 'Uncategorized' }}
-                <span *ngIf="course.duration_minutes"> · {{ course.duration_minutes }}h</span>
+                {{ course.category_name || ('skills.uncategorized' | translate) }}
+                <span *ngIf="course.duration_minutes"> · {{ 'admin_skills.hours_short' | translate:{ count: course.duration_minutes } }}</span>
               </small>
             </div>
             <div class="text-end">
@@ -1063,13 +1062,13 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-link-45deg me-2"></i>Assign Skills to "{{ selectedCourseName }}"
+          <i class="bi bi-link-45deg me-2"></i>{{ 'admin_skills.assign_skills_to' | translate }} "{{ selectedCourseName }}"
         </h5>
         <button type="button" class="btn-close" (click)="closeCourseSkillsModal()"></button>
       </div>
       <div class="modal-body">
         <p class="text-muted mb-4">
-          Select skills that learners will acquire by completing this course.
+          {{ 'admin_skills.assign_skills_intro' | translate }}
         </p>
 
         <!-- Skill Assignments List -->
@@ -1077,32 +1076,32 @@
           <div class="skill-assignment-row" *ngFor="let assignment of courseSkillAssignments; let i = index">
             <div class="row g-3 align-items-end">
               <div class="col-md-5">
-                <label class="form-label" *ngIf="i === 0">Skill</label>
+                <label class="form-label" *ngIf="i === 0">{{ 'admin_skills.col_skill' | translate }}</label>
                 <select class="form-select" [(ngModel)]="assignment.skill_id">
-                  <option [value]="0">-- Select Skill --</option>
+                  <option [value]="0">{{ 'admin_skills.select_skill_option' | translate }}</option>
                   <option *ngFor="let skill of availableSkillsForCourse"
                           [value]="skill.skill_id"
                           [disabled]="isSkillAlreadyAssigned(skill.skill_id, i)">
-                    {{ skill.name }} ({{ skill.category_name || 'Uncategorized' }})
+                    {{ skill.name }} ({{ skill.category_name || ('skills.uncategorized' | translate) }})
                   </option>
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label" *ngIf="i === 0">Proficiency Level</label>
+                <label class="form-label" *ngIf="i === 0">{{ 'admin_skills.proficiency_level' | translate }}</label>
                 <select class="form-select" [(ngModel)]="assignment.proficiency_level">
                   <option *ngFor="let level of levels" [value]="level">{{ level | titlecase }}</option>
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label" *ngIf="i === 0">Primary Skill</label>
+                <label class="form-label" *ngIf="i === 0">{{ 'admin_skills.primary_skill' | translate }}</label>
                 <div class="form-check mt-2">
                   <input class="form-check-input" type="radio" [name]="'primary'"
                          [checked]="assignment.is_primary" (change)="setPrimarySkill(i)">
-                  <label class="form-check-label">Primary</label>
+                  <label class="form-check-label">{{ 'skills.primary' | translate }}</label>
                 </div>
               </div>
               <div class="col-md-1">
-                <button class="btn btn-outline-danger btn-sm" (click)="removeSkillFromCourse(i)" title="Remove">
+                <button class="btn btn-outline-danger btn-sm" (click)="removeSkillFromCourse(i)" title="{{ 'common.remove' | translate }}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -1110,19 +1109,19 @@
           </div>
 
           <div class="text-center py-3" *ngIf="courseSkillAssignments.length === 0">
-            <p class="text-muted mb-2">No skills assigned to this course</p>
+            <p class="text-muted mb-2">{{ 'admin_skills.no_skills_assigned' | translate }}</p>
           </div>
         </div>
 
         <button class="btn btn-primary btn-sm mt-3" (click)="addSkillToCourse()">
-          <i class="bi bi-plus-lg me-2"></i>Add Skill
+          <i class="bi bi-plus-lg me-2"></i>{{ 'admin_skills.add_skill' | translate }}
         </button>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeCourseSkillsModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeCourseSkillsModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveCourseSkills()" [disabled]="saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Save Skills
+          {{ 'admin_skills.save_skills' | translate }}
         </button>
       </div>
     </div>
@@ -1137,7 +1136,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-info-circle me-2"></i>Skill Details
+          <i class="bi bi-info-circle me-2"></i>{{ 'admin_skills.skill_details' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeSkillDetailModal()"></button>
       </div>
@@ -1156,45 +1155,45 @@
 
         <div class="skill-detail-list">
           <div class="detail-item" *ngIf="selectedSkillDetail.description">
-            <label>Description</label>
+            <label>{{ 'common.description' | translate }}</label>
             <p>{{ selectedSkillDetail.description }}</p>
           </div>
           <div class="detail-item">
-            <label>Category</label>
+            <label>{{ 'admin_skills.col_category' | translate }}</label>
             <span class="badge bg-black text-white">
-              {{ selectedSkillDetail.category_name || 'Uncategorized' }}
+              {{ selectedSkillDetail.category_name || ('skills.uncategorized' | translate) }}
             </span>
           </div>
           <div class="detail-item">
-            <label>Status</label>
+            <label>{{ 'common.status' | translate }}</label>
             <span class="badge" [ngClass]="selectedSkillDetail.is_active ? 'bg-success' : 'bg-secondary'">
-              {{ selectedSkillDetail.is_active ? 'Active' : 'Inactive' }}
+              {{ selectedSkillDetail.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
             </span>
           </div>
           <div class="row">
             <div class="col-6">
               <div class="detail-item">
-                <label>Courses</label>
+                <label>{{ 'nav.courses' | translate }}</label>
                 <span class="fw-bold">{{ selectedSkillDetail.course_count }}</span>
               </div>
             </div>
             <div class="col-6">
               <div class="detail-item">
-                <label>Learners Acquired</label>
+                <label>{{ 'admin_skills.learners_acquired' | translate }}</label>
                 <span class="fw-bold text-success">{{ selectedSkillDetail.learners_acquired }}</span>
               </div>
             </div>
           </div>
           <div class="detail-item">
-            <label>Created</label>
+            <label>{{ 'common.created' | translate }}</label>
             <span>{{ formatDate(selectedSkillDetail.created_at) }}</span>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeSkillDetailModal()">Close</button>
+        <button type="button" class="btn btn-secondary" (click)="closeSkillDetailModal()">{{ 'common.close' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="closeSkillDetailModal(); openEditSkillModal(selectedSkillDetail!)">
-          <i class="bi bi-pencil me-2"></i>Edit Skill
+          <i class="bi bi-pencil me-2"></i>{{ 'admin_skills.edit_skill' | translate }}
         </button>
       </div>
     </div>
@@ -1209,7 +1208,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-folder me-2"></i>Category Details
+          <i class="bi bi-folder me-2"></i>{{ 'admin_skills.category_details' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeCategoryDetailModal()"></button>
       </div>
@@ -1222,36 +1221,36 @@
           </div>
           <h4 class="mb-1">{{ selectedCategoryDetail.name }}</h4>
           <span class="badge" [ngClass]="selectedCategoryDetail.is_active ? 'bg-success' : 'bg-secondary'">
-            {{ selectedCategoryDetail.is_active ? 'Active' : 'Inactive' }}
+            {{ selectedCategoryDetail.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
           </span>
         </div>
 
         <div class="skill-detail-list">
           <div class="detail-item" *ngIf="selectedCategoryDetail.description">
-            <label>Description</label>
+            <label>{{ 'common.description' | translate }}</label>
             <p>{{ selectedCategoryDetail.description }}</p>
           </div>
           <div class="detail-item">
-            <label>Color</label>
+            <label>{{ 'admin_skills.color' | translate }}</label>
             <div class="d-flex align-items-center gap-2">
               <div class="color-preview" [style.background-color]="selectedCategoryDetail.color"></div>
               <span class="text-muted">{{ selectedCategoryDetail.color }}</span>
             </div>
           </div>
           <div class="detail-item">
-            <label>Skills in Category</label>
+            <label>{{ 'admin_skills.skills_in_category' | translate }}</label>
             <span class="fw-bold">{{ selectedCategoryDetail.skill_count }}</span>
           </div>
           <div class="detail-item">
-            <label>Created</label>
+            <label>{{ 'common.created' | translate }}</label>
             <span>{{ formatDate(selectedCategoryDetail.created_at) }}</span>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeCategoryDetailModal()">Close</button>
+        <button type="button" class="btn btn-secondary" (click)="closeCategoryDetailModal()">{{ 'common.close' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="closeCategoryDetailModal(); openEditCategoryModal(selectedCategoryDetail!)">
-          <i class="bi bi-pencil me-2"></i>Edit Category
+          <i class="bi bi-pencil me-2"></i>{{ 'admin_skills.edit_category' | translate }}
         </button>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import {TenantSettingsComponent} from '../../tenant-settings/tenant-settings.component';
 import {MyLearningComponent} from './my-learning/my-learning.component';
 import {LearnerDashboardComponent} from "../../admin/learner-dashboard/learner-dashboard.component";
+import {TranslatePipe} from '../../translate.pipe';
 @Component({
   selector: 'app-learning',
   standalone: true,
@@ -23,7 +24,8 @@ import {LearnerDashboardComponent} from "../../admin/learner-dashboard/learner-d
         AdmintopComponent,
         TenantSettingsComponent,
         MyLearningComponent,
-        LearnerDashboardComponent
+        LearnerDashboardComponent,
+        TranslatePipe
     ],
   templateUrl: './learning.component.html',
   styleUrl: './learning.component.css'

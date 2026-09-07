@@ -12,11 +12,13 @@ import {
   PATH_STATUSES
 } from '../../interfaces/learning-path.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learning-paths-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, RouterModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './learning-paths-list.component.html',
   styleUrls: ['./learning-paths-list.component.scss']
 })
@@ -83,7 +85,10 @@ export class LearningPathsListComponent implements OnInit {
   /** Selected count for display */
   selectedCount = computed(() => this.selectedIds().size);
 
-  constructor(private learningPathService: LearningPathService) {}
+  constructor(
+    private learningPathService: LearningPathService,
+    private i18n: I18nService
+  ) {}
 
   ngOnInit(): void {
     this.loadPaths();
@@ -204,20 +209,20 @@ export class LearningPathsListComponent implements OnInit {
 
   // Actions
   publishPath(path: LearningPath): void {
-    if (confirm(`Publish "${path.title}"?`)) {
+    if (confirm(this.i18n.t('paths_admin.confirm_publish', { title: path.title }))) {
       this.learningPathService.publish(path.path_id).subscribe({
         next: () => {
           this.loadPaths();
         },
         error: (error) => {
-          alert(error.error?.errors?.join('\n') || 'Failed to publish');
+          alert(error.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
         }
       });
     }
   }
 
   archivePath(path: LearningPath): void {
-    if (confirm(`Archive "${path.title}"?`)) {
+    if (confirm(this.i18n.t('paths_admin.confirm_archive', { title: path.title }))) {
       this.learningPathService.archive(path.path_id).subscribe({
         next: () => this.loadPaths()
       });
@@ -225,7 +230,7 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   deletePath(path: LearningPath): void {
-    if (confirm(`Delete "${path.title}"? This action cannot be undone.`)) {
+    if (confirm(this.i18n.t('paths_admin.confirm_delete', { title: path.title }))) {
       this.learningPathService.delete(path.path_id).subscribe({
         next: () => this.loadPaths()
       });
@@ -233,7 +238,7 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   duplicatePath(path: LearningPath): void {
-    const newTitle = prompt('Enter title for the copy:', `${path.title} (Copy)`);
+    const newTitle = prompt(this.i18n.t('paths_admin.prompt_copy_title'), this.i18n.t('paths_admin.copy_suffix', { title: path.title }));
     if (newTitle) {
       this.learningPathService.duplicate(path.path_id, newTitle).subscribe({
         next: () => this.loadPaths()
@@ -243,7 +248,7 @@ export class LearningPathsListComponent implements OnInit {
 
   // Bulk actions
   bulkPublish(): void {
-    if (confirm(`Publish ${this.selectedIds().size} selected paths?`)) {
+    if (confirm(this.i18n.t('paths_admin.confirm_bulk_publish', { count: this.selectedIds().size }))) {
       const ids = Array.from(this.selectedIds());
       // Sequential publish
       ids.forEach(id => {
@@ -254,7 +259,7 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   bulkArchive(): void {
-    if (confirm(`Archive ${this.selectedIds().size} selected paths?`)) {
+    if (confirm(this.i18n.t('paths_admin.confirm_bulk_archive', { count: this.selectedIds().size }))) {
       const ids = Array.from(this.selectedIds());
       ids.forEach(id => {
         this.learningPathService.archive(id).subscribe();
@@ -264,7 +269,7 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   bulkDelete(): void {
-    if (confirm(`Delete ${this.selectedIds().size} selected paths? This cannot be undone.`)) {
+    if (confirm(this.i18n.t('paths_admin.confirm_bulk_delete', { count: this.selectedIds().size }))) {
       const ids = Array.from(this.selectedIds());
       ids.forEach(id => {
         this.learningPathService.delete(id).subscribe();
@@ -290,9 +295,9 @@ export class LearningPathsListComponent implements OnInit {
 
   formatDuration(hours: number | null): string {
     if (!hours) return '-';
-    if (hours < 1) return `${Math.round(hours * 60)} min`;
-    if (hours === 1) return '1 hour';
-    return `${hours} hours`;
+    if (hours < 1) return this.i18n.t('paths.minutes', { count: Math.round(hours * 60) });
+    if (hours === 1) return this.i18n.t('paths.one_hour');
+    return this.i18n.t('paths.hours', { count: hours });
   }
 
   formatDate(dateStr: string | null): string {

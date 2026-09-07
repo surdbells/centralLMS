@@ -8,6 +8,8 @@ import { RolesService, type Role as ApiRole } from '../../../../services/roles.s
 import { AuditService } from '../../../../services/audit.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
+import { I18nService } from '../../../../i18n.service';
 
 type UserStatus = 'active' | 'invited' | 'suspended' | 'locked';
 
@@ -52,7 +54,11 @@ export interface UserActivity {
   created_at: string;
 }
 
-const LANGUAGES: Record<string, string> = { en: 'English', fr: 'French', ar: 'Arabic' };
+const LANGUAGES: Record<string, string> = {
+  en: 'admin.user_form.lang_en',
+  fr: 'admin.user_form.lang_fr',
+  ar: 'admin.user_form.lang_ar',
+};
 
 /**
  * A timestamp as a person reads one.
@@ -80,7 +86,7 @@ function onDay(value: string | null): string {
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
     <main class="main px-lg-6">
@@ -95,7 +101,7 @@ function onDay(value: string | null): string {
           <div>
             <h4 class="fw-bold mb-0">{{ user.full_name }}</h4>
             <p class="text-muted mb-0">{{ user.email }}
-              <span class="badge ms-2" [class]="statusClass">{{ user.status | titlecase }}</span>
+              <span class="badge ms-2" [class]="statusClass">{{ ('admin.users.status_' + user.status) | translate }}</span>
             </p>
             <div class="mt-1">
               <span *ngFor="let r of user.roles" class="badge bg-primary-subtle text-primary me-1">{{ r.role_name }}</span>
@@ -103,11 +109,11 @@ function onDay(value: string | null): string {
           </div>
         </div>
         <div class="d-flex gap-2">
-          <a [routerLink]="['/admin/users', user.id, 'edit']" class="btn btn-sm btn-secondary text-white"><i class="bi bi-pencil me-1"></i>Edit</a>
+          <a [routerLink]="['/admin/users', user.id, 'edit']" class="btn btn-sm btn-secondary text-white"><i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}</a>
           <button class="btn btn-sm" [class]="user.status === 'active' ? 'btn-secondary text-white' : 'btn-success'"
                   (click)="toggleStatus()">
             <i class="bi" [class]="user.status === 'active' ? 'bi-pause-circle' : 'bi-check-circle'"></i>
-            {{ user.status === 'active' ? 'Suspend' : 'Activate' }}
+            {{ user.status === 'active' ? ('admin.users.suspend' | translate) : ('admin.users.activate' | translate) }}
           </button>
         </div>
       </div>
@@ -116,7 +122,7 @@ function onDay(value: string | null): string {
       <ul class="nav nav-tabs mb-3">
         <li class="nav-item" *ngFor="let tab of tabs">
           <a class="nav-link" [class.active]="activeTab === tab.key" role="button" (click)="onTabChange(tab.key)">
-            <i class="bi me-1" [class]="tab.icon"></i>{{ tab.label }}
+            <i class="bi me-1" [class]="tab.icon"></i>{{ tab.label | translate }}
           </a>
         </li>
       </ul>
@@ -125,7 +131,7 @@ function onDay(value: string | null): string {
       <div *ngIf="activeTab === 'profile'" class="row g-4">
         <div class="col-md-6">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>Personal Information</div>
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>{{ 'admin.user_form.personal_info' | translate }}</div>
             <div class="card-body">
               <div class="row mb-2" *ngFor="let f of personalFields">
                 <div class="col-5 text-muted small">{{ f.label }}</div>
@@ -136,7 +142,7 @@ function onDay(value: string | null): string {
         </div>
         <div class="col-md-6">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>Organization</div>
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>{{ 'admin.user_form.organization' | translate }}</div>
             <div class="card-body">
               <div class="row mb-2" *ngFor="let f of orgFields">
                 <div class="col-5 text-muted small">{{ f.label }}</div>
@@ -145,7 +151,7 @@ function onDay(value: string | null): string {
             </div>
           </div>
           <div class="card border-0 shadow-sm mt-3">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-clock me-2"></i>Account</div>
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-clock me-2"></i>{{ 'admin.user_detail.account' | translate }}</div>
             <div class="card-body">
               <div class="row mb-2" *ngFor="let f of accountFields">
                 <div class="col-5 text-muted small">{{ f.label }}</div>
@@ -162,9 +168,9 @@ function onDay(value: string | null): string {
           <div class="col-md-6">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <span class="fw-semibold"><i class="bi bi-shield me-2"></i>Assigned Roles</span>
+                <span class="fw-semibold"><i class="bi bi-shield me-2"></i>{{ 'admin.user_detail.assigned_roles' | translate }}</span>
                 <div class="dropdown" *ngIf="availableRoles.length">
-                  <button class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">Assign Role</button>
+                  <button class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">{{ 'admin.users.assign_role' | translate }}</button>
                   <ul class="dropdown-menu">
                     <li *ngFor="let r of availableRoles"><a class="dropdown-item" (click)="assignRole(r.role_id)">{{ r.role_name }}</a></li>
                   </ul>
@@ -174,24 +180,24 @@ function onDay(value: string | null): string {
                 <li *ngFor="let r of user.roles" class="list-group-item d-flex justify-content-between align-items-center">
                   <div>
                     <span class="fw-semibold">{{ r.role_name }}</span>
-                    <span class="badge bg-light text-muted ms-2" *ngIf="r.is_system">System</span>
+                    <span class="badge bg-light text-muted ms-2" *ngIf="r.is_system">{{ 'admin.user_detail.system' | translate }}</span>
                     <br><small class="text-muted">{{ r.description }}</small>
                   </div>
-                  <button class="btn btn-sm btn-outline-danger" (click)="removeRole(r.role_id)" title="Remove"><i class="bi bi-x"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" (click)="removeRole(r.role_id)" title="{{ 'common.remove' | translate }}"><i class="bi bi-x"></i></button>
                 </li>
-                <li *ngIf="!user.roles.length" class="list-group-item text-muted text-center py-3">No roles assigned</li>
+                <li *ngIf="!user.roles.length" class="list-group-item text-muted text-center py-3">{{ 'admin.user_detail.no_roles' | translate }}</li>
               </ul>
             </div>
           </div>
           <div class="col-md-6">
             <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white fw-semibold"><i class="bi bi-key me-2"></i>Effective Permissions ({{ user.permissions.length }})</div>
+              <div class="card-header bg-white fw-semibold"><i class="bi bi-key me-2"></i>{{ 'admin.user_detail.effective_permissions' | translate:{ count: user.permissions.length } }}</div>
               <div class="card-body" style="max-height:400px; overflow-y:auto">
                 <div *ngFor="let p of user.permissions" class="d-flex align-items-center gap-2 mb-1">
                   <i class="bi bi-check-circle-fill text-success small"></i>
                   <small>{{ p }}</small>
                 </div>
-                <p *ngIf="!user.permissions.length" class="text-muted text-center mb-0">No permissions</p>
+                <p *ngIf="!user.permissions.length" class="text-muted text-center mb-0">{{ 'admin.user_detail.no_permissions' | translate }}</p>
               </div>
             </div>
           </div>
@@ -205,17 +211,17 @@ function onDay(value: string | null): string {
           <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
               <thead class="table-light">
-                <tr><th>Time</th><th>Action</th><th>Details</th><th>By</th><th>IP</th></tr>
+                <tr><th>{{ 'admin.user_detail.col_time' | translate }}</th><th>{{ 'admin.audit.col_action' | translate }}</th><th>{{ 'admin.user_detail.col_details' | translate }}</th><th>{{ 'admin.user_detail.col_by' | translate }}</th><th>{{ 'admin.user_detail.col_ip' | translate }}</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let a of activities">
                   <td><small>{{ a.created_at | date:'short' }}</small></td>
                   <td><span class="badge" [class]="getActionBadge(a.action)">{{ a.action | titlecase }}</span></td>
                   <td><small class="text-muted">{{ formatDetails(a.details) }}</small></td>
-                  <td><small>{{ a.performed_by_name || 'System' }}</small></td>
+                  <td><small>{{ a.performed_by_name || ('admin.user_detail.system_actor' | translate) }}</small></td>
                   <td><small class="text-muted">{{ a.ip_address || '-' }}</small></td>
                 </tr>
-                <tr *ngIf="!activities.length"><td colspan="5" class="text-center text-muted py-3">No activity recorded</td></tr>
+                <tr *ngIf="!activities.length"><td colspan="5" class="text-center text-muted py-3">{{ 'admin.user_detail.no_activity' | translate }}</td></tr>
               </tbody>
             </table>
           </div>
@@ -235,6 +241,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   private readonly rolesService = inject(RolesService);
   private readonly auditService = inject(AuditService);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   user: UserDetail | null = null;
@@ -242,9 +249,9 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   activeTab = 'profile';
 
   tabs = [
-    { key: 'profile', label: 'Profile', icon: 'bi-person' },
-    { key: 'roles', label: 'Roles & Permissions', icon: 'bi-shield-lock' },
-    { key: 'activity', label: 'Activity', icon: 'bi-clock-history' },
+    { key: 'profile', label: 'admin.user_detail.tab_profile', icon: 'bi-person' },
+    { key: 'roles', label: 'admin.user_detail.tab_roles', icon: 'bi-shield-lock' },
+    { key: 'activity', label: 'admin.user_detail.tab_activity', icon: 'bi-clock-history' },
   ];
 
   allRoles: Role[] = [];
@@ -332,27 +339,27 @@ export class UserDetailComponent implements OnInit, OnDestroy {
 
   private buildFields(u: ApiUser): void {
     this.personalFields = [
-      { label: 'Full Name', value: u.fullName },
-      { label: 'Email', value: u.email },
-      { label: 'Phone', value: u.phone ?? '' },
-      { label: 'Language', value: LANGUAGES[u.locale] ?? u.locale },
+      { label: this.i18n.t('admin.user_detail.full_name'), value: u.fullName },
+      { label: this.i18n.t('admin.users.col_email'), value: u.email },
+      { label: this.i18n.t('admin.user_form.phone'), value: u.phone ?? '' },
+      { label: this.i18n.t('common.language'), value: this.i18n.t(LANGUAGES[u.locale] ?? '') || u.locale },
     ];
 
     this.orgFields = [
-      { label: 'Branch', value: u.placement?.branchName ?? '' },
-      { label: 'Department', value: u.placement?.departmentName ?? '' },
-      { label: 'Team', value: u.placement?.teamName ?? '' },
-      { label: 'Job Title', value: u.placement?.jobTitleName ?? '' },
-      { label: 'Manager', value: u.placement?.managerName ?? '' },
-      { label: 'Hire Date', value: onDay(u.hireDate) },
+      { label: this.i18n.t('admin.user_form.branch'), value: u.placement?.branchName ?? '' },
+      { label: this.i18n.t('admin.enrollees.col_department'), value: u.placement?.departmentName ?? '' },
+      { label: this.i18n.t('admin.user_form.team'), value: u.placement?.teamName ?? '' },
+      { label: this.i18n.t('admin.user_detail.job_title'), value: u.placement?.jobTitleName ?? '' },
+      { label: this.i18n.t('admin.user_detail.manager'), value: u.placement?.managerName ?? '' },
+      { label: this.i18n.t('admin.user_form.hire_date'), value: onDay(u.hireDate) },
     ];
 
     this.accountFields = [
-      { label: 'Status', value: u.status.charAt(0).toUpperCase() + u.status.slice(1) },
-      { label: 'Two-factor', value: u.twoFactor ? 'On' : 'Off' },
-      { label: 'Last Login', value: u.lastLoginAt === null ? 'Never' : at(u.lastLoginAt) },
-      { label: 'Login Count', value: String(u.loginCount) },
-      { label: 'Created', value: onDay(u.createdAt) },
+      { label: this.i18n.t('admin.enrollees.col_status'), value: this.i18n.t('admin.users.status_' + u.status) },
+      { label: this.i18n.t('admin.user_detail.two_factor'), value: u.twoFactor ? this.i18n.t('admin.user_detail.on') : this.i18n.t('admin.user_detail.off') },
+      { label: this.i18n.t('admin.user_detail.last_login'), value: u.lastLoginAt === null ? this.i18n.t('admin.users.never') : at(u.lastLoginAt) },
+      { label: this.i18n.t('admin.user_detail.login_count'), value: String(u.loginCount) },
+      { label: this.i18n.t('admin.user_detail.created'), value: onDay(u.createdAt) },
     ];
   }
 
@@ -391,7 +398,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   removeRole(roleId: string): void {
     const user = this.user;
 
-    if (user === null || !confirm('Remove this role?')) {
+    if (user === null || !confirm(this.i18n.t('admin.user_detail.confirm_remove_role'))) {
       return;
     }
 

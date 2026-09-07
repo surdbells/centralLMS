@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 
-export type LangCode = 'en' | 'ar';
+export type LangCode = 'en' | 'fr' | 'ar';
 type Dict = Record<string, string>;
 
 const STORAGE_KEY = 'app_lang';

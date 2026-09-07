@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HotToastService } from '@ngneat/hot-toast';
 import { LookupsService, type Lookup } from '../../../services/lookups.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * Manage the assessment cycles — the periods an exercise runs for.
@@ -17,13 +19,14 @@ import { LookupsService, type Lookup } from '../../../services/lookups.service';
 @Component({
   selector: 'app-cycle-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './cycle-management.component.html',
   styleUrl: './cycle-management.component.scss',
 })
 export class CycleManagementComponent implements OnInit {
   private readonly lookups = inject(LookupsService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly cycles = signal<Lookup[]>([]);
   readonly loading = signal(true);
@@ -56,7 +59,7 @@ export class CycleManagementComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('The cycles could not be loaded.');
+        this.toast.error(this.i18n.t('competency.cycles.load_error'));
         this.loading.set(false);
       },
     });
@@ -77,12 +80,12 @@ export class CycleManagementComponent implements OnInit {
           this.creating.set(false);
           this.newName = '';
           this.newDescription = '';
-          this.toast.success(`Cycle “${name}” added.`);
+          this.toast.success(this.i18n.t('competency.cycles.added', { name }));
           this.load();
         },
         error: (err: unknown) => {
           this.creating.set(false);
-          this.toast.error(this.conflict(err) ?? 'That cycle could not be added.');
+          this.toast.error(this.conflict(err) ?? this.i18n.t('competency.cycles.add_error'));
         },
       });
   }
@@ -111,12 +114,12 @@ export class CycleManagementComponent implements OnInit {
         next: () => {
           this.savingId.set(null);
           this.editingId = null;
-          this.toast.success('Cycle updated.');
+          this.toast.success(this.i18n.t('competency.cycles.updated'));
           this.load();
         },
         error: (err: unknown) => {
           this.savingId.set(null);
-          this.toast.error(this.conflict(err) ?? 'The cycle could not be updated.');
+          this.toast.error(this.conflict(err) ?? this.i18n.t('competency.cycles.update_error'));
         },
       });
   }
@@ -126,12 +129,12 @@ export class CycleManagementComponent implements OnInit {
     this.lookups.setStatus('cycle', row.id, !row.isActive).subscribe({
       next: () => {
         this.savingId.set(null);
-        this.toast.success(row.isActive ? 'Cycle retired.' : 'Cycle reactivated.');
+        this.toast.success(this.i18n.t(row.isActive ? 'competency.cycles.retired_toast' : 'competency.cycles.reactivated_toast'));
         this.load();
       },
       error: () => {
         this.savingId.set(null);
-        this.toast.error('The cycle status could not be changed.');
+        this.toast.error(this.i18n.t('competency.cycles.status_error'));
       },
     });
   }
@@ -139,6 +142,6 @@ export class CycleManagementComponent implements OnInit {
   /** A duplicate name comes back as a 409; surface the server's own message. */
   private conflict(err: unknown): string | null {
     const e = err as { status?: number; error?: { message?: string } };
-    return e?.status === 409 ? e.error?.message ?? 'A cycle with that name already exists.' : null;
+    return e?.status === 409 ? e.error?.message ?? this.i18n.t('competency.cycles.duplicate') : null;
   }
 }

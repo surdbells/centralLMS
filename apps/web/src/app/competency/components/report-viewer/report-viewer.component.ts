@@ -5,6 +5,8 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { IndividualReportComponent } from '../individual-report/individual-report.component';
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 import { CompetencyService, type CompetencyAssessment } from '../../competency.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /** One person the viewer can pull a report for. */
 interface ReportSubjectRow {
@@ -27,13 +29,14 @@ interface ReportSubjectRow {
 @Component({
   selector: 'app-report-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, IndividualReportComponent, CycleSelectComponent],
+  imports: [CommonModule, FormsModule, IndividualReportComponent, CycleSelectComponent, TranslatePipe],
   templateUrl: './report-viewer.component.html',
   styleUrl: './report-viewer.component.scss',
 })
 export class ReportViewerComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   subjects: ReportSubjectRow[] = [];
@@ -90,7 +93,7 @@ export class ReportViewerComponent implements OnInit {
           if (requested !== this.cycle) {
             return;
           }
-          this.toast.error('The list of people could not be loaded.');
+          this.toast.error(this.i18n.t('competency.viewer.load_error'));
           this.loading = false;
         },
       });

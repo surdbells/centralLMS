@@ -9,12 +9,12 @@
     <div class="flex-grow-1">
       <h4 class="mb-0">{{ a.userName }}</h4>
       <div class="text-muted">
-        {{ a.jobTitle }} · {{ a.functionName }} · Cycle {{ a.cycle }}
+        {{ a.jobTitle }} · {{ a.functionName }} · {{ 'competency.common.cycle' | translate }} {{ a.cycle }}
       </div>
     </div>
     <a class="btn btn-sm btn-outline-primary mt-1"
        [routerLink]="['/admin/competency/assessments', a.id, 'report']">
-      <tui-icon icon="@tui.file-text"></tui-icon> Report
+      <tui-icon icon="@tui.file-text"></tui-icon> {{ 'modules.report' | translate }}
     </a>
     <span class="badge rounded-pill fs-6"
           [class.bg-secondary-subtle]="a.status === 'draft'"
@@ -33,17 +33,17 @@
   <div class="stepper mb-4">
     <div class="step" [class.done]="a.selfSubmittedAt" [class.active]="a.status === 'draft'">
       <div class="dot"><tui-icon [icon]="a.selfSubmittedAt ? '@tui.check' : '@tui.user'"></tui-icon></div>
-      <div><div class="fw-medium">Self-assessment</div><small class="text-muted">{{ a.selfSubmittedAt ? (a.selfSubmittedAt | date: 'mediumDate') : 'The person records their levels' }}</small></div>
+      <div><div class="fw-medium">{{ 'competency.detail.step_self' | translate }}</div><small class="text-muted">{{ a.selfSubmittedAt ? (a.selfSubmittedAt | date: 'mediumDate') : ('competency.detail.step_self_hint' | translate) }}</small></div>
     </div>
     <div class="bar" [class.done]="a.reviewedAt"></div>
     <div class="step" [class.done]="a.reviewedAt" [class.active]="a.status === 'self_assessed'">
       <div class="dot"><tui-icon [icon]="a.reviewedAt ? '@tui.check' : '@tui.user-check'"></tui-icon></div>
-      <div><div class="fw-medium">Expert review</div><small class="text-muted">{{ a.reviewedAt ? (a.reviewedAt | date: 'mediumDate') : 'A reviewer confirms them' }}</small></div>
+      <div><div class="fw-medium">{{ 'competency.detail.step_review' | translate }}</div><small class="text-muted">{{ a.reviewedAt ? (a.reviewedAt | date: 'mediumDate') : ('competency.detail.step_review_hint' | translate) }}</small></div>
     </div>
     <div class="bar" [class.done]="a.finalizedAt"></div>
     <div class="step" [class.done]="a.finalizedAt" [class.active]="a.status === 'reviewed'">
       <div class="dot"><tui-icon [icon]="a.finalizedAt ? '@tui.check' : '@tui.flag'"></tui-icon></div>
-      <div><div class="fw-medium">Finalised</div><small class="text-muted">{{ a.finalizedAt ? (a.finalizedAt | date: 'mediumDate') : 'Locked into the outcome' }}</small></div>
+      <div><div class="fw-medium">{{ 'competency.detail.step_finalised' | translate }}</div><small class="text-muted">{{ a.finalizedAt ? (a.finalizedAt | date: 'mediumDate') : ('competency.detail.step_finalised_hint' | translate) }}</small></div>
     </div>
   </div>
 
@@ -51,20 +51,20 @@
   <div class="row g-3 mb-4">
     <div class="col-4">
       <div class="mini-card">
-        <div class="mini-label">Readiness</div>
+        <div class="mini-label">{{ 'competency.common.readiness' | translate }}</div>
         <div class="mini-value">{{ a.readinessPercent !== null ? (a.readinessPercent | number: '1.0-0') + '%' : '-' }}</div>
       </div>
     </div>
     <div class="col-4">
       <div class="mini-card">
-        <div class="mini-label">Open gaps</div>
+        <div class="mini-label">{{ 'competency.common.open_gaps' | translate }}</div>
         <div class="mini-value text-danger">{{ a.gapCounts.minor + a.gapCounts.major + a.gapCounts.significant }}</div>
       </div>
     </div>
     <div class="col-4">
       <div class="mini-card">
-        <div class="mini-label">Est. to close</div>
-        <div class="mini-value">{{ a.estimatedMonths }} mo</div>
+        <div class="mini-label">{{ 'competency.detail.est_to_close' | translate }}</div>
+        <div class="mini-value">{{ a.estimatedMonths }} {{ 'competency.common.mo' | translate }}</div>
       </div>
     </div>
   </div>
@@ -72,21 +72,21 @@
   <!-- Action bar -->
   <div class="d-flex justify-content-end gap-2 mb-3" *ngIf="editMode === 'none' && !showFinalize">
     <button *ngIf="a.status !== 'finalized'" class="btn btn-outline-primary btn-sm" (click)="startSelf()">
-      <tui-icon icon="@tui.user"></tui-icon> {{ a.selfSubmittedAt ? 'Revise self-assessment' : 'Record self-assessment' }}
+      <tui-icon icon="@tui.user"></tui-icon> {{ (a.selfSubmittedAt ? 'competency.detail.revise_self' : 'competency.detail.record_self') | translate }}
     </button>
     <button *ngIf="a.status !== 'draft' && a.status !== 'finalized'" class="btn btn-outline-primary btn-sm" (click)="startReview()">
-      <tui-icon icon="@tui.user-check"></tui-icon> {{ a.reviewedAt ? 'Revise review' : 'Record expert review' }}
+      <tui-icon icon="@tui.user-check"></tui-icon> {{ (a.reviewedAt ? 'competency.detail.revise_review' : 'competency.detail.record_review') | translate }}
     </button>
     <button *ngIf="a.status === 'reviewed'" class="btn btn-success btn-sm" (click)="openFinalize()">
-      <tui-icon icon="@tui.flag"></tui-icon> Finalise
+      <tui-icon icon="@tui.flag"></tui-icon> {{ 'competency.detail.finalise' | translate }}
     </button>
   </div>
 
   <!-- Editing banner -->
   <div class="edit-banner mb-2" *ngIf="editMode !== 'none'">
     <tui-icon icon="@tui.pencil"></tui-icon>
-    <span *ngIf="editMode === 'self'">Recording <strong>self-assessment</strong> - the level the person judges they hold.</span>
-    <span *ngIf="editMode === 'review'">Recording the <strong>expert review</strong> - the confirmed level wins over the self-claim.</span>
+    <span *ngIf="editMode === 'self'" [innerHTML]="'competency.detail.recording_self' | translate"></span>
+    <span *ngIf="editMode === 'review'" [innerHTML]="'competency.detail.recording_review' | translate"></span>
   </div>
 
   <!-- Items -->
@@ -95,14 +95,14 @@
       <table class="table align-middle mb-0 items-table">
         <thead>
           <tr>
-            <th>Competency</th>
-            <th class="text-center">Required</th>
-            <th class="text-center">Self</th>
-            <th class="text-center">Confirmed</th>
+            <th>{{ 'competency.detail.th_competency' | translate }}</th>
+            <th class="text-center">{{ 'competency.detail.th_required' | translate }}</th>
+            <th class="text-center">{{ 'competency.detail.th_self' | translate }}</th>
+            <th class="text-center">{{ 'competency.detail.th_confirmed' | translate }}</th>
             <th class="text-center" *ngIf="editMode !== 'none'" style="width: 200px">
-              {{ editMode === 'self' ? 'Set self level' : 'Set confirmed level' }}
+              {{ (editMode === 'self' ? 'competency.detail.set_self_level' : 'competency.detail.set_confirmed_level') | translate }}
             </th>
-            <th class="text-center">Gap</th>
+            <th class="text-center">{{ 'competency.detail.th_gap' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -110,7 +110,7 @@
             <td>
               <div class="fw-medium">
                 {{ item.competencyName }}
-                <tui-icon *ngIf="item.isCritical" icon="@tui.star" class="text-warning ms-1" title="Critical"></tui-icon>
+                <tui-icon *ngIf="item.isCritical" icon="@tui.star" class="text-warning ms-1" [title]="'competency.profiles.critical' | translate"></tui-icon>
               </div>
               <small class="text-muted">{{ item.functionName }}</small>
             </td>
@@ -121,14 +121,14 @@
               <div class="btn-group btn-group-sm level-toggle" role="group">
                 <button *ngFor="let opt of levelOptions" type="button" class="btn"
                         [class.active]="draft[item.competencyId] === opt.value"
-                        (click)="setLevel(item.competencyId, opt.value)" [title]="opt.label">
+                        (click)="setLevel(item.competencyId, opt.value)" [title]="levelTitle(opt.value)">
                   {{ opt.letter }}
                 </button>
               </div>
             </td>
             <td class="text-center">
               <span class="badge rounded-pill" [class]="gapBadgeClass(item.gapCategory)">
-                {{ item.gap === 0 ? 'Met' : '+' + item.gap }}
+                {{ item.gap === 0 ? ('competency.gap.met' | translate) : '+' + item.gap }}
               </span>
             </td>
           </tr>
@@ -136,10 +136,10 @@
       </table>
     </div>
     <div class="card-footer bg-transparent d-flex justify-content-end gap-2" *ngIf="editMode !== 'none'">
-      <button class="btn btn-light btn-sm" (click)="cancelEdit()">Cancel</button>
+      <button class="btn btn-light btn-sm" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary btn-sm" [disabled]="saving" (click)="submit()">
         <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-        Save levels
+        {{ 'competency.detail.save_levels' | translate }}
       </button>
     </div>
   </div>
@@ -148,40 +148,40 @@
   <div class="card border-0 shadow-sm mt-3">
     <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
       <div>
-        <h6 class="mb-0">Report notes</h6>
-        <small class="text-muted">The comments and gaps narrative that appear on the printed report.</small>
+        <h6 class="mb-0">{{ 'competency.detail.report_notes' | translate }}</h6>
+        <small class="text-muted">{{ 'competency.detail.report_notes_hint' | translate }}</small>
       </div>
       <button class="btn btn-primary btn-sm" [disabled]="savingNarrative" (click)="saveNarrative()">
         <span *ngIf="savingNarrative" class="spinner-border spinner-border-sm me-1"></span>
-        Save notes
+        {{ 'competency.detail.save_notes' | translate }}
       </button>
     </div>
     <div class="card-body">
       <div class="row g-3">
         <div class="col-md-6">
-          <label class="form-label small fw-semibold">SME's Comments</label>
+          <label class="form-label small fw-semibold">{{ 'competency.detail.sme_comments' | translate }}</label>
           <textarea class="form-control" rows="3" [(ngModel)]="narrative.assessorComment"
-                    placeholder="The subject-matter expert's overall assessment"></textarea>
+                    placeholder="{{ 'competency.detail.sme_placeholder' | translate }}"></textarea>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-semibold">Line Manager's Comments</label>
+          <label class="form-label small fw-semibold">{{ 'competency.detail.line_manager_comments' | translate }}</label>
           <textarea class="form-control" rows="3" [(ngModel)]="narrative.lineManagerComment"
-                    placeholder="The line manager's note"></textarea>
+                    placeholder="{{ 'competency.detail.line_manager_placeholder' | translate }}"></textarea>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-semibold">Gaps Identified</label>
+          <label class="form-label small fw-semibold">{{ 'competency.detail.gaps_identified' | translate }}</label>
           <textarea class="form-control" rows="3" [(ngModel)]="narrative.gapsIdentified"
-                    placeholder="Which competences fall short, and why"></textarea>
+                    placeholder="{{ 'competency.detail.gaps_identified_placeholder' | translate }}"></textarea>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-semibold">Gaps Closure Interventions</label>
+          <label class="form-label small fw-semibold">{{ 'competency.detail.gaps_closure' | translate }}</label>
           <textarea class="form-control" rows="3" [(ngModel)]="narrative.gapsClosureInterventions"
-                    placeholder="How the gaps are to be closed - training, on-the-job, exposure"></textarea>
+                    placeholder="{{ 'competency.detail.gaps_closure_placeholder' | translate }}"></textarea>
         </div>
         <div class="col-md-6">
-          <label class="form-label small fw-semibold">Line Executive's Decision</label>
+          <label class="form-label small fw-semibold">{{ 'competency.detail.line_exec_decision' | translate }}</label>
           <input class="form-control" [(ngModel)]="narrative.lineExecutiveDecision"
-                 placeholder="e.g. Placed" />
+                 placeholder="{{ 'competency.detail.line_exec_placeholder' | translate }}" />
         </div>
       </div>
     </div>
@@ -192,23 +192,22 @@
 <div class="overlay" *ngIf="showFinalize" (click)="cancelFinalize()">
   <div class="overlay-panel sm" (click)="$event.stopPropagation()">
     <div class="overlay-head">
-      <h5 class="mb-0">Finalise assessment</h5>
+      <h5 class="mb-0">{{ 'competency.detail.finalise_title' | translate }}</h5>
       <button class="btn btn-sm btn-icon" (click)="cancelFinalize()"><tui-icon icon="@tui.x"></tui-icon></button>
     </div>
     <div class="overlay-body">
       <p class="text-muted small">
-        Finalising locks the levels and admits this assessment to the organisation-wide
-        outcome. You are recorded as the assessor.
+        {{ 'competency.detail.finalise_intro' | translate }}
       </p>
-      <label class="form-label">Closing note <span class="text-muted">(optional)</span></label>
+      <label class="form-label">{{ 'competency.detail.closing_note' | translate }} <span class="text-muted">{{ 'competency.detail.optional' | translate }}</span></label>
       <textarea class="form-control" rows="3" [(ngModel)]="finalizeComment"
-                placeholder="Anything the record should carry"></textarea>
+                placeholder="{{ 'competency.detail.closing_note_placeholder' | translate }}"></textarea>
     </div>
     <div class="overlay-foot">
-      <button class="btn btn-light" (click)="cancelFinalize()">Cancel</button>
+      <button class="btn btn-light" (click)="cancelFinalize()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-success" [disabled]="saving" (click)="finalize()">
         <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-        Finalise
+        {{ 'competency.detail.finalise' | translate }}
       </button>
     </div>
   </div>

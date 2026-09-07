@@ -10,6 +10,7 @@ import { SideComponent } from '../../partials/side/side.component';
 import { TopComponent } from '../../partials/top/top.component';
 import { CertificatesService, type Certificate } from '../../services/certificates.service';
 import { ApiError } from '../../core/api';
+import { TranslatePipe } from '../../translate.pipe';
 
 /**
  * The certificates somebody has earned.
@@ -34,6 +35,7 @@ import { ApiError } from '../../core/api';
     TopComponent,
     TuiIcon,
     TuiLoader,
+    TranslatePipe,
   ],
   templateUrl: './certicates.component.html',
   styleUrl: './certicates.component.css',

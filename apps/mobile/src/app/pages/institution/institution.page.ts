@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { BrandingService } from '../../core/branding.service';
+import { I18nService } from '../../core/i18n.service';
+import { TranslatePipe } from '../../core/translate.pipe';
 import { FieldComponent } from '../../components/field/field.component';
 import { ButtonComponent } from '../../components/button/button.component';
 
@@ -15,7 +17,7 @@ import { ButtonComponent } from '../../components/button/button.component';
 @Component({
   selector: 'app-institution',
   standalone: true,
-  imports: [FormsModule, IonContent, IonIcon, FieldComponent, ButtonComponent],
+  imports: [FormsModule, IonContent, IonIcon, FieldComponent, ButtonComponent, TranslatePipe],
   template: `
     <ion-content [fullscreen]="true" class="inst-bg">
       <div class="inst-scrim"></div>
@@ -24,25 +26,25 @@ import { ButtonComponent } from '../../components/button/button.component';
         <div class="brand">
           <div class="brand-mark"><ion-icon name="school-outline"></ion-icon></div>
           <h1>Central LMS</h1>
-          <p class="muted">Find your institution</p>
+          <p class="muted">{{ 'institution.find' | translate }}</p>
         </div>
 
         <div class="inst-card">
-          <p class="lead">Enter the institution code your organisation gave you.</p>
+          <p class="lead">{{ 'institution.enter_code_lead' | translate }}</p>
           <app-field
             class="field"
-            label="Institution code"
+            [label]="'institution.code_label' | translate"
             icon="business-outline"
-            placeholder="e.g. your-org"
+            [placeholder]="'institution.code_placeholder' | translate"
             autocomplete="off"
             enterkeyhint="go"
             [(ngModel)]="code"
             (enter)="submit()"
             [error]="error()"></app-field>
-          <app-button block size="lg" class="submit" [loading]="busy()" (click)="submit()">Continue</app-button>
+          <app-button block size="lg" class="submit" [loading]="busy()" (click)="submit()">{{ 'common.continue' | translate }}</app-button>
         </div>
 
-        <p class="foot muted">Don't have a code? Ask your administrator.</p>
+        <p class="foot muted">{{ 'institution.no_code' | translate }}</p>
       </div>
     </ion-content>
   `,
@@ -68,6 +70,7 @@ import { ButtonComponent } from '../../components/button/button.component';
 export class InstitutionPage {
   private readonly branding = inject(BrandingService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   code = '';
   readonly busy = signal(false);
@@ -79,7 +82,7 @@ export class InstitutionPage {
     }
     const code = this.code.trim();
     if (!code) {
-      this.error.set('Enter your institution code.');
+      this.error.set(this.i18n.t('institution.err_empty'));
       return;
     }
     this.busy.set(true);
@@ -89,7 +92,7 @@ export class InstitutionPage {
       if (ok) {
         void this.router.navigateByUrl('/login', { replaceUrl: true });
       } else {
-        this.error.set('We couldn’t find an institution with that code. Check it and try again.');
+        this.error.set(this.i18n.t('institution.err_not_found'));
       }
     });
   }

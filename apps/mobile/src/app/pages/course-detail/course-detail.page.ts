@@ -7,6 +7,8 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { CourseDetails } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { SheetComponent } from '../../components/sheet/sheet.component';
 import { ToastService, ToastVariant } from '../../components/toast/toast.service';
@@ -20,12 +22,13 @@ import { ProgressComponent } from '../../components/progress/progress.component'
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
     IonIcon, IonSkeletonText, IonRippleEffect,
     EmptyStateComponent, SheetComponent, ButtonComponent, ProgressComponent,
+    TranslatePipe,
   ],
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start"><ion-back-button defaultHref="/tabs/courses"></ion-back-button></ion-buttons>
-        <ion-title>{{ course()?.title || 'Course' }}</ion-title>
+        <ion-title>{{ course()?.title || ('courses.course' | translate) }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -41,7 +44,7 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         <div class="banner" [style]="thumb(c.title)">
           <span class="mark">{{ initial(c.title) }}</span>
           <div class="banner-cap">
-            <span class="banner-cat">{{ c.categoryName || 'Course' }}</span>
+            <span class="banner-cat">{{ c.categoryName || ('courses.course' | translate) }}</span>
             <h1 class="banner-title">{{ c.title }}</h1>
           </div>
         </div>
@@ -49,43 +52,43 @@ import { ProgressComponent } from '../../components/progress/progress.component'
         <div class="pad">
           <div class="meta muted">
             @if (mins(c.durationMinutes)) { <span><ion-icon name="time-outline"></ion-icon> {{ mins(c.durationMinutes) }}</span> }
-            <span><ion-icon name="list-outline"></ion-icon> {{ lessonCount() }} lessons</span>
+            <span><ion-icon name="list-outline"></ion-icon> {{ 'course.lessons_count' | translate:{ count: lessonCount() } }}</span>
             @if (c.level) { <span><ion-icon name="cellular-outline"></ion-icon> {{ c.level }}</span> }
           </div>
 
           @if (c.isEnrolled) {
             <div class="prog">
               <app-progress [value]="c.progressPercentage / 100"></app-progress>
-              <p class="muted">{{ c.progressPercentage }}% complete</p>
+              <p class="muted">{{ 'course.percent_complete' | translate:{ percent: c.progressPercentage } }}</p>
             </div>
             <app-button block size="lg" class="cta" icon="play-outline" (click)="continueCourse(c)">
-              {{ c.progressPercentage > 0 ? 'Continue' : 'Start course' }}
+              {{ c.progressPercentage > 0 ? ('common.continue' | translate) : ('course.start' | translate) }}
             </app-button>
           } @else {
             <app-button block size="lg" class="cta" (click)="enrolOpen.set(true)">
-              Enrol — it's free
+              {{ 'course.enrol_free' | translate }}
             </app-button>
           }
 
-          <app-sheet [(open)]="enrolOpen" title="Enrol in this course" [subtitle]="c.title">
+          <app-sheet [(open)]="enrolOpen" [title]="'course.enrol_title' | translate" [subtitle]="c.title">
             <div class="enrol-facts">
-              <span><ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon> Free</span>
-              <span><ion-icon name="list-outline" aria-hidden="true"></ion-icon> {{ lessonCount() }} lessons</span>
+              <span><ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon> {{ 'course.free' | translate }}</span>
+              <span><ion-icon name="list-outline" aria-hidden="true"></ion-icon> {{ 'course.lessons_count' | translate:{ count: lessonCount() } }}</span>
               @if (mins(c.durationMinutes)) {
                 <span><ion-icon name="time-outline" aria-hidden="true"></ion-icon> {{ mins(c.durationMinutes) }}</span>
               }
             </div>
-            <p class="enrol-note muted">You'll be enrolled straight away and can start the first lesson right now.</p>
-            <app-button actions block size="lg" class="cta" [loading]="enrolling()" (click)="enroll(c)">Confirm enrolment</app-button>
-            <app-button actions block variant="ghost" class="later" style="--btn-fg: var(--app-muted)" (click)="enrolOpen.set(false)">Not now</app-button>
+            <p class="enrol-note muted">{{ 'course.enrol_note' | translate }}</p>
+            <app-button actions block size="lg" class="cta" [loading]="enrolling()" (click)="enroll(c)">{{ 'course.confirm_enrolment' | translate }}</app-button>
+            <app-button actions block variant="ghost" class="later" style="--btn-fg: var(--app-muted)" (click)="enrolOpen.set(false)">{{ 'course.not_now' | translate }}</app-button>
           </app-sheet>
 
           @if (c.description) {
-            <div class="section-title">About</div>
+            <div class="section-title">{{ 'course.about' | translate }}</div>
             <p class="desc">{{ c.description }}</p>
           }
 
-          <div class="section-title">Lessons</div>
+          <div class="section-title">{{ 'course.lessons' | translate }}</div>
           @for (m of c.modules; track m.moduleId || mi; let mi = $index) {
             @if (c.modules.length > 1) { <p class="module">{{ mi + 1 }}. {{ m.title }}</p> }
             @for (l of m.lessons; track l.lessonId || $index) {
@@ -107,9 +110,9 @@ import { ProgressComponent } from '../../components/progress/progress.component'
       } @else {
         <app-empty-state
           icon="cloud-offline-outline"
-          title="Couldn't load this course"
-          message="Check your connection and try again."
-          actionLabel="Try again"
+          [title]="'course.load_failed' | translate"
+          [message]="'common.offline' | translate"
+          [actionLabel]="'common.retry' | translate"
           (action)="load()"></app-empty-state>
       }
     </ion-content>
@@ -149,6 +152,7 @@ export class CourseDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   private courseId = '';
   readonly course = signal<CourseDetails | null>(null);
@@ -183,19 +187,19 @@ export class CourseDetailPage implements OnInit {
       next: () => {
         this.enrolling.set(false);
         this.enrolOpen.set(false);
-        this.note('You are enrolled. Enjoy the course!', 'success');
+        this.note(this.i18n.t('course.enrolled_success'), 'success');
         this.load();
       },
       error: () => {
         this.enrolling.set(false);
-        this.note("Couldn't enrol just now. Try again.", 'error');
+        this.note(this.i18n.t('course.enrol_failed'), 'error');
       },
     });
   }
 
   openLesson(c: CourseDetails, lessonId: string): void {
     if (!c.isEnrolled) {
-      this.note('Enrol to start the lessons.');
+      this.note(this.i18n.t('course.enrol_to_start'));
       return;
     }
     void this.router.navigate(['/courses', c.courseId, 'lessons', lessonId]);
@@ -206,7 +210,7 @@ export class CourseDetailPage implements OnInit {
     if (next) {
       void this.router.navigate(['/courses', c.courseId, 'lessons', next]);
     } else {
-      this.note('This course has no lessons yet.');
+      this.note(this.i18n.t('course.no_lessons_yet'));
     }
   }
 
@@ -223,10 +227,10 @@ export class CourseDetailPage implements OnInit {
 
   typeLabel(t: string): string {
     const map: Record<string, string> = {
-      video: 'Video', text: 'Reading', document: 'Document', quiz: 'Quiz',
-      scorm: 'Interactive', audio: 'Audio', assignment: 'Assignment',
+      video: 'lesson.type.video', text: 'lesson.type.reading', document: 'lesson.type.document', quiz: 'lesson.type.quiz',
+      scorm: 'lesson.type.interactive', audio: 'lesson.type.audio', assignment: 'lesson.type.assignment',
     };
-    return map[t] ?? 'Lesson';
+    return this.i18n.t(map[t] ?? 'lesson.type.lesson');
   }
 
   private note(message: string, variant: ToastVariant = 'info'): void {

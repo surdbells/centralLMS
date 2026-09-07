@@ -17,6 +17,8 @@ import {
   Certificate,
   RecentActivity
 } from './learner-report.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 type TabType = 'overview' | 'courses' | 'activity' | 'quizzes' | 'certificates';
 type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
@@ -24,7 +26,7 @@ type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
 @Component({
   selector: 'app-learner-report',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './learner-report.component.html',
   styleUrls: ['./learner-report.component.scss']
 })
@@ -60,7 +62,8 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
 
   constructor(
     private reportService: LearnerReportService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -285,11 +288,11 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffMins < 1) return this.i18n.t('report.just_now');
+    if (diffMins < 60) return this.i18n.t('report.mins_ago', { count: diffMins });
+    if (diffHours < 24) return this.i18n.t('report.hours_ago', { count: diffHours });
+    if (diffDays === 1) return this.i18n.t('report.yesterday');
+    if (diffDays < 7) return this.i18n.t('report.days_ago', { count: diffDays });
     return date.toLocaleDateString();
   }
 
@@ -307,12 +310,12 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
 
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      'not_started': 'Not Started',
-      'in_progress': 'In Progress',
-      'completed': 'Completed',
-      'valid': 'Valid',
-      'expired': 'Expired',
-      'expiring_soon': 'Expiring Soon'
+      'not_started': this.i18n.t('report.not_started'),
+      'in_progress': this.i18n.t('report.in_progress'),
+      'completed': this.i18n.t('report.completed'),
+      'valid': this.i18n.t('report.valid'),
+      'expired': this.i18n.t('report.expired'),
+      'expiring_soon': this.i18n.t('report.expiring_soon')
     };
     return labels[status] || status;
   }
@@ -331,17 +334,17 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
   getActivityLabel(activity: RecentActivity): string {
     switch (activity.activity_type) {
       case 'lesson':
-        return activity.status === 'completed' ? 'Completed lesson' : 'Viewed lesson';
+        return this.i18n.t(activity.status === 'completed' ? 'report.act_completed_lesson' : 'report.act_viewed_lesson');
       case 'course_completed':
-        return 'Completed course';
+        return this.i18n.t('report.act_completed_course');
       case 'certificate':
-        return 'Earned certificate';
+        return this.i18n.t('report.act_earned_certificate');
       case 'quiz':
-        return 'Completed quiz';
+        return this.i18n.t('report.act_completed_quiz');
       case 'points':
-        return 'Points earned';
+        return this.i18n.t('report.act_points_earned');
       default:
-        return 'Activity';
+        return this.i18n.t('report.act_activity');
     }
   }
 

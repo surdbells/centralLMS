@@ -18,16 +18,19 @@ import {
 } from '../live-training.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import {RouterLink} from '@angular/router';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-admin-live-training',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, RouterLink],
+  imports: [CommonModule, FormsModule, AdmintopComponent, RouterLink, TranslatePipe],
   templateUrl: './admin-live-training.component.html',
   styleUrls: ['./admin-live-training.component.scss']
 })
 export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   private destroy$ = new Subject<void>();
 
@@ -516,7 +519,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   cancelEnrollment(enrollment: TrainingEnrollment): void {
-    if (!confirm(`Cancel enrollment for ${enrollment.first_name} ${enrollment.last_name}?`)) return;
+    if (!confirm(this.i18n.t('live.admin.cancel_enroll_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }))) return;
 
     this.liveTrainingService.cancelEnrollment(enrollment.enrollment_id)
       .pipe(takeUntil(this.destroy$))
@@ -568,7 +571,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
   lockSessionAttendance(): void {
     if (!this.selectedSession) return;
-    if (!confirm('Lock attendance for this session? This cannot be undone.')) return;
+    if (!confirm(this.i18n.t('live.admin.lock_confirm'))) return;
 
     this.liveTrainingService.lockAttendance(this.selectedSession.session_id)
       .pipe(takeUntil(this.destroy$))
@@ -586,7 +589,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // ==========================================
 
   issueCertificate(enrollment: TrainingEnrollment): void {
-    if (!confirm(`Issue certificate to ${enrollment.first_name} ${enrollment.last_name}?`)) return;
+    if (!confirm(this.i18n.t('live.admin.issue_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }))) return;
 
     this.liveTrainingService.issueCertificate(enrollment.enrollment_id)
       .pipe(takeUntil(this.destroy$))
@@ -838,7 +841,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
   removeInstructor(instructor: SessionInstructor): void {
     if (!this.selectedSession) return;
-    if (!confirm(`Remove ${instructor.first_name} ${instructor.last_name} as instructor?`)) return;
+    if (!confirm(this.i18n.t('live.admin.remove_instructor_confirm', { name: `${instructor.first_name} ${instructor.last_name}` }))) return;
 
     this.liveTrainingService.removeInstructor(
       this.selectedSession.session_id,
@@ -1031,7 +1034,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   disconnectIntegration(integration: VideoIntegration): void {
-    if (!confirm(`Disconnect ${integration.platform} integration?`)) return;
+    if (!confirm(this.i18n.t('live.admin.disconnect_confirm', { platform: integration.platform }))) return;
 
     this.liveTrainingService.disconnectIntegration(integration.platform)
       .pipe(takeUntil(this.destroy$))

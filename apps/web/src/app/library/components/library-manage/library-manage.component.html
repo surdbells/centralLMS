@@ -117,7 +117,7 @@
         @if (form.targetType !== 'all') {
           @if (options().length === 0) {
             <div class="alert alert-warning py-2 px-3 small mb-0">
-              No {{ form.targetType }}s are defined yet. Add them in reference data, or share with everyone.
+              {{ 'library.no_options_defined' | translate:{ type: form.targetType } }}
             </div>
           } @else {
             <div class="lib-picklist">
@@ -137,9 +137,9 @@
             <div class="progress-bar progress-bar-striped progress-bar-animated" [style.width.%]="progress()"></div>
           </div>
         }
-        <button class="btn btn-light" [disabled]="saving()" (click)="closeForm()">Cancel</button>
+        <button class="btn btn-light" [disabled]="saving()" (click)="closeForm()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
-          {{ saving() ? 'Saving…' : (editing ? 'Save' : 'Share') }}
+          {{ (saving() ? 'library.saving' : (editing ? 'common.save' : 'library.share')) | translate }}
         </button>
       </div>
     </div>

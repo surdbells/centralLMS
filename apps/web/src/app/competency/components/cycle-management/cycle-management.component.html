@@ -1,9 +1,9 @@
 <div class="cm">
   <div class="cm-head">
     <div>
-      <h2 class="h5 fw-bold mb-1">Assessment Cycles</h2>
+      <h2 class="h5 fw-bold mb-1">{{ 'competency.cycles.title' | translate }}</h2>
       <p class="text-muted small mb-0">
-        The periods an exercise runs for. New assessments and every report are filed under a cycle.
+        {{ 'competency.cycles.subtitle' | translate }}
       </p>
     </div>
   </div>
@@ -14,7 +14,7 @@
       type="text"
       class="form-control"
       name="newName"
-      placeholder="New cycle, e.g. 2027 or 2027 H1"
+      placeholder="{{ 'competency.cycles.new_placeholder' | translate }}"
       [(ngModel)]="newName"
       maxlength="80"
       autocomplete="off" />
@@ -22,13 +22,13 @@
       type="text"
       class="form-control cm-desc-input"
       name="newDescription"
-      placeholder="Description (optional)"
+      placeholder="{{ 'competency.cycles.description_placeholder' | translate }}"
       [(ngModel)]="newDescription"
       maxlength="255"
       autocomplete="off" />
     <button type="submit" class="btn btn-primary" [disabled]="!newName.trim() || creating()">
       @if (creating()) { <span class="spinner-border spinner-border-sm me-1"></span> }
-      Add cycle
+      {{ 'competency.cycles.add' | translate }}
     </button>
   </form>
 
@@ -38,16 +38,16 @@
   } @else if (!cycles().length) {
     <div class="cm-empty">
       <i class="bi bi-calendar3"></i>
-      <p class="mb-0">No cycles yet. Add one above to start filing assessments under it.</p>
+      <p class="mb-0">{{ 'competency.cycles.empty' | translate }}</p>
     </div>
   } @else {
     <table class="table cm-table align-middle">
       <thead>
         <tr>
-          <th>Cycle</th>
-          <th>Description</th>
-          <th class="cm-status-col">Status</th>
-          <th class="cm-actions-col text-end">Actions</th>
+          <th>{{ 'competency.common.cycle' | translate }}</th>
+          <th>{{ 'competency.common.description' | translate }}</th>
+          <th class="cm-status-col">{{ 'competency.cycles.status' | translate }}</th>
+          <th class="cm-actions-col text-end">{{ 'competency.cycles.actions' | translate }}</th>
         </tr>
       </thead>
       <tbody>
@@ -65,16 +65,16 @@
               </td>
               <td>
                 <span class="badge" [class.text-bg-success]="row.isActive" [class.text-bg-secondary]="!row.isActive">
-                  {{ row.isActive ? 'Active' : 'Retired' }}
+                  {{ (row.isActive ? 'competency.cycles.active' : 'competency.cycles.retired') | translate }}
                 </span>
               </td>
               <td class="text-end">
                 <button class="btn btn-sm btn-primary me-1" (click)="saveEdit(row)"
                         [disabled]="!editName.trim() || savingId() === row.id">
                   @if (savingId() === row.id) { <span class="spinner-border spinner-border-sm"></span> }
-                  @else { Save }
+                  @else { {{ 'common.save' | translate }} }
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
               </td>
             } @else {
               <!-- Read row -->
@@ -82,11 +82,11 @@
               <td class="text-muted">{{ row.description || '—' }}</td>
               <td>
                 <span class="badge" [class.text-bg-success]="row.isActive" [class.text-bg-secondary]="!row.isActive">
-                  {{ row.isActive ? 'Active' : 'Retired' }}
+                  {{ (row.isActive ? 'competency.cycles.active' : 'competency.cycles.retired') | translate }}
                 </span>
               </td>
               <td class="text-end">
-                <button class="btn btn-sm btn-outline-secondary me-1" (click)="startEdit(row)" title="Rename">
+                <button class="btn btn-sm btn-outline-secondary me-1" (click)="startEdit(row)" [title]="'competency.cycles.rename' | translate">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-sm"
@@ -94,9 +94,9 @@
                         [class.btn-outline-success]="!row.isActive"
                         (click)="toggleStatus(row)"
                         [disabled]="savingId() === row.id"
-                        [title]="row.isActive ? 'Retire' : 'Reactivate'">
+                        [title]="(row.isActive ? 'competency.cycles.retire' : 'competency.cycles.reactivate') | translate">
                   <i class="bi" [class.bi-archive]="row.isActive" [class.bi-arrow-counterclockwise]="!row.isActive"></i>
-                  {{ row.isActive ? 'Retire' : 'Reactivate' }}
+                  {{ (row.isActive ? 'competency.cycles.retire' : 'competency.cycles.reactivate') | translate }}
                 </button>
               </td>
             }
@@ -105,7 +105,7 @@
       </tbody>
     </table>
     <p class="text-muted small mb-0">
-      Retiring a cycle stops it being offered for new assessments; its finished work stays in the reports.
+      {{ 'competency.cycles.footer_note' | translate }}
     </p>
   }
 </div>

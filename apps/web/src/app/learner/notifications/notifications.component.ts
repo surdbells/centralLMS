@@ -10,6 +10,8 @@ import {
   type Notification,
 } from '../../services/notifications.service';
 import { ApiError } from '../../core/api';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * Everything that has been sent to the signed-in person.
@@ -25,13 +27,14 @@ import { ApiError } from '../../core/api';
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, TopComponent, TuiIcon, TuiLoader],
+  imports: [CommonModule, TopComponent, TuiIcon, TuiLoader, TranslatePipe],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css',
 })
 export class NotificationsComponent implements OnInit, OnDestroy {
   private readonly notificationsService = inject(NotificationsService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   notifications: Notification[] = [];
@@ -145,7 +148,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   }
 
   remove(notification: Notification): void {
-    if (!confirm('Delete this notification?')) {
+    if (!confirm(this.i18n.t('notifications.delete_confirm'))) {
       return;
     }
 

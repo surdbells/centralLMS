@@ -8,6 +8,8 @@ import { MediaUploadComponent } from '../upload/media-upload.component';
 import { MediaService, type MediaItem, type MediaKind } from '../../../services/media.service';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ApiError } from '../../../core/api';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 export interface MediaPreviewData {
   kind: MediaKind;
@@ -34,12 +36,13 @@ export interface MediaPreviewData {
   selector: 'app-media-preview-component',
   templateUrl: './media-preview.component.html',
   styleUrls: ['./media-preview.component.css'],
-  imports: [CommonModule, MediaUploadComponent],
+  imports: [CommonModule, MediaUploadComponent, TranslatePipe],
   standalone: true,
 })
 export class MediaPreviewDialogComponent {
   private readonly media = inject(MediaService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   public data!: MediaPreviewData;
 
@@ -122,7 +125,7 @@ export class MediaPreviewDialogComponent {
       next: (restored) => {
         this.restoring = null;
         this.success_notification(
-          `v${version.versionNumber} is current again, as v${restored.versionNumber}.`,
+          this.i18n.t('admin.media_preview.toast_restored', { old: version.versionNumber, new: restored.versionNumber }),
         );
         this.loadVersions();
       },
@@ -163,14 +166,14 @@ export class MediaPreviewDialogComponent {
   }
 
   onUploadError(failure: { file: File; error: string }): void {
-    this.error_notification(`Failed to upload ${failure.file.name}: ${failure.error}`);
+    this.error_notification(this.i18n.t('admin.media.toast_upload_failed', { name: failure.file.name, error: failure.error }));
   }
 
   onAllUploadsComplete(items: MediaItem[]): void {
     this.isUploading = false;
 
     if (items.length > 0) {
-      this.success_notification(`${items.length} file(s) uploaded.`);
+      this.success_notification(this.i18n.t('admin.media.toast_uploaded', { count: items.length }));
       // The upload was a new version of this file, so the history it was
       // added to is the one on the next tab.
       this.loadVersions();

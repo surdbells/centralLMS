@@ -11,6 +11,8 @@ import {
 } from '../live-training.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { Router } from '@angular/router';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 interface ReportData {
   training_id: string;
@@ -32,21 +34,22 @@ interface DateRange {
 @Component({
   selector: 'app-training-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './training-reports.component.html',
   styleUrls: ['./training-reports.component.scss']
 })
 export class TrainingReportsComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   private destroy$ = new Subject<void>();
 
   // Date Range Options
   dateRanges: DateRange[] = [
-    { start: this.getDateString(-7), end: this.getDateString(0), label: 'Last 7 Days' },
-    { start: this.getDateString(-30), end: this.getDateString(0), label: 'Last 30 Days' },
-    { start: this.getDateString(-90), end: this.getDateString(0), label: 'Last 90 Days' },
-    { start: this.getFirstDayOfYear(), end: this.getDateString(0), label: 'This Year' }
+    { start: this.getDateString(-7), end: this.getDateString(0), label: this.i18n.t('live.reports.range_7d') },
+    { start: this.getDateString(-30), end: this.getDateString(0), label: this.i18n.t('live.reports.range_30d') },
+    { start: this.getDateString(-90), end: this.getDateString(0), label: this.i18n.t('live.reports.range_90d') },
+    { start: this.getFirstDayOfYear(), end: this.getDateString(0), label: this.i18n.t('live.reports.range_year') }
   ];
   selectedDateRange: DateRange = this.dateRanges[1];
 

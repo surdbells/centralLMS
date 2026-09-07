@@ -8,6 +8,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { IonIcon, IonSpinner } from '@ionic/angular/standalone';
 import { firstValueFrom } from 'rxjs';
 import { LiveService, RoomToken } from '../../core/live.service';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 /**
  * The in-app live class on mobile — a full-screen room over Agora's browser
@@ -41,28 +43,28 @@ interface ChatMessage {
   selector: 'app-live-room',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, IonIcon, IonSpinner],
+  imports: [CommonModule, FormsModule, IonIcon, IonSpinner, TranslatePipe],
   template: `
     @if (phase() === 'loading') {
-      <div class="status"><ion-spinner name="crescent"></ion-spinner><p>Joining the class…</p></div>
+      <div class="status"><ion-spinner name="crescent"></ion-spinner><p>{{ 'live.joining' | translate }}</p></div>
     } @else if (phase() === 'error') {
       <div class="status">
         <ion-icon name="videocam-off-outline"></ion-icon>
         <p>{{ errorMsg() }}</p>
-        <button class="ghost" (click)="back()">Back</button>
+        <button class="ghost" (click)="back()">{{ 'common.back' | translate }}</button>
       </div>
     } @else if (phase() === 'left') {
       <div class="status">
         <ion-icon name="checkmark-circle-outline"></ion-icon>
-        <p>You’ve left the class.</p>
-        <button class="ghost" (click)="back()">Back</button>
+        <p>{{ 'live.you_left' | translate }}</p>
+        <button class="ghost" (click)="back()">{{ 'common.back' | translate }}</button>
       </div>
     } @else {
       <div class="room">
         <header class="bar">
           <span class="dot"></span>
           <span class="title">{{ sessionTitle() }}</span>
-          @if (viewOnly()) { <span class="view-only"><ion-icon name="eye-outline"></ion-icon> View only</span> }
+          @if (viewOnly()) { <span class="view-only"><ion-icon name="eye-outline"></ion-icon> {{ 'live.view_only' | translate }}</span> }
           <span class="meta"><ion-icon name="people"></ion-icon> {{ count() }}</span>
         </header>
 
@@ -75,7 +77,7 @@ interface ChatMessage {
               <div class="label">
                 @if (!p.hasAudio) { <ion-icon name="mic-off" class="muted"></ion-icon> }
                 <span class="name">{{ p.name }}</span>
-                @if (p.isHost) { <span class="host">Host</span> }
+                @if (p.isHost) { <span class="host">{{ 'live.host' | translate }}</span> }
               </div>
             </div>
           }
@@ -84,36 +86,36 @@ interface ChatMessage {
         @if (panel()) {
           <div class="sheet">
             <div class="sheet-tabs">
-              <button [class.on]="panel() === 'chat'" (click)="openPanel('chat')">Chat</button>
-              <button [class.on]="panel() === 'people'" (click)="panel.set('people')">People · {{ count() }}</button>
-              <button class="close" (click)="panel.set(null)" aria-label="Close"><ion-icon name="close"></ion-icon></button>
+              <button [class.on]="panel() === 'chat'" (click)="openPanel('chat')">{{ 'live.chat' | translate }}</button>
+              <button [class.on]="panel() === 'people'" (click)="panel.set('people')">{{ 'live.people_count' | translate: { count: count() } }}</button>
+              <button class="close" (click)="panel.set(null)" [attr.aria-label]="'common.close' | translate"><ion-icon name="close"></ion-icon></button>
             </div>
             @if (panel() === 'chat') {
               <div class="log">
-                @if (!chatReady()) { <p class="hint">Chat is connecting…</p> }
+                @if (!chatReady()) { <p class="hint">{{ 'live.chat_connecting' | translate }}</p> }
                 @for (m of messages(); track m.id) {
                   <div class="msg" [class.mine]="m.mine">
                     @if (!m.mine) { <span class="msg-name">{{ m.name }}</span> }
                     <span>{{ m.text }}</span>
                   </div>
-                } @empty { @if (chatReady()) { <p class="hint">No messages yet. Say hello 👋</p> } }
+                } @empty { @if (chatReady()) { <p class="hint">{{ 'live.no_messages' | translate }}</p> } }
               </div>
               <form class="input" (ngSubmit)="send()">
-                <input [(ngModel)]="draft" name="draft" placeholder="Message…" [disabled]="!chatReady()" autocomplete="off" />
-                <button type="submit" [disabled]="!chatReady() || !draft.trim()" aria-label="Send"><ion-icon name="send"></ion-icon></button>
+                <input [(ngModel)]="draft" name="draft" [placeholder]="'live.message_placeholder' | translate" [disabled]="!chatReady()" autocomplete="off" />
+                <button type="submit" [disabled]="!chatReady() || !draft.trim()" [attr.aria-label]="'live.send' | translate"><ion-icon name="send"></ion-icon></button>
               </form>
             } @else {
               <ul class="plist">
                 @for (p of people(); track p.uid) {
                   <li>
                     <span class="pav">{{ initial(p.name) }}</span>
-                    <span class="pname">{{ p.name }} @if (p.isHost) { <em>Host</em> }</span>
+                    <span class="pname">{{ p.name }} @if (p.isHost) { <em>{{ 'live.host' | translate }}</em> }</span>
                     @if (p.handUp) { <ion-icon name="hand-left" class="ph"></ion-icon> }
                     <ion-icon [name]="p.hasAudio ? 'mic' : 'mic-off'" class="pm" [class.off]="!p.hasAudio"></ion-icon>
                   </li>
                 }
               </ul>
-              @if (isHost() && handsUp() > 0) { <button class="lower" (click)="lowerAllHands()">Lower all hands</button> }
+              @if (isHost() && handsUp() > 0) { <button class="lower" (click)="lowerAllHands()">{{ 'live.lower_all_hands' | translate }}</button> }
             }
           </div>
         }
@@ -211,10 +213,11 @@ export class LiveRoomPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly live = inject(LiveService);
+  private readonly i18n = inject(I18nService);
 
   readonly phase = signal<'loading' | 'live' | 'left' | 'error'>('loading');
   readonly errorMsg = signal('');
-  readonly sessionTitle = signal('Live class');
+  readonly sessionTitle = signal(this.i18n.t('live.default_title'));
   readonly isHost = signal(false);
   readonly micOn = signal(true);
   readonly camOn = signal(true);
@@ -249,7 +252,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
-    if (!this.sessionId) { this.fail('This link is missing its session.'); return; }
+    if (!this.sessionId) { this.fail(this.i18n.t('live.err_missing_session')); return; }
     void this.join();
   }
 
@@ -266,7 +269,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
       return;
     }
     this.token = token;
-    this.sessionTitle.set(token.sessionTitle || 'Live class');
+    this.sessionTitle.set(token.sessionTitle || this.i18n.t('live.default_title'));
     this.isHost.set(token.isHost);
 
     try {
@@ -279,7 +282,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
       this.startRtm((rtmMod as any).default, token).catch(() => this.chatReady.set(false));
       this.phase.set('live');
     } catch (e: unknown) {
-      this.fail('We couldn’t start the video. Check the app’s camera and microphone permissions, then try again.');
+      this.fail(this.i18n.t('live.err_no_video'));
       // eslint-disable-next-line no-console
       console.error('[live-room] rtc start failed', e);
       await this.teardown();
@@ -327,7 +330,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
     }
 
     this.participants.set([{
-      uid: token.uid, name: token.displayName + ' (You)', isLocal: true, isHost: token.isHost,
+      uid: token.uid, name: `${token.displayName} (${this.i18n.t('live.you')})`, isLocal: true, isHost: token.isHost,
       hasVideo: !!this.camTrack, hasAudio: !!this.micTrack, handUp: false,
     }]);
     if (this.camTrack) { this.playInto('local', this.camTrack); }
@@ -495,12 +498,12 @@ export class LiveRoomPage implements OnInit, OnDestroy {
   private reasonFor(e: unknown): string {
     const err = e as { code?: string; message?: string; status?: number };
     if (err?.code === 'agora_unconfigured') {
-      return 'In-app video is not set up for your organisation yet. Please contact your administrator.';
+      return this.i18n.t('live.err_unconfigured');
     }
-    if (err?.code === 'not_in_app_session') { return 'This session is not an in-app video class.'; }
-    if (err?.status === 403) { return 'You are not enrolled in this session.'; }
-    if (err?.status === 404) { return 'This session could not be found.'; }
-    return err?.message || 'We couldn’t join this class. Please try again.';
+    if (err?.code === 'not_in_app_session') { return this.i18n.t('live.err_not_in_app'); }
+    if (err?.status === 403) { return this.i18n.t('live.err_not_enrolled'); }
+    if (err?.status === 404) { return this.i18n.t('live.err_not_found'); }
+    return err?.message || this.i18n.t('live.err_join_generic');
   }
 
   private async teardown(): Promise<void> {

@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../../translate.pipe';
 
 interface Point { x: number; y: number; }
 interface AxisLabel { x: number; y: number; anchor: 'start' | 'middle' | 'end'; lines: string[]; dy0: number; }
@@ -16,16 +17,16 @@ interface Scale { y: number; text: string; }
 @Component({
   selector: 'app-competency-radar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <figure class="cr" *ngIf="axes >= 3">
-      <figcaption class="cr-title">Competency Profile Chart</figcaption>
+      <figcaption class="cr-title">{{ 'competency.radar.title' | translate }}</figcaption>
       <div class="cr-legend">
-        <span class="cr-key"><i class="cr-swatch cr-prof"></i>Proficiency rating</span>
-        <span class="cr-key"><i class="cr-swatch cr-ideal"></i>Ideal Rating</span>
+        <span class="cr-key"><i class="cr-swatch cr-prof"></i>{{ 'competency.radar.proficiency_rating' | translate }}</span>
+        <span class="cr-key"><i class="cr-swatch cr-ideal"></i>{{ 'competency.radar.ideal_rating' | translate }}</span>
       </div>
       <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" preserveAspectRatio="xMidYMid meet" class="cr-svg" role="img"
-           aria-label="Competency profile radar chart comparing proficiency against ideal rating">
+           [attr.aria-label]="'competency.radar.aria_label' | translate">
         <!-- rings -->
         <polygon *ngFor="let ring of rings" [attr.points]="ring" class="cr-ring"></polygon>
         <!-- spokes -->

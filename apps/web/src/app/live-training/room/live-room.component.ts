@@ -7,6 +7,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { LiveTrainingService } from '../live-training.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * The in-app class. When a session is hosted on the LMS's own video (Agora),
@@ -55,7 +57,7 @@ interface ChatMessage {
   selector: 'app-live-room',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './live-room.component.html',
   styleUrl: './live-room.component.scss',
 })
@@ -64,10 +66,11 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly api = inject(LiveTrainingService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
 
   readonly phase = signal<'loading' | 'live' | 'left' | 'error'>('loading');
   readonly errorMsg = signal('');
-  readonly sessionTitle = signal('Live class');
+  readonly sessionTitle = signal(this.i18n.t('live.room.default_title'));
   readonly isHost = signal(false);
 
   readonly micOn = signal(true);
@@ -109,7 +112,7 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
     if (!this.sessionId) {
-      this.fail('This link is missing its session.');
+      this.fail(this.i18n.t('live.room.err_missing_session'));
       return;
     }
     void this.join();
@@ -130,7 +133,7 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
       return;
     }
     this.token = token;
-    this.sessionTitle.set(token.sessionTitle || 'Live class');
+    this.sessionTitle.set(token.sessionTitle || this.i18n.t('live.room.default_title'));
     this.isHost.set(token.isHost);
 
     try {
@@ -144,7 +147,7 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
       this.startRtm((rtmMod as any).default, token).catch(() => this.chatReady.set(false));
       this.phase.set('live');
     } catch (e: unknown) {
-      this.fail('We couldn’t start the video. Check your camera and microphone permissions, then try again.');
+      this.fail(this.i18n.t('live.room.err_start_video'));
       // eslint-disable-next-line no-console
       console.error('[live-room] rtc start failed', e);
       await this.teardown();
@@ -215,7 +218,7 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
 
     this.participants.set([{
       uid: token.uid,
-      name: token.displayName + ' (You)',
+      name: token.displayName + this.i18n.t('live.room.you_suffix'),
       isLocal: true,
       isHost: token.isHost,
       hasVideo: !!this.camTrack,
@@ -428,18 +431,18 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
   private reasonFor(e: unknown): string {
     const err = e as { code?: string; message?: string; status?: number };
     if (err?.code === 'agora_unconfigured') {
-      return 'In-app video is not set up for your organisation yet. Please contact your administrator.';
+      return this.i18n.t('live.room.err_unconfigured');
     }
     if (err?.code === 'not_in_app_session') {
-      return 'This session is not an in-app video class.';
+      return this.i18n.t('live.room.err_not_in_app');
     }
     if (err?.code === 'forbidden' || err?.status === 403) {
-      return 'You are not enrolled in this session.';
+      return this.i18n.t('live.room.err_forbidden');
     }
     if (err?.code === 'not_found' || err?.status === 404) {
-      return 'This session could not be found.';
+      return this.i18n.t('live.room.err_not_found');
     }
-    return err?.message || 'We couldn’t join this class. Please try again.';
+    return err?.message || this.i18n.t('live.room.err_generic');
   }
 
   private async teardown(): Promise<void> {

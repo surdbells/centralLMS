@@ -8,20 +8,20 @@
           <div>
             <div class="d-flex align-items-center gap-2">
               <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-                <i class="bi bi-arrow-left me-2"></i>Back to Live Training
+                <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
               </button>
             </div>
             <h1 class="page-title mb-1">
-              <i class="bi bi-graph-up me-2"></i>Training Reports
+              <i class="bi bi-graph-up me-2"></i>{{ 'live.reports.title' | translate }}
             </h1>
-            <p class="text-muted mb-0">Analytics and insights for live training</p>
+            <p class="text-muted mb-0">{{ 'live.reports.subtitle' | translate }}</p>
           </div>
           <div class="d-flex gap-2">
             <select class="form-select" [(ngModel)]="selectedDateRange" (change)="onDateRangeChange()">
               <option *ngFor="let range of dateRanges" [ngValue]="range">{{ range.label }}</option>
             </select>
             <button class="btn btn-primary" (click)="exportReport()">
-              <i class="bi bi-download me-2"></i>Export
+              <i class="bi bi-download me-2"></i>{{ 'live.common.export' | translate }}
             </button>
           </div>
         </div>
@@ -36,7 +36,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ overviewStats.total_trainings }}</div>
-              <div class="stat-label">Total Trainings</div>
+              <div class="stat-label">{{ 'live.reports.total_trainings' | translate }}</div>
             </div>
             <div class="stat-trend up" *ngIf="overviewStats.trainings_change > 0">
               <i class="bi bi-arrow-up"></i>{{ overviewStats.trainings_change }}%
@@ -50,7 +50,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ overviewStats.total_sessions }}</div>
-              <div class="stat-label">Sessions Conducted</div>
+              <div class="stat-label">{{ 'live.reports.sessions_conducted' | translate }}</div>
             </div>
             <div class="stat-trend up" *ngIf="overviewStats.sessions_change > 0">
               <i class="bi bi-arrow-up"></i>{{ overviewStats.sessions_change }}%
@@ -64,7 +64,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ overviewStats.total_learners }}</div>
-              <div class="stat-label">Learners Trained</div>
+              <div class="stat-label">{{ 'live.reports.learners_trained' | translate }}</div>
             </div>
             <div class="stat-trend up" *ngIf="overviewStats.learners_change > 0">
               <i class="bi bi-arrow-up"></i>{{ overviewStats.learners_change }}%
@@ -78,7 +78,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ overviewStats.certificates_issued }}</div>
-              <div class="stat-label">Certificates Issued</div>
+              <div class="stat-label">{{ 'live.common.certificates_issued' | translate }}</div>
             </div>
             <div class="stat-trend up" *ngIf="overviewStats.certificates_change > 0">
               <i class="bi bi-arrow-up"></i>{{ overviewStats.certificates_change }}%
@@ -93,17 +93,17 @@
         <div class="col-md-8">
           <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="card-title mb-0">Attendance Trend</h5>
+              <h5 class="card-title mb-0">{{ 'live.reports.attendance_trend' | translate }}</h5>
               <div class="btn-group btn-group-sm">
                 <button class="btn" [class.btn-primary]="chartView === 'daily'"
                         [class.btn-primary]="chartView !== 'daily'"
-                        (click)="chartView = 'daily'">Daily</button>
+                        (click)="chartView = 'daily'">{{ 'live.reports.daily' | translate }}</button>
                 <button class="btn" [class.btn-primary]="chartView === 'weekly'"
                         [class.btn-primary]="chartView !== 'weekly'"
-                        (click)="chartView = 'weekly'">Weekly</button>
+                        (click)="chartView = 'weekly'">{{ 'live.reports.weekly' | translate }}</button>
                 <button class="btn" [class.btn-primary]="chartView === 'monthly'"
                         [class.btn-primary]="chartView !== 'monthly'"
-                        (click)="chartView = 'monthly'">Monthly</button>
+                        (click)="chartView = 'monthly'">{{ 'live.reports.monthly' | translate }}</button>
               </div>
             </div>
             <div class="card-body">
@@ -127,7 +127,7 @@
         <div class="col-md-4">
           <div class="card h-100">
             <div class="card-header">
-              <h5 class="card-title mb-0">Training Types</h5>
+              <h5 class="card-title mb-0">{{ 'live.reports.training_types' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="type-distribution">
@@ -154,15 +154,15 @@
       <div class="card mb-4">
         <div class="card-header">
           <div class="d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Training Performance</h5>
+            <h5 class="card-title mb-0">{{ 'live.reports.training_performance' | translate }}</h5>
             <div class="d-flex gap-2">
-              <input type="text" class="form-control form-control-sm" placeholder="Search trainings..."
+              <input type="text" class="form-control form-control-sm" placeholder="{{ 'live.common.search_trainings' | translate }}"
                      [(ngModel)]="searchTerm" (input)="filterReports()">
               <select class="form-select form-select-sm" [(ngModel)]="filterStatus" (change)="filterReports()">
-                <option value="">All Status</option>
-                <option value="published">Published</option>
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
+                <option value="">{{ 'live.reports.all_status' | translate }}</option>
+                <option value="published">{{ 'live.common.published' | translate }}</option>
+                <option value="ongoing">{{ 'live.common.ongoing' | translate }}</option>
+                <option value="completed">{{ 'live.common.completed' | translate }}</option>
               </select>
             </div>
           </div>
@@ -173,16 +173,16 @@
               <thead>
               <tr>
                 <th class="sortable" (click)="sortBy('title')">
-                  Training
+                  {{ 'live.common.training' | translate }}
                   <i class="bi bi-chevron-expand ms-1"></i>
                 </th>
-                <th class="sortable text-center" (click)="sortBy('type')">Type</th>
-                <th class="sortable text-center" (click)="sortBy('sessions_count')">Sessions</th>
-                <th class="sortable text-center" (click)="sortBy('total_enrolled')">Enrolled</th>
-                <th class="sortable text-center" (click)="sortBy('avg_attendance')">Avg Attendance</th>
-                <th class="sortable text-center" (click)="sortBy('completion_rate')">Completion</th>
-                <th class="sortable text-center" (click)="sortBy('certificates_issued')">Certificates</th>
-                <th class="text-end">Actions</th>
+                <th class="sortable text-center" (click)="sortBy('type')">{{ 'live.common.type' | translate }}</th>
+                <th class="sortable text-center" (click)="sortBy('sessions_count')">{{ 'live.common.sessions' | translate }}</th>
+                <th class="sortable text-center" (click)="sortBy('total_enrolled')">{{ 'live.common.enrolled' | translate }}</th>
+                <th class="sortable text-center" (click)="sortBy('avg_attendance')">{{ 'live.common.avg_attendance' | translate }}</th>
+                <th class="sortable text-center" (click)="sortBy('completion_rate')">{{ 'live.reports.completion' | translate }}</th>
+                <th class="sortable text-center" (click)="sortBy('certificates_issued')">{{ 'live.common.certificates' | translate }}</th>
+                <th class="text-end">{{ 'live.common.actions' | translate }}</th>
               </tr>
               </thead>
               <tbody>
@@ -217,10 +217,10 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group btn-group-sm">
-                    <button class="btn btn-primary" (click)="viewDetails(report)" title="View Details">
+                    <button class="btn btn-primary" (click)="viewDetails(report)" [title]="'live.common.view_details' | translate">
                       <i class="bi bi-eye"></i>
                     </button>
-                    <button class="btn btn-secondary" (click)="exportTrainingReport(report)" title="Export">
+                    <button class="btn btn-secondary" (click)="exportTrainingReport(report)" [title]="'live.common.export' | translate">
                       <i class="bi bi-download"></i>
                     </button>
                   </div>
@@ -239,7 +239,7 @@
           <div class="card h-100">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="bi bi-mortarboard me-2"></i>Top Instructors
+                <i class="bi bi-mortarboard me-2"></i>{{ 'live.reports.top_instructors' | translate }}
               </h5>
             </div>
             <div class="card-body">
@@ -254,11 +254,11 @@
                   </div>
                   <div class="instructor-info flex-grow-1">
                     <strong>{{ instructor.name }}</strong>
-                    <div class="small text-muted">{{ instructor.sessions_conducted }} sessions</div>
+                    <div class="small text-muted">{{ 'live.common.sessions_count' | translate:{ count: instructor.sessions_conducted } }}</div>
                   </div>
                   <div class="instructor-stats text-end">
                     <div class="stat-value text-success">{{ instructor.avg_rating }}</div>
-                    <div class="small text-muted">Avg Rating</div>
+                    <div class="small text-muted">{{ 'live.reports.avg_rating' | translate }}</div>
                   </div>
                 </div>
               </div>
@@ -271,7 +271,7 @@
           <div class="card h-100">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="bi bi-pie-chart me-2"></i>Attendance Breakdown
+                <i class="bi bi-pie-chart me-2"></i>{{ 'live.common.attendance_breakdown' | translate }}
               </h5>
             </div>
             <div class="card-body">
@@ -283,7 +283,7 @@
                   <div class="breakdown-info">
                     <span class="breakdown-label">
                       <span class="breakdown-dot bg-success"></span>
-                      Present
+                      {{ 'live.common.present' | translate }}
                     </span>
                     <strong>{{ attendanceBreakdown.present }}%</strong>
                   </div>
@@ -295,7 +295,7 @@
                   <div class="breakdown-info">
                     <span class="breakdown-label">
                       <span class="breakdown-dot bg-warning"></span>
-                      Late
+                      {{ 'live.common.late' | translate }}
                     </span>
                     <strong>{{ attendanceBreakdown.late }}%</strong>
                   </div>
@@ -307,7 +307,7 @@
                   <div class="breakdown-info">
                     <span class="breakdown-label">
                       <span class="breakdown-dot bg-danger"></span>
-                      Absent
+                      {{ 'live.common.absent' | translate }}
                     </span>
                     <strong>{{ attendanceBreakdown.absent }}%</strong>
                   </div>
@@ -319,7 +319,7 @@
                   <div class="breakdown-info">
                     <span class="breakdown-label">
                       <span class="breakdown-dot bg-secondary"></span>
-                      Excused
+                      {{ 'live.common.excused' | translate }}
                     </span>
                     <strong>{{ attendanceBreakdown.excused }}%</strong>
                   </div>
@@ -328,21 +328,21 @@
 
               <!-- Mode Breakdown -->
               <hr class="my-4">
-              <h6 class="mb-3">By Attendance Mode</h6>
+              <h6 class="mb-3">{{ 'live.reports.by_mode' | translate }}</h6>
               <div class="mode-stats d-flex gap-4">
                 <div class="mode-item text-center flex-fill">
                   <div class="mode-icon bg-success-subtle text-success mb-2">
                     <i class="bi bi-qr-code"></i>
                   </div>
                   <div class="mode-value">{{ modeBreakdown.physical }}%</div>
-                  <div class="mode-label small text-muted">Physical (QR)</div>
+                  <div class="mode-label small text-muted">{{ 'live.reports.physical_qr' | translate }}</div>
                 </div>
                 <div class="mode-item text-center flex-fill">
                   <div class="mode-icon bg-info-subtle text-info mb-2">
                     <i class="bi bi-camera-video"></i>
                   </div>
                   <div class="mode-value">{{ modeBreakdown.virtual }}%</div>
-                  <div class="mode-label small text-muted">Virtual</div>
+                  <div class="mode-label small text-muted">{{ 'live.common.virtual' | translate }}</div>
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@
       <div class="card">
         <div class="card-header">
           <h5 class="card-title mb-0">
-            <i class="bi bi-award me-2"></i>Certification Report
+            <i class="bi bi-award me-2"></i>{{ 'live.reports.certification_report' | translate }}
           </h5>
         </div>
         <div class="card-body">
@@ -362,25 +362,25 @@
             <div class="col-md-3">
               <div class="cert-stat-card">
                 <div class="cert-stat-value text-primary">{{ certStats.total_eligible }}</div>
-                <div class="cert-stat-label">Eligible for Certificate</div>
+                <div class="cert-stat-label">{{ 'live.reports.eligible_for_cert' | translate }}</div>
               </div>
             </div>
             <div class="col-md-3">
               <div class="cert-stat-card">
                 <div class="cert-stat-value text-success">{{ certStats.issued }}</div>
-                <div class="cert-stat-label">Certificates Issued</div>
+                <div class="cert-stat-label">{{ 'live.common.certificates_issued' | translate }}</div>
               </div>
             </div>
             <div class="col-md-3">
               <div class="cert-stat-card">
                 <div class="cert-stat-value text-warning">{{ certStats.pending }}</div>
-                <div class="cert-stat-label">Pending Issuance</div>
+                <div class="cert-stat-label">{{ 'live.reports.pending_issuance' | translate }}</div>
               </div>
             </div>
             <div class="col-md-3">
               <div class="cert-stat-card">
                 <div class="cert-stat-value text-danger">{{ certStats.revoked }}</div>
-                <div class="cert-stat-label">Revoked</div>
+                <div class="cert-stat-label">{{ 'live.common.revoked' | translate }}</div>
               </div>
             </div>
           </div>
@@ -393,7 +393,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">
-                <i class="bi bi-bar-chart me-2"></i>Training Analytics
+                <i class="bi bi-bar-chart me-2"></i>{{ 'live.reports.training_analytics' | translate }}
               </h5>
               <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
             </div>
@@ -404,19 +404,19 @@
               <div class="row g-3 mt-3">
                 <div class="col-md-4">
                   <div class="detail-stat">
-                    <div class="detail-stat-label">Total Sessions</div>
+                    <div class="detail-stat-label">{{ 'live.common.total_sessions' | translate }}</div>
                     <div class="detail-stat-value">{{ selectedTrainingAnalytics.total_sessions }}</div>
                   </div>
                 </div>
                 <div class="col-md-4">
                   <div class="detail-stat">
-                    <div class="detail-stat-label">Total Enrollments</div>
+                    <div class="detail-stat-label">{{ 'live.reports.total_enrollments' | translate }}</div>
                     <div class="detail-stat-value">{{ selectedTrainingAnalytics.total_enrollments }}</div>
                   </div>
                 </div>
                 <div class="col-md-4">
                   <div class="detail-stat">
-                    <div class="detail-stat-label">Average Attendance</div>
+                    <div class="detail-stat-label">{{ 'live.reports.average_attendance' | translate }}</div>
                     <div class="detail-stat-value">{{ selectedTrainingAnalytics.avg_attendance }}%</div>
                   </div>
                 </div>
@@ -424,16 +424,16 @@
 
               <hr>
 
-              <h6>Session-wise Attendance</h6>
+              <h6>{{ 'live.reports.session_wise' | translate }}</h6>
               <div class="table-responsive">
                 <table class="table table-sm">
                   <thead>
                   <tr>
-                    <th>Session</th>
-                    <th>Date</th>
-                    <th>Present</th>
-                    <th>Late</th>
-                    <th>Absent</th>
+                    <th>{{ 'live.common.session' | translate }}</th>
+                    <th>{{ 'live.common.date' | translate }}</th>
+                    <th>{{ 'live.common.present' | translate }}</th>
+                    <th>{{ 'live.common.late' | translate }}</th>
+                    <th>{{ 'live.common.absent' | translate }}</th>
                   </tr>
                   </thead>
                   <tbody>
@@ -449,9 +449,9 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeDetailModal()">Close</button>
+              <button class="btn btn-secondary" (click)="closeDetailModal()">{{ 'common.close' | translate }}</button>
               <button class="btn btn-primary" (click)="exportTrainingReport(selectedReport!)">
-                <i class="bi bi-download me-2"></i>Export Report
+                <i class="bi bi-download me-2"></i>{{ 'live.reports.export_report' | translate }}
               </button>
             </div>
           </div>

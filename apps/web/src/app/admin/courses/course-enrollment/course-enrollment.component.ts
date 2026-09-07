@@ -11,6 +11,8 @@ import { UsersService, type User } from '../../../services/users.service';
 import { LookupsService } from '../../../services/lookups.service';
 import { EnrollmentsService } from '../../../services/enrollments.service';
 import { ApiClient, ApiError } from '../../../core/api';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /* The shapes this screen's template already reads. */
 
@@ -86,7 +88,7 @@ export interface EnrollmentResult {
 @Component({
   selector: 'app-course-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe],
   templateUrl: './course-enrollment.component.html',
   styleUrls: ['./course-enrollment.component.scss'],
 })
@@ -97,6 +99,7 @@ export class CourseEnrollmentComponent implements OnInit, OnDestroy {
   private readonly enrollmentsService = inject(EnrollmentsService);
   private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
   private readonly userSearch$ = new Subject<string>();
 
@@ -184,7 +187,7 @@ export class CourseEnrollmentComponent implements OnInit, OnDestroy {
           this.courses = courses.items.map((c) => ({
             course_id: c.id,
             title: c.title,
-            category_name: this.categories[c.categoryId ?? ''] ?? 'Uncategorised',
+            category_name: this.categories[c.categoryId ?? ''] ?? this.i18n.t('admin.enroll.uncategorised'),
             duration_minutes: c.durationMinutes,
             thumbnail_url: c.thumbnailUrl === null ? null : this.api.urlFor(c.thumbnailUrl),
             current_enrollments: 0,
@@ -353,9 +356,11 @@ export class CourseEnrollmentComponent implements OnInit, OnDestroy {
 
   getEnrollmentSummary(): string {
     const people = this.selectedUsers.length;
-    const noun = people === 1 ? 'person' : 'people';
 
-    return `${people} ${noun} on ${this.selectedCourse?.title ?? 'this course'}`;
+    return this.i18n.t('admin.enroll.summary_line', {
+      count: people,
+      course: this.selectedCourse?.title ?? this.i18n.t('admin.enroll.this_course'),
+    });
   }
 
   /**
@@ -435,7 +440,7 @@ export class CourseEnrollmentComponent implements OnInit, OnDestroy {
           const missing = new Set(outcome.notFound);
           const failed = this.selectedUsers
             .filter((u) => missing.has(u.user_id))
-            .map((u) => ({ ...u, reason: 'No longer in this organisation' }));
+            .map((u) => ({ ...u, reason: this.i18n.t('admin.enroll.reason_not_in_org') }));
 
           const placed = this.selectedUsers.filter((u) => !missing.has(u.user_id));
           const enrolledCount = outcome.enrolled + outcome.reinstated;

@@ -5,6 +5,8 @@ import { RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CompetencyService, type OutcomeReport } from '../../competency.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * The outcome the whole exercise is for: how ready the workforce is, where the
@@ -15,13 +17,14 @@ import { CompetencyService, type OutcomeReport } from '../../competency.service'
 @Component({
   selector: 'app-outcome-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe],
   templateUrl: './outcome-report.component.html',
   styleUrl: './outcome-report.component.scss',
 })
 export class OutcomeReportComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   report: OutcomeReport | null = null;
@@ -40,7 +43,7 @@ export class OutcomeReportComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.toast.error('The outcome report could not be loaded.');
+        this.toast.error(this.i18n.t('competency.outcome.load_error'));
         this.loading = false;
       },
     });
@@ -53,16 +56,16 @@ export class OutcomeReportComponent implements OnInit {
   /** Whole years and residual months, so "15" reads as "1 yr 3 mo". */
   monthsLabel(months: number): string {
     if (months <= 0) {
-      return 'None';
+      return this.i18n.t('competency.reports.months_none');
     }
     const years = Math.floor(months / 12);
     const rest = months % 12;
     const parts: string[] = [];
     if (years) {
-      parts.push(`${years} yr`);
+      parts.push(`${years} ${this.i18n.t('competency.common.yr')}`);
     }
     if (rest) {
-      parts.push(`${rest} mo`);
+      parts.push(`${rest} ${this.i18n.t('competency.common.mo')}`);
     }
     return parts.join(' ');
   }

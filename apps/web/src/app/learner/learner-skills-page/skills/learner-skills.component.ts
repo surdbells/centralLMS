@@ -13,6 +13,8 @@ import {
   type SkillCourse,
 } from '../../../services/skills.service';
 import { ApiError } from '../../../core/api';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * What this learner can do, and what they are on the way to being able to do.
@@ -25,13 +27,14 @@ import { ApiError } from '../../../core/api';
 @Component({
   selector: 'app-learner-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
   templateUrl: './learner-skills.component.html',
   styleUrls: ['./learner-skills.component.scss'],
 })
 export class LearnerSkillsComponent implements OnInit, OnDestroy {
   private readonly skillsService = inject(SkillsService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   mine: LearnerSkills = { held: [], inProgress: [], byCategory: [], totals: { held: 0, inProgress: 0 } };
@@ -188,26 +191,26 @@ export class LearnerSkillsComponent implements OnInit, OnDestroy {
     const days = Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24));
 
     if (days === 0) {
-      return 'Today';
+      return this.i18n.t('skills.today');
     }
 
     if (days === 1) {
-      return 'Yesterday';
+      return this.i18n.t('skills.yesterday');
     }
 
     if (days < 7) {
-      return `${days} days ago`;
+      return this.i18n.t('skills.days_ago', { count: days });
     }
 
     if (days < 30) {
-      return `${Math.floor(days / 7)} weeks ago`;
+      return this.i18n.t('skills.weeks_ago', { count: Math.floor(days / 7) });
     }
 
     if (days < 365) {
-      return `${Math.floor(days / 30)} months ago`;
+      return this.i18n.t('skills.months_ago', { count: Math.floor(days / 30) });
     }
 
-    return `${Math.floor(days / 365)} years ago`;
+    return this.i18n.t('skills.years_ago', { count: Math.floor(days / 365) });
   }
 
   trackBySkillId(_index: number, skill: LearnerSkill): string {

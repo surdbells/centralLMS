@@ -11,6 +11,8 @@ import {
   AssignmentCreateRequest
 } from '../../interfaces/learning-path.interfaces';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 import { LearningPathEnrollmentService } from '../../services/learning-path-enrollment.service';
 import type {
   Branch,
@@ -72,7 +74,7 @@ type AssignmentType = 'department' | 'team' | 'branch' | 'users';
 @Component({
   selector: 'app-learning-path-assignments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe],
   templateUrl: './learning-path-assignments.component.html',
   styleUrls: ['./learning-path-assignments.component.scss']
 })
@@ -158,6 +160,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     // own copies of "list the departments", "list the users" and "preview
     // what this would do", each a direct call to the legacy endpoint.
     private enrollmentService: LearningPathEnrollmentService,
+    private i18n: I18nService,
   ) {}
 
   ngOnInit(): void {
@@ -345,15 +348,24 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     switch (this.assignmentType) {
       case 'department':
         const dept = this.departments.find(d => d.department_id === this.selectedDepartmentId);
-        return `All users in ${dept?.department_name || 'selected department'} (${dept?.user_count || 0} users)`;
+        return this.i18n.t('paths_admin.assign.summary_group', {
+          name: dept?.department_name || this.i18n.t('paths_admin.assign.selected_department'),
+          count: dept?.user_count || 0,
+        });
       case 'team':
         const team = this.teams.find(t => t.team_id === this.selectedTeamId);
-        return `All users in ${team?.team_name || 'selected team'} (${team?.user_count || 0} users)`;
+        return this.i18n.t('paths_admin.assign.summary_group', {
+          name: team?.team_name || this.i18n.t('paths_admin.assign.selected_team'),
+          count: team?.user_count || 0,
+        });
       case 'branch':
         const branch = this.branches.find(b => b.branch_id === this.selectedBranchId);
-        return `All users in ${branch?.branch_name || 'selected branch'} (${branch?.user_count || 0} users)`;
+        return this.i18n.t('paths_admin.assign.summary_group', {
+          name: branch?.branch_name || this.i18n.t('paths_admin.assign.selected_branch'),
+          count: branch?.user_count || 0,
+        });
       case 'users':
-        return `${this.selectedUsers.length} selected user(s)`;
+        return this.i18n.t('paths_admin.assign.summary_users', { count: this.selectedUsers.length });
       default:
         return '';
     }
@@ -379,7 +391,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
           this.loadingPreview = false;
         },
         error: (err: { message?: string }) => {
-          this.error = err.message ?? 'That preview could not be produced.';
+          this.error = err.message ?? this.i18n.t('paths_admin.assign.preview_error');
           this.loadingPreview = false;
         }
       });
@@ -404,7 +416,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
         next: (res) => {
           this.result = {
             success: true,
-            message: `Assignment created successfully`,
+            message: this.i18n.t('paths_admin.assign.created_success'),
             summary: {
               total_users: this.preview?.summary.total_users || 0,
               enrolled_count: res.enrollments_created,
@@ -422,7 +434,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
               user_id: u.user_id,
               email: u.email,
               name: u.name,
-              reason: 'Already enrolled'
+              reason: this.i18n.t('paths_admin.assign.reason_already_enrolled')
             })) || [],
             failed: [],
             path: { path_id: this.pathId, title: this.path?.title || '' }
@@ -435,7 +447,7 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
           // The API says what went wrong. `err.error.message` is the legacy
           // envelope's shape, and an ApiError has no `error`, so every
           // failure read as a flat "Assignment failed".
-          this.error = err.message ?? 'Those people could not be enrolled.';
+          this.error = err.message ?? this.i18n.t('paths_admin.assign.enroll_error');
           this.saving = false;
         }
       });
@@ -584,13 +596,13 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   // ==========================================
 
   pauseAssignment(assignment: LearningPathAssignment): void {
-    if (!confirm('Are you sure you want to pause this assignment?')) return;
+    if (!confirm(this.i18n.t('paths_admin.assign.confirm_pause'))) return;
 
     this.learningPathService.pauseAssignment(assignment.assignment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadAssignments(),
-        error: (err) => alert('Failed to pause assignment')
+        error: (err) => alert(this.i18n.t('paths_admin.assign.pause_failed'))
       });
   }
 
@@ -599,18 +611,18 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadAssignments(),
-        error: (err) => alert('Failed to resume assignment')
+        error: (err) => alert(this.i18n.t('paths_admin.assign.resume_failed'))
       });
   }
 
   cancelAssignment(assignment: LearningPathAssignment): void {
-    if (!confirm('Cancel this assignment? Existing enrollments will not be affected.')) return;
+    if (!confirm(this.i18n.t('paths_admin.assign.confirm_cancel'))) return;
 
     this.learningPathService.cancelAssignment(assignment.assignment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadAssignments(),
-        error: (err) => alert('Failed to cancel assignment')
+        error: (err) => alert(this.i18n.t('paths_admin.assign.cancel_failed'))
       });
   }
 
@@ -638,13 +650,13 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   }
 
   sendReminders(assignment: LearningPathAssignment): void {
-    if (!confirm('Send reminder notifications to all incomplete enrollees?')) return;
+    if (!confirm(this.i18n.t('paths_admin.assign.confirm_reminders'))) return;
 
     this.learningPathService.sendAssignmentReminders(assignment.assignment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (result) => alert(`Reminders sent to ${result.sent} user(s)`),
-        error: () => alert('Failed to send reminders')
+        next: (result) => alert(this.i18n.t('paths_admin.assign.reminders_sent', { count: result.sent })),
+        error: () => alert(this.i18n.t('paths_admin.assign.reminders_failed'))
       });
   }
 
@@ -674,10 +686,10 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
 
   getAssignmentTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      department: 'By Department',
-      team: 'By Team',
-      branch: 'By Branch',
-      users: 'Selected Users'
+      department: this.i18n.t('paths_admin.by_department'),
+      team: this.i18n.t('paths_admin.by_team'),
+      branch: this.i18n.t('paths_admin.by_branch'),
+      users: this.i18n.t('paths_admin.selected_users')
     };
     return labels[type] || type;
   }

@@ -17,6 +17,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HotToastService } from '@ngneat/hot-toast';
 import { LookupsService } from '../../../services/lookups.service';
 import { SessionStore } from '../../../core/auth/session.store';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * A searchable cycle picker, backed by the managed cycle list.
@@ -33,7 +35,7 @@ import { SessionStore } from '../../../core/auth/session.store';
 @Component({
   selector: 'app-cycle-select',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -47,7 +49,7 @@ import { SessionStore } from '../../../core/auth/session.store';
         type="text"
         class="form-control cs-input"
         [class.form-control-sm]="size === 'sm'"
-        [placeholder]="placeholder"
+        [placeholder]="placeholder || ('competency.cycle_select.default_placeholder' | translate)"
         [ngModel]="query()"
         [disabled]="disabled"
         (ngModelChange)="onQueryInput($event)"
@@ -66,11 +68,11 @@ import { SessionStore } from '../../../core/auth/session.store';
             <li class="cs-opt" role="option" [class.cs-selected]="c === value" (click)="choose(c)">{{ c }}</li>
           }
           @if (!filtered().length && !canQuickAdd()) {
-            <li class="cs-empty">No matching cycle</li>
+            <li class="cs-empty">{{ 'competency.cycle_select.no_matching' | translate }}</li>
           }
           @if (canQuickAdd()) {
             <li class="cs-opt cs-add" role="option" (click)="quickAdd()">
-              <i class="bi bi-plus-lg"></i> Add “{{ query().trim() }}”
+              <i class="bi bi-plus-lg"></i> {{ 'competency.cycle_select.add_named' | translate: { name: query().trim() } }}
               @if (creating()) { <span class="spinner-border spinner-border-sm ms-1"></span> }
             </li>
           }
@@ -97,8 +99,8 @@ import { SessionStore } from '../../../core/auth/session.store';
   `],
 })
 export class CycleSelectComponent implements ControlValueAccessor {
-  /** Placeholder shown when nothing is chosen. */
-  @Input() placeholder = 'Select a cycle';
+  /** Placeholder shown when nothing is chosen. Empty falls back to a translated default. */
+  @Input() placeholder = '';
   /** Offer an explicit "all cycles" entry that clears the value. */
   @Input() allowAll = false;
   @Input() allLabel = 'All cycles';
@@ -109,6 +111,7 @@ export class CycleSelectComponent implements ControlValueAccessor {
   private readonly session = inject(SessionStore);
   private readonly toast = inject(HotToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
 
   /** The chosen cycle name; '' means none / all. */
   value = '';
@@ -157,7 +160,7 @@ export class CycleSelectComponent implements ControlValueAccessor {
               .map((r) => r.name)
               .sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
           ),
-        error: () => this.toast.error('The cycles could not be loaded.'),
+        error: () => this.toast.error(this.i18n.t('competency.cycle_select.load_error')),
       });
   }
 
@@ -203,11 +206,11 @@ export class CycleSelectComponent implements ControlValueAccessor {
         this.creating.set(false);
         this.reload();
         this.choose(created.name);
-        this.toast.success(`Cycle “${created.name}” added.`);
+        this.toast.success(this.i18n.t('competency.cycle_select.added', { name: created.name }));
       },
       error: () => {
         this.creating.set(false);
-        this.toast.error('That cycle could not be added.');
+        this.toast.error(this.i18n.t('competency.cycle_select.add_error'));
       },
     });
   }

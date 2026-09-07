@@ -14,6 +14,8 @@ import { CoursesService, type Course as ApiCourse } from '../../../../services/c
 import { UsersService } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
+import { I18nService } from '../../../../i18n.service';
 
 /** A course, in the shape this screen's template already reads. */
 export interface Course {
@@ -65,7 +67,7 @@ export interface UnenrolledUser {
 @Component({
   selector: 'app-course-enrollees',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe],
   templateUrl: './course-enrollees.component.html',
   styleUrls: ['./course-enrollees.component.scss'],
 })
@@ -74,6 +76,7 @@ export class CourseEnrolleesComponent implements OnInit, OnDestroy {
   private readonly coursesService = inject(CoursesService);
   private readonly usersService = inject(UsersService);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly userSearch$ = new Subject<string>();
@@ -415,7 +418,7 @@ export class CourseEnrolleesComponent implements OnInit, OnDestroy {
         next: () => {
           this.processing = false;
           this.closeDueDateModal();
-          this.successMessage = `Due date set for ${this.selectedEnrollees.length} learner(s).`;
+          this.successMessage = this.i18n.t('admin.enrollees.toast_due_date_set', { count: this.selectedEnrollees.length });
           this.selectedEnrollees = [];
           this.loadEnrollees();
         },
@@ -466,7 +469,7 @@ export class CourseEnrolleesComponent implements OnInit, OnDestroy {
           this.processing = false;
           this.closeConfirmModal();
           // Never a delete. Their progress is still there if they come back.
-          this.successMessage = `${result.removed} taken off the course. Their progress is kept.`;
+          this.successMessage = this.i18n.t('admin.enrollees.toast_unenrolled', { count: result.removed });
           this.selectedEnrollees = [];
           this.loadEnrollees();
         },
@@ -498,8 +501,8 @@ export class CourseEnrolleesComponent implements OnInit, OnDestroy {
           this.processing = false;
           this.closeConfirmModal();
           this.successMessage = isMandatory
-            ? `${this.selectedEnrollees.length} enrolment(s) are now mandatory.`
-            : `${this.selectedEnrollees.length} enrolment(s) are now optional.`;
+            ? this.i18n.t('admin.enrollees.toast_now_mandatory', { count: this.selectedEnrollees.length })
+            : this.i18n.t('admin.enrollees.toast_now_optional', { count: this.selectedEnrollees.length });
           this.selectedEnrollees = [];
           this.loadEnrollees();
         },
@@ -515,10 +518,10 @@ export class CourseEnrolleesComponent implements OnInit, OnDestroy {
 
   getStatusLabel(status: EnrollmentStatus): string {
     return ({
-      not_started: 'Not Started',
-      in_progress: 'In Progress',
-      completed: 'Completed',
-      dropped: 'Removed',
+      not_started: this.i18n.t('admin.enrollees.status_not_started'),
+      in_progress: this.i18n.t('admin.enrollees.status_in_progress'),
+      completed: this.i18n.t('admin.enrollees.status_completed'),
+      dropped: this.i18n.t('admin.enrollees.status_removed'),
     } as Record<string, string>)[status] ?? status;
   }
 

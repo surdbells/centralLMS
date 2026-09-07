@@ -7,8 +7,8 @@
         <tui-icon icon="@tui.chevron-left"></tui-icon>
       </div>
       <div class="header-text">
-        <h1><i class="bi bi-person-plus-fill"></i> Course Enrollment</h1>
-        <p class="text-muted">Put a group of people on a course</p>
+        <h1><i class="bi bi-person-plus-fill"></i> {{ 'admin.enroll.title' | translate }}</h1>
+        <p class="text-muted">{{ 'admin.enroll.subtitle' | translate }}</p>
       </div>
     </div>
   </div>
@@ -20,9 +20,9 @@
 
   <div class="loading-state" *ngIf="loading">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p>Loading enrollment data...</p>
+    <p>{{ 'admin.enroll.loading' | translate }}</p>
   </div>
   <div class="enrollment-content" *ngIf="!loading">
 
@@ -31,8 +31,8 @@
       <div class="step-header">
         <span class="step-number">1</span>
         <div>
-          <h2>Select a Course</h2>
-          <p>Choose the course to enroll users in</p>
+          <h2>{{ 'admin.enroll.select_course' | translate }}</h2>
+          <p>{{ 'admin.enroll.select_course_hint' | translate }}</p>
         </div>
       </div>
 
@@ -40,7 +40,7 @@
         <i class="bi bi-search"></i>
         <input type="text"
                class="form-control"
-               placeholder="Search courses..."
+               placeholder="{{ 'admin.courses.search_placeholder' | translate }}"
                [(ngModel)]="courseSearch">
       </div>
 
@@ -52,14 +52,14 @@
           <div class="course-thumbnail">
             <img [src]="course.thumbnail_url || 'assets/img/course-placeholder.png'"
                  [alt]="course.title">
-            <span class="course-badge" *ngIf="course.is_full">Full</span>
+            <span class="course-badge" *ngIf="course.is_full">{{ 'admin.enroll.full' | translate }}</span>
           </div>
           <div class="course-info">
             <h4>{{ course.title }}</h4>
             <span class="category-badge" *ngIf="course.category_name">{{ course.category_name }}</span>
             <div class="course-meta">
               <span><i class="bi bi-clock"></i> {{ course.duration_minutes }}m</span>
-              <span><i class="bi bi-people"></i> {{ course.current_enrollments }} enrolled</span>
+              <span><i class="bi bi-people"></i> {{ 'admin.enroll.n_enrolled' | translate:{ count: course.current_enrollments } }}</span>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@
 
       <div class="empty-state" *ngIf="filterCourses().length === 0">
         <i class="bi bi-search"></i>
-        <p>No courses found</p>
+        <p>{{ 'admin.enroll.no_courses' | translate }}</p>
       </div>
     </div>
 
@@ -84,15 +84,15 @@
           </div>
         </div>
         <button class="btn btn-secondary btn-sm" (click)="changeCourse()">
-          <i class="bi bi-arrow-left"></i> Change Course
+          <i class="bi bi-arrow-left"></i> {{ 'admin.enroll.change_course' | translate }}
         </button>
       </div>
 
       <div class="step-header">
         <span class="step-number">2</span>
         <div>
-          <h2>Select Users to Enroll</h2>
-          <p>Choose how to select users for enrollment</p>
+          <h2>{{ 'admin.enroll.select_users' | translate }}</h2>
+          <p>{{ 'admin.enroll.select_users_hint' | translate }}</p>
         </div>
       </div>
 
@@ -102,74 +102,74 @@
                 [class.active]="enrollmentType === 'department'"
                 (click)="enrollmentType = 'department'; onEnrollmentTypeChange()">
           <i class="bi bi-building"></i>
-          <span>By Department</span>
+          <span>{{ 'admin.enroll.by_department' | translate }}</span>
         </button>
         <button class="type-tab"
                 [class.active]="enrollmentType === 'team'"
                 (click)="enrollmentType = 'team'; onEnrollmentTypeChange()">
           <i class="bi bi-people"></i>
-          <span>By Team</span>
+          <span>{{ 'admin.enroll.by_team' | translate }}</span>
         </button>
         <button class="type-tab"
                 [class.active]="enrollmentType === 'branch'"
                 (click)="enrollmentType = 'branch'; onEnrollmentTypeChange()">
           <i class="bi bi-geo-alt"></i>
-          <span>By Branch</span>
+          <span>{{ 'admin.enroll.by_branch' | translate }}</span>
         </button>
         <button class="type-tab"
                 [class.active]="enrollmentType === 'users'"
                 (click)="enrollmentType = 'users'; onEnrollmentTypeChange()">
           <i class="bi bi-person-check"></i>
-          <span>Select Users</span>
+          <span>{{ 'admin.enroll.select_users_tab' | translate }}</span>
         </button>
       </div>
 
       <div class="enrollment-config">
         <!-- Department Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'department'">
-          <label class="form-label">Select Department</label>
+          <label class="form-label">{{ 'admin.enroll.select_department' | translate }}</label>
           <select class="form-select form-select-lg" [(ngModel)]="selectedDepartmentId">
-            <option [ngValue]="null">-- Select a department --</option>
+            <option [ngValue]="null">{{ 'admin.enroll.select_department_option' | translate }}</option>
             <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
-              {{ dept.department_name }} ({{ dept.user_count }} users)
+              {{ dept.department_name }} {{ 'admin.enroll.n_users' | translate:{ count: dept.user_count } }}
             </option>
           </select>
 
           <div class="selection-info" *ngIf="selectedDepartmentId">
             <i class="bi bi-info-circle"></i>
-            All active users in this department will be enrolled.
+            {{ 'admin.enroll.info_department' | translate }}
           </div>
         </div>
 
         <!-- Team Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'team'">
-          <label class="form-label">Select Team</label>
+          <label class="form-label">{{ 'admin.enroll.select_team' | translate }}</label>
           <select class="form-select form-select-lg" [(ngModel)]="selectedTeamId">
-            <option [ngValue]="null">-- Select a team --</option>
+            <option [ngValue]="null">{{ 'admin.enroll.select_team_option' | translate }}</option>
             <option *ngFor="let team of teams" [ngValue]="team.team_id">
-              {{ team.team_name }} ({{ team.user_count }} users)
+              {{ team.team_name }} {{ 'admin.enroll.n_users' | translate:{ count: team.user_count } }}
             </option>
           </select>
 
           <div class="selection-info" *ngIf="selectedTeamId">
             <i class="bi bi-info-circle"></i>
-            All active users in this team will be enrolled.
+            {{ 'admin.enroll.info_team' | translate }}
           </div>
         </div>
 
         <!-- Branch Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'branch'">
-          <label class="form-label">Select Branch</label>
+          <label class="form-label">{{ 'admin.enroll.select_branch' | translate }}</label>
           <select class="form-select form-select-lg" [(ngModel)]="selectedBranchId">
-            <option [ngValue]="null">-- Select a branch --</option>
+            <option [ngValue]="null">{{ 'admin.enroll.select_branch_option' | translate }}</option>
             <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
-              {{ branch.branch_name }} - {{ branch.city }} ({{ branch.user_count }} users)
+              {{ branch.branch_name }} - {{ branch.city }} {{ 'admin.enroll.n_users' | translate:{ count: branch.user_count } }}
             </option>
           </select>
 
           <div class="selection-info" *ngIf="selectedBranchId">
             <i class="bi bi-info-circle"></i>
-            All active users in this branch will be enrolled.
+            {{ 'admin.enroll.info_branch' | translate }}
           </div>
         </div>
 
@@ -177,33 +177,33 @@
         <div class="selection-panel user-selection" *ngIf="enrollmentType === 'users'">
           <div class="row g-3 mb-3">
             <div class="col-md-4">
-              <label class="form-label">Filter by Department</label>
+              <label class="form-label">{{ 'admin.enroll.filter_department' | translate }}</label>
               <select class="form-select"
                       [(ngModel)]="selectedDepartmentId"
                       (ngModelChange)="onDepartmentChange()">
-                <option [ngValue]="null">All Departments</option>
+                <option [ngValue]="null">{{ 'admin.enroll.all_departments' | translate }}</option>
                 <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
                   {{ dept.department_name }}
                 </option>
               </select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Filter by Team</label>
+              <label class="form-label">{{ 'admin.enroll.filter_team' | translate }}</label>
               <select class="form-select"
                       [(ngModel)]="selectedTeamId"
                       (ngModelChange)="onTeamChange()">
-                <option [ngValue]="null">All Teams</option>
+                <option [ngValue]="null">{{ 'admin.enroll.all_teams' | translate }}</option>
                 <option *ngFor="let team of teams" [ngValue]="team.team_id">
                   {{ team.team_name }}
                 </option>
               </select>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Filter by Branch</label>
+              <label class="form-label">{{ 'admin.enroll.filter_branch' | translate }}</label>
               <select class="form-select"
                       [(ngModel)]="selectedBranchId"
                       (ngModelChange)="onBranchChange()">
-                <option [ngValue]="null">All Branches</option>
+                <option [ngValue]="null">{{ 'admin.enroll.all_branches' | translate }}</option>
                 <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
                   {{ branch.branch_name }}
                 </option>
@@ -215,12 +215,12 @@
             <!-- Available Users -->
             <div class="user-list-panel">
               <div class="panel-header">
-                <h5>Available Users</h5>
+                <h5>{{ 'admin.enroll.available_users' | translate }}</h5>
                 <div class="search-box small">
                   <i class="bi bi-search"></i>
                   <input type="text"
                          class="form-control form-control-sm"
-                         placeholder="Search users..."
+                         placeholder="{{ 'admin.enroll.search_users' | translate }}"
                          [(ngModel)]="userSearch"
                          (ngModelChange)="onUserSearchChange()">
                 </div>
@@ -248,20 +248,20 @@
 
                 <div class="empty-state small" *ngIf="users.length === 0 && !loadingUsers">
                   <i class="bi bi-person-x"></i>
-                  <p>No users found</p>
+                  <p>{{ 'admin.enroll.no_users' | translate }}</p>
                 </div>
               </div>
 
               <div class="panel-footer" *ngIf="users.length > 0">
-                <button class="btn btn-link btn-sm" (click)="selectAllUsers()">Select All</button>
-                <button class="btn btn-link btn-sm" (click)="deselectAllUsers()">Clear Selection</button>
+                <button class="btn btn-link btn-sm" (click)="selectAllUsers()">{{ 'admin.enroll.select_all' | translate }}</button>
+                <button class="btn btn-link btn-sm" (click)="deselectAllUsers()">{{ 'admin.enroll.clear_selection' | translate }}</button>
               </div>
             </div>
 
             <!-- Selected Users -->
             <div class="selected-users-panel">
               <div class="panel-header">
-                <h5>Selected Users</h5>
+                <h5>{{ 'admin.enroll.selected_users' | translate }}</h5>
                 <span class="badge bg-primary">{{ selectedUsers.length }}</span>
               </div>
 
@@ -275,7 +275,7 @@
 
                 <div class="empty-state small" *ngIf="selectedUsers.length === 0">
                   <i class="bi bi-person-plus"></i>
-                  <p>Select users from the list</p>
+                  <p>{{ 'admin.enroll.select_from_list' | translate }}</p>
                 </div>
               </div>
             </div>
@@ -284,31 +284,31 @@
 
         <!-- Enrollment Options -->
         <div class="enrollment-options">
-          <h5><i class="bi bi-gear"></i> Enrollment Options</h5>
+          <h5><i class="bi bi-gear"></i> {{ 'admin.enroll.options' | translate }}</h5>
 
           <div class="options-grid">
             <div class="option-item">
               <label class="form-check">
                 <input type="checkbox" class="form-check-input" [(ngModel)]="isMandatory">
                 <span class="form-check-label">
-                  <strong>Mandatory Course</strong>
-                  <small>Users must complete this course</small>
+                  <strong>{{ 'admin.enroll.mandatory_course' | translate }}</strong>
+                  <small>{{ 'admin.enroll.mandatory_course_hint' | translate }}</small>
                 </span>
               </label>
             </div>
 
             <div class="option-item">
-              <label class="form-label">Completion Due Date</label>
+              <label class="form-label">{{ 'admin.enroll.completion_due_date' | translate }}</label>
               <input type="date" class="form-control" [(ngModel)]="dueDate">
-              <small class="text-muted">Optional due date for course completion</small>
+              <small class="text-muted">{{ 'admin.enroll.due_date_hint' | translate }}</small>
             </div>
 
             <div class="option-item">
               <label class="form-check">
                 <input type="checkbox" class="form-check-input" [(ngModel)]="notifyUsers">
                 <span class="form-check-label">
-                  <strong>Send Email Notification</strong>
-                  <small>Notify users about their enrollment</small>
+                  <strong>{{ 'admin.enroll.send_email' | translate }}</strong>
+                  <small>{{ 'admin.enroll.send_email_hint' | translate }}</small>
                 </span>
               </label>
             </div>
@@ -330,10 +330,10 @@
                   (click)="previewEnrollment()"
                   [disabled]="loadingPreview">
             <span *ngIf="!loadingPreview">
-              <i class="bi bi-eye me-2"></i>Preview Enrollment
+              <i class="bi bi-eye me-2"></i>{{ 'admin.enroll.preview' | translate }}
             </span>
             <span *ngIf="loadingPreview">
-              <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+              <span class="spinner-border spinner-border-sm me-2"></span>{{ 'common.loading' | translate }}
             </span>
           </button>
         </div>
@@ -343,33 +343,33 @@
   <div class="modal-overlay" *ngIf="showPreviewModal" (click)="closePreviewModal()">
     <div class="modal-container preview-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3><i class="bi bi-eye"></i> Enrollment Preview</h3>
+        <h3><i class="bi bi-eye"></i> {{ 'admin.enroll.preview_title' | translate }}</h3>
         <button class="btn-close" (click)="closePreviewModal()"></button>
       </div>
 
       <div class="modal-body" *ngIf="preview">
         <div class="preview-course">
-          <strong>Course:</strong> {{ preview.course.title }}
+          <strong>{{ 'admin.enroll.course_label' | translate }}</strong> {{ preview.course.title }}
         </div>
 
         <div class="preview-stats">
           <div class="stat-card success">
             <span class="stat-value">{{ preview.summary.will_enroll }}</span>
-            <span class="stat-label">Will be enrolled</span>
+            <span class="stat-label">{{ 'admin.enroll.will_be_enrolled' | translate }}</span>
           </div>
           <div class="stat-card warning">
             <span class="stat-value">{{ preview.summary.already_enrolled }}</span>
-            <span class="stat-label">Already enrolled</span>
+            <span class="stat-label">{{ 'admin.enroll.already_enrolled' | translate }}</span>
           </div>
           <div class="stat-card info">
             <span class="stat-value">{{ preview.summary.total_users }}</span>
-            <span class="stat-label">Total users</span>
+            <span class="stat-label">{{ 'admin.enroll.total_users' | translate }}</span>
           </div>
         </div>
 
         <div class="preview-lists">
           <div class="preview-list" *ngIf="preview.users_to_enroll.length > 0">
-            <h5><i class="bi bi-person-plus text-success"></i> Users to Enroll</h5>
+            <h5><i class="bi bi-person-plus text-success"></i> {{ 'admin.enroll.users_to_enroll' | translate }}</h5>
             <ul>
               <li *ngFor="let user of preview.users_to_enroll">
                 {{ user.name }} <small class="text-muted">({{ user.email }})</small>
@@ -378,7 +378,7 @@
           </div>
 
           <div class="preview-list" *ngIf="preview.users_already_enrolled.length > 0">
-            <h5><i class="bi bi-person-check text-warning"></i> Already Enrolled (Skipped)</h5>
+            <h5><i class="bi bi-person-check text-warning"></i> {{ 'admin.enroll.already_enrolled_skipped' | translate }}</h5>
             <ul>
               <li *ngFor="let user of preview.users_already_enrolled">
                 {{ user.name }} <small class="text-muted">({{ user.email }})</small>
@@ -388,22 +388,22 @@
         </div>
 
         <div class="enrollment-settings-preview">
-          <span *ngIf="isMandatory" class="badge bg-danger">Mandatory</span>
-          <span *ngIf="dueDate" class="badge bg-info">Due Date: {{ dueDate }}</span>
-          <span *ngIf="notifyUsers" class="badge bg-secondary">Email notifications enabled</span>
+          <span *ngIf="isMandatory" class="badge bg-danger">{{ 'admin.enroll.mandatory' | translate }}</span>
+          <span *ngIf="dueDate" class="badge bg-info">{{ 'admin.enroll.due_date_label' | translate }} {{ dueDate }}</span>
+          <span *ngIf="notifyUsers" class="badge bg-secondary">{{ 'admin.enroll.email_enabled' | translate }}</span>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closePreviewModal()">Cancel</button>
+        <button class="btn btn-secondary" (click)="closePreviewModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-success btn-lg"
                 (click)="confirmEnrollment()"
                 [disabled]="enrolling || preview?.summary?.will_enroll === 0">
           <span *ngIf="!enrolling">
-            <i class="bi bi-check-circle me-2"></i>Confirm Enrollment
+            <i class="bi bi-check-circle me-2"></i>{{ 'admin.enroll.confirm_enrollment' | translate }}
           </span>
           <span *ngIf="enrolling">
-            <span class="spinner-border spinner-border-sm me-2"></span>Enrolling...
+            <span class="spinner-border spinner-border-sm me-2"></span>{{ 'admin.enroll.enrolling' | translate }}
           </span>
         </button>
       </div>
@@ -416,7 +416,7 @@
              [class.text-success]="result?.summary?.enrolled_count! > 0"
              [class.bi-exclamation-circle-fill]="result?.summary?.enrolled_count === 0"
              [class.text-warning]="result?.summary?.enrolled_count === 0"></i>
-          Enrollment Complete
+          {{ 'admin.enroll.complete_title' | translate }}
         </h3>
         <button class="btn-close" (click)="closeResultModal()"></button>
       </div>
@@ -429,20 +429,20 @@
         <div class="result-stats">
           <div class="stat-card success">
             <span class="stat-value">{{ result.summary.enrolled_count }}</span>
-            <span class="stat-label">Enrolled</span>
+            <span class="stat-label">{{ 'admin.enroll.enrolled' | translate }}</span>
           </div>
           <div class="stat-card warning">
             <span class="stat-value">{{ result.summary.skipped_count }}</span>
-            <span class="stat-label">Skipped</span>
+            <span class="stat-label">{{ 'admin.enroll.skipped' | translate }}</span>
           </div>
           <div class="stat-card danger" *ngIf="result.summary.failed_count > 0">
             <span class="stat-value">{{ result.summary.failed_count }}</span>
-            <span class="stat-label">Failed</span>
+            <span class="stat-label">{{ 'admin.enroll.failed' | translate }}</span>
           </div>
         </div>
 
         <div class="result-details" *ngIf="result.enrolled.length > 0">
-          <h5>Successfully Enrolled:</h5>
+          <h5>{{ 'admin.enroll.successfully_enrolled' | translate }}</h5>
           <div class="enrolled-list">
             <span class="enrolled-chip" *ngFor="let user of result.enrolled">
               {{ user.first_name }} {{ user.last_name }}
@@ -451,14 +451,14 @@
         </div>
 
         <div class="result-details warning" *ngIf="result.skipped.length > 0">
-          <h5>Skipped (Already Enrolled):</h5>
+          <h5>{{ 'admin.enroll.skipped_already' | translate }}</h5>
           <ul>
             <li *ngFor="let user of result.skipped">{{ user.name }} - {{ user.reason }}</li>
           </ul>
         </div>
 
         <div class="result-details danger" *ngIf="result.failed.length > 0">
-          <h5>Failed:</h5>
+          <h5>{{ 'admin.enroll.failed_label' | translate }}</h5>
           <ul>
             <li *ngFor="let user of result.failed">{{ user.name }} - {{ user.reason }}</li>
           </ul>
@@ -467,7 +467,7 @@
 
       <div class="modal-footer">
         <button class="btn btn-primary btn-lg" (click)="startNewEnrollment()">
-          <i class="bi bi-plus-circle me-2"></i>New Enrollment
+          <i class="bi bi-plus-circle me-2"></i>{{ 'admin.enroll.new_enrollment' | translate }}
         </button>
       </div>
     </div>

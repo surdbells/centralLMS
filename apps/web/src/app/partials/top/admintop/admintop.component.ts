@@ -12,6 +12,8 @@ import { SessionStore } from '../../../core/auth/session.store';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ApiClient, AuthImgDirective } from '../../../core/api';
 import { BrandingService } from '../../../core/branding.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
 export interface Notifications {
@@ -47,6 +49,7 @@ export interface Notifications {
     RouterLinkActive,
     TuiIcon,
     AuthImgDirective,
+    TranslatePipe,
   ],
   templateUrl: './admintop.component.html',
   styleUrl: './admintop.component.css',
@@ -61,6 +64,7 @@ export class AdmintopComponent implements OnInit, OnDestroy {
   readonly branding = inject(BrandingService);
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   notifications?: Notifications[];
@@ -195,7 +199,7 @@ export class AdmintopComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => this.get_notifications(),
         error: () => {
-          this.error_notification('Could not mark them as read.');
+          this.error_notification(this.i18n.t('notifications.mark_read_error'));
           this.ui_controls.is_loading = false;
         },
       });
@@ -229,7 +233,7 @@ export class AdmintopComponent implements OnInit, OnDestroy {
   }
 
   private leave(): void {
-    this.success_notification('User logged out successfully.');
+    this.success_notification(this.i18n.t('auth.logged_out'));
     void this.router.navigate(['/']);
   }
 }

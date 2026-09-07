@@ -15,6 +15,8 @@ import { LookupsService, type Lookup } from '../../../services/lookups.service';
 import { UsersService, type UserOption } from '../../../services/users.service';
 import { ApiError } from '../../../core/api';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * The details of one course. Not its content — that is the builder.
@@ -31,7 +33,7 @@ import { AdmintopComponent } from '../../../partials/top/admintop/admintop.compo
 @Component({
   selector: 'app-course-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   templateUrl: './course-edit.component.html',
 })
 export class CourseEditComponent implements OnInit, OnDestroy {
@@ -40,6 +42,7 @@ export class CourseEditComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   courseId: string | null = null;
@@ -169,7 +172,7 @@ export class CourseEditComponent implements OnInit, OnDestroy {
         this.apply(course);
 
         if (this.isEdit) {
-          this.notice = 'Saved.';
+          this.notice = this.i18n.t('admin.course_edit.toast_saved');
 
           return;
         }
@@ -211,8 +214,8 @@ export class CourseEditComponent implements OnInit, OnDestroy {
           this.publishing = false;
           this.status = course.status;
           this.notice = status === 'published'
-            ? 'Published. It is in the catalogue now.'
-            : `Status changed to ${course.status}.`;
+            ? this.i18n.t('admin.course_edit.toast_published')
+            : this.i18n.t('admin.course_edit.toast_status_changed', { status: this.i18n.t('admin.courses.' + course.status) });
         },
         error: (error: ApiError) => {
           this.publishing = false;

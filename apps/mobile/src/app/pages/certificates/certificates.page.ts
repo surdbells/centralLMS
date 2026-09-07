@@ -4,13 +4,14 @@ import { LearnerService } from '../../core/learner.service';
 import { Certificate } from '../../core/models';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { TranslatePipe } from '../../core/translate.pipe';
 
 @Component({
   selector: 'app-certificates',
   standalone: true,
   imports: [
     IonContent, IonIcon, IonRefresher, IonRefresherContent, IonSkeletonText,
-    BrandHeaderComponent, EmptyStateComponent,
+    BrandHeaderComponent, EmptyStateComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -18,7 +19,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Certificates" subtitle="Your earned credentials" back></app-brand-header>
+      <app-brand-header [title]="'actions.certificates' | translate" [subtitle]="'certificates.subtitle' | translate" back></app-brand-header>
 
       <div class="pad">
         @if (loading()) {
@@ -26,15 +27,15 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
         } @else if (failed()) {
           <app-empty-state
             icon="cloud-offline-outline"
-            title="Couldn't load your certificates"
-            message="Check your connection and try again."
-            actionLabel="Try again"
+            [title]="'certificates.load_error_title' | translate"
+            [message]="'common.offline' | translate"
+            [actionLabel]="'common.retry' | translate"
             (action)="load()"></app-empty-state>
         } @else if (!certs().length) {
           <app-empty-state
             icon="ribbon-outline"
-            title="No certificates yet"
-            message="Finish a course or pass an assessment to earn your first one."></app-empty-state>
+            [title]="'certificates.empty_title' | translate"
+            [message]="'certificates.empty_msg' | translate"></app-empty-state>
         } @else {
           @for (c of certs(); track c.id) {
             <div class="cert rise">
@@ -42,7 +43,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
                 <ion-icon name="ribbon" aria-hidden="true"></ion-icon>
                 <div class="cert-seal-tx">
                   <p class="cert-src">{{ c.sourceLabel }}</p>
-                  <p class="cert-issued">Issued {{ fmt(c.issuedAt) }}</p>
+                  <p class="cert-issued">{{ 'certificates.issued_on' | translate:{ date: fmt(c.issuedAt) } }}</p>
                 </div>
                 @if (c.grade) { <span class="cert-grade">{{ c.grade }}</span> }
               </div>
@@ -52,15 +53,15 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
 
                 <div class="cert-stats">
                   @if (c.percentage !== null) {
-                    <div class="cs"><span class="csv">{{ c.percentage }}%</span><span class="csk">Score</span></div>
+                    <div class="cs"><span class="csv">{{ c.percentage }}%</span><span class="csk">{{ 'certificates.score' | translate }}</span></div>
                   }
-                  <div class="cs"><span class="csv">{{ shortDate(c.issuedAt) }}</span><span class="csk">Issued</span></div>
-                  <div class="cs"><span class="csv">{{ c.validUntil ? shortDate(c.validUntil) : 'No expiry' }}</span><span class="csk">Valid until</span></div>
+                  <div class="cs"><span class="csv">{{ shortDate(c.issuedAt) }}</span><span class="csk">{{ 'certificates.issued' | translate }}</span></div>
+                  <div class="cs"><span class="csv">{{ c.validUntil ? shortDate(c.validUntil) : ('certificates.no_expiry' | translate) }}</span><span class="csk">{{ 'certificates.valid_until' | translate }}</span></div>
                 </div>
 
                 <div class="cert-ids">
-                  <div class="cid"><span class="k">Certificate no.</span><span class="v">{{ c.number }}</span></div>
-                  <div class="cid"><span class="k">Verification code</span><span class="v mono">{{ c.verificationCode }}</span></div>
+                  <div class="cid"><span class="k">{{ 'certificates.certificate_no' | translate }}</span><span class="v">{{ c.number }}</span></div>
+                  <div class="cid"><span class="k">{{ 'certificates.verification_code' | translate }}</span><span class="v mono">{{ c.verificationCode }}</span></div>
                 </div>
 
                 <div class="cert-foot">
@@ -69,7 +70,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
                     {{ c.statusLabel }}
                   </span>
                   @if (c.daysRemaining !== null && c.daysRemaining > 0 && c.daysRemaining <= 60) {
-                    <span class="cert-exp">Expires in {{ c.daysRemaining }} days</span>
+                    <span class="cert-exp">{{ 'certificates.expires_in_days' | translate:{ days: c.daysRemaining } }}</span>
                   }
                 </div>
               </div>

@@ -12,6 +12,8 @@ import { ListComponent } from '../../components/list/list.component';
 import { ButtonComponent } from '../../components/button/button.component';
 import { SheetComponent } from '../../components/sheet/sheet.component';
 import { AvatarComponent } from '../../components/avatar/avatar.component';
+import { I18nService, LangCode } from '../../core/i18n.service';
+import { TranslatePipe } from '../../core/translate.pipe';
 
 interface Row {
   readonly icon: string;
@@ -24,7 +26,7 @@ interface Row {
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [IonContent, IonIcon, ListComponent, ButtonComponent, SheetComponent, AvatarComponent],
+  imports: [IonContent, IonIcon, ListComponent, ButtonComponent, SheetComponent, AvatarComponent, TranslatePipe],
   template: `
     <ion-content [fullscreen]="true">
       <div class="wrap">
@@ -86,6 +88,12 @@ interface Row {
             <span class="val">{{ themeLabel() }}</span>
             <ion-icon class="chev" name="chevron-forward" aria-hidden="true"></ion-icon>
           </button>
+          <button class="row" (click)="langOpen.set(true)">
+            <span class="ic" data-tone="green"><ion-icon name="language-outline"></ion-icon></span>
+            <span class="tx"><span class="t">{{ 'profile.language' | translate }}</span><span class="s">{{ 'settings.choose_language' | translate }}</span></span>
+            <span class="val">{{ langLabel() }}</span>
+            <ion-icon class="chev" name="chevron-forward" aria-hidden="true"></ion-icon>
+          </button>
         </app-list>
 
         <!-- About -->
@@ -111,6 +119,18 @@ interface Row {
               <span class="opt-ic"><ion-icon [name]="o.icon"></ion-icon></span>
               <span class="opt-tx"><span class="opt-t">{{ o.label }}</span><span class="opt-s">{{ o.hint }}</span></span>
               @if (mode() === o.value) { <ion-icon class="opt-chk" name="checkmark" aria-hidden="true"></ion-icon> }
+            </button>
+          }
+        </div>
+      </app-sheet>
+
+      <app-sheet [(open)]="langOpen" [title]="'profile.language' | translate" [subtitle]="'settings.choose_language' | translate">
+        <div class="opts">
+          @for (l of languages; track l.code) {
+            <button class="opt" [class.active]="i18n.lang() === l.code" (click)="pickLang(l.code)">
+              <span class="opt-ic">{{ l.flag }}</span>
+              <span class="opt-tx"><span class="opt-t">{{ l.native }}</span><span class="opt-s">{{ l.label }}</span></span>
+              @if (i18n.lang() === l.code) { <ion-icon class="opt-chk" name="checkmark" aria-hidden="true"></ion-icon> }
             </button>
           }
         </div>
@@ -209,6 +229,7 @@ export class ProfilePage {
   private readonly theme = inject(ThemeService);
   private readonly branding = inject(BrandingService);
   private readonly router = inject(Router);
+  readonly i18n = inject(I18nService);
 
   private readonly profile = signal<Profile | null>(null);
 
@@ -250,6 +271,21 @@ export class ProfilePage {
     const m = this.mode();
     return m.charAt(0).toUpperCase() + m.slice(1);
   });
+
+  readonly langOpen = signal(false);
+  readonly languages: Array<{ code: LangCode; label: string; native: string; flag: string }> = [
+    { code: 'en', label: 'English', native: 'English', flag: '🇬🇧' },
+    { code: 'fr', label: 'French', native: 'Français', flag: '🇫🇷' },
+    { code: 'ar', label: 'Arabic', native: 'العربية', flag: '🇸🇦' },
+  ];
+  readonly langLabel = computed(() =>
+    this.languages.find((l) => l.code === this.i18n.lang())?.native ?? 'English',
+  );
+
+  pickLang(code: LangCode): void {
+    void this.i18n.use(code);
+    this.langOpen.set(false);
+  }
 
   // ionViewWillEnter (not ngOnInit) so returning from Edit Profile re-reads the
   // record — a changed name or a new photo shows without a manual refresh.

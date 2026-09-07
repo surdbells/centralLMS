@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -17,11 +17,13 @@ import {
 } from '../../interfaces/learning-path.interfaces';
 import { FormsModule } from '@angular/forms';
 import {TopComponent} from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learning-path-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe],
   templateUrl: './learning-path-viewer.component.html',
   styleUrls: ['./learning-path-viewer.component.scss']
 })
@@ -99,6 +101,8 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   skillLevels = SKILL_LEVELS;
   itemTypes = ITEM_TYPES;
   progressStatuses = PROGRESS_STATUSES;
+
+  private readonly i18n = inject(I18nService);
 
   constructor(
     private route: ActivatedRoute,
@@ -225,7 +229,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   submitReview(): void {
     const p = this.path();
     if (!p || this.reviewRating() < 1) {
-      this.reviewError.set('Choose a rating first.');
+      this.reviewError.set(this.i18n.t('paths.choose_rating'));
       return;
     }
 
@@ -253,7 +257,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.savingReview.set(false);
-          this.reviewError.set(error?.message || 'Could not save your review.');
+          this.reviewError.set(error?.message || this.i18n.t('paths.review_save_error'));
         }
       });
   }
@@ -265,7 +269,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   }
 
   reportReview(review: LearningPathReview): void {
-    const reason = prompt('What is wrong with this review?')?.trim();
+    const reason = prompt(this.i18n.t('paths.report_prompt'))?.trim();
 
     if (!reason) {
       return;
@@ -289,7 +293,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Enrollment failed:', error);
-        alert(error.error?.error || 'Failed to enroll');
+        alert(error.error?.error || this.i18n.t('paths.enroll_failed'));
         this.enrolling.set(false);
       }
     });
@@ -373,7 +377,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
         this.loadProgress(p.path_id);
         if (result.path_completed) {
           // Show completion modal or redirect
-          alert('Congratulations! You have completed this learning path!');
+          alert(this.i18n.t('paths.path_completed_alert'));
         }
       }
     });
@@ -383,7 +387,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     const p = this.path();
     if (!p) return;
 
-    if (confirm('Are you sure you want to withdraw from this learning path? Your progress will be saved.')) {
+    if (confirm(this.i18n.t('paths.withdraw_confirm'))) {
       this.learningPathService.withdraw(p.path_id).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.enrollment.set(null);
@@ -421,14 +425,14 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
 
   formatDuration(hours: number | null): string {
     if (!hours) return '';
-    if (hours < 1) return `${Math.round(hours * 60)} min`;
-    if (hours === 1) return '1 hour';
-    return `${hours} hours`;
+    if (hours < 1) return this.i18n.t('paths.minutes', { count: Math.round(hours * 60) });
+    if (hours === 1) return this.i18n.t('paths.one_hour');
+    return this.i18n.t('paths.hours', { count: hours });
   }
 
   formatMinutes(minutes: number | null): string {
     if (!minutes) return '';
-    if (minutes < 60) return `${minutes} min`;
+    if (minutes < 60) return this.i18n.t('paths.minutes', { count: minutes });
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;

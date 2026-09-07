@@ -13,9 +13,9 @@
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p>Loading settings...</p>
+    <p>{{ 'tenant.loading_settings' | translate }}</p>
   </div>
 
   <div class="settings-content" *ngIf="!loading && tenant">
@@ -33,13 +33,13 @@
       <!-- ============ The organisation itself ============ -->
       <div class="panel-content" *ngIf="activeTab === 'organisation'">
         <div class="panel-header">
-          <h2>Organisation</h2>
-          <p>What your organisation is called, and how to reach it.</p>
+          <h2>{{ 'tenant.organisation' | translate }}</h2>
+          <p>{{ 'tenant.organisation_desc' | translate }}</p>
         </div>
 
         <div class="info-card">
           <div class="info-card-header">
-            <h3>Details</h3>
+            <h3>{{ 'tenant.details' | translate }}</h3>
             <span class="badge" [class.bg-success]="tenant.status === 'active'"
                   [class.bg-secondary]="tenant.status !== 'active'">
               {{ tenant.status | titlecase }}
@@ -48,59 +48,58 @@
 
           <div class="info-grid">
             <div class="info-item">
-              <label class="form-label">Organisation name</label>
+              <label class="form-label">{{ 'tenant.organisation_name' | translate }}</label>
               <input type="text" class="form-control" [(ngModel)]="tenantForm['name']">
             </div>
             <div class="info-item">
-              <label class="form-label">Code</label>
+              <label class="form-label">{{ 'tenant.code' | translate }}</label>
               <input type="text" class="form-control" [value]="tenant.code" disabled>
               <small class="text-muted">
-                The tail of your registration and sign-in links. Changing it would break
-                every link already handed out, so it is fixed.
+                {{ 'tenant.code_help' | translate }}
               </small>
             </div>
             <div class="info-item">
-              <label class="form-label">Contact email</label>
+              <label class="form-label">{{ 'tenant.contact_email' | translate }}</label>
               <input type="email" class="form-control" [(ngModel)]="tenantForm['contactEmail']">
             </div>
             <div class="info-item">
-              <label class="form-label">Contact phone</label>
+              <label class="form-label">{{ 'tenant.contact_phone' | translate }}</label>
               <input type="tel" class="form-control" [(ngModel)]="tenantForm['contactPhone']">
             </div>
             <div class="info-item full-width">
-              <label class="form-label">Address</label>
+              <label class="form-label">{{ 'tenant.address' | translate }}</label>
               <input type="text" class="form-control" [(ngModel)]="tenantForm['address']">
             </div>
             <div class="info-item">
-              <label class="form-label">Domain</label>
+              <label class="form-label">{{ 'tenant.domain' | translate }}</label>
               <input type="text" class="form-control" [(ngModel)]="tenantForm['domain']"
                      placeholder="acme.com">
             </div>
             <div class="info-item">
-              <label class="form-label">Industry</label>
+              <label class="form-label">{{ 'tenant.industry' | translate }}</label>
               <input type="text" class="form-control" [(ngModel)]="tenantForm['industry']">
             </div>
             <div class="info-item full-width">
-              <label class="form-label">Logo</label>
+              <label class="form-label">{{ 'tenant.logo' | translate }}</label>
               <input type="url" class="form-control" [(ngModel)]="tenantForm['logoUrl']"
                      placeholder="https://…">
               <small class="text-muted">
-                Must be https, or browsers refuse to load it on a secure page.
+                {{ 'tenant.logo_help' | translate }}
               </small>
             </div>
           </div>
 
           <div class="info-card-footer" *ngIf="tenantHasChanges">
             <button class="btn btn-primary" (click)="saveTenant()" [disabled]="saving">
-              <span *ngIf="!saving">Save changes</span>
-              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving…</span>
+              <span *ngIf="!saving">{{ 'common.save_changes' | translate }}</span>
+              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
             </button>
           </div>
         </div>
 
         <!-- Usage. Counted at read time, never stored. -->
         <div class="stats-section">
-          <h3>Usage</h3>
+          <h3>{{ 'tenant.usage' | translate }}</h3>
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-icon users"><i class="bi bi-people-fill"></i></div>
@@ -108,29 +107,29 @@
                 <span class="stat-value">
                   {{ tenant.usage.users }}<span *ngIf="tenant.limits.users"> / {{ tenant.limits.users }}</span>
                 </span>
-                <span class="stat-label">People</span>
+                <span class="stat-label">{{ 'tenant.people' | translate }}</span>
               </div>
             </div>
             <div class="stat-card">
               <div class="stat-icon courses"><i class="bi bi-journal-bookmark-fill"></i></div>
               <div class="stat-content">
                 <span class="stat-value">{{ tenant.usage.courses }}</span>
-                <span class="stat-label">Courses</span>
+                <span class="stat-label">{{ 'nav.courses' | translate }}</span>
               </div>
             </div>
             <div class="stat-card">
               <div class="stat-icon storage"><i class="bi bi-hdd-fill"></i></div>
               <div class="stat-content">
                 <span class="stat-value">{{ tenant.usage.storageMb }} MB</span>
-                <span class="stat-label">Storage used</span>
+                <span class="stat-label">{{ 'tenant.storage_used' | translate }}</span>
               </div>
             </div>
           </div>
 
           <div class="storage-progress-card" *ngIf="tenant.limits.storage">
             <div class="storage-info">
-              <span>Storage</span>
-              <span>{{ tenant.usage.storageMb }} MB of {{ tenant.limits.storage }} MB</span>
+              <span>{{ 'tenant.storage' | translate }}</span>
+              <span>{{ tenant.usage.storageMb }} MB {{ 'common.of' | translate }} {{ tenant.limits.storage }} MB</span>
             </div>
             <div class="progress">
               <div class="progress-bar" [style.width.%]="storagePercentage"
@@ -203,12 +202,12 @@
         <div class="panel-footer">
           <button class="btn btn-outline-secondary" (click)="resetCategory(activeTab)"
                   [disabled]="saving">
-            Reset to defaults
+            {{ 'tenant.reset_to_defaults' | translate }}
           </button>
           <button class="btn btn-primary" (click)="saveCategory(activeTab)"
                   [disabled]="saving || !hasChanges(activeTab)">
-            <span *ngIf="!saving">Save changes</span>
-            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving…</span>
+            <span *ngIf="!saving">{{ 'common.save_changes' | translate }}</span>
+            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
           </button>
         </div>
       </div>
@@ -216,10 +215,9 @@
       <!-- ============ Email templates ============ -->
       <div class="panel-content" *ngIf="activeTab === 'email'">
         <div class="panel-header">
-          <h2>Email templates</h2>
+          <h2>{{ 'tenant.email_templates' | translate }}</h2>
           <p>
-            What your transactional email says. Anything you leave alone keeps the
-            standard wording.
+            {{ 'tenant.email_templates_desc' | translate }}
           </p>
         </div>
 
@@ -233,7 +231,7 @@
                 <div class="history-header">
                   <strong>{{ t.label }}</strong>
                   <span class="chip" [class.bg-success]="!t.usesDefault">
-                    {{ t.usesDefault ? 'Standard wording' : 'Your wording' }}
+                    {{ (t.usesDefault ? 'tenant.standard_wording' : 'tenant.your_wording') | translate }}
                   </span>
                 </div>
                 <div class="history-changes">{{ t.default.title }}</div>
@@ -247,37 +245,36 @@
           <div class="info-card-header">
             <h3>{{ editingTemplate.label }}</h3>
             <button class="btn btn-sm btn-outline-secondary" (click)="closeTemplate()">
-              <i class="bi bi-arrow-left me-1"></i>All templates
+              <i class="bi bi-arrow-left me-1"></i>{{ 'tenant.all_templates' | translate }}
             </button>
           </div>
 
           <div class="form-group full-width">
-            <label class="form-label" for="tplSubject">Subject</label>
+            <label class="form-label" for="tplSubject">{{ 'tenant.subject' | translate }}</label>
             <input class="form-control" id="tplSubject" type="text"
                    [(ngModel)]="templateForm.subject"
                    [placeholder]="editingTemplate.default.title">
-            <small class="text-muted">Leave empty to keep the standard subject.</small>
+            <small class="text-muted">{{ 'tenant.subject_help' | translate }}</small>
           </div>
 
           <div class="form-group full-width">
-            <label class="form-label" for="tplBody">Body</label>
+            <label class="form-label" for="tplBody">{{ 'tenant.body' | translate }}</label>
             <app-rich-html-editor #bodyEditor [(ngModel)]="templateForm.body"
                                   [placeholder]="editingTemplate.default.body"></app-rich-html-editor>
             <small class="text-muted">
-              Rich HTML - format it here, or switch to source with the
-              <i class="bi bi-code-slash"></i> button. Leave empty to keep the standard wording.
+              {{ 'tenant.body_help_before' | translate }}
+              <i class="bi bi-code-slash"></i> {{ 'tenant.body_help_after' | translate }}
             </small>
           </div>
 
           <div class="form-group full-width">
-            <label class="form-label">Insert</label>
+            <label class="form-label">{{ 'tenant.insert' | translate }}</label>
             <div class="file-type-chips">
               <button type="button" class="chip" *ngFor="let p of placeholders"
                       (click)="bodyEditor.insert('{{' + p + '}}')">{{ '{{' + p + '}}' }}</button>
             </div>
             <small class="text-muted">
-              <code>{{ '{{default_body}}' }}</code> is the standard wording, so you can wrap
-              it rather than rewrite it.
+              <code>{{ '{{default_body}}' }}</code> {{ 'tenant.default_body_help' | translate }}
             </small>
           </div>
 
@@ -285,7 +282,7 @@
             <input class="form-check-input" type="checkbox" id="tplEnabled"
                    [(ngModel)]="templateForm.enabled">
             <label class="form-check-label" for="tplEnabled">
-              Use this wording. Off keeps it here and sends the standard one.
+              {{ 'tenant.use_this_wording' | translate }}
             </label>
           </div>
 
@@ -297,11 +294,11 @@
 
           <div class="panel-footer">
             <button class="btn btn-outline-secondary" (click)="resetTemplate()" [disabled]="saving">
-              Back to standard
+              {{ 'tenant.back_to_standard' | translate }}
             </button>
             <button class="btn btn-primary" (click)="saveTemplate()" [disabled]="saving">
-              <span *ngIf="!saving">Save</span>
-              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> Saving…</span>
+              <span *ngIf="!saving">{{ 'common.save' | translate }}</span>
+              <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
             </button>
           </div>
         </div>

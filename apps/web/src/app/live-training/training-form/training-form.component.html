@@ -5,7 +5,7 @@
     <!-- The way back, and the way this screen used to be dismissed. -->
     <div class="mb-3">
       <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>Back to Live Training
+        <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
       </button>
     </div>
 
@@ -13,18 +13,18 @@
       <div>
         <h1 class="page-title mb-1">
           <i class="bi bi-camera-video me-2"></i>
-          {{ isEditMode ? 'Edit training' : 'New live training' }}
+          {{ (isEditMode ? 'live.form.edit_title' : 'live.form.new_title') | translate }}
         </h1>
         <p class="text-muted mb-0">
-          What the programme is, and the rules its sessions run by.
+          {{ 'live.form.subtitle' | translate }}
         </p>
       </div>
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-secondary" (click)="goBack()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="goBack()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveTraining()"
                 [disabled]="saving || !editingTraining.title">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          {{ isEditMode ? 'Save changes' : 'Create training' }}
+          {{ (isEditMode ? 'live.form.save_changes' : 'live.form.create_training') | translate }}
         </button>
       </div>
     </div>
@@ -36,82 +36,82 @@
         <div class="row g-4">
           <!-- Basic Info -->
           <div class="col-12">
-            <label class="form-label">Title <span class="text-danger">*</span></label>
+            <label class="form-label">{{ 'live.common.title_label' | translate }} <span class="text-danger">*</span></label>
             <input type="text" class="form-control" [(ngModel)]="editingTraining.title"
-                   placeholder="Enter training title">
+                   placeholder="{{ 'live.form.title_placeholder' | translate }}">
           </div>
           <div class="col-12">
-            <label class="form-label">Description</label>
+            <label class="form-label">{{ 'live.common.description' | translate }}</label>
             <textarea class="form-control" rows="3" [(ngModel)]="editingTraining.description"
-                      placeholder="Training description"></textarea>
+                      placeholder="{{ 'live.form.description_placeholder' | translate }}"></textarea>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Training Type</label>
+            <label class="form-label">{{ 'live.form.training_type' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingTraining.training_type">
               <option *ngFor="let type of trainingTypes" [value]="type">{{ type | titlecase }}</option>
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Status</label>
+            <label class="form-label">{{ 'live.common.status' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingTraining.status">
               <option *ngFor="let status of trainingStatuses" [value]="status">{{ status | titlecase }}</option>
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Max Capacity</label>
+            <label class="form-label">{{ 'live.form.max_capacity' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.max_capacity"
-                   placeholder="Leave empty for unlimited">
+                   placeholder="{{ 'live.form.capacity_placeholder' | translate }}">
           </div>
           <div class="col-md-6">
             <div class="form-check mt-4">
               <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.allow_waitlist" id="allowWaitlist">
-              <label class="form-check-label" for="allowWaitlist">Allow waitlist when full</label>
+              <label class="form-check-label" for="allowWaitlist">{{ 'live.form.allow_waitlist' | translate }}</label>
             </div>
           </div>
-        
+
           <!-- Certification -->
           <div class="col-12">
             <hr>
             <div class="form-check">
               <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.certification_enabled" id="certEnabled">
-              <label class="form-check-label fw-medium" for="certEnabled">Enable Certification</label>
+              <label class="form-check-label fw-medium" for="certEnabled">{{ 'live.form.enable_certification' | translate }}</label>
             </div>
           </div>
           <div class="col-md-6" *ngIf="editingTraining.certification_enabled">
-            <label class="form-label">Minimum Attendance %</label>
+            <label class="form-label">{{ 'live.form.min_attendance' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.min_attendance_percentage"
                    min="0" max="100">
           </div>
           <div class="col-md-6" *ngIf="editingTraining.certification_enabled">
             <div class="form-check mt-4">
               <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.auto_issue_certificate" id="autoIssue">
-              <label class="form-check-label" for="autoIssue">Auto-issue on completion</label>
+              <label class="form-check-label" for="autoIssue">{{ 'live.form.auto_issue' | translate }}</label>
             </div>
           </div>
-        
+
           <!-- Reminders -->
           <div class="col-12">
             <hr>
-            <label class="form-label fw-medium">Reminders</label>
+            <label class="form-label fw-medium">{{ 'live.common.reminders' | translate }}</label>
             <div class="d-flex gap-4 flex-wrap">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_24h" id="r24h">
-                <label class="form-check-label" for="r24h">24 hours before</label>
+                <label class="form-check-label" for="r24h">{{ 'live.common.reminder_24h' | translate }}</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_1h" id="r1h">
-                <label class="form-check-label" for="r1h">1 hour before</label>
+                <label class="form-check-label" for="r1h">{{ 'live.common.reminder_1h' | translate }}</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_15m" id="r15m">
-                <label class="form-check-label" for="r15m">15 minutes before</label>
+                <label class="form-check-label" for="r15m">{{ 'live.common.reminder_15m' | translate }}</label>
               </div>
             </div>
           </div>
-        
+
           <!-- Reminder Channels -->
           <div class="col-12">
-            <label class="form-label">Notification Channels</label>
+            <label class="form-label">{{ 'live.form.notification_channels' | translate }}</label>
             <div class="d-flex gap-3 flex-wrap">
               <div class="form-check" *ngFor="let channel of reminderChannels">
                 <input class="form-check-input" type="checkbox"
@@ -122,39 +122,39 @@
               </div>
             </div>
           </div>
-        
+
           <!-- Attendance Settings -->
           <div class="col-12">
             <hr>
-            <label class="form-label fw-medium">Attendance Settings</label>
+            <label class="form-label fw-medium">{{ 'live.form.attendance_settings' | translate }}</label>
           </div>
           <div class="col-md-4">
-            <label class="form-label">QR Grace Period (min)</label>
+            <label class="form-label">{{ 'live.form.qr_grace' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.qr_grace_period_minutes">
           </div>
           <div class="col-md-4">
-            <label class="form-label">QR Valid Before Start (min)</label>
+            <label class="form-label">{{ 'live.form.qr_valid_before' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.qr_valid_before_start_minutes">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Min Virtual Duration (min)</label>
+            <label class="form-label">{{ 'live.form.min_virtual_duration' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.min_virtual_duration_minutes">
           </div>
         </div>
       </div>
       <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-secondary" (click)="goBack()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="goBack()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveTraining()"
                 [disabled]="saving || !editingTraining.title">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          {{ isEditMode ? 'Save changes' : 'Create training' }}
+          {{ (isEditMode ? 'live.form.save_changes' : 'live.form.create_training') | translate }}
         </button>
       </div>
     </div>
 
     <div class="text-center py-5" *ngIf="loading">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading…</span>
+        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
     </div>
   </div>

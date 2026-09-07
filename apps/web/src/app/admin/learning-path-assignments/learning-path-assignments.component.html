@@ -8,15 +8,15 @@
           <div>
             <nav aria-label="breadcrumb">
               <ol class="breadcrumb mb-1">
-                <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
+                <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
                 <li class="breadcrumb-item" *ngIf="path"><a [routerLink]="['/admin/learning-paths', path.path_id]">{{ path.title }}</a></li>
-                <li class="breadcrumb-item active">Assignments</li>
+                <li class="breadcrumb-item active">{{ 'paths_admin.assignments' | translate }}</li>
               </ol>
             </nav>
-            <h1 class="h3 mb-0">Assignments</h1>
+            <h1 class="h3 mb-0">{{ 'paths_admin.assignments' | translate }}</h1>
           </div>
           <button class="btn btn-primary" (click)="openAssignModal()">
-            <i class="bi bi-plus-lg me-2"></i>Create Assignment
+            <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.assign.create_assignment' | translate }}
           </button>
         </div>
       </div>
@@ -25,16 +25,16 @@
       <div class="card">
         <div class="card-body text-center py-5" *ngIf="loading">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
           </div>
         </div>
 
         <div class="card-body text-center py-5" *ngIf="!loading && assignments.length === 0">
           <i class="bi bi-person-plus display-4 text-muted"></i>
-          <h5 class="mt-3">No Assignments</h5>
-          <p class="text-muted">Create an assignment to enroll users in bulk.</p>
+          <h5 class="mt-3">{{ 'paths_admin.assign.no_assignments' | translate }}</h5>
+          <p class="text-muted">{{ 'paths_admin.assign.no_assignments_text' | translate }}</p>
           <button class="btn btn-primary" (click)="openAssignModal()">
-            <i class="bi bi-plus-lg me-2"></i>Create Assignment
+            <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.assign.create_assignment' | translate }}
           </button>
         </div>
 
@@ -42,12 +42,12 @@
           <table class="table table-hover align-middle mb-0">
             <thead>
             <tr>
-              <th>Target</th>
-              <th>Type</th>
-              <th>Due Date</th>
-              <th>Priority</th>
-              <th>Status</th>
-              <th>Created</th>
+              <th>{{ 'paths_admin.assign.target' | translate }}</th>
+              <th>{{ 'paths_admin.assign.type' | translate }}</th>
+              <th>{{ 'paths.due_date' | translate }}</th>
+              <th>{{ 'paths_admin.assign.priority' | translate }}</th>
+              <th>{{ 'paths_admin.status' | translate }}</th>
+              <th>{{ 'paths_admin.created' | translate }}</th>
               <th></th>
             </tr>
             </thead>
@@ -61,8 +61,8 @@
               </td>
               <td>
                 <span *ngIf="assignment.due_date">{{ assignment.due_date | date:'MMM d, yyyy' }}</span>
-                <span *ngIf="!assignment.due_date && assignment.due_days_from_assignment">{{ assignment.due_days_from_assignment }} days from enrollment</span>
-                <span class="text-muted" *ngIf="!assignment.due_date && !assignment.due_days_from_assignment">No due date</span>
+                <span *ngIf="!assignment.due_date && assignment.due_days_from_assignment">{{ 'paths_admin.assign.days_from_enrollment' | translate:{ count: assignment.due_days_from_assignment } }}</span>
+                <span class="text-muted" *ngIf="!assignment.due_date && !assignment.due_days_from_assignment">{{ 'paths_admin.assign.no_due_date' | translate }}</span>
               </td>
               <td>
                 <span class="badge" [ngClass]="getPriorityBadge(assignment.priority)">{{ assignment.priority }}</span>
@@ -79,28 +79,28 @@
                   <ul class="dropdown-menu dropdown-menu-end">
                     <li>
                       <button class="dropdown-item" (click)="viewStats(assignment)">
-                        <i class="bi bi-bar-chart me-2"></i>View Statistics
+                        <i class="bi bi-bar-chart me-2"></i>{{ 'paths_admin.assign.view_stats' | translate }}
                       </button>
                     </li>
                     <li>
                       <button class="dropdown-item" (click)="sendReminders(assignment)">
-                        <i class="bi bi-bell me-2"></i>Send Reminders
+                        <i class="bi bi-bell me-2"></i>{{ 'paths_admin.assign.send_reminders' | translate }}
                       </button>
                     </li>
                     <li *ngIf="assignment.status === 'active'">
                       <button class="dropdown-item" (click)="pauseAssignment(assignment)">
-                        <i class="bi bi-pause-circle me-2"></i>Pause
+                        <i class="bi bi-pause-circle me-2"></i>{{ 'paths_admin.assign.pause' | translate }}
                       </button>
                     </li>
                     <li *ngIf="assignment.status === 'paused'">
                       <button class="dropdown-item" (click)="resumeAssignment(assignment)">
-                        <i class="bi bi-play-circle me-2"></i>Resume
+                        <i class="bi bi-play-circle me-2"></i>{{ 'paths_admin.assign.resume' | translate }}
                       </button>
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
                       <button class="dropdown-item text-danger" (click)="cancelAssignment(assignment)">
-                        <i class="bi bi-x-circle me-2"></i>Cancel
+                        <i class="bi bi-x-circle me-2"></i>{{ 'common.cancel' | translate }}
                       </button>
                     </li>
                   </ul>
@@ -117,7 +117,7 @@
     <div class="modal-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()">
       <div class="modal-container assignment-modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h3><i class="bi bi-person-plus"></i> Create Assignment</h3>
+          <h3><i class="bi bi-person-plus"></i> {{ 'paths_admin.assign.create_assignment' | translate }}</h3>
           <button class="btn-close" (click)="closeAssignModal()"></button>
         </div>
 
@@ -136,8 +136,8 @@
           <div class="step-header">
             <span class="step-number">1</span>
             <div>
-              <h5>Select Users to Assign</h5>
-              <p>Choose how to select users for this assignment</p>
+              <h5>{{ 'paths_admin.assign.select_users' | translate }}</h5>
+              <p>{{ 'paths_admin.assign.select_users_hint' | translate }}</p>
             </div>
           </div>
 
@@ -147,71 +147,71 @@
                     [class.active]="assignmentType === 'department'"
                     (click)="assignmentType = 'department'; onAssignmentTypeChange()">
               <i class="bi bi-building"></i>
-              <span>By Department</span>
+              <span>{{ 'paths_admin.by_department' | translate }}</span>
             </button>
             <button class="type-tab"
                     [class.active]="assignmentType === 'team'"
                     (click)="assignmentType = 'team'; onAssignmentTypeChange()">
               <i class="bi bi-people"></i>
-              <span>By Team</span>
+              <span>{{ 'paths_admin.by_team' | translate }}</span>
             </button>
             <button class="type-tab"
                     [class.active]="assignmentType === 'branch'"
                     (click)="assignmentType = 'branch'; onAssignmentTypeChange()">
               <i class="bi bi-geo-alt"></i>
-              <span>By Branch</span>
+              <span>{{ 'paths_admin.by_branch' | translate }}</span>
             </button>
             <button class="type-tab"
                     [class.active]="assignmentType === 'users'"
                     (click)="assignmentType = 'users'; onAssignmentTypeChange()">
               <i class="bi bi-person-check"></i>
-              <span>Select Users</span>
+              <span>{{ 'paths_admin.select_users_tab' | translate }}</span>
             </button>
           </div>
 
           <div class="enrollment-config">
             <!-- Department Selection -->
             <div class="selection-panel" *ngIf="assignmentType === 'department'">
-              <label class="form-label">Select Department</label>
+              <label class="form-label">{{ 'paths_admin.assign.select_department' | translate }}</label>
               <select class="form-select form-select-lg" [(ngModel)]="selectedDepartmentId">
-                <option [ngValue]="null">-- Select a department --</option>
+                <option [ngValue]="null">{{ 'paths_admin.assign.choose_department' | translate }}</option>
                 <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
-                  {{ dept.department_name }} ({{ dept.user_count }} users)
+                  {{ dept.department_name }} ({{ 'paths_admin.assign.users_count' | translate:{ count: dept.user_count } }})
                 </option>
               </select>
               <div class="selection-info" *ngIf="selectedDepartmentId">
                 <i class="bi bi-info-circle"></i>
-                All active users in this department will be assigned.
+                {{ 'paths_admin.assign.info_department' | translate }}
               </div>
             </div>
 
             <!-- Team Selection -->
             <div class="selection-panel" *ngIf="assignmentType === 'team'">
-              <label class="form-label">Select Team</label>
+              <label class="form-label">{{ 'paths_admin.assign.select_team' | translate }}</label>
               <select class="form-select form-select-lg" [(ngModel)]="selectedTeamId">
-                <option [ngValue]="null">-- Select a team --</option>
+                <option [ngValue]="null">{{ 'paths_admin.assign.choose_team' | translate }}</option>
                 <option *ngFor="let team of teams" [ngValue]="team.team_id">
-                  {{ team.team_name }} ({{ team.user_count }} users)
+                  {{ team.team_name }} ({{ 'paths_admin.assign.users_count' | translate:{ count: team.user_count } }})
                 </option>
               </select>
               <div class="selection-info" *ngIf="selectedTeamId">
                 <i class="bi bi-info-circle"></i>
-                All active users in this team will be assigned.
+                {{ 'paths_admin.assign.info_team' | translate }}
               </div>
             </div>
 
             <!-- Branch Selection -->
             <div class="selection-panel" *ngIf="assignmentType === 'branch'">
-              <label class="form-label">Select Branch</label>
+              <label class="form-label">{{ 'paths_admin.assign.select_branch' | translate }}</label>
               <select class="form-select form-select-lg" [(ngModel)]="selectedBranchId">
-                <option [ngValue]="null">-- Select a branch --</option>
+                <option [ngValue]="null">{{ 'paths_admin.assign.choose_branch' | translate }}</option>
                 <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
-                  {{ branch.branch_name }} - {{ branch.city }} ({{ branch.user_count }} users)
+                  {{ branch.branch_name }} - {{ branch.city }} ({{ 'paths_admin.assign.users_count' | translate:{ count: branch.user_count } }})
                 </option>
               </select>
               <div class="selection-info" *ngIf="selectedBranchId">
                 <i class="bi bi-info-circle"></i>
-                All active users in this branch will be assigned.
+                {{ 'paths_admin.assign.info_branch' | translate }}
               </div>
             </div>
 
@@ -219,33 +219,33 @@
             <div class="selection-panel user-selection" *ngIf="assignmentType === 'users'">
               <div class="row g-3 mb-3">
                 <div class="col-md-4">
-                  <label class="form-label">Filter by Department</label>
+                  <label class="form-label">{{ 'paths_admin.assign.filter_department' | translate }}</label>
                   <select class="form-select"
                           [(ngModel)]="selectedDepartmentId"
                           (ngModelChange)="onDepartmentChange()">
-                    <option [ngValue]="null">All Departments</option>
+                    <option [ngValue]="null">{{ 'paths_admin.assign.all_departments' | translate }}</option>
                     <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
                       {{ dept.department_name }}
                     </option>
                   </select>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Filter by Team</label>
+                  <label class="form-label">{{ 'paths_admin.assign.filter_team' | translate }}</label>
                   <select class="form-select"
                           [(ngModel)]="selectedTeamId"
                           (ngModelChange)="onTeamChange()">
-                    <option [ngValue]="null">All Teams</option>
+                    <option [ngValue]="null">{{ 'paths_admin.assign.all_teams' | translate }}</option>
                     <option *ngFor="let team of teams" [ngValue]="team.team_id">
                       {{ team.team_name }}
                     </option>
                   </select>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Filter by Branch</label>
+                  <label class="form-label">{{ 'paths_admin.assign.filter_branch' | translate }}</label>
                   <select class="form-select"
                           [(ngModel)]="selectedBranchId"
                           (ngModelChange)="onBranchChange()">
-                    <option [ngValue]="null">All Branches</option>
+                    <option [ngValue]="null">{{ 'paths_admin.assign.all_branches' | translate }}</option>
                     <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
                       {{ branch.branch_name }}
                     </option>
@@ -257,7 +257,7 @@
                 <i class="bi bi-search"></i>
                 <input type="text"
                        class="form-control"
-                       placeholder="Search users by name or email..."
+                       placeholder="{{ 'paths_admin.assign.search_users' | translate }}"
                        [(ngModel)]="userSearch"
                        (input)="onUserSearchChange()">
               </div>
@@ -275,13 +275,13 @@
               <!-- User List -->
               <div class="user-list-container">
                 <div class="list-header">
-                  <span>Available Users ({{ users.length }})</span>
+                  <span>{{ 'paths_admin.assign.available_users' | translate:{ count: users.length } }}</span>
                   <div class="list-actions">
                     <button class="btn btn-sm btn-primary" (click)="selectAllUsers()" *ngIf="users.length > 0">
-                      Select All
+                      {{ 'paths_admin.assign.select_all' | translate }}
                     </button>
                     <button class="btn btn-sm btn-secondary" (click)="deselectAllUsers()" *ngIf="selectedUsers.length > 0">
-                      Clear Selection
+                      {{ 'paths_admin.assign.clear_selection' | translate }}
                     </button>
                   </div>
                 </div>
@@ -306,50 +306,50 @@
 
                 <div class="empty-state" *ngIf="!loadingUsers && users.length === 0">
                   <i class="bi bi-people"></i>
-                  <p>No users found. Try adjusting your filters.</p>
+                  <p>{{ 'paths_admin.assign.no_users' | translate }}</p>
                 </div>
 
                 <div class="loading-state" *ngIf="loadingUsers">
                   <div class="spinner-border spinner-border-sm" role="status"></div>
-                  <span>Loading users...</span>
+                  <span>{{ 'paths_admin.assign.loading_users' | translate }}</span>
                 </div>
               </div>
             </div>
 
             <!-- Assignment Options -->
             <div class="enrollment-options mt-4">
-              <h5><i class="bi bi-gear"></i> Assignment Options</h5>
+              <h5><i class="bi bi-gear"></i> {{ 'paths_admin.assign.options' | translate }}</h5>
 
               <div class="options-grid">
                 <div class="option-item">
                   <label class="form-check">
                     <input type="checkbox" class="form-check-input" [(ngModel)]="isMandatory">
                     <span class="form-check-label">
-                      <strong>Mandatory</strong>
-                      <small>Users must complete this learning path</small>
+                      <strong>{{ 'paths.mandatory' | translate }}</strong>
+                      <small>{{ 'paths_admin.assign.mandatory_hint' | translate }}</small>
                     </span>
                   </label>
                 </div>
 
                 <div class="option-item">
-                  <label class="form-label">Due Date</label>
+                  <label class="form-label">{{ 'paths.due_date' | translate }}</label>
                   <input type="date" class="form-control" [(ngModel)]="dueDate">
-                  <small class="text-muted">Optional fixed due date</small>
+                  <small class="text-muted">{{ 'paths_admin.assign.due_date_hint' | translate }}</small>
                 </div>
 
                 <div class="option-item">
-                  <label class="form-label">Or Days from Assignment</label>
+                  <label class="form-label">{{ 'paths_admin.assign.days_from_label' | translate }}</label>
                   <input type="number" class="form-control" [(ngModel)]="dueDaysFromAssignment" min="1" placeholder="e.g., 30">
-                  <small class="text-muted">Days after enrollment to complete</small>
+                  <small class="text-muted">{{ 'paths_admin.assign.days_hint' | translate }}</small>
                 </div>
 
                 <div class="option-item">
-                  <label class="form-label">Priority</label>
+                  <label class="form-label">{{ 'paths_admin.assign.priority' | translate }}</label>
                   <select class="form-select" [(ngModel)]="priority">
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="critical">Critical</option>
+                    <option value="low">{{ 'paths_admin.priority_low' | translate }}</option>
+                    <option value="normal">{{ 'paths_admin.priority_normal' | translate }}</option>
+                    <option value="high">{{ 'paths_admin.priority_high' | translate }}</option>
+                    <option value="critical">{{ 'paths_admin.priority_critical' | translate }}</option>
                   </select>
                 </div>
 
@@ -357,8 +357,8 @@
                   <label class="form-check">
                     <input type="checkbox" class="form-check-input" [(ngModel)]="notifyUsers">
                     <span class="form-check-label">
-                      <strong>Send Email Notification</strong>
-                      <small>Notify users about their assignment</small>
+                      <strong>{{ 'paths_admin.assign.send_email' | translate }}</strong>
+                      <small>{{ 'paths_admin.assign.send_email_hint' | translate }}</small>
                     </span>
                   </label>
                 </div>
@@ -367,15 +367,15 @@
                   <label class="form-check">
                     <input type="checkbox" class="form-check-input" [(ngModel)]="sendReminder">
                     <span class="form-check-label">
-                      <strong>Send Reminders</strong>
-                      <small>Automatically send reminders before due date</small>
+                      <strong>{{ 'paths_admin.assign.send_reminders' | translate }}</strong>
+                      <small>{{ 'paths_admin.assign.send_reminders_hint' | translate }}</small>
                     </span>
                   </label>
                 </div>
 
                 <div class="option-item full-width">
-                  <label class="form-label">Notes</label>
-                  <textarea class="form-control" rows="2" [(ngModel)]="assignmentNotes" placeholder="Optional notes about this assignment..."></textarea>
+                  <label class="form-label">{{ 'paths_admin.assign.notes' | translate }}</label>
+                  <textarea class="form-control" rows="2" [(ngModel)]="assignmentNotes" placeholder="{{ 'paths_admin.assign.notes_ph' | translate }}"></textarea>
                 </div>
               </div>
             </div>
@@ -395,10 +395,10 @@
                       (click)="previewAssignment()"
                       [disabled]="loadingPreview">
                 <span *ngIf="!loadingPreview">
-                  <i class="bi bi-eye me-2"></i>Preview Assignment
+                  <i class="bi bi-eye me-2"></i>{{ 'paths_admin.assign.preview' | translate }}
                 </span>
                 <span *ngIf="loadingPreview">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+                  <span class="spinner-border spinner-border-sm me-2"></span>{{ 'common.loading' | translate }}
                 </span>
               </button>
             </div>
@@ -411,33 +411,33 @@
     <div class="modal-overlay" *ngIf="showPreviewModal" (click)="closePreviewModal()">
       <div class="modal-container preview-modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h3><i class="bi bi-eye"></i> Assignment Preview</h3>
+          <h3><i class="bi bi-eye"></i> {{ 'paths_admin.assign.preview_title' | translate }}</h3>
           <button class="btn-close" (click)="closePreviewModal()"></button>
         </div>
 
         <div class="modal-body" *ngIf="preview">
           <div class="preview-path">
-            <strong>Learning Path:</strong> {{ preview.path.title }}
+            <strong>{{ 'paths_admin.assign.learning_path_label' | translate }}</strong> {{ preview.path.title }}
           </div>
 
           <div class="preview-stats">
             <div class="stat-card success">
               <span class="stat-value">{{ preview.summary.will_enroll }}</span>
-              <span class="stat-label">Will be enrolled</span>
+              <span class="stat-label">{{ 'paths_admin.assign.will_enroll' | translate }}</span>
             </div>
             <div class="stat-card warning">
               <span class="stat-value">{{ preview.summary.already_enrolled }}</span>
-              <span class="stat-label">Already enrolled</span>
+              <span class="stat-label">{{ 'paths_admin.assign.already_enrolled' | translate }}</span>
             </div>
             <div class="stat-card info">
               <span class="stat-value">{{ preview.summary.total_users }}</span>
-              <span class="stat-label">Total users</span>
+              <span class="stat-label">{{ 'paths_admin.assign.total_users' | translate }}</span>
             </div>
           </div>
 
           <div class="preview-lists">
             <div class="preview-list" *ngIf="preview.users_to_enroll.length > 0">
-              <h5><i class="bi bi-person-plus text-success"></i> Users to Enroll</h5>
+              <h5><i class="bi bi-person-plus text-success"></i> {{ 'paths_admin.assign.users_to_enroll' | translate }}</h5>
               <ul>
                 <li *ngFor="let user of preview.users_to_enroll">
                   {{ user.name }} <small class="text-muted">({{ user.email }})</small>
@@ -446,7 +446,7 @@
             </div>
 
             <div class="preview-list" *ngIf="preview.users_already_enrolled.length > 0">
-              <h5><i class="bi bi-person-check text-warning"></i> Already Enrolled (Skipped)</h5>
+              <h5><i class="bi bi-person-check text-warning"></i> {{ 'paths_admin.assign.already_enrolled_skipped' | translate }}</h5>
               <ul>
                 <li *ngFor="let user of preview.users_already_enrolled">
                   {{ user.name }} <small class="text-muted">({{ user.email }})</small>
@@ -456,24 +456,24 @@
           </div>
 
           <div class="enrollment-settings-preview">
-            <span *ngIf="isMandatory" class="badge bg-danger">Mandatory</span>
-            <span *ngIf="dueDate" class="badge bg-info">Due Date: {{ dueDate }}</span>
-            <span *ngIf="dueDaysFromAssignment" class="badge bg-info">Due: {{ dueDaysFromAssignment }} days</span>
-            <span class="badge" [ngClass]="getPriorityBadge(priority)">{{ priority }} priority</span>
-            <span *ngIf="notifyUsers" class="badge bg-secondary">Email notifications enabled</span>
+            <span *ngIf="isMandatory" class="badge bg-danger">{{ 'paths.mandatory' | translate }}</span>
+            <span *ngIf="dueDate" class="badge bg-info">{{ 'paths_admin.assign.due_date_badge' | translate:{ date: dueDate } }}</span>
+            <span *ngIf="dueDaysFromAssignment" class="badge bg-info">{{ 'paths_admin.assign.due_days_badge' | translate:{ count: dueDaysFromAssignment } }}</span>
+            <span class="badge" [ngClass]="getPriorityBadge(priority)">{{ 'paths_admin.assign.priority_badge' | translate:{ priority: priority } }}</span>
+            <span *ngIf="notifyUsers" class="badge bg-secondary">{{ 'paths_admin.assign.email_enabled' | translate }}</span>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closePreviewModal()">Cancel</button>
+          <button class="btn btn-secondary" (click)="closePreviewModal()">{{ 'common.cancel' | translate }}</button>
           <button class="btn btn-success btn-lg"
                   (click)="confirmAssignment()"
                   [disabled]="saving || preview?.summary?.will_enroll === 0">
             <span *ngIf="!saving">
-              <i class="bi bi-check-circle me-2"></i>Confirm Assignment
+              <i class="bi bi-check-circle me-2"></i>{{ 'paths_admin.assign.confirm' | translate }}
             </span>
             <span *ngIf="saving">
-              <span class="spinner-border spinner-border-sm me-2"></span>Assigning...
+              <span class="spinner-border spinner-border-sm me-2"></span>{{ 'paths_admin.assign.assigning' | translate }}
             </span>
           </button>
         </div>
@@ -489,7 +489,7 @@
                [class.text-success]="result?.summary?.enrolled_count! > 0"
                [class.bi-exclamation-circle-fill]="result?.summary?.enrolled_count === 0"
                [class.text-warning]="result?.summary?.enrolled_count === 0"></i>
-            Assignment Complete
+            {{ 'paths_admin.assign.complete' | translate }}
           </h3>
         </div>
 
@@ -501,20 +501,20 @@
           <div class="result-stats">
             <div class="stat-card success">
               <span class="stat-value">{{ result.summary.enrolled_count }}</span>
-              <span class="stat-label">Enrolled</span>
+              <span class="stat-label">{{ 'paths_admin.assign.enrolled' | translate }}</span>
             </div>
             <div class="stat-card warning">
               <span class="stat-value">{{ result.summary.skipped_count }}</span>
-              <span class="stat-label">Skipped</span>
+              <span class="stat-label">{{ 'paths_admin.assign.skipped' | translate }}</span>
             </div>
             <div class="stat-card danger" *ngIf="result.summary.failed_count > 0">
               <span class="stat-value">{{ result.summary.failed_count }}</span>
-              <span class="stat-label">Failed</span>
+              <span class="stat-label">{{ 'paths_admin.assign.failed' | translate }}</span>
             </div>
           </div>
 
           <div class="result-details" *ngIf="result.enrolled.length > 0">
-            <h5>Successfully Enrolled:</h5>
+            <h5>{{ 'paths_admin.assign.success_enrolled' | translate }}</h5>
             <div class="enrolled-list">
               <span class="enrolled-chip" *ngFor="let user of result.enrolled">
                 {{ user.first_name }} {{ user.last_name }}
@@ -523,14 +523,14 @@
           </div>
 
           <div class="result-details warning" *ngIf="result.skipped.length > 0">
-            <h5>Skipped (Already Enrolled):</h5>
+            <h5>{{ 'paths_admin.assign.skipped_already' | translate }}</h5>
             <ul>
               <li *ngFor="let user of result.skipped">{{ user.name }} - {{ user.reason }}</li>
             </ul>
           </div>
 
           <div class="result-details danger" *ngIf="result.failed.length > 0">
-            <h5>Failed:</h5>
+            <h5>{{ 'paths_admin.assign.failed_label' | translate }}</h5>
             <ul>
               <li *ngFor="let user of result.failed">{{ user.name }} - {{ user.reason }}</li>
             </ul>
@@ -539,10 +539,10 @@
 
         <div class="modal-footer">
           <button class="btn btn-primary btn-lg" (click)="startNewAssignment()">
-            <i class="bi bi-plus-circle me-2"></i>New Assignment
+            <i class="bi bi-plus-circle me-2"></i>{{ 'paths_admin.assign.new_assignment' | translate }}
           </button>
           <button class="btn btn-secondary" (click)="closeResultModal()">
-            Close
+            {{ 'common.close' | translate }}
           </button>
         </div>
       </div>
@@ -552,7 +552,7 @@
     <div class="modal-overlay" *ngIf="showStatsModal" (click)="closeStatsModal()">
       <div class="modal-container stats-modal" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <h3><i class="bi bi-bar-chart"></i> Assignment Statistics</h3>
+          <h3><i class="bi bi-bar-chart"></i> {{ 'paths_admin.assign.stats_title' | translate }}</h3>
           <button class="btn-close" (click)="closeStatsModal()"></button>
         </div>
 
@@ -566,25 +566,25 @@
               <div class="col-md-3">
                 <div class="stat-card-lg">
                   <span class="stat-value">{{ assignmentStats.total_enrollments }}</span>
-                  <span class="stat-label">Total Enrolled</span>
+                  <span class="stat-label">{{ 'paths_admin.assign.total_enrolled' | translate }}</span>
                 </div>
               </div>
               <div class="col-md-3">
                 <div class="stat-card-lg success">
                   <span class="stat-value">{{ assignmentStats.completed_enrollments }}</span>
-                  <span class="stat-label">Completed</span>
+                  <span class="stat-label">{{ 'paths_admin.completed' | translate }}</span>
                 </div>
               </div>
               <div class="col-md-3">
                 <div class="stat-card-lg info">
                   <span class="stat-value">{{ assignmentStats.in_progress_enrollments }}</span>
-                  <span class="stat-label">In Progress</span>
+                  <span class="stat-label">{{ 'paths_admin.assign.in_progress' | translate }}</span>
                 </div>
               </div>
               <div class="col-md-3">
                 <div class="stat-card-lg warning">
                   <span class="stat-value">{{ assignmentStats.not_started_enrollments }}</span>
-                  <span class="stat-label">Not Started</span>
+                  <span class="stat-label">{{ 'paths_admin.assign.not_started' | translate }}</span>
                 </div>
               </div>
             </div>
@@ -592,7 +592,7 @@
             <!-- Progress Bar -->
             <div class="mb-4">
               <div class="d-flex justify-content-between mb-1">
-                <span>Completion Rate</span>
+                <span>{{ 'paths_admin.completion_rate' | translate }}</span>
                 <span class="fw-medium">{{ getCompletionPercentage() }}%</span>
               </div>
               <div class="progress" style="height: 20px;">
@@ -604,20 +604,20 @@
 
             <div class="alert alert-warning" *ngIf="assignmentStats.overdue_enrollments > 0">
               <i class="bi bi-exclamation-triangle me-2"></i>
-              <strong>{{ assignmentStats.overdue_enrollments }}</strong> enrollment(s) are overdue
+              {{ 'paths_admin.assign.overdue' | translate:{ count: assignmentStats.overdue_enrollments } }}
             </div>
 
             <div class="row g-3">
               <div class="col-md-6">
                 <div class="info-card">
-                  <h6 class="text-muted mb-2">Average Progress</h6>
+                  <h6 class="text-muted mb-2">{{ 'paths_admin.assign.avg_progress' | translate }}</h6>
                   <h4>{{ assignmentStats.avg_progress | number:'1.0-1' }}%</h4>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="info-card">
-                  <h6 class="text-muted mb-2">Avg. Completion Time</h6>
-                  <h4>{{ assignmentStats.avg_completion_days | number:'1.0-1' }} days</h4>
+                  <h6 class="text-muted mb-2">{{ 'paths_admin.assign.avg_completion' | translate }}</h6>
+                  <h4>{{ 'paths_admin.assign.days_value' | translate:{ value: (assignmentStats.avg_completion_days | number:'1.0-1') } }}</h4>
                 </div>
               </div>
             </div>
@@ -625,16 +625,16 @@
 
           <div class="text-center py-4 text-muted" *ngIf="!loadingStats && !assignmentStats">
             <i class="bi bi-bar-chart display-4"></i>
-            <p class="mt-2">No statistics available</p>
+            <p class="mt-2">{{ 'paths_admin.assign.no_stats' | translate }}</p>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeStatsModal()">Close</button>
+          <button class="btn btn-secondary" (click)="closeStatsModal()">{{ 'common.close' | translate }}</button>
           <button class="btn btn-primary"
                   *ngIf="selectedAssignment && selectedAssignment.status === 'active'"
                   (click)="sendReminders(selectedAssignment)">
-            <i class="bi bi-bell me-2"></i>Send Reminders
+            <i class="bi bi-bell me-2"></i>{{ 'paths_admin.assign.send_reminders' | translate }}
           </button>
         </div>
       </div>

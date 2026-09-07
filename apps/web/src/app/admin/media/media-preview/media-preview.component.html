@@ -5,21 +5,21 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="preview-tab" data-bs-toggle="tab"
               data-bs-target="#preview" type="button" role="tab">
-        📄 Preview
+        📄 {{ 'admin.media_preview.tab_preview' | translate }}
       </button>
     </li>
 
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="upload-tab" data-bs-toggle="tab"
               data-bs-target="#upload" type="button" role="tab">
-        ⬆️ Upload New
+        ⬆️ {{ 'admin.media_preview.tab_upload' | translate }}
       </button>
     </li>
 
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="history-tab" data-bs-toggle="tab"
               data-bs-target="#history" type="button" role="tab">
-        🕓 Version History
+        🕓 {{ 'admin.media_preview.tab_history' | translate }}
       </button>
     </li>
 
@@ -46,7 +46,7 @@
         </div>
         <ng-template #preparing>
           <div class="card-body d-flex align-items-center justify-content-center text-muted">
-            Opening the file…
+            {{ 'admin.media_preview.opening' | translate }}
           </div>
         </ng-template>
       </div>
@@ -58,8 +58,8 @@
         <div class="card-body">
           <div class="media-manager">
             <div class="header text-center">
-              <h2>Upload new</h2>
-              <p>Upload a new version of {{ data.title }}</p>
+              <h2>{{ 'admin.media_preview.upload_new' | translate }}</h2>
+              <p>{{ 'admin.media_preview.upload_new_version' | translate:{ title: data.title } }}</p>
             </div>
             <app-media-upload
               [replacesMediaId]="data.id"
@@ -71,10 +71,10 @@
             </app-media-upload>
             <div class="uploaded-files" *ngIf="uploadedFiles.length > 0">
               <div class="section-header">
-                <h3>Uploaded Files ({{ uploadedFiles.length }})</h3>
+                <h3>{{ 'admin.media.uploaded_files' | translate:{ count: uploadedFiles.length } }}</h3>
                 <button class="btn-clear" (click)="clearUploadedFiles()">
                   <i class="bi bi-trash3"></i>
-                  Clear All
+                  {{ 'admin.media.clear_all' | translate }}
                 </button>
               </div>
 
@@ -102,15 +102,15 @@
                           <i class="bi bi-aspect-ratio"></i> {{ file.width }}&times;{{ file.height }}
                         </span>
                       <span *ngIf="file.pageCount">
-                          <i class="bi bi-file-text"></i> {{ file.pageCount }} pages
+                          <i class="bi bi-file-text"></i> {{ 'admin.media.n_pages' | translate:{ count: file.pageCount } }}
                         </span>
                     </div>
                   </div>
                   <div class="file-actions">
-                    <a role="button" (click)="openFile(file)" class="btn-action" title="View">
+                    <a role="button" (click)="openFile(file)" class="btn-action" title="{{ 'common.view' | translate }}">
                       <i class="bi bi-eye"></i>
                     </a>
-                    <button class="btn-action danger" (click)="removeUploadedFile(i)" title="Remove">
+                    <button class="btn-action danger" (click)="removeUploadedFile(i)" title="{{ 'common.remove' | translate }}">
                       <i class="bi bi-x-lg"></i>
                     </button>
                   </div>
@@ -128,39 +128,39 @@
         <table class="table table-bordered align-middle">
           <thead class="table-light">
           <tr>
-            <th>Version</th>
-            <th>Uploaded By</th>
-            <th>Date</th>
-            <th>Notes</th>
-            <th>Action</th>
+            <th>{{ 'admin.media_preview.col_version' | translate }}</th>
+            <th>{{ 'admin.media_preview.col_uploaded_by' | translate }}</th>
+            <th>{{ 'admin.media_preview.col_date' | translate }}</th>
+            <th>{{ 'admin.media_preview.col_notes' | translate }}</th>
+            <th>{{ 'admin.media_preview.col_action' | translate }}</th>
           </tr>
           </thead>
           <tbody>
           <tr *ngFor="let version of versions" [class.table-active]="version.isLatest">
             <td>
               {{ version.versionLabel ?? ('v' + version.versionNumber) }}
-              <span class="badge bg-success ms-1" *ngIf="version.isLatest">Current</span>
+              <span class="badge bg-success ms-1" *ngIf="version.isLatest">{{ 'admin.media_preview.current' | translate }}</span>
             </td>
             <td>{{ version.uploaderName ?? '-' }}</td>
             <td>{{ version.createdAt | date: 'dd MMM yyyy' }}</td>
             <td>{{ version.versionNotes ?? '-' }}</td>
             <td>
-              <a role="button" class="btn btn-sm btn-secondary" (click)="openVersion(version)">View</a>
+              <a role="button" class="btn btn-sm btn-secondary" (click)="openVersion(version)">{{ 'common.view' | translate }}</a>
               <button
                 class="btn btn-sm btn-danger ms-1"
                 *ngIf="!version.isLatest"
                 [disabled]="restoring !== null"
                 (click)="restore(version)">
-                {{ restoring === version.id ? 'Restoring…' : 'Restore' }}
+                {{ restoring === version.id ? ('admin.media_preview.restoring' | translate) : ('admin.media_preview.restore' | translate) }}
               </button>
             </td>
           </tr>
           <tr *ngIf="loadingVersions">
-            <td colspan="5" class="text-center text-muted py-4">Loading the history…</td>
+            <td colspan="5" class="text-center text-muted py-4">{{ 'admin.media_preview.loading_history' | translate }}</td>
           </tr>
           <tr *ngIf="!loadingVersions && versions.length === 0">
             <td colspan="5" class="text-center text-muted py-4">
-              This file has no history yet. Uploading a replacement starts one.
+              {{ 'admin.media_preview.no_history' | translate }}
             </td>
           </tr>
           </tbody>

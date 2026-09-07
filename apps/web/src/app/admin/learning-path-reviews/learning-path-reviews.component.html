@@ -9,14 +9,14 @@
       <div>
         <nav aria-label="breadcrumb">
           <ol class="breadcrumb mb-1">
-            <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
+            <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
             @if (path()) {
               <li class="breadcrumb-item"><a [routerLink]="['/admin/learning-paths', path()!.path_id]">{{ path()!.title }}</a></li>
             }
-            <li class="breadcrumb-item active">Reviews</li>
+            <li class="breadcrumb-item active">{{ 'paths_admin.reviews' | translate }}</li>
           </ol>
         </nav>
-        <h1 class="h3 mb-0">Reviews & Ratings</h1>
+        <h1 class="h3 mb-0">{{ 'paths_admin.reviews_ratings' | translate }}</h1>
       </div>
     </div>
   </div>
@@ -37,7 +37,7 @@
                 </i>
               }
             </div>
-            <p class="text-muted mb-4">{{ ratingSummary()?.total_reviews || 0 }} reviews</p>
+            <p class="text-muted mb-4">{{ 'paths.reviews_count' | translate:{ count: ratingSummary()?.total_reviews || 0 } }}</p>
 
             <!-- Distribution -->
             <div class="rating-distribution">
@@ -64,11 +64,11 @@
       <!-- Filter -->
       <div class="d-flex justify-content-between align-items-center mb-3">
         <select class="form-select w-auto" [(ngModel)]="statusFilter" (change)="filterChanged()">
-          <option value="">All Reviews</option>
-          <option value="pending">Pending Moderation</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="flagged">Reported</option>
+          <option value="">{{ 'paths_admin.reviews_filter.all' | translate }}</option>
+          <option value="pending">{{ 'paths_admin.reviews_filter.pending' | translate }}</option>
+          <option value="approved">{{ 'paths_admin.reviews_filter.approved' | translate }}</option>
+          <option value="rejected">{{ 'paths_admin.reviews_filter.rejected' | translate }}</option>
+          <option value="flagged">{{ 'paths_admin.reviews_filter.flagged' | translate }}</option>
         </select>
       </div>
 
@@ -80,8 +80,8 @@
         <div class="card">
           <div class="card-body text-center py-5">
             <i class="bi bi-chat-left-text display-4 text-muted"></i>
-            <h5 class="mt-3">No Reviews</h5>
-            <p class="text-muted">No reviews have been submitted for this learning path yet.</p>
+            <h5 class="mt-3">{{ 'paths_admin.reviews_empty_title' | translate }}</h5>
+            <p class="text-muted">{{ 'paths_admin.reviews_empty_text' | translate }}</p>
           </div>
         </div>
       } @else {
@@ -123,7 +123,7 @@
 
               @if (review.instructor_response) {
                 <div class="instructor-response">
-                  <strong>Instructor Response:</strong>
+                  <strong>{{ 'paths_admin.reviews_instructor_response' | translate }}</strong>
                   <p class="mb-0">{{ review.instructor_response }}</p>
                 </div>
               }
@@ -131,25 +131,25 @@
               <!-- Actions -->
               <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
                 <div class="text-muted small">
-                  <i class="bi bi-hand-thumbs-up me-1"></i>{{ review.helpful_count }} found helpful
+                  <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'paths_admin.reviews_found_helpful' | translate:{ count: review.helpful_count } }}
                   @if (review.reported_count > 0) {
                     <span class="ms-3 text-danger">
-                          <i class="bi bi-flag me-1"></i>{{ review.reported_count }} reports
+                          <i class="bi bi-flag me-1"></i>{{ 'paths_admin.reviews_reports' | translate:{ count: review.reported_count } }}
                         </span>
                   }
                 </div>
                 <div class="btn-group btn-group-sm">
                   @if (review.moderation_status === 'pending') {
                     <button class="btn btn-success" (click)="approveReview(review)">
-                      <i class="bi bi-check-lg me-1"></i>Approve
+                      <i class="bi bi-check-lg me-1"></i>{{ 'paths_admin.reviews_approve' | translate }}
                     </button>
                     <button class="btn btn-outline-danger" (click)="rejectReview(review)">
-                      <i class="bi bi-x-lg me-1"></i>Reject
+                      <i class="bi bi-x-lg me-1"></i>{{ 'paths_admin.reviews_reject' | translate }}
                     </button>
                   }
                   @if (!review.instructor_response) {
                     <button class="btn btn-primary" (click)="openResponseModal(review)">
-                      <i class="bi bi-reply me-1"></i>Respond
+                      <i class="bi bi-reply me-1"></i>{{ 'paths_admin.reviews_respond' | translate }}
                     </button>
                   }
                 </div>
@@ -163,7 +163,7 @@
           <nav class="mt-4">
             <ul class="pagination justify-content-center">
               <li class="page-item" [class.disabled]="currentPage() === 1">
-                <button class="page-link" (click)="goToPage(currentPage() - 1)">Previous</button>
+                <button class="page-link" (click)="goToPage(currentPage() - 1)">{{ 'paths_admin.previous' | translate }}</button>
               </li>
               @for (page of [1,2,3,4,5]; track page) {
                 @if (page <= totalPages()) {
@@ -173,7 +173,7 @@
                 }
               }
               <li class="page-item" [class.disabled]="currentPage() === totalPages()">
-                <button class="page-link" (click)="goToPage(currentPage() + 1)">Next</button>
+                <button class="page-link" (click)="goToPage(currentPage() + 1)">{{ 'paths_admin.next' | translate }}</button>
               </li>
             </ul>
           </nav>
@@ -189,22 +189,22 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Respond to Review</h5>
+            <h5 class="modal-title">{{ 'paths_admin.reviews_respond_title' | translate }}</h5>
             <button type="button" class="btn-close" (click)="closeResponseModal()"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Your Response</label>
-              <textarea class="form-control" rows="4" [(ngModel)]="responseText" placeholder="Write your response..."></textarea>
+              <label class="form-label">{{ 'paths_admin.reviews_your_response' | translate }}</label>
+              <textarea class="form-control" rows="4" [(ngModel)]="responseText" placeholder="{{ 'paths_admin.reviews_response_ph' | translate }}"></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeResponseModal()">Cancel</button>
+            <button type="button" class="btn btn-secondary" (click)="closeResponseModal()">{{ 'common.cancel' | translate }}</button>
             <button type="button" class="btn btn-primary" (click)="submitResponse()" [disabled]="!responseText || saving()">
               @if (saving()) {
                 <span class="spinner-border spinner-border-sm me-2"></span>
               }
-              Submit Response
+              {{ 'paths_admin.reviews_submit_response' | translate }}
             </button>
           </div>
         </div>

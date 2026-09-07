@@ -2,7 +2,7 @@
   <div class="row justify-content-center">
     <div class="col-12" style="max-width: 30rem">
         <span class="badge abayti_secondary_background rounded-pill mb-3">
-          <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">Back to website</a>
+          <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">{{ 'auth.back_to_website' | translate }}</a>
         </span>
       <div class="card">
         <div class="card-header text-center">
@@ -36,30 +36,29 @@
         <div *ngIf="ui_controls.confirmed && !ui_controls.validated" class="card-body">
           <h1 class="fs-1">{{ "confirm_email" | translate }}</h1>
           <p class="lead text-body-secondary">
-            If <strong>{{ reset.email }}</strong> has an account here, a link to set a new
-            password is on its way. It works once, and for one hour.
+            {{ 'reset.if_prefix' | translate }} <strong>{{ reset.email }}</strong> {{ 'reset.sent_note' | translate }}
           </p>
           <div class="mb-5">
             <tui-loader *ngIf="ui_controls.loading" />
             <div *ngIf="!ui_controls.loading" class="d-grid gap-2">
               <button class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100"
                       type="button" (click)="resend()">
-                Send it again
+                {{ 'auth.send_it_again' | translate }}
               </button>
               <button class="btn btn-link" type="button" (click)="start_over()">
-                Use a different address
+                {{ 'reset.use_different_address' | translate }}
               </button>
             </div>
           </div>
         </div>
         <div *ngIf="ui_controls.confirmed && ui_controls.validated" class="card-body">
           <h1 class="fs-1" *ngIf="!isInvitation">{{ 'set_a_new_password' | translate }}</h1>
-          <h1 class="fs-1" *ngIf="isInvitation">Choose a password</h1>
+          <h1 class="fs-1" *ngIf="isInvitation">{{ 'reset.choose_a_password' | translate }}</h1>
           <p class="lead text-body-secondary" *ngIf="isInvitation">
-            Your email address is confirmed. Choose a password and your account is ready.
+            {{ 'reset.confirmed_choose' | translate }}
           </p>
           <p class="lead text-body-secondary" *ngIf="!isInvitation">
-            Your email address is confirmed. Enter a new password below.
+            {{ 'reset.confirmed_enter_new' | translate }}
           </p>
           <form (ngSubmit)="reset_password()"  method="post"  class="mb-5">
             <div class="row">

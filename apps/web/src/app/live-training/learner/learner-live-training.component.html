@@ -9,20 +9,20 @@
       <div>
         <div *ngIf="activeTab === 'progress'" class="mb-2">
           <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            <i class="bi bi-arrow-left me-2"></i>{{ 'live.learner.back_to_dashboard' | translate }}
           </button>
         </div>
         <h1 class="page-title mb-1">
           <i class="bi bi-camera-video me-2"></i>
-          {{ activeTab === 'progress' ? learnerProgress?.enrollment?.training_title : 'Live Training' }}
+          {{ activeTab === 'progress' ? learnerProgress?.enrollment?.training_title : ('nav.live_training' | translate) }}
         </h1>
         <p class="text-muted mb-0" *ngIf="activeTab === 'dashboard'">
-          Your scheduled training sessions
+          {{ 'live.learner.subtitle' | translate }}
         </p>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary" (click)="openQRScanner()">
-          <i class="bi bi-qr-code-scan me-2"></i>Scan Attendance
+          <i class="bi bi-qr-code-scan me-2"></i>{{ 'live.learner.scan_attendance' | translate }}
         </button>
       </div>
     </div>
@@ -38,8 +38,8 @@
             <i class="bi bi-calendar-event"></i>
           </div>
           <div class="action-content">
-            <h5 class="action-title">Upcoming Sessions</h5>
-            <p class="action-desc">View all your scheduled sessions</p>
+            <h5 class="action-title">{{ 'live.common.upcoming_sessions' | translate }}</h5>
+            <p class="action-desc">{{ 'live.learner.upcoming_desc' | translate }}</p>
           </div>
           <i class="bi bi-chevron-right action-arrow"></i>
         </div>
@@ -50,8 +50,8 @@
             <i class="bi bi-qr-code-scan"></i>
           </div>
           <div class="action-content">
-            <h5 class="action-title">Mark Attendance</h5>
-            <p class="action-desc">Scan QR code at venue</p>
+            <h5 class="action-title">{{ 'live.common.mark_attendance' | translate }}</h5>
+            <p class="action-desc">{{ 'live.learner.scan_desc' | translate }}</p>
           </div>
           <i class="bi bi-chevron-right action-arrow"></i>
         </div>
@@ -64,8 +64,8 @@
             <i class="bi bi-award"></i>
           </div>
           <div class="action-content">
-            <h5 class="action-title">My Certificates</h5>
-            <p class="action-desc">View earned certificates</p>
+            <h5 class="action-title">{{ 'live.learner.my_certificates' | translate }}</h5>
+            <p class="action-desc">{{ 'live.learner.certificates_desc' | translate }}</p>
           </div>
           <i class="bi bi-chevron-right action-arrow"></i>
         </div>
@@ -76,7 +76,7 @@
     <div class="card mb-4" *ngIf="upcomingSessions.length > 0">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="bi bi-calendar-day me-2"></i>Today's Sessions
+          <i class="bi bi-calendar-day me-2"></i>{{ 'live.learner.todays_sessions' | translate }}
         </h5>
       </div>
       <div class="card-body p-0">
@@ -104,7 +104,7 @@
               </div>
               <div class="session-actions">
                 <button class="btn btn-success btn-sm" *ngIf="canJoinSession(session)" (click)="joinSession(session)">
-                  <i class="bi bi-box-arrow-up-right me-1"></i>Join
+                  <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'live.common.join' | translate }}
                 </button>
                 <span class="countdown-badge" *ngIf="isSessionUpcoming(session)">
                   <i class="bi bi-clock me-1"></i>{{ getTimeUntilSession(session) }}
@@ -115,7 +115,7 @@
           <div class="text-center py-4 text-muted"
                *ngIf="getTodaySessions().length === 0">
             <i class="bi bi-calendar-x d-block mb-2" style="font-size: 2rem;"></i>
-            No sessions scheduled for today
+            {{ 'live.learner.no_today' | translate }}
           </div>
         </div>
       </div>
@@ -125,9 +125,9 @@
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="bi bi-calendar-week me-2"></i>Upcoming Sessions
+          <i class="bi bi-calendar-week me-2"></i>{{ 'live.common.upcoming_sessions' | translate }}
         </h5>
-        <button class="btn btn-link btn-sm" (click)="loadUpcomingSessions()">View All</button>
+        <button class="btn btn-link btn-sm" (click)="loadUpcomingSessions()">{{ 'common.view_all' | translate }}</button>
       </div>
       <div class="card-body p-0" *ngIf="!loading">
         <div class="session-list">
@@ -156,7 +156,7 @@
               </span>
               <div class="d-flex gap-1">
                 <button class="btn btn-sm btn-primary" (click)="loadSessionDetails(session.session_id)"
-                        title="View Details">
+                        [title]="'live.common.view_details' | translate">
                   <i class="bi bi-info-circle"></i>
                 </button>
                 <button class="btn btn-sm btn-success" *ngIf="canJoinSession(session)" (click)="joinSession(session)">
@@ -167,8 +167,8 @@
           </div>
           <div class="text-center py-5 text-muted" *ngIf="upcomingSessions.length === 0">
             <i class="bi bi-calendar-check display-4 d-block mb-3"></i>
-            <h5>No upcoming sessions</h5>
-            <p>You don't have any scheduled training sessions</p>
+            <h5>{{ 'live.learner.no_upcoming' | translate }}</h5>
+            <p>{{ 'live.learner.no_upcoming_text' | translate }}</p>
           </div>
         </div>
       </div>
@@ -183,7 +183,7 @@
     <div class="card mt-4" *ngIf="enrolledTrainings.length > 0">
       <div class="card-header">
         <h5 class="card-title mb-0">
-          <i class="bi bi-book me-2"></i>My Training Enrollments
+          <i class="bi bi-book me-2"></i>{{ 'live.learner.my_enrollments' | translate }}
         </h5>
       </div>
       <div class="card-body p-0">
@@ -193,8 +193,8 @@
             <div>
               <h6 class="mb-1">{{ enrollment.training_title }}</h6>
               <small class="text-muted">
-                Enrolled: {{ formatDateTime(enrollment.enrolled_at || '') }} |
-                Progress: {{ enrollment.attendance_percentage || 0 }}%
+                {{ 'live.learner.enrolled_label' | translate }} {{ formatDateTime(enrollment.enrolled_at || '') }} |
+                {{ 'live.learner.progress_label' | translate }} {{ enrollment.attendance_percentage || 0 }}%
               </small>
             </div>
             <div class="d-flex gap-2 align-items-center">
@@ -202,7 +202,7 @@
                 {{ enrollment.certification_status || 'Pending' | titlecase }}
               </span>
               <button class="btn btn-sm btn-primary" (click)="loadTrainingProgress(enrollment)">
-                <i class="bi bi-eye me-1"></i>View Progress
+                <i class="bi bi-eye me-1"></i>{{ 'live.learner.view_progress' | translate }}
               </button>
               <button class="btn btn-sm btn-outline-info" (click)="loadEnrollmentDetails(enrollment.enrollment_id)">
                 <i class="bi bi-info-circle"></i>
@@ -218,7 +218,7 @@
   <div *ngIf="activeTab === 'upcoming'">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <button class="btn btn-link p-0" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>Back
+        <i class="bi bi-arrow-left me-2"></i>{{ 'common.back' | translate }}
       </button>
     </div>
 
@@ -257,7 +257,7 @@
                   <i class="bi bi-person-badge me-1"></i>
                   {{ session.instructors[0]?.first_name }} {{ session.instructors[0]?.last_name }}
                   <span *ngIf="session.instructors && session.instructors.length > 1">
-                    +{{ session.instructors.length - 1 }} more
+                    +{{ session.instructors.length - 1 }} {{ 'live.common.more' | translate }}
                   </span>
                 </small>
               </div>
@@ -265,10 +265,10 @@
             <div class="session-actions d-flex flex-column align-items-end gap-2">
               <span class="countdown-badge">{{ getTimeUntilSession(session) }}</span>
               <button class="btn btn-success btn-sm" *ngIf="canJoinSession(session)" (click)="joinSession(session)">
-                <i class="bi bi-box-arrow-up-right me-1"></i>Join Now
+                <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'live.common.join_now' | translate }}
               </button>
               <button class="btn btn-primary btn-sm" *ngIf="session.session_type !== 'virtual'" (click)="openQRScanner()">
-                <i class="bi bi-qr-code me-1"></i>Scan QR
+                <i class="bi bi-qr-code me-1"></i>{{ 'live.learner.scan_qr' | translate }}
               </button>
             </div>
           </div>
@@ -289,7 +289,7 @@
           <div class="stat-value">
             {{ learnerProgress.enrollment.sessions_attended }} / {{ learnerProgress.enrollment.sessions_total }}
           </div>
-          <div class="stat-label">Sessions Attended</div>
+          <div class="stat-label">{{ 'live.learner.sessions_attended' | translate }}</div>
         </div>
       </div>
       <div class="col-md-3">
@@ -298,7 +298,7 @@
             <i class="bi bi-percent"></i>
           </div>
           <div class="stat-value">{{ learnerProgress.enrollment.attendance_percentage }}%</div>
-          <div class="stat-label">Attendance Rate</div>
+          <div class="stat-label">{{ 'live.learner.attendance_rate' | translate }}</div>
         </div>
       </div>
       <div class="col-md-3">
@@ -309,7 +309,7 @@
           <div class="stat-value">
             {{ learnerProgress.enrollment.sessions_total - learnerProgress.enrollment.sessions_attended }}
           </div>
-          <div class="stat-label">Remaining</div>
+          <div class="stat-label">{{ 'live.learner.remaining' | translate }}</div>
         </div>
       </div>
       <div class="col-md-3">
@@ -322,11 +322,11 @@
             <i class="bi bi-award"></i>
           </div>
           <div class="stat-value text-capitalize">{{ learnerProgress.enrollment.certification_status }}</div>
-          <div class="stat-label">Certificate Status</div>
+          <div class="stat-label">{{ 'live.learner.certificate_status' | translate }}</div>
           <button class="btn btn-sm btn-primary mt-2"
                   (click)="checkMyEligibility(learnerProgress.enrollment)"
                   *ngIf="learnerProgress.enrollment.certification_status === 'pending'">
-            <i class="bi bi-arrow-repeat me-1"></i>Check Eligibility
+            <i class="bi bi-arrow-repeat me-1"></i>{{ 'live.common.check_eligibility' | translate }}
           </button>
         </div>
       </div>
@@ -336,7 +336,7 @@
     <div class="card mb-4">
       <div class="card-body">
         <div class="d-flex justify-content-between mb-2">
-          <span>Overall Progress</span>
+          <span>{{ 'live.learner.overall_progress' | translate }}</span>
           <span class="fw-bold">{{ learnerProgress.enrollment.attendance_percentage }}%</span>
         </div>
         <div class="progress" style="height: 12px;">
@@ -349,25 +349,25 @@
     <!-- Sessions List -->
     <div class="card">
       <div class="card-header">
-        <h5 class="card-title mb-0">Session Details</h5>
+        <h5 class="card-title mb-0">{{ 'live.learner.session_details' | translate }}</h5>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
-              <th>Session</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Type</th>
-              <th class="text-center">Attendance</th>
+              <th>{{ 'live.common.session' | translate }}</th>
+              <th>{{ 'live.common.date' | translate }}</th>
+              <th>{{ 'live.common.time' | translate }}</th>
+              <th>{{ 'live.common.type' | translate }}</th>
+              <th class="text-center">{{ 'live.common.attendance' | translate }}</th>
             </tr>
             </thead>
             <tbody>
             <tr *ngFor="let session of learnerProgress.sessions">
               <td>
                 <div class="fw-medium">{{ session.title }}</div>
-                <span class="badge bg-warning text-dark" *ngIf="session.is_mandatory">Required</span>
+                <span class="badge bg-warning text-dark" *ngIf="session.is_mandatory">{{ 'live.common.required' | translate }}</span>
               </td>
               <td>{{ formatDate(session.session_date) }}</td>
               <td>{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</td>
@@ -379,10 +379,10 @@
               </td>
               <td class="text-center">
                   <span class="badge" [ngClass]="getStatusBadgeClass(session.attendance_status || 'pending')">
-                    {{ session.attendance_status ? (session.attendance_status | titlecase) : 'Pending' }}
+                    {{ session.attendance_status ? (session.attendance_status | titlecase) : ('live.common.pending' | translate) }}
                   </span>
                 <div class="small text-muted mt-1" *ngIf="session.attendance_mode">
-                  via {{ session.attendance_mode }}
+                  {{ 'live.common.via' | translate }} {{ session.attendance_mode }}
                 </div>
               </td>
             </tr>
@@ -395,27 +395,27 @@
 </div>
 
 <!-- QR Scanner Modal -->
-<ng-template [tuiDialogOptions]="{label: 'Scan Attendance QR', size: 'l'}" [(tuiDialog)]="showQRScanner">
+<ng-template [tuiDialogOptions]="{label: ('live.learner.scan_qr_title' | translate), size: 'l'}" [(tuiDialog)]="showQRScanner">
   <div class="card">
     <div class="card-body">
       <!-- Camera Scanner Placeholder -->
       <div class="scanner-area mb-4">
         <div class="scanner-frame">
           <i class="bi bi-qr-code-scan scanner-icon"></i>
-          <p class="text-muted mt-3">Camera scanner not available</p>
-          <small class="text-muted">Enter the code manually below</small>
+          <p class="text-muted mt-3">{{ 'live.learner.camera_unavailable' | translate }}</p>
+          <small class="text-muted">{{ 'live.learner.enter_manually' | translate }}</small>
         </div>
       </div>
 
       <!-- Manual Entry -->
       <div class="manual-entry">
-        <label class="form-label">Enter QR Code</label>
+        <label class="form-label">{{ 'live.learner.enter_qr_code' | translate }}</label>
         <div class="input-group">
           <input type="text" class="form-control" [(ngModel)]="qrToken"
-                 placeholder="Paste or type the QR code"
+                 placeholder="{{ 'live.learner.qr_placeholder' | translate }}"
                  (keyup.enter)="submitQRCode()">
           <button class="btn btn-primary" (click)="submitQRCode()" [disabled]="!qrToken.trim()">
-            <i class="bi bi-check-lg me-1"></i>Submit
+            <i class="bi bi-check-lg me-1"></i>{{ 'live.common.submit' | translate }}
           </button>
         </div>
       </div>
@@ -423,7 +423,7 @@
       <!-- Simulated Scan (for testing) -->
       <div class="mt-3 text-center">
         <button class="btn btn-secondary btn-sm" (click)="onQRCodeScanned('TEST-QR-TOKEN-123')">
-          <i class="bi bi-lightning me-1"></i>Simulate Scan (Test)
+          <i class="bi bi-lightning me-1"></i>{{ 'live.learner.simulate_scan' | translate }}
         </button>
       </div>
 
@@ -436,7 +436,7 @@
       </div>
     </div>
     <div class="card-footer">
-      <button type="button" class="btn btn-secondary" (click)="closeQRScanner()">Close</button>
+      <button type="button" class="btn btn-secondary" (click)="closeQRScanner()">{{ 'common.close' | translate }}</button>
     </div>
   </div>
 </ng-template>
@@ -448,7 +448,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-calendar-event me-2"></i>Session Details
+          <i class="bi bi-calendar-event me-2"></i>{{ 'live.learner.session_details' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeSessionDetailModal()"></button>
       </div>
@@ -472,7 +472,7 @@
                 <i class="bi bi-calendar3"></i>
               </div>
               <div class="info-content">
-                <div class="info-label">Date</div>
+                <div class="info-label">{{ 'live.common.date' | translate }}</div>
                 <div class="info-value">{{ formatDate(selectedSession.session_date) }}</div>
               </div>
             </div>
@@ -483,7 +483,7 @@
                 <i class="bi bi-clock"></i>
               </div>
               <div class="info-content">
-                <div class="info-label">Time</div>
+                <div class="info-label">{{ 'live.common.time' | translate }}</div>
                 <div class="info-value">{{ formatTime(selectedSession.start_time) }} - {{ formatTime(selectedSession.end_time) }}</div>
               </div>
             </div>
@@ -494,7 +494,7 @@
                 <i class="bi" [ngClass]="getSessionTypeIcon(selectedSession.session_type)"></i>
               </div>
               <div class="info-content">
-                <div class="info-label">Type</div>
+                <div class="info-label">{{ 'live.common.type' | translate }}</div>
                 <div class="info-value">{{ selectedSession.session_type | titlecase }}</div>
               </div>
             </div>
@@ -505,7 +505,7 @@
                 <i class="bi bi-geo-alt"></i>
               </div>
               <div class="info-content">
-                <div class="info-label">Venue</div>
+                <div class="info-label">{{ 'live.learner.venue' | translate }}</div>
                 <div class="info-value">{{ selectedSession.venue_name }}</div>
                 <small class="text-muted" *ngIf="selectedSession.venue_address">
                   {{ selectedSession.venue_address }}
@@ -519,7 +519,7 @@
                 <i class="bi" [ngClass]="getPlatformIcon(selectedSession.video_platform)"></i>
               </div>
               <div class="info-content">
-                <div class="info-label">Platform</div>
+                <div class="info-label">{{ 'live.common.platform' | translate }}</div>
                 <div class="info-value">{{ selectedSession.video_platform | titlecase }}</div>
               </div>
             </div>
@@ -528,20 +528,20 @@
 
         <!-- Description -->
         <div *ngIf="selectedSession.description" class="mb-4">
-          <h6>Description</h6>
+          <h6>{{ 'live.common.description' | translate }}</h6>
           <p class="text-muted">{{ selectedSession.description }}</p>
         </div>
 
         <!-- Instructors -->
         <div *ngIf="selectedSession.instructors && selectedSession.instructors.length > 0" class="mb-4">
-          <h6>Instructors</h6>
+          <h6>{{ 'live.learner.instructors' | translate }}</h6>
           <div class="d-flex flex-wrap gap-2">
             <div *ngFor="let instructor of selectedSession.instructors" class="instructor-badge">
               <div class="avatar avatar-sm me-2">
                 <span class="avatar-initials">{{ instructor.first_name?.charAt(0) }}{{ instructor.last_name?.charAt(0) }}</span>
               </div>
               <span>{{ instructor.first_name }} {{ instructor.last_name }}</span>
-              <span class="badge bg-info ms-1" *ngIf="instructor.role === 'primary'">Lead</span>
+              <span class="badge bg-info ms-1" *ngIf="instructor.role === 'primary'">{{ 'live.learner.lead' | translate }}</span>
             </div>
           </div>
         </div>
@@ -549,15 +549,15 @@
         <!-- Actions -->
         <div class="d-flex gap-2 justify-content-center pt-3 border-top">
           <button class="btn btn-success" *ngIf="canJoinSession(selectedSession)" (click)="joinSession(selectedSession)">
-            <i class="bi bi-box-arrow-up-right me-2"></i>Join Now
+            <i class="bi bi-box-arrow-up-right me-2"></i>{{ 'live.common.join_now' | translate }}
           </button>
           <button class="btn btn-primary" *ngIf="selectedSession.session_type !== 'virtual'" (click)="openQRScanner(); closeSessionDetailModal()">
-            <i class="bi bi-qr-code-scan me-2"></i>Scan QR
+            <i class="bi bi-qr-code-scan me-2"></i>{{ 'live.learner.scan_qr' | translate }}
           </button>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeSessionDetailModal()">Close</button>
+        <button type="button" class="btn btn-secondary" (click)="closeSessionDetailModal()">{{ 'common.close' | translate }}</button>
       </div>
     </div>
   </div>

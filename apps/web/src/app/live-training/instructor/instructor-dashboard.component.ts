@@ -13,6 +13,8 @@ import {
   SessionInstructor
 } from '../live-training.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 interface InstructorSession extends TrainingSession {
   training_title?: string;
@@ -23,13 +25,14 @@ interface InstructorSession extends TrainingSession {
 @Component({
   selector: 'app-instructor-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './instructor-dashboard.component.html',
   styleUrls: ['./instructor-dashboard.component.scss']
 
 })
 export class InstructorDashboardComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   private destroy$ = new Subject<void>();
 
@@ -200,7 +203,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
       this.selectedSessionForAttendance.session_id,
       record.user_id,
       status,
-      'Manual override by instructor'
+      this.i18n.t('live.instructor.manual_override_reason')
     )
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
@@ -211,7 +214,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
   lockAttendance(): void {
     if (!this.selectedSessionForAttendance) return;
-    if (!confirm('Lock attendance? This action cannot be undone.')) return;
+    if (!confirm(this.i18n.t('live.instructor.lock_confirm'))) return;
 
     this.liveTrainingService.lockAttendance(this.selectedSessionForAttendance.session_id)
       .pipe(takeUntil(this.destroy$))

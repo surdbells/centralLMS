@@ -6,8 +6,8 @@
   <!-- Header -->
   <div class="page-header">
     <div class="header-content">
-      <h1><i class="bi bi-person-lines-fill"></i> Manage Course Enrollees</h1>
-      <p class="text-muted">View and manage users enrolled in courses</p>
+      <h1><i class="bi bi-person-lines-fill"></i> {{ 'admin.enrollees.title' | translate }}</h1>
+      <p class="text-muted">{{ 'admin.enrollees.subtitle' | translate }}</p>
     </div>
   </div>
 
@@ -26,24 +26,24 @@
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p>Loading courses...</p>
+    <p>{{ 'admin.enrollees.loading_courses' | translate }}</p>
   </div>
 
   <!-- Course Selection -->
   <div class="course-selector-section" *ngIf="!loading && showCourseSelector">
     <div class="section-card">
       <div class="section-header">
-        <h2>Select a Course</h2>
-        <p>Choose a course to manage its enrollees</p>
+        <h2>{{ 'admin.enroll.select_course' | translate }}</h2>
+        <p>{{ 'admin.enrollees.select_course_hint' | translate }}</p>
       </div>
 
       <div class="search-box">
         <i class="bi bi-search"></i>
         <input type="text"
                class="form-control"
-               placeholder="Search courses..."
+               placeholder="{{ 'admin.courses.search_placeholder' | translate }}"
                [(ngModel)]="courseSearch">
       </div>
 
@@ -59,7 +59,7 @@
             <div class="course-meta">
               <span class="category" *ngIf="course.category_name">{{ course.category_name }}</span>
               <span class="enrollments">
-                <i class="bi bi-people"></i> {{ course.current_enrollments }} enrolled
+                <i class="bi bi-people"></i> {{ 'admin.enroll.n_enrolled' | translate:{ count: course.current_enrollments } }}
               </span>
             </div>
           </div>
@@ -68,7 +68,7 @@
 
         <div class="empty-state" *ngIf="filterCourses().length === 0">
           <i class="bi bi-search"></i>
-          <p>No courses found</p>
+          <p>{{ 'admin.enroll.no_courses' | translate }}</p>
         </div>
       </div>
     </div>
@@ -90,7 +90,7 @@
         </div>
       </div>
       <button class="btn btn-secondary" (click)="changeCourse()">
-        <i class="bi bi-arrow-left me-1"></i> Change Course
+        <i class="bi bi-arrow-left me-1"></i> {{ 'admin.enroll.change_course' | translate }}
       </button>
     </div>
 
@@ -102,7 +102,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ stats.total_enrolled || 0 }}</span>
-          <span class="stat-label">Total Enrolled</span>
+          <span class="stat-label">{{ 'admin.enrollees.total_enrolled' | translate }}</span>
         </div>
       </div>
       <div class="stat-card">
@@ -111,7 +111,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ stats.not_started || 0 }}</span>
-          <span class="stat-label">Not Started</span>
+          <span class="stat-label">{{ 'admin.enrollees.status_not_started' | translate }}</span>
         </div>
       </div>
       <div class="stat-card">
@@ -120,7 +120,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ stats.in_progress || 0 }}</span>
-          <span class="stat-label">In Progress</span>
+          <span class="stat-label">{{ 'admin.enrollees.status_in_progress' | translate }}</span>
         </div>
       </div>
       <div class="stat-card">
@@ -129,7 +129,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ stats.completed || 0 }}</span>
-          <span class="stat-label">Completed</span>
+          <span class="stat-label">{{ 'admin.enrollees.status_completed' | translate }}</span>
         </div>
       </div>
       <div class="stat-card">
@@ -138,7 +138,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ stats.mandatory || 0 }}</span>
-          <span class="stat-label">Mandatory</span>
+          <span class="stat-label">{{ 'admin.enrollees.mandatory' | translate }}</span>
         </div>
       </div>
       <div class="stat-card">
@@ -147,7 +147,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-value">{{ formatProgress(stats.avg_progress) }}</span>
-          <span class="stat-label">Avg Progress</span>
+          <span class="stat-label">{{ 'admin.enrollees.avg_progress' | translate }}</span>
         </div>
       </div>
     </div>
@@ -156,40 +156,40 @@
     <div class="toolbar-card">
       <div class="toolbar-left">
         <div class="filter-group">
-          <label>Status:</label>
+          <label>{{ 'admin.enrollees.status_filter_label' | translate }}</label>
           <select class="form-select form-select-sm"
                   [(ngModel)]="statusFilter"
                   (ngModelChange)="onStatusFilterChange()">
-            <option value="all">All Status</option>
-            <option value="not_started">Not Started</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="dropped">Dropped</option>
+            <option value="all">{{ 'admin.enrollees.all_status' | translate }}</option>
+            <option value="not_started">{{ 'admin.enrollees.status_not_started' | translate }}</option>
+            <option value="in_progress">{{ 'admin.enrollees.status_in_progress' | translate }}</option>
+            <option value="completed">{{ 'admin.enrollees.status_completed' | translate }}</option>
+            <option value="dropped">{{ 'admin.enrollees.status_dropped' | translate }}</option>
           </select>
         </div>
 
         <div class="selection-info" *ngIf="selectedCount > 0">
-          <span class="badge bg-primary">{{ selectedCount }} selected</span>
+          <span class="badge bg-primary">{{ 'admin.enrollees.n_selected' | translate:{ count: selectedCount } }}</span>
         </div>
       </div>
 
       <div class="toolbar-right">
         <button class="btn btn-primary btn-sm" (click)="openAddUsersModal()">
-          <i class="bi bi-person-plus me-1"></i> Add Users
+          <i class="bi bi-person-plus me-1"></i> {{ 'admin.enrollees.add_users' | translate }}
         </button>
 
         <div class="btn-group" *ngIf="selectedCount > 0">
           <button class="btn btn-secondary btn-sm" (click)="openDueDateModal()">
-            <i class="bi bi-calendar-event me-1"></i> Set Due Date
+            <i class="bi bi-calendar-event me-1"></i> {{ 'admin.enrollees.set_due_date' | translate }}
           </button>
           <button class="btn btn-outline-warning btn-sm" (click)="initiateMandatory()">
-            <i class="bi bi-exclamation-circle me-1"></i> Set Mandatory
+            <i class="bi bi-exclamation-circle me-1"></i> {{ 'admin.enrollees.set_mandatory' | translate }}
           </button>
           <button class="btn btn-secondary btn-sm" (click)="initiateOptional()">
-            <i class="bi bi-dash-circle me-1"></i> Set Optional
+            <i class="bi bi-dash-circle me-1"></i> {{ 'admin.enrollees.set_optional' | translate }}
           </button>
           <button class="btn btn-outline-danger btn-sm" (click)="initiateUnenroll()">
-            <i class="bi bi-person-dash me-1"></i> Unenroll
+            <i class="bi bi-person-dash me-1"></i> {{ 'admin.enrollees.unenroll' | translate }}
           </button>
         </div>
       </div>
@@ -199,7 +199,7 @@
     <div class="table-card">
       <div class="table-loading" *ngIf="loadingEnrollees">
         <div class="spinner-border spinner-border-sm"></div>
-        <span>Loading enrollees...</span>
+        <span>{{ 'admin.enrollees.loading_enrollees' | translate }}</span>
       </div>
 
       <div class="table-responsive" *ngIf="!loadingEnrollees">
@@ -212,13 +212,13 @@
                        [(ngModel)]="selectAll"
                        (change)="toggleSelectAll()">
               </th>
-              <th>User</th>
-              <th>Department</th>
-              <th>Status</th>
-              <th>Progress</th>
-              <th>Enrolled</th>
-              <th>Due Date</th>
-              <th>Mandatory</th>
+              <th>{{ 'admin.enrollees.col_user' | translate }}</th>
+              <th>{{ 'admin.enrollees.col_department' | translate }}</th>
+              <th>{{ 'admin.enrollees.col_status' | translate }}</th>
+              <th>{{ 'admin.enrollees.col_progress' | translate }}</th>
+              <th>{{ 'admin.enrollees.col_enrolled' | translate }}</th>
+              <th>{{ 'admin.enrollees.col_due_date' | translate }}</th>
+              <th>{{ 'admin.enrollees.mandatory' | translate }}</th>
             </tr>
           </thead>
           <tbody>
@@ -271,7 +271,7 @@
               </td>
               <td>
                 <span class="badge" [ngClass]="enrollee.is_mandatory ? 'bg-danger' : 'bg-black text-white'">
-                  {{ enrollee.is_mandatory ? 'Yes' : 'No' }}
+                  {{ enrollee.is_mandatory ? ('common.yes' | translate) : ('common.no' | translate) }}
                 </span>
               </td>
             </tr>
@@ -280,9 +280,9 @@
 
         <div class="empty-state" *ngIf="enrollees.length === 0">
           <i class="bi bi-people"></i>
-          <p>No enrollees found</p>
+          <p>{{ 'admin.enrollees.no_enrollees' | translate }}</p>
           <button class="btn btn-primary btn-sm" (click)="openAddUsersModal()">
-            <i class="bi bi-person-plus me-1"></i> Add Users
+            <i class="bi bi-person-plus me-1"></i> {{ 'admin.enrollees.add_users' | translate }}
           </button>
         </div>
       </div>
@@ -290,8 +290,7 @@
       <!-- Pagination -->
       <div class="table-footer" *ngIf="totalPages > 1">
         <div class="pagination-info">
-          Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalEnrollees) }}
-          of {{ totalEnrollees }}
+          {{ 'admin.enrollees.showing_range' | translate:{ from: (currentPage - 1) * pageSize + 1, to: Math.min(currentPage * pageSize, totalEnrollees), total: totalEnrollees } }}
         </div>
         <nav>
           <ul class="pagination pagination-sm mb-0">
@@ -320,7 +319,7 @@
   <div class="modal-overlay" *ngIf="showAddUsersModal" (click)="closeAddUsersModal()">
     <div class="modal-container" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3><i class="bi bi-person-plus"></i> Add Users to Course</h3>
+        <h3><i class="bi bi-person-plus"></i> {{ 'admin.enrollees.add_users_title' | translate }}</h3>
         <button class="btn-close" (click)="closeAddUsersModal()"></button>
       </div>
 
@@ -329,7 +328,7 @@
           <i class="bi bi-search"></i>
           <input type="text"
                  class="form-control"
-                 placeholder="Search users..."
+                 placeholder="{{ 'admin.enroll.search_users' | translate }}"
                  [(ngModel)]="userSearch"
                  (ngModelChange)="onUserSearchChange()">
         </div>
@@ -337,7 +336,7 @@
         <div class="user-selection-grid">
           <!-- Available Users -->
           <div class="users-list-panel">
-            <h5>Available Users</h5>
+            <h5>{{ 'admin.enroll.available_users' | translate }}</h5>
             <div class="users-list" [class.loading]="loadingUnenrolled">
               <div class="loading-overlay" *ngIf="loadingUnenrolled">
                 <div class="spinner-border spinner-border-sm"></div>
@@ -359,14 +358,14 @@
               </div>
 
               <div class="empty-state small" *ngIf="unenrolledUsers.length === 0 && !loadingUnenrolled">
-                <p>No available users found</p>
+                <p>{{ 'admin.enrollees.no_available_users' | translate }}</p>
               </div>
             </div>
           </div>
 
           <!-- Selected Users -->
           <div class="selected-panel">
-            <h5>Selected ({{ selectedUsersToAdd.length }})</h5>
+            <h5>{{ 'admin.enrollees.selected_count' | translate:{ count: selectedUsersToAdd.length } }}</h5>
             <div class="selected-list">
               <div class="selected-chip" *ngFor="let user of selectedUsersToAdd">
                 <span>{{ user.first_name }} {{ user.last_name }}</span>
@@ -376,7 +375,7 @@
               </div>
 
               <div class="empty-state small" *ngIf="selectedUsersToAdd.length === 0">
-                <p>Select users from the list</p>
+                <p>{{ 'admin.enroll.select_from_list' | translate }}</p>
               </div>
             </div>
           </div>
@@ -384,15 +383,15 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeAddUsersModal()">Cancel</button>
+        <button class="btn btn-secondary" (click)="closeAddUsersModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-primary"
                 (click)="confirmAddUsers()"
                 [disabled]="selectedUsersToAdd.length === 0 || processing">
           <span *ngIf="!processing">
-            <i class="bi bi-person-plus me-1"></i> Add {{ selectedUsersToAdd.length }} User(s)
+            <i class="bi bi-person-plus me-1"></i> {{ 'admin.enrollees.add_n_users' | translate:{ count: selectedUsersToAdd.length } }}
           </span>
           <span *ngIf="processing">
-            <span class="spinner-border spinner-border-sm me-1"></span> Adding...
+            <span class="spinner-border spinner-border-sm me-1"></span> {{ 'admin.enrollees.adding' | translate }}
           </span>
         </button>
       </div>
@@ -403,28 +402,28 @@
   <div class="modal-overlay" *ngIf="showDueDateModal" (click)="closeDueDateModal()">
     <div class="modal-container small" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3><i class="bi bi-calendar-event"></i> Set Due Date</h3>
+        <h3><i class="bi bi-calendar-event"></i> {{ 'admin.enrollees.set_due_date' | translate }}</h3>
         <button class="btn-close" (click)="closeDueDateModal()"></button>
       </div>
 
       <div class="modal-body">
-        <p>Set due date for {{ selectedCount }} selected enrollment(s).</p>
-        <p class="text-muted small">Leave empty to remove the due date.</p>
+        <p>{{ 'admin.enrollees.due_date_for' | translate:{ count: selectedCount } }}</p>
+        <p class="text-muted small">{{ 'admin.enrollees.due_date_remove_hint' | translate }}</p>
 
         <div class="form-group">
-          <label class="form-label">Due Date</label>
+          <label class="form-label">{{ 'admin.enrollees.col_due_date' | translate }}</label>
           <input type="date" class="form-control" [(ngModel)]="newDueDate">
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeDueDateModal()">Cancel</button>
+        <button class="btn btn-secondary" (click)="closeDueDateModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-primary"
                 (click)="confirmDueDateUpdate()"
                 [disabled]="processing">
-          <span *ngIf="!processing">Update Due Date</span>
+          <span *ngIf="!processing">{{ 'admin.enrollees.update_due_date' | translate }}</span>
           <span *ngIf="processing">
-            <span class="spinner-border spinner-border-sm me-1"></span> Updating...
+            <span class="spinner-border spinner-border-sm me-1"></span> {{ 'admin.enrollees.updating' | translate }}
           </span>
         </button>
       </div>
@@ -440,38 +439,32 @@
              [class.bi-person-dash]="confirmAction === 'unenroll'"
              [class.bi-exclamation-circle]="confirmAction === 'mandatory'"
              [class.bi-dash-circle]="confirmAction === 'optional'"></i>
-          {{ confirmAction === 'unenroll' ? 'Confirm Unenroll' :
-             confirmAction === 'mandatory' ? 'Set as Mandatory' : 'Set as Optional' }}
+          {{ confirmAction === 'unenroll' ? ('admin.enrollees.confirm_unenroll' | translate) :
+             confirmAction === 'mandatory' ? ('admin.enrollees.set_as_mandatory' | translate) : ('admin.enrollees.set_as_optional' | translate) }}
         </h3>
         <button class="btn-close" (click)="closeConfirmModal()"></button>
       </div>
 
       <div class="modal-body">
-        <p *ngIf="confirmAction === 'unenroll'">
-          Are you sure you want to unenroll <strong>{{ selectedCount }}</strong> user(s) from this course?
-          This action will mark their enrollment as dropped.
+        <p *ngIf="confirmAction === 'unenroll'" [innerHTML]="'admin.enrollees.unenroll_message' | translate:{ count: selectedCount }">
         </p>
-        <p *ngIf="confirmAction === 'mandatory'">
-          Set <strong>{{ selectedCount }}</strong> enrollment(s) as mandatory?
-          Users will be required to complete this course.
+        <p *ngIf="confirmAction === 'mandatory'" [innerHTML]="'admin.enrollees.mandatory_message' | translate:{ count: selectedCount }">
         </p>
-        <p *ngIf="confirmAction === 'optional'">
-          Set <strong>{{ selectedCount }}</strong> enrollment(s) as optional?
-          Users will not be required to complete this course.
+        <p *ngIf="confirmAction === 'optional'" [innerHTML]="'admin.enrollees.optional_message' | translate:{ count: selectedCount }">
         </p>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeConfirmModal()">Cancel</button>
+        <button class="btn btn-secondary" (click)="closeConfirmModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn"
                 [class.btn-danger]="confirmAction === 'unenroll'"
                 [class.btn-warning]="confirmAction === 'mandatory'"
                 [class.btn-secondary]="confirmAction === 'optional'"
                 (click)="confirmAction === 'unenroll' ? confirmUnenroll() : confirmMandatoryChange()"
                 [disabled]="processing">
-          <span *ngIf="!processing">Confirm</span>
+          <span *ngIf="!processing">{{ 'common.confirm' | translate }}</span>
           <span *ngIf="processing">
-            <span class="spinner-border spinner-border-sm me-1"></span> Processing...
+            <span class="spinner-border spinner-border-sm me-1"></span> {{ 'admin.enrollees.processing' | translate }}
           </span>
         </button>
       </div>

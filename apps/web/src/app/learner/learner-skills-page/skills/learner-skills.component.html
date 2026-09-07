@@ -5,8 +5,8 @@
   <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
       <div>
-        <h1 class="h3 mb-1">My Skills</h1>
-        <p class="text-muted mb-0">Track your acquired skills and competencies</p>
+        <h1 class="h3 mb-1">{{ 'skills.my_skills' | translate }}</h1>
+        <p class="text-muted mb-0">{{ 'skills.subtitle' | translate }}</p>
       </div>
       <div class="d-flex gap-2">
         <div class="btn-group" role="group">
@@ -36,7 +36,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ totalSkillsCount }}</div>
-          <div class="stat-label">Skills Acquired</div>
+          <div class="stat-label">{{ 'skills.skills_acquired' | translate }}</div>
         </div>
       </div>
     </div>
@@ -47,7 +47,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ inProgressCount }}</div>
-          <div class="stat-label">In Progress</div>
+          <div class="stat-label">{{ 'skills.in_progress' | translate }}</div>
         </div>
       </div>
     </div>
@@ -58,7 +58,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ expertSkillsCount }}</div>
-          <div class="stat-label">Expert Level</div>
+          <div class="stat-label">{{ 'skills.expert_level' | translate }}</div>
         </div>
       </div>
     </div>
@@ -69,7 +69,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ categoryCount }}</div>
-          <div class="stat-label">Categories</div>
+          <div class="stat-label">{{ 'skills.categories' | translate }}</div>
         </div>
       </div>
     </div>
@@ -79,19 +79,19 @@
   <ul class="nav nav-pills skill-tabs mb-4">
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'acquired'" (click)="activeTab = 'acquired'">
-        <i class="bi bi-star-fill me-2"></i>Acquired
+        <i class="bi bi-star-fill me-2"></i>{{ 'skills.acquired' | translate }}
         <span class="badge bg-black text-white ms-2">{{ totalSkillsCount }}</span>
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'progress'" (click)="activeTab = 'progress'">
-        <i class="bi bi-hourglass-split me-2"></i>In Progress
+        <i class="bi bi-hourglass-split me-2"></i>{{ 'skills.in_progress' | translate }}
         <span class="badge bg-black text-white ms-2">{{ inProgressCount }}</span>
       </button>
     </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">
-        <i class="bi bi-collection me-2"></i>All Skills
+        <i class="bi bi-collection me-2"></i>{{ 'skills.all_skills' | translate }}
         <span class="badge bg-black text-white ms-2">{{ allSkills.length }}</span>
       </button>
     </li>
@@ -100,9 +100,9 @@
   <!-- Loading State -->
   <div *ngIf="loading" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p class="text-muted mt-3">Loading your skills...</p>
+    <p class="text-muted mt-3">{{ 'skills.loading_skills' | translate }}</p>
   </div>
 
   <!-- ==================== ACQUIRED SKILLS TAB ==================== -->
@@ -110,11 +110,11 @@
     <!-- Filter -->
     <div class="d-flex justify-content-end mb-3">
       <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLevel">
-        <option value="">All Levels</option>
-        <option value="beginner">Beginner</option>
-        <option value="intermediate">Intermediate</option>
-        <option value="advanced">Advanced</option>
-        <option value="expert">Expert</option>
+        <option value="">{{ 'skills.all_levels' | translate }}</option>
+        <option value="beginner">{{ 'skills.beginner' | translate }}</option>
+        <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
+        <option value="advanced">{{ 'skills.advanced' | translate }}</option>
+        <option value="expert">{{ 'skills.expert' | translate }}</option>
       </select>
     </div>
 
@@ -123,10 +123,10 @@
       <div class="empty-icon">
         <i class="bi bi-star"></i>
       </div>
-      <h5>No skills acquired yet</h5>
-      <p class="text-muted">Complete courses to acquire new skills and competencies</p>
+      <h5>{{ 'skills.empty_acquired_title' | translate }}</h5>
+      <p class="text-muted">{{ 'skills.empty_acquired_text' | translate }}</p>
       <button class="btn btn-primary" routerLink="/learning">
-        <i class="bi bi-book me-2"></i>Browse Courses
+        <i class="bi bi-book me-2"></i>{{ 'skills.browse_courses' | translate }}
       </button>
     </div>
 
@@ -136,7 +136,7 @@
         <div class="category-header">
           <div class="category-color" [style.background]="category.categoryColour"></div>
           <h5 class="category-title mb-0">{{ category.categoryName }}</h5>
-          <span class="skill-count">{{ category.skills.length }} skill(s)</span>
+          <span class="skill-count">{{ 'skills.skill_count' | translate:{ count: category.skills.length } }}</span>
         </div>
 
         <!-- Grid View -->
@@ -153,10 +153,10 @@
               </div>
               <h6 class="skill-name">{{ skill.name }}</h6>
               <div class="skill-meta">
-                <span><i class="bi bi-book me-1"></i>{{ skill.coursesCompleted }} course(s)</span>
+                <span><i class="bi bi-book me-1"></i>{{ 'skills.course_count' | translate:{ count: skill.coursesCompleted } }}</span>
               </div>
               <div class="skill-date">
-                Acquired {{ formatRelativeDate(skill.acquiredAt) }}
+                {{ 'skills.acquired' | translate }} {{ formatRelativeDate(skill.acquiredAt) }}
               </div>
             </div>
           </div>
@@ -171,13 +171,13 @@
             </div>
             <div class="skill-info">
               <div class="skill-name">{{ skill.name }}</div>
-              <small class="text-muted">{{ skill.description || 'No description' }}</small>
+              <small class="text-muted">{{ skill.description || ('skills.no_description' | translate) }}</small>
             </div>
             <div class="skill-stats text-end">
               <span class="badge mb-1" [ngClass]="getLevelBadgeClass(skill.proficiency)">
                 {{ skill.proficiency | titlecase }}
               </span>
-              <small class="text-muted d-block">{{ skill.coursesCompleted }} course(s)</small>
+              <small class="text-muted d-block">{{ 'skills.course_count' | translate:{ count: skill.coursesCompleted } }}</small>
             </div>
           </div>
         </div>
@@ -192,8 +192,8 @@
       <div class="empty-icon">
         <i class="bi bi-hourglass"></i>
       </div>
-      <h5>No skills in progress</h5>
-      <p class="text-muted">Start a course to begin acquiring new skills</p>
+      <h5>{{ 'skills.empty_progress_title' | translate }}</h5>
+      <p class="text-muted">{{ 'skills.empty_progress_text' | translate }}</p>
     </div>
 
     <!-- In Progress Skills -->
@@ -206,12 +206,12 @@
             </div>
             <div class="flex-grow-1">
               <h6 class="mb-1">{{ skill.name }}</h6>
-              <span class="text-muted small">{{ skill.categoryName || 'Uncategorized' }}</span>
+              <span class="text-muted small">{{ skill.categoryName || ('skills.uncategorized' | translate) }}</span>
             </div>
           </div>
 
           <div class="progress-info mb-2">
-            <span class="text-muted small">Progress</span>
+            <span class="text-muted small">{{ 'skills.progress' | translate }}</span>
             <span class="fw-medium">{{ skill.percentComplete }}%</span>
           </div>
           <div class="progress mb-3" style="height: 6px;">
@@ -220,8 +220,8 @@
           </div>
 
           <div class="d-flex justify-content-between text-muted small">
-            <span><i class="bi bi-check-circle me-1"></i>{{ skill.coursesCompleted }}/{{ skill.coursesAvailable }} courses</span>
-            <span><i class="bi bi-play-circle me-1"></i>{{ skill.coursesInProgress }} in progress</span>
+            <span><i class="bi bi-check-circle me-1"></i>{{ skill.coursesCompleted }}/{{ skill.coursesAvailable }} {{ 'skills.courses' | translate }}</span>
+            <span><i class="bi bi-play-circle me-1"></i>{{ 'skills.count_in_progress' | translate:{ count: skill.coursesInProgress } }}</span>
           </div>
         </div>
       </div>
@@ -233,11 +233,11 @@
     <!-- Filter -->
     <div class="d-flex justify-content-end mb-3">
       <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLevel">
-        <option value="">All Levels</option>
-        <option value="beginner">Beginner</option>
-        <option value="intermediate">Intermediate</option>
-        <option value="advanced">Advanced</option>
-        <option value="expert">Expert</option>
+        <option value="">{{ 'skills.all_levels' | translate }}</option>
+        <option value="beginner">{{ 'skills.beginner' | translate }}</option>
+        <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
+        <option value="advanced">{{ 'skills.advanced' | translate }}</option>
+        <option value="expert">{{ 'skills.expert' | translate }}</option>
       </select>
     </div>
 
@@ -254,7 +254,7 @@
             </div>
             <div class="flex-grow-1">
               <h6 class="mb-1">{{ skill.name }}</h6>
-              <span class="text-muted small">{{ skill.categoryName || 'Uncategorized' }}</span>
+              <span class="text-muted small">{{ skill.categoryName || ('skills.uncategorized' | translate) }}</span>
             </div>
             <span class="badge" [ngClass]="getLevelBadgeClass(skill.proficiency)">
               {{ skill.proficiency | titlecase }}
@@ -262,7 +262,7 @@
           </div>
 
           <div class="progress-info mb-2">
-            <span class="text-muted small">{{ skill.isHeld ? 'Completed' : 'Progress' }}</span>
+            <span class="text-muted small">{{ skill.isHeld ? ('skills.completed' | translate) : ('skills.progress' | translate) }}</span>
             <span class="fw-medium">{{ skill.percentComplete }}%</span>
           </div>
           <div class="progress mb-3" style="height: 6px;">
@@ -271,12 +271,12 @@
           </div>
 
           <div class="d-flex justify-content-between text-muted small">
-            <span><i class="bi bi-check-circle me-1"></i>{{ skill.coursesCompleted }}/{{ skill.coursesAvailable }} courses</span>
+            <span><i class="bi bi-check-circle me-1"></i>{{ skill.coursesCompleted }}/{{ skill.coursesAvailable }} {{ 'skills.courses' | translate }}</span>
             <span *ngIf="!skill.isHeld && skill.coursesInProgress > 0">
-              <i class="bi bi-play-circle me-1"></i>{{ skill.coursesInProgress }} active
+              <i class="bi bi-play-circle me-1"></i>{{ 'skills.count_active' | translate:{ count: skill.coursesInProgress } }}
             </span>
             <span *ngIf="skill.isHeld" class="text-success">
-              <i class="bi bi-patch-check me-1"></i>Acquired
+              <i class="bi bi-patch-check me-1"></i>{{ 'skills.acquired' | translate }}
             </span>
           </div>
         </div>
@@ -287,8 +287,8 @@
       <div class="empty-icon">
         <i class="bi bi-collection"></i>
       </div>
-      <h5>No skills available</h5>
-      <p class="text-muted">Enroll in courses to start building your skills</p>
+      <h5>{{ 'skills.empty_all_title' | translate }}</h5>
+      <p class="text-muted">{{ 'skills.empty_all_text' | translate }}</p>
     </div>
   </div>
 </div>
@@ -307,7 +307,7 @@
           </div>
           <div>
             <h5 class="modal-title mb-0">{{ selectedSkill?.name }}</h5>
-            <small class="text-muted">Courses teaching this skill</small>
+            <small class="text-muted">{{ 'skills.courses_teaching' | translate }}</small>
           </div>
         </div>
         <button type="button" class="btn-close" (click)="closeCoursesModal()"></button>
@@ -315,7 +315,7 @@
       <div class="modal-body">
         <div *ngIf="skillCourses.length === 0" class="text-center py-4 text-muted">
           <i class="bi bi-book display-4 d-block mb-2"></i>
-          No courses are linked to this skill
+          {{ 'skills.no_courses_linked' | translate }}
         </div>
         <div class="course-list" *ngIf="skillCourses.length > 0">
           <div class="course-item" *ngFor="let course of skillCourses" (click)="goToCourse(course.courseId)">
@@ -326,11 +326,11 @@
             <div class="course-info">
               <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="course-title">{{ course.title }}</span>
-                <span class="badge bg-warning-subtle text-warning" *ngIf="course.isPrimary">Primary</span>
+                <span class="badge bg-warning-subtle text-warning" *ngIf="course.isPrimary">{{ 'skills.primary' | translate }}</span>
               </div>
               <small class="text-muted">
                 {{ course.status | titlecase }}
-                <span *ngIf="course.durationMinutes"> · {{ course.durationMinutes }} min</span>
+                <span *ngIf="course.durationMinutes"> · {{ 'skills.minutes' | translate:{ count: course.durationMinutes } }}</span>
               </small>
             </div>
             <div class="d-flex align-items-center gap-2">

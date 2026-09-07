@@ -9,9 +9,9 @@
         </div>
       </div>
       <div class="col">
-        <h1 class="fs-4 mb-0">Personal Notes </h1>
+        <h1 class="fs-4 mb-0">{{ 'notes.title' | translate }} </h1>
         <p class="text-muted mb-0 small" *ngIf="meta.total > 0">
-          {{ meta.total }} note{{ meta.total === 1 ? '' : 's' }}
+          {{ meta.total }} {{ (meta.total === 1 ? 'notes.note_one' : 'notes.note_other') | translate }}
         </p>
       </div>
     </div>
@@ -24,10 +24,10 @@
           <input
             type="text"
             class="form-control"
-            placeholder="Search your notes…"
+            placeholder="{{ 'notes.search_placeholder' | translate }}"
             [(ngModel)]="searchQuery"
             (keyup.enter)="search()" />
-          <button class="btn btn-primary" type="button" (click)="search()">Search</button>
+          <button class="btn btn-primary" type="button" (click)="search()">{{ 'common.search' | translate }}</button>
         </div>
       </div>
       <div class="col-auto">
@@ -37,7 +37,7 @@
           [class.btn-primary]="filterPinned"
           [class.btn-outline-primary]="!filterPinned"
           (click)="togglePinnedFilter()">
-          <i class="bi bi-pin-angle me-1"></i>Pinned only
+          <i class="bi bi-pin-angle me-1"></i>{{ 'notes.pinned_only' | translate }}
         </button>
       </div>
     </div>
@@ -51,7 +51,7 @@
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start gap-3">
               <div class="flex-grow-1">
-                <h2 class="fs-6 fw-semibold mb-1">{{ note.title || 'Untitled note' }}</h2>
+                <h2 class="fs-6 fw-semibold mb-1">{{ note.title || ('notes.untitled' | translate) }}</h2>
                 <p class="text-muted small mb-2" *ngIf="contextOf(note) !== ''">
                   {{ contextOf(note) }}
                   <span *ngIf="positionOf(note) !== null" class="badge bg-light text-muted ms-1">
@@ -65,14 +65,14 @@
                   class="btn btn-sm"
                   [class.btn-primary]="note.isPinned"
                   [class.btn-outline-secondary]="!note.isPinned"
-                  [title]="note.isPinned ? 'Unpin' : 'Pin to the top'"
+                  [title]="(note.isPinned ? 'notes.unpin' : 'notes.pin') | translate"
                   (click)="togglePin(note)">
                   <i class="bi" [class.bi-pin-angle-fill]="note.isPinned" [class.bi-pin-angle]="!note.isPinned"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" title="Edit" (click)="edit(note)">
+                <button type="button" class="btn btn-sm btn-outline-secondary" [title]="'common.edit' | translate" (click)="edit(note)">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" (click)="remove(note)">
+                <button type="button" class="btn btn-sm btn-outline-danger" [title]="'common.delete' | translate" (click)="remove(note)">
                   <i class="bi bi-trash3"></i>
                 </button>
               </div>
@@ -84,40 +84,40 @@
             <!-- Editing, in place -->
             <div *ngIf="editingNote?.id === note.id">
               <div class="mb-2">
-                <label class="form-label small">Title</label>
+                <label class="form-label small">{{ 'notes.field_title' | translate }}</label>
                 <input type="text" class="form-control" [(ngModel)]="draft.title" />
               </div>
               <div class="mb-2">
-                <label class="form-label small">Note</label>
+                <label class="form-label small">{{ 'notes.field_note' | translate }}</label>
                 <textarea rows="5" class="form-control" [(ngModel)]="draft.content"></textarea>
               </div>
               <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-primary" (click)="saveEdit()">Save</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">Cancel</button>
+                <button type="button" class="btn btn-sm btn-primary" (click)="saveEdit()">{{ 'common.save' | translate }}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
               </div>
             </div>
 
-            <div class="text-muted small mt-2">Last edited {{ note.updatedAt | date: 'medium' }}</div>
+            <div class="text-muted small mt-2">{{ 'notes.last_edited' | translate:{ date: (note.updatedAt | date: 'medium') } }}</div>
           </div>
         </div>
 
         <div *ngIf="!ui_controls.is_loading && notes.length === 0" class="text-center text-muted py-5">
           <i class="bi bi-journal-text fs-1 d-block mb-2"></i>
           <p class="mb-0" *ngIf="searchQuery === '' && !filterPinned">
-            You have not made any notes yet. Notes you take while working through a lesson appear here.
+            {{ 'notes.empty_text' | translate }}
           </p>
-          <p class="mb-0" *ngIf="searchQuery !== '' || filterPinned">No notes match what you are looking for.</p>
+          <p class="mb-0" *ngIf="searchQuery !== '' || filterPinned">{{ 'notes.empty_filtered' | translate }}</p>
         </div>
 
         <!-- Pagination -->
         <nav *ngIf="meta.totalPages > 1" aria-label="Page navigation" class="mt-4">
           <ul class="pagination pagination-sm justify-content-center mb-0">
             <li class="page-item" [class.disabled]="meta.page === 1">
-              <a role="button" class="page-link" (click)="goToPage(meta.page - 1)">Prev</a>
+              <a role="button" class="page-link" (click)="goToPage(meta.page - 1)">{{ 'common.previous' | translate }}</a>
             </li>
-            <li class="page-item active"><a class="page-link">{{ meta.page }} of {{ meta.totalPages }}</a></li>
+            <li class="page-item active"><a class="page-link">{{ 'common.page_of' | translate:{ current: meta.page, total: meta.totalPages } }}</a></li>
             <li class="page-item" [class.disabled]="meta.page === meta.totalPages">
-              <a role="button" class="page-link" (click)="goToPage(meta.page + 1)">Next</a>
+              <a role="button" class="page-link" (click)="goToPage(meta.page + 1)">{{ 'common.next' | translate }}</a>
             </li>
           </ul>
         </nav>

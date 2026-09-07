@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, TrainingSession } from '../live-training.service';
+import { TranslatePipe } from '../../translate.pipe';
 
 interface AttendanceStats {
   total_sessions: number;
@@ -20,16 +21,16 @@ interface AttendanceStats {
 @Component({
   selector: 'app-attendance-widget',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TranslatePipe],
   template: `
     <div class="attendance-widget">
       <div class="widget-header">
         <h6 class="widget-title mb-0">
           <i class="bi bi-clipboard-check me-2"></i>
-          Live Training Attendance
+          {{ 'live.widget.attendance_title' | translate }}
         </h6>
         <a routerLink="/live-training/admin" class="btn btn-sm btn-link text-decoration-none">
-          View Details <i class="bi bi-arrow-right"></i>
+          {{ 'live.common.view_details' | translate }} <i class="bi bi-arrow-right"></i>
         </a>
       </div>
 
@@ -49,7 +50,7 @@ interface AttendanceStats {
                 <span class="rate-number">{{ stats.attendance_rate }}</span>
                 <span class="rate-percent">%</span>
               </div>
-              <div class="rate-label">Attendance Rate</div>
+              <div class="rate-label">{{ 'live.widget.attendance_rate' | translate }}</div>
             </div>
           </div>
 
@@ -57,19 +58,19 @@ interface AttendanceStats {
           <div class="breakdown-grid">
             <div class="breakdown-item">
               <div class="breakdown-value text-success">{{ stats.total_present }}</div>
-              <div class="breakdown-label">Present</div>
+              <div class="breakdown-label">{{ 'live.common.present' | translate }}</div>
             </div>
             <div class="breakdown-item">
               <div class="breakdown-value text-warning">{{ stats.total_late }}</div>
-              <div class="breakdown-label">Late</div>
+              <div class="breakdown-label">{{ 'live.common.late' | translate }}</div>
             </div>
             <div class="breakdown-item">
               <div class="breakdown-value text-danger">{{ stats.total_absent }}</div>
-              <div class="breakdown-label">Absent</div>
+              <div class="breakdown-label">{{ 'live.common.absent' | translate }}</div>
             </div>
             <div class="breakdown-item">
               <div class="breakdown-value text-info">{{ stats.completed_sessions }}</div>
-              <div class="breakdown-label">Sessions</div>
+              <div class="breakdown-label">{{ 'live.common.sessions' | translate }}</div>
             </div>
           </div>
 
@@ -78,25 +79,25 @@ interface AttendanceStats {
             <div class="bar-segments">
               <div class="segment present"
                    [style.width.%]="getPercentage(stats.total_present)"
-                   [title]="'Present: ' + stats.total_present"></div>
+                   [title]="('live.common.present' | translate) + ': ' + stats.total_present"></div>
               <div class="segment late"
                    [style.width.%]="getPercentage(stats.total_late)"
-                   [title]="'Late: ' + stats.total_late"></div>
+                   [title]="('live.common.late' | translate) + ': ' + stats.total_late"></div>
               <div class="segment absent"
                    [style.width.%]="getPercentage(stats.total_absent)"
-                   [title]="'Absent: ' + stats.total_absent"></div>
+                   [title]="('live.common.absent' | translate) + ': ' + stats.total_absent"></div>
             </div>
             <div class="bar-legend">
-              <span class="legend-item"><span class="dot present"></span> Present</span>
-              <span class="legend-item"><span class="dot late"></span> Late</span>
-              <span class="legend-item"><span class="dot absent"></span> Absent</span>
+              <span class="legend-item"><span class="dot present"></span> {{ 'live.common.present' | translate }}</span>
+              <span class="legend-item"><span class="dot late"></span> {{ 'live.common.late' | translate }}</span>
+              <span class="legend-item"><span class="dot absent"></span> {{ 'live.common.absent' | translate }}</span>
             </div>
           </div>
         </div>
 
         <!-- Today's Sessions -->
         <div *ngIf="!loading && todaySessions.length > 0" class="today-sessions mt-4 pt-4 border-top">
-          <h6 class="small text-muted mb-3">Today's Sessions</h6>
+          <h6 class="small text-muted mb-3">{{ 'live.widget.todays_sessions' | translate }}</h6>
           <div *ngFor="let session of todaySessions" class="today-session-item">
             <div class="session-info">
               <span class="session-title">{{ session.title }}</span>
@@ -111,7 +112,7 @@ interface AttendanceStats {
         <!-- Empty State -->
         <div *ngIf="!loading && !stats" class="empty-state text-center py-4">
           <i class="bi bi-clipboard-x display-6 text-muted mb-2"></i>
-          <p class="text-muted mb-0 small">No attendance data yet</p>
+          <p class="text-muted mb-0 small">{{ 'live.widget.no_data' | translate }}</p>
         </div>
       </div>
     </div>

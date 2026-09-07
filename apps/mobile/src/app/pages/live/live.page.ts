@@ -4,6 +4,8 @@ import { IonContent, IonIcon, IonSkeletonText } from '@ionic/angular/standalone'
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { LiveService, LiveSession } from '../../core/live.service';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 /**
  * The learner's live classes — upcoming and in-progress sessions across all
@@ -14,10 +16,10 @@ import { LiveService, LiveSession } from '../../core/live.service';
 @Component({
   selector: 'app-live',
   standalone: true,
-  imports: [IonContent, IonIcon, IonSkeletonText, BrandHeaderComponent, EmptyStateComponent],
+  imports: [IonContent, IonIcon, IonSkeletonText, BrandHeaderComponent, EmptyStateComponent, TranslatePipe],
   template: `
     <ion-content [fullscreen]="true">
-      <app-brand-header title="Live Classes" subtitle="Your upcoming and live sessions" back></app-brand-header>
+      <app-brand-header [title]="'actions.live_classes' | translate" [subtitle]="'live.subtitle' | translate" back></app-brand-header>
 
       <div class="pad">
         @if (loading()) {
@@ -28,20 +30,20 @@ import { LiveService, LiveSession } from '../../core/live.service';
             </div>
           }
         } @else if (failed()) {
-          <app-empty-state icon="cloud-offline-outline" title="Couldn't load your classes"
-            message="Check your connection and try again." actionLabel="Try again" (action)="load()"></app-empty-state>
+          <app-empty-state icon="cloud-offline-outline" [title]="'live.load_failed_title' | translate"
+            [message]="'common.offline' | translate" [actionLabel]="'common.retry' | translate" (action)="load()"></app-empty-state>
         } @else if (!sessions().length) {
-          <app-empty-state icon="videocam-outline" title="No live classes"
-            message="When you're enrolled in a session it'll show up here."></app-empty-state>
+          <app-empty-state icon="videocam-outline" [title]="'live.empty_title' | translate"
+            [message]="'live.empty_message' | translate"></app-empty-state>
         } @else {
           @for (s of sessions(); track s.id) {
             <div class="card" [class.live]="isLive(s)">
               <div class="c-top">
                 <span class="c-when">
-                  @if (isLive(s)) { <span class="live-dot"></span> Live now }
+                  @if (isLive(s)) { <span class="live-dot"></span> {{ 'live.live_now' | translate }} }
                   @else { <ion-icon name="time-outline"></ion-icon> {{ whenLabel(s) }} }
                 </span>
-                @if (s.meeting?.platform === 'agora') { <span class="c-tag"><ion-icon name="radio-outline"></ion-icon> In-app</span> }
+                @if (s.meeting?.platform === 'agora') { <span class="c-tag"><ion-icon name="radio-outline"></ion-icon> {{ 'live.in_app' | translate }}</span> }
               </div>
               <p class="c-title">{{ s.title }}</p>
               @if (s.trainingTitle) { <p class="c-sub">{{ s.trainingTitle }}</p> }
@@ -49,16 +51,16 @@ import { LiveService, LiveSession } from '../../core/live.service';
                 <span class="c-time">{{ timeRange(s) }}</span>
                 @if (joinable(s)) {
                   <button class="join" (click)="join(s)">
-                    <ion-icon name="videocam"></ion-icon> Join
+                    <ion-icon name="videocam"></ion-icon> {{ 'live.join' | translate }}
                   </button>
                 } @else if (!s.meeting && s.delivery !== 'physical') {
-                  <span class="c-note">Not set up yet</span>
+                  <span class="c-note">{{ 'live.not_set_up' | translate }}</span>
                 } @else if (isPast(s)) {
-                  <span class="c-note">Ended</span>
+                  <span class="c-note">{{ 'live.ended' | translate }}</span>
                 } @else if (s.delivery === 'physical') {
-                  <span class="c-note">In person</span>
+                  <span class="c-note">{{ 'live.in_person' | translate }}</span>
                 } @else {
-                  <span class="c-note">Opens 15 min before</span>
+                  <span class="c-note">{{ 'live.opens_before' | translate }}</span>
                 }
               </div>
             </div>
@@ -93,6 +95,7 @@ import { LiveService, LiveSession } from '../../core/live.service';
 export class LivePage implements OnInit {
   private readonly live = inject(LiveService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   readonly sessions = signal<LiveSession[]>([]);
   readonly loading = signal(true);
@@ -162,8 +165,8 @@ export class LivePage implements OnInit {
     const isTomorrow = start.toDateString() === tomorrow.toDateString();
     const time = start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     if (this.isPast(s)) { return start.toLocaleDateString([], { month: 'short', day: 'numeric' }); }
-    if (sameDay) { return `Today · ${time}`; }
-    if (isTomorrow) { return `Tomorrow · ${time}`; }
+    if (sameDay) { return this.i18n.t('live.today', { time }); }
+    if (isTomorrow) { return this.i18n.t('live.tomorrow', { time }); }
     return start.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) + ` · ${time}`;
   }
 

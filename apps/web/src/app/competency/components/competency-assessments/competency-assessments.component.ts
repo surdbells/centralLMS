@@ -13,6 +13,8 @@ import {
 } from '../../competency.service';
 import { UsersService, type User } from '../../../services/users.service';
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * The register of assessments: who is being measured against which profile,
@@ -25,7 +27,7 @@ import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 @Component({
   selector: 'app-competency-assessments',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent, TranslatePipe],
   templateUrl: './competency-assessments.component.html',
   styleUrl: './competency-assessments.component.scss',
 })
@@ -34,6 +36,7 @@ export class CompetencyAssessmentsComponent implements OnInit {
   private readonly users = inject(UsersService);
   private readonly toast = inject(HotToastService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   assessments: CompetencyAssessment[] = [];
@@ -46,10 +49,10 @@ export class CompetencyAssessmentsComponent implements OnInit {
   private readonly search$ = new Subject<string>();
 
   readonly statuses: Array<{ value: AssessmentStatus; label: string; badge: string }> = [
-    { value: 'draft', label: 'Draft', badge: 'bg-secondary-subtle text-secondary-emphasis' },
-    { value: 'self_assessed', label: 'Self-assessed', badge: 'bg-info-subtle text-info-emphasis' },
-    { value: 'reviewed', label: 'Reviewed', badge: 'bg-primary-subtle text-primary-emphasis' },
-    { value: 'finalized', label: 'Finalised', badge: 'bg-success-subtle text-success-emphasis' },
+    { value: 'draft', label: 'competency.assess.status_draft', badge: 'bg-secondary-subtle text-secondary-emphasis' },
+    { value: 'self_assessed', label: 'competency.assess.status_self_assessed', badge: 'bg-info-subtle text-info-emphasis' },
+    { value: 'reviewed', label: 'competency.assess.status_reviewed', badge: 'bg-primary-subtle text-primary-emphasis' },
+    { value: 'finalized', label: 'competency.assess.status_finalized', badge: 'bg-success-subtle text-success-emphasis' },
   ];
 
   // Start modal — assign a profile to one or many people at once.
@@ -85,7 +88,7 @@ export class CompetencyAssessmentsComponent implements OnInit {
           this.loading = false;
         },
         error: () => {
-          this.toast.error('The assessments could not be loaded.');
+          this.toast.error(this.i18n.t('competency.assess.load_error'));
           this.loading = false;
         },
       });
@@ -160,7 +163,7 @@ export class CompetencyAssessmentsComponent implements OnInit {
 
   start(): void {
     if (this.selectedUsers.length === 0 || !this.selectedProfileId) {
-      this.toast.error('Choose at least one person and a profile.');
+      this.toast.error(this.i18n.t('competency.assess.validation'));
       return;
     }
     this.starting = true;
@@ -175,21 +178,27 @@ export class CompetencyAssessmentsComponent implements OnInit {
           this.starting = false;
           this.closeStart();
           if (result.created > 0) {
-            const skipped = result.skipped > 0 ? ` (${result.skipped} already had one)` : '';
+            const skipped =
+              result.skipped > 0
+                ? this.i18n.t('competency.assess.skipped_suffix', { count: result.skipped })
+                : '';
+            const people = this.i18n.t(
+              result.created === 1 ? 'competency.assess.person' : 'competency.assess.people_word',
+            );
             this.toast.success(
-              `Assigned to ${result.created} ${result.created === 1 ? 'person' : 'people'}${skipped}.`,
+              this.i18n.t('competency.assess.assigned', { count: result.created, people, skipped }),
             );
           } else {
-            this.toast.error('Everyone chosen already has an assessment against that profile.');
+            this.toast.error(this.i18n.t('competency.assess.all_have'));
           }
           this.load();
         },
         error: (err) => {
           this.starting = false;
           if (err?.code === 'empty_profile') {
-            this.toast.error('That profile has no competencies to assess against.');
+            this.toast.error(this.i18n.t('competency.assess.empty_profile'));
           } else {
-            this.toast.error('The assignment could not be completed.');
+            this.toast.error(this.i18n.t('competency.assess.assign_error'));
           }
         },
       });

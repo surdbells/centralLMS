@@ -9,19 +9,21 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
 import { ButtonComponent } from '../../components/button/button.component';
 import { ProgressComponent } from '../../components/progress/progress.component';
 import { ToastService } from '../../components/toast/toast.service';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 @Component({
   selector: 'app-path-detail',
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    IonIcon, IonSkeletonText, EmptyStateComponent, ButtonComponent, ProgressComponent,
+    IonIcon, IonSkeletonText, EmptyStateComponent, ButtonComponent, ProgressComponent, TranslatePipe,
   ],
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start"><ion-back-button defaultHref="/paths"></ion-back-button></ion-buttons>
-        <ion-title>{{ path()?.title || 'Learning path' }}</ion-title>
+        <ion-title>{{ path()?.title || ('paths.learning_path' | translate) }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -46,7 +48,7 @@ import { ToastService } from '../../components/toast/toast.service';
 
         <div class="pad">
           <div class="meta muted">
-            <span><ion-icon name="layers-outline"></ion-icon> {{ p.itemCount }} {{ p.itemCount === 1 ? 'item' : 'items' }}</span>
+            <span><ion-icon name="layers-outline"></ion-icon> {{ p.itemCount }} {{ (p.itemCount === 1 ? 'paths.item' : 'paths.items') | translate }}</span>
             @if (p.estimatedHours) { <span><ion-icon name="time-outline"></ion-icon> {{ p.estimatedHours }}h</span> }
             @if (p.pacingLabel) { <span><ion-icon name="cellular-outline"></ion-icon> {{ p.pacingLabel }}</span> }
           </div>
@@ -55,24 +57,24 @@ import { ToastService } from '../../components/toast/toast.service';
             <div class="prog surface">
               <div class="prog-top">
                 <span class="prog-pct">{{ p.progress.percent }}%</span>
-                <span class="prog-lbl muted">{{ p.progress.completed }} of {{ p.progress.total }} complete</span>
+                <span class="prog-lbl muted">{{ 'paths.progress_of_complete' | translate:{ completed: p.progress.completed, total: p.progress.total } }}</span>
               </div>
               <app-progress [value]="p.progress.percent / 100"></app-progress>
               @if (p.progress.pointsAvailable) {
-                <p class="prog-pts muted">{{ p.progress.pointsEarned }} / {{ p.progress.pointsAvailable }} points earned</p>
+                <p class="prog-pts muted">{{ 'paths.points_earned' | translate:{ earned: p.progress.pointsEarned, available: p.progress.pointsAvailable } }}</p>
               }
             </div>
           } @else {
-            <app-button block size="lg" class="cta" [loading]="enrolling()" (click)="enroll(p)">Enrol in this path</app-button>
+            <app-button block size="lg" class="cta" [loading]="enrolling()" (click)="enroll(p)">{{ 'paths.enrol_in_path' | translate }}</app-button>
           }
 
           @if (p.summary || p.description) {
-            <div class="section-title">About</div>
+            <div class="section-title">{{ 'paths.about' | translate }}</div>
             <p class="desc">{{ p.description || p.summary }}</p>
           }
 
           @if (p.objectives.length) {
-            <div class="section-title">What you'll learn</div>
+            <div class="section-title">{{ 'paths.what_youll_learn' | translate }}</div>
             <ul class="objectives">
               @for (o of p.objectives; track $index) {
                 <li><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon><span>{{ o }}</span></li>
@@ -81,14 +83,14 @@ import { ToastService } from '../../components/toast/toast.service';
           }
 
           @if (p.sections.length) {
-            <div class="section-title">Path structure</div>
+            <div class="section-title">{{ 'paths.path_structure' | translate }}</div>
             @for (s of p.sections; track s.id; let i = $index) {
               <div class="sec surface">
                 <div class="sec-num">{{ i + 1 }}</div>
                 <div class="sec-body">
-                  <p class="sec-title">{{ s.title }}@if (s.isMilestone) { <span class="milestone">Milestone</span> }</p>
+                  <p class="sec-title">{{ s.title }}@if (s.isMilestone) { <span class="milestone">{{ 'paths.milestone' | translate }}</span> }</p>
                   @if (s.description) { <p class="sec-desc muted">{{ s.description }}</p> }
-                  <p class="sec-meta muted">{{ s.itemCount }} {{ s.itemCount === 1 ? 'item' : 'items' }}</p>
+                  <p class="sec-meta muted">{{ s.itemCount }} {{ (s.itemCount === 1 ? 'paths.item' : 'paths.items') | translate }}</p>
                 </div>
               </div>
             }
@@ -98,8 +100,8 @@ import { ToastService } from '../../components/toast/toast.service';
         </div>
         }
       } @else {
-        <app-empty-state icon="cloud-offline-outline" title="Couldn't load this path"
-          message="Check your connection and try again." actionLabel="Try again" (action)="load()"></app-empty-state>
+        <app-empty-state icon="cloud-offline-outline" [title]="'paths.detail_load_failed' | translate"
+          [message]="'common.offline' | translate" [actionLabel]="'common.retry' | translate" (action)="load()"></app-empty-state>
       }
     </ion-content>
   `,
@@ -147,6 +149,7 @@ export class PathDetailPage implements OnInit {
   private readonly paths = inject(LearningPathService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly i18n = inject(I18nService);
 
   private pathId = '';
   readonly path = signal<PathDetail | null>(null);
@@ -171,18 +174,22 @@ export class PathDetailPage implements OnInit {
     this.paths.enroll(p.id).subscribe({
       next: () => {
         this.enrolling.set(false);
-        this.toast.success('You are on this path. Enjoy the journey!');
+        this.toast.success(this.i18n.t('paths.enrol_success'));
         this.load();
       },
       error: () => {
         this.enrolling.set(false);
-        this.toast.error("Couldn't enrol just now. Try again.");
+        this.toast.error(this.i18n.t('paths.enrol_error'));
       },
     });
   }
 
   levelLabel(l: string): string {
-    const map: Record<string, string> = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', expert: 'Expert', all_levels: 'All levels' };
-    return map[l] ?? l;
+    const map: Record<string, string> = {
+      beginner: 'paths.level.beginner', intermediate: 'paths.level.intermediate', advanced: 'paths.level.advanced',
+      expert: 'paths.level.expert', all_levels: 'paths.level.all_levels',
+    };
+    const key = map[l];
+    return key ? this.i18n.t(key) : l;
   }
 }

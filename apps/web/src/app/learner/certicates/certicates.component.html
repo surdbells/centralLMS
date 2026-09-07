@@ -10,7 +10,7 @@
         </div>
       </div>
       <div class="col">
-        <h1 class="fs-4 mb-0">Certificates </h1>
+        <h1 class="fs-4 mb-0">{{ 'certificates.title' | translate }} </h1>
       </div>
     </div>
 
@@ -21,10 +21,10 @@
         <section *ngIf="error && !ui_controls.is_loading" class="card py-5 mb-5">
           <div class="empty-state animate__animated animate__fadeInUp">
             <tui-icon class="fs-1 mb-3" icon="@tui.alert-triangle" [style.color]="'var(--text)'"/>
-            <h4>Your certificates could not be loaded</h4>
+            <h4>{{ 'certificates.load_error_title' | translate }}</h4>
             <p>{{ error }}</p>
             <button (click)="load()" class="btn btn-secondary abayti_primary_background text-black btn-note mt-2">
-              <i class="bi bi-arrow-clockwise me-2"></i> Try again
+              <i class="bi bi-arrow-clockwise me-2"></i> {{ 'common.retry' | translate }}
             </button>
           </div>
         </section>
@@ -32,13 +32,12 @@
         <section *ngIf="!ui_controls.is_loading && !error && earned.length === 0" class="card py-5 mb-5">
           <div class="empty-state animate__animated animate__fadeInUp">
             <tui-icon class="fs-1 mb-3" icon="@tui.folder-tree" [style.color]="'var(--text)'"/>
-            <h4>No Certificates Earned Yet 🏅</h4>
+            <h4>{{ 'certificates.empty_title' | translate }}</h4>
             <p>
-              You haven’t earned any certificates yet. Complete your courses to unlock
-              official recognition of your learning achievements.
+              {{ 'certificates.empty_text' | translate }}
             </p>
             <button (click)="to_dashboard()" class="btn btn-secondary abayti_primary_background text-black btn-note mt-2">
-              <i class="bi bi-mortarboard me-2"></i> Complete Courses
+              <i class="bi bi-mortarboard me-2"></i> {{ 'certificates.complete_courses' | translate }}
             </button>
           </div>
         </section>
@@ -58,20 +57,20 @@
                 <p class="text-muted small mb-3">{{ certificate.sourceLabel }}</p>
 
                 <dl class="row small mb-0">
-                  <dt class="col-5 text-muted fw-normal">Number</dt>
+                  <dt class="col-5 text-muted fw-normal">{{ 'certificates.number' | translate }}</dt>
                   <dd class="col-7 mb-1">{{ certificate.number }}</dd>
 
-                  <dt class="col-5 text-muted fw-normal">Issued</dt>
+                  <dt class="col-5 text-muted fw-normal">{{ 'certificates.issued' | translate }}</dt>
                   <dd class="col-7 mb-1">{{ certificate.issuedAt | date:'d MMM y' }}</dd>
 
                   <ng-container *ngIf="certificate.percentage !== null">
-                    <dt class="col-5 text-muted fw-normal">Score</dt>
+                    <dt class="col-5 text-muted fw-normal">{{ 'certificates.score' | translate }}</dt>
                     <dd class="col-7 mb-1">{{ certificate.percentage }}%</dd>
                   </ng-container>
 
                   <!-- Only when there is one: most certificates do not expire. -->
                   <ng-container *ngIf="certificate.validUntil">
-                    <dt class="col-5 text-muted fw-normal">Valid until</dt>
+                    <dt class="col-5 text-muted fw-normal">{{ 'certificates.valid_until' | translate }}</dt>
                     <dd class="col-7 mb-1">{{ certificate.validUntil | date:'d MMM y' }}</dd>
                   </ng-container>
                 </dl>
@@ -84,7 +83,7 @@
                 <button class="btn btn-sm btn-dark w-100"
                         [disabled]="!certificate.isValid"
                         (click)="download(certificate)">
-                  <i class="bi bi-download me-1"></i> Open
+                  <i class="bi bi-download me-1"></i> {{ 'certificates.open' | translate }}
                 </button>
               </div>
             </div>

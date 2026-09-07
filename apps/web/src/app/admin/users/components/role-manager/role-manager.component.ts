@@ -7,6 +7,8 @@ import { takeUntil } from 'rxjs/operators';
 import { RolesService, type Role as ApiRole } from '../../../../services/roles.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
+import { I18nService } from '../../../../i18n.service';
 
 /*
  * The shapes this screen's template already reads.
@@ -40,7 +42,7 @@ export type PermissionGroup = Record<string, Permission[]>;
 @Component({
   selector: 'app-role-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
     <main class="main px-lg-6">
@@ -49,28 +51,28 @@ export type PermissionGroup = Record<string, Permission[]>;
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center gap-3">
           <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-          <h4 class="fw-bold mb-0"><i class="bi bi-shield-lock me-2"></i>Roles & Permissions</h4>
+          <h4 class="fw-bold mb-0"><i class="bi bi-shield-lock me-2"></i>{{ 'admin.roles.title' | translate }}</h4>
         </div>
-        <button class="btn btn-primary btn-sm" (click)="openCreateModal()"><i class="bi bi-plus-lg me-1"></i>New Role</button>
+        <button class="btn btn-primary btn-sm" (click)="openCreateModal()"><i class="bi bi-plus-lg me-1"></i>{{ 'admin.roles.new_role' | translate }}</button>
       </div>
 
       <div class="row g-4">
         <!-- Roles List -->
         <div class="col-md-4">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold">Roles</div>
+            <div class="card-header bg-white fw-semibold">{{ 'admin.users.roles' | translate }}</div>
             <div class="list-group list-group-flush">
               <a *ngFor="let r of roles" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                  [class.active]="selectedRole?.role_id === r.role_id" role="button" (click)="selectRole(r)">
                 <div>
                   <div class="fw-semibold">{{ r.role_name }}
-                    <span class="badge bg-light text-muted ms-1" style="font-size:.6rem" *ngIf="r.is_system">SYSTEM</span>
+                    <span class="badge bg-light text-muted ms-1" style="font-size:.6rem" *ngIf="r.is_system">{{ 'admin.roles.system_badge' | translate }}</span>
                   </div>
                   <small class="text-muted" *ngIf="r.description">{{ r.description }}</small>
                 </div>
                 <span class="badge bg-primary rounded-pill">{{ r.user_count }}</span>
               </a>
-              <div *ngIf="!roles.length" class="list-group-item text-center text-muted py-3">No roles found</div>
+              <div *ngIf="!roles.length" class="list-group-item text-center text-muted py-3">{{ 'admin.roles.no_roles' | translate }}</div>
             </div>
           </div>
         </div>
@@ -78,7 +80,7 @@ export type PermissionGroup = Record<string, Permission[]>;
         <!-- Permissions Panel -->
         <div class="col-md-8">
           <div *ngIf="!selectedRole" class="text-center py-5 text-muted">
-            <i class="bi bi-shield fs-1 d-block mb-2"></i><p>Select a role to manage permissions</p>
+            <i class="bi bi-shield fs-1 d-block mb-2"></i><p>{{ 'admin.roles.select_role_hint' | translate }}</p>
           </div>
 
           <div *ngIf="selectedRole">
@@ -87,18 +89,18 @@ export type PermissionGroup = Record<string, Permission[]>;
               <div class="card-body d-flex justify-content-between align-items-center py-2">
                 <div>
                   <h5 class="fw-bold mb-0">{{ selectedRole.role_name }}</h5>
-                  <small class="text-muted">{{ selectedRole.description || 'No description' }}</small>
+                  <small class="text-muted">{{ selectedRole.description || ('admin.roles.no_description' | translate) }}</small>
                 </div>
                 <div class="d-flex gap-2">
                   <button class="btn btn-sm btn-primary" (click)="openEditModal()" *ngIf="!selectedRole.is_system">
-                    <i class="bi bi-pencil me-1"></i>Edit
+                    <i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}
                   </button>
                   <button class="btn btn-sm btn-outline-danger" (click)="deleteRole()" *ngIf="!selectedRole.is_system">
-                    <i class="bi bi-trash me-1"></i>Delete
+                    <i class="bi bi-trash me-1"></i>{{ 'common.delete' | translate }}
                   </button>
                   <button class="btn btn-sm btn-success" (click)="savePermissions()" [disabled]="savingPerms">
                     <span *ngIf="savingPerms" class="spinner-border spinner-border-sm me-1"></span>
-                    <i *ngIf="!savingPerms" class="bi bi-check-lg me-1"></i>Save Permissions
+                    <i *ngIf="!savingPerms" class="bi bi-check-lg me-1"></i>{{ 'admin.roles.save_permissions' | translate }}
                   </button>
                 </div>
               </div>
@@ -112,7 +114,7 @@ export type PermissionGroup = Record<string, Permission[]>;
                   <span class="badge bg-primary-subtle text-primary ms-2">{{ getModuleSelectedCount(module) }}/{{ permissionGroups[module].length }}</span>
                 </span>
                 <div class="d-flex gap-2 align-items-center">
-                  <button class="btn btn-sm btn-link p-0 small" (click)="selectAllModule(module, $event)">Select All</button>
+                  <button class="btn btn-sm btn-link p-0 small" (click)="selectAllModule(module, $event)">{{ 'admin.enroll.select_all' | translate }}</button>
                   <i class="bi" [class]="expandedModules.has(module) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 </div>
               </div>
@@ -140,31 +142,31 @@ export type PermissionGroup = Record<string, Permission[]>;
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">{{ editingRole ? 'Edit Role' : 'Create Role' }}</h5>
+              <h5 class="modal-title">{{ editingRole ? ('admin.roles.edit_role' | translate) : ('admin.roles.create_role' | translate) }}</h5>
               <button type="button" class="btn-close" (click)="showModal=false"></button>
             </div>
             <div class="modal-body">
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Role Name</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="modalData.name" placeholder="e.g. Department Head">
+                <label class="form-label small fw-semibold">{{ 'admin.roles.role_name' | translate }}</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="modalData.name" placeholder="{{ 'admin.roles.role_name_placeholder' | translate }}">
               </div>
               <div class="mb-3" *ngIf="!editingRole">
-                <label class="form-label small fw-semibold">Role Key</label>
+                <label class="form-label small fw-semibold">{{ 'admin.roles.role_key' | translate }}</label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="modalData.key"
-                       placeholder="e.g. department_head" pattern="[a-z0-9_]+">
-                <small class="text-muted">Lowercase, underscores only. Cannot be changed later.</small>
+                       placeholder="{{ 'admin.roles.role_key_placeholder' | translate }}" pattern="[a-z0-9_]+">
+                <small class="text-muted">{{ 'admin.roles.role_key_hint' | translate }}</small>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Description</label>
+                <label class="form-label small fw-semibold">{{ 'admin.course_content.description' | translate }}</label>
                 <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="modalData.description"></textarea>
               </div>
               <div class="alert alert-danger py-1 small" *ngIf="modalError">{{ modalError }}</div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-sm btn-secondary" (click)="showModal=false">Cancel</button>
+              <button class="btn btn-sm btn-secondary" (click)="showModal=false">{{ 'common.cancel' | translate }}</button>
               <button class="btn btn-sm btn-primary" (click)="saveRole()" [disabled]="savingRole || !modalData.name">
                 <span *ngIf="savingRole" class="spinner-border spinner-border-sm me-1"></span>
-                {{ editingRole ? 'Update' : 'Create' }}
+                {{ editingRole ? ('admin.roles.update' | translate) : ('admin.roles.create' | translate) }}
               </button>
             </div>
           </div>
@@ -178,6 +180,7 @@ export type PermissionGroup = Record<string, Permission[]>;
 })
 export class RoleManagerComponent implements OnInit, OnDestroy {
   private readonly rolesService = inject(RolesService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   roles: Role[] = [];
@@ -361,7 +364,7 @@ export class RoleManagerComponent implements OnInit, OnDestroy {
   deleteRole(): void {
     const role = this.selectedRole;
 
-    if (role === null || !confirm(`Delete role "${role.role_name}"?`)) {
+    if (role === null || !confirm(this.i18n.t('admin.roles.confirm_delete', { name: role.role_name }))) {
       return;
     }
 

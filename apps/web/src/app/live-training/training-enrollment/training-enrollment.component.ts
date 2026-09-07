@@ -20,19 +20,22 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { LiveTrainingService } from '../live-training.service';
 import type { EnrollmentRule } from '../live-training.interfaces';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 
 @Component({
   selector: 'app-training-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './training-enrollment.component.html',
   styleUrls: ['./training-enrollment.component.scss']
 })
 export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly trainings$ = inject(LiveTrainingService);
+  private readonly i18n = inject(I18nService);
 
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
@@ -238,9 +241,9 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
         return named(criteria.branch_ids, this.branches as unknown as Array<Record<string, unknown>>,
           'branch_id', 'branch_name').join(', ');
       case 'direct':
-        return `${(criteria.user_ids ?? []).length} chosen people`;
+        return this.i18n.t('live.enroll.chosen_people', { count: (criteria.user_ids ?? []).length });
       default:
-        return 'Everybody';
+        return this.i18n.t('live.enroll.everybody');
     }
   }
 
@@ -265,17 +268,17 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
         next: (result) => {
           this.error = null;
           this.ruleMessage = result.enrolled === 0
-            ? 'Nobody new to enrol.'
-            : `${result.enrolled} newly enrolled.`;
+            ? this.i18n.t('live.enroll.nobody_new')
+            : this.i18n.t('live.enroll.newly_enrolled', { count: result.enrolled });
           this.loadRules();
         },
-        error: (err) => this.error = err?.message ?? 'That rule could not be run.'
+        error: (err) => this.error = err?.message ?? this.i18n.t('live.enroll.rule_run_failed')
       });
   }
 
   deleteRule(rule: EnrollmentRule): void {
     if (!rule.rule_id) return;
-    if (!confirm('Delete this rule? The people it already enrolled stay enrolled.')) return;
+    if (!confirm(this.i18n.t('live.enroll.delete_rule_confirm'))) return;
 
     this.trainings$.deleteEnrollmentRule(rule.rule_id)
       .pipe(takeUntil(this.destroy$))
@@ -386,15 +389,24 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
     switch (this.enrollmentType) {
       case 'department':
         const dept = this.departments.find(d => d.department_id === this.selectedDepartmentId);
-        return `All users in ${dept?.department_name || 'selected department'} (${dept?.user_count || 0} users)`;
+        return this.i18n.t('live.enroll.summary_department', {
+          name: dept?.department_name || this.i18n.t('live.enroll.selected_department'),
+          count: dept?.user_count || 0
+        });
       case 'team':
         const team = this.teams.find(t => t.team_id === this.selectedTeamId);
-        return `All users in ${team?.team_name || 'selected team'} (${team?.user_count || 0} users)`;
+        return this.i18n.t('live.enroll.summary_team', {
+          name: team?.team_name || this.i18n.t('live.enroll.selected_team'),
+          count: team?.user_count || 0
+        });
       case 'branch':
         const branch = this.branches.find(b => b.branch_id === this.selectedBranchId);
-        return `All users in ${branch?.branch_name || 'selected branch'} (${branch?.user_count || 0} users)`;
+        return this.i18n.t('live.enroll.summary_branch', {
+          name: branch?.branch_name || this.i18n.t('live.enroll.selected_branch'),
+          count: branch?.user_count || 0
+        });
       case 'users':
-        return `${this.selectedUsers.length} selected user(s)`;
+        return this.i18n.t('live.enroll.summary_users', { count: this.selectedUsers.length });
       default:
         return '';
     }
@@ -417,7 +429,7 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
           this.loadingPreview = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Failed to generate preview';
+          this.error = err.error?.message || this.i18n.t('live.enroll.preview_failed');
           this.loadingPreview = false;
         }
       });
@@ -450,7 +462,7 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
           this.enrolling = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Enrollment failed';
+          this.error = err.error?.message || this.i18n.t('live.enroll.enroll_failed');
           this.enrolling = false;
         }
       });
@@ -473,7 +485,7 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
         next: (result) => {
           this.result = {
             success: true,
-            message: 'Standing rule created.',
+            message: this.i18n.t('live.enroll.rule_created'),
             summary: {
               total_users: result.enrolled,
               enrolled_count: result.enrolled,
@@ -488,7 +500,7 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
           this.loadRules();
         },
         error: (err: { message?: string }) => {
-          this.error = err.message ?? 'That rule could not be saved.';
+          this.error = err.message ?? this.i18n.t('live.enroll.rule_save_failed');
           this.enrolling = false;
         }
       });

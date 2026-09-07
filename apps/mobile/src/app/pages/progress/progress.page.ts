@@ -6,13 +6,14 @@ import { LearnerService } from '../../core/learner.service';
 import { LearnerDashboard } from '../../core/models';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { TranslatePipe } from '../../core/translate.pipe';
 
 @Component({
   selector: 'app-progress',
   standalone: true,
   imports: [
     IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
-    BrandHeaderComponent, EmptyStateComponent,
+    BrandHeaderComponent, EmptyStateComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -20,7 +21,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Progress" subtitle="Track your learning journey"></app-brand-header>
+      <app-brand-header [title]="'nav.progress' | translate" [subtitle]="'progress.subtitle' | translate"></app-brand-header>
 
       <div class="pad">
         @if (loading()) {
@@ -33,13 +34,13 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
             <div class="ring" [style.--p]="d.overview.overallProgress">
               <div class="ring-in">
                 <span class="pct">{{ d.overview.overallProgress }}%</span>
-                <span class="lbl muted">overall</span>
+                <span class="lbl muted">{{ 'progress.overall' | translate }}</span>
               </div>
             </div>
             <div class="ring-side">
-              <div class="mini"><span class="n">{{ d.overview.completed }}</span><span class="l muted">Completed</span></div>
-              <div class="mini"><span class="n">{{ d.overview.inProgress }}</span><span class="l muted">In progress</span></div>
-              <div class="mini"><span class="n">{{ d.overview.enrolled }}</span><span class="l muted">Enrolled</span></div>
+              <div class="mini"><span class="n">{{ d.overview.completed }}</span><span class="l muted">{{ 'progress.completed' | translate }}</span></div>
+              <div class="mini"><span class="n">{{ d.overview.inProgress }}</span><span class="l muted">{{ 'progress.in_progress' | translate }}</span></div>
+              <div class="mini"><span class="n">{{ d.overview.enrolled }}</span><span class="l muted">{{ 'progress.enrolled' | translate }}</span></div>
             </div>
           </div>
 
@@ -47,21 +48,21 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
           <div class="tiles">
             <div class="tile">
               <ion-icon name="trophy-outline"></ion-icon>
-              <span class="n">{{ d.overview.points }}</span><span class="l muted">Points</span>
+              <span class="n">{{ d.overview.points }}</span><span class="l muted">{{ 'progress.points' | translate }}</span>
             </div>
             <div class="tile">
               <ion-icon name="time-outline"></ion-icon>
-              <span class="n">{{ hours(d.overview.secondsSpent) }}</span><span class="l muted">Learning time</span>
+              <span class="n">{{ hours(d.overview.secondsSpent) }}</span><span class="l muted">{{ 'progress.learning_time' | translate }}</span>
             </div>
             <div class="tile">
               <ion-icon name="flame-outline"></ion-icon>
-              <span class="n">{{ d.streak.current }}</span><span class="l muted">Day streak</span>
+              <span class="n">{{ d.streak.current }}</span><span class="l muted">{{ 'progress.day_streak' | translate }}</span>
             </div>
           </div>
 
           <!-- Streak week -->
           @if (d.streak.week.length) {
-            <div class="section-title">This week</div>
+            <div class="section-title">{{ 'progress.this_week' | translate }}</div>
             <div class="week">
               @for (day of d.streak.week; track day.date) {
                 <div class="day">
@@ -73,14 +74,14 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
           }
 
           <!-- Certificates -->
-          <div class="section-title">Certificates</div>
+          <div class="section-title">{{ 'progress.certificates' | translate }}</div>
           @if (d.certificates.length) {
             @for (c of d.certificates; track c.id) {
               <div class="cert">
                 <div class="cert-badge"><ion-icon name="ribbon"></ion-icon></div>
                 <div class="cert-body">
                   <p class="cert-title">{{ c.title }}</p>
-                  <p class="muted">No. {{ c.number }}{{ c.issuedAt ? ' · ' + fmt(c.issuedAt) : '' }}</p>
+                  <p class="muted">{{ 'progress.cert_no' | translate:{ number: c.number } }}{{ c.issuedAt ? ' · ' + fmt(c.issuedAt) : '' }}</p>
                 </div>
                 <span class="pill" [class.warn]="!c.isValid">{{ c.statusLabel }}</span>
               </div>
@@ -88,17 +89,17 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
           } @else {
             <app-empty-state
               icon="ribbon-outline"
-              title="No certificates yet"
-              message="Finish a course to earn your first one."></app-empty-state>
+              [title]="'progress.no_certificates_title' | translate"
+              [message]="'progress.no_certificates_message' | translate"></app-empty-state>
           }
           <div style="height: 16px"></div>
         }
         } @else {
           <app-empty-state
             icon="cloud-offline-outline"
-            title="Couldn't load your progress"
-            message="Check your connection and try again."
-            actionLabel="Try again"
+            [title]="'progress.load_failed' | translate"
+            [message]="'common.offline' | translate"
+            [actionLabel]="'common.retry' | translate"
             (action)="reload()"></app-empty-state>
         }
       </div>

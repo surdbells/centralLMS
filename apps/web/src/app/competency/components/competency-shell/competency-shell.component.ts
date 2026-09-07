@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import { SessionStore } from '../../../core/auth/session.store';
+import { TranslatePipe } from '../../../translate.pipe';
 
 /**
  * The frame every competency screen sits in.
@@ -14,7 +15,7 @@ import { SessionStore } from '../../../core/auth/session.store';
 @Component({
   selector: 'app-competency-shell',
   standalone: true,
-  imports: [AdmintopComponent, RouterOutlet, RouterLink, RouterLinkActive, TuiIcon],
+  imports: [AdmintopComponent, RouterOutlet, RouterLink, RouterLinkActive, TuiIcon, TranslatePipe],
   templateUrl: './competency-shell.component.html',
   styleUrl: './competency-shell.component.scss',
 })

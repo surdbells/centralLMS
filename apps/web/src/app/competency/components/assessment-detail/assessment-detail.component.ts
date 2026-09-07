@@ -9,6 +9,8 @@ import {
   type CompetencyAssessment,
   type ProficiencyLevel,
 } from '../../competency.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /** Which levels the current step lets you edit. */
 type EditMode = 'none' | 'self' | 'review';
@@ -22,7 +24,7 @@ type EditMode = 'none' | 'self' | 'review';
 @Component({
   selector: 'app-assessment-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe],
   templateUrl: './assessment-detail.component.html',
   styleUrl: './assessment-detail.component.scss',
 })
@@ -31,6 +33,7 @@ export class AssessmentDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   saving = false;
@@ -75,10 +78,21 @@ export class AssessmentDetailComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.toast.error('The assessment could not be loaded.');
+        this.toast.error(this.i18n.t('competency.detail.load_error'));
         this.loading = false;
       },
     });
+  }
+
+  /** The tooltip for a level toggle button, matching the shared level names. */
+  levelTitle(level: ProficiencyLevel): string {
+    const key: Record<number, string> = {
+      0: 'competency.detail.level_none',
+      1: 'self_assessment.level_knowledge',
+      2: 'self_assessment.level_skill',
+      3: 'self_assessment.level_mastery',
+    };
+    return key[level] ? this.i18n.t(key[level]) : '';
   }
 
   // --- editing ------------------------------------------------------------
@@ -133,11 +147,11 @@ export class AssessmentDetailComponent implements OnInit {
         this.assessment = updated;
         this.saving = false;
         this.editMode = 'none';
-        this.toast.success(mode === 'self' ? 'Self-assessment recorded.' : 'Review recorded.');
+        this.toast.success(this.i18n.t(mode === 'self' ? 'competency.detail.self_recorded' : 'competency.detail.review_recorded'));
       },
       error: () => {
         this.saving = false;
-        this.toast.error('The levels could not be saved.');
+        this.toast.error(this.i18n.t('competency.detail.levels_save_error'));
       },
     });
   }
@@ -163,14 +177,16 @@ export class AssessmentDetailComponent implements OnInit {
         this.assessment = updated;
         this.saving = false;
         this.showFinalize = false;
-        this.toast.success('Assessment finalised.');
+        this.toast.success(this.i18n.t('competency.detail.finalised'));
       },
       error: (err) => {
         this.saving = false;
         this.toast.error(
-          err?.code === 'nothing_to_finalize'
-            ? 'Nothing has been assessed yet.'
-            : 'The assessment could not be finalised.',
+          this.i18n.t(
+            err?.code === 'nothing_to_finalize'
+              ? 'competency.detail.nothing_assessed'
+              : 'competency.detail.finalise_error',
+          ),
         );
       },
     });
@@ -197,11 +213,11 @@ export class AssessmentDetailComponent implements OnInit {
       next: (updated) => {
         this.assessment = { ...this.assessment!, ...updated };
         this.savingNarrative = false;
-        this.toast.success('Report notes saved.');
+        this.toast.success(this.i18n.t('competency.detail.notes_saved'));
       },
       error: () => {
         this.savingNarrative = false;
-        this.toast.error('The report notes could not be saved.');
+        this.toast.error(this.i18n.t('competency.detail.notes_save_error'));
       },
     });
   }

@@ -19,6 +19,8 @@ import { ApiError } from '../../core/api';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { CourseCardComponent } from '../../course-card.component';
 import { CourseMiniCardComponent } from '../../course-mini-card.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * A course, in the shape this screen's template reads.
@@ -79,6 +81,7 @@ interface PreviewData {
     AdmintopComponent,
     CourseCardComponent,
     CourseMiniCardComponent,
+    TranslatePipe,
   ],
   templateUrl: './courses.component.html',
   styleUrls: ['./courses.component.css'],
@@ -88,6 +91,7 @@ export class CourseComponent implements OnInit, OnDestroy {
   private readonly dialogs = inject(TuiDialogService);
   private readonly lookupsService = inject(LookupsService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<string>();
@@ -549,9 +553,9 @@ export class CourseComponent implements OnInit, OnDestroy {
 
   getStatusLabel(status: string): string {
     return ({
-      draft: 'Draft',
-      published: 'Published',
-      archived: 'Archived',
+      draft: this.i18n.t('admin.courses.draft'),
+      published: this.i18n.t('admin.courses.published'),
+      archived: this.i18n.t('admin.courses.archived'),
     } as Record<string, string>)[status] ?? status;
   }
 

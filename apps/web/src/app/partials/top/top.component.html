@@ -11,11 +11,11 @@
     <div class="dropdown modules-dropdown">
         <button class="btn btn-modules dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <tui-icon class="fs-5" icon="@tui.layout-grid"></tui-icon>
-          <span class="modules-label">Modules</span>
+          <span class="modules-label">{{ 'nav.modules' | translate }}</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-modules shadow-lg">
           <li class="dropdown-header">
-            <span class="fw-semibold">Available Modules</span>
+            <span class="fw-semibold">{{ 'modules.available' | translate }}</span>
           </li>
           <li><hr class="dropdown-divider"></li>
           <li>
@@ -24,8 +24,8 @@
                 <tui-icon icon="@tui.clipboard-check"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Self-Assessment</div>
-                <small class="text-muted">Rate your competencies</small>
+                <div class="fw-medium">{{ 'modules.self_assessment' | translate }}</div>
+                <small class="text-muted">{{ 'modules.self_assessment_desc' | translate }}</small>
               </div>
             </a>
           </li>
@@ -35,8 +35,8 @@
                 <tui-icon icon="@tui.route"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Learning Paths</div>
-                <small class="text-muted">Curated journeys</small>
+                <div class="fw-medium">{{ 'modules.learning_paths' | translate }}</div>
+                <small class="text-muted">{{ 'modules.curated_journeys' | translate }}</small>
               </div>
 <!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
             </a>
@@ -47,10 +47,10 @@
                 <tui-icon icon="@tui.monitor-speaker"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Assessment</div>
-                <small class="text-muted">Proctored Assessment</small>
+                <div class="fw-medium">{{ 'modules.assessment' | translate }}</div>
+                <small class="text-muted">{{ 'modules.proctored_assessment' | translate }}</small>
               </div>
-              <span class="badge bg-warning text-dark ms-auto">BETA</span>
+              <span class="badge bg-warning text-dark ms-auto">{{ 'common.beta' | translate }}</span>
             </a>
           </li>
           <li>
@@ -59,8 +59,8 @@
                 <tui-icon icon="@tui.chart-area"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Report</div>
-                <small class="text-muted">Reports & Analytics</small>
+                <div class="fw-medium">{{ 'modules.report' | translate }}</div>
+                <small class="text-muted">{{ 'modules.reports_analytics' | translate }}</small>
               </div>
 <!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
             </a>
@@ -71,8 +71,8 @@
                 <tui-icon icon="@tui.library-big"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Digital Library</div>
-                <small class="text-muted">Shared videos & documents</small>
+                <div class="fw-medium">{{ 'modules.digital_library' | translate }}</div>
+                <small class="text-muted">{{ 'modules.shared_videos_documents' | translate }}</small>
               </div>
             </a>
           </li>
@@ -94,42 +94,42 @@
             <a routerLink="/account" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.panel-bottom-dashed"></tui-icon>
-              <span class="nav-label">Dashboard</span>
+              <span class="nav-label">{{ 'nav.dashboard' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/learning" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon"  icon="@tui.presentation"></tui-icon>
-              <span class="nav-label">Learning</span>
+              <span class="nav-label">{{ 'nav.learning' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/myreport" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.chart-area"></tui-icon>
-              <span class="nav-label">Reports</span>
+              <span class="nav-label">{{ 'nav.reports' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/competencies" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.brain"></tui-icon>
-              <span class="nav-label">Skills</span>
+              <span class="nav-label">{{ 'nav.skills' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/messaging" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.message-square-text"></tui-icon>
-              <span class="nav-label">Messages</span>
+              <span class="nav-label">{{ 'nav.messages' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/mytraining" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.presentation"></tui-icon>
-              <span class="nav-label">Live Training</span>
+              <span class="nav-label">{{ 'nav.live_training' | translate }}</span>
             </a>
           </li>
         </ul>
@@ -158,7 +158,7 @@
         <div class="dropdown-menu dropdown-menu-end dropdown-notifications shadow-lg">
           <!-- Header -->
           <div class="dropdown-header-notifications d-flex justify-content-between align-items-center px-3 py-2">
-            <h6 class="mb-0 fw-semibold">Notifications</h6>
+            <h6 class="mb-0 fw-semibold">{{ 'notifications.title' | translate }}</h6>
             <div class="d-flex gap-2">
               <button (click)="mark_notifications()" class="btn btn-sm btn-link p-0" type="button">
                 <span class="material-symbols-outlined fs-6">done_all</span>
@@ -174,7 +174,7 @@
             </div>
             <div *ngIf="!ui_controls.is_loading && notifications?.length === 0" class="text-center py-4 text-muted">
               <span class="material-symbols-outlined d-block mb-2" style="font-size: 2rem;">notifications_off</span>
-              <small>No notifications</small>
+              <small>{{ 'notifications.empty' | translate }}</small>
             </div>
             <div *ngIf="!ui_controls.is_loading" class="list-group list-group-flush">
               <div *ngFor="let a_notification of notifications"
@@ -197,7 +197,7 @@
           <!-- Footer -->
           <hr class="dropdown-divider m-0">
           <div class="text-center py-2">
-            <a routerLink="/notifications" class="btn btn-sm btn-link text-decoration-none">View all notifications</a>
+            <a routerLink="/notifications" class="btn btn-sm btn-link text-decoration-none">{{ 'notifications.view_all' | translate }}</a>
           </div>
         </div>
       </div>
@@ -227,19 +227,19 @@
             </div>
           </li>
           <li class="d-lg-none"><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" routerLink="/mysettings"><span class="material-symbols-outlined me-2">person</span>Settings</a></li>
+          <li><a class="dropdown-item" routerLink="/mysettings"><span class="material-symbols-outlined me-2">person</span>{{ 'nav.settings' | translate }}</a></li>
           <li><hr class="dropdown-divider"></li>
           <!-- Language switcher for mobile -->
           <li class="d-sm-none px-3 py-2">
-            <small class="text-muted d-block mb-2">Language</small>
+            <small class="text-muted d-block mb-2">{{ 'common.language' | translate }}</small>
             <app-language-switcher></app-language-switcher>
           </li>
           <li class="d-sm-none"><hr class="dropdown-divider"></li>
           @if(user_session.is_admin){
-            <li><a (click)="sessionStorage.setItem('IS_CURRENT', 'superadmin');" class="dropdown-item" routerLink="/administration"><span class="material-symbols-outlined me-2">admin_panel_settings</span>Administrator</a></li>
+            <li><a (click)="sessionStorage.setItem('IS_CURRENT', 'superadmin');" class="dropdown-item" routerLink="/administration"><span class="material-symbols-outlined me-2">admin_panel_settings</span>{{ 'user_menu.administrator' | translate }}</a></li>
             <li><hr class="dropdown-divider"></li>
           }
-          <li><a class="dropdown-item text-danger" (click)="sign_out()"><span class="material-symbols-outlined me-2">logout</span>Sign out</a></li>
+          <li><a class="dropdown-item text-danger" (click)="sign_out()"><span class="material-symbols-outlined me-2">logout</span>{{ 'nav.sign_out' | translate }}</a></li>
         </ul>
       </div>
     </div>

@@ -13,16 +13,19 @@ import {
   SkillAssignmentResult
 } from '../live-training.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-training-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './training-skills.component.html',
   styleUrls: ['./training-skills.component.scss']
 })
 export class TrainingSkillsComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   @Input() trainingId!: string;
 
@@ -117,21 +120,21 @@ export class TrainingSkillsComponent implements OnInit {
         this.adding = false;
       },
       error: (err) => {
-        alert('Failed to add skill: ' + (err.error?.message || err.message));
+        alert(this.i18n.t('live.skills.add_failed') + (err.error?.message || err.message));
         this.adding = false;
       }
     });
   }
 
   removeSkill(skill: TrainingSkill): void {
-    if (!confirm(`Remove "${skill.skill_name}" from this training?`)) return;
+    if (!confirm(this.i18n.t('live.skills.remove_confirm', { name: skill.skill_name }))) return;
 
     this.liveTrainingService.removeSkill(this.trainingId, skill.skill_id).subscribe({
       next: () => {
         this.loadTrainingSkills();
       },
       error: (err) => {
-        alert('Failed to remove skill: ' + (err.error?.message || err.message));
+        alert(this.i18n.t('live.skills.remove_failed') + (err.error?.message || err.message));
       }
     });
   }

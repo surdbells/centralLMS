@@ -13,6 +13,8 @@ import { EnrollmentsService } from '../../../services/enrollments.service';
 import { ReportsService, type ReportResult, type ReportRow } from '../../../services/reports.service';
 import { AssessmentsService } from '../../../services/assessments.service';
 import { ApiError } from '../../../core/api';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 
 /*
@@ -220,7 +222,7 @@ interface CourseInsightsData {
 @Component({
   selector: 'app-course-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe],
   templateUrl: './course-insights.component.html',
   styleUrls: ['./course-insights.component.css'],
 })
@@ -230,6 +232,7 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
   private readonly reportsService = inject(ReportsService);
   private readonly assessmentsService = inject(AssessmentsService);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
   /**
    * Set when this is opened as a dialog rather than reached by its route.
    *
@@ -269,7 +272,7 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
       ?? '';
 
     if (this.courseId === '') {
-      this.error = 'No course was named in the address.';
+      this.error = this.i18n.t('admin.course_content.error_no_course');
       this.isLoading = false;
 
       return;
@@ -503,7 +506,7 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
    * `notification.send`. The button says so rather than appearing to work.
    */
   sendReminder(_learner: LearnerRow): void {
-    this.error = 'Reminders are sent from the notifications screen, which needs permission to send.';
+    this.error = this.i18n.t('admin.insights.reminder_note');
   }
 
   // --- presentation --------------------------------------------------------
@@ -532,14 +535,16 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
     const days = Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000);
 
     if (days <= 0) {
-      return 'Today';
+      return this.i18n.t('skills.today');
     }
 
     if (days === 1) {
-      return 'Yesterday';
+      return this.i18n.t('skills.yesterday');
     }
 
-    return days < 30 ? `${days} days ago` : `${Math.floor(days / 30)} months ago`;
+    return days < 30
+      ? this.i18n.t('skills.days_ago', { count: days })
+      : this.i18n.t('skills.months_ago', { count: Math.floor(days / 30) });
   }
 
   formatInteractionType(type: string): string {
@@ -736,10 +741,10 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
     const share = (n: number): number => (stats.total === 0 ? 0 : Math.round((n / stats.total) * 100));
 
     return [
-      { segment: 'Not started', count: stats.notStarted, percentage: share(stats.notStarted), average_score: 0 },
-      { segment: 'In progress', count: stats.inProgress, percentage: share(stats.inProgress), average_score: 0 },
-      { segment: 'Completed', count: stats.completed, percentage: share(stats.completed), average_score: 0 },
-      { segment: 'Removed', count: stats.dropped, percentage: share(stats.dropped), average_score: 0 },
+      { segment: this.i18n.t('admin.enrollees.status_not_started'), count: stats.notStarted, percentage: share(stats.notStarted), average_score: 0 },
+      { segment: this.i18n.t('admin.enrollees.status_in_progress'), count: stats.inProgress, percentage: share(stats.inProgress), average_score: 0 },
+      { segment: this.i18n.t('admin.enrollees.status_completed'), count: stats.completed, percentage: share(stats.completed), average_score: 0 },
+      { segment: this.i18n.t('admin.enrollees.status_removed'), count: stats.dropped, percentage: share(stats.dropped), average_score: 0 },
     ];
   }
 

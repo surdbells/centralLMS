@@ -13,11 +13,13 @@ import {
   ITEM_TYPES
 } from '../../interfaces/learning-path.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learning-path-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, AdmintopComponent],
+  imports: [CommonModule, RouterModule, AdmintopComponent, TranslatePipe],
   templateUrl: './learning-path-detail.component.html',
   styleUrls: ['./learning-path-detail.component.scss']
 })
@@ -41,7 +43,8 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private learningPathService: LearningPathService
+    private learningPathService: LearningPathService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -85,11 +88,11 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
     if (!p) return;
 
     if (p.total_items === 0) {
-      alert('Cannot publish an empty learning path. Please add content first.');
+      alert(this.i18n.t('paths_admin.cannot_publish_content'));
       return;
     }
 
-    if (confirm('Publish this learning path? It will become available to learners.')) {
+    if (confirm(this.i18n.t('paths_admin.confirm_publish_path'))) {
       this.publishing.set(true);
       this.learningPathService.publish(p.path_id).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
@@ -97,7 +100,7 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
           this.publishing.set(false);
         },
         error: (err) => {
-          alert(err.error?.errors?.join('\n') || 'Failed to publish');
+          alert(err.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
           this.publishing.set(false);
         }
       });
@@ -105,7 +108,7 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
   }
 
   archivePath(): void {
-    if (confirm('Archive this learning path? It will no longer be visible to learners.')) {
+    if (confirm(this.i18n.t('paths_admin.confirm_archive_path'))) {
       this.learningPathService.archive(this.pathId).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => this.loadData()
       });
@@ -116,7 +119,7 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
     const p = this.path();
     if (!p) return;
 
-    const newTitle = prompt('Enter title for the copy:', `${p.title} (Copy)`);
+    const newTitle = prompt(this.i18n.t('paths_admin.prompt_copy_title'), this.i18n.t('paths_admin.copy_suffix', { title: p.title }));
     if (newTitle) {
       this.learningPathService.duplicate(p.path_id, newTitle).pipe(takeUntil(this.destroy$)).subscribe({
         next: (response) => {
@@ -129,7 +132,7 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
   }
 
   deletePath(): void {
-    if (confirm('Delete this learning path? This action cannot be undone.')) {
+    if (confirm(this.i18n.t('paths_admin.confirm_delete_path'))) {
       this.learningPathService.delete(this.pathId).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => this.router.navigate(['/admin/learning-paths'])
       });
@@ -151,9 +154,9 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
 
   formatDuration(hours: number | null): string {
     if (!hours) return '-';
-    if (hours < 1) return `${Math.round(hours * 60)} min`;
-    if (hours === 1) return '1 hour';
-    return `${hours} hours`;
+    if (hours < 1) return this.i18n.t('paths.minutes', { count: Math.round(hours * 60) });
+    if (hours === 1) return this.i18n.t('paths.one_hour');
+    return this.i18n.t('paths.hours', { count: hours });
   }
 
   formatDate(date: string | null): string {

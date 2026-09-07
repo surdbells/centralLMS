@@ -4,7 +4,7 @@
   @if (loading()) {
   <div class="loading-container">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
   </div>
 } @else {
@@ -15,14 +15,14 @@
         <div>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-1">
-              <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">Learning Paths</a></li>
-              <li class="breadcrumb-item active">{{ mode === 'create' ? 'Create' : 'Edit' }}</li>
+              <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
+              <li class="breadcrumb-item active">{{ (mode === 'create' ? 'paths_admin.form.create_crumb' : 'paths_admin.edit') | translate }}</li>
             </ol>
           </nav>
-          <h1 class="h3 mb-0">{{ mode === 'create' ? 'Create Learning Path' : 'Edit Learning Path' }}</h1>
+          <h1 class="h3 mb-0">{{ (mode === 'create' ? 'paths_admin.create_path' : 'paths_admin.form.edit_path') | translate }}</h1>
         </div>
         <div class="d-flex gap-2">
-          <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+          <button type="button" class="btn btn-secondary" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
           <button
             type="button"
             class="btn btn-primary"
@@ -32,7 +32,7 @@
             @if (saving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             }
-            {{ mode === 'create' ? 'Create & Continue' : 'Save Changes' }}
+            {{ (mode === 'create' ? 'paths_admin.form.create_continue' : 'paths_admin.form.save_changes') | translate }}
           </button>
         </div>
       </div>
@@ -48,35 +48,35 @@
               [class.active]="activeTab() === 'basic'"
               (click)="setActiveTab('basic')"
             >
-              <i class="bi bi-info-circle me-2"></i>Basic Information
+              <i class="bi bi-info-circle me-2"></i>{{ 'paths_admin.form.basic_info' | translate }}
             </a>
             <a
               class="nav-link"
               [class.active]="activeTab() === 'structure'"
               (click)="setActiveTab('structure')"
             >
-              <i class="bi bi-diagram-3 me-2"></i>Structure & Flow
+              <i class="bi bi-diagram-3 me-2"></i>{{ 'paths_admin.form.structure_flow' | translate }}
             </a>
             <a
               class="nav-link"
               [class.active]="activeTab() === 'completion'"
               (click)="setActiveTab('completion')"
             >
-              <i class="bi bi-check-circle me-2"></i>Completion & Rewards
+              <i class="bi bi-check-circle me-2"></i>{{ 'paths_admin.form.completion_rewards' | translate }}
             </a>
             <a
               class="nav-link"
               [class.active]="activeTab() === 'access'"
               (click)="setActiveTab('access')"
             >
-              <i class="bi bi-lock me-2"></i>Access & Enrollment
+              <i class="bi bi-lock me-2"></i>{{ 'paths_admin.form.access_enrollment' | translate }}
             </a>
             <a
               class="nav-link"
               [class.active]="activeTab() === 'meta'"
               (click)="setActiveTab('meta')"
             >
-              <i class="bi bi-tags me-2"></i>Meta & SEO
+              <i class="bi bi-tags me-2"></i>{{ 'paths_admin.form.meta_seo' | translate }}
             </a>
           </nav>
         </div>
@@ -89,60 +89,60 @@
           @if (activeTab() === 'basic') {
             <div class="card form-section">
               <div class="card-header">
-                <h5 class="mb-0">Basic Information</h5>
+                <h5 class="mb-0">{{ 'paths_admin.form.basic_info' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="mb-3">
-                  <label class="form-label">Title <span class="text-danger">*</span></label>
+                  <label class="form-label">{{ 'paths_admin.form.title_label' | translate }} <span class="text-danger">*</span></label>
                   <input
                     type="text"
                     class="form-control"
                     formControlName="title"
-                    placeholder="e.g., Project Management Professional Certification Path"
+                    placeholder="{{ 'paths_admin.form.title_ph' | translate }}"
                     [class.is-invalid]="isFieldInvalid('title')"
                   >
                   @if (isFieldInvalid('title')) {
-                    <div class="invalid-feedback">Title is required</div>
+                    <div class="invalid-feedback">{{ 'paths_admin.form.title_required' | translate }}</div>
                   }
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Short Description <span class="text-danger">*</span></label>
+                  <label class="form-label">{{ 'paths_admin.form.short_desc' | translate }} <span class="text-danger">*</span></label>
                   <textarea
                     class="form-control"
                     formControlName="short_description"
                     rows="2"
-                    placeholder="Brief description shown in cards and listings..."
+                    placeholder="{{ 'paths_admin.form.short_desc_ph' | translate }}"
                     [class.is-invalid]="isFieldInvalid('short_description')"
                   ></textarea>
-                  <div class="form-text">{{ form.value.short_description?.length || 0 }}/500 characters</div>
+                  <div class="form-text">{{ 'paths_admin.form.char_count' | translate:{ count: form.value.short_description?.length || 0 } }}</div>
                   @if (isFieldInvalid('short_description')) {
-                    <div class="invalid-feedback">Short description is required</div>
+                    <div class="invalid-feedback">{{ 'paths_admin.form.short_desc_required' | translate }}</div>
                   }
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Full Description</label>
+                  <label class="form-label">{{ 'paths_admin.form.full_desc' | translate }}</label>
                   <textarea
                     class="form-control"
                     formControlName="description"
                     rows="6"
-                    placeholder="Detailed description with HTML formatting support..."
+                    placeholder="{{ 'paths_admin.form.full_desc_ph' | translate }}"
                   ></textarea>
                 </div>
 
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Category</label>
+                    <label class="form-label">{{ 'paths_admin.form.category' | translate }}</label>
                     <select class="form-select" formControlName="category_id">
-                      <option [ngValue]="null">Select category...</option>
+                      <option [ngValue]="null">{{ 'paths_admin.form.select_category' | translate }}</option>
                       @for (category of categories(); track category.category_id) {
                         <option [ngValue]="category.category_id">{{ category.name }}</option>
                       }
                     </select>
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Skill Level</label>
+                    <label class="form-label">{{ 'paths_admin.skill_level' | translate }}</label>
                     <select class="form-select" formControlName="skill_level">
                       @for (level of skillLevels; track level.value) {
                         <option [value]="level.value">{{ level.label }}</option>
@@ -153,7 +153,7 @@
 
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Thumbnail Image URL</label>
+                    <label class="form-label">{{ 'paths_admin.form.thumbnail_url' | translate }}</label>
                     <input
                       type="url"
                       class="form-control"
@@ -162,7 +162,7 @@
                     >
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Banner Image URL</label>
+                    <label class="form-label">{{ 'paths_admin.form.banner_url' | translate }}</label>
                     <input
                       type="url"
                       class="form-control"
@@ -173,10 +173,10 @@
                 </div>
 
                 <!-- Duration -->
-                <h6 class="mt-4 mb-3">Duration Estimates</h6>
+                <h6 class="mt-4 mb-3">{{ 'paths_admin.form.duration_estimates' | translate }}</h6>
                 <div class="row">
                   <div class="col-md-4 mb-3">
-                    <label class="form-label">Total Hours</label>
+                    <label class="form-label">{{ 'paths_admin.form.total_hours' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
@@ -186,7 +186,7 @@
                     >
                   </div>
                   <div class="col-md-4 mb-3">
-                    <label class="form-label">Weeks to Complete</label>
+                    <label class="form-label">{{ 'paths_admin.form.weeks_complete' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
@@ -195,7 +195,7 @@
                     >
                   </div>
                   <div class="col-md-4 mb-3">
-                    <label class="form-label">Weekly Commitment (hrs)</label>
+                    <label class="form-label">{{ 'paths_admin.form.weekly_commitment' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
@@ -213,11 +213,11 @@
           @if (activeTab() === 'structure') {
             <div class="card form-section">
               <div class="card-header">
-                <h5 class="mb-0">Structure & Flow</h5>
+                <h5 class="mb-0">{{ 'paths_admin.form.structure_flow' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="mb-4">
-                  <label class="form-label">Path Type</label>
+                  <label class="form-label">{{ 'paths_admin.path_type' | translate }}</label>
                   <div class="path-type-options">
                     @for (type of pathTypes; track type.value) {
                       <div
@@ -251,8 +251,8 @@
                         formControlName="is_mandatory"
                       >
                       <label class="form-check-label" for="isMandatory">
-                        <strong>Mandatory Path</strong>
-                        <small class="d-block text-muted">Users must complete this path</small>
+                        <strong>{{ 'paths_admin.form.mandatory_path' | translate }}</strong>
+                        <small class="d-block text-muted">{{ 'paths_admin.form.mandatory_path_hint' | translate }}</small>
                       </label>
                     </div>
                   </div>
@@ -265,8 +265,8 @@
                         formControlName="enforce_prerequisites"
                       >
                       <label class="form-check-label" for="enforcePrerequisites">
-                        <strong>Enforce Prerequisites</strong>
-                        <small class="d-block text-muted">Users must meet prerequisites to enroll</small>
+                        <strong>{{ 'paths_admin.form.enforce_prereq' | translate }}</strong>
+                        <small class="d-block text-muted">{{ 'paths_admin.form.enforce_prereq_hint' | translate }}</small>
                       </label>
                     </div>
                   </div>
@@ -280,18 +280,18 @@
                     formControlName="allow_skip"
                   >
                   <label class="form-check-label" for="allowSkip">
-                    <strong>Allow Skipping</strong>
-                    <small class="d-block text-muted">Users can skip non-required items</small>
+                    <strong>{{ 'paths_admin.form.allow_skip' | translate }}</strong>
+                    <small class="d-block text-muted">{{ 'paths_admin.form.allow_skip_hint' | translate }}</small>
                   </label>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Prerequisites Description</label>
+                  <label class="form-label">{{ 'paths_admin.form.prereq_desc' | translate }}</label>
                   <textarea
                     class="form-control"
                     formControlName="prerequisites_description"
                     rows="3"
-                    placeholder="Describe what learners should know before starting..."
+                    placeholder="{{ 'paths_admin.form.prereq_desc_ph' | translate }}"
                   ></textarea>
                 </div>
               </div>
@@ -302,11 +302,11 @@
           @if (activeTab() === 'completion') {
             <div class="card form-section">
               <div class="card-header">
-                <h5 class="mb-0">Completion & Rewards</h5>
+                <h5 class="mb-0">{{ 'paths_admin.form.completion_rewards' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="mb-4">
-                  <label class="form-label">Completion Criteria</label>
+                  <label class="form-label">{{ 'paths_admin.form.completion_criteria' | translate }}</label>
                   <div class="completion-type-options">
                     @for (type of completionTypes; track type.value) {
                       <div
@@ -323,7 +323,7 @@
 
                 @if (form.value.completion_type === 'percentage') {
                   <div class="mb-3">
-                    <label class="form-label">Completion Threshold (%)</label>
+                    <label class="form-label">{{ 'paths_admin.form.completion_threshold' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
@@ -337,7 +337,7 @@
 
                 @if (form.value.completion_type === 'assessments') {
                   <div class="mb-3">
-                    <label class="form-label">Passing Score (%)</label>
+                    <label class="form-label">{{ 'paths_admin.form.passing_score' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
@@ -351,7 +351,7 @@
 
                 <hr class="my-4">
 
-                <h6 class="mb-3">Certificate</h6>
+                <h6 class="mb-3">{{ 'paths.certificate' | translate }}</h6>
                 <div class="form-check mb-3">
                   <input
                     type="checkbox"
@@ -360,29 +360,29 @@
                     formControlName="certificate_enabled"
                   >
                   <label class="form-check-label" for="certificateEnabled">
-                    <strong>Award Certificate on Completion</strong>
+                    <strong>{{ 'paths_admin.form.award_certificate' | translate }}</strong>
                   </label>
                 </div>
 
                 @if (form.value.certificate_enabled) {
                   <div class="row">
                     <div class="col-md-6 mb-3">
-                      <label class="form-label">Certificate Template</label>
+                      <label class="form-label">{{ 'paths_admin.form.cert_template' | translate }}</label>
                       <select class="form-select" formControlName="certificate_template_id">
-                        <option [ngValue]="null">Select template...</option>
+                        <option [ngValue]="null">{{ 'paths_admin.form.select_template' | translate }}</option>
                         @for (template of certificateTemplates(); track template.template_id) {
                           <option [ngValue]="template.template_id">{{ template.name }}</option>
                         }
                       </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                      <label class="form-label">Certificate Validity (months)</label>
+                      <label class="form-label">{{ 'paths_admin.form.cert_validity' | translate }}</label>
                       <input
                         type="number"
                         class="form-control"
                         formControlName="certificate_validity_months"
                         min="0"
-                        placeholder="Leave empty for no expiry"
+                        placeholder="{{ 'paths_admin.form.leave_empty_no_expiry' | translate }}"
                       >
                     </div>
                   </div>
@@ -390,22 +390,22 @@
 
                 <hr class="my-4">
 
-                <h6 class="mb-3">Gamification</h6>
+                <h6 class="mb-3">{{ 'paths_admin.form.gamification' | translate }}</h6>
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Total Points Available</label>
+                    <label class="form-label">{{ 'paths_admin.form.total_points_available' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
                       formControlName="total_points"
                       min="0"
                     >
-                    <div class="form-text">Points are distributed across items</div>
+                    <div class="form-text">{{ 'paths_admin.form.points_distributed' | translate }}</div>
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Completion Badge</label>
+                    <label class="form-label">{{ 'paths_admin.form.completion_badge' | translate }}</label>
                     <select class="form-select" formControlName="badge_id">
-                      <option [ngValue]="null">No badge</option>
+                      <option [ngValue]="null">{{ 'paths_admin.form.no_badge' | translate }}</option>
                       @for (badge of badges(); track badge.badge_id) {
                         <option [ngValue]="badge.badge_id">{{ badge.icon }} {{ badge.name }}</option>
                       }
@@ -420,12 +420,12 @@
           @if (activeTab() === 'access') {
             <div class="card form-section">
               <div class="card-header">
-                <h5 class="mb-0">Access & Enrollment</h5>
+                <h5 class="mb-0">{{ 'paths_admin.form.access_enrollment' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Visibility</label>
+                    <label class="form-label">{{ 'paths_admin.visibility' | translate }}</label>
                     <select class="form-select" formControlName="visibility">
                       @for (option of visibilityOptions; track option.value) {
                         <option [value]="option.value">{{ option.label }}</option>
@@ -433,7 +433,7 @@
                     </select>
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Enrollment Type</label>
+                    <label class="form-label">{{ 'paths_admin.form.enrollment_type' | translate }}</label>
                     <select class="form-select" formControlName="enrollment_type">
                       @for (option of enrollmentTypes; track option.value) {
                         <option [value]="option.value">{{ option.label }}</option>
@@ -443,21 +443,21 @@
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label">Max Enrollments</label>
+                  <label class="form-label">{{ 'paths_admin.form.max_enrollments' | translate }}</label>
                   <input
                     type="number"
                     class="form-control"
                     formControlName="max_enrollments"
                     min="0"
-                    placeholder="Leave empty for unlimited"
+                    placeholder="{{ 'paths_admin.form.leave_empty_unlimited' | translate }}"
                     style="max-width: 200px"
                   >
                 </div>
 
-                <h6 class="mt-4 mb-3">Enrollment Window</h6>
+                <h6 class="mt-4 mb-3">{{ 'paths_admin.form.enrollment_window' | translate }}</h6>
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Start Date</label>
+                    <label class="form-label">{{ 'paths_admin.form.start_date' | translate }}</label>
                     <input
                       type="date"
                       class="form-control"
@@ -465,7 +465,7 @@
                     >
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">End Date</label>
+                    <label class="form-label">{{ 'paths_admin.form.end_date' | translate }}</label>
                     <input
                       type="date"
                       class="form-control"
@@ -476,7 +476,7 @@
 
                 <hr class="my-4">
 
-                <h6 class="mb-3">Pricing</h6>
+                <h6 class="mb-3">{{ 'paths_admin.form.pricing' | translate }}</h6>
                 <div class="form-check mb-3">
                   <input
                     type="checkbox"
@@ -485,14 +485,14 @@
                     formControlName="is_free"
                   >
                   <label class="form-check-label" for="isFree">
-                    <strong>Free Path</strong>
+                    <strong>{{ 'paths_admin.form.free_path' | translate }}</strong>
                   </label>
                 </div>
 
                 @if (!form.value.is_free) {
                   <div class="row">
                     <div class="col-md-4 mb-3">
-                      <label class="form-label">Price</label>
+                      <label class="form-label">{{ 'paths_admin.form.price' | translate }}</label>
                       <input
                         type="number"
                         class="form-control"
@@ -502,7 +502,7 @@
                       >
                     </div>
                     <div class="col-md-4 mb-3">
-                      <label class="form-label">Currency</label>
+                      <label class="form-label">{{ 'paths_admin.form.currency' | translate }}</label>
                       <select class="form-select" formControlName="currency">
                         <option value="USD">USD</option>
                         <option value="EUR">EUR</option>
@@ -520,19 +520,19 @@
           @if (activeTab() === 'meta') {
             <div class="card form-section">
               <div class="card-header">
-                <h5 class="mb-0">Meta & SEO</h5>
+                <h5 class="mb-0">{{ 'paths_admin.form.meta_seo' | translate }}</h5>
               </div>
               <div class="card-body">
                 <!-- Tags -->
                 <div class="mb-4">
-                  <label class="form-label">Tags</label>
+                  <label class="form-label">{{ 'paths.tags' | translate }}</label>
                   <div class="input-group mb-2">
                     <input
                       type="text"
                       class="form-control"
                       [(ngModel)]="newTag"
                       [ngModelOptions]="{ standalone: true }"
-                      placeholder="Add a tag..."
+                      placeholder="{{ 'paths_admin.form.add_tag_ph' | translate }}"
                       (keyup.enter)="addTag()"
                     >
                     <button class="btn btn-secondary" type="button" (click)="addTag()">
@@ -551,14 +551,14 @@
 
                 <!-- Learning Objectives -->
                 <div class="mb-4">
-                  <label class="form-label">Learning Objectives</label>
+                  <label class="form-label">{{ 'paths_admin.learning_objectives' | translate }}</label>
                   <div class="input-group mb-2">
                     <input
                       type="text"
                       class="form-control"
                       [(ngModel)]="newObjective"
                       [ngModelOptions]="{ standalone: true }"
-                      placeholder="Add a learning objective..."
+                      placeholder="{{ 'paths_admin.form.add_objective_ph' | translate }}"
                       (keyup.enter)="addObjective()"
                     >
                     <button class="btn btn-secondary" type="button" (click)="addObjective()">
@@ -583,7 +583,7 @@
 
         <!-- Footer Actions -->
         <div class="form-footer mt-4">
-          <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+          <button type="button" class="btn btn-secondary" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
           <button
             type="button"
             class="btn btn-primary"
@@ -593,7 +593,7 @@
             @if (saving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             }
-            {{ mode === 'create' ? 'Create & Continue to Builder' : 'Save Changes' }}
+            {{ (mode === 'create' ? 'paths_admin.form.create_continue_builder' : 'paths_admin.form.save_changes') | translate }}
           </button>
         </div>
       </div>

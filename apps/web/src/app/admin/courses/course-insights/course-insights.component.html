@@ -10,19 +10,19 @@
   <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
     <div class="text-center">
       <div class="spinner-border text-primary mb-3" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
-      <p class="text-muted">Loading insights...</p>
+      <p class="text-muted">{{ 'admin.insights.loading' | translate }}</p>
     </div>
   </div>
 
   <!-- Error State -->
   <div *ngIf="error && !isLoading" class="text-center py-5">
     <tui-icon class="fs-1 text-danger mb-3" icon="@tui.alert-triangle"></tui-icon>
-    <h4>Unable to load insights</h4>
+    <h4>{{ 'admin.insights.error_title' | translate }}</h4>
     <p class="text-muted">{{ error }}</p>
     <button class="btn btn-primary" (click)="refreshData()">
-      <tui-icon icon="@tui.refresh-cw" class="me-2"></tui-icon>Try Again
+      <tui-icon icon="@tui.refresh-cw" class="me-2"></tui-icon>{{ 'admin.insights.try_again' | translate }}
     </button>
   </div>
 
@@ -42,38 +42,38 @@
         </div>
         <h2 class="fw-bold mb-2">{{ insights.course.title }}</h2>
         <div class="d-flex gap-3 text-muted small">
-          <span><tui-icon icon="@tui.layout-grid" class="me-1"></tui-icon>{{ insights.course.total_modules }} Modules</span>
-          <span><tui-icon icon="@tui.circle-play" class="me-1"></tui-icon>{{ insights.course.total_lessons }} Lessons</span>
+          <span><tui-icon icon="@tui.layout-grid" class="me-1"></tui-icon>{{ 'admin.insights.n_modules' | translate:{ count: insights.course.total_modules } }}</span>
+          <span><tui-icon icon="@tui.circle-play" class="me-1"></tui-icon>{{ 'admin.insights.n_lessons' | translate:{ count: insights.course.total_lessons } }}</span>
           <span><tui-icon icon="@tui.clock" class="me-1"></tui-icon>{{ formatDuration(insights.course.estimated_duration || 0) }}</span>
           <span *ngIf="insights.overview.course_rating > 0">
             <tui-icon icon="@tui.star" class="me-1 text-warning"></tui-icon>
-            {{ insights.overview.course_rating.toFixed(1) }} ({{ insights.overview.total_reviews }} reviews)
+            {{ insights.overview.course_rating.toFixed(1) }} ({{ 'admin.insights.n_reviews' | translate:{ count: insights.overview.total_reviews } }})
           </span>
         </div>
       </div>
       <div class="d-flex gap-2">
         <select class="form-select form-select-sm" [(ngModel)]="filter.date_range" (change)="onFilterChange()" style="width: auto;">
-          <option value="last_7_days">Last 7 days</option>
-          <option value="last_30_days">Last 30 days</option>
-          <option value="last_90_days">Last 90 days</option>
-          <option value="this_year">This year</option>
-          <option value="all_time">All time</option>
+          <option value="last_7_days">{{ 'admin.insights.last_7_days' | translate }}</option>
+          <option value="last_30_days">{{ 'admin.insights.last_30_days' | translate }}</option>
+          <option value="last_90_days">{{ 'admin.insights.last_90_days' | translate }}</option>
+          <option value="this_year">{{ 'admin.insights.this_year' | translate }}</option>
+          <option value="all_time">{{ 'admin.insights.all_time' | translate }}</option>
         </select>
         <div class="dropdown">
           <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <tui-icon icon="@tui.download" class="me-1"></tui-icon>Export
+            <tui-icon icon="@tui.download" class="me-1"></tui-icon>{{ 'admin.insights.export' | translate }}
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToPDF()"><tui-icon icon="@tui.file-text" class="me-2"></tui-icon>PDF Report</a></li>
-            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToExcel()"><tui-icon icon="@tui.file-spreadsheet" class="me-2"></tui-icon>Excel</a></li>
-            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToCSV()"><tui-icon icon="@tui.file" class="me-2"></tui-icon>CSV</a></li>
+            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToPDF()"><tui-icon icon="@tui.file-text" class="me-2"></tui-icon>{{ 'admin.insights.pdf_report' | translate }}</a></li>
+            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToExcel()"><tui-icon icon="@tui.file-spreadsheet" class="me-2"></tui-icon>{{ 'admin.insights.excel' | translate }}</a></li>
+            <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToCSV()"><tui-icon icon="@tui.file" class="me-2"></tui-icon>{{ 'admin.insights.csv' | translate }}</a></li>
           </ul>
         </div>
-        <button class="btn btn-dark btn-sm" (click)="refreshData()" title="Refresh">
+        <button class="btn btn-dark btn-sm" (click)="refreshData()" title="{{ 'common.refresh' | translate }}">
           <tui-icon icon="@tui.refresh-cw"></tui-icon>
         </button>
         <!-- Only in the dialog: reached by its own route there is nothing to close. -->
-        <button *ngIf="isDialog" class="btn btn-outline-secondary btn-sm" (click)="close()" title="Close">
+        <button *ngIf="isDialog" class="btn btn-outline-secondary btn-sm" (click)="close()" title="{{ 'common.close' | translate }}">
           <tui-icon icon="@tui.x"></tui-icon>
         </button>
       </div>
@@ -91,7 +91,7 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.total_enrolled) }}</h3>
-            <p class="text-muted small mb-1">Total Enrolled</p>
+            <p class="text-muted small mb-1">{{ 'admin.enrollees.total_enrolled' | translate }}</p>
             <small [ngClass]="insights.enrollment.growth_rate >= 0 ? 'text-success' : 'text-danger'">
               <tui-icon [icon]="insights.enrollment.growth_rate >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
               {{ formatPercentage(Math.abs(insights.enrollment.growth_rate)) }}
@@ -110,8 +110,8 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatPercentage(insights.completion.completion_rate) }}</h3>
-            <p class="text-muted small mb-1">Completion Rate</p>
-            <small class="text-muted">{{ insights.overview.completed_count }} completed</small>
+            <p class="text-muted small mb-1">{{ 'admin.insights.completion_rate' | translate }}</p>
+            <small class="text-muted">{{ 'admin.insights.n_completed' | translate:{ count: insights.overview.completed_count } }}</small>
           </div>
         </div>
       </div>
@@ -126,8 +126,8 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ insights.overview.average_score?.toFixed(1) || 0 }}%</h3>
-            <p class="text-muted small mb-1">Average Score</p>
-            <small class="text-muted">{{ formatPercentage(insights.assessments.pass_rate) }} pass rate</small>
+            <p class="text-muted small mb-1">{{ 'admin.insights.average_score' | translate }}</p>
+            <small class="text-muted">{{ 'admin.insights.pass_rate_suffix' | translate:{ rate: formatPercentage(insights.assessments.pass_rate) } }}</small>
           </div>
         </div>
       </div>
@@ -142,8 +142,8 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.active_learners) }}</h3>
-            <p class="text-muted small mb-1">Active Learners</p>
-            <small class="text-muted">{{ insights.overview.in_progress_count }} in progress</small>
+            <p class="text-muted small mb-1">{{ 'admin.insights.active_learners' | translate }}</p>
+            <small class="text-muted">{{ 'admin.insights.n_in_progress' | translate:{ count: insights.overview.in_progress_count } }}</small>
           </div>
         </div>
       </div>
@@ -158,8 +158,8 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatDuration(insights.overview.average_time_spent) }}</h3>
-            <p class="text-muted small mb-1">Avg. Time Spent</p>
-            <small class="text-muted">per learner</small>
+            <p class="text-muted small mb-1">{{ 'admin.insights.avg_time_spent' | translate }}</p>
+            <small class="text-muted">{{ 'admin.insights.per_learner' | translate }}</small>
           </div>
         </div>
       </div>
@@ -174,8 +174,8 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.total_certificates_issued) }}</h3>
-            <p class="text-muted small mb-1">Certificates</p>
-            <small class="text-muted">issued</small>
+            <p class="text-muted small mb-1">{{ 'admin.insights.certificates' | translate }}</p>
+            <small class="text-muted">{{ 'admin.insights.issued' | translate }}</small>
           </div>
         </div>
       </div>
@@ -185,27 +185,27 @@
     <ul class="nav nav-pills mb-4 bg-light rounded-3 p-2">
       <li class="nav-item me-3">
         <button class="nav-link" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
-          <tui-icon icon="@tui.bar-chart-2" class="me-2"></tui-icon>Overview
+          <tui-icon icon="@tui.bar-chart-2" class="me-2"></tui-icon>{{ 'admin.insights.tab_overview' | translate }}
         </button>
       </li>
       <li class="nav-item me-3">
         <button class="nav-link" [class.active]="activeTab === 'learners'" (click)="setActiveTab('learners')">
-          <tui-icon icon="@tui.users" class="me-2"></tui-icon>Learners
+          <tui-icon icon="@tui.users" class="me-2"></tui-icon>{{ 'admin.insights.tab_learners' | translate }}
         </button>
       </li>
       <li class="nav-item me-3">
         <button class="nav-link" [class.active]="activeTab === 'content'" (click)="setActiveTab('content')">
-          <tui-icon icon="@tui.book-open" class="me-2"></tui-icon>Content
+          <tui-icon icon="@tui.book-open" class="me-2"></tui-icon>{{ 'admin.insights.tab_content' | translate }}
         </button>
       </li>
       <li class="nav-item me-3">
         <button class="nav-link" [class.active]="activeTab === 'assessments'" (click)="setActiveTab('assessments')">
-          <tui-icon icon="@tui.clipboard-list" class="me-2"></tui-icon>Assessments
+          <tui-icon icon="@tui.clipboard-list" class="me-2"></tui-icon>{{ 'admin.insights.tab_assessments' | translate }}
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" [class.active]="activeTab === 'leaderboard'" (click)="setActiveTab('leaderboard')">
-          <tui-icon icon="@tui.award" class="me-2"></tui-icon>Leaderboard
+          <tui-icon icon="@tui.award" class="me-2"></tui-icon>{{ 'admin.insights.tab_leaderboard' | translate }}
         </button>
       </li>
     </ul>
@@ -221,10 +221,10 @@
           <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><tui-icon icon="@tui.trending-up" class="me-2 text-primary"></tui-icon>Enrollment Trends</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.trending-up" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.enrollment_trends' | translate }}</h5>
                 <div class="d-flex gap-3 small">
-                  <span><span class="badge bg-primary me-1">&nbsp;</span>Enrollments</span>
-                  <span><span class="badge bg-success me-1">&nbsp;</span>Completions</span>
+                  <span><span class="badge bg-primary me-1">&nbsp;</span>{{ 'admin.insights.enrollments' | translate }}</span>
+                  <span><span class="badge bg-success me-1">&nbsp;</span>{{ 'admin.insights.completions' | translate }}</span>
                 </div>
               </div>
               <div class="card-body">
@@ -245,42 +245,42 @@
           <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.filter" class="me-2 text-primary"></tui-icon>Completion Funnel</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.filter" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.completion_funnel' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="funnel-container">
                   <div class="funnel-stage mb-2">
                     <div class="progress" style="height: 30px;">
                       <div class="progress-bar bg-primary" style="width: 100%;">
-                        Enrolled: {{ insights.completion.completion_funnel.enrolled }}
+                        {{ 'admin.insights.funnel_enrolled' | translate }}: {{ insights.completion.completion_funnel.enrolled }}
                       </div>
                     </div>
                   </div>
                   <div class="funnel-stage mb-2">
                     <div class="progress" style="height: 30px;">
                       <div class="progress-bar bg-info" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.started, insights.completion.completion_funnel.enrolled)">
-                        Started: {{ insights.completion.completion_funnel.started }}
+                        {{ 'admin.insights.funnel_started' | translate }}: {{ insights.completion.completion_funnel.started }}
                       </div>
                     </div>
                   </div>
                   <div class="funnel-stage mb-2">
                     <div class="progress" style="height: 30px;">
                       <div class="progress-bar bg-warning" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.halfway, insights.completion.completion_funnel.enrolled)">
-                        Halfway: {{ insights.completion.completion_funnel.halfway }}
+                        {{ 'admin.insights.funnel_halfway' | translate }}: {{ insights.completion.completion_funnel.halfway }}
                       </div>
                     </div>
                   </div>
                   <div class="funnel-stage mb-2">
                     <div class="progress" style="height: 30px;">
                       <div class="progress-bar" style="background-color: #fd7e14;" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.almost_done, insights.completion.completion_funnel.enrolled)">
-                        Almost: {{ insights.completion.completion_funnel.almost_done }}
+                        {{ 'admin.insights.funnel_almost' | translate }}: {{ insights.completion.completion_funnel.almost_done }}
                       </div>
                     </div>
                   </div>
                   <div class="funnel-stage">
                     <div class="progress" style="height: 30px;">
                       <div class="progress-bar bg-success" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.completed, insights.completion.completion_funnel.enrolled)">
-                        Completed: {{ insights.completion.completion_funnel.completed }}
+                        {{ 'admin.insights.funnel_completed' | translate }}: {{ insights.completion.completion_funnel.completed }}
                       </div>
                     </div>
                   </div>
@@ -293,7 +293,7 @@
           <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>Enrollment by Source</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.enrollment_by_source' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let source of insights.enrollment.by_source" class="mb-3">
@@ -313,13 +313,13 @@
           <div class="col-md-6">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.building" class="me-2 text-primary"></tui-icon>By Department</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.building" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.by_department' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let dept of insights.enrollment.by_department" class="mb-3">
                   <div class="d-flex justify-content-between mb-1">
                     <span>{{ dept.department_name }}</span>
-                    <span class="fw-bold">{{ dept.enrolled }} enrolled, {{ dept.completed }} completed</span>
+                    <span class="fw-bold">{{ 'admin.insights.dept_enrolled_completed' | translate:{ enrolled: dept.enrolled, completed: dept.completed } }}</span>
                   </div>
                   <div class="progress" style="height: 8px;">
                     <div class="progress-bar bg-success" [style.width.%]="dept.completion_rate"></div>
@@ -338,25 +338,25 @@
           <div class="col-md-6" *ngIf="insights.engagement">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>Engagement</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.engagement' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="text-center mb-4">
                   <div class="display-4 fw-bold text-primary">{{ insights.engagement.engagement_score }}</div>
-                  <p class="text-muted">Engagement Score</p>
+                  <p class="text-muted">{{ 'admin.insights.engagement_score' | translate }}</p>
                 </div>
                 <div class="row text-center">
                   <div class="col-4">
                     <h5 class="mb-0">{{ insights.engagement.total_sessions }}</h5>
-                    <small class="text-muted">Sessions</small>
+                    <small class="text-muted">{{ 'admin.insights.sessions' | translate }}</small>
                   </div>
                   <div class="col-4">
                     <h5 class="mb-0">{{ formatDuration(insights.engagement.average_session_duration) }}</h5>
-                    <small class="text-muted">Avg Duration</small>
+                    <small class="text-muted">{{ 'admin.insights.avg_duration' | translate }}</small>
                   </div>
                   <div class="col-4">
                     <h5 class="mb-0">{{ insights.engagement.average_sessions_per_learner?.toFixed(1) || 0 }}</h5>
-                    <small class="text-muted">Per Learner</small>
+                    <small class="text-muted">{{ 'admin.insights.per_learner_label' | translate }}</small>
                   </div>
                 </div>
               </div>
@@ -367,10 +367,10 @@
           <div class="col-md-6" *ngIf="insights.engagement">
             <div class="card border-0 shadow-sm h-100">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.clock" class="me-2 text-primary"></tui-icon>Peak Activity</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.clock" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.peak_activity' | translate }}</h5>
               </div>
               <div class="card-body">
-                <h6 class="text-muted mb-2">Peak Hours</h6>
+                <h6 class="text-muted mb-2">{{ 'admin.insights.peak_hours' | translate }}</h6>
                 <div class="mb-3">
                   <div *ngFor="let hour of insights.engagement.peak_hours" class="d-flex justify-content-between align-items-center mb-2">
                     <span>{{ hour.hour }}:00</span>
@@ -379,10 +379,10 @@
                         <div class="progress-bar bg-info" [style.width.%]="hour.percentage"></div>
                       </div>
                     </div>
-                    <span class="small text-muted">{{ hour.sessions }} sessions</span>
+                    <span class="small text-muted">{{ 'admin.insights.n_sessions' | translate:{ count: hour.sessions } }}</span>
                   </div>
                 </div>
-                <h6 class="text-muted mb-2">Peak Days</h6>
+                <h6 class="text-muted mb-2">{{ 'admin.insights.peak_days' | translate }}</h6>
                 <div>
                   <div *ngFor="let day of insights.engagement.peak_days" class="d-flex justify-content-between align-items-center mb-2">
                     <span>{{ day.day }}</span>
@@ -391,7 +391,7 @@
                         <div class="progress-bar bg-warning" [style.width.%]="day.percentage"></div>
                       </div>
                     </div>
-                    <span class="small text-muted">{{ day.sessions }} sessions</span>
+                    <span class="small text-muted">{{ 'admin.insights.n_sessions' | translate:{ count: day.sessions } }}</span>
                   </div>
                 </div>
               </div>
@@ -409,7 +409,7 @@
           <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.award" class="me-2 text-success"></tui-icon>Top Performers</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.award" class="me-2 text-success"></tui-icon>{{ 'admin.insights.top_performers' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -437,7 +437,7 @@
                     </div>
                   </div>
                   <div *ngIf="!insights.learners.top_performers?.length" class="list-group-item text-center text-muted py-4">
-                    No completions yet
+                    {{ 'admin.insights.no_completions' | translate }}
                   </div>
                 </div>
               </div>
@@ -448,7 +448,7 @@
           <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.circle-check" class="me-2 text-success"></tui-icon>Recent Completions</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.circle-check" class="me-2 text-success"></tui-icon>{{ 'admin.insights.recent_completions' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -460,17 +460,17 @@
                     </div>
                     <div class="flex-grow-1">
                       <h6 class="mb-0">{{ completion.full_name }}</h6>
-                      <small class="text-muted">{{ formatRelativeTime(completion.completed_at) }} • {{ completion.time_to_complete }} days</small>
+                      <small class="text-muted">{{ formatRelativeTime(completion.completed_at) }} • {{ 'admin.insights.n_days' | translate:{ count: completion.time_to_complete } }}</small>
                     </div>
                     <div class="text-end">
                       <div class="fw-bold">{{ completion.final_score }}%</div>
                       <small *ngIf="completion.certificate_id" class="text-success">
-                        <tui-icon icon="@tui.award"></tui-icon> Certified
+                        <tui-icon icon="@tui.award"></tui-icon> {{ 'admin.insights.certified' | translate }}
                       </small>
                     </div>
                   </div>
                   <div *ngIf="!insights.learners.recent_completions?.length" class="list-group-item text-center text-muted py-4">
-                    No recent completions
+                    {{ 'admin.insights.no_recent_completions' | translate }}
                   </div>
                 </div>
               </div>
@@ -481,7 +481,7 @@
           <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.triangle-alert" class="me-2 text-danger"></tui-icon>At Risk Learners</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.triangle-alert" class="me-2 text-danger"></tui-icon>{{ 'admin.insights.at_risk_learners' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -506,16 +506,16 @@
                       <div class="progress mb-1" style="height: 4px;">
                         <div class="progress-bar bg-danger" [style.width.%]="learner.progress"></div>
                       </div>
-                      <small class="text-muted">{{ learner.progress }}% complete • {{ learner.days_inactive }} days inactive</small>
+                      <small class="text-muted">{{ 'admin.insights.progress_inactive' | translate:{ progress: learner.progress, days: learner.days_inactive } }}</small>
                     </div>
                     <div class="mt-2">
                       <button class="btn btn-sm btn-primary" (click)="sendReminder(learner)">
-                        <tui-icon icon="@tui.mail" class="me-1"></tui-icon>Send Reminder
+                        <tui-icon icon="@tui.mail" class="me-1"></tui-icon>{{ 'admin.insights.send_reminder' | translate }}
                       </button>
                     </div>
                   </div>
                   <div *ngIf="!insights.learners.at_risk_learners?.length" class="list-group-item text-center text-muted py-4">
-                    No at-risk learners
+                    {{ 'admin.insights.no_at_risk' | translate }}
                   </div>
                 </div>
               </div>
@@ -526,7 +526,7 @@
           <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>Learner Segments</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.learner_segments' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let segment of insights.learners.learner_segments" class="mb-3">
@@ -542,7 +542,7 @@
                       'bg-danger': segment.segment === 'dropped'
                     }" [style.width.%]="segment.percentage"></div>
                   </div>
-                  <small *ngIf="segment.average_score" class="text-muted">Avg score: {{ segment.average_score?.toFixed(1) }}%</small>
+                  <small *ngIf="segment.average_score" class="text-muted">{{ 'admin.insights.avg_score_label' | translate:{ score: segment.average_score?.toFixed(1) } }}</small>
                 </div>
               </div>
             </div>
@@ -559,7 +559,7 @@
           <div class="col-lg-8">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.folder" class="me-2 text-primary"></tui-icon>Module Performance</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.folder" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.module_performance' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="accordion accordion-flush" id="modulesAccordion">
@@ -572,20 +572,20 @@
                           <span class="badge bg-primary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">{{ module.order_index + 1 }}</span>
                           <div class="flex-grow-1">
                             <h6 class="mb-0">{{ module.title }}</h6>
-                            <small class="text-muted">{{ module.total_lessons }} lessons • {{ formatDuration(module.average_time_spent) }} avg</small>
+                            <small class="text-muted">{{ 'admin.insights.n_lessons_avg' | translate:{ count: module.total_lessons, avg: formatDuration(module.average_time_spent) } }}</small>
                           </div>
                           <div class="d-flex gap-4 me-3">
                             <div class="text-center">
                               <div class="fw-bold">{{ formatPercentage(module.completion_rate) }}</div>
-                              <small class="text-muted">Completion</small>
+                              <small class="text-muted">{{ 'admin.insights.completion' | translate }}</small>
                             </div>
                             <div class="text-center" *ngIf="module.average_score !== null">
                               <div class="fw-bold text-success">{{ module.average_score?.toFixed(0) }}%</div>
-                              <small class="text-muted">Score</small>
+                              <small class="text-muted">{{ 'admin.insights.score' | translate }}</small>
                             </div>
                             <div class="text-center">
                               <div class="fw-bold text-danger">{{ formatPercentage(module.drop_off_rate) }}</div>
-                              <small class="text-muted">Drop-off</small>
+                              <small class="text-muted">{{ 'admin.insights.drop_off' | translate }}</small>
                             </div>
                           </div>
                         </div>
@@ -610,7 +610,7 @@
                           </div>
                         </div>
                         <ng-template #noLessons>
-                          <p class="text-muted mb-0">No lessons in this module</p>
+                          <p class="text-muted mb-0">{{ 'admin.insights.no_lessons_module' | translate }}</p>
                         </ng-template>
                       </div>
                     </div>
@@ -627,7 +627,7 @@
           <div class="col-lg-4" *ngIf="insights.engagement">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.mouse-pointer" class="me-2 text-primary"></tui-icon>Interactions</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.mouse-pointer" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.interactions' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let interaction of insights.engagement.content_interactions" class="d-flex align-items-center mb-3">
@@ -636,7 +636,7 @@
                   </div>
                   <div class="flex-grow-1">
                     <h6 class="mb-0">{{ formatInteractionType(interaction.type) }}</h6>
-                    <small class="text-muted">{{ interaction.unique_users }} users</small>
+                    <small class="text-muted">{{ 'admin.insights.n_users' | translate:{ count: interaction.unique_users } }}</small>
                   </div>
                   <span class="badge bg-primary rounded-pill">{{ interaction.count }}</span>
                 </div>
@@ -655,25 +655,25 @@
           <div class="col-12">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.clipboard-check" class="me-2 text-primary"></tui-icon>Assessment Summary</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.clipboard-check" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.assessment_summary' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="row text-center mb-4">
                   <div class="col-3">
                     <h3 class="mb-0">{{ insights.assessments.total_assessments }}</h3>
-                    <small class="text-muted">Assessments</small>
+                    <small class="text-muted">{{ 'admin.course_content.assessments' | translate }}</small>
                   </div>
                   <div class="col-3">
                     <h3 class="mb-0">{{ insights.assessments.total_attempts }}</h3>
-                    <small class="text-muted">Attempts</small>
+                    <small class="text-muted">{{ 'admin.insights.attempts' | translate }}</small>
                   </div>
                   <div class="col-3">
                     <h3 class="mb-0 text-success">{{ insights.assessments.average_score }}%</h3>
-                    <small class="text-muted">Avg Score</small>
+                    <small class="text-muted">{{ 'admin.insights.avg_score' | translate }}</small>
                   </div>
                   <div class="col-3">
                     <h3 class="mb-0">{{ formatPercentage(insights.assessments.pass_rate) }}</h3>
-                    <small class="text-muted">Pass Rate</small>
+                    <small class="text-muted">{{ 'admin.insights.pass_rate' | translate }}</small>
                   </div>
                 </div>
               </div>
@@ -684,7 +684,7 @@
           <div class="col-12">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.bar-chart" class="me-2 text-primary"></tui-icon>Score Distribution</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.bar-chart" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.score_distribution' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="d-flex align-items-end justify-content-around" style="height: 200px;">
@@ -704,15 +704,15 @@
                 <div class="row text-center">
                   <div class="col-4">
                     <h5 class="text-success mb-0">{{ insights.assessments.highest_score }}%</h5>
-                    <small class="text-muted">Highest</small>
+                    <small class="text-muted">{{ 'admin.insights.highest' | translate }}</small>
                   </div>
                   <div class="col-4">
                     <h5 class="text-danger mb-0">{{ insights.assessments.lowest_score }}%</h5>
-                    <small class="text-muted">Lowest</small>
+                    <small class="text-muted">{{ 'admin.insights.lowest' | translate }}</small>
                   </div>
                   <div class="col-4">
                     <h5 class="mb-0">{{ formatPercentage(insights.assessments.pass_rate) }}</h5>
-                    <small class="text-muted">Pass Rate</small>
+                    <small class="text-muted">{{ 'admin.insights.pass_rate' | translate }}</small>
                   </div>
                 </div>
               </div>
@@ -723,20 +723,20 @@
           <div class="col-12">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.list" class="me-2 text-primary"></tui-icon>Assessment Performance</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.list" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.assessment_performance' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="table-responsive">
                   <table class="table table-hover mb-0">
                     <thead class="table-light">
                     <tr>
-                      <th>Assessment</th>
-                      <th>Type</th>
-                      <th class="text-center">Questions</th>
-                      <th class="text-center">Attempts</th>
-                      <th class="text-center">Avg Score</th>
-                      <th class="text-center">Pass Rate</th>
-                      <th class="text-center">Avg Time</th>
+                      <th>{{ 'admin.insights.col_assessment' | translate }}</th>
+                      <th>{{ 'admin.insights.col_type' | translate }}</th>
+                      <th class="text-center">{{ 'admin.course_content.questions' | translate }}</th>
+                      <th class="text-center">{{ 'admin.insights.attempts' | translate }}</th>
+                      <th class="text-center">{{ 'admin.insights.avg_score' | translate }}</th>
+                      <th class="text-center">{{ 'admin.insights.pass_rate' | translate }}</th>
+                      <th class="text-center">{{ 'admin.insights.avg_time' | translate }}</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -772,7 +772,7 @@
           <div class="col-12" *ngIf="insights.assessments.question_analytics?.length">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.help-circle" class="me-2 text-warning"></tui-icon>Most Challenging Questions</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.help-circle" class="me-2 text-warning"></tui-icon>{{ 'admin.insights.challenging_questions' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let question of insights.assessments.question_analytics.slice(0, 5)" class="border-bottom py-3">
@@ -786,14 +786,14 @@
                       <p class="mb-2">{{ question.question_text }}</p>
                       <div class="d-flex gap-4">
                         <small [ngClass]="question.correct_rate < 50 ? 'text-danger' : 'text-success'">
-                          <tui-icon icon="@tui.check-circle" class="me-1"></tui-icon>{{ formatPercentage(question.correct_rate) }} correct
+                          <tui-icon icon="@tui.check-circle" class="me-1"></tui-icon>{{ 'admin.insights.correct_suffix' | translate:{ rate: formatPercentage(question.correct_rate) } }}
                         </small>
                         <small class="text-muted">
-                          <tui-icon icon="@tui.clock" class="me-1"></tui-icon>{{ question.average_time }}s avg
+                          <tui-icon icon="@tui.clock" class="me-1"></tui-icon>{{ 'admin.insights.avg_seconds' | translate:{ seconds: question.average_time } }}
                         </small>
                       </div>
                       <small *ngIf="question.most_selected_wrong" class="text-danger d-block mt-1">
-                        <tui-icon icon="@tui.x-circle" class="me-1"></tui-icon>Common wrong: {{ question.most_selected_wrong }}
+                        <tui-icon icon="@tui.x-circle" class="me-1"></tui-icon>{{ 'admin.insights.common_wrong' | translate }}: {{ question.most_selected_wrong }}
                       </small>
                     </div>
                   </div>
@@ -942,7 +942,7 @@
           <div class="col-6 offset-3" *ngIf="insights.learners.top_performers.length > 3">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.users" class="me-2 text-primary"></tui-icon>Other Performers</h5>
+                <h5 class="mb-0"><tui-icon icon="@tui.users" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.other_performers' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -975,8 +975,8 @@
             <div class="card border-0 shadow-sm">
               <div class="card-body text-center py-5">
                 <tui-icon icon="@tui.award" class="fs-1 text-muted mb-3"></tui-icon>
-                <h5 class="text-muted">No completions yet</h5>
-                <p class="text-muted small">Learners will appear here once they complete the course.</p>
+                <h5 class="text-muted">{{ 'admin.insights.no_completions' | translate }}</h5>
+                <p class="text-muted small">{{ 'admin.insights.leaderboard_empty' | translate }}</p>
               </div>
             </div>
           </div>

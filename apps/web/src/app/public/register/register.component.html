@@ -5,7 +5,7 @@
 
 <div style="max-width: 55rem; padding-top: 3%" class="container animate__animated animate__fadeIn">
     <span class="badge abayti_secondary_background rounded-pill mb-3">
-    <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">Back to website</a>
+    <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">{{ 'auth.back_to_website' | translate }}</a>
   </span>
   <div  class="row justify-content-center align-items-stretch g-4">
     <div class="col-12 col-lg-6 d-none d-md-flex">
@@ -27,25 +27,23 @@
           </div>
         </div>
         <div *ngIf="notFound" class="card-body text-center">
-          <h1 class="fs-2">Nothing here</h1>
+          <h1 class="fs-2">{{ 'register.nothing_here' | translate }}</h1>
           <p class="lead text-body-secondary">
-            This registration link does not name an organisation we know.
-            Check it with whoever gave it to you.
+            {{ 'register.link_unknown_org' | translate }}
           </p>
-          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">Go to sign in</a>
+          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
         </div>
         <div *ngIf="!notFound && !isOpen && !ui_controls.loading" class="card-body text-center">
           <h1 class="fs-2">{{ organisation }}</h1>
           <p class="lead text-body-secondary">
-            {{ organisation }} does not take registrations. Ask an administrator
-            there for an invitation.
+            {{ organisation }} {{ 'register.closed_note' | translate }}
           </p>
-          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">Go to sign in</a>
+          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
         </div>
         <div *ngIf="!notFound && isOpen && !ui_controls.registered" class="card-body">
           <h1 class="fs-2">{{ 'register' | translate }}</h1>
           <p class="lead text-body-secondary">
-            Joining <strong>{{ organisation }}</strong>.
+            {{ 'register.joining' | translate }} <strong>{{ organisation }}</strong>.
             <span *ngIf="domainNote" class="d-block small">{{ domainNote }}</span>
           </p>
           <p class="lead text-body-secondary">{{'create_account' | translate}}</p>
@@ -76,7 +74,7 @@
                     <span class="me-1">{{ selectedDial?.flag }}</span>{{ register.countryCode }}
                   </button>
                   <div class="dropdown-menu p-2" style="min-width: 18rem;">
-                    <input type="search" name="search"  class="form-control form-control-sm mb-2" placeholder="Search by country or code" [(ngModel)]="codeSearch" (click)="$event.stopPropagation()" />
+                    <input type="search" name="search"  class="form-control form-control-sm mb-2" placeholder="{{ 'register.search_country_or_code' | translate }}" [(ngModel)]="codeSearch" (click)="$event.stopPropagation()" />
                     <div class="list-group list-group-flush code-list">
                       <button type="button" class="list-group-item list-group-item-action py-1" *ngFor="let c of filteredDialCodes()" (click)="selectCode(c)">
                         <span class="me-1">{{ c.flag }}</span>{{ c.name }}
@@ -89,7 +87,7 @@
               </div>
             </div>
             <p class="text-body-secondary small mb-4">
-              You will choose your password from a link we send to this address.
+              {{ 'register.password_from_link' | translate }}
             </p>
             <tui-loader *ngIf="ui_controls.loading" />
             <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
@@ -103,23 +101,22 @@
         <div *ngIf="!notFound && ui_controls.registered" class="card-body">
           <h1 class="fs-1">{{ 'confirm_email' | translate }}</h1>
           <p class="lead text-body-secondary">
-            A link to choose your password is on its way to
+            {{ 'register.link_on_its_way' | translate }}
             <strong>{{ register.email }}</strong>.
           </p>
           <div class="mb-5">
             <div class="row mt-4">
               <div class="col-12">
                 <p>
-                  Didn’t get it? Please check your inbox and spam folder.
-                  If the email address you entered is incorrect, click the button below to update and try again.
+                  {{ 'register.check_inbox_spam' | translate }}
                 </p>
               </div>
               <div class="col-md-6 col-12">
-                <button type="button" class="text-black abayti_secondary_background text-white btn-secondary w-100 btn btn-sm" (click)="change_email()"> Change Email </button>
+                <button type="button" class="text-black abayti_secondary_background text-white btn-secondary w-100 btn btn-sm" (click)="change_email()"> {{ 'register.change_email' | translate }} </button>
               </div>
               <div class="col-md-6 col-12">
                 <tui-loader *ngIf="ui_controls.loading" />
-                <button *ngIf="!ui_controls.loading" type="button" class="text-black w-100 abayti_secondary_color abayti_primary_background btn-secondary btn btn-sm" (click)="send_otp()"> Send it again </button>
+                <button *ngIf="!ui_controls.loading" type="button" class="text-black w-100 abayti_secondary_color abayti_primary_background btn-secondary btn btn-sm" (click)="send_otp()"> {{ 'auth.send_it_again' | translate }} </button>
               </div>
             </div>
           </div>

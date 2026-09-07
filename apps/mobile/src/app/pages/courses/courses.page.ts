@@ -10,6 +10,8 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { CatalogueCourse, Enrollment } from '../../core/models';
 import { initialOf, minutesLabel, thumbStyle } from '../../core/ui';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { SelectComponent, SelectOption } from '../../components/select/select.component';
@@ -26,6 +28,7 @@ type Tab = 'mine' | 'catalogue';
     IonContent, IonIcon, IonSkeletonText,
     IonRippleEffect, IonRefresher, IonRefresherContent, BrandHeaderComponent,
     EmptyStateComponent, SelectComponent, SegmentComponent, SearchComponent, ProgressComponent,
+    TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -33,22 +36,22 @@ type Tab = 'mine' | 'catalogue';
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Courses" subtitle="Browse and continue your learning"></app-brand-header>
+      <app-brand-header [title]="'nav.courses' | translate" [subtitle]="'courses.subtitle' | translate"></app-brand-header>
 
       <div class="ca-controls">
-        <app-segment [value]="tab()" (valueChange)="switch($any($event))" [segments]="tabs"></app-segment>
+        <app-segment [value]="tab()" (valueChange)="switch($any($event))" [segments]="tabs()"></app-segment>
         <app-search
           class="ca-search"
-          placeholder="Search courses"
+          [placeholder]="'courses.search_placeholder' | translate"
           (search)="onSearch($event)"></app-search>
         @if (tab() === 'catalogue' && categoryOptions().length > 2) {
           <app-select
             class="ca-filter"
             [(value)]="category"
             [options]="categoryOptions()"
-            label="Category"
-            placeholder="All categories"
-            searchPlaceholder="Search categories"></app-select>
+            [label]="'courses.category' | translate"
+            [placeholder]="'courses.all_categories' | translate"
+            [searchPlaceholder]="'courses.search_categories' | translate"></app-select>
         }
       </div>
 
@@ -66,9 +69,9 @@ type Tab = 'mine' | 'catalogue';
         } @else if (failed()) {
           <app-empty-state
             icon="cloud-offline-outline"
-            title="Couldn't load courses"
-            message="Check your connection and try again."
-            actionLabel="Try again"
+            [title]="'courses.load_failed' | translate"
+            [message]="'common.offline' | translate"
+            [actionLabel]="'common.retry' | translate"
             (action)="reload()"></app-empty-state>
         } @else if (tab() === 'mine') {
           @if (mine().length) {
@@ -87,9 +90,9 @@ type Tab = 'mine' | 'catalogue';
           } @else {
             <app-empty-state
               icon="library-outline"
-              title="No courses yet"
-              message="You're not enrolled in anything. Explore what's on offer."
-              actionLabel="Explore the catalogue"
+              [title]="'courses.none_yet' | translate"
+              [message]="'courses.none_yet_msg' | translate"
+              [actionLabel]="'courses.explore_catalogue' | translate"
               (action)="switch('catalogue')"></app-empty-state>
           }
         } @else {
@@ -101,7 +104,7 @@ type Tab = 'mine' | 'catalogue';
                 <div class="body">
                   <p class="title">{{ c.title }}</p>
                   <p class="muted">
-                    {{ c.categoryName || 'Course' }}{{ mins(c.durationMinutes) ? ' · ' + mins(c.durationMinutes) : '' }}{{ c.level ? ' · ' + c.level : '' }}
+                    {{ c.categoryName || ('courses.course' | translate) }}{{ mins(c.durationMinutes) ? ' · ' + mins(c.durationMinutes) : '' }}{{ c.level ? ' · ' + c.level : '' }}
                   </p>
                 </div>
                 <ion-icon name="chevron-forward" class="chev"></ion-icon>
@@ -110,9 +113,9 @@ type Tab = 'mine' | 'catalogue';
           } @else {
             <app-empty-state
               icon="search"
-              [title]="query() || category() ? 'No matches' : 'Nothing here yet'"
+              [title]="query() || category() ? ('courses.no_matches' | translate) : ('courses.nothing_here' | translate)"
               [message]="emptyMessage()"
-              [actionLabel]="category() ? 'Clear category' : ''"
+              [actionLabel]="category() ? ('courses.clear_category' | translate) : ''"
               (action)="category.set('')"></app-empty-state>
           }
         }
@@ -138,11 +141,15 @@ type Tab = 'mine' | 'catalogue';
 export class CoursesPage implements OnInit {
   private readonly learner = inject(LearnerService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
-  readonly tabs = [
-    { value: 'mine', label: 'My Courses' },
-    { value: 'catalogue', label: 'Catalogue' },
-  ];
+  readonly tabs = computed(() => {
+    this.i18n.lang();
+    return [
+      { value: 'mine', label: this.i18n.t('actions.my_courses') },
+      { value: 'catalogue', label: this.i18n.t('courses.catalogue') },
+    ];
+  });
 
   readonly tab = signal<Tab>('mine');
   readonly query = signal('');
@@ -154,10 +161,11 @@ export class CoursesPage implements OnInit {
 
   /** The catalogue's distinct categories, as select options ("All" first). */
   readonly categoryOptions = computed<SelectOption[]>(() => {
+    this.i18n.lang();
     const names = Array.from(
       new Set(this.catalogue().map((c) => c.categoryName).filter((n): n is string => !!n)),
     ).sort((a, b) => a.localeCompare(b));
-    return [{ value: '', label: 'All categories' }, ...names.map((n) => ({ value: n, label: n }))];
+    return [{ value: '', label: this.i18n.t('courses.all_categories') }, ...names.map((n) => ({ value: n, label: n }))];
   });
 
   /** The catalogue narrowed to the chosen category (client-side). */
@@ -167,10 +175,15 @@ export class CoursesPage implements OnInit {
   });
 
   readonly emptyMessage = computed(() => {
+    this.i18n.lang();
     if (this.category()) {
-      return `No courses in “${this.category()}”${this.query() ? ` matching “${this.query()}”` : ''}.`;
+      return this.query()
+        ? this.i18n.t('courses.empty_in_category_matching', { category: this.category(), query: this.query() })
+        : this.i18n.t('courses.empty_in_category', { category: this.category() });
     }
-    return this.query() ? `No courses match “${this.query()}”.` : 'No courses are available right now.';
+    return this.query()
+      ? this.i18n.t('courses.empty_matching', { query: this.query() })
+      : this.i18n.t('courses.empty_none_available');
   });
 
   readonly thumb = thumbStyle;

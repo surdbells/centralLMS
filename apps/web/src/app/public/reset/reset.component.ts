@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/api';
@@ -52,6 +53,7 @@ export class ResetComponent implements OnInit, OnDestroy {
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   fieldTextType = false;
@@ -121,7 +123,7 @@ export class ResetComponent implements OnInit, OnDestroy {
           this.ui_controls.loading = false;
 
           if (!state.valid) {
-            this.error_notification('This link has expired. Ask for a new one.');
+            this.error_notification(this.i18n.t('reset.link_expired'));
 
             return;
           }
@@ -133,7 +135,7 @@ export class ResetComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.ui_controls.loading = false;
-          this.error_notification('Could not check that link. Try again.');
+          this.error_notification(this.i18n.t('reset.link_check_failed'));
         },
       });
   }
@@ -150,7 +152,7 @@ export class ResetComponent implements OnInit, OnDestroy {
     const email = this.reset.email.trim();
 
     if (email === '') {
-      this.error_notification('Email address is required');
+      this.error_notification(this.i18n.t('auth.email_required'));
 
       return;
     }
@@ -164,7 +166,7 @@ export class ResetComponent implements OnInit, OnDestroy {
         next: () => {
           this.ui_controls.loading = false;
           this.ui_controls.confirmed = true;
-          this.success_notification('If that address has an account, a link is on its way.');
+          this.success_notification(this.i18n.t('reset.link_sent_generic'));
         },
         error: (failure: ApiError) => {
           this.ui_controls.loading = false;
@@ -188,13 +190,13 @@ export class ResetComponent implements OnInit, OnDestroy {
 
   reset_password(): void {
     if (this.r_password.password.length === 0) {
-      this.error_notification('Password is required');
+      this.error_notification(this.i18n.t('auth.password_required'));
 
       return;
     }
 
     if (this.r_password.password !== this.r_password.confirm_password) {
-      this.error_notification('Password does not match');
+      this.error_notification(this.i18n.t('reset.password_mismatch'));
 
       return;
     }
@@ -209,8 +211,8 @@ export class ResetComponent implements OnInit, OnDestroy {
           this.ui_controls.loading = false;
           this.success_notification(
             this.isInvitation
-              ? 'Your account is ready. Sign in with your new password.'
-              : 'Password changed. Sign in with your new password.',
+              ? this.i18n.t('reset.account_ready')
+              : this.i18n.t('reset.password_changed'),
           );
           void this.router.navigate(['/login']);
         },

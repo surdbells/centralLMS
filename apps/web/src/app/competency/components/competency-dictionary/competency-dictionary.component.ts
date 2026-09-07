@@ -7,6 +7,8 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiClient, Endpoints } from '../../../core/api';
 import { RichHtmlEditorComponent } from '../../../shared/rich-html-editor/rich-html-editor.component';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 import {
   CompetencyService,
   type Competency,
@@ -31,7 +33,7 @@ interface FunctionGroup {
 @Component({
   selector: 'app-competency-dictionary',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RichHtmlEditorComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, RichHtmlEditorComponent, TranslatePipe],
   templateUrl: './competency-dictionary.component.html',
   styleUrl: './competency-dictionary.component.scss',
 })
@@ -40,6 +42,7 @@ export class CompetencyDictionaryComponent implements OnInit {
   private readonly toast = inject(HotToastService);
   private readonly http = inject(HttpClient);
   private readonly api = inject(ApiClient);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   saving = false;
@@ -113,7 +116,7 @@ export class CompetencyDictionaryComponent implements OnInit {
           link.click();
           URL.revokeObjectURL(url);
         },
-        error: () => this.toast.error('The template could not be downloaded.'),
+        error: () => this.toast.error(this.i18n.t('competency.dict.download_error')),
       });
   }
 
@@ -135,7 +138,7 @@ export class CompetencyDictionaryComponent implements OnInit {
           this.loading = false;
         },
         error: () => {
-          this.toast.error('The dictionary could not be loaded.');
+          this.toast.error(this.i18n.t('competency.dict.load_error'));
           this.loading = false;
         },
       });
@@ -193,7 +196,7 @@ export class CompetencyDictionaryComponent implements OnInit {
 
   save(): void {
     if (!this.form.name.trim() || !this.form.functionName.trim()) {
-      this.toast.error('A competency needs a name and a function.');
+      this.toast.error(this.i18n.t('competency.dict.validation'));
       return;
     }
     this.saving = true;
@@ -203,7 +206,7 @@ export class CompetencyDictionaryComponent implements OnInit {
 
     request.subscribe({
       next: () => {
-        this.toast.success(this.editing ? 'Competency updated.' : 'Competency added.');
+        this.toast.success(this.i18n.t(this.editing ? 'competency.dict.updated' : 'competency.dict.added'));
         this.saving = false;
         this.closeModal();
         this.load();
@@ -211,9 +214,11 @@ export class CompetencyDictionaryComponent implements OnInit {
       error: (err) => {
         this.saving = false;
         this.toast.error(
-          err?.code === 'duplicate_competency'
-            ? 'A competency with that name already exists in this function.'
-            : 'The competency could not be saved.',
+          this.i18n.t(
+            err?.code === 'duplicate_competency'
+              ? 'competency.dict.duplicate'
+              : 'competency.dict.save_error',
+          ),
         );
       },
     });
@@ -236,12 +241,12 @@ export class CompetencyDictionaryComponent implements OnInit {
     const target = this.deleteTarget;
     this.competency.deleteCompetency(target.id).subscribe({
       next: () => {
-        this.toast.success('Competency removed.');
+        this.toast.success(this.i18n.t('competency.dict.removed'));
         this.deleteTarget = null;
         this.load();
       },
       error: () => {
-        this.toast.error('The competency could not be removed.');
+        this.toast.error(this.i18n.t('competency.dict.remove_error'));
         this.deleteTarget = null;
       },
     });
@@ -290,15 +295,20 @@ export class CompetencyDictionaryComponent implements OnInit {
           this.importing = false;
           const t = progress.result.totals;
           if (t.competencies > 0) {
-            this.toast.success(`Imported ${t.competencies} competencies across ${t.functions} functions.`);
+            this.toast.success(
+              this.i18n.t('competency.dict.import_success', {
+                competencies: t.competencies,
+                functions: t.functions,
+              }),
+            );
           } else {
-            this.toast.error('Nothing could be imported from those files.');
+            this.toast.error(this.i18n.t('competency.dict.import_nothing'));
           }
         }
       },
       error: () => {
         this.importing = false;
-        this.toast.error('The workbooks could not be imported.');
+        this.toast.error(this.i18n.t('competency.dict.import_error'));
       },
     });
   }
@@ -306,11 +316,11 @@ export class CompetencyDictionaryComponent implements OnInit {
   fileStatusLabel(status: string): string {
     return (
       {
-        imported: 'Imported',
-        legacy_xls: 'Old .xls format - re-save as .xlsx',
-        no_competency_sheets: 'No competency sheets found',
-        password_required: 'Password-protected - enter the password and retry',
-        unreadable: 'Could not be read',
+        imported: this.i18n.t('competency.dict.status_imported'),
+        legacy_xls: this.i18n.t('competency.dict.status_legacy_xls'),
+        no_competency_sheets: this.i18n.t('competency.dict.status_no_sheets'),
+        password_required: this.i18n.t('competency.dict.status_password_required'),
+        unreadable: this.i18n.t('competency.dict.status_unreadable'),
       }[status] ?? status
     );
   }

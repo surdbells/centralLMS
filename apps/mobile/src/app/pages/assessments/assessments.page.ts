@@ -4,13 +4,15 @@ import { IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent
 import { Assessment, AssessmentService } from '../../core/assessment.service';
 import { BrandHeaderComponent } from '../../components/brand-header/brand-header.component';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 @Component({
   selector: 'app-assessments',
   standalone: true,
   imports: [
     IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
-    BrandHeaderComponent, EmptyStateComponent,
+    BrandHeaderComponent, EmptyStateComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -18,7 +20,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Assessments" subtitle="Quizzes and exams for you" back></app-brand-header>
+      <app-brand-header [title]="'actions.assessments' | translate" [subtitle]="'assessments.subtitle' | translate" back></app-brand-header>
 
       <div class="pad">
         @if (loading()) {
@@ -32,18 +34,18 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
             </div>
           }
         } @else if (failed()) {
-          <app-empty-state icon="cloud-offline-outline" title="Couldn't load assessments"
-            message="Check your connection and try again." actionLabel="Try again" (action)="load()"></app-empty-state>
+          <app-empty-state icon="cloud-offline-outline" [title]="'assessments.load_error_title' | translate"
+            [message]="'common.offline' | translate" [actionLabel]="'common.retry' | translate" (action)="load()"></app-empty-state>
         } @else if (!items().length) {
-          <app-empty-state icon="clipboard-outline" title="No assessments yet"
-            message="Quizzes and exams assigned to you will appear here."></app-empty-state>
+          <app-empty-state icon="clipboard-outline" [title]="'assessments.empty_title' | translate"
+            [message]="'assessments.empty_msg' | translate"></app-empty-state>
         } @else {
           @for (a of items(); track a.assessmentId) {
             <button type="button" class="as-row tappable rise" (click)="open(a.assessmentId)">
               <div class="as-ic"><ion-icon [name]="a.proctoringLevel !== 'none' ? 'shield-checkmark-outline' : icon(a.kind)" aria-hidden="true"></ion-icon></div>
               <div class="as-body">
                 <p class="as-title">{{ a.title }}</p>
-                <p class="as-meta">{{ kindLabel(a.kind) }} · {{ a.questionCount }} {{ a.questionCount === 1 ? 'question' : 'questions' }}@if (a.passingScore) { · {{ a.passingScore }}% to pass }</p>
+                <p class="as-meta">{{ kindLabel(a.kind) }} · {{ a.questionCount }} {{ (a.questionCount === 1 ? 'assessments.question' : 'assessments.questions') | translate }}@if (a.passingScore) { · {{ 'assessments.percent_to_pass' | translate:{ score: a.passingScore } }} }</p>
               </div>
               <div class="as-side">
                 <span class="as-status" [attr.data-s]="a.enrollmentStatus">{{ statusLabel(a.enrollmentStatus) }}</span>
@@ -75,6 +77,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
 export class AssessmentsPage implements OnInit {
   private readonly svc = inject(AssessmentService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly failed = signal(false);
@@ -102,12 +105,12 @@ export class AssessmentsPage implements OnInit {
   }
 
   kindLabel(kind: string): string {
-    const map: Record<string, string> = { quiz: 'Quiz', exam: 'Exam', assignment: 'Assignment', survey: 'Survey' };
-    return map[kind] ?? 'Assessment';
+    const map: Record<string, string> = { quiz: 'assessments.kind_quiz', exam: 'assessments.kind_exam', assignment: 'assessments.kind_assignment', survey: 'assessments.kind_survey' };
+    return this.i18n.t(map[kind] ?? 'assessments.kind_assessment');
   }
 
   statusLabel(s: string): string {
-    const map: Record<string, string> = { passed: 'Passed', failed: 'Failed', in_progress: 'In progress', not_started: 'Not started' };
-    return map[s] ?? s;
+    const map: Record<string, string> = { passed: 'assessments.status_passed', failed: 'assessments.status_failed', in_progress: 'assessments.status_in_progress', not_started: 'assessments.status_not_started' };
+    return map[s] ? this.i18n.t(map[s]) : s;
   }
 }

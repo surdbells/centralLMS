@@ -14,19 +14,19 @@
           </div>
         </div>
         <div class="col">
-          <h1 class="fs-4 mb-0" *ngIf="course">{{ course.title }} - Curriculum</h1>
+          <h1 class="fs-4 mb-0" *ngIf="course">{{ course.title }} - {{ 'admin.course_content.curriculum' | translate }}</h1>
         </div>
       </div>
     </div>
     <div class="header-actions">
       <button class="btn btn-secondary btn-sm me-2" (click)="collapseAllModules()">
-        <i class="bi bi-arrows-collapse"></i> Collapse All
+        <i class="bi bi-arrows-collapse"></i> {{ 'admin.course_content.collapse_all' | translate }}
       </button>
       <button class="btn btn-secondary btn-sm me-2" (click)="expandAllModules()">
-        <i class="bi bi-arrows-expand"></i> Expand All
+        <i class="bi bi-arrows-expand"></i> {{ 'admin.course_content.expand_all' | translate }}
       </button>
       <button class="btn btn-primary" (click)="openModuleModal()">
-        <i class="bi bi-plus-lg me-1"></i> Add Module
+        <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_module' | translate }}
       </button>
     </div>
   </div>
@@ -36,22 +36,22 @@
     <div class="stat-item">
       <i class="bi bi-collection"></i>
       <span class="stat-value">{{ stats.total_modules }}</span>
-      <span class="stat-label">Modules</span>
+      <span class="stat-label">{{ 'admin.course_content.modules' | translate }}</span>
     </div>
     <div class="stat-item">
       <i class="bi bi-play-circle"></i>
       <span class="stat-value">{{ stats.total_lessons }}</span>
-      <span class="stat-label">Lessons</span>
+      <span class="stat-label">{{ 'admin.course_content.lessons' | translate }}</span>
     </div>
     <div class="stat-item">
       <i class="bi bi-question-circle"></i>
       <span class="stat-value">{{ stats.total_assessments }}</span>
-      <span class="stat-label">Assessments</span>
+      <span class="stat-label">{{ 'admin.course_content.assessments' | translate }}</span>
     </div>
     <div class="stat-item">
       <i class="bi bi-clock"></i>
       <span class="stat-value">{{ formatDuration(stats.total_duration_minutes) }}</span>
-      <span class="stat-label">Duration</span>
+      <span class="stat-label">{{ 'admin.course_content.duration' | translate }}</span>
     </div>
   </div>
 
@@ -68,18 +68,18 @@
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p class="mt-2 text-muted">Loading course content...</p>
+    <p class="mt-2 text-muted">{{ 'admin.course_content.loading' | translate }}</p>
   </div>
 
   <!-- Empty State -->
   <div class="empty-state" *ngIf="!loading && modules.length === 0">
     <i class="bi bi-inbox"></i>
-    <h4>No Content Yet</h4>
-    <p class="text-muted">Start building your course by adding modules</p>
+    <h4>{{ 'admin.course_content.empty_title' | translate }}</h4>
+    <p class="text-muted">{{ 'admin.course_content.empty_text' | translate }}</p>
     <button class="btn btn-primary" (click)="openModuleModal()">
-      <i class="bi bi-plus-lg me-1"></i> Add First Module
+      <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_first_module' | translate }}
     </button>
   </div>
 
@@ -97,40 +97,40 @@
         </div>
 
         <div class="module-info">
-          <div class="module-number">Module {{ i + 1 }}</div>
+          <div class="module-number">{{ 'admin.course_content.module_n' | translate:{ n: i + 1 } }}</div>
           <h4 class="module-title">{{ module.title }}</h4>
           <div class="module-meta">
             <span class="badge bg-black text-white">
               <i class="bi bi-play-circle me-1"></i>
-              {{ module.lessons?.length || 0 }} lessons
+              {{ 'admin.course_content.lessons_count' | translate:{ count: module.lessons?.length || 0 } }}
             </span>
             <span class="badge bg-black text-white" *ngIf="(module.assessments?.length || 0) > 0">
               <i class="bi bi-question-circle me-1"></i>
-              {{ module.assessments?.length }} assessments
+              {{ 'admin.course_content.assessments_count' | translate:{ count: module.assessments?.length } }}
             </span>
             <span class="badge" [class.bg-success]="module.is_active" [class.bg-secondary]="!module.is_active">
-              {{ module.is_active ? 'Active' : 'Inactive' }}
+              {{ module.is_active ? ('common.active' | translate) : ('common.inactive' | translate) }}
             </span>
           </div>
         </div>
 
         <div class="module-actions" (click)="$event.stopPropagation()">
-          <button class="btn btn-sm btn-warning" (click)="openLessonModal(module.module_id)" title="Add Lesson">
-            <i class="bi bi-plus-lg"></i> Lesson
+          <button class="btn btn-sm btn-warning" (click)="openLessonModal(module.module_id)" title="{{ 'admin.course_content.add_lesson' | translate }}">
+            <i class="bi bi-plus-lg"></i> {{ 'admin.course_content.lesson' | translate }}
           </button>
-          <button class="btn btn-sm btn-secondary" (click)="openAssessmentModal(module.module_id)" title="Add Assessment">
-            <i class="bi bi-plus-lg"></i> Quiz
+          <button class="btn btn-sm btn-secondary" (click)="openAssessmentModal(module.module_id)" title="{{ 'admin.course_content.add_assessment' | translate }}">
+            <i class="bi bi-plus-lg"></i> {{ 'admin.course_content.quiz' | translate }}
           </button>
           <div class="dropdown">
             <button class="btn btn-sm btn-ghost" data-bs-toggle="dropdown">
               <i class="bi bi-three-dots-vertical"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" (click)="openModuleModal(module)"><i class="bi bi-pencil me-2"></i>Edit Module</a></li>
-              <li><a class="dropdown-item" (click)="duplicateModule(module, $event)"><i class="bi bi-copy me-2"></i>Duplicate</a></li>
+              <li><a class="dropdown-item" (click)="openModuleModal(module)"><i class="bi bi-pencil me-2"></i>{{ 'admin.course_content.edit_module' | translate }}</a></li>
+              <li><a class="dropdown-item" (click)="duplicateModule(module, $event)"><i class="bi bi-copy me-2"></i>{{ 'common.duplicate' | translate }}</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item text-danger" (click)="confirmDelete('module', module.module_id, module.title)">
-                <i class="bi bi-trash me-2"></i>Delete
+                <i class="bi bi-trash me-2"></i>{{ 'common.delete' | translate }}
               </a></li>
             </ul>
           </div>
@@ -145,7 +145,7 @@
         <!-- Lessons Section -->
         <div class="content-section">
           <div class="section-header">
-            <h5><i class="bi bi-play-circle me-2"></i>Lessons</h5>
+            <h5><i class="bi bi-play-circle me-2"></i>{{ 'admin.course_content.lessons' | translate }}</h5>
           </div>
 
           <!-- Lessons Drag & Drop List -->
@@ -172,28 +172,28 @@
               <div class="lesson-info">
                 <span class="lesson-order">{{ j + 1 }}.</span>
                 <span class="lesson-title">{{ lesson.title }}</span>
-                <span class="lesson-type badge bg-black text-white">{{ getContentTypeLabel(lesson.content_type) }}</span>
+                <span class="lesson-type badge bg-black text-white">{{ getContentTypeLabel(lesson.content_type) | translate }}</span>
                 <span class="lesson-duration" *ngIf="lesson.duration_minutes">
                   <i class="bi bi-clock"></i> {{ lesson.duration_minutes }}m
                 </span>
                 <span class="badge bg-warning-subtle text-warning" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
-                <span class="badge bg-danger-subtle text-danger" *ngIf="lesson.is_mandatory">Required</span>
+                <span class="badge bg-danger-subtle text-danger" *ngIf="lesson.is_mandatory">{{ 'admin.course_content.required' | translate }}</span>
               </div>
 
               <div class="lesson-status">
                 <span class="badge" [class.bg-success]="lesson.is_active" [class.bg-secondary]="!lesson.is_active">
-                  {{ lesson.is_active ? 'Active' : 'Draft' }}
+                  {{ lesson.is_active ? ('common.active' | translate) : ('admin.course_content.draft' | translate) }}
                 </span>
               </div>
 
               <div class="lesson-actions">
-                <button class="btn btn-sm btn-ghost" (click)="openLessonModal(module.module_id, lesson)" title="Edit">
+                <button class="btn btn-sm btn-ghost" (click)="openLessonModal(module.module_id, lesson)" title="{{ 'common.edit' | translate }}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost" (click)="duplicateLesson(lesson, $event)" title="Duplicate">
+                <button class="btn btn-sm btn-ghost" (click)="duplicateLesson(lesson, $event)" title="{{ 'common.duplicate' | translate }}">
                   <i class="bi bi-copy"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost text-danger" (click)="confirmDelete('lesson', lesson.lesson_id, lesson.title)" title="Delete">
+                <button class="btn btn-sm btn-ghost text-danger" (click)="confirmDelete('lesson', lesson.lesson_id, lesson.title)" title="{{ 'common.delete' | translate }}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -202,9 +202,9 @@
             <!-- Empty Lessons -->
             <div class="empty-lessons" *ngIf="!module.lessons || module.lessons.length === 0">
               <i class="bi bi-inbox"></i>
-              <p>No lessons yet</p>
+              <p>{{ 'admin.course_content.no_lessons' | translate }}</p>
               <button class="btn btn-sm btn-primary" (click)="openLessonModal(module.module_id)">
-                <i class="bi bi-plus-lg me-1"></i> Add Lesson
+                <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_lesson' | translate }}
               </button>
             </div>
           </div>
@@ -213,7 +213,7 @@
         <!-- Assessments Section -->
         <div class="content-section" *ngIf="module.assessments && module.assessments.length > 0">
           <div class="section-header">
-            <h5><i class="bi bi-question-circle me-2"></i>Assessments</h5>
+            <h5><i class="bi bi-question-circle me-2"></i>{{ 'admin.course_content.assessments' | translate }}</h5>
           </div>
 
           <div class="assessments-list">
@@ -229,30 +229,30 @@
                   <span *ngIf="assessment.time_limit_minutes">
                     <i class="bi bi-clock"></i> {{ assessment.time_limit_minutes }}m
                   </span>
-                  <span><i class="bi bi-bullseye"></i> {{ assessment.pass_percentage }}% to pass</span>
+                  <span><i class="bi bi-bullseye"></i> {{ 'admin.course_content.pass_percentage' | translate:{ percent: assessment.pass_percentage } }}</span>
                   <span *ngIf="assessment.question_count">
-                    <i class="bi bi-list-ol"></i> {{ assessment.question_count }} questions
+                    <i class="bi bi-list-ol"></i> {{ 'admin.course_content.questions_count' | translate:{ count: assessment.question_count } }}
                   </span>
                 </div>
               </div>
 
               <div class="assessment-status">
                 <span class="badge" [class.bg-success]="assessment.is_active" [class.bg-secondary]="!assessment.is_active">
-                  {{ assessment.is_active ? 'Active' : 'Draft' }}
+                  {{ assessment.is_active ? ('common.active' | translate) : ('admin.course_content.draft' | translate) }}
                 </span>
               </div>
 
               <div class="assessment-actions">
-                <button class="btn btn-sm btn-primary" (click)="manageQuestions(assessment)" title="Manage Questions">
-                  <i class="bi bi-list-ol me-1"></i> Questions
+                <button class="btn btn-sm btn-primary" (click)="manageQuestions(assessment)" title="{{ 'admin.course_content.manage_questions' | translate }}">
+                  <i class="bi bi-list-ol me-1"></i> {{ 'admin.course_content.questions' | translate }}
                 </button>
-                <button class="btn btn-sm btn-ghost" (click)="openAssessmentModal(module.module_id, assessment)" title="Edit">
+                <button class="btn btn-sm btn-ghost" (click)="openAssessmentModal(module.module_id, assessment)" title="{{ 'common.edit' | translate }}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost" (click)="duplicateAssessment(assessment, $event)" title="Duplicate">
+                <button class="btn btn-sm btn-ghost" (click)="duplicateAssessment(assessment, $event)" title="{{ 'common.duplicate' | translate }}">
                   <i class="bi bi-copy"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost text-danger" (click)="confirmDelete('assessment', assessment.assessment_id, assessment.title)" title="Delete">
+                <button class="btn btn-sm btn-ghost text-danger" (click)="confirmDelete('assessment', assessment.assessment_id, assessment.title)" title="{{ 'common.delete' | translate }}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -269,18 +269,18 @@
   <div class="resources-section" *ngIf="!loading">
     <div class="resources-head">
       <div>
-        <h2 class="fs-5 mb-0"><i class="bi bi-paperclip me-2"></i>Resources</h2>
-        <p class="text-muted small mb-0">Files of any type, offered to learners in the player.</p>
+        <h2 class="fs-5 mb-0"><i class="bi bi-paperclip me-2"></i>{{ 'admin.course_content.resources' | translate }}</h2>
+        <p class="text-muted small mb-0">{{ 'admin.course_content.resources_subtitle' | translate }}</p>
       </div>
       <label class="btn btn-primary btn-sm mb-0">
         <i class="bi bi-upload me-1"></i>
-        {{ uploadingResource ? 'Uploading…' : 'Add resource' }}
+        {{ uploadingResource ? ('admin.course_content.uploading' | translate) : ('admin.course_content.add_resource' | translate) }}
         <input type="file" hidden (change)="onResourcePicked($event)" [disabled]="uploadingResource" />
       </label>
     </div>
 
     <div class="resources-empty text-muted small" *ngIf="!resources.length">
-      No resources yet. Add slides, checklists, standards - anything a learner should be able to download.
+      {{ 'admin.course_content.resources_empty' | translate }}
     </div>
 
     <div class="resources-list" *ngIf="resources.length">
@@ -290,10 +290,10 @@
           <div class="resource-title">{{ res.title }}</div>
           <div class="resource-sub">{{ res.originalFilename }} · {{ formatBytes(res.sizeBytes) }}</div>
         </div>
-        <button class="btn btn-sm btn-outline-secondary" (click)="downloadResource(res)" title="Download">
+        <button class="btn btn-sm btn-outline-secondary" (click)="downloadResource(res)" title="{{ 'admin.course_content.download' | translate }}">
           <i class="bi bi-download"></i>
         </button>
-        <button class="btn btn-sm btn-outline-danger" (click)="deleteResource(res)" title="Remove">
+        <button class="btn btn-sm btn-outline-danger" (click)="deleteResource(res)" title="{{ 'common.remove' | translate }}">
           <i class="bi bi-trash"></i>
         </button>
       </div>
@@ -311,7 +311,7 @@ QUESTION MANAGER MODAL
         <div class="card border-0 shadow-sm">
           <div class="card-header">
             <i class="bi bi-list-ol me-2"></i>
-            Manage Questions
+            {{ 'admin.course_content.manage_questions' | translate }}
             <span class="badge bg-secondary ms-2" *ngIf="currentAssessmentForQuestions">
           {{ currentAssessmentForQuestions.title }}
         </span>
@@ -321,27 +321,27 @@ QUESTION MANAGER MODAL
           <!-- Question Stats -->
           <div class="question-stats mb-3" *ngIf="!loadingQuestions">
         <span class="badge bg-primary me-2">
-          <i class="bi bi-list-ol me-1"></i>{{ questions.length }} Questions
+          <i class="bi bi-list-ol me-1"></i>{{ 'admin.course_content.questions_count' | translate:{ count: questions.length } }}
         </span>
             <span class="badge bg-secondary me-2">
-          <i class="bi bi-star me-1"></i>{{ getTotalPoints() }} Total Points
+          <i class="bi bi-star me-1"></i>{{ 'admin.course_content.total_points' | translate:{ count: getTotalPoints() } }}
         </span>
             <button class="btn btn-primary btn-sm float-end" (click)="openQuestionForm()">
-              <i class="bi bi-plus-lg me-1"></i> Add Question
+              <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_question' | translate }}
             </button>
           </div>
           <!-- Loading -->
           <div class="text-center py-4" *ngIf="loadingQuestions">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading questions...</p>
+            <p class="mt-2 text-muted">{{ 'admin.course_content.loading_questions' | translate }}</p>
           </div>
           <!-- Empty State -->
           <div class="empty-state py-4" *ngIf="!loadingQuestions && questions.length === 0">
             <i class="bi bi-inbox"></i>
-            <h5>No Questions Yet</h5>
-            <p class="text-muted">Add questions to this assessment</p>
+            <h5>{{ 'admin.course_content.no_questions_title' | translate }}</h5>
+            <p class="text-muted">{{ 'admin.course_content.no_questions_text' | translate }}</p>
             <button class="btn btn-primary" (click)="openQuestionForm()">
-              <i class="bi bi-plus-lg me-1"></i> Add First Question
+              <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_first_question' | translate }}
             </button>
           </div>
           <!-- Questions List with Drag & Drop -->
@@ -369,24 +369,24 @@ QUESTION MANAGER MODAL
               <div class="question-content">
                 <div class="question-text">{{ question.question_text }}</div>
                 <div class="question-meta">
-                  <span class="badge bg-black text-white">{{ getQuestionTypeLabel(question.question_type) }}</span>
-                  <span class="badge bg-primary-subtle text-primary">{{ question.points }} pts</span>
-                  <span class="badge bg-success" *ngIf="question.is_active">Active</span>
-                  <span class="badge bg-secondary" *ngIf="!question.is_active">Inactive</span>
+                  <span class="badge bg-black text-white">{{ getQuestionTypeLabel(question.question_type) | translate }}</span>
+                  <span class="badge bg-primary-subtle text-primary">{{ 'admin.course_content.points' | translate:{ count: question.points } }}</span>
+                  <span class="badge bg-success" *ngIf="question.is_active">{{ 'common.active' | translate }}</span>
+                  <span class="badge bg-secondary" *ngIf="!question.is_active">{{ 'common.inactive' | translate }}</span>
                   <span class="text-muted small ms-2" *ngIf="question.options?.length">
-                {{ question.options?.length }} options
+                {{ 'admin.course_content.options_count' | translate:{ count: question.options?.length } }}
               </span>
                 </div>
               </div>
 
               <div class="question-actions">
-                <button class="btn btn-sm btn-ghost" (click)="openQuestionForm(question)" title="Edit">
+                <button class="btn btn-sm btn-ghost" (click)="openQuestionForm(question)" title="{{ 'common.edit' | translate }}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost" (click)="duplicateQuestion(question)" title="Duplicate">
+                <button class="btn btn-sm btn-ghost" (click)="duplicateQuestion(question)" title="{{ 'common.duplicate' | translate }}">
                   <i class="bi bi-copy"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost text-danger" (click)="deleteQuestion(question)" title="Delete">
+                <button class="btn btn-sm btn-ghost text-danger" (click)="deleteQuestion(question)" title="{{ 'common.delete' | translate }}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -396,7 +396,7 @@ QUESTION MANAGER MODAL
         <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
           <hr>
           <div class="d-flex gap-2 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="closeQuestionManager()">Close</button>
+            <button type="button" class="btn btn-secondary" (click)="closeQuestionManager()">{{ 'common.close' | translate }}</button>
           </div>
         </div>
       </div>
@@ -413,37 +413,37 @@ QUESTION FORM MODAL
         <div class="card border-0 shadow-sm">
           <div class="card-header">
             <i class="bi bi-question-circle me-2"></i>
-            {{ questionEditMode === 'create' ? 'Add New Question' : 'Edit Question' }}
+            {{ questionEditMode === 'create' ? ('admin.course_content.add_question_title' | translate) : ('admin.course_content.edit_question_title' | translate) }}
           </div>
         </div>
         <div class="card-body">
           <!-- Question Type -->
           <div class="mb-3">
-            <label class="form-label">Question Type</label>
+            <label class="form-label">{{ 'admin.course_content.question_type' | translate }}</label>
             <div class="question-type-selector">
               <div class="question-type-option"
                    *ngFor="let type of questionTypes"
                    [class.selected]="currentQuestion.question_type === type.value"
                    (click)="onQuestionTypeChange(type.value)">
                 <i class="bi" [class]="getQuestionTypeIcon(type.value)"></i>
-                <span>{{ type.label }}</span>
+                <span>{{ type.label | translate }}</span>
               </div>
             </div>
           </div>
 
           <!-- Question Text -->
           <div class="mb-3">
-            <label class="form-label">Question Text <span class="text-danger">*</span></label>
+            <label class="form-label">{{ 'admin.course_content.question_text' | translate }} <span class="text-danger">*</span></label>
             <textarea class="form-control"
                       [(ngModel)]="currentQuestion.question_text"
                       rows="3"
-                      placeholder="Enter your question here..."></textarea>
+                      placeholder="{{ 'admin.course_content.question_text_placeholder' | translate }}"></textarea>
           </div>
 
           <!-- Points -->
           <div class="row mb-3">
             <div class="col-md-4">
-              <label class="form-label">Points</label>
+              <label class="form-label">{{ 'admin.course_content.points_label' | translate }}</label>
               <input type="number"
                      class="form-control"
                      [(ngModel)]="currentQuestion.points"
@@ -451,20 +451,20 @@ QUESTION FORM MODAL
                      max="100">
             </div>
             <div class="col-md-8">
-              <label class="form-label">Explanation (shown after answer)</label>
+              <label class="form-label">{{ 'admin.course_content.explanation_label' | translate }}</label>
               <input type="text"
                      class="form-control"
                      [(ngModel)]="currentQuestion.explanation"
-                     placeholder="Optional explanation">
+                     placeholder="{{ 'admin.course_content.explanation_placeholder' | translate }}">
             </div>
           </div>
 
           <!-- Options (for choice question-banks) -->
           <div class="options-section" *ngIf="['single_choice', 'multiple_choice', 'true_false'].includes(currentQuestion.question_type)">
             <label class="form-label">
-              Answer Options
+              {{ 'admin.course_content.answer_options' | translate }}
               <span class="text-muted ms-1">
-            ({{ currentQuestion.question_type === 'multiple_choice' ? 'Select all correct' : 'Select one correct' }})
+            ({{ currentQuestion.question_type === 'multiple_choice' ? ('admin.course_content.select_all_correct' | translate) : ('admin.course_content.select_one_correct' | translate) }})
           </span>
             </label>
 
@@ -479,7 +479,7 @@ QUESTION FORM MODAL
                          [checked]="option.is_correct"
                          (change)="onCorrectOptionChange(i)">
                   <label class="form-check-label" [for]="'tf-option-' + i">
-                    {{ i === 0 ? 'True' : 'False' }}
+                    {{ i === 0 ? ('admin.course_content.opt_true' | translate) : ('admin.course_content.opt_false' | translate) }}
                   </label>
                 </div>
               </div>
@@ -495,31 +495,31 @@ QUESTION FORM MODAL
                          [name]="'correct-option'"
                          [checked]="option.is_correct"
                          (change)="onCorrectOptionChange(i)"
-                         title="Mark as correct">
+                         title="{{ 'admin.course_content.mark_correct' | translate }}">
                   <input *ngIf="currentQuestion.question_type === 'multiple_choice'"
                          class="form-check-input"
                          type="checkbox"
                          [(ngModel)]="option.is_correct"
-                         title="Mark as correct">
+                         title="{{ 'admin.course_content.mark_correct' | translate }}">
                 </div>
                 <div class="option-text">
                   <input type="text"
                          class="form-control"
                          [(ngModel)]="option.option_text"
-                         [placeholder]="'Option ' + (i + 1)">
+                         [placeholder]="('admin.course_content.option_n' | translate:{ n: i + 1 })">
                 </div>
                 <div class="option-actions">
                   <button class="btn btn-sm btn-ghost text-danger"
                           (click)="removeOption(i)"
                           *ngIf="currentQuestion.options.length > 2"
-                          title="Remove option">
+                          title="{{ 'admin.course_content.remove_option' | translate }}">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
               </div>
 
               <button class="btn btn-sm btn-secondary mt-2" (click)="addOption()">
-                <i class="bi bi-plus-lg me-1"></i> Add Option
+                <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_option' | translate }}
               </button>
             </div>
           </div>
@@ -530,16 +530,16 @@ QUESTION FORM MODAL
                    type="checkbox"
                    id="questionActive"
                    [(ngModel)]="currentQuestion.is_active">
-            <label class="form-check-label" for="questionActive">Active</label>
+            <label class="form-check-label" for="questionActive">{{ 'common.active' | translate }}</label>
           </div>
         </div>
         <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
           <hr>
           <div class="d-flex gap-2 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="showQuestionFormModal = false">Cancel</button>
+            <button type="button" class="btn btn-secondary" (click)="showQuestionFormModal = false">{{ 'common.cancel' | translate }}</button>
             <button type="button" class="btn btn-primary" (click)="saveQuestion()" [disabled]="saving">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
-              {{ questionEditMode === 'create' ? 'Create Question' : 'Save Changes' }}
+              {{ questionEditMode === 'create' ? ('admin.course_content.create_question' | translate) : ('common.save_changes' | translate) }}
             </button>
           </div>
         </div>
@@ -557,39 +557,39 @@ MODULE MODAL
         <div class="card border-0 shadow-sm">
           <div class="card-header">
             <i class="bi bi-collection me-2"></i>
-            {{ editMode === 'create' ? 'Add New Module' : 'Edit Module' }}
+            {{ editMode === 'create' ? ('admin.course_content.add_module_title' | translate) : ('admin.course_content.edit_module_title' | translate) }}
           </div>
         </div>
         <div class="card-body">
           <div class="mb-3">
-            <label class="form-label">Module Title <span class="text-danger">*</span></label>
+            <label class="form-label">{{ 'admin.course_content.module_title' | translate }} <span class="text-danger">*</span></label>
             <input type="text"
                    class="form-control"
                    [(ngModel)]="currentModule.title"
-                   placeholder="Enter module title">
+                   placeholder="{{ 'admin.course_content.module_title_placeholder' | translate }}">
           </div>
           <div class="mb-3">
-            <label class="form-label">Description</label>
+            <label class="form-label">{{ 'admin.course_content.description' | translate }}</label>
             <textarea class="form-control"
                       [(ngModel)]="currentModule.description"
                       rows="3"
-                      placeholder="Optional description for this module"></textarea>
+                      placeholder="{{ 'admin.course_content.module_description_placeholder' | translate }}"></textarea>
           </div>
           <div class="form-check form-switch">
             <input class="form-check-input"
                    type="checkbox"
                    id="moduleActive"
                    [(ngModel)]="currentModule.is_active">
-            <label class="form-check-label" for="moduleActive">Active (visible to learners)</label>
+            <label class="form-check-label" for="moduleActive">{{ 'admin.course_content.active_visible' | translate }}</label>
           </div>
         </div>
         <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
           <div class="d-flex gap-2 justify-content-end">
             <hr>
-          <button type="button" class="btn btn-secondary" (click)="showModuleModal = false">Cancel</button>
+          <button type="button" class="btn btn-secondary" (click)="showModuleModal = false">{{ 'common.cancel' | translate }}</button>
           <button type="button" class="btn btn-primary" (click)="saveModule()" [disabled]="saving">
             <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
-            {{ editMode === 'create' ? 'Create Module' : 'Save Changes' }}
+            {{ editMode === 'create' ? ('admin.course_content.create_module' | translate) : ('common.save_changes' | translate) }}
           </button>
           </div>
         </div>
@@ -607,24 +607,24 @@ LESSON MODAL
         <div class="card border-0 shadow-sm">
           <div class="card-header">
             <i class="bi bi-play-circle me-2"></i>
-            {{ editMode === 'create' ? 'Add New Lesson' : 'Edit Lesson' }}
+            {{ editMode === 'create' ? ('admin.course_content.add_lesson_title' | translate) : ('admin.course_content.edit_lesson_title' | translate) }}
             </div>
           </div>
           <div class="card-body">
             <div class="row">
               <div class="col-md-8">
                 <div class="mb-3">
-                  <label class="form-label">Lesson Title <span class="text-danger">*</span></label>
+                  <label class="form-label">{{ 'admin.course_content.lesson_title' | translate }} <span class="text-danger">*</span></label>
                   <input type="text"
                          class="form-control"
                          [(ngModel)]="currentLesson.title"
-                         placeholder="Enter lesson title"
+                         placeholder="{{ 'admin.course_content.lesson_title_placeholder' | translate }}"
                          autofocus>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Duration (minutes)</label>
+                  <label class="form-label">{{ 'admin.course_content.duration_minutes' | translate }}</label>
                   <input type="number"
                          class="form-control"
                          [(ngModel)]="currentLesson.duration_minutes"
@@ -634,29 +634,29 @@ LESSON MODAL
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Description</label>
+              <label class="form-label">{{ 'admin.course_content.description' | translate }}</label>
               <textarea class="form-control"
                         [(ngModel)]="currentLesson.description"
                         rows="2"
-                        placeholder="Brief description of this lesson"></textarea>
+                        placeholder="{{ 'admin.course_content.lesson_description_placeholder' | translate }}"></textarea>
             </div>
             <div class="mb-3">
-              <label class="form-label">Content Type</label>
+              <label class="form-label">{{ 'admin.course_content.content_type' | translate }}</label>
               <div class="content-type-selector">
                 <div class="content-type-option"
                      *ngFor="let type of contentTypes"
                      [class.selected]="currentLesson.content_type === type.value"
                      (click)="onContentTypeChange(type.value)">
                   <i class="bi" [class]="type.icon"></i>
-                  <span>{{ type.label }}</span>
+                  <span>{{ type.label | translate }}</span>
                 </div>
               </div>
             </div>
             <!-- Media Selection Dropdown (for video, audio, pdf, scorm) -->
             <div class="mb-3" *ngIf="['video', 'audio', 'pdf', 'scorm'].includes(currentLesson.content_type)">
               <label class="form-label">
-                Select Media
-                <span class="text-muted ms-1">(from Media Library)</span>
+                {{ 'admin.course_content.select_media' | translate }}
+                <span class="text-muted ms-1">{{ 'admin.course_content.from_media_library' | translate }}</span>
               </label>
               <div class="input-group">
           <span class="input-group-text">
@@ -666,7 +666,7 @@ LESSON MODAL
                         [ngModel]="selectedMedia?.media_id || ''"
                         (ngModelChange)="onMediaSelect($event)"
                         [disabled]="loadingMedia">
-                  <option value="">-- Select {{ currentLesson.content_type | titlecase }} --</option>
+                  <option value="">{{ 'admin.course_content.select_media_option' | translate:{ type: (currentLesson.content_type | titlecase) } }}</option>
                   <option *ngFor="let media of filteredMediaFiles" [value]="media.media_id">
                     {{ getMediaDisplayName(media) }}
                   </option>
@@ -676,7 +676,7 @@ LESSON MODAL
           </span>
               </div>
               <small class="text-muted" *ngIf="filteredMediaFiles.length === 0 && !loadingMedia">
-                No {{ currentLesson.content_type }} files found. Upload media in Media Library first.
+                {{ 'admin.course_content.no_media_files' | translate:{ type: currentLesson.content_type } }}
               </small>
             </div>
             <!-- Selected Media Info -->
@@ -688,7 +688,7 @@ LESSON MODAL
                 <div class="media-details">
                   <strong>{{ selectedMedia.title }}</strong>
                   <small class="text-muted d-block" *ngIf="selectedMedia.duration_seconds">
-                    Duration: {{ formatDuration(Math.ceil(selectedMedia.duration_seconds / 60)) }}
+                    {{ 'admin.course_content.duration_label' | translate }}: {{ formatDuration(Math.ceil(selectedMedia.duration_seconds / 60)) }}
                   </small>
                   <small class="text-success d-block text-truncate" style="max-width: 400px;">
                     <i class="bi bi-link-45deg me-1"></i>{{ currentLesson.content_url }}
@@ -699,9 +699,9 @@ LESSON MODAL
             <!-- Manual URL Input (for html or if no media selected) -->
             <div class="mb-3" *ngIf="currentLesson.content_type === 'html' || ((['video', 'audio', 'pdf', 'scorm'].includes(currentLesson.content_type)) && !selectedMedia)">
               <label class="form-label">
-                Content URL
-                <span class="text-muted ms-1" *ngIf="currentLesson.content_type === 'scorm'">(SCORM launch URL)</span>
-                <span class="text-muted ms-1" *ngIf="!selectedMedia">(or enter manually)</span>
+                {{ 'admin.course_content.content_url' | translate }}
+                <span class="text-muted ms-1" *ngIf="currentLesson.content_type === 'scorm'">{{ 'admin.course_content.scorm_launch_url' | translate }}</span>
+                <span class="text-muted ms-1" *ngIf="!selectedMedia">{{ 'admin.course_content.or_enter_manually' | translate }}</span>
               </label>
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
@@ -711,16 +711,16 @@ LESSON MODAL
                        placeholder="https://...">
               </div>
               <small class="text-muted" *ngIf="currentLesson.content_type === 'scorm'">
-                Full URL to SCORM package launch file (e.g., index_lms.html)
+                {{ 'admin.course_content.scorm_url_hint' | translate }}
               </small>
             </div>
             <!-- Text Content (for text type) -->
             <div class="mb-3" *ngIf="currentLesson.content_type === 'text'">
-              <label class="form-label">Content</label>
+              <label class="form-label">{{ 'admin.course_content.content' | translate }}</label>
               <textarea class="form-control"
                         [(ngModel)]="currentLesson.content_text"
                         rows="6"
-                        placeholder="Enter text content (supports HTML)"></textarea>
+                        placeholder="{{ 'admin.course_content.text_content_placeholder' | translate }}"></textarea>
             </div>
             <hr class="my-4">
             <div class="row">
@@ -730,7 +730,7 @@ LESSON MODAL
                          type="checkbox"
                          id="lessonMandatory"
                          [(ngModel)]="currentLesson.is_mandatory">
-                  <label class="form-check-label" for="lessonMandatory">Required for completion</label>
+                  <label class="form-check-label" for="lessonMandatory">{{ 'admin.course_content.required_for_completion' | translate }}</label>
                 </div>
               </div>
               <div class="col-md-6">
@@ -739,13 +739,13 @@ LESSON MODAL
                          type="checkbox"
                          id="lessonActive"
                          [(ngModel)]="currentLesson.is_active">
-                  <label class="form-check-label" for="lessonActive">Active (visible to learners)</label>
+                  <label class="form-check-label" for="lessonActive">{{ 'admin.course_content.active_visible' | translate }}</label>
                 </div>
               </div>
             </div>
             <!-- Pass percentage for SCORM -->
             <div class="mb-3" *ngIf="currentLesson.content_type === 'scorm'">
-              <label class="form-label">Pass Percentage (for SCORM scoring)</label>
+              <label class="form-label">{{ 'admin.course_content.pass_percentage_scorm' | translate }}</label>
               <div class="input-group" style="max-width: 200px;">
                 <input type="number"
                        class="form-control"
@@ -758,10 +758,10 @@ LESSON MODAL
           </div>
           <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
             <div class="d-flex gap-2 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="showLessonModal = false">Cancel</button>
+            <button type="button" class="btn btn-secondary" (click)="showLessonModal = false">{{ 'common.cancel' | translate }}</button>
             <button type="button" class="btn btn-primary" (click)="saveLesson()" [disabled]="saving">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
-              {{ editMode === 'create' ? 'Create Lesson' : 'Save Changes' }}
+              {{ editMode === 'create' ? ('admin.course_content.create_lesson' | translate) : ('common.save_changes' | translate) }}
             </button>
             </div>
           </div>
@@ -780,53 +780,53 @@ ASSESSMENT MODAL
           <div class="card-header">
             <div class="card-title">
               <i class="bi bi-question-circle me-2"></i>
-              {{ editMode === 'create' ? 'Add New Assessment' : 'Edit Assessment' }}
+              {{ editMode === 'create' ? ('admin.course_content.add_assessment_title' | translate) : ('admin.course_content.edit_assessment_title' | translate) }}
             </div>
           </div>
           <div class="card-body">
             <div class="row">
               <div class="col-md-8">
                 <div class="mb-3">
-                  <label class="form-label">Assessment Title <span class="text-danger">*</span></label>
+                  <label class="form-label">{{ 'admin.course_content.assessment_title' | translate }} <span class="text-danger">*</span></label>
                   <input type="text"
                          class="form-control"
                          [(ngModel)]="currentAssessment.title"
-                         placeholder="Enter assessment title"
+                         placeholder="{{ 'admin.course_content.assessment_title_placeholder' | translate }}"
                          autofocus>
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Type</label>
+                  <label class="form-label">{{ 'admin.course_content.type_label' | translate }}</label>
                   <select class="form-select" [(ngModel)]="currentAssessment.assessment_type">
                     <option *ngFor="let type of assessmentTypes" [value]="type.value">
-                      {{ type.label }}
+                      {{ type.label | translate }}
                     </option>
                   </select>
                 </div>
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Description</label>
+              <label class="form-label">{{ 'admin.course_content.description' | translate }}</label>
               <textarea class="form-control"
                         [(ngModel)]="currentAssessment.description"
                         rows="2"
-                        placeholder="Instructions for learners"></textarea>
+                        placeholder="{{ 'admin.course_content.assessment_description_placeholder' | translate }}"></textarea>
             </div>
             <div class="row">
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Time Limit (minutes)</label>
+                  <label class="form-label">{{ 'admin.course_content.time_limit' | translate }}</label>
                   <input type="number"
                          class="form-control"
                          [(ngModel)]="currentAssessment.time_limit_minutes"
                          min="0"
-                         placeholder="0 = no limit">
+                         placeholder="{{ 'admin.course_content.no_limit_placeholder' | translate }}">
                 </div>
               </div>
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Pass Percentage</label>
+                  <label class="form-label">{{ 'admin.course_content.pass_percentage_label' | translate }}</label>
                   <div class="input-group">
                     <input type="number"
                            class="form-control"
@@ -839,7 +839,7 @@ ASSESSMENT MODAL
               </div>
               <div class="col-md-4">
                 <div class="mb-3">
-                  <label class="form-label">Max Attempts</label>
+                  <label class="form-label">{{ 'admin.course_content.max_attempts' | translate }}</label>
                   <input type="number"
                          class="form-control"
                          [(ngModel)]="currentAssessment.max_attempts"
@@ -856,7 +856,7 @@ ASSESSMENT MODAL
                          type="checkbox"
                          id="shuffleQuestions"
                          [(ngModel)]="currentAssessment.shuffle_questions">
-                  <label class="form-check-label" for="shuffleQuestions">Shuffle questions</label>
+                  <label class="form-check-label" for="shuffleQuestions">{{ 'admin.course_content.shuffle_questions' | translate }}</label>
                 </div>
               </div>
               <div class="col-md-4">
@@ -865,7 +865,7 @@ ASSESSMENT MODAL
                          type="checkbox"
                          id="showCorrect"
                          [(ngModel)]="currentAssessment.show_correct_answers">
-                  <label class="form-check-label" for="showCorrect">Show correct answers</label>
+                  <label class="form-check-label" for="showCorrect">{{ 'admin.course_content.show_correct_answers' | translate }}</label>
                 </div>
               </div>
               <div class="col-md-4">
@@ -874,17 +874,17 @@ ASSESSMENT MODAL
                          type="checkbox"
                          id="assessmentActive"
                          [(ngModel)]="currentAssessment.is_active">
-                  <label class="form-check-label" for="assessmentActive">Active</label>
+                  <label class="form-check-label" for="assessmentActive">{{ 'common.active' | translate }}</label>
                 </div>
               </div>
             </div>
           </div>
           <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
             <div class="d-flex gap-2 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="showAssessmentModal = false">Cancel</button>
+            <button type="button" class="btn btn-secondary" (click)="showAssessmentModal = false">{{ 'common.cancel' | translate }}</button>
             <button type="button" class="btn btn-primary" (click)="saveAssessment()" [disabled]="saving">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
-              {{ editMode === 'create' ? 'Create Assessment' : 'Save Changes' }}
+              {{ editMode === 'create' ? ('admin.course_content.create_assessment' | translate) : ('common.save_changes' | translate) }}
             </button>
             </div>
           </div>
@@ -904,26 +904,26 @@ ASSESSMENT MODAL
           <div class="card-header">
             <div class="card-title">
               <i class="bi bi-exclamation-triangle me-2"></i>
-              Confirm Delete
+              {{ 'admin.course_content.confirm_delete' | translate }}
             </div>
           </div>
           <div class="card-body text-center">
             <div class="delete-icon">
               <i class="bi bi-trash"></i>
             </div>
-            <p class="mb-1">Are you sure you want to delete this {{ deleteType }}?</p>
+            <p class="mb-1">{{ 'admin.course_content.delete_prompt' | translate:{ type: deleteType } }}</p>
             <p class="fw-bold">{{ deleteName }}</p>
             <p class="text-danger small" *ngIf="deleteType === 'module'">
               <i class="bi bi-exclamation-circle me-1"></i>
-              This will also delete all lessons and assessments in this module.
+              {{ 'admin.course_content.delete_module_warning' | translate }}
             </p>
           </div>
           <div class="card-footer bg-transparent border-0 pt-0 pb-4 px-4">
             <div class="d-flex gap-2 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm = false">Cancel</button>
+            <button type="button" class="btn btn-secondary" (click)="showDeleteConfirm = false">{{ 'common.cancel' | translate }}</button>
             <button type="button" class="btn btn-danger" (click)="executeDelete()" [disabled]="saving">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
-              Delete
+              {{ 'common.delete' | translate }}
             </button>
             </div>
           </div>

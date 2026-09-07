@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TenantSettingsComponent } from '../../tenant-settings/tenant-settings.component';
+import { TranslatePipe } from '../../translate.pipe';
 
 /**
  * The page at `/settings`: a bar, a heading, and the settings themselves.
@@ -14,7 +15,7 @@ import { TenantSettingsComponent } from '../../tenant-settings/tenant-settings.c
 @Component({
   selector: 'app-branding',
   standalone: true,
-  imports: [TuiIcon, AdmintopComponent, TenantSettingsComponent],
+  imports: [TuiIcon, AdmintopComponent, TenantSettingsComponent, TranslatePipe],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css',
 })

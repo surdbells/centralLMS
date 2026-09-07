@@ -233,9 +233,9 @@
                    (input)="videoElement && (videoElement.currentTime = $any($event.target).value)">
             <div class="cp-controls-row">
               <div class="cp-controls-left">
-                <button class="cp-cbtn" (click)="restart()" title="Restart"><i class="bi bi-skip-start-fill"></i></button>
+                <button class="cp-cbtn" (click)="restart()" [title]="'course_player.restart' | translate"><i class="bi bi-skip-start-fill"></i></button>
                 <div class="cp-volume">
-                  <button class="cp-cbtn" (click)="setVolume(volume > 0 ? 0 : 1)" title="Mute">
+                  <button class="cp-cbtn" (click)="setVolume(volume > 0 ? 0 : 1)" [title]="'course_player.mute' | translate">
                     <i class="bi" [class.bi-volume-up-fill]="volume > 0.5"
                        [class.bi-volume-down-fill]="volume > 0 && volume <= 0.5"
                        [class.bi-volume-mute-fill]="volume === 0"></i>
@@ -247,28 +247,28 @@
               </div>
 
               <div class="cp-controls-center">
-                <button class="cp-cbtn cp-seek" (click)="seek(-10)" title="Back 10s">
+                <button class="cp-cbtn cp-seek" (click)="seek(-10)" [title]="'course_player.back_10s' | translate">
                   <i class="bi bi-arrow-counterclockwise"></i><span>10</span>
                 </button>
-                <button class="cp-cbtn cp-play" (click)="togglePlay()" [title]="isPlaying ? 'Pause' : 'Play'">
+                <button class="cp-cbtn cp-play" (click)="togglePlay()" [title]="(isPlaying ? 'course_player.pause' : 'course_player.play') | translate">
                   <i class="bi" [class.bi-play-fill]="!isPlaying" [class.bi-pause-fill]="isPlaying"></i>
                 </button>
-                <button class="cp-cbtn cp-seek" (click)="seek(10)" title="Forward 10s">
+                <button class="cp-cbtn cp-seek" (click)="seek(10)" [title]="'course_player.forward_10s' | translate">
                   <i class="bi bi-arrow-clockwise"></i><span>10</span>
                 </button>
               </div>
 
               <div class="cp-controls-right">
                 <div class="cp-settings">
-                  <button class="cp-cbtn" (click)="settingsOpen = !settingsOpen" title="Settings"><i class="bi bi-gear-fill"></i></button>
+                  <button class="cp-cbtn" (click)="settingsOpen = !settingsOpen" [title]="'nav.settings' | translate"><i class="bi bi-gear-fill"></i></button>
                   <div class="cp-settings-menu" *ngIf="settingsOpen">
-                    <span class="cp-settings-label">Playback speed</span>
+                    <span class="cp-settings-label">{{ 'course_player.playback_speed' | translate }}</span>
                     <button *ngFor="let r of [0.5, 0.75, 1, 1.25, 1.5, 2]"
                             class="cp-speed" [class.active]="playbackRate === r"
                             (click)="setPlaybackRate(r); settingsOpen = false">{{ r }}x</button>
                   </div>
                 </div>
-                <button class="cp-cbtn" (click)="videoElement?.requestFullscreen()" title="Fullscreen"><i class="bi bi-fullscreen"></i></button>
+                <button class="cp-cbtn" (click)="videoElement?.requestFullscreen()" [title]="'course_player.fullscreen' | translate"><i class="bi bi-fullscreen"></i></button>
               </div>
             </div>
           </div>
@@ -276,12 +276,12 @@
 
         <!-- PDF -->
         <div class="cp-doc" *ngIf="!showQuizView && currentLesson?.content_type === 'pdf' && currentLesson">
-          <iframe [src]="getSafeUrl(currentLesson.content_url)" class="cp-doc-frame" title="Document"></iframe>
+          <iframe [src]="getSafeUrl(currentLesson.content_url)" class="cp-doc-frame" [title]="'course_player.document' | translate"></iframe>
         </div>
 
         <!-- HTML -->
         <div class="cp-doc" *ngIf="!showQuizView && currentLesson?.content_type === 'html' && currentLesson">
-          <iframe [src]="getSafeUrl(currentLesson.content_url)" class="cp-doc-frame" title="Content"></iframe>
+          <iframe [src]="getSafeUrl(currentLesson.content_url)" class="cp-doc-frame" [title]="'course_player.content' | translate"></iframe>
         </div>
 
         <!-- Audio -->
@@ -300,52 +300,52 @@
         </div>
         <div class="cp-stage-state" *ngIf="!showQuizView && currentLesson?.content_type === 'scorm' && (!scormReady || !currentScormUrl)">
           <div class="spinner-border text-primary mb-3" role="status"></div>
-          <p class="text-muted">Initialising interactive content…</p>
+          <p class="text-muted">{{ 'course_player.initialising_content' | translate }}</p>
         </div>
 
         <!-- Nothing selected -->
         <div class="cp-stage-state" *ngIf="!currentLesson && !showQuizView">
           <i class="bi bi-play-circle"></i>
-          <p>Select a lesson from the path to begin.</p>
+          <p>{{ 'course_player.select_lesson_hint' | translate }}</p>
         </div>
 
         <!-- Complete / navigate bar -->
         <div class="cp-actionbar" *ngIf="!showQuizView && currentLesson">
           <button class="btn cp-btn-ghost" [disabled]="!hasPreviousLesson()" (click)="previousLesson()">
-            <i class="bi bi-chevron-left me-1"></i>Previous
+            <i class="bi bi-chevron-left me-1"></i>{{ 'common.previous' | translate }}
           </button>
           <span class="cp-actionbar-hint" *ngIf="currentLesson.status !== 'completed' && currentLesson.content_type === 'video'">
-            <i class="bi bi-info-circle me-1"></i>Auto-completes when the video ends
+            <i class="bi bi-info-circle me-1"></i>{{ 'course_player.auto_completes_hint' | translate }}
           </span>
           <div class="cp-actionbar-right">
             <button class="btn cp-btn-primary" *ngIf="currentLesson.status !== 'completed' && currentLesson.content_type !== 'scorm'"
                     (click)="markLessonComplete()">
-              <i class="bi bi-check-circle me-1"></i>Mark as complete
+              <i class="bi bi-check-circle me-1"></i>{{ 'course_player.mark_complete' | translate }}
             </button>
             <button class="btn cp-btn-primary" *ngIf="currentLesson.status === 'completed'"
                     [disabled]="!hasNextLesson()" (click)="nextLesson()">
-              Next<i class="bi bi-chevron-right ms-1"></i>
+              {{ 'common.next' | translate }}<i class="bi bi-chevron-right ms-1"></i>
             </button>
           </div>
         </div>
 
         <!-- Bottom tabs: Transcript / Notes / Resources -->
         <div class="cp-belowtabs" *ngIf="!showQuizView">
-          <button class="cp-pill" [class.active]="activeTab === 'transcript'" (click)="activeTab = 'transcript'">Transcript</button>
+          <button class="cp-pill" [class.active]="activeTab === 'transcript'" (click)="activeTab = 'transcript'">{{ 'course_player.transcript' | translate }}</button>
           <button class="cp-pill" [class.active]="activeTab === 'notes'" (click)="activeTab = 'notes'">
-            Notes<span class="cp-pill-count" *ngIf="notes.length">{{ notes.length }}</span>
+            {{ 'course_player.notes' | translate }}<span class="cp-pill-count" *ngIf="notes.length">{{ notes.length }}</span>
           </button>
-          <button class="cp-pill" [class.active]="activeTab === 'resources'" (click)="activeTab = 'resources'">Resources</button>
+          <button class="cp-pill" [class.active]="activeTab === 'resources'" (click)="activeTab = 'resources'">{{ 'course_player.resources' | translate }}</button>
         </div>
 
         <div class="cp-panel" *ngIf="!showQuizView">
           <!-- Transcript -->
           <div *ngIf="activeTab === 'transcript'">
-            <h3 class="cp-panel-title">Transcript</h3>
+            <h3 class="cp-panel-title">{{ 'course_player.transcript' | translate }}</h3>
             <p class="cp-transcript" *ngIf="transcript">{{ transcript }}</p>
             <div class="cp-empty" *ngIf="!transcript">
               <i class="bi bi-card-text"></i>
-              <p>No transcript for this lesson.</p>
+              <p>{{ 'course_player.no_transcript' | translate }}</p>
             </div>
           </div>
 
@@ -475,5 +475,4 @@
       </div>
     </div>
   </div>
-  <div class="modal-backdrop fade show" *ngIf="showRatingModal"></div>
-</div>
+  <div class="modal-backdro

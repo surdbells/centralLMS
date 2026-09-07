@@ -11,6 +11,7 @@ import {AsideComponent} from '../../partials/aside/aside.component';
 import {SideComponent} from '../../partials/side/side.component';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import {AdminDashboardComponent} from '../admin-dashboard/admin-dashboard.component';
+import {I18nService} from '../../i18n.service';
 
 
 interface StatCard {
@@ -35,6 +36,7 @@ export class AdminComponent {
     private router: Router,
     private crudService: CrudService,
     private toast: HotToastService,
+    private i18n: I18nService,
   ) {
   }
   ui_controls = {
@@ -51,7 +53,7 @@ export class AdminComponent {
     this.toast.success(message);
   }
   sign_out(): void {
-    this.success_notification("User logged out successfully.");
+    this.success_notification(this.i18n.t('auth.logged_out'));
     this.router.navigate(['/']).then(r => console.log(r));
   }
   goBack() {

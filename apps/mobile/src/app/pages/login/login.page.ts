@@ -5,13 +5,15 @@ import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { AuthService } from '../../core/auth.service';
 import { ApiError } from '../../core/api';
 import { BrandingService } from '../../core/branding.service';
+import { I18nService } from '../../core/i18n.service';
+import { TranslatePipe } from '../../core/translate.pipe';
 import { FieldComponent } from '../../components/field/field.component';
 import { ButtonComponent } from '../../components/button/button.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, IonContent, IonIcon, FieldComponent, ButtonComponent],
+  imports: [FormsModule, IonContent, IonIcon, FieldComponent, ButtonComponent, TranslatePipe],
   template: `
     <ion-content [fullscreen]="true" class="login-bg">
       @if (branding.loginBackgroundUrl(); as bg) {
@@ -27,16 +29,16 @@ import { ButtonComponent } from '../../components/button/button.component';
             <div class="brand-mark"><ion-icon name="school-outline"></ion-icon></div>
           }
           <h1>{{ branding.organisation() || 'Central LMS' }}</h1>
-          <p class="muted">Sign in to keep learning</p>
+          <p class="muted">{{ 'login.subtitle' | translate }}</p>
         </div>
 
         <div class="login-card">
           <app-field
             class="field"
-            label="Email"
+            [label]="'login.email_label' | translate"
             type="email"
             icon="mail-outline"
-            placeholder="you@example.com"
+            [placeholder]="'login.email_placeholder' | translate"
             autocomplete="email"
             inputmode="email"
             enterkeyhint="next"
@@ -45,10 +47,10 @@ import { ButtonComponent } from '../../components/button/button.component';
 
           <app-field
             class="field"
-            label="Password"
+            [label]="'login.password_label' | translate"
             type="password"
             icon="lock-closed-outline"
-            placeholder="Your password"
+            [placeholder]="'login.password_placeholder' | translate"
             autocomplete="current-password"
             enterkeyhint="go"
             [(ngModel)]="password"
@@ -58,15 +60,15 @@ import { ButtonComponent } from '../../components/button/button.component';
             <p class="err">{{ error() }}</p>
           }
 
-          <app-button block size="lg" class="submit" [loading]="busy()" (click)="submit()">Sign In</app-button>
+          <app-button block size="lg" class="submit" [loading]="busy()" (click)="submit()">{{ 'login.sign_in' | translate }}</app-button>
         </div>
 
         @if (branding.code()) {
           <button type="button" class="change" (click)="changeInstitution()">
-            Not {{ branding.organisation() || 'your institution' }}? <span>Change</span>
+            {{ notYourOrg() }} <span>{{ 'login.change' | translate }}</span>
           </button>
         } @else {
-          <p class="foot muted">Your organisation is chosen for you when you sign in.</p>
+          <p class="foot muted">{{ 'login.org_auto' | translate }}</p>
         }
       </div>
     </ion-content>
@@ -99,11 +101,18 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   readonly branding = inject(BrandingService);
+  private readonly i18n = inject(I18nService);
 
   email = '';
   password = '';
   readonly busy = signal(false);
   readonly error = signal('');
+
+  /** "Not <organisation>?" — the org name (or a fallback) folded into one line. */
+  notYourOrg(): string {
+    const org = this.branding.organisation() || this.i18n.t('login.your_institution');
+    return this.i18n.t('login.not_org', { org });
+  }
 
   /** Wrong organisation — forget it and go back to name another. */
   changeInstitution(): void {
@@ -117,7 +126,7 @@ export class LoginPage {
     }
     const email = this.email.trim();
     if (!email || !this.password) {
-      this.error.set('Enter your email and password.');
+      this.error.set(this.i18n.t('login.err_missing'));
       return;
     }
     this.busy.set(true);
@@ -144,10 +153,10 @@ export class LoginPage {
       }
       // Any other refusal on a sign-in attempt means the credentials were wrong.
       if (err.status === 401 || err.status === 422 || err.status === 400) {
-        return 'Incorrect email or password.';
+        return this.i18n.t('login.err_bad_credentials');
       }
-      return err.message || 'Could not sign in. Please try again.';
+      return err.message || this.i18n.t('login.err_generic');
     }
-    return 'Could not sign in. Check your details and try again.';
+    return this.i18n.t('login.err_unknown');
   }
 }

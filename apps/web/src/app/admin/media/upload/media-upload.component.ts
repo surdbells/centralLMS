@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -12,6 +12,8 @@ import {
   type UploadProgress,
 } from '../../../services/media.service';
 import { ApiError } from '../../../core/api';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 interface QueuedFile {
   id: string;
@@ -28,12 +30,14 @@ interface QueuedFile {
 @Component({
   selector: 'app-media-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './media-upload.component.html',
   styleUrl: './media-upload.component.scss'
 })
 export class MediaUploadComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  private readonly i18n = inject(I18nService);
 
   // No credentials here any more: the auth interceptor attaches the bearer
   // token. This component used to be handed `token`, `userId` and `tenantId`
@@ -139,7 +143,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
   handleFiles(files: File[]): void {
     // Check max files limit
     if (this.fileQueue.length + files.length > this.maxFiles) {
-      alert(`Maximum ${this.maxFiles} files allowed`);
+      alert(this.i18n.t('admin.media_upload.max_files', { max: this.maxFiles }));
       return;
     }
 
@@ -149,7 +153,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
       const validation = this.mediaService.validate(file, this.accepts);
 
       if (!validation.valid || validation.kind === undefined) {
-        this.uploadError.emit({ file, error: validation.error ?? 'That file cannot be uploaded.' });
+        this.uploadError.emit({ file, error: validation.error ?? this.i18n.t('admin.media_upload.cannot_upload') });
         continue;
       }
 
@@ -160,7 +164,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
       if (this.acceptedTypes.length > 0 && !this.acceptedTypes.includes(kind)) {
         this.uploadError.emit({
           file,
-          error: `${this.mediaService.labelFor(kind)} files are not accepted here.`,
+          error: this.i18n.t('admin.media_upload.not_accepted', { kind: this.mediaService.labelFor(kind) }),
         });
         continue;
       }
@@ -223,7 +227,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
     this.mediaService.openInNewTab(item).subscribe({
       error: () => this.uploadError.emit({
         file: new File([], item.originalFilename),
-        error: 'That file could not be opened.',
+        error: this.i18n.t('admin.media_upload.could_not_open'),
       }),
     });
   }
@@ -341,7 +345,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
         // A refusal is already an ApiError, with the reason the API gave.
         error: (error: ApiError) => {
           nextFile.status = 'error';
-          nextFile.error = error.message || 'Upload failed';
+          nextFile.error = error.message || this.i18n.t('admin.media_upload.upload_failed');
           this.uploadError.emit({ file: nextFile.file, error: nextFile.error });
           this.uploadNextFile();
         },

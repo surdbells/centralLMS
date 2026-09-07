@@ -4,7 +4,7 @@
       <!-- Loading State -->
       <div class="loading-container" *ngIf="loading">
         <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
         </div>
       </div>
 
@@ -16,19 +16,19 @@
           <div class="stats-bar">
             <div class="stat">
               <span class="stat-value">{{ totalItems }}</span>
-              <span class="stat-label">Items</span>
+              <span class="stat-label">{{ 'paths_admin.items_col' | translate }}</span>
             </div>
             <div class="stat">
               <span class="stat-value">{{ totalSections }}</span>
-              <span class="stat-label">Sections</span>
+              <span class="stat-label">{{ 'paths_admin.sections' | translate }}</span>
             </div>
             <div class="stat">
               <span class="stat-value">{{ totalPoints }}</span>
-              <span class="stat-label">Total Points</span>
+              <span class="stat-label">{{ 'paths.total_points' | translate }}</span>
             </div>
             <div class="stat">
               <span class="stat-value">{{ formattedDuration }}</span>
-              <span class="stat-label">Duration</span>
+              <span class="stat-label">{{ 'paths.duration' | translate }}</span>
             </div>
           </div>
 
@@ -37,27 +37,27 @@
             <div class="section-header">
               <div class="section-title-group">
                 <i class="bi bi-folder2-open"></i>
-                <h6 class="mb-0">Content Items</h6>
+                <h6 class="mb-0">{{ 'paths_admin.content_items' | translate }}</h6>
               </div>
               <div class="dropdown">
                 <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                  <i class="bi bi-plus-lg me-1"></i>Add Item
+                  <i class="bi bi-plus-lg me-1"></i>{{ 'paths_admin.add_item' | translate }}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                   <li>
                     <button class="dropdown-item" (click)="openCourseSelector(null)">
-                      <i class="bi bi-collection-play me-2"></i>Add Course
+                      <i class="bi bi-collection-play me-2"></i>{{ 'paths_admin.add_course' | translate }}
                     </button>
                   </li>
                   <li>
                     <button class="dropdown-item" (click)="openAssessmentSelector(null)">
-                      <i class="bi bi-clipboard-check me-2"></i>Add Assessment
+                      <i class="bi bi-clipboard-check me-2"></i>{{ 'paths_admin.add_assessment' | translate }}
                     </button>
                   </li>
                   <li><hr class="dropdown-divider"></li>
                   <li>
                     <button class="dropdown-item" (click)="openItemModal(null)">
-                      <i class="bi bi-link-45deg me-2"></i>External Link
+                      <i class="bi bi-link-45deg me-2"></i>{{ 'paths_admin.external_link' | translate }}
                     </button>
                   </li>
                 </ul>
@@ -79,7 +79,7 @@
                 <div class="empty-icon">
                   <i class="bi bi-plus-circle"></i>
                 </div>
-                <p class="empty-text">No items yet. Add courses, assessments, or external links to build your learning path.</p>
+                <p class="empty-text">{{ 'paths_admin.builder.empty_items' | translate }}</p>
               </div>
 
               <!-- Items -->
@@ -109,13 +109,13 @@
                   </span>
                 </div>
                 <div class="item-badges">
-                  <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">Required</span>
+                  <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">{{ 'paths.required' | translate }}</span>
                 </div>
                 <div class="item-actions">
-                  <button class="btn btn-icon" (click)="openItemModal(null, item)" title="Edit">
+                  <button class="btn btn-icon" (click)="openItemModal(null, item)" [title]="'paths_admin.edit' | translate">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-icon text-danger" (click)="deleteItem(item)" title="Delete">
+                  <button class="btn btn-icon text-danger" (click)="deleteItem(item)" [title]="'paths_admin.delete' | translate">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -140,39 +140,39 @@
                 <div class="section-title-group">
                   <i class="bi bi-grip-vertical text-muted drag-handle"></i>
                   <span class="badge bg-warning text-dark me-2" *ngIf="section.is_milestone">
-                    <i class="bi bi-flag me-1"></i>Milestone
+                    <i class="bi bi-flag me-1"></i>{{ 'paths_admin.milestone' | translate }}
                   </span>
                   <h6 class="mb-0">{{ section.title }}</h6>
-                  <span class="item-count">({{ section.items?.length || 0 }} items)</span>
+                  <span class="item-count">({{ 'paths.items_count' | translate:{ count: section.items?.length || 0 } }})</span>
                 </div>
                 <div class="section-actions-group">
                   <div class="dropdown">
                     <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                      <i class="bi bi-plus-lg me-1"></i>Add
+                      <i class="bi bi-plus-lg me-1"></i>{{ 'paths_admin.add' | translate }}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                       <li>
                         <button class="dropdown-item" (click)="openCourseSelector(section.section_id)">
-                          <i class="bi bi-collection-play me-2"></i>Course
+                          <i class="bi bi-collection-play me-2"></i>{{ 'paths_admin.course' | translate }}
                         </button>
                       </li>
                       <li>
                         <button class="dropdown-item" (click)="openAssessmentSelector(section.section_id)">
-                          <i class="bi bi-clipboard-check me-2"></i>Assessment
+                          <i class="bi bi-clipboard-check me-2"></i>{{ 'modules.assessment' | translate }}
                         </button>
                       </li>
                       <li><hr class="dropdown-divider"></li>
                       <li>
                         <button class="dropdown-item" (click)="openItemModal(section.section_id)">
-                          <i class="bi bi-link-45deg me-2"></i>External Link
+                          <i class="bi bi-link-45deg me-2"></i>{{ 'paths_admin.external_link' | translate }}
                         </button>
                       </li>
                     </ul>
                   </div>
-                  <button class="btn btn-icon" (click)="openSectionModal(section)" title="Edit Section">
+                  <button class="btn btn-icon" (click)="openSectionModal(section)" [title]="'paths_admin.edit_section' | translate">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-icon text-danger" (click)="deleteSection(section)" title="Delete Section">
+                  <button class="btn btn-icon text-danger" (click)="deleteSection(section)" [title]="'paths_admin.delete_section' | translate">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -189,7 +189,7 @@
               >
                 <div class="empty-section-state" *ngIf="!section.items || section.items.length === 0">
                   <i class="bi bi-collection"></i>
-                  <span>Drag items here or use the Add button</span>
+                  <span>{{ 'paths_admin.builder.drag_here' | translate }}</span>
                 </div>
 
                 <div
@@ -218,10 +218,10 @@
                     </span>
                   </div>
                   <div class="item-badges">
-                    <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">Required</span>
+                    <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">{{ 'paths.required' | translate }}</span>
                   </div>
                   <div class="item-actions">
-                    <button class="btn btn-icon" (click)="openItemModal(section.section_id, item)" title="Edit">
+                    <button class="btn btn-icon" (click)="openItemModal(section.section_id, item)" [title]="'paths_admin.edit' | translate">
                       <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-icon text-danger" (click)="deleteItem(item)" title="Delete">
@@ -238,74 +238,74 @@
         <div class="builder-sidebar">
           <!-- Add Section Panel -->
           <div class="sidebar-panel">
-            <h6 class="panel-title">Add Section</h6>
-            <p class="panel-description">Organize your content into logical sections.</p>
+            <h6 class="panel-title">{{ 'paths_admin.add_section' | translate }}</h6>
+            <p class="panel-description">{{ 'paths_admin.builder.section_desc' | translate }}</p>
             <button class="btn btn-primary w-100" (click)="openSectionModal()">
-              <i class="bi bi-folder-plus me-2"></i>New Section
+              <i class="bi bi-folder-plus me-2"></i>{{ 'paths_admin.new_section' | translate }}
             </button>
           </div>
 
           <!-- Tips Panel -->
           <div class="sidebar-panel tips-panel">
-            <h6 class="panel-title">Tips</h6>
+            <h6 class="panel-title">{{ 'paths_admin.tips' | translate }}</h6>
             <ul class="tips-list">
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Drag items and sections to reorder</span>
+                <span>{{ 'paths_admin.builder.tip_reorder' | translate }}</span>
               </li>
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Mark important sections as milestones</span>
+                <span>{{ 'paths_admin.builder.tip_milestones' | translate }}</span>
               </li>
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Use required items for essential content</span>
+                <span>{{ 'paths_admin.builder.tip_required' | translate }}</span>
               </li>
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Add points to gamify the experience</span>
+                <span>{{ 'paths_admin.builder.tip_points' | translate }}</span>
               </li>
             </ul>
           </div>
 
           <!-- Quick Add Panel -->
           <div class="sidebar-panel quick-add-panel">
-            <h6 class="panel-title">Quick Add</h6>
+            <h6 class="panel-title">{{ 'paths_admin.builder.quick_add' | translate }}</h6>
             <div class="quick-add-grid">
               <button class="quick-add-btn" (click)="openCourseSelector(null)">
                 <i class="bi bi-collection-play"></i>
-                <span>Add Course</span>
+                <span>{{ 'paths_admin.add_course' | translate }}</span>
               </button>
               <button class="quick-add-btn" (click)="openAssessmentSelector(null)">
                 <i class="bi bi-clipboard-check"></i>
-                <span>Add Assessment</span>
+                <span>{{ 'paths_admin.add_assessment' | translate }}</span>
               </button>
               <button class="quick-add-btn" (click)="openItemModal(null)">
                 <i class="bi bi-link-45deg"></i>
-                <span>External Link</span>
+                <span>{{ 'paths_admin.external_link' | translate }}</span>
               </button>
               <button class="quick-add-btn" (click)="openSectionModal()">
                 <i class="bi bi-folder-plus"></i>
-                <span>Add Section</span>
+                <span>{{ 'paths_admin.add_section' | translate }}</span>
               </button>
             </div>
           </div>
 
           <!-- More Tips -->
           <div class="sidebar-panel tips-panel">
-            <h6 class="panel-title">Tips</h6>
+            <h6 class="panel-title">{{ 'paths_admin.tips' | translate }}</h6>
             <ul class="tips-list">
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Drag items to reorder them</span>
+                <span>{{ 'paths_admin.builder.tip_drag_items' | translate }}</span>
               </li>
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Use sections to group related content</span>
+                <span>{{ 'paths_admin.builder.tip_group' | translate }}</span>
               </li>
               <li>
                 <i class="bi bi-lightbulb"></i>
-                <span>Mark important sections as milestones</span>
+                <span>{{ 'paths_admin.builder.tip_milestones' | translate }}</span>
               </li>
             </ul>
           </div>
@@ -318,14 +318,14 @@
           </button>
           <div class="footer-actions">
             <button class="btn btn-secondary" (click)="goToSettings()">
-              <i class="bi bi-gear me-2"></i>Settings
+              <i class="bi bi-gear me-2"></i>{{ 'nav.settings' | translate }}
             </button>
             <button
               class="btn btn-primary"
               (click)="publishPath()"
               [disabled]="totalItems === 0 || path.status === 'published'"
             >
-              <i class="bi bi-check-lg me-2"></i>Publish
+              <i class="bi bi-check-lg me-2"></i>{{ 'paths_admin.publish' | translate }}
             </button>
           </div>
         </div>
@@ -338,26 +338,26 @@
           <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">{{ editingSection ? 'Edit Section' : 'Add New Section' }}</h5>
+                <h5 class="modal-title">{{ (editingSection ? 'paths_admin.edit_section' : 'paths_admin.builder.add_new_section') | translate }}</h5>
                 <button type="button" class="btn-close" (click)="closeSectionModal()"></button>
               </div>
               <div class="modal-body">
                 <div class="mb-3">
-                  <label class="form-label">Section Title *</label>
+                  <label class="form-label">{{ 'paths_admin.builder.section_title' | translate }} *</label>
                   <input
                     type="text"
                     class="form-control"
                     [(ngModel)]="sectionForm.title"
-                    placeholder="e.g., Introduction to the Course"
+                    placeholder="{{ 'paths_admin.builder.section_title_ph' | translate }}"
                   >
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Description</label>
+                  <label class="form-label">{{ 'paths_admin.description' | translate }}</label>
                   <textarea
                     class="form-control"
                     rows="2"
                     [(ngModel)]="sectionForm.description"
-                    placeholder="Brief description of this section"
+                    placeholder="{{ 'paths_admin.builder.section_desc_ph' | translate }}"
                   ></textarea>
                 </div>
                 <div class="mb-3">
@@ -369,23 +369,23 @@
                       [(ngModel)]="sectionForm.is_milestone"
                     >
                     <label class="form-check-label" for="isMilestone">
-                      <strong>Mark as Milestone</strong>
-                      <small class="d-block text-muted">Milestones are key checkpoints in the learning journey</small>
+                      <strong>{{ 'paths_admin.builder.mark_milestone' | translate }}</strong>
+                      <small class="d-block text-muted">{{ 'paths_admin.builder.milestone_hint' | translate }}</small>
                     </label>
                   </div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Unlock Requirement</label>
+                  <label class="form-label">{{ 'paths_admin.builder.unlock_req' | translate }}</label>
                   <select class="form-select" [(ngModel)]="sectionForm.unlock_type">
-                    <option value="none">No requirement (always available)</option>
-                    <option value="previous_section">Complete previous section</option>
-                    <option value="all_previous">Complete all previous sections</option>
-                    <option value="admin_unlock">Admin unlock only</option>
+                    <option value="none">{{ 'paths_admin.builder.unlock_none' | translate }}</option>
+                    <option value="previous_section">{{ 'paths_admin.builder.unlock_previous' | translate }}</option>
+                    <option value="all_previous">{{ 'paths_admin.builder.unlock_all_previous' | translate }}</option>
+                    <option value="admin_unlock">{{ 'paths_admin.builder.unlock_admin' | translate }}</option>
                   </select>
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeSectionModal()">Cancel</button>
+                <button type="button" class="btn btn-secondary" (click)="closeSectionModal()">{{ 'common.cancel' | translate }}</button>
                 <button
                   type="button"
                   class="btn btn-primary"
@@ -393,7 +393,7 @@
                   [disabled]="saving || !sectionForm.title"
                 >
                   <span class="spinner-border spinner-border-sm me-2" *ngIf="saving"></span>
-                  {{ editingSection ? 'Update' : 'Create' }} Section
+                  {{ (editingSection ? 'paths_admin.builder.update_section' : 'paths_admin.builder.create_section') | translate }}
                 </button>
               </div>
             </div>
@@ -408,21 +408,21 @@
           <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">{{ editingItem ? 'Edit Item' : 'Add External Link' }}</h5>
+                <h5 class="modal-title">{{ (editingItem ? 'paths_admin.builder.edit_item' : 'paths_admin.builder.add_external_link') | translate }}</h5>
                 <button type="button" class="btn-close" (click)="closeItemModal()"></button>
               </div>
               <div class="modal-body">
                 <div class="mb-3">
-                  <label class="form-label">Title *</label>
+                  <label class="form-label">{{ 'paths_admin.builder.item_title' | translate }} *</label>
                   <input
                     type="text"
                     class="form-control"
                     [(ngModel)]="itemForm.external_title"
-                    placeholder="e.g., Additional Reading Material"
+                    placeholder="{{ 'paths_admin.builder.item_title_ph' | translate }}"
                   >
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">URL *</label>
+                  <label class="form-label">{{ 'paths_admin.builder.url' | translate }} *</label>
                   <input
                     type="url"
                     class="form-control"
@@ -431,17 +431,17 @@
                   >
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Description</label>
+                  <label class="form-label">{{ 'paths_admin.description' | translate }}</label>
                   <textarea
                     class="form-control"
                     rows="2"
                     [(ngModel)]="itemForm.external_description"
-                    placeholder="Brief description of this resource"
+                    placeholder="{{ 'paths_admin.builder.item_desc_ph' | translate }}"
                   ></textarea>
                 </div>
                 <div class="row">
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Points</label>
+                    <label class="form-label">{{ 'paths_admin.builder.points_label' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
@@ -450,13 +450,13 @@
                     >
                   </div>
                   <div class="col-md-6 mb-3">
-                    <label class="form-label">Duration (minutes)</label>
+                    <label class="form-label">{{ 'paths_admin.builder.duration_minutes' | translate }}</label>
                     <input
                       type="number"
                       class="form-control"
                       [(ngModel)]="itemForm.estimated_duration_minutes"
                       min="0"
-                      placeholder="Optional"
+                      placeholder="{{ 'paths_admin.builder.optional' | translate }}"
                     >
                   </div>
                 </div>
@@ -468,12 +468,12 @@
                       id="isRequired"
                       [(ngModel)]="itemForm.is_required"
                     >
-                    <label class="form-check-label" for="isRequired">Required to complete path</label>
+                    <label class="form-check-label" for="isRequired">{{ 'paths_admin.builder.required_to_complete' | translate }}</label>
                   </div>
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeItemModal()">Cancel</button>
+                <button type="button" class="btn btn-secondary" (click)="closeItemModal()">{{ 'common.cancel' | translate }}</button>
                 <button
                   type="button"
                   class="btn btn-primary"
@@ -481,7 +481,7 @@
                   [disabled]="saving || !itemForm.external_title || !itemForm.external_url"
                 >
                   <span class="spinner-border spinner-border-sm me-2" *ngIf="saving"></span>
-                  {{ editingItem ? 'Update' : 'Add' }} Item
+                  {{ (editingItem ? 'paths_admin.builder.update_item' : 'paths_admin.builder.add_item_btn') | translate }}
                 </button>
               </div>
             </div>
@@ -496,7 +496,7 @@
           <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">Add Course</h5>
+                <h5 class="modal-title">{{ 'paths_admin.add_course' | translate }}</h5>
                 <button type="button" class="btn-close" (click)="closeCourseSelector()"></button>
               </div>
               <div class="modal-body">
@@ -506,7 +506,7 @@
                   <input
                     type="text"
                     class="form-control"
-                    placeholder="Search courses..."
+                    placeholder="{{ 'paths_admin.builder.search_courses' | translate }}"
                     [(ngModel)]="courseSearch"
                     (ngModelChange)="onCourseSearchChange()"
                   >
@@ -515,14 +515,14 @@
                 <!-- Loading -->
                 <div class="text-center py-4" *ngIf="loadingCourses">
                   <div class="spinner-border text-primary" role="status"></div>
-                  <p class="mt-2 text-muted">Loading courses...</p>
+                  <p class="mt-2 text-muted">{{ 'paths_admin.builder.loading_courses' | translate }}</p>
                 </div>
 
                 <!-- Empty State -->
                 <div class="empty-modal-state" *ngIf="!loadingCourses && filteredCourses.length === 0">
                   <i class="bi bi-collection-play"></i>
-                  <p *ngIf="courseSearch">No courses found matching "{{ courseSearch }}"</p>
-                  <p *ngIf="!courseSearch">No published courses available</p>
+                  <p *ngIf="courseSearch">{{ 'paths_admin.builder.no_courses_matching' | translate:{ query: courseSearch } }}</p>
+                  <p *ngIf="!courseSearch">{{ 'paths_admin.builder.no_published_courses' | translate }}</p>
                 </div>
 
                 <!-- Courses Grid -->
@@ -560,7 +560,7 @@
           <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title">Add Assessment</h5>
+                <h5 class="modal-title">{{ 'paths_admin.add_assessment' | translate }}</h5>
                 <button type="button" class="btn-close" (click)="closeAssessmentSelector()"></button>
               </div>
               <div class="modal-body">
@@ -570,7 +570,7 @@
                   <input
                     type="text"
                     class="form-control"
-                    placeholder="Search assessments..."
+                    placeholder="{{ 'paths_admin.builder.search_assessments' | translate }}"
                     [(ngModel)]="assessmentSearch"
                     (ngModelChange)="onAssessmentSearchChange()"
                   >
@@ -579,14 +579,14 @@
                 <!-- Loading -->
                 <div class="text-center py-4" *ngIf="loadingAssessments">
                   <div class="spinner-border text-primary" role="status"></div>
-                  <p class="mt-2 text-muted">Loading assessments...</p>
+                  <p class="mt-2 text-muted">{{ 'paths_admin.builder.loading_assessments' | translate }}</p>
                 </div>
 
                 <!-- Empty State -->
                 <div class="empty-modal-state" *ngIf="!loadingAssessments && filteredAssessments.length === 0">
                   <i class="bi bi-clipboard-check"></i>
-                  <p *ngIf="assessmentSearch">No assessments found matching "{{ assessmentSearch }}"</p>
-                  <p *ngIf="!assessmentSearch">No published assessments available</p>
+                  <p *ngIf="assessmentSearch">{{ 'paths_admin.builder.no_assessments_matching' | translate:{ query: assessmentSearch } }}</p>
+                  <p *ngIf="!assessmentSearch">{{ 'paths_admin.builder.no_published_assessments' | translate }}</p>
                 </div>
 
                 <!-- Assessments List -->
@@ -604,9 +604,9 @@
                       <span class="assessment-title">{{ assessment.title }}</span>
                       <span class="assessment-meta">
                         <span *ngIf="assessment.category_name">{{ assessment.category_name }}</span>
-                        <span *ngIf="assessment.questions_count">{{ assessment.questions_count }} questions</span>
-                        <span *ngIf="assessment.time_limit_minutes">{{ assessment.time_limit_minutes }} min</span>
-                        <span *ngIf="assessment.passing_score">Pass: {{ assessment.passing_score }}%</span>
+                        <span *ngIf="assessment.questions_count">{{ 'paths_admin.builder.questions_count' | translate:{ count: assessment.questions_count } }}</span>
+                        <span *ngIf="assessment.time_limit_minutes">{{ 'paths.minutes' | translate:{ count: assessment.time_limit_minutes } }}</span>
+                        <span *ngIf="assessment.passing_score">{{ 'paths_admin.builder.pass_score' | translate:{ score: assessment.passing_score } }}</span>
                       </span>
                     </div>
                     <i class="bi bi-plus-lg add-icon"></i>

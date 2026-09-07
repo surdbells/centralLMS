@@ -13,6 +13,7 @@ import {
 } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
 
 type Step = 'choose' | 'check' | 'done';
 
@@ -31,7 +32,7 @@ type Step = 'choose' | 'check' | 'done';
 @Component({
   selector: 'app-user-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   templateUrl: './user-import.component.html',
   styles: [`
     .drop-zone { border: 2px dashed var(--bs-border-color); border-radius: .5rem; cursor: pointer; }
@@ -61,18 +62,18 @@ export class UserImportComponent implements OnDestroy {
 
   /** The columns a file may have, shown before anybody uploads one. */
   readonly columns = [
-    { name: 'email', required: true, note: 'The only column that must be there.' },
-    { name: 'firstName', required: true, note: 'Or "First Name".' },
-    { name: 'lastName', required: true, note: 'Or "Surname".' },
+    { name: 'email', required: true, note: 'admin.user_import.note_email' },
+    { name: 'firstName', required: true, note: 'admin.user_import.note_firstname' },
+    { name: 'lastName', required: true, note: 'admin.user_import.note_lastname' },
     { name: 'phone', required: false, note: '' },
-    { name: 'branch', required: false, note: 'Matched by name to your branches.' },
-    { name: 'department', required: false, note: 'Matched by name.' },
-    { name: 'team', required: false, note: 'Matched by name.' },
-    { name: 'level', required: false, note: 'Matched by name.' },
-    { name: 'jobTitle', required: false, note: 'Or "Position".' },
-    { name: 'manager', required: false, note: 'Their manager’s email address.' },
-    { name: 'hireDate', required: false, note: 'Or "Start Date".' },
-    { name: 'roles', required: false, note: 'Comma-separated, e.g. "Learner, Instructor".' },
+    { name: 'branch', required: false, note: 'admin.user_import.note_branch' },
+    { name: 'department', required: false, note: 'admin.user_import.note_matched_by_name' },
+    { name: 'team', required: false, note: 'admin.user_import.note_matched_by_name' },
+    { name: 'level', required: false, note: 'admin.user_import.note_matched_by_name' },
+    { name: 'jobTitle', required: false, note: 'admin.user_import.note_jobtitle' },
+    { name: 'manager', required: false, note: 'admin.user_import.note_manager' },
+    { name: 'hireDate', required: false, note: 'admin.user_import.note_hiredate' },
+    { name: 'roles', required: false, note: 'admin.user_import.note_roles' },
   ];
 
   ngOnDestroy(): void {
@@ -218,12 +219,12 @@ export class UserImportComponent implements OnDestroy {
 
   actionLabel(row: ImportRow): string {
     if (row.action === 'error') {
-      return 'Cannot import';
+      return 'admin.user_import.cannot_import';
     }
 
     return row.action === 'existing'
-      ? (this.onExisting === 'update' ? 'Will update' : 'Will skip')
-      : 'Will create';
+      ? (this.onExisting === 'update' ? 'admin.user_import.will_update' : 'admin.user_import.will_skip')
+      : 'admin.user_import.will_create';
   }
 
   outcomeClass(outcome: string): string {

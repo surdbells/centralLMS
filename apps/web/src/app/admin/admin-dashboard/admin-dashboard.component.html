@@ -4,9 +4,9 @@
   <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
     <div class="text-center">
       <div class="spinner-border text-primary mb-3" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
-      <p class="text-muted">Loading dashboard...</p>
+      <p class="text-muted">{{ 'admin_dash.loading' | translate }}</p>
     </div>
   </div>
 
@@ -16,15 +16,15 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="fw-bold mb-1">Admin Dashboard</h2>
-        <p class="text-muted mb-0">Welcome back! Here's what's happening with your LMS.</p>
+        <h2 class="fw-bold mb-1">{{ 'admin_dash.title' | translate }}</h2>
+        <p class="text-muted mb-0">{{ 'admin_dash.welcome' | translate }}</p>
       </div>
       <div class="d-flex gap-2">
         <select class="form-select form-select-sm" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()" style="width: auto;">
-          <option value="7">Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-          <option value="365">This Year</option>
+          <option value="7">{{ 'admin_dash.last_7_days' | translate }}</option>
+          <option value="30">{{ 'admin_dash.last_30_days' | translate }}</option>
+          <option value="90">{{ 'admin_dash.last_90_days' | translate }}</option>
+          <option value="365">{{ 'admin_dash.this_year' | translate }}</option>
         </select>
         <button class="btn btn-secondary btn-sm" (click)="refreshDashboard()">
           <tui-icon icon="@tui.refresh-cw"></tui-icon>
@@ -44,10 +44,10 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_users) }}</h3>
-            <p class="text-muted small mb-1">Total Users</p>
+            <p class="text-muted small mb-1">{{ 'admin_dash.total_users' | translate }}</p>
             <small class="text-success">
               <tui-icon icon="@tui.user-plus"></tui-icon>
-              {{ dashboard.overview.active_learners }} active
+              {{ 'admin_dash.active_count' | translate:{ count: dashboard.overview.active_learners } }}
             </small>
           </div>
         </div>
@@ -63,10 +63,10 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_courses) }}</h3>
-            <p class="text-muted small mb-1">Total Courses</p>
+            <p class="text-muted small mb-1">{{ 'admin_dash.total_courses' | translate }}</p>
             <small class="text-info">
               <tui-icon icon="@tui.check"></tui-icon>
-              {{ dashboard.overview.published_courses }} published
+              {{ 'admin_dash.published_count' | translate:{ count: dashboard.overview.published_courses } }}
             </small>
           </div>
         </div>
@@ -82,16 +82,16 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_enrollments) }}</h3>
-            <p class="text-muted small mb-1">Enrollments</p>
+            <p class="text-muted small mb-1">{{ 'admin_dash.enrollments' | translate }}</p>
             <small *ngIf="dashboard.overview.enrollment_growth !== null"
                    [ngClass]="dashboard.overview.enrollment_growth! >= 0 ? 'text-success' : 'text-danger'">
               <tui-icon [icon]="dashboard.overview.enrollment_growth! >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
-              {{ formatGrowth(Math.abs(dashboard.overview.enrollment_growth!)) }} this month
+              {{ 'admin_dash.growth_this_month' | translate:{ value: formatGrowth(Math.abs(dashboard.overview.enrollment_growth!)) } }}
             </small>
             <!-- Nothing to compare against. Saying so beats an arrow
                  pointing at a number that does not exist. -->
             <small class="text-muted" *ngIf="dashboard.overview.enrollment_growth === null">
-              No earlier period to compare
+              {{ 'admin_dash.no_compare' | translate }}
             </small>
           </div>
         </div>
@@ -107,16 +107,16 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_completions) }}</h3>
-            <p class="text-muted small mb-1">Completions</p>
+            <p class="text-muted small mb-1">{{ 'admin_dash.completions' | translate }}</p>
             <small *ngIf="dashboard.overview.completion_growth !== null"
                    [ngClass]="dashboard.overview.completion_growth! >= 0 ? 'text-success' : 'text-danger'">
               <tui-icon [icon]="dashboard.overview.completion_growth! >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
-              {{ formatGrowth(Math.abs(dashboard.overview.completion_growth!)) }} this month
+              {{ 'admin_dash.growth_this_month' | translate:{ value: formatGrowth(Math.abs(dashboard.overview.completion_growth!)) } }}
             </small>
             <!-- Nothing to compare against. Saying so beats an arrow
                  pointing at a number that does not exist. -->
             <small class="text-muted" *ngIf="dashboard.overview.completion_growth === null">
-              No earlier period to compare
+              {{ 'admin_dash.no_compare' | translate }}
             </small>
           </div>
         </div>
@@ -132,9 +132,9 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatPercentage(dashboard.overview.completion_rate) }}</h3>
-            <p class="text-muted small mb-1">Completion Rate</p>
+            <p class="text-muted small mb-1">{{ 'admin_dash.completion_rate' | translate }}</p>
             <small class="text-muted">
-              {{ dashboard.overview.in_progress_count }} in progress
+              {{ 'skills.count_in_progress' | translate:{ count: dashboard.overview.in_progress_count } }}
             </small>
           </div>
         </div>
@@ -150,9 +150,9 @@
               </div>
             </div>
             <h3 class="fw-bold mb-1">{{ formatNumber(dashboard.overview.total_learning_hours) }}h</h3>
-            <p class="text-muted small mb-1">Learning Hours</p>
+            <p class="text-muted small mb-1">{{ 'admin_dash.learning_hours' | translate }}</p>
             <small class="text-muted">
-              {{ dashboard.overview.total_certificates }} certificates
+              {{ 'admin_dash.certificates_count' | translate:{ count: dashboard.overview.total_certificates } }}
             </small>
           </div>
         </div>
@@ -170,11 +170,11 @@
           <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
               <tui-icon icon="@tui.trending-up" class="me-2 text-primary"></tui-icon>
-              Enrollment & Completion Trends
+              {{ 'admin_dash.trends_title' | translate }}
             </h5>
             <div class="btn-group btn-group-sm">
-              <button class="btn" [class.btn-primary]="chartView === 'monthly'" [class.btn-secondary]="chartView !== 'monthly'" (click)="chartView = 'monthly'">Monthly</button>
-              <button class="btn" [class.btn-primary]="chartView === 'daily'" [class.btn-secondary]="chartView !== 'daily'" (click)="chartView = 'daily'">Daily</button>
+              <button class="btn" [class.btn-primary]="chartView === 'monthly'" [class.btn-secondary]="chartView !== 'monthly'" (click)="chartView = 'monthly'">{{ 'admin_dash.monthly' | translate }}</button>
+              <button class="btn" [class.btn-primary]="chartView === 'daily'" [class.btn-secondary]="chartView !== 'daily'" (click)="chartView = 'daily'">{{ 'admin_dash.daily' | translate }}</button>
             </div>
           </div>
           <div class="card-body">
@@ -200,11 +200,11 @@
             <div class="d-flex justify-content-center gap-4 mt-3">
               <span class="d-flex align-items-center gap-2">
                 <span class="badge bg-primary">&nbsp;&nbsp;</span>
-                <small class="text-muted">Enrollments</small>
+                <small class="text-muted">{{ 'admin_dash.enrollments' | translate }}</small>
               </span>
               <span class="d-flex align-items-center gap-2">
                 <span class="badge bg-success">&nbsp;&nbsp;</span>
-                <small class="text-muted">Completions</small>
+                <small class="text-muted">{{ 'admin_dash.completions' | translate }}</small>
               </span>
             </div>
           </div>
@@ -218,7 +218,7 @@
               <div class="card-header bg-transparent border-0">
                 <h5 class="mb-0">
                   <tui-icon icon="@tui.star" class="me-2 text-warning"></tui-icon>
-                  Top Courses
+                  {{ 'admin_dash.top_courses' | translate }}
                 </h5>
               </div>
               <div class="card-body p-0">
@@ -232,15 +232,15 @@
                     }">{{ i + 1 }}</div>
                     <div class="flex-grow-1 min-width-0">
                       <h6 class="mb-0 text-truncate">{{ course.title }}</h6>
-                      <small class="text-muted">{{ course.enrollments }} enrolled</small>
+                      <small class="text-muted">{{ 'paths.enrolled_count' | translate:{ count: course.enrollments } }}</small>
                     </div>
                     <div class="text-end">
                       <div class="fw-bold text-success">{{ formatPercentage(course.completion_rate) }}</div>
-                      <small class="text-muted">completion</small>
+                      <small class="text-muted">{{ 'admin_dash.completion_label' | translate }}</small>
                     </div>
                   </div>
                   <div *ngIf="!dashboard.top_courses?.length" class="list-group-item text-center text-muted py-4">
-                    No courses yet
+                    {{ 'admin_dash.no_courses' | translate }}
                   </div>
                 </div>
               </div>
@@ -253,7 +253,7 @@
               <div class="card-header bg-transparent border-0">
                 <h5 class="mb-0">
                   <tui-icon icon="@tui.building" class="me-2 text-info"></tui-icon>
-                  Department Performance
+                  {{ 'admin_dash.dept_performance' | translate }}
                 </h5>
               </div>
               <div class="card-body">
@@ -269,10 +269,10 @@
                       'bg-danger': dept.completion_rate < 50
                     }" [style.width.%]="dept.completion_rate"></div>
                   </div>
-                  <small class="text-muted">{{ dept.total_users }} users • {{ dept.completions }}/{{ dept.total_enrollments }} completed</small>
+                  <small class="text-muted">{{ 'admin_dash.dept_meta' | translate:{ users: dept.total_users, completed: dept.completions, total: dept.total_enrollments } }}</small>
                 </div>
                 <div *ngIf="!dashboard.department_stats?.length" class="text-center text-muted py-4">
-                  No department data
+                  {{ 'admin_dash.no_dept_data' | translate }}
                 </div>
               </div>
             </div>
@@ -289,7 +289,7 @@
           <div class="card-header bg-transparent border-0">
             <h5 class="mb-0">
               <tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>
-              Learner Status
+              {{ 'admin_dash.learner_status' | translate }}
             </h5>
           </div>
           <div class="card-body">
@@ -310,7 +310,7 @@
                 </svg>
                 <div class="donut-center">
                   <span class="donut-value">{{ dashboard.overview.total_enrollments }}</span>
-                  <span class="donut-label">Total</span>
+                  <span class="donut-label">{{ 'admin_dash.total' | translate }}</span>
                 </div>
               </div>
             </div>
@@ -336,7 +336,7 @@
           <div class="card-header bg-transparent border-0">
             <h5 class="mb-0">
               <tui-icon icon="@tui.shield" class="me-2 text-success"></tui-icon>
-              Compliance Status
+              {{ 'admin_dash.compliance_status' | translate }}
             </h5>
           </div>
           <div class="card-body">
@@ -347,26 +347,26 @@
                   'text-warning': dashboard.compliance.compliance_rate >= 60 && dashboard.compliance.compliance_rate < 80,
                   'text-danger': dashboard.compliance.compliance_rate < 60
                 }">{{ formatPercentage(dashboard.compliance.compliance_rate) }}</div>
-                <div class="gauge-label">Compliance Rate</div>
+                <div class="gauge-label">{{ 'admin_dash.compliance_rate_label' | translate }}</div>
               </div>
             </div>
             <div class="row text-center g-3">
               <div class="col-4">
                 <div class="p-2 bg-success bg-opacity-10 rounded">
                   <div class="fw-bold text-success">{{ dashboard.compliance.compliant }}</div>
-                  <small class="text-muted">Compliant</small>
+                  <small class="text-muted">{{ 'admin_dash.compliant' | translate }}</small>
                 </div>
               </div>
               <div class="col-4">
                 <div class="p-2 bg-danger bg-opacity-10 rounded">
                   <div class="fw-bold text-danger">{{ dashboard.compliance.overdue_count }}</div>
-                  <small class="text-muted">Overdue</small>
+                  <small class="text-muted">{{ 'admin_dash.overdue' | translate }}</small>
                 </div>
               </div>
               <div class="col-4">
                 <div class="p-2 bg-warning bg-opacity-10 rounded">
                   <div class="fw-bold text-warning">{{ dashboard.compliance.expiring_certificates }}</div>
-                  <small class="text-muted">Expiring</small>
+                  <small class="text-muted">{{ 'admin_dash.expiring' | translate }}</small>
                 </div>
               </div>
             </div>
@@ -378,26 +378,26 @@
           <div class="card-header bg-transparent border-0">
             <h5 class="mb-0">
               <tui-icon icon="@tui.zap" class="me-2 text-warning"></tui-icon>
-              Quick Actions
+              {{ 'admin_dash.quick_actions' | translate }}
             </h5>
           </div>
           <div class="card-body">
             <div class="d-grid gap-2">
               <button class="btn btn-primary text-start" (click)="navigateTo('courses')">
                 <tui-icon icon="@tui.plus" class="me-2"></tui-icon>
-                Create New Course
+                {{ 'admin_dash.create_course' | translate }}
               </button>
               <button class="btn btn-primary text-start" (click)="navigateTo('users')">
                 <tui-icon icon="@tui.user-plus" class="me-2"></tui-icon>
-                Add Users
+                {{ 'admin_dash.add_users' | translate }}
               </button>
               <button class="btn btn-primary text-start" (click)="navigateTo('reports')">
                 <tui-icon icon="@tui.bar-chart-2" class="me-2"></tui-icon>
-                View Reports
+                {{ 'admin_dash.view_reports' | translate }}
               </button>
               <button class="btn btn-primary text-start" (click)="navigateTo('settings')">
                 <tui-icon icon="@tui.settings" class="me-2"></tui-icon>
-                Settings
+                {{ 'nav.settings' | translate }}
               </button>
             </div>
           </div>
@@ -415,9 +415,9 @@
           <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
               <tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>
-              Recent Activity
+              {{ 'admin_dash.recent_activity' | translate }}
             </h5>
-            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('activity')">View All</a>
+            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('activity')">{{ 'common.view_all' | translate }}</a>
           </div>
           <div class="card-body p-0">
             <div class="activity-timeline">
@@ -431,7 +431,7 @@
                 </div>
               </div>
               <div *ngIf="!dashboard.recent_activity?.length" class="text-center text-muted py-4">
-                No recent activity
+                {{ 'admin_dash.no_activity' | translate }}
               </div>
             </div>
           </div>
@@ -444,7 +444,7 @@
           <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
               <tui-icon icon="@tui.alert-triangle" class="me-2 text-danger"></tui-icon>
-              At-Risk Learners
+              {{ 'admin_dash.at_risk' | translate }}
             </h5>
             <span class="badge bg-danger">{{ dashboard.at_risk_learners.length || 0 }}</span>
           </div>
@@ -469,12 +469,12 @@
                   <div class="progress" style="height: 4px;">
                     <div class="progress-bar bg-danger" [style.width.%]="learner.avg_progress"></div>
                   </div>
-                  <small class="text-muted">{{ learner.avg_progress }}% • {{ learner.days_inactive }} days inactive</small>
+                  <small class="text-muted">{{ 'admin_dash.risk_meta' | translate:{ progress: learner.avg_progress, days: learner.days_inactive } }}</small>
                 </div>
               </div>
               <div *ngIf="!dashboard.at_risk_learners?.length" class="list-group-item text-center text-muted py-4">
                 <tui-icon icon="@tui.check-circle" class="text-success fs-4 mb-2 d-block"></tui-icon>
-                All learners on track!
+                {{ 'admin_dash.all_on_track' | translate }}
               </div>
             </div>
           </div>
@@ -487,9 +487,9 @@
           <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
               <tui-icon icon="@tui.calendar" class="me-2 text-warning"></tui-icon>
-              Upcoming Deadlines
+              {{ 'admin_dash.upcoming_deadlines' | translate }}
             </h5>
-            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('deadlines')">View All</a>
+            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('deadlines')">{{ 'common.view_all' | translate }}</a>
           </div>
           <div class="card-body p-0">
             <div class="list-group list-group-flush">
@@ -504,7 +504,7 @@
                       'bg-danger': deadline.urgency === 'critical',
                       'bg-warning text-dark': deadline.urgency === 'warning',
                       'bg-info': deadline.urgency === 'normal'
-                    }">{{ deadline.days_remaining }}d left</span>
+                    }">{{ 'admin_dash.days_left' | translate:{ days: deadline.days_remaining } }}</span>
                     <div class="progress mt-1" style="height: 3px; width: 60px;">
                       <div class="progress-bar" [style.width.%]="deadline.progress"></div>
                     </div>
@@ -512,7 +512,7 @@
                 </div>
               </div>
               <div *ngIf="!dashboard.upcoming_deadlines?.length" class="list-group-item text-center text-muted py-4">
-                No upcoming deadlines
+                {{ 'admin_dash.no_deadlines' | translate }}
               </div>
             </div>
           </div>
@@ -528,20 +528,20 @@
           <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">
               <tui-icon icon="@tui.check-circle" class="me-2 text-success"></tui-icon>
-              Recent Completions
+              {{ 'admin_dash.recent_completions' | translate }}
             </h5>
-            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('completions')">View All</a>
+            <a href="javascript:void(0)" class="text-primary small d-none" (click)="navigateTo('completions')">{{ 'common.view_all' | translate }}</a>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-hover mb-0">
                 <thead class="table-light">
                 <tr>
-                  <th>Learner</th>
-                  <th>Course</th>
-                  <th>Completed</th>
-                  <th class="text-center">Score</th>
-                  <th class="text-center">Certificate</th>
+                  <th>{{ 'admin_dash.col_learner' | translate }}</th>
+                  <th>{{ 'admin_dash.col_course' | translate }}</th>
+                  <th>{{ 'admin_dash.col_completed' | translate }}</th>
+                  <th class="text-center">{{ 'admin_dash.col_score' | translate }}</th>
+                  <th class="text-center">{{ 'admin_dash.col_certificate' | translate }}</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -572,7 +572,7 @@
                 </tbody>
               </table>
               <div *ngIf="!dashboard.recent_completions?.length" class="text-center text-muted py-4">
-                No recent completions
+                {{ 'admin_dash.no_completions' | translate }}
               </div>
             </div>
           </div>

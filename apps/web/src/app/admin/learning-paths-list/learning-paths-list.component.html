@@ -5,15 +5,15 @@
   <!-- Header -->
   <div class="page-header d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h1 class="h3 mb-1">Learning Paths</h1>
-      <p class="text-muted mb-0">Create and manage structured learning journeys</p>
+      <h1 class="h3 mb-1">{{ 'paths.title' | translate }}</h1>
+      <p class="text-muted mb-0">{{ 'paths_admin.list.subtitle' | translate }}</p>
     </div>
     <div class="d-flex gap-2">
       <a routerLink="/admin/learning-paths/moderation" class="btn btn-outline-secondary">
-        <i class="bi bi-shield-check me-2"></i>Review Moderation
+        <i class="bi bi-shield-check me-2"></i>{{ 'paths_admin.list.review_moderation' | translate }}
       </a>
       <a routerLink="/admin/learning-paths/create" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-2"></i>Create Learning Path
+        <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.create_path' | translate }}
       </a>
     </div>
   </div>
@@ -28,7 +28,7 @@
               <i class="bi bi-signpost-split"></i>
             </div>
             <div class="ms-3">
-              <h6 class="text-muted mb-1">Total Paths</h6>
+              <h6 class="text-muted mb-1">{{ 'paths_admin.list.total_paths' | translate }}</h6>
               <h3 class="mb-0">{{ totalItems() }}</h3>
             </div>
           </div>
@@ -43,7 +43,7 @@
               <i class="bi bi-check-circle"></i>
             </div>
             <div class="ms-3">
-              <h6 class="text-muted mb-1">Published</h6>
+              <h6 class="text-muted mb-1">{{ 'paths_admin.list.published' | translate }}</h6>
               <!-- FIXED: Use computed signal instead of arrow function -->
               <h3 class="mb-0">{{ publishedCount() }}</h3>
             </div>
@@ -59,7 +59,7 @@
               <i class="bi bi-pencil-square"></i>
             </div>
             <div class="ms-3">
-              <h6 class="text-muted mb-1">Drafts</h6>
+              <h6 class="text-muted mb-1">{{ 'paths_admin.list.drafts' | translate }}</h6>
               <!-- FIXED: Use computed signal instead of arrow function -->
               <h3 class="mb-0">{{ draftCount() }}</h3>
             </div>
@@ -75,7 +75,7 @@
               <i class="bi bi-people"></i>
             </div>
             <div class="ms-3">
-              <h6 class="text-muted mb-1">Total Enrollments</h6>
+              <h6 class="text-muted mb-1">{{ 'paths_admin.list.total_enrollments' | translate }}</h6>
               <!-- FIXED: Use computed signal instead of arrow function -->
               <h3 class="mb-0">{{ totalEnrollments() }}</h3>
             </div>
@@ -91,7 +91,7 @@
       <div class="row g-3 align-items-end">
         <!-- Search -->
         <div class="col-md-4">
-          <label class="form-label small text-muted">Search</label>
+          <label class="form-label small text-muted">{{ 'common.search' | translate }}</label>
           <div class="input-group">
             <span class="input-group-text bg-transparent border-end-0">
               <i class="bi bi-search"></i>
@@ -99,7 +99,7 @@
             <input
               type="text"
               class="form-control border-start-0"
-              placeholder="Search paths..."
+              placeholder="{{ 'paths_admin.list.search_placeholder' | translate }}"
               [(ngModel)]="searchQuery"
               (keyup.enter)="onSearch()"
             >
@@ -108,9 +108,9 @@
 
         <!-- Status Filter -->
         <div class="col-md-2">
-          <label class="form-label small text-muted">Status</label>
+          <label class="form-label small text-muted">{{ 'paths_admin.status' | translate }}</label>
           <select class="form-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
-            <option value="">All Statuses</option>
+            <option value="">{{ 'paths_admin.list.all_statuses' | translate }}</option>
             @for (status of pathStatuses; track status.value) {
               <option [value]="status.value">{{ status.label }}</option>
             }
@@ -119,9 +119,9 @@
 
         <!-- Skill Level Filter -->
         <div class="col-md-2">
-          <label class="form-label small text-muted">Skill Level</label>
+          <label class="form-label small text-muted">{{ 'paths_admin.skill_level' | translate }}</label>
           <select class="form-select" [(ngModel)]="skillFilter" (change)="onFilterChange()">
-            <option value="">All Levels</option>
+            <option value="">{{ 'paths.all_levels' | translate }}</option>
             @for (level of skillLevels; track level.value) {
               <option [value]="level.value">{{ level.label }}</option>
             }
@@ -134,13 +134,13 @@
             @if (hasSelection()) {
               <div class="btn-group">
                 <button class="btn btn-success btn-sm" (click)="bulkPublish()">
-                  <i class="bi bi-check-lg me-1"></i>Publish
+                  <i class="bi bi-check-lg me-1"></i>{{ 'paths_admin.publish' | translate }}
                 </button>
                 <button class="btn btn-outline-warning btn-sm" (click)="bulkArchive()">
-                  <i class="bi bi-archive me-1"></i>Archive
+                  <i class="bi bi-archive me-1"></i>{{ 'paths_admin.archive' | translate }}
                 </button>
                 <button class="btn btn-outline-danger btn-sm" (click)="bulkDelete()">
-                  <i class="bi bi-trash me-1"></i>Delete
+                  <i class="bi bi-trash me-1"></i>{{ 'paths_admin.delete' | translate }}
                 </button>
               </div>
             }
@@ -164,7 +164,7 @@
 
             @if (searchQuery() || statusFilter() || skillFilter()) {
               <button class="btn btn-secondary btn-sm" (click)="clearFilters()">
-                <i class="bi bi-x-lg me-1"></i>Clear
+                <i class="bi bi-x-lg me-1"></i>{{ 'paths_admin.clear' | translate }}
               </button>
             }
           </div>
@@ -177,7 +177,7 @@
   @if (loading()) {
     <div class="text-center py-5">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
     </div>
   } @else {
@@ -188,17 +188,17 @@
           <div class="empty-state-icon mb-4">
             <i class="bi bi-signpost-split display-1 text-muted"></i>
           </div>
-          <h4>No Learning Paths Found</h4>
+          <h4>{{ 'paths.empty_title' | translate }}</h4>
           <p class="text-muted mb-4">
             @if (searchQuery() || statusFilter() || skillFilter()) {
-              No paths match your current filters. Try adjusting your search criteria.
+              {{ 'paths_admin.list.empty_filtered' | translate }}
             } @else {
-              Get started by creating your first learning path.
+              {{ 'paths_admin.list.empty_get_started' | translate }}
             }
           </p>
           @if (!searchQuery() && !statusFilter() && !skillFilter()) {
             <a routerLink="/admin/learning-paths/create" class="btn btn-primary">
-              <i class="bi bi-plus-lg me-2"></i>Create Learning Path
+              <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.create_path' | translate }}
             </a>
           }
         </div>
@@ -222,7 +222,7 @@
                   <div class="path-badges">
                     <span [class]="getStatusBadgeClass(path.status)">{{ path.status }}</span>
                     @if (path.is_mandatory) {
-                      <span class="badge bg-danger ms-1">Mandatory</span>
+                      <span class="badge bg-danger ms-1">{{ 'paths.mandatory' | translate }}</span>
                     }
                   </div>
                   <!-- Selection Checkbox -->
@@ -259,7 +259,7 @@
                   <div class="path-stats">
                     <div class="stat">
                       <i class="bi bi-collection"></i>
-                      <span>{{ path.total_items }} items</span>
+                      <span>{{ 'paths.items_count' | translate:{ count: path.total_items } }}</span>
                     </div>
                     <div class="stat">
                       <i class="bi bi-clock"></i>
@@ -267,7 +267,7 @@
                     </div>
                     <div class="stat">
                       <i class="bi bi-people"></i>
-                      <span>{{ path.total_enrollments }} enrolled</span>
+                      <span>{{ 'paths.enrolled_count' | translate:{ count: path.total_enrollments } }}</span>
                     </div>
                   </div>
                 </div>
@@ -275,7 +275,7 @@
                 <div class="card-footer bg-transparent">
                   <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted">
-                      Updated {{ formatDate(path.updated_at || path.created_at) }}
+                      {{ 'paths_admin.list.updated' | translate:{ date: formatDate(path.updated_at || path.created_at) } }}
                     </small>
                     <div class="dropdown">
                       <button class="btn btn-sm btn-link text-muted p-0" data-bs-toggle="dropdown">
@@ -284,43 +284,43 @@
                       <ul class="dropdown-menu dropdown-menu-end">
                         <li>
                           <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id]">
-                            <i class="bi bi-eye me-2"></i>View
+                            <i class="bi bi-eye me-2"></i>{{ 'common.view' | translate }}
                           </a>
                         </li>
                         <li>
                           <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'edit']">
-                            <i class="bi bi-pencil me-2"></i>Edit
+                            <i class="bi bi-pencil me-2"></i>{{ 'paths_admin.edit' | translate }}
                           </a>
                         </li>
                         <li>
                           <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'builder']">
-                            <i class="bi bi-diagram-3 me-2"></i>Builder
+                            <i class="bi bi-diagram-3 me-2"></i>{{ 'paths_admin.builder' | translate }}
                           </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         @if (path.status === 'draft') {
                           <li>
                             <button class="dropdown-item" (click)="publishPath(path)">
-                              <i class="bi bi-check-circle me-2"></i>Publish
+                              <i class="bi bi-check-circle me-2"></i>{{ 'paths_admin.publish' | translate }}
                             </button>
                           </li>
                         }
                         @if (path.status === 'published') {
                           <li>
                             <button class="dropdown-item" (click)="archivePath(path)">
-                              <i class="bi bi-archive me-2"></i>Archive
+                              <i class="bi bi-archive me-2"></i>{{ 'paths_admin.archive' | translate }}
                             </button>
                           </li>
                         }
                         <li>
                           <button class="dropdown-item" (click)="duplicatePath(path)">
-                            <i class="bi bi-copy me-2"></i>Duplicate
+                            <i class="bi bi-copy me-2"></i>{{ 'paths_admin.duplicate' | translate }}
                           </button>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
                           <button class="dropdown-item text-danger" (click)="deletePath(path)">
-                            <i class="bi bi-trash me-2"></i>Delete
+                            <i class="bi bi-trash me-2"></i>{{ 'paths_admin.delete' | translate }}
                           </button>
                         </li>
                       </ul>
@@ -347,23 +347,23 @@
                   >
                 </th>
                 <th class="sortable" (click)="onSort('title')">
-                  Title
+                  {{ 'paths_admin.title_col' | translate }}
                   @if (sortBy() === 'title') {
                     <i class="bi" [class.bi-sort-up]="sortDir() === 'asc'" [class.bi-sort-down]="sortDir() === 'desc'"></i>
                   }
                 </th>
-                <th>Status</th>
-                <th>Level</th>
-                <th class="text-center">Items</th>
-                <th class="text-center">Enrollments</th>
+                <th>{{ 'paths_admin.status' | translate }}</th>
+                <th>{{ 'paths.level' | translate }}</th>
+                <th class="text-center">{{ 'paths_admin.items_col' | translate }}</th>
+                <th class="text-center">{{ 'paths_admin.enrollments' | translate }}</th>
                 <th class="text-center sortable" (click)="onSort('avg_rating')">
-                  Rating
+                  {{ 'paths_admin.rating' | translate }}
                   @if (sortBy() === 'avg_rating') {
                     <i class="bi" [class.bi-sort-up]="sortDir() === 'asc'" [class.bi-sort-down]="sortDir() === 'desc'"></i>
                   }
                 </th>
                 <th class="sortable" (click)="onSort('created_at')">
-                  Created
+                  {{ 'paths_admin.created' | translate }}
                   @if (sortBy() === 'created_at') {
                     <i class="bi" [class.bi-sort-up]="sortDir() === 'asc'" [class.bi-sort-down]="sortDir() === 'desc'"></i>
                   }
@@ -398,7 +398,7 @@
                             {{ path.title }}
                           </a>
                           @if (path.is_mandatory) {
-                            <span class="badge bg-danger-subtle text-danger ms-2">Mandatory</span>
+                            <span class="badge bg-danger-subtle text-danger ms-2">{{ 'paths.mandatory' | translate }}</span>
                           }
                           <div class="text-muted small text-truncate" style="max-width: 300px">
                             {{ path.short_description }}
@@ -439,36 +439,36 @@
                           <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                               <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id]">
-                                <i class="bi bi-eye me-2"></i>View Details
+                                <i class="bi bi-eye me-2"></i>{{ 'paths_admin.view_details' | translate }}
                               </a>
                             </li>
                             <li>
                               <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'builder']">
-                                <i class="bi bi-diagram-3 me-2"></i>Content Builder
+                                <i class="bi bi-diagram-3 me-2"></i>{{ 'paths_admin.content_builder' | translate }}
                               </a>
                             </li>
                             <li>
                               <a class="dropdown-item" [routerLink]="['/admin/learning-paths', path.path_id, 'enrollments']">
-                                <i class="bi bi-people me-2"></i>Enrollments
+                                <i class="bi bi-people me-2"></i>{{ 'paths_admin.enrollments' | translate }}
                               </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             @if (path.status === 'draft') {
                               <li>
                                 <button class="dropdown-item" (click)="publishPath(path)">
-                                  <i class="bi bi-check-circle me-2"></i>Publish
+                                  <i class="bi bi-check-circle me-2"></i>{{ 'paths_admin.publish' | translate }}
                                 </button>
                               </li>
                             }
                             <li>
                               <button class="dropdown-item" (click)="duplicatePath(path)">
-                                <i class="bi bi-copy me-2"></i>Duplicate
+                                <i class="bi bi-copy me-2"></i>{{ 'paths_admin.duplicate' | translate }}
                               </button>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                               <button class="dropdown-item text-danger" (click)="deletePath(path)">
-                                <i class="bi bi-trash me-2"></i>Delete
+                                <i class="bi bi-trash me-2"></i>{{ 'paths_admin.delete' | translate }}
                               </button>
                             </li>
                           </ul>

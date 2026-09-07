@@ -16,11 +16,13 @@ import {
   PATH_STATUSES
 } from '../../interfaces/learning-path.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learning-path-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AdmintopComponent, TranslatePipe],
   templateUrl: './learning-path-form.component.html',
   styleUrls: ['./learning-path-form.component.scss']
 })
@@ -46,33 +48,41 @@ export class LearningPathFormComponent implements OnInit, OnDestroy {
   certificateTemplates = signal<any[]>([]);
   badges = signal<any[]>([]);
 
-  // Form options
-  pathTypes: { value: PathType; label: string; description: string }[] = [
-    { value: 'sequential', label: 'Sequential', description: 'Items must be completed in order' },
-    { value: 'flexible', label: 'Flexible', description: 'Items can be completed in any order' },
-    { value: 'milestone', label: 'Milestone', description: 'Unlock sections by completing milestones' }
-  ];
+  // Form options (labels resolved through i18n so they follow the active language)
+  get pathTypes(): { value: PathType; label: string; description: string }[] {
+    return [
+      { value: 'sequential', label: this.i18n.t('paths_admin.form.pt_sequential'), description: this.i18n.t('paths_admin.form.pt_sequential_desc') },
+      { value: 'flexible', label: this.i18n.t('paths_admin.form.pt_flexible'), description: this.i18n.t('paths_admin.form.pt_flexible_desc') },
+      { value: 'milestone', label: this.i18n.t('paths_admin.form.pt_milestone'), description: this.i18n.t('paths_admin.form.pt_milestone_desc') }
+    ];
+  }
 
-  completionTypes: { value: CompletionType; label: string; description: string }[] = [
-    { value: 'all_items', label: 'All Items', description: 'Complete all items to finish' },
-    { value: 'percentage', label: 'Percentage', description: 'Complete a percentage of items' },
-    { value: 'points', label: 'Points', description: 'Earn minimum points to complete' },
-    { value: 'assessment', label: 'Final Assessment', description: 'Pass the final assessments' }
-  ];
+  get completionTypes(): { value: CompletionType; label: string; description: string }[] {
+    return [
+      { value: 'all_items', label: this.i18n.t('paths_admin.form.ct_all_items'), description: this.i18n.t('paths_admin.form.ct_all_items_desc') },
+      { value: 'percentage', label: this.i18n.t('paths_admin.form.ct_percentage'), description: this.i18n.t('paths_admin.form.ct_percentage_desc') },
+      { value: 'points', label: this.i18n.t('paths_admin.form.ct_points'), description: this.i18n.t('paths_admin.form.ct_points_desc') },
+      { value: 'assessment', label: this.i18n.t('paths_admin.form.ct_assessment'), description: this.i18n.t('paths_admin.form.ct_assessment_desc') }
+    ];
+  }
 
-  visibilityOptions: { value: Visibility; label: string }[] = [
-    { value: 'public', label: 'Public - Visible to all users' },
-    { value: 'private', label: 'Private - Only visible to admins' },
-    { value: 'restricted', label: 'Restricted - Specific roles/departments' },
-    { value: 'enrolled_only', label: 'Enrolled Only - Only enrolled users' }
-  ];
+  get visibilityOptions(): { value: Visibility; label: string }[] {
+    return [
+      { value: 'public', label: this.i18n.t('paths_admin.form.vis_public') },
+      { value: 'private', label: this.i18n.t('paths_admin.form.vis_private') },
+      { value: 'restricted', label: this.i18n.t('paths_admin.form.vis_restricted') },
+      { value: 'enrolled_only', label: this.i18n.t('paths_admin.form.vis_enrolled_only') }
+    ];
+  }
 
-  enrollmentTypes: { value: EnrollmentType; label: string }[] = [
-    { value: 'open', label: 'Open - Anyone can enroll' },
-    { value: 'approval_required', label: 'Approval Required' },
-    { value: 'invitation_only', label: 'Invitation Only' },
-    { value: 'auto_enroll', label: 'Auto-Enroll' }
-  ];
+  get enrollmentTypes(): { value: EnrollmentType; label: string }[] {
+    return [
+      { value: 'open', label: this.i18n.t('paths_admin.form.et_open') },
+      { value: 'approval_required', label: this.i18n.t('paths_admin.form.et_approval') },
+      { value: 'invitation_only', label: this.i18n.t('paths_admin.form.et_invitation') },
+      { value: 'auto_enroll', label: this.i18n.t('paths_admin.form.et_auto') }
+    ];
+  }
 
   // Tags input
   newTag = '';
@@ -84,7 +94,8 @@ export class LearningPathFormComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private learningPathService: LearningPathService
+    private learningPathService: LearningPathService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {

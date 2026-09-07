@@ -24,8 +24,8 @@
         <i class="bi bi-cloud-arrow-up"></i>
         <div class="icon-ring"></div>
       </div>
-      <h3>Drag & drop files here</h3>
-      <p>or click to browse</p>
+      <h3>{{ 'admin.media_upload.drag_drop' | translate }}</h3>
+      <p>{{ 'admin.media_upload.click_browse' | translate }}</p>
 
       <div class="accepted-types">
         <span class="type-badge" *ngFor="let type of acceptedTypes"
@@ -36,14 +36,14 @@
       </div>
 
       <p class="size-hint">
-        Max file sizes: Video 2GB, Audio 500MB, PDF 100MB, SCORM 1GB
+        {{ 'admin.media_upload.size_hint' | translate }}
       </p>
     </div>
 
     <!-- Mini drop zone when files exist -->
     <div class="drop-zone-mini" *ngIf="fileQueue.length > 0">
       <i class="bi bi-plus-circle"></i>
-      <span>Add more files</span>
+      <span>{{ 'admin.media_upload.add_more' | translate }}</span>
     </div>
   </div>
 
@@ -55,23 +55,23 @@
       <div class="queue-stats">
         <span class="stat">
           <i class="bi bi-files"></i>
-          {{ fileQueue.length }} file{{ fileQueue.length > 1 ? 's' : '' }}
+          {{ 'admin.media_upload.file_count' | translate:{ count: fileQueue.length } }}
         </span>
         <span class="stat pending" *ngIf="pendingCount > 0">
           <i class="bi bi-hourglass-split"></i>
-          {{ pendingCount }} pending
+          {{ 'admin.media_upload.n_pending' | translate:{ count: pendingCount } }}
         </span>
         <span class="stat uploading" *ngIf="uploadingCount > 0">
           <i class="bi bi-arrow-up-circle"></i>
-          {{ uploadingCount }} uploading
+          {{ 'admin.media_upload.n_uploading' | translate:{ count: uploadingCount } }}
         </span>
         <span class="stat success" *ngIf="completedCount > 0">
           <i class="bi bi-check-circle"></i>
-          {{ completedCount }} completed
+          {{ 'admin.media_upload.n_completed' | translate:{ count: completedCount } }}
         </span>
         <span class="stat error" *ngIf="failedCount > 0">
           <i class="bi bi-exclamation-circle"></i>
-          {{ failedCount }} failed
+          {{ 'admin.media_upload.n_failed' | translate:{ count: failedCount } }}
         </span>
       </div>
 
@@ -81,14 +81,14 @@
           (click)="clearQueue()"
           [disabled]="isUploading">
           <i class="bi bi-trash3"></i>
-          Clear
+          {{ 'admin.media_upload.clear' | translate }}
         </button>
         <button
           class="btn btn-sm btn-primary"
           (click)="startUpload()"
           [disabled]="isUploading || pendingCount === 0">
           <i class="bi bi-cloud-upload"></i>
-          Upload {{ pendingCount > 0 ? '(' + pendingCount + ')' : '' }}
+          {{ 'admin.media.upload' | translate }} {{ pendingCount > 0 ? '(' + pendingCount + ')' : '' }}
         </button>
       </div>
     </div>
@@ -112,7 +112,7 @@
 
         <!-- File Preview/Icon -->
         <div class="file-preview" [style.--type-color]="colourFor(queuedFile.kind)">
-          <img *ngIf="queuedFile.preview" [src]="queuedFile.preview" alt="Preview">
+          <img *ngIf="queuedFile.preview" [src]="queuedFile.preview" alt="{{ 'admin.media_upload.preview_alt' | translate }}">
           <i *ngIf="!queuedFile.preview" [class]="iconFor(queuedFile.kind)"></i>
 
           <!-- Upload Progress Overlay -->
@@ -156,7 +156,7 @@
           <div class="success-info" *ngIf="queuedFile.response">
             <a role="button" (click)="openUploaded(queuedFile.response)" class="file-link">
               <i class="bi bi-box-arrow-up-right"></i>
-              View file
+              {{ 'admin.media_upload.view_file' | translate }}
             </a>
             <span *ngIf="queuedFile.response.versionNumber > 1" class="version-badge">
               v{{ queuedFile.response.versionNumber }}
@@ -168,21 +168,21 @@
         <div class="file-actions">
           <button
             class="btn-icon"
-            title="Configure"
+            title="{{ 'admin.media_upload.configure' | translate }}"
             (click)="openConfig(queuedFile); $event.stopPropagation()"
             *ngIf="queuedFile.status === 'pending'">
             <i class="bi bi-gear"></i>
           </button>
           <button
             class="btn-icon"
-            title="Retry"
+            title="{{ 'admin.media_upload.retry' | translate }}"
             (click)="retryUpload(queuedFile); $event.stopPropagation()"
             *ngIf="queuedFile.status === 'error'">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
           <button
             class="btn-icon danger"
-            title="Remove"
+            title="{{ 'common.remove' | translate }}"
             (click)="removeFile(queuedFile); $event.stopPropagation()"
             *ngIf="queuedFile.status !== 'uploading'">
             <i class="bi bi-x-lg"></i>
@@ -200,7 +200,7 @@
       <h3>
         <i [class]="iconFor(selectedFile?.kind ?? 'document')"
            [style.color]="colourFor(selectedFile?.kind ?? 'document')"></i>
-        File Settings
+        {{ 'admin.media_upload.file_settings' | translate }}
       </h3>
       <button class="btn-close" (click)="closeConfigModal()">
         <i class="bi bi-x-lg"></i>
@@ -209,53 +209,53 @@
 
     <div class="modal-body">
       <div class="form-group">
-        <label for="fileTitle">Title</label>
+        <label for="fileTitle">{{ 'admin.media_upload.title_label' | translate }}</label>
         <input
           type="text"
           id="fileTitle"
           class="form-control"
           [(ngModel)]="fileTitle"
-          placeholder="Enter file title">
+          placeholder="{{ 'admin.media_upload.title_placeholder' | translate }}">
       </div>
 
       <div class="form-group">
-        <label for="fileDescription">Description</label>
+        <label for="fileDescription">{{ 'admin.media_upload.description_label' | translate }}</label>
         <textarea
           id="fileDescription"
           class="form-control"
           [(ngModel)]="fileDescription"
           rows="3"
-          placeholder="Enter file description (optional)"></textarea>
+          placeholder="{{ 'admin.media_upload.description_placeholder' | translate }}"></textarea>
       </div>
 
       <div class="form-row" *ngIf="replacesMediaId">
         <div class="form-group">
-          <label for="versionLabel">Version Label</label>
+          <label for="versionLabel">{{ 'admin.media_upload.version_label' | translate }}</label>
           <input
             type="text"
             id="versionLabel"
             class="form-control"
             [(ngModel)]="versionLabel"
-            placeholder="e.g., v2.0, Final">
+            placeholder="{{ 'admin.media_upload.version_label_placeholder' | translate }}">
         </div>
       </div>
 
       <div class="form-group" *ngIf="replacesMediaId">
-        <label for="versionNotes">Version Notes</label>
+        <label for="versionNotes">{{ 'admin.media_upload.version_notes' | translate }}</label>
         <textarea
           id="versionNotes"
           class="form-control"
           [(ngModel)]="versionNotes"
           rows="2"
-          placeholder="Describe what changed in this version"></textarea>
+          placeholder="{{ 'admin.media_upload.version_notes_placeholder' | translate }}"></textarea>
       </div>
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeConfigModal()">Cancel</button>
+      <button class="btn btn-secondary" (click)="closeConfigModal()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" (click)="saveConfig()">
         <i class="bi bi-check-lg"></i>
-        Save
+        {{ 'common.save' | translate }}
       </button>
     </div>
   </div>

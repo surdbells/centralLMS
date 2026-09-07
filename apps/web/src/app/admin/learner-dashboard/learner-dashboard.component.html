@@ -4,7 +4,7 @@
   <div *ngIf="isLoading" class="loading-container">
     <div class="loading-content">
       <div class="loading-spinner"></div>
-      <p>Loading your dashboard...</p>
+      <p>{{ 'learner_dash.loading' | translate }}</p>
     </div>
   </div>
 
@@ -14,11 +14,11 @@
       <div class="error-icon">
         <tui-icon icon="@tui.alert-circle"></tui-icon>
       </div>
-      <h4>Something went wrong</h4>
+      <h4>{{ 'common.error_generic' | translate }}</h4>
       <p>{{ error }}</p>
       <a routerLink="/mysettings" class="btn-primary" (click)="loadDashboard()">
         <tui-icon icon="@tui.refresh-cw"></tui-icon>
-        Try Again
+        {{ 'common.try_again' | translate }}
       </a>
     </div>
   </div>
@@ -44,11 +44,11 @@
                 <span *ngIf="dashboard.user.job_title">{{ dashboard.user.job_title }}</span>
                 <span *ngIf="dashboard.user.job_title && dashboard.user.department"> • </span>
                 <span *ngIf="dashboard.user.department">{{ dashboard.user.department }}</span>
-                <span *ngIf="!dashboard.user.job_title && !dashboard.user.department">Learner</span>
+                <span *ngIf="!dashboard.user.job_title && !dashboard.user.department">{{ 'learner_dash.learner_role' | translate }}</span>
               </p>
             </div>
             <a routerLink="/mysettings" class="btn-share">
-              Settings
+              {{ 'nav.settings' | translate }}
               <tui-icon icon="@tui.settings-2"></tui-icon>
             </a>
           </div>
@@ -56,13 +56,13 @@
             <div class="level-header">
               <span class="level-name">{{ getLevelName(dashboard.overview.total_points) }}</span>
               <span class="level-points" *ngIf="hasNextLevel">{{ dashboard.overview.total_points }} / {{ getNextLevelTarget(dashboard.overview.total_points) }}</span>
-              <span class="level-points" *ngIf="!hasNextLevel">{{ dashboard.overview.total_points }} points</span>
+              <span class="level-points" *ngIf="!hasNextLevel">{{ 'learner_dash.points_count' | translate:{ count: dashboard.overview.total_points } }}</span>
             </div>
             <div class="level-bar">
               <div class="level-fill" [style.width.%]="getLevelProgress(dashboard.overview.total_points)"></div>
             </div>
             <p class="level-remaining" *ngIf="hasNextLevel">
-              <strong>{{ getPointsToNextLevel(dashboard.overview.total_points) }}</strong> to reach new level
+              <strong>{{ getPointsToNextLevel(dashboard.overview.total_points) }}</strong> {{ 'learner_dash.to_next_level' | translate }}
             </p>
           </div>
         </div>
@@ -70,25 +70,25 @@
         <!-- Days in Training Stat -->
         <div class="hero-card stat-card">
           <div class="stat-value">{{ getTotalDaysLearning() }}</div>
-          <div class="stat-label">Days in training</div>
+          <div class="stat-label">{{ 'learner_dash.days_in_training' | translate }}</div>
         </div>
 
         <!-- Completed Courses Stat -->
         <div class="hero-card stat-card">
           <div class="stat-value">{{ dashboard.overview.courses_completed }}</div>
-          <div class="stat-label">Completed courses</div>
+          <div class="stat-label">{{ 'learner_dash.completed_courses' | translate }}</div>
         </div>
 
         <!-- Activity Chart Card -->
         <div class="hero-card activity-card">
           <div class="activity-header">
             <div class="activity-title">
-              <h3>Activity</h3>
+              <h3>{{ 'learner_dash.activity' | translate }}</h3>
               <span class="activity-range">{{ getActivityDateRange() }}</span>
             </div>
             <div class="activity-toggle">
-              <button [class.active]="activityView === 'week'" (click)="setActivityView('week')">Week</button>
-              <button [class.active]="activityView === 'month'" (click)="setActivityView('month')">Month</button>
+              <button [class.active]="activityView === 'week'" (click)="setActivityView('week')">{{ 'learner_dash.week' | translate }}</button>
+              <button [class.active]="activityView === 'month'" (click)="setActivityView('month')">{{ 'learner_dash.month' | translate }}</button>
             </div>
           </div>
           <div class="activity-chart">
@@ -135,7 +135,7 @@
             <span class="ring-text">{{ dashboard.overview.overall_progress }}%</span>
           </div>
           <div class="mini-stat-content">
-            <span class="mini-stat-label">Progress</span>
+            <span class="mini-stat-label">{{ 'skills.progress' | translate }}</span>
           </div>
         </div>
 
@@ -146,7 +146,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ dashboard.overview.courses_enrolled }}</span>
-            <span class="mini-stat-label">Enrolled</span>
+            <span class="mini-stat-label">{{ 'learner_dash.enrolled' | translate }}</span>
           </div>
         </div>
 
@@ -157,7 +157,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ dashboard.overview.courses_in_progress }}</span>
-            <span class="mini-stat-label">In Progress</span>
+            <span class="mini-stat-label">{{ 'skills.in_progress' | translate }}</span>
           </div>
         </div>
 
@@ -168,7 +168,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ dashboard.overview.total_learning_hours }}h</span>
-            <span class="mini-stat-label">Total Hours</span>
+            <span class="mini-stat-label">{{ 'learner_dash.total_hours' | translate }}</span>
           </div>
         </div>
 
@@ -179,7 +179,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ formatNumber(dashboard.overview.total_points) }}</span>
-            <span class="mini-stat-label">Points</span>
+            <span class="mini-stat-label">{{ 'learner_dash.points' | translate }}</span>
           </div>
         </div>
 
@@ -190,7 +190,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ dashboard.overview.total_badges }}</span>
-            <span class="mini-stat-label">Badges</span>
+            <span class="mini-stat-label">{{ 'learner_dash.badges' | translate }}</span>
           </div>
         </div>
 
@@ -201,7 +201,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ dashboard.learning_streak.current_streak }}</span>
-            <span class="mini-stat-label">Day Streak</span>
+            <span class="mini-stat-label">{{ 'learner_dash.day_streak' | translate }}</span>
           </div>
         </div>
 
@@ -212,7 +212,7 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-value">{{ dashboard.overview.total_certificates }}</span>
-            <span class="mini-stat-label">Certificates</span>
+            <span class="mini-stat-label">{{ 'learner_dash.certificates' | translate }}</span>
           </div>
         </div>
       </div>
@@ -230,10 +230,10 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.circle-play"></tui-icon>
-                Continue Learning
+                {{ 'paths.continue_learning' | translate }}
               </h3>
               <a href="javascript:void(0)" class="view-all" (click)="navigateTo('my-courses')">
-                View All <tui-icon icon="@tui.arrow-right"></tui-icon>
+                {{ 'common.view_all' | translate }} <tui-icon icon="@tui.arrow-right"></tui-icon>
               </a>
             </div>
             <div class="card-content">
@@ -253,7 +253,7 @@
                     <span class="course-level" [ngClass]="getLevelClass(course.level)">{{ course.level }}</span>
                   </div>
                   <div class="course-body">
-                    <span class="course-category">{{ course.category || 'General' }}</span>
+                    <span class="course-category">{{ course.category || ('learner_dash.general' | translate) }}</span>
                     <h4 class="course-title">{{ course.title }}</h4>
                     <div class="course-progress">
                       <div class="progress-bar">
@@ -264,7 +264,7 @@
                     <div class="course-footer" *ngIf="course.days_until_due !== null">
                       <span class="due-date" [class.urgent]="course.days_until_due <= 3">
                         <tui-icon icon="@tui.clock"></tui-icon>
-                        {{ course.days_until_due }}d left
+                        {{ 'admin_dash.days_left' | translate:{ days: course.days_until_due } }}
                       </span>
                     </div>
                   </div>
@@ -272,9 +272,9 @@
               </div>
               <div class="empty-state" *ngIf="!dashboard.courses.in_progress?.length">
                 <tui-icon icon="@tui.book-open"></tui-icon>
-                <h4>No courses in progress</h4>
-                <p>Start learning to see your courses here</p>
-                <button class="btn-primary" (click)="navigateTo('learning')">Browse Courses</button>
+                <h4>{{ 'learner_dash.no_courses_in_progress' | translate }}</h4>
+                <p>{{ 'learner_dash.start_learning_hint' | translate }}</p>
+                <button class="btn-primary" (click)="navigateTo('learning')">{{ 'skills.browse_courses' | translate }}</button>
               </div>
             </div>
           </div>
@@ -284,7 +284,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.bar-chart-2"></tui-icon>
-                This Week's Activity
+                {{ 'learner_dash.week_activity_title' | translate }}
               </h3>
             </div>
             <div class="card-content">
@@ -304,10 +304,10 @@
                 </div>
                 <div class="chart-footer">
                   <span class="chart-total">
-                    <strong>{{ dashboard.overview.hours_this_week }} hours</strong> this week
+                    <strong>{{ 'paths.hours' | translate:{ count: dashboard.overview.hours_this_week } }}</strong> {{ 'learner_dash.this_week' | translate }}
                   </span>
                   <span class="chart-avg">
-                    ~{{ Math.round(dashboard.overview.hours_this_week / 7 * 60) }}m daily avg
+                    {{ 'learner_dash.daily_avg' | translate:{ count: Math.round(dashboard.overview.hours_this_week / 7 * 60) } }}
                   </span>
                 </div>
               </div>
@@ -319,7 +319,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.zap"></tui-icon>
-                Learning Streak
+                {{ 'learner_dash.learning_streak' | translate }}
               </h3>
             </div>
             <div class="card-content">
@@ -328,11 +328,11 @@
                   <div class="streak-flame">🔥</div>
                   <div class="streak-info">
                     <span class="streak-count">{{ dashboard.learning_streak.current_streak }}</span>
-                    <span class="streak-text">day streak</span>
+                    <span class="streak-text">{{ 'learner_dash.day_streak_label' | translate }}</span>
                   </div>
                   <div class="streak-best">
                     <tui-icon icon="@tui.trophy"></tui-icon>
-                    Best: {{ dashboard.learning_streak.longest_streak }} days
+                    {{ 'learner_dash.best_streak' | translate:{ count: dashboard.learning_streak.longest_streak } }}
                   </div>
                 </div>
                 <div class="streak-calendar">
@@ -347,7 +347,7 @@
                 </div>
                 <div class="streak-alert" *ngIf="!dashboard.learning_streak.is_active">
                   <tui-icon icon="@tui.alert-circle"></tui-icon>
-                  Learn today to keep your streak going!
+                  {{ 'learner_dash.streak_alert' | translate }}
                 </div>
               </div>
             </div>
@@ -358,7 +358,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.target"></tui-icon>
-                Skill Progress
+                {{ 'learner_dash.skill_progress' | translate }}
               </h3>
             </div>
             <div class="card-content">
@@ -371,7 +371,7 @@
                   <div class="skill-bar">
                     <div class="skill-fill" [ngClass]="getSkillColor(skill.progress)" [style.width.%]="skill.progress"></div>
                   </div>
-                  <span class="skill-meta">{{ skill.completed }}/{{ skill.total }} courses completed</span>
+                  <span class="skill-meta">{{ 'learner_dash.skill_meta' | translate:{ completed: skill.completed, total: skill.total } }}</span>
                 </div>
               </div>
             </div>
@@ -382,10 +382,10 @@
               <div class="card-header">
                 <h3>
                   <tui-icon icon="@tui.compass"></tui-icon>
-                  Recommended For You
+                  {{ 'learner_dash.recommended' | translate }}
                 </h3>
                 <a href="javascript:void(0)" class="view-all" (click)="navigateTo('catalog')">
-                  Browse All <tui-icon icon="@tui.arrow-right"></tui-icon>
+                  {{ 'learner_dash.browse_all' | translate }} <tui-icon icon="@tui.arrow-right"></tui-icon>
                 </a>
               </div>
               <div class="card-content">
@@ -400,12 +400,12 @@
                       <span class="rec-level" [ngClass]="getLevelClass(course.level)">{{ course.level }}</span>
                     </div>
                     <div class="recommended-body">
-                      <span class="rec-category">{{ course.category || 'General' }}</span>
+                      <span class="rec-category">{{ course.category || ('learner_dash.general' | translate) }}</span>
                       <h4>{{ course.title }}</h4>
                       <div class="rec-meta">
                   <span class="rec-duration">
                     <tui-icon icon="@tui.clock"></tui-icon>
-                    {{ course.duration_minutes }}m
+                    {{ 'learner_dash.minutes_short' | translate:{ count: course.duration_minutes } }}
                   </span>
                         <span class="rec-rating" *ngIf="course.avg_rating">
                     <tui-icon icon="@tui.star"></tui-icon>
@@ -428,7 +428,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.calendar"></tui-icon>
-                Upcoming Deadlines
+                {{ 'admin_dash.upcoming_deadlines' | translate }}
               </h3>
             </div>
             <div class="card-content no-padding">
@@ -451,12 +451,12 @@
                     'badge-danger': deadline.urgency === 'critical',
                     'badge-warning': deadline.urgency === 'warning',
                     'badge-info': deadline.urgency === 'normal'
-                  }">{{ deadline.days_remaining }}d</span>
+                  }">{{ 'learner_dash.days_short' | translate:{ days: deadline.days_remaining } }}</span>
                 </div>
               </div>
               <div class="empty-state small" *ngIf="!dashboard.upcoming_deadlines?.length">
                 <tui-icon icon="@tui.check-circle"></tui-icon>
-                <p>No upcoming deadlines</p>
+                <p>{{ 'admin_dash.no_deadlines' | translate }}</p>
               </div>
             </div>
           </div>
@@ -466,7 +466,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.shield"></tui-icon>
-                Compliance Status
+                {{ 'admin_dash.compliance_status' | translate }}
               </h3>
             </div>
             <div class="card-content">
@@ -490,15 +490,15 @@
                 <div class="compliance-stats">
                   <div class="compliance-stat success">
                     <span class="stat-num">{{ dashboard.compliance.completed }}</span>
-                    <span class="stat-label">Done</span>
+                    <span class="stat-label">{{ 'common.done' | translate }}</span>
                   </div>
                   <div class="compliance-stat warning">
                     <span class="stat-num">{{ dashboard.compliance.pending }}</span>
-                    <span class="stat-label">Pending</span>
+                    <span class="stat-label">{{ 'common.pending' | translate }}</span>
                   </div>
                   <div class="compliance-stat danger">
                     <span class="stat-num">{{ dashboard.compliance.overdue }}</span>
-                    <span class="stat-label">Overdue</span>
+                    <span class="stat-label">{{ 'admin_dash.overdue' | translate }}</span>
                   </div>
                 </div>
               </div>
@@ -510,7 +510,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.trophy"></tui-icon>
-                Leaderboard
+                {{ 'learner_dash.leaderboard' | translate }}
               </h3>
             </div>
             <div class="card-content no-padding">
@@ -529,14 +529,14 @@
                   <div class="learner-details">
                     <span class="learner-name">
                       {{ learner.full_name }}
-                      <span class="you-badge" *ngIf="learner.is_me">You</span>
+                      <span class="you-badge" *ngIf="learner.is_me">{{ 'learner_dash.you' | translate }}</span>
                     </span>
                   </div>
                   <span class="learner-points">{{ formatNumber(learner.points) }}</span>
                 </div>
               </div>
               <div class="leaderboard-footer" *ngIf="dashboard.leaderboard.my_rank && dashboard.leaderboard.my_rank > 5">
-                Your position: <strong>#{{ dashboard.leaderboard.my_rank }}</strong> of {{ dashboard.leaderboard.total_learners }}
+                {{ 'learner_dash.your_position' | translate }} <strong>#{{ dashboard.leaderboard.my_rank }}</strong> {{ 'common.of' | translate }} {{ dashboard.leaderboard.total_learners }}
               </div>
             </div>
           </div>
@@ -546,10 +546,10 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.award"></tui-icon>
-                Recent Badges
+                {{ 'learner_dash.recent_badges' | translate }}
               </h3>
               <a href="javascript:void(0)" class="view-all" (click)="navigateTo('achievements')">
-                View All <tui-icon icon="@tui.arrow-right"></tui-icon>
+                {{ 'common.view_all' | translate }} <tui-icon icon="@tui.arrow-right"></tui-icon>
               </a>
             </div>
             <div class="card-content">
@@ -564,14 +564,14 @@
               </div>
               <div class="empty-state small" *ngIf="!dashboard.achievements.badges?.length">
                 <tui-icon icon="@tui.award"></tui-icon>
-                <p>No badges yet. Keep learning!</p>
+                <p>{{ 'learner_dash.no_badges' | translate }}</p>
               </div>
               <div class="next-badge" *ngIf="dashboard.achievements.next_badge">
                 <div class="next-badge-icon">
                   <tui-icon icon="@tui.lock"></tui-icon>
                 </div>
                 <div class="next-badge-info">
-                  <span class="next-label">Next to unlock:</span>
+                  <span class="next-label">{{ 'learner_dash.next_unlock' | translate }}</span>
                   <span class="next-name">{{ dashboard.achievements.next_badge.name }}</span>
                 </div>
               </div>
@@ -583,7 +583,7 @@
             <div class="card-header">
               <h3>
                 <tui-icon icon="@tui.activity"></tui-icon>
-                Recent Activity
+                {{ 'admin_dash.recent_activity' | translate }}
               </h3>
             </div>
             <div class="card-content no-padding">
@@ -600,7 +600,7 @@
               </div>
               <div class="empty-state small" *ngIf="!dashboard.recent_activity?.length">
                 <tui-icon icon="@tui.activity"></tui-icon>
-                <p>No recent activity</p>
+                <p>{{ 'admin_dash.no_activity' | translate }}</p>
               </div>
             </div>
           </div>
@@ -619,23 +619,23 @@
         <div class="card-header">
           <h3>
             <tui-icon icon="@tui.file-text"></tui-icon>
-            My Certificates
+            {{ 'learner_dash.my_certificates' | translate }}
             <span class="expiring-badge" *ngIf="dashboard.certificates.expiring_soon">
-              {{ dashboard.certificates.expiring_soon }} expiring soon
+              {{ 'learner_dash.expiring_soon' | translate:{ count: dashboard.certificates.expiring_soon } }}
             </span>
           </h3>
           <a href="javascript:void(0)" class="view-all" (click)="navigateTo('certificates')">
-            View All <tui-icon icon="@tui.arrow-right"></tui-icon>
+            {{ 'common.view_all' | translate }} <tui-icon icon="@tui.arrow-right"></tui-icon>
           </a>
         </div>
         <div class="card-content no-padding">
           <div class="certificates-table">
             <div class="table-header">
-              <span class="col-course">Course</span>
-              <span class="col-number">Certificate #</span>
-              <span class="col-issued">Issued</span>
-              <span class="col-expires">Expires</span>
-              <span class="col-action">Action</span>
+              <span class="col-course">{{ 'admin_dash.col_course' | translate }}</span>
+              <span class="col-number">{{ 'learner_dash.col_cert_number' | translate }}</span>
+              <span class="col-issued">{{ 'learner_dash.col_issued' | translate }}</span>
+              <span class="col-expires">{{ 'learner_dash.col_expires' | translate }}</span>
+              <span class="col-action">{{ 'learner_dash.col_action' | translate }}</span>
             </div>
             <div class="table-body">
               <div class="table-row" *ngFor="let cert of dashboard.certificates.recent">
@@ -649,9 +649,9 @@
                 }">
                   <ng-container *ngIf="cert.expiry_date">
                     {{ formatDate(cert.expiry_date) }}
-                    <small *ngIf="cert.status === 'expiring_soon'">({{ cert.days_until_expiry }}d left)</small>
+                    <small *ngIf="cert.status === 'expiring_soon'">({{ 'admin_dash.days_left' | translate:{ days: cert.days_until_expiry } }})</small>
                   </ng-container>
-                  <span *ngIf="!cert.expiry_date" class="text-muted">No expiry</span>
+                  <span *ngIf="!cert.expiry_date" class="text-muted">{{ 'learner_dash.no_expiry' | translate }}</span>
                 </span>
                 <span class="col-action">
                   <button class="btn-icon" (click)="downloadCertificate(cert.certificate_id); $event.stopPropagation()">

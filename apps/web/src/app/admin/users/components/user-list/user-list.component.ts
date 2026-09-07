@@ -16,6 +16,8 @@ import { SettingsService } from '../../../../services/settings.service';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
+import { I18nService } from '../../../../i18n.service';
 
 /* The shapes this screen's template already reads. */
 
@@ -91,7 +93,7 @@ export interface UserFilters {
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   templateUrl: './user-list.component.html',
   styles: [`
     .avatar-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:14px; flex-shrink:0; }
@@ -106,6 +108,7 @@ export class UserListComponent implements OnInit, OnDestroy {
   private readonly lookupsService = inject(LookupsService);
   private readonly settingsService = inject(SettingsService);
   private readonly session = inject(SessionStore);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<string>();
@@ -271,12 +274,12 @@ export class UserListComponent implements OnInit, OnDestroy {
           };
 
           this.statCards = [
-            { label: 'Total', value: s.total, icon: 'bi-people-fill', color: 'text-primary', filter: '' },
-            { label: 'Active', value: s.active, icon: 'bi-check-circle-fill', color: 'text-success', filter: 'active' },
-            { label: 'Invited', value: s.invited, icon: 'bi-envelope-fill', color: 'text-secondary', filter: 'invited' },
-            { label: 'Suspended', value: s.suspended, icon: 'bi-pause-circle-fill', color: 'text-warning', filter: 'suspended' },
-            { label: 'Locked', value: s.locked, icon: 'bi-lock-fill', color: 'text-danger', filter: 'locked' },
-            { label: 'Active 30d', value: s.activeLast30, icon: 'bi-activity', color: 'text-info', filter: '' },
+            { label: 'admin.users.stat_total', value: s.total, icon: 'bi-people-fill', color: 'text-primary', filter: '' },
+            { label: 'admin.users.status_active', value: s.active, icon: 'bi-check-circle-fill', color: 'text-success', filter: 'active' },
+            { label: 'admin.users.status_invited', value: s.invited, icon: 'bi-envelope-fill', color: 'text-secondary', filter: 'invited' },
+            { label: 'admin.users.status_suspended', value: s.suspended, icon: 'bi-pause-circle-fill', color: 'text-warning', filter: 'suspended' },
+            { label: 'admin.users.status_locked', value: s.locked, icon: 'bi-lock-fill', color: 'text-danger', filter: 'locked' },
+            { label: 'admin.users.stat_active_30d', value: s.activeLast30, icon: 'bi-activity', color: 'text-info', filter: '' },
           ];
         },
         error: () => undefined,
@@ -377,11 +380,11 @@ export class UserListComponent implements OnInit, OnDestroy {
   // --- one person ----------------------------------------------------------
 
   quickAction(action: string, user: User): void {
-    if (action === 'delete' && !confirm(`Delete "${user.full_name}"?`)) {
+    if (action === 'delete' && !confirm(this.i18n.t('admin.users.confirm_delete_user', { name: user.full_name }))) {
       return;
     }
 
-    if (action === 'suspend' && !confirm(`Suspend "${user.full_name}"?`)) {
+    if (action === 'suspend' && !confirm(this.i18n.t('admin.users.confirm_suspend_user', { name: user.full_name }))) {
       return;
     }
 
@@ -407,14 +410,11 @@ export class UserListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.run(call, `Could not ${action} "${user.full_name}".`);
+    this.run(call, this.i18n.t('admin.users.action_failed', { name: user.full_name }));
   }
 
   private promptForPassword(user: User): void {
-    const password = prompt(
-      `New password for ${user.full_name}.\n\n`
-      + 'Tell them yourself, through something other than this screen.',
-    );
+    const password = prompt(this.i18n.t('admin.users.password_prompt', { name: user.full_name }));
 
     if (password === null || password.trim() === '') {
       this.passwordFor = null;
@@ -428,7 +428,7 @@ export class UserListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.passwordFor = null;
-          alert(`Password set for ${user.full_name}.`);
+          alert(this.i18n.t('admin.users.password_set', { name: user.full_name }));
         },
         error: (e: ApiError) => {
           this.passwordFor = null;
@@ -444,7 +444,7 @@ export class UserListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (action === 'delete' && !confirm(`Delete ${this.selectedIds.length} users?`)) {
+    if (action === 'delete' && !confirm(this.i18n.t('admin.users.confirm_delete_bulk', { count: this.selectedIds.length }))) {
       return;
     }
 
@@ -479,7 +479,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         this.loadStats();
 
         if (failed.length > 0) {
-          alert(`${results.length - failed.length} done, ${failed.length} refused - ${failed[0].message}`);
+          alert(this.i18n.t('admin.users.bulk_result', { done: results.length - failed.length, failed: failed.length, message: failed[0].message }));
         }
       });
   }

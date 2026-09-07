@@ -9,6 +9,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 import { DIAL_CODES, DialCode } from '../../dial-codes';
 import { RegistrationService } from '../../services/registration.service';
 import { ApiError } from '../../core/api';
@@ -58,6 +59,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   dialCodes: DialCode[] = DIAL_CODES;
@@ -153,13 +155,16 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
 
     if (this.domains.length === 1) {
-      return `Open to ${this.domains[0]} addresses.`;
+      return this.i18n.t('register.domain_note_one', { domain: this.domains[0] });
     }
 
     const domains = [...this.domains];
     const last = domains.pop();
 
-    return `Open to ${domains.join(', ')} and ${last} addresses.`;
+    return this.i18n.t('register.domain_note_many', {
+      domains: domains.join(', '),
+      last,
+    });
   }
 
   get selectedDial(): DialCode | undefined {
@@ -195,13 +200,13 @@ export class RegisterComponent implements OnInit, OnDestroy {
    */
   send_otp(): void {
     if (this.register.first_name.trim() === '' || this.register.last_name.trim() === '') {
-      this.error_notification('Your name is required');
+      this.error_notification(this.i18n.t('register.name_required'));
 
       return;
     }
 
     if (this.register.email.trim() === '') {
-      this.error_notification('Email address is required');
+      this.error_notification(this.i18n.t('auth.email_required'));
 
       return;
     }

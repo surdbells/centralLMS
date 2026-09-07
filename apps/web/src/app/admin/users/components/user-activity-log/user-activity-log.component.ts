@@ -8,6 +8,7 @@ import { AuditService, type AuditEvent, type AuditFilters } from '../../../../se
 import { UsersService, type User } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
 
 /**
  * Who did what.
@@ -24,7 +25,7 @@ import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.co
 @Component({
   selector: 'app-user-activity-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   templateUrl: './user-activity-log.component.html',
   styles: [`
     .mono { font-family: var(--bs-font-monospace); font-size: .75rem; }

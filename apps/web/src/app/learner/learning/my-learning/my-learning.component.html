@@ -11,18 +11,18 @@
         <div class="header-text">
           <h1>
             <ng-container [ngSwitch]="viewMode">
-              <span *ngSwitchCase="'dashboard'"><i class="bi bi-journal-bookmark"></i> My Learning</span>
-              <span *ngSwitchCase="'all-courses'"><i class="bi bi-collection"></i> My Courses</span>
-              <span *ngSwitchCase="'browse'"><i class="bi bi-search"></i> Browse Courses</span>
-              <span *ngSwitchCase="'course-detail'"><i class="bi bi-book"></i> Course Details</span>
+              <span *ngSwitchCase="'dashboard'"><i class="bi bi-journal-bookmark"></i> {{ 'learning.my_learning' | translate }}</span>
+              <span *ngSwitchCase="'all-courses'"><i class="bi bi-collection"></i> {{ 'learning.my_courses' | translate }}</span>
+              <span *ngSwitchCase="'browse'"><i class="bi bi-search"></i> {{ 'learning.browse_courses' | translate }}</span>
+              <span *ngSwitchCase="'course-detail'"><i class="bi bi-book"></i> {{ 'learning.course_details' | translate }}</span>
             </ng-container>
           </h1>
-          <p *ngIf="viewMode === 'dashboard'">Track your progress and continue learning</p>
+          <p *ngIf="viewMode === 'dashboard'">{{ 'learning.subtitle' | translate }}</p>
         </div>
       </div>
       <div class="header-actions" *ngIf="viewMode === 'dashboard'">
         <button class="btn btn-outline-light" (click)="showBrowseCourses()">
-          <i class="bi bi-plus-lg me-1"></i> Browse Courses
+          <i class="bi bi-plus-lg me-1"></i> {{ 'learning.browse_courses' | translate }}
         </button>
       </div>
     </div>
@@ -43,7 +43,7 @@
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
   </div>
 
@@ -58,56 +58,56 @@
           <div class="stat-icon enrolled"><i class="bi bi-journal-bookmark"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.total_enrolled }}</span>
-            <span class="stat-label">Enrolled Courses</span>
+            <span class="stat-label">{{ 'learning.enrolled_courses' | translate }}</span>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon progress"><i class="bi bi-play-circle"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.in_progress }}</span>
-            <span class="stat-label">In Progress</span>
+            <span class="stat-label">{{ 'learning.in_progress' | translate }}</span>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon completed"><i class="bi bi-check-circle"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.completed }}</span>
-            <span class="stat-label">Completed</span>
+            <span class="stat-label">{{ 'learning.completed' | translate }}</span>
           </div>
         </div>
         <div class="stat-card" *ngIf="stats.overdue > 0">
           <div class="stat-icon overdue"><i class="bi bi-exclamation-triangle"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.overdue }}</span>
-            <span class="stat-label">Overdue</span>
+            <span class="stat-label">{{ 'learning.overdue' | translate }}</span>
           </div>
         </div>
         <div class="stat-card" *ngIf="stats.certificates_earned > 0">
           <div class="stat-icon certificates"><i class="bi bi-award"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.certificates_earned }}</span>
-            <span class="stat-label">Certificates</span>
+            <span class="stat-label">{{ 'learning.certificates' | translate }}</span>
           </div>
         </div>
         <div class="stat-card" *ngIf="stats.total_points > 0">
           <div class="stat-icon points"><i class="bi bi-star"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.total_points }}</span>
-            <span class="stat-label">Points</span>
+            <span class="stat-label">{{ 'learning.points' | translate }}</span>
           </div>
         </div>
         <div class="stat-card" *ngIf="stats.current_streak > 0">
           <div class="stat-icon streak"><i class="bi bi-fire"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ stats.current_streak }}</span>
-            <span class="stat-label">Day Streak</span>
+            <span class="stat-label">{{ 'learning.day_streak' | translate }}</span>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon time"><i class="bi bi-clock-history"></i></div>
           <div class="stat-content">
             <span class="stat-value">{{ formatLearningTime(stats.total_learning_time_minutes) }}</span>
-            <span class="stat-label">Learning Time</span>
+            <span class="stat-label">{{ 'learning.learning_time' | translate }}</span>
           </div>
         </div>
       </div>
@@ -116,8 +116,8 @@
     <!-- Continue Learning Section -->
     <div class="section" *ngIf="inProgressCourses.length > 0">
       <div class="section-header">
-        <h2><i class="bi bi-play-fill"></i> Continue Learning</h2>
-        <a class="view-all" (click)="showAllCourses()">View All <i class="bi bi-chevron-right"></i></a>
+        <h2><i class="bi bi-play-fill"></i> {{ 'learning.continue_learning' | translate }}</h2>
+        <a class="view-all" (click)="showAllCourses()">{{ 'common.view_all' | translate }} <i class="bi bi-chevron-right"></i></a>
       </div>
 
       <div class="course-cards-grid">
@@ -134,8 +134,8 @@
                 <span class="progress-text">{{ course.progress_percentage | number:'1.0-0' }}%</span>
               </div>
             </div>
-            <span class="mandatory-badge" *ngIf="course.is_mandatory">Mandatory</span>
-            <span class="overdue-badge" *ngIf="course.is_overdue">Overdue</span>
+            <span class="mandatory-badge" *ngIf="course.is_mandatory">{{ 'learning.mandatory' | translate }}</span>
+            <span class="overdue-badge" *ngIf="course.is_overdue">{{ 'learning.overdue' | translate }}</span>
           </div>
           <div class="card-content">
             <h3 (click)="viewCourseDetails(course.course_id)">{{ course.title }}</h3>
@@ -145,7 +145,7 @@
             <div class="card-footer">
               <span class="duration"><i class="bi bi-clock"></i> {{ formatDuration(course.duration_minutes) }}</span>
               <button class="btn btn-primary btn-sm" (click)="continueCourse(course)" [disabled]="processing">
-                Continue <i class="bi bi-arrow-right"></i>
+                {{ 'common.continue' | translate }} <i class="bi bi-arrow-right"></i>
               </button>
             </div>
           </div>
@@ -156,16 +156,16 @@
     <!-- Not Started Section -->
     <div class="section" *ngIf="stats && stats.not_started > 0">
       <div class="section-header">
-        <h2><i class="bi bi-bookmark"></i> Ready to Start</h2>
-        <a class="view-all" (click)="showAllCourses()">View All <i class="bi bi-chevron-right"></i></a>
+        <h2><i class="bi bi-bookmark"></i> {{ 'learning.ready_to_start' | translate }}</h2>
+        <a class="view-all" (click)="showAllCourses()">{{ 'common.view_all' | translate }} <i class="bi bi-chevron-right"></i></a>
       </div>
-      <p class="section-hint">You have {{ stats.not_started }} course(s) waiting to be started.</p>
+      <p class="section-hint">{{ 'learning.not_started_hint' | translate:{ count: stats.not_started } }}</p>
     </div>
 
     <!-- Recently Completed Section -->
     <div class="section" *ngIf="completedCourses.length > 0">
       <div class="section-header">
-        <h2><i class="bi bi-trophy"></i> Recently Completed</h2>
+        <h2><i class="bi bi-trophy"></i> {{ 'learning.recently_completed' | translate }}</h2>
       </div>
 
       <div class="completed-list">
@@ -176,11 +176,11 @@
           </div>
           <div class="completed-info">
             <h4 (click)="viewCourseDetails(course.course_id)">{{ course.title }}</h4>
-            <p>Completed {{ formatRelativeDate(course.completed_at) }}</p>
+            <p>{{ 'learning.completed_on' | translate:{ date: formatRelativeDate(course.completed_at) } }}</p>
           </div>
           <button class="btn btn-primary btn-sm" *ngIf="course.has_certificate"
                   (click)="viewCertificate(course.certificate_id!)">
-            <i class="bi bi-award me-1"></i> Certificate
+            <i class="bi bi-award me-1"></i> {{ 'learning.certificate' | translate }}
           </button>
         </div>
       </div>
@@ -189,10 +189,10 @@
     <!-- Empty State -->
     <div class="empty-dashboard" *ngIf="stats && stats.total_enrolled === 0">
       <div class="empty-icon"><i class="bi bi-journal-bookmark"></i></div>
-      <h3>Start Your Learning Journey</h3>
-      <p>You haven't enrolled in any courses yet. Browse available courses to get started!</p>
+      <h3>{{ 'learning.empty_title' | translate }}</h3>
+      <p>{{ 'learning.empty_text' | translate }}</p>
       <button class="btn btn-primary" (click)="showBrowseCourses()">
-        <i class="bi bi-search me-2"></i> Browse Courses
+        <i class="bi bi-search me-2"></i> {{ 'learning.browse_courses' | translate }}
       </button>
     </div>
   </div>
@@ -205,15 +205,15 @@
     <div class="filters-bar">
       <div class="search-box">
         <i class="bi bi-search"></i>
-        <input type="text" class="form-control" placeholder="Search your courses..."
+        <input type="text" class="form-control" placeholder="{{ 'learning.search_courses_placeholder' | translate }}"
                [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()">
       </div>
       <div class="filter-group">
         <select class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="onStatusFilterChange()">
-          <option value="all">All Courses</option>
-          <option value="in_progress">In Progress</option>
-          <option value="not_started">Not Started</option>
-          <option value="completed">Completed</option>
+          <option value="all">{{ 'learning.filter_all' | translate }}</option>
+          <option value="in_progress">{{ 'learning.in_progress' | translate }}</option>
+          <option value="not_started">{{ 'learning.not_started' | translate }}</option>
+          <option value="completed">{{ 'learning.completed' | translate }}</option>
         </select>
       </div>
     </div>
@@ -221,7 +221,7 @@
     <!-- Loading -->
     <div class="loading-courses" *ngIf="loadingCourses">
       <div class="spinner-border spinner-border-sm"></div>
-      <span>Loading courses...</span>
+      <span>{{ 'learning.loading_courses' | translate }}</span>
     </div>
 
     <!-- Course List -->
@@ -238,7 +238,7 @@
           <div class="course-header">
             <h3 (click)="viewCourseDetails(course.course_id)">{{ course.title }}</h3>
             <div class="course-badges">
-              <span class="badge mandatory" *ngIf="course.is_mandatory">Mandatory</span>
+              <span class="badge mandatory" *ngIf="course.is_mandatory">{{ 'learning.mandatory' | translate }}</span>
               <span class="badge status" [ngClass]="getStatusClass(course.status)">
                 {{ getStatusLabel(course.status) }}
               </span>
@@ -250,7 +250,7 @@
           <div class="course-meta">
             <span class="category" *ngIf="course.category_name">{{ course.category_name }}</span>
             <span class="duration"><i class="bi bi-clock"></i> {{ formatDuration(course.duration_minutes) }}</span>
-            <span class="lessons"><i class="bi bi-list-check"></i> {{ course.completed_lessons }}/{{ course.total_lessons }} lessons</span>
+            <span class="lessons"><i class="bi bi-list-check"></i> {{ course.completed_lessons }}/{{ course.total_lessons }} {{ 'learning.lessons' | translate }}</span>
             <span class="due-date" *ngIf="course.due_date" [ngClass]="getDueDateClass(course)">
               <i class="bi bi-calendar-event"></i> {{ getDueDateText(course) }}
             </span>
@@ -267,15 +267,15 @@
         <div class="course-actions">
           <button class="btn btn-primary" *ngIf="course.status === 'not_started'"
                   (click)="startCourse(course)" [disabled]="processing">
-            Start Course
+            {{ 'learning.start_course' | translate }}
           </button>
           <button class="btn btn-primary" *ngIf="course.status === 'in_progress'"
                   (click)="continueCourse(course)" [disabled]="processing">
-            Continue
+            {{ 'common.continue' | translate }}
           </button>
           <button class="btn btn-secondary" *ngIf="course.status === 'completed'"
                   (click)="playCourse(course.course_id)">
-            Review
+            {{ 'learning.review' | translate }}
           </button>
         </div>
       </div>
@@ -283,9 +283,9 @@
       <!-- Empty State -->
       <div class="empty-state" *ngIf="enrolledCourses.length === 0">
         <i class="bi bi-journal-x"></i>
-        <p *ngIf="searchQuery || statusFilter !== 'all'">No courses match your filters</p>
-        <p *ngIf="!searchQuery && statusFilter === 'all'">You haven't enrolled in any courses yet</p>
-        <button class="btn btn-primary" (click)="showBrowseCourses()">Browse Courses</button>
+        <p *ngIf="searchQuery || statusFilter !== 'all'">{{ 'learning.no_match_filters' | translate }}</p>
+        <p *ngIf="!searchQuery && statusFilter === 'all'">{{ 'learning.no_enrolled' | translate }}</p>
+        <button class="btn btn-primary" (click)="showBrowseCourses()">{{ 'learning.browse_courses' | translate }}</button>
       </div>
     </div>
   </div>
@@ -298,12 +298,12 @@
     <div class="filters-bar">
       <div class="search-box">
         <i class="bi bi-search"></i>
-        <input type="text" class="form-control" placeholder="Search available courses..."
+        <input type="text" class="form-control" placeholder="{{ 'learning.search_available_placeholder' | translate }}"
                [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()">
       </div>
       <div class="filter-group">
         <select class="form-select" [(ngModel)]="selectedCategoryId" (ngModelChange)="onCategoryChange()">
-          <option [ngValue]="null">All Categories</option>
+          <option [ngValue]="null">{{ 'learning.all_categories' | translate }}</option>
           <option *ngFor="let cat of categories" [ngValue]="cat.category_id">{{ cat.category_name }}</option>
         </select>
       </div>
@@ -312,7 +312,7 @@
     <!-- Loading -->
     <div class="loading-courses" *ngIf="loadingCourses">
       <div class="spinner-border spinner-border-sm"></div>
-      <span>Loading courses...</span>
+      <span>{{ 'learning.loading_courses' | translate }}</span>
     </div>
 
     <!-- Available Courses Grid -->
@@ -328,12 +328,12 @@
           <div class="card-meta">
             <span class="category" *ngIf="course.category_name">{{ course.category_name }}</span>
             <span class="duration"><i class="bi bi-clock"></i> {{ formatDuration(course.duration_minutes) }}</span>
-            <span class="enrollments"><i class="bi bi-people"></i> {{ course.enrollment_count }} enrolled</span>
+            <span class="enrollments"><i class="bi bi-people"></i> {{ 'learning.enrolled_count' | translate:{ count: course.enrollment_count } }}</span>
           </div>
         </div>
         <div class="card-footer">
           <button class="btn btn-primary w-100" (click)="selfEnroll(course)" [disabled]="processing">
-            <i class="bi bi-plus-lg me-1"></i> Enroll Now
+            <i class="bi bi-plus-lg me-1"></i> {{ 'learning.enroll_now' | translate }}
           </button>
         </div>
       </div>
@@ -341,7 +341,7 @@
       <!-- Empty State -->
       <div class="empty-state full-width" *ngIf="availableCourses.length === 0">
         <i class="bi bi-search"></i>
-        <p>No courses available for self-enrollment</p>
+        <p>{{ 'learning.no_available' | translate }}</p>
       </div>
     </div>
   </div>
@@ -366,8 +366,8 @@
             <span class="badge status" [ngClass]="getStatusClass(courseDetails.status)">
               {{ getStatusLabel(courseDetails.status) }}
             </span>
-            <span class="badge mandatory" *ngIf="courseDetails.is_mandatory">Mandatory</span>
-            <span class="badge overdue" *ngIf="courseDetails.is_overdue">Overdue</span>
+            <span class="badge mandatory" *ngIf="courseDetails.is_mandatory">{{ 'learning.mandatory' | translate }}</span>
+            <span class="badge overdue" *ngIf="courseDetails.is_overdue">{{ 'learning.overdue' | translate }}</span>
           </div>
           <h1>{{ courseDetails.title }}</h1>
           <p class="description">{{ courseDetails.description }}</p>
@@ -376,7 +376,7 @@
             <span><i class="bi bi-clock"></i> {{ formatDuration(courseDetails.duration_minutes) }}</span>
             <span><i class="bi bi-bar-chart"></i> {{ getDifficultyLabel(courseDetails.difficulty_level) }}</span>
             <span *ngIf="courseDetails.due_date" [class.text-danger]="courseDetails.is_overdue">
-              <i class="bi bi-calendar-event"></i> Due {{ formatDate(courseDetails.due_date) }}
+              <i class="bi bi-calendar-event"></i> {{ 'learning.due_on' | translate:{ date: formatDate(courseDetails.due_date) } }}
             </span>
           </div>
 
@@ -385,22 +385,22 @@
             <div class="progress">
               <div class="progress-bar" [style.width.%]="courseDetails.progress_percentage"></div>
             </div>
-            <span>{{ courseDetails.progress_percentage | number:'1.0-0' }}% Complete</span>
+            <span>{{ courseDetails.progress_percentage | number:'1.0-0' }}% {{ 'learning.complete' | translate }}</span>
           </div>
 
           <!-- Action Buttons -->
           <div class="detail-actions">
             <button class="btn btn-primary btn-lg" *ngIf="courseDetails.status === 'not_started'"
                     (click)="startCourse(courseDetails)" [disabled]="processing">
-              <i class="bi bi-play-fill me-2"></i> Start Learning
+              <i class="bi bi-play-fill me-2"></i> {{ 'learning.start_learning' | translate }}
             </button>
             <button class="btn btn-primary btn-lg" *ngIf="courseDetails.status === 'in_progress'"
                     (click)="continueCourse(courseDetails)" [disabled]="processing">
-              <i class="bi bi-play-fill me-2"></i> Continue Learning
+              <i class="bi bi-play-fill me-2"></i> {{ 'learning.continue_learning' | translate }}
             </button>
             <button class="btn btn-success btn-lg" *ngIf="courseDetails.status === 'completed' && courseDetails.certificate"
                     (click)="viewCertificate(courseDetails.certificate.certificate_id)">
-              <i class="bi bi-award me-2"></i> View Certificate
+              <i class="bi bi-award me-2"></i> {{ 'learning.view_certificate' | translate }}
             </button>
           </div>
         </div>
@@ -410,13 +410,13 @@
       <div class="detail-content">
         <!-- Objectives -->
         <div class="content-section" *ngIf="courseDetails.objectives">
-          <h3><i class="bi bi-bullseye"></i> Learning Objectives</h3>
+          <h3><i class="bi bi-bullseye"></i> {{ 'learning.learning_objectives' | translate }}</h3>
           <div class="objectives-text">{{ courseDetails.objectives }}</div>
         </div>
 
         <!-- Modules & Lessons -->
         <div class="content-section">
-          <h3><i class="bi bi-list-ul"></i> Course Content</h3>
+          <h3><i class="bi bi-list-ul"></i> {{ 'learning.course_content' | translate }}</h3>
 
           <div class="modules-list">
             <div class="module-item" *ngFor="let module of courseDetails.modules; let i = index">
@@ -425,7 +425,7 @@
                   <i class="bi" [class.bi-chevron-down]="isModuleExpanded(module.module_id)"
                      [class.bi-chevron-right]="!isModuleExpanded(module.module_id)"></i>
                   <span class="module-title">{{ module.title }}</span>
-                  <span class="module-count">{{ module.lessons.length }} lessons</span>
+                  <span class="module-count">{{ module.lessons.length }} {{ 'learning.lessons' | translate }}</span>
                 </div>
                 <div class="module-progress">
                   <div class="mini-progress">
@@ -466,15 +466,15 @@
               <i class="bi bi-award"></i>
             </div>
             <div class="certificate-info">
-              <h4>Certificate Earned!</h4>
-              <p>Certificate #{{ courseDetails.certificate.certificate_number }}</p>
-              <p class="issued">Issued on {{ formatDate(courseDetails.certificate.issued_at) }}</p>
+              <h4>{{ 'learning.certificate_earned' | translate }}</h4>
+              <p>{{ 'learning.certificate_number' | translate:{ number: courseDetails.certificate.certificate_number } }}</p>
+              <p class="issued">{{ 'learning.issued_on' | translate:{ date: formatDate(courseDetails.certificate.issued_at) } }}</p>
               <p class="expires" *ngIf="courseDetails.certificate.expires_at">
-                Expires {{ formatDate(courseDetails.certificate.expires_at) }}
+                {{ 'learning.expires_on' | translate:{ date: formatDate(courseDetails.certificate.expires_at) } }}
               </p>
             </div>
             <button class="btn btn-primary" (click)="viewCertificate(courseDetails.certificate.certificate_id)">
-              <i class="bi bi-download me-1"></i> Download
+              <i class="bi bi-download me-1"></i> {{ 'common.download' | translate }}
             </button>
           </div>
         </div>

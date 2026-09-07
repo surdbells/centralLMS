@@ -9,13 +9,14 @@ import { BrandHeaderComponent } from '../../components/brand-header/brand-header
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { SearchComponent } from '../../components/search/search.component';
 import { LibraryViewerComponent } from '../../components/library-viewer/library-viewer.component';
+import { TranslatePipe } from '../../core/translate.pipe';
 
 @Component({
   selector: 'app-library',
   standalone: true,
   imports: [
     IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
-    BrandHeaderComponent, EmptyStateComponent, SearchComponent, LibraryViewerComponent,
+    BrandHeaderComponent, EmptyStateComponent, SearchComponent, LibraryViewerComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -23,10 +24,10 @@ import { LibraryViewerComponent } from '../../components/library-viewer/library-
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Library" subtitle="Files shared with you" back></app-brand-header>
+      <app-brand-header [title]="'library.title' | translate" [subtitle]="'library.subtitle' | translate" back></app-brand-header>
 
       <div class="pad">
-        <app-search placeholder="Search the library" (search)="onSearch($event)"></app-search>
+        <app-search [placeholder]="'library.search' | translate" (search)="onSearch($event)"></app-search>
 
         @if (loading()) {
           @for (i of [1,2,3,4]; track i) {
@@ -41,15 +42,15 @@ import { LibraryViewerComponent } from '../../components/library-viewer/library-
         } @else if (failed()) {
           <app-empty-state
             icon="cloud-offline-outline"
-            title="Couldn't load the library"
-            message="Check your connection and try again."
-            actionLabel="Try again"
+            [title]="'library.load_failed' | translate"
+            [message]="'common.offline' | translate"
+            [actionLabel]="'common.retry' | translate"
             (action)="reload()"></app-empty-state>
         } @else if (!items().length) {
           <app-empty-state
             icon="folder-open-outline"
-            [title]="query() ? 'No matches' : 'Nothing shared yet'"
-            [message]="query() ? 'No files match “' + query() + '”.' : 'Files your organisation shares with you will appear here.'"></app-empty-state>
+            [title]="(query() ? 'library.no_matches' : 'library.empty_title') | translate"
+            [message]="query() ? ('library.no_matches_message' | translate:{ query: query() }) : ('library.empty_message' | translate)"></app-empty-state>
         } @else {
           @for (f of items(); track f.id) {
             <button type="button" class="lib-row tappable rise" (click)="open(f)">
@@ -61,7 +62,7 @@ import { LibraryViewerComponent } from '../../components/library-viewer/library-
               @if (f.viewable) {
                 <ion-icon name="chevron-forward" class="lib-chev" aria-hidden="true"></ion-icon>
               } @else {
-                <span class="lib-prep">Preparing</span>
+                <span class="lib-prep">{{ 'library.preparing' | translate }}</span>
               }
             </button>
           }

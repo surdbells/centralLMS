@@ -6,13 +6,15 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, CheckInResult } from '../live-training.service';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 declare var Html5Qrcode: any;
 
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule, TopComponent],
+  imports: [CommonModule, TopComponent, TranslatePipe],
   encapsulation: ViewEncapsulation.None,
   template: `
     <app-top></app-top>
@@ -22,7 +24,7 @@ declare var Html5Qrcode: any;
       <div class="scanner-header">
         <h5 class="mb-0">
           <i class="bi bi-qr-code-scan me-2"></i>
-          Scan Attendance QR Code
+          {{ 'live.qr.title' | translate }}
         </h5>
         <button class="btn btn-sm btn-secondary" (click)="close()">
           <i class="bi bi-x-lg"></i>
@@ -35,12 +37,12 @@ declare var Html5Qrcode: any;
           <div class="scanner-icon mb-4">
             <i class="bi bi-qr-code display-1 text-primary"></i>
           </div>
-          <h5>Ready to Scan</h5>
+          <h5>{{ 'live.qr.ready' | translate }}</h5>
           <p class="text-muted mb-4">
-            Position the QR code within the camera frame to mark your attendance
+            {{ 'live.qr.ready_hint' | translate }}
           </p>
           <button class="btn btn-primary btn-lg" (click)="startScanning()">
-            <i class="bi bi-camera me-2"></i>Start Camera
+            <i class="bi bi-camera me-2"></i>{{ 'live.qr.start_camera' | translate }}
           </button>
         </div>
 
@@ -49,10 +51,10 @@ declare var Html5Qrcode: any;
           <div class="scanner-instructions mt-3 text-center">
             <p class="text-muted mb-2">
               <i class="bi bi-info-circle me-1"></i>
-              Point your camera at the QR code displayed by your instructor
+              {{ 'live.qr.point_camera' | translate }}
             </p>
             <button class="btn btn-secondary" (click)="stopScanning()">
-              <i class="bi bi-stop-circle me-1"></i>Stop Scanning
+              <i class="bi bi-stop-circle me-1"></i>{{ 'live.qr.stop_scanning' | translate }}
             </button>
           </div>
         </div>
@@ -62,21 +64,21 @@ declare var Html5Qrcode: any;
           <div class="result-icon mb-4">
             <i class="bi bi-check-circle-fill display-1 text-success"></i>
           </div>
-          <h4 class="text-success mb-3">Attendance Marked!</h4>
+          <h4 class="text-success mb-3">{{ 'live.qr.marked' | translate }}</h4>
           <div class="result-details">
             <div class="detail-item">
-              <span class="label">Status:</span>
+              <span class="label">{{ 'live.qr.status_label' | translate }}</span>
               <span class="badge" [ngClass]="getStatusBadgeClass(result.data?.status || 'present')">
                 {{ result.data?.status | titlecase }}
               </span>
             </div>
             <div class="detail-item" *ngIf="result.data?.title">
-              <span class="label">Session:</span>
+              <span class="label">{{ 'live.common.session_colon' | translate }}</span>
               <span class="value">{{ result.data?.title }}</span>
             </div>
           </div>
           <button class="btn btn-primary mt-4" (click)="close()">
-            <i class="bi bi-check me-1"></i>Done
+            <i class="bi bi-check me-1"></i>{{ 'common.done' | translate }}
           </button>
         </div>
 
@@ -85,14 +87,14 @@ declare var Html5Qrcode: any;
           <div class="result-icon mb-4">
             <i class="bi bi-x-circle-fill display-1 text-danger"></i>
           </div>
-          <h4 class="text-danger mb-3">Unable to Mark Attendance</h4>
+          <h4 class="text-danger mb-3">{{ 'live.qr.unable' | translate }}</h4>
           <p class="text-muted mb-4">{{ result.message }}</p>
           <div class="d-flex gap-2 justify-content-center">
             <button class="btn btn-primary" (click)="tryAgain()">
-              <i class="bi bi-arrow-repeat me-1"></i>Try Again
+              <i class="bi bi-arrow-repeat me-1"></i>{{ 'live.qr.try_again' | translate }}
             </button>
             <button class="btn btn-secondary" (click)="close()">
-              Close
+              {{ 'common.close' | translate }}
             </button>
           </div>
         </div>
@@ -100,19 +102,19 @@ declare var Html5Qrcode: any;
         <!-- Loading -->
         <div *ngIf="processing" class="scanner-processing text-center py-5">
           <div class="spinner-border text-primary mb-3" role="status"></div>
-          <p class="text-muted">Verifying attendance...</p>
+          <p class="text-muted">{{ 'live.qr.verifying' | translate }}</p>
         </div>
       </div>
 
       <!-- Camera Permission Error -->
       <div *ngIf="cameraError" class="camera-error p-4 text-center">
         <i class="bi bi-camera-video-off display-4 text-warning mb-3"></i>
-        <h5>Camera Access Required</h5>
+        <h5>{{ 'live.qr.camera_required' | translate }}</h5>
         <p class="text-muted mb-3">
-          Please allow camera access to scan the QR code
+          {{ 'live.qr.camera_hint' | translate }}
         </p>
         <button class="btn btn-warning" (click)="requestCameraPermission()">
-          <i class="bi bi-unlock me-1"></i>Grant Permission
+          <i class="bi bi-unlock me-1"></i>{{ 'live.qr.grant_permission' | translate }}
         </button>
       </div>
     </div>
@@ -210,7 +212,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   cameraError = false;
   result: { success: boolean; message?: string; data?: CheckInResult } | null = null;
 
-  constructor(private liveTrainingService: LiveTrainingService) {}
+  constructor(private liveTrainingService: LiveTrainingService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     // Load Html5Qrcode library if not already loaded
@@ -298,7 +300,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
     if (!this.isValidQrToken(qrToken)) {
       this.result = {
         success: false,
-        message: 'Invalid QR code format. Please scan the correct attendance QR code.'
+        message: this.i18n.t('live.qr.invalid_format')
       };
       this.processing = false;
       return;
@@ -327,7 +329,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
             // ApiError has no `error`, so every failure — an expired
             // code, a signed-off register, not being enrolled — read as
             // the same flat "Failed to mark attendance".
-            message: err.message ?? 'That could not be marked. Please try again.',
+            message: err.message ?? this.i18n.t('live.learner.mark_failed'),
           };
           this.onError.emit(this.result.message!);
         }

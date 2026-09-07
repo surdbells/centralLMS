@@ -6,6 +6,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { LiveTrainingService, type LiveTraining } from '../live-training.service';
 import { ApiError } from '../../core/api';
+import { TranslatePipe } from '../../translate.pipe';
 
 /**
  * Setting up a live training programme.
@@ -22,7 +23,7 @@ import { ApiError } from '../../core/api';
 @Component({
   selector: 'app-training-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './training-form.component.html',
 })
 export class TrainingFormComponent implements OnInit, OnDestroy {

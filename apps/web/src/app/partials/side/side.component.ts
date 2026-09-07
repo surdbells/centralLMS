@@ -3,10 +3,12 @@ import { Router, RouterLink } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-side',
-    imports: [ RouterLink ],
+    imports: [ RouterLink, TranslatePipe ],
   standalone: true,
   templateUrl: './side.component.html',
   styleUrl: './side.component.css'
@@ -15,6 +17,7 @@ export class SideComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -58,7 +61,7 @@ export class SideComponent implements OnDestroy {
   }
 
   private leave(): void {
-    this.success_notification('User logged out successfully.');
+    this.success_notification(this.i18n.t('auth.logged_out'));
     void this.router.navigate(['/']);
   }
 }

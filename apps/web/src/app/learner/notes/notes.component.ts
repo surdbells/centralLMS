@@ -8,6 +8,8 @@ import { TuiIcon, TuiLoader } from '@taiga-ui/core';
 import { Subject, takeUntil } from 'rxjs';
 import { ApiError, type PageMeta } from '../../core/api';
 import { NotesService, type Note } from '../../services/notes.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 export type { Note };
 
@@ -33,6 +35,7 @@ export type { Note };
     FormsModule,
     TuiIcon,
     TuiLoader,
+    TranslatePipe,
   ],
   templateUrl: './notes.component.html',
   styleUrl: './notes.component.css',
@@ -41,6 +44,7 @@ export class NotesComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
   private readonly notesService = inject(NotesService);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -152,7 +156,7 @@ export class NotesComponent implements OnInit, OnDestroy {
     }
 
     if (this.draft.content.trim() === '') {
-      this.error_notification('A note needs something in it.');
+      this.error_notification(this.i18n.t('notes.empty_note_error'));
 
       return;
     }
@@ -165,7 +169,7 @@ export class NotesComponent implements OnInit, OnDestroy {
           note.title = updated.title;
           note.content = updated.content;
           this.cancelEdit();
-          this.success_notification('Your note has been saved.');
+          this.success_notification(this.i18n.t('notes.saved'));
         },
         error: (error: ApiError) => this.error_notification(error.message),
       });
@@ -177,7 +181,7 @@ export class NotesComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.success_notification('The note was deleted.');
+          this.success_notification(this.i18n.t('notes.deleted'));
           // The page it was on, unless it was the only thing left there.
           this.get_notes(this.notes.length === 1 ? Math.max(1, this.meta.page - 1) : this.meta.page);
         },

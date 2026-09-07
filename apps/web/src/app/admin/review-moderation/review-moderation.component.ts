@@ -5,6 +5,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { LearningPathService } from '../../services/learning-path.service';
 import { LearningPathReview } from '../../interfaces/learning-path.interfaces';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * Every review waiting to be checked, across every path.
@@ -17,7 +19,7 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 @Component({
   selector: 'app-review-moderation',
   standalone: true,
-  imports: [CommonModule, RouterModule, AdmintopComponent],
+  imports: [CommonModule, RouterModule, AdmintopComponent, TranslatePipe],
   templateUrl: './review-moderation.component.html',
   styleUrls: ['./review-moderation.component.scss']
 })
@@ -40,7 +42,10 @@ export class ReviewModerationComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  constructor(private learningPathService: LearningPathService) {}
+  constructor(
+    private learningPathService: LearningPathService,
+    private i18n: I18nService,
+  ) {}
 
   load(): void {
     this.loading.set(true);
@@ -77,7 +82,7 @@ export class ReviewModerationComponent implements OnInit, OnDestroy {
   reject(review: LearningPathReview): void {
     // Required, not optional: "rejected, no reason given" is the message the
     // learner who wrote it would receive.
-    const reason = prompt('Why is this review being rejected?')?.trim();
+    const reason = prompt(this.i18n.t('review.reject_reason_prompt'))?.trim();
 
     if (!reason) {
       return;

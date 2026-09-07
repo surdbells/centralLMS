@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -11,11 +11,13 @@ import {
   SKILL_LEVELS
 } from '../../interfaces/learning-path.interfaces';
 import {TopComponent} from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learning-path-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe],
   templateUrl: './learning-path-catalog.component.html',
   styleUrls: ['./learning-path-catalog.component.scss']
 })
@@ -45,6 +47,8 @@ export class LearningPathCatalogComponent implements OnInit, OnDestroy {
   hasFilters = computed(() =>
     this.searchQuery() || this.skillFilter() || this.categoryFilter()
   );
+
+  private readonly i18n = inject(I18nService);
 
   constructor(private learningPathService: LearningPathService) {}
 
@@ -146,10 +150,10 @@ export class LearningPathCatalogComponent implements OnInit, OnDestroy {
   }
 
   formatDuration(hours: number | null): string {
-    if (!hours) return 'Self-paced';
-    if (hours < 1) return `${Math.round(hours * 60)} min`;
-    if (hours === 1) return '1 hour';
-    return `${hours} hours`;
+    if (!hours) return this.i18n.t('paths.self_paced');
+    if (hours < 1) return this.i18n.t('paths.minutes', { count: Math.round(hours * 60) });
+    if (hours === 1) return this.i18n.t('paths.one_hour');
+    return this.i18n.t('paths.hours', { count: hours });
   }
 
   getPageNumbers(): number[] {

@@ -18,6 +18,8 @@ import {
   ItemType
 } from '../../interfaces/learning-path.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 // Course and Assessment interfaces
 interface Course {
@@ -47,7 +49,7 @@ interface Assessment {
 @Component({
   selector: 'app-learning-path-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DragDropModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DragDropModule, AdmintopComponent, TranslatePipe],
   templateUrl: './learning-path-builder.component.html',
   styleUrls: ['./learning-path-builder.component.scss']
 })
@@ -144,7 +146,8 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private learningPathService: LearningPathService
+    private learningPathService: LearningPathService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -341,7 +344,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   }
 
   deleteSection(section: LearningPathSection): void {
-    if (!confirm(`Delete section "${section.title}"? Items will be moved to unsectioned.`)) return;
+    if (!confirm(this.i18n.t('paths_admin.builder.confirm_delete_section', { title: section.title }))) return;
     if (!this.path) return;
 
     this.learningPathService.deleteSection(section.section_id)
@@ -427,7 +430,7 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   }
 
   deleteItem(item: LearningPathItem): void {
-    if (!confirm(`Delete "${item.display_title || item.external_title}"?`)) return;
+    if (!confirm(this.i18n.t('paths_admin.builder.confirm_delete_item', { title: item.display_title || item.external_title }))) return;
     if (!this.path) return;
 
     this.learningPathService.deleteItem(this.path.path_id, item.item_id)
@@ -639,20 +642,20 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     if (!this.path) return;
 
     if (this.totalItems === 0) {
-      alert('Cannot publish an empty learning path. Please add at least one item.');
+      alert(this.i18n.t('paths_admin.cannot_publish_item'));
       return;
     }
 
-    if (confirm('Publish this learning path? It will become available to learners.')) {
+    if (confirm(this.i18n.t('paths_admin.confirm_publish_path'))) {
       this.learningPathService.publish(this.path.path_id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
             this.loadPath(this.path!.path_id);
-            alert('Learning path published successfully!');
+            alert(this.i18n.t('paths_admin.builder.publish_success'));
           },
           error: (error) => {
-            alert(error.error?.errors?.join('\n') || 'Failed to publish');
+            alert(error.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
           }
         });
     }
@@ -690,12 +693,12 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
 
   getItemTypeLabel(type: ItemType): string {
     const labels: Record<string, string> = {
-      'course': 'Course',
-      'assessment': 'Assessment',
-      'external_link': 'External Link',
-      'video': 'Video',
-      'document': 'Document',
-      'scorm': 'SCORM Package'
+      'course': this.i18n.t('paths_admin.course'),
+      'assessment': this.i18n.t('modules.assessment'),
+      'external_link': this.i18n.t('paths_admin.external_link'),
+      'video': this.i18n.t('paths_admin.builder.type_video'),
+      'document': this.i18n.t('paths_admin.builder.type_document'),
+      'scorm': this.i18n.t('paths_admin.builder.type_scorm')
     };
     return labels[type] || type;
   }

@@ -11,6 +11,7 @@ import { BrandingService } from '../../core/branding.service';
 import { SsoService, type SsoProviderId, type SsoProviderOption } from '../../services/sso.service';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 import { environment } from '../../../environments/environment';
 
 /** Local-part@domain.tld, with no spaces. Deliberately permissive. */
@@ -36,6 +37,7 @@ export class LoginComponent implements OnInit {
   private readonly toast = inject(HotToastService);
   private readonly api = inject(ApiClient);
   private readonly branding = inject(BrandingService);
+  private readonly i18n = inject(I18nService);
 
   /** The organisation's logo and name, when a tenant is known for this screen. */
   logoUrl: string | null = null;
@@ -156,19 +158,19 @@ export class LoginComponent implements OnInit {
     const email = this.login.email.trim();
 
     if (email.length === 0) {
-      this.error_notification('Email address is required');
+      this.error_notification(this.i18n.t('auth.email_required'));
 
       return;
     }
 
     if (this.login.password.length === 0) {
-      this.error_notification('Password is required');
+      this.error_notification(this.i18n.t('auth.password_required'));
 
       return;
     }
 
     if (!EMAIL.test(email)) {
-      this.error_notification('Invalid email format provided');
+      this.error_notification(this.i18n.t('login.invalid_email'));
 
       return;
     }
@@ -185,13 +187,13 @@ export class LoginComponent implements OnInit {
         // backend signed people in first and reported the tenant afterwards.
         if (!signedIn.isActive) {
           this.error_notification(
-            'Your account is inactive, contact system administrator for support.',
+            this.i18n.t('login.account_inactive'),
           );
 
           return;
         }
 
-        this.success_notification('Signed in');
+        this.success_notification(this.i18n.t('login.signed_in'));
         void this.router.navigate(['/', 'account']);
       },
       error: (error: unknown) => {
@@ -202,7 +204,7 @@ export class LoginComponent implements OnInit {
         this.error_notification(
           error instanceof ApiError
             ? error.message
-            : 'Could not reach the server. Check your connection and try again.',
+            : this.i18n.t('login.server_unreachable'),
         );
       },
     });

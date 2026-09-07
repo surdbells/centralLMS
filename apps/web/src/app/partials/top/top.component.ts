@@ -12,6 +12,8 @@ import { SessionStore } from '../../core/auth/session.store';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiClient, AuthImgDirective } from '../../core/api';
 import { BrandingService } from '../../core/branding.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
 export interface Notifications {
@@ -38,7 +40,7 @@ export interface Notifications {
 @Component({
   selector: 'app-top',
   standalone: true,
-  imports: [CommonModule, RouterLink, LanguageSwitcherComponent, TuiIcon, RouterLinkActive, AuthImgDirective],
+  imports: [CommonModule, RouterLink, LanguageSwitcherComponent, TuiIcon, RouterLinkActive, AuthImgDirective, TranslatePipe],
   templateUrl: './top.component.html',
   styleUrl: './top.component.css',
 })
@@ -52,6 +54,7 @@ export class TopComponent implements OnInit, OnDestroy {
   /** The organisation's logo and name, painted by BrandingService. */
   readonly branding = inject(BrandingService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   notifications: Notifications[] = [];
@@ -194,7 +197,7 @@ export class TopComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => this.get_notifications(),
         error: () => {
-          this.error_notification('Could not mark them as read.');
+          this.error_notification(this.i18n.t('notifications.mark_read_error'));
           this.ui_controls.is_loading = false;
         },
       });
@@ -251,7 +254,7 @@ export class TopComponent implements OnInit, OnDestroy {
   }
 
   private leave(): void {
-    this.success_notification('User logged out successfully.');
+    this.success_notification(this.i18n.t('auth.logged_out'));
     void this.router.navigate(['/']);
   }
 }

@@ -1,6 +1,8 @@
 // components/confirmation-dialog/confirmation-dialog.component.ts
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 export interface ConfirmDialogConfig {
   title: string;
@@ -17,7 +19,7 @@ export interface ConfirmDialogConfig {
 @Component({
   selector: 'app-confirmation-dialog',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="modal-backdrop" *ngIf="isOpen" (click)="onBackdropClick($event)">
@@ -51,7 +53,7 @@ export interface ConfirmDialogConfig {
               class="btn btn-secondary" 
               (click)="cancel()"
               *ngIf="config.showCancel !== false">
-              {{ config.cancelText || 'Cancel' }}
+              {{ config.cancelText || ('common.cancel' | translate) }}
             </button>
             <button 
               type="button" 
@@ -59,7 +61,7 @@ export interface ConfirmDialogConfig {
               [ngClass]="confirmButtonClass"
               (click)="confirm()"
               [disabled]="config.inputRequired && !inputValue?.trim()">
-              {{ config.confirmText || 'Confirm' }}
+              {{ config.confirmText || ('common.confirm' | translate) }}
             </button>
           </div>
         </div>

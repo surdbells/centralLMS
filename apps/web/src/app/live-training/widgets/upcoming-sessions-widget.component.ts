@@ -6,20 +6,22 @@ import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, TrainingSession } from '../live-training.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-upcoming-sessions-widget',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TranslatePipe],
   template: `
     <div class="upcoming-sessions-widget">
       <div class="widget-header">
         <h6 class="widget-title mb-0">
           <i class="bi bi-calendar-event me-2"></i>
-          Upcoming Sessions
+          {{ 'live.common.upcoming_sessions' | translate }}
         </h6>
         <a routerLink="/live-training" class="btn btn-sm btn-link text-decoration-none">
-          View All <i class="bi bi-arrow-right"></i>
+          {{ 'common.view_all' | translate }} <i class="bi bi-arrow-right"></i>
         </a>
       </div>
 
@@ -56,7 +58,7 @@ import { LiveTrainingService, TrainingSession } from '../live-training.service';
               <button *ngIf="canJoin(session)"
                       class="btn btn-sm btn-primary"
                       (click)="joinSession(session)">
-                <i class="bi bi-box-arrow-up-right me-1"></i>Join
+                <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'live.common.join' | translate }}
               </button>
               <span *ngIf="!canJoin(session)" class="time-until text-muted small">
                 {{ getTimeUntil(session) }}
@@ -68,7 +70,7 @@ import { LiveTrainingService, TrainingSession } from '../live-training.service';
         <!-- Empty State -->
         <div *ngIf="!loading && sessions.length === 0" class="empty-state text-center py-4">
           <i class="bi bi-calendar-x display-6 text-muted mb-2"></i>
-          <p class="text-muted mb-0 small">No upcoming sessions</p>
+          <p class="text-muted mb-0 small">{{ 'live.learner.no_upcoming' | translate }}</p>
         </div>
       </div>
     </div>
@@ -199,7 +201,7 @@ export class UpcomingSessionsWidgetComponent implements OnInit, OnDestroy {
   sessions: TrainingSession[] = [];
   loading = true;
 
-  constructor(private liveTrainingService: LiveTrainingService) {}
+  constructor(private liveTrainingService: LiveTrainingService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.loadSessions();
@@ -278,7 +280,7 @@ export class UpcomingSessionsWidgetComponent implements OnInit, OnDestroy {
     const start = new Date(`${session.session_date}T${session.start_time}`);
     const diff = start.getTime() - now.getTime();
 
-    if (diff < 0) return 'Started';
+    if (diff < 0) return this.i18n.t('live.common.started');
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));

@@ -6,6 +6,8 @@ import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ReportViewerComponent } from '../report-viewer/report-viewer.component';
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 import {
   CompetencyService,
   type ReadinessReport,
@@ -40,31 +42,32 @@ interface ReportTab {
 @Component({
   selector: 'app-competency-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, ReportViewerComponent, CycleSelectComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, ReportViewerComponent, CycleSelectComponent, TranslatePipe],
   templateUrl: './competency-reports.component.html',
   styleUrl: './competency-reports.component.scss',
 })
 export class CompetencyReportsComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly tabs: ReportTab[] = [
-    { key: 'readiness', label: 'Readiness', icon: '@tui.gauge', blurb: 'How ready each group is' },
-    { key: 'gaps', label: 'Gap Analysis', icon: '@tui.trending-down', blurb: 'The competencies furthest behind' },
-    { key: 'critical', label: 'Critical Gaps', icon: '@tui.triangle-alert', blurb: 'People short on what matters most' },
-    { key: 'distribution', label: 'Proficiency', icon: '@tui.chart-column', blurb: 'How levels are spread' },
-    { key: 'completion', label: 'Completion', icon: '@tui.clipboard-check', blurb: 'How far the exercise has run' },
-    { key: 'individual', label: 'Individual', icon: '@tui.file-text', blurb: 'One person’s full report' },
+    { key: 'readiness', label: 'competency.reports.tab_readiness', icon: '@tui.gauge', blurb: 'competency.reports.tab_readiness_blurb' },
+    { key: 'gaps', label: 'competency.reports.tab_gaps', icon: '@tui.trending-down', blurb: 'competency.reports.tab_gaps_blurb' },
+    { key: 'critical', label: 'competency.reports.tab_critical', icon: '@tui.triangle-alert', blurb: 'competency.reports.tab_critical_blurb' },
+    { key: 'distribution', label: 'competency.reports.tab_distribution', icon: '@tui.chart-column', blurb: 'competency.reports.tab_distribution_blurb' },
+    { key: 'completion', label: 'competency.reports.tab_completion', icon: '@tui.clipboard-check', blurb: 'competency.reports.tab_completion_blurb' },
+    { key: 'individual', label: 'competency.reports.tab_individual', icon: '@tui.file-text', blurb: 'competency.reports.tab_individual_blurb' },
   ];
 
   /** The org and competency axes readiness can break down by. */
   readonly dimensions: Array<{ value: ReadinessDimension; label: string }> = [
-    { value: 'department', label: 'Department' },
-    { value: 'branch', label: 'Branch' },
-    { value: 'team', label: 'Team' },
-    { value: 'level', label: 'Level' },
-    { value: 'job_title', label: 'Job title' },
-    { value: 'function', label: 'Function' },
+    { value: 'department', label: 'competency.reports.dim_department' },
+    { value: 'branch', label: 'competency.reports.dim_branch' },
+    { value: 'team', label: 'competency.reports.dim_team' },
+    { value: 'level', label: 'competency.reports.dim_level' },
+    { value: 'job_title', label: 'competency.reports.dim_job_title' },
+    { value: 'function', label: 'competency.reports.dim_function' },
   ];
 
   readonly active = signal<ReportKey>('readiness');
@@ -125,7 +128,7 @@ export class CompetencyReportsComponent implements OnInit {
       this.loading.set(false);
     };
     const fail = (): void => {
-      this.toast.error('That report could not be loaded.');
+      this.toast.error(this.i18n.t('competency.reports.load_error'));
       this.loading.set(false);
     };
 
@@ -199,16 +202,16 @@ export class CompetencyReportsComponent implements OnInit {
   /** Whole years and residual months, so "15" reads as "1 yr 3 mo". */
   monthsLabel(months: number): string {
     if (months <= 0) {
-      return 'None';
+      return this.i18n.t('competency.reports.months_none');
     }
     const years = Math.floor(months / 12);
     const rest = months % 12;
     const parts: string[] = [];
     if (years) {
-      parts.push(`${years} yr`);
+      parts.push(`${years} ${this.i18n.t('competency.common.yr')}`);
     }
     if (rest) {
-      parts.push(`${rest} mo`);
+      parts.push(`${rest} ${this.i18n.t('competency.common.mo')}`);
     }
     return parts.join(' ');
   }
@@ -219,9 +222,31 @@ export class CompetencyReportsComponent implements OnInit {
   }
 
   dimensionLabel(value: ReadinessDimension): string {
-    return this.dimensions.find((d) => d.value === value)?.label ?? value;
+    const key = this.dimensions.find((d) => d.value === value)?.label;
+    return key ? this.i18n.t(key) : value;
   }
 
   /** The proficiency ladder, for the level column headers. */
-  readonly levelName = ['Not demonstrated', 'Knowledge', 'Skill', 'Mastery'];
+  private readonly levelNameKeys = [
+    'competency.reports.level_not_demonstrated',
+    'self_assessment.level_knowledge',
+    'self_assessment.level_skill',
+    'self_assessment.level_mastery',
+  ];
+
+  /** The name of a demonstrated/required level, translated. */
+  levelLabel(level: number): string {
+    const key = this.levelNameKeys[level];
+    return key ? this.i18n.t(key) : '';
+  }
+
+  /** The severity label for a critical-gap row, translated from its English label. */
+  severityLabel(gapLabel: string): string {
+    const key: Record<string, string> = {
+      Minor: 'competency.gap.minor',
+      Major: 'competency.gap.major',
+      Significant: 'competency.gap.significant',
+    };
+    return key[gapLabel] ? this.i18n.t(key[gapLabel]) : gapLabel;
+  }
 }

@@ -9,49 +9,49 @@
       <div>
         <div class="d-flex align-items-center gap-2" *ngIf="activeTab !== 'list'">
           <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-            <i class="bi bi-arrow-left me-2"></i>Back to Trainings
+            <i class="bi bi-arrow-left me-2"></i>{{ 'live.admin.back_to_trainings' | translate }}
           </button>
         </div>
         <h1 class="page-title mb-1">
           <i class="bi bi-camera-video me-2"></i>
-          {{ activeTab === 'list' ? 'Live Trainings' : selectedTraining?.title }}
+          {{ activeTab === 'list' ? ('live.admin.title' | translate) : selectedTraining?.title }}
         </h1>
         <p class="text-muted mb-0" *ngIf="activeTab === 'list'">
-          Manage instructor-led training sessions
+          {{ 'live.admin.subtitle' | translate }}
         </p>
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-secondary" (click)="openNewTrainingModal()" *ngIf="activeTab === 'list'">
-          <i class="bi bi-plus-lg me-2"></i>New Training
+          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.new_training' | translate }}
         </button>
         <a class="btn btn-secondary" routerLink="/live-training/instructor" *ngIf="activeTab === 'list'">
-          <i class="bi bi-plus-lg me-2"></i>Instructors
+          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.instructors' | translate }}
         </a>
         <a class="btn btn-secondary" routerLink="/live-training/reports" *ngIf="activeTab === 'list'">
-          <i class="bi bi-plus-lg me-2"></i>Reports
+          <i class="bi bi-plus-lg me-2"></i>{{ 'nav.reports' | translate }}
         </a>
         <a class="btn btn-secondary" routerLink="/live-training/integrations" *ngIf="activeTab === 'list'">
-          <i class="bi bi-plus-lg me-2"></i>Integrations
+          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.integrations' | translate }}
         </a>
 
         <a class="btn btn-secondary" routerLink="/live-training/enrollments" *ngIf="activeTab === 'list'">
-          <i class="bi bi-plus-lg me-2"></i>Enrollments
+          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.enrollments' | translate }}
         </a>
         <a class="btn btn-secondary" routerLink="/live-training/skills" *ngIf="activeTab === 'list'">
-          <i class="bi bi-plus-lg me-2"></i>Skills
+          <i class="bi bi-plus-lg me-2"></i>{{ 'nav.skills' | translate }}
         </a>
 
 
         <div class="btn-group" *ngIf="selectedTraining && activeTab !== 'list'">
           <button class="btn btn-primary" (click)="openEditTrainingModal(selectedTraining)">
-            <i class="bi bi-pencil me-1"></i>Edit
+            <i class="bi bi-pencil me-1"></i>{{ 'live.common.edit' | translate }}
           </button>
           <button class="btn btn-success" (click)="publishTraining(selectedTraining)"
                   *ngIf="selectedTraining.status === 'draft'">
-            <i class="bi bi-send me-1"></i>Publish
+            <i class="bi bi-send me-1"></i>{{ 'live.admin.publish' | translate }}
           </button>
           <button class="btn btn-secondary" (click)="exportAttendance()">
-            <i class="bi bi-download me-1"></i>Export
+            <i class="bi bi-download me-1"></i>{{ 'live.common.export' | translate }}
           </button>
         </div>
       </div>
@@ -67,13 +67,13 @@
           <div class="col-md-4">
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" placeholder="Search trainings..."
+              <input type="text" class="form-control" placeholder="{{ 'live.common.search_trainings' | translate }}"
                      [(ngModel)]="searchTerm" (input)="onSearchChange()">
             </div>
           </div>
           <div class="col-md-3">
             <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()">
-              <option value="">All Statuses</option>
+              <option value="">{{ 'live.admin.all_statuses' | translate }}</option>
               <option *ngFor="let status of trainingStatuses" [value]="status">
                 {{ status | titlecase }}
               </option>
@@ -81,7 +81,7 @@
           </div>
           <div class="col-md-3">
             <select class="form-select" [(ngModel)]="filterType" (change)="onFilterChange()">
-              <option value="">All Types</option>
+              <option value="">{{ 'live.admin.all_types' | translate }}</option>
               <option *ngFor="let type of trainingTypes" [value]="type">
                 {{ type | titlecase }}
               </option>
@@ -89,7 +89,7 @@
           </div>
           <div class="col-md-2">
             <span class="badge bg-secondary fs-6 w-100 py-2">
-              {{ filteredTrainings.length }} trainings
+              {{ 'live.admin.trainings_count' | translate:{ count: filteredTrainings.length } }}
             </span>
           </div>
         </div>
@@ -109,7 +109,7 @@
                 <span class="badge" [ngClass]="getStatusBadgeClass(training.status)">
                   {{ training.status | titlecase }}
                 </span>
-                <button class="btn btn-sm btn-outline-danger" (click)="confirmDeleteTraining(training); $event.stopPropagation()" title="Delete">
+                <button class="btn btn-sm btn-outline-danger" (click)="confirmDeleteTraining(training); $event.stopPropagation()" [title]="'live.common.delete' | translate">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
@@ -121,16 +121,16 @@
             <div class="training-stats">
               <div class="stat-item">
                 <i class="bi bi-calendar-event text-primary"></i>
-                <span>{{ training.session_count || 0 }} sessions</span>
+                <span>{{ 'live.common.sessions_count' | translate:{ count: training.session_count || 0 } }}</span>
               </div>
               <div class="stat-item">
                 <i class="bi bi-people text-success"></i>
-                <span>{{ training.enrollment_count || 0 }} enrolled</span>
+                <span>{{ 'live.common.enrolled_count' | translate:{ count: training.enrollment_count || 0 } }}</span>
               </div>
             </div>
             <div class="mt-3 pt-3 border-top" *ngIf="training.next_session_date">
               <small class="text-muted">
-                <i class="bi bi-clock me-1"></i>Next: {{ formatDate(training.next_session_date) }}
+                <i class="bi bi-clock me-1"></i>{{ 'live.admin.next_session' | translate:{ date: formatDate(training.next_session_date) } }}
               </small>
             </div>
           </div>
@@ -141,17 +141,17 @@
     <!-- Empty State -->
     <div *ngIf="!loading && filteredTrainings.length === 0" class="text-center py-5">
       <i class="bi bi-camera-video display-1 text-muted mb-3"></i>
-      <h4 class="text-muted">No trainings found</h4>
-      <p class="text-muted mb-4">Create your first live training to get started</p>
+      <h4 class="text-muted">{{ 'live.admin.empty_title' | translate }}</h4>
+      <p class="text-muted mb-4">{{ 'live.admin.empty_text' | translate }}</p>
       <button class="btn btn-primary" (click)="openNewTrainingModal()">
-        <i class="bi bi-plus-lg me-2"></i>Create Training
+        <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.create_training' | translate }}
       </button>
     </div>
 
     <!-- Loading -->
     <div *ngIf="loading" class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
-      <p class="mt-3 text-muted">Loading trainings...</p>
+      <p class="mt-3 text-muted">{{ 'live.admin.loading_trainings' | translate }}</p>
     </div>
   </div>
 
@@ -161,29 +161,29 @@
     <ul class="nav nav-pills mb-4">
       <li class="nav-item">
         <button class="nav-link" [class.active]="activeTab === 'details'" (click)="activeTab = 'details'">
-          <i class="bi bi-info-circle me-2"></i>Overview
+          <i class="bi bi-info-circle me-2"></i>{{ 'live.admin.tab_overview' | translate }}
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" [class.active]="activeTab === 'sessions'" (click)="activeTab = 'sessions'">
-          <i class="bi bi-calendar-event me-2"></i>Sessions
+          <i class="bi bi-calendar-event me-2"></i>{{ 'live.common.sessions' | translate }}
           <span class="badge bg-secondary ms-2">{{ sessions.length }}</span>
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" [class.active]="activeTab === 'enrollments'" (click)="activeTab = 'enrollments'">
-          <i class="bi bi-people me-2"></i>Enrollments
+          <i class="bi bi-people me-2"></i>{{ 'live.admin.enrollments' | translate }}
           <span class="badge bg-secondary ms-2">{{ enrollments.length }}</span>
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" [class.active]="activeTab === 'analytics'" (click)="activeTab = 'analytics'">
-          <i class="bi bi-graph-up me-2"></i>Analytics
+          <i class="bi bi-graph-up me-2"></i>{{ 'live.admin.analytics' | translate }}
         </button>
       </li>
       <li class="nav-item">
         <button class="nav-link" [class.active]="activeTab === 'integrations'" (click)="activeTab = 'integrations'">
-          <i class="bi bi-plug me-2"></i>Integrations
+          <i class="bi bi-plug me-2"></i>{{ 'live.admin.integrations' | translate }}
           <span class="badge bg-secondary ms-2">{{ integrations.length }}</span>
         </button>
       </li>
@@ -195,19 +195,19 @@
         <div class="col-lg-8">
           <div class="card">
             <div class="card-header">
-              <h5 class="card-title mb-0">Training Details</h5>
+              <h5 class="card-title mb-0">{{ 'live.admin.training_details' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="row g-4">
                 <div class="col-md-6">
-                  <label class="text-muted small">Type</label>
+                  <label class="text-muted small">{{ 'live.common.type' | translate }}</label>
                   <p class="mb-0">
                     <i class="bi me-2" [ngClass]="getTypeIcon(selectedTraining.training_type)"></i>
                     {{ selectedTraining.training_type | titlecase }}
                   </p>
                 </div>
                 <div class="col-md-6">
-                  <label class="text-muted small">Status</label>
+                  <label class="text-muted small">{{ 'live.common.status' | translate }}</label>
                   <p class="mb-0">
                     <span class="badge" [ngClass]="getStatusBadgeClass(selectedTraining.status)">
                       {{ selectedTraining.status | titlecase }}
@@ -215,15 +215,15 @@
                   </p>
                 </div>
                 <div class="col-md-6" *ngIf="selectedTraining.max_capacity">
-                  <label class="text-muted small">Capacity</label>
-                  <p class="mb-0">{{ selectedTraining.max_capacity }} learners</p>
+                  <label class="text-muted small">{{ 'live.admin.capacity' | translate }}</label>
+                  <p class="mb-0">{{ 'live.admin.capacity_learners' | translate:{ count: selectedTraining.max_capacity } }}</p>
                 </div>
                 <div class="col-md-6">
-                  <label class="text-muted small">Waitlist</label>
-                  <p class="mb-0">{{ selectedTraining.allow_waitlist ? 'Enabled' : 'Disabled' }}</p>
+                  <label class="text-muted small">{{ 'live.admin.waitlist' | translate }}</label>
+                  <p class="mb-0">{{ (selectedTraining.allow_waitlist ? 'live.common.enabled' : 'live.common.disabled') | translate }}</p>
                 </div>
                 <div class="col-12" *ngIf="selectedTraining.description">
-                  <label class="text-muted small">Description</label>
+                  <label class="text-muted small">{{ 'live.common.description' | translate }}</label>
                   <p class="mb-0">{{ selectedTraining.description }}</p>
                 </div>
               </div>
@@ -234,22 +234,22 @@
           <div class="card mt-4" *ngIf="selectedTraining.certification_enabled">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="bi bi-award me-2"></i>Certification Settings
+                <i class="bi bi-award me-2"></i>{{ 'live.admin.certification_settings' | translate }}
               </h5>
             </div>
             <div class="card-body">
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="text-muted small">Min Attendance</label>
+                  <label class="text-muted small">{{ 'live.admin.min_attendance' | translate }}</label>
                   <p class="mb-0">{{ selectedTraining.min_attendance_percentage }}%</p>
                 </div>
                 <div class="col-md-6">
-                  <label class="text-muted small">Auto-issue</label>
-                  <p class="mb-0">{{ selectedTraining.auto_issue_certificate ? 'Yes' : 'No' }}</p>
+                  <label class="text-muted small">{{ 'live.admin.auto_issue' | translate }}</label>
+                  <p class="mb-0">{{ (selectedTraining.auto_issue_certificate ? 'live.common.yes' : 'live.common.no') | translate }}</p>
                 </div>
                 <div class="col-md-6">
-                  <label class="text-muted small">Mandatory Sessions Only</label>
-                  <p class="mb-0">{{ selectedTraining.mandatory_sessions_only ? 'Yes' : 'No' }}</p>
+                  <label class="text-muted small">{{ 'live.admin.mandatory_sessions_only' | translate }}</label>
+                  <p class="mb-0">{{ (selectedTraining.mandatory_sessions_only ? 'live.common.yes' : 'live.common.no') | translate }}</p>
                 </div>
               </div>
             </div>
@@ -260,23 +260,23 @@
           <!-- Quick Stats -->
           <div class="card">
             <div class="card-header">
-              <h5 class="card-title mb-0">Quick Stats</h5>
+              <h5 class="card-title mb-0">{{ 'live.admin.quick_stats' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="stat-row">
-                <span class="text-muted">Sessions</span>
+                <span class="text-muted">{{ 'live.common.sessions' | translate }}</span>
                 <strong>{{ sessions.length }}</strong>
               </div>
               <div class="stat-row">
-                <span class="text-muted">Enrolled</span>
+                <span class="text-muted">{{ 'live.common.enrolled' | translate }}</span>
                 <strong class="text-success">{{ analytics?.enrollments?.active || 0 }}</strong>
               </div>
               <div class="stat-row">
-                <span class="text-muted">Avg Attendance</span>
+                <span class="text-muted">{{ 'live.common.avg_attendance' | translate }}</span>
                 <strong>{{ analytics?.attendance?.average_percentage || 0 }}%</strong>
               </div>
               <div class="stat-row">
-                <span class="text-muted">Certificates Issued</span>
+                <span class="text-muted">{{ 'live.common.certificates_issued' | translate }}</span>
                 <strong class="text-primary">{{ analytics?.certification?.issued || 0 }}</strong>
               </div>
             </div>
@@ -285,20 +285,20 @@
           <!-- Reminders -->
           <div class="card mt-4">
             <div class="card-header">
-              <h5 class="card-title mb-0">Reminders</h5>
+              <h5 class="card-title mb-0">{{ 'live.common.reminders' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="reminder-item" [class.active]="selectedTraining.reminder_24h">
                 <i class="bi" [ngClass]="selectedTraining.reminder_24h ? 'bi-check-circle-fill text-success' : 'bi-circle'"></i>
-                24 hours before
+                {{ 'live.common.reminder_24h' | translate }}
               </div>
               <div class="reminder-item" [class.active]="selectedTraining.reminder_1h">
                 <i class="bi" [ngClass]="selectedTraining.reminder_1h ? 'bi-check-circle-fill text-success' : 'bi-circle'"></i>
-                1 hour before
+                {{ 'live.common.reminder_1h' | translate }}
               </div>
               <div class="reminder-item" [class.active]="selectedTraining.reminder_15m">
                 <i class="bi" [ngClass]="selectedTraining.reminder_15m ? 'bi-check-circle-fill text-success' : 'bi-circle'"></i>
-                15 minutes before
+                {{ 'live.common.reminder_15m' | translate }}
               </div>
             </div>
           </div>
@@ -309,9 +309,9 @@
     <!-- Sessions Tab -->
     <div *ngIf="activeTab === 'sessions'">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="mb-0">Training Sessions</h5>
+        <h5 class="mb-0">{{ 'live.admin.training_sessions' | translate }}</h5>
         <button class="btn btn-primary" (click)="openNewSessionModal()">
-          <i class="bi bi-plus-lg me-2"></i>Add Session
+          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.add_session' | translate }}
         </button>
       </div>
 
@@ -321,12 +321,12 @@
             <thead class="table-light">
             <tr>
               <th>#</th>
-              <th>Session</th>
-              <th>Type</th>
-              <th>Date & Time</th>
-              <th class="text-center">Attendance</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
+              <th>{{ 'live.common.session' | translate }}</th>
+              <th>{{ 'live.common.type' | translate }}</th>
+              <th>{{ 'live.common.date_time' | translate }}</th>
+              <th class="text-center">{{ 'live.common.attendance' | translate }}</th>
+              <th>{{ 'live.common.status' | translate }}</th>
+              <th class="text-end">{{ 'live.common.actions' | translate }}</th>
             </tr>
             </thead>
             <tbody>
@@ -347,7 +347,7 @@
                     <i class="bi me-1" [ngClass]="getTypeIcon(session.session_type)"></i>
                     {{ session.session_type | titlecase }}
                   </span>
-                <span class="badge bg-warning text-dark ms-1" *ngIf="session.is_mandatory">Required</span>
+                <span class="badge bg-warning text-dark ms-1" *ngIf="session.is_mandatory">{{ 'live.common.required' | translate }}</span>
               </td>
               <td>
                 <div>{{ formatDate(session.session_date) }}</div>
@@ -368,31 +368,31 @@
               </td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-info" (click)="openInstructorModal(session)" title="Manage Instructors">
+                  <button class="btn btn-outline-info" (click)="openInstructorModal(session)" [title]="'live.admin.manage_instructors' | translate">
                     <i class="bi bi-person-badge"></i>
                   </button>
                   <button class="btn btn-outline-primary" (click)="setupVideo(session)"
-                          title="Set up the video call" [disabled]="settingUpVideo === session.session_id"
+                          [title]="'live.admin.setup_video' | translate" [disabled]="settingUpVideo === session.session_id"
                           *ngIf="session.session_type !== 'physical' && !session.join_url">
                     <i class="bi" [ngClass]="settingUpVideo === session.session_id ? 'bi-hourglass-split' : 'bi-camera-reels'"></i>
                   </button>
                   <a class="btn btn-success" [routerLink]="['/live-training/room', session.session_id]"
-                     title="Open the in-app room"
+                     [title]="'live.admin.open_room' | translate"
                      *ngIf="session.video_platform === 'agora' && session.join_url">
                     <i class="bi bi-box-arrow-in-right"></i>
                   </a>
                   <button class="btn btn-primary" (click)="openQRModal(session)"
-                          title="QR Code" *ngIf="session.session_type !== 'virtual'">
+                          [title]="'live.common.qr_code' | translate" *ngIf="session.session_type !== 'virtual'">
                     <i class="bi bi-qr-code"></i>
                   </button>
                   <button class="btn btn-success" (click)="openVirtualAttendanceModal(session)"
-                          title="Mark Virtual Attendance" *ngIf="session.session_type !== 'physical'">
+                          [title]="'live.common.mark_virtual' | translate" *ngIf="session.session_type !== 'physical'">
                     <i class="bi bi-camera-video"></i>
                   </button>
-                  <button class="btn btn-secondary" (click)="openEditSessionModal(session)" title="Edit">
+                  <button class="btn btn-secondary" (click)="openEditSessionModal(session)" [title]="'live.common.edit' | translate">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-outline-danger" (click)="confirmDeleteSession(session)" title="Delete">
+                  <button class="btn btn-outline-danger" (click)="confirmDeleteSession(session)" [title]="'live.common.delete' | translate">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -401,7 +401,7 @@
             <tr *ngIf="sessions.length === 0">
               <td colspan="7" class="text-center py-4 text-muted">
                 <i class="bi bi-calendar-x display-4 d-block mb-2"></i>
-                No sessions scheduled
+                {{ 'live.admin.no_sessions' | translate }}
               </td>
             </tr>
             </tbody>
@@ -413,9 +413,9 @@
     <!-- Enrollments Tab -->
     <div *ngIf="activeTab === 'enrollments'">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="mb-0">Enrolled Learners</h5>
+        <h5 class="mb-0">{{ 'live.admin.enrolled_learners' | translate }}</h5>
         <button class="btn btn-primary" (click)="openEnrollModal()">
-          <i class="bi bi-person-plus me-2"></i>Enroll Learners
+          <i class="bi bi-person-plus me-2"></i>{{ 'live.admin.enroll_learners' | translate }}
         </button>
       </div>
 
@@ -424,12 +424,12 @@
           <table class="table table-hover mb-0">
             <thead class="table-light">
             <tr>
-              <th>Learner</th>
-              <th class="text-center">Sessions</th>
-              <th class="text-center">Attendance</th>
-              <th>Status</th>
-              <th>Certificate</th>
-              <th class="text-end">Actions</th>
+              <th>{{ 'live.common.learner' | translate }}</th>
+              <th class="text-center">{{ 'live.common.sessions' | translate }}</th>
+              <th class="text-center">{{ 'live.common.attendance' | translate }}</th>
+              <th>{{ 'live.common.status' | translate }}</th>
+              <th>{{ 'live.admin.certificate' | translate }}</th>
+              <th class="text-end">{{ 'live.common.actions' | translate }}</th>
             </tr>
             </thead>
             <tbody>
@@ -472,19 +472,19 @@
                 <div class="btn-group btn-group-sm ms-2">
                   <button class="btn btn-link p-0"
                           (click)="checkEligibility(enrollment)"
-                          title="Check Eligibility"
+                          [title]="'live.common.check_eligibility' | translate"
                           *ngIf="enrollment.certification_status === 'pending'">
                     <i class="bi bi-arrow-repeat"></i>
                   </button>
                   <button class="btn btn-link p-0 text-success"
                           (click)="issueCertificate(enrollment)"
-                          title="Issue Certificate"
+                          [title]="'live.admin.issue_certificate' | translate"
                           *ngIf="enrollment.certification_status === 'eligible'">
                     <i class="bi bi-award"></i>
                   </button>
                   <button class="btn btn-link p-0 text-danger"
                           (click)="openCertificateModal(enrollment)"
-                          title="Revoke Certificate"
+                          [title]="'live.admin.revoke_certificate' | translate"
                           *ngIf="enrollment.certification_status === 'issued'">
                     <i class="bi bi-x-circle"></i>
                   </button>
@@ -500,7 +500,7 @@
             <tr *ngIf="enrollments.length === 0">
               <td colspan="6" class="text-center py-4 text-muted">
                 <i class="bi bi-people display-4 d-block mb-2"></i>
-                No enrollments yet
+                {{ 'live.admin.no_enrollments' | translate }}
               </td>
             </tr>
             </tbody>
@@ -520,8 +520,8 @@
                 <i class="bi bi-calendar-event"></i>
               </div>
               <div class="stat-value">{{ analytics.sessions.total }}</div>
-              <div class="stat-label">Total Sessions</div>
-              <small class="text-success">{{ analytics.sessions.completed }} completed</small>
+              <div class="stat-label">{{ 'live.common.total_sessions' | translate }}</div>
+              <small class="text-success">{{ 'live.admin.completed_count' | translate:{ count: analytics.sessions.completed } }}</small>
             </div>
           </div>
         </div>
@@ -532,8 +532,8 @@
                 <i class="bi bi-people"></i>
               </div>
               <div class="stat-value">{{ analytics.enrollments.total }}</div>
-              <div class="stat-label">Enrollments</div>
-              <small class="text-muted">{{ analytics.enrollments.active }} active</small>
+              <div class="stat-label">{{ 'live.admin.enrollments' | translate }}</div>
+              <small class="text-muted">{{ 'live.admin.active_count' | translate:{ count: analytics.enrollments.active } }}</small>
             </div>
           </div>
         </div>
@@ -544,8 +544,8 @@
                 <i class="bi bi-check2-all"></i>
               </div>
               <div class="stat-value">{{ analytics.attendance.average_percentage }}%</div>
-              <div class="stat-label">Avg Attendance</div>
-              <small class="text-muted">{{ analytics.attendance.present }} present</small>
+              <div class="stat-label">{{ 'live.common.avg_attendance' | translate }}</div>
+              <small class="text-muted">{{ 'live.admin.present_count' | translate:{ count: analytics.attendance.present } }}</small>
             </div>
           </div>
         </div>
@@ -556,8 +556,8 @@
                 <i class="bi bi-award"></i>
               </div>
               <div class="stat-value">{{ analytics.certification.issued }}</div>
-              <div class="stat-label">Certificates</div>
-              <small class="text-muted">{{ analytics.certification.eligible }} eligible</small>
+              <div class="stat-label">{{ 'live.common.certificates' | translate }}</div>
+              <small class="text-muted">{{ 'live.admin.eligible_count' | translate:{ count: analytics.certification.eligible } }}</small>
             </div>
           </div>
         </div>
@@ -566,28 +566,28 @@
         <div class="col-lg-6">
           <div class="card h-100">
             <div class="card-header">
-              <h5 class="card-title mb-0">Attendance Breakdown</h5>
+              <h5 class="card-title mb-0">{{ 'live.common.attendance_breakdown' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="attendance-breakdown">
                 <div class="breakdown-item">
                   <div class="breakdown-label">
                     <span class="breakdown-dot bg-success"></span>
-                    Present
+                    {{ 'live.common.present' | translate }}
                   </div>
                   <div class="breakdown-value">{{ analytics.attendance.present }}</div>
                 </div>
                 <div class="breakdown-item">
                   <div class="breakdown-label">
                     <span class="breakdown-dot bg-warning"></span>
-                    Late
+                    {{ 'live.common.late' | translate }}
                   </div>
                   <div class="breakdown-value">{{ analytics.attendance.late }}</div>
                 </div>
                 <div class="breakdown-item">
                   <div class="breakdown-label">
                     <span class="breakdown-dot bg-danger"></span>
-                    Absent
+                    {{ 'live.common.absent' | translate }}
                   </div>
                   <div class="breakdown-value">{{ analytics.attendance.absent }}</div>
                 </div>
@@ -597,14 +597,14 @@
                 <div class="breakdown-item">
                   <div class="breakdown-label">
                     <i class="bi bi-building me-2"></i>
-                    Physical
+                    {{ 'live.common.physical' | translate }}
                   </div>
                   <div class="breakdown-value">{{ analytics.attendance.physical }}</div>
                 </div>
                 <div class="breakdown-item">
                   <div class="breakdown-label">
                     <i class="bi bi-camera-video me-2"></i>
-                    Virtual
+                    {{ 'live.common.virtual' | translate }}
                   </div>
                   <div class="breakdown-value">{{ analytics.attendance.virtual }}</div>
                 </div>
@@ -617,7 +617,7 @@
         <div class="col-lg-6">
           <div class="card h-100">
             <div class="card-header">
-              <h5 class="card-title mb-0">Certification Status</h5>
+              <h5 class="card-title mb-0">{{ 'live.admin.certification_status' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="certification-breakdown">
@@ -627,7 +627,7 @@
                   </div>
                   <div class="cert-info">
                     <div class="cert-value">{{ analytics.certification.issued }}</div>
-                    <div class="cert-label">Issued</div>
+                    <div class="cert-label">{{ 'live.common.issued' | translate }}</div>
                   </div>
                 </div>
                 <div class="cert-item">
@@ -636,7 +636,7 @@
                   </div>
                   <div class="cert-info">
                     <div class="cert-value">{{ analytics.certification.eligible }}</div>
-                    <div class="cert-label">Eligible</div>
+                    <div class="cert-label">{{ 'live.common.eligible' | translate }}</div>
                   </div>
                 </div>
                 <div class="cert-item">
@@ -645,7 +645,7 @@
                   </div>
                   <div class="cert-info">
                     <div class="cert-value">{{ analytics.certification.not_eligible }}</div>
-                    <div class="cert-label">Not Eligible</div>
+                    <div class="cert-label">{{ 'live.common.not_eligible' | translate }}</div>
                   </div>
                 </div>
               </div>
@@ -658,9 +658,9 @@
     <!-- Integrations Tab -->
     <div *ngIf="activeTab === 'integrations'">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="mb-0">Video Integrations</h5>
+        <h5 class="mb-0">{{ 'live.admin.video_integrations' | translate }}</h5>
         <button class="btn btn-primary" (click)="openIntegrationModal()">
-          <i class="bi bi-plus-lg me-2"></i>Add Integration
+          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.add_integration' | translate }}
         </button>
       </div>
 
@@ -673,7 +673,7 @@
                   <i class="bi" [ngClass]="getPlatformIcon(integration.platform)"></i>
                 </div>
                 <span class="badge" [ngClass]="integration.is_active ? 'bg-success' : 'bg-secondary'">
-                  {{ integration.is_active ? 'Active' : 'Inactive' }}
+                  {{ (integration.is_active ? 'live.common.active' : 'live.common.inactive') | translate }}
                 </span>
               </div>
               <h5 class="card-title mb-2">{{ integration.platform | titlecase }}</h5>
@@ -683,7 +683,7 @@
             </div>
             <div class="card-footer d-flex gap-2">
               <button class="btn btn-primary btn-sm flex-grow-1" (click)="openIntegrationModal(integration)">
-                <i class="bi bi-pencil me-1"></i>Edit
+                <i class="bi bi-pencil me-1"></i>{{ 'live.common.edit' | translate }}
               </button>
               <button class="btn btn-outline-danger btn-sm" (click)="disconnectIntegration(integration)">
                 <i class="bi bi-x-lg"></i>
@@ -695,10 +695,10 @@
         <div class="col-12" *ngIf="integrations.length === 0">
           <div class="text-center py-5 text-muted">
             <i class="bi bi-plug display-1 mb-3"></i>
-            <h5>No Integrations</h5>
-            <p>Connect video platforms to enable virtual sessions</p>
+            <h5>{{ 'live.admin.no_integrations_title' | translate }}</h5>
+            <p>{{ 'live.admin.no_integrations_text' | translate }}</p>
             <button class="btn btn-primary" (click)="openIntegrationModal()">
-              <i class="bi bi-plus-lg me-2"></i>Add Integration
+              <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.add_integration' | translate }}
             </button>
           </div>
         </div>
@@ -719,62 +719,62 @@
       <div class="modal-header">
         <h5 class="modal-title">
           <i class="bi bi-calendar-event me-2"></i>
-          {{ isEditMode ? 'Edit Session' : 'New Session' }}
+          {{ (isEditMode ? 'live.admin.edit_session' : 'live.admin.new_session') | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeSessionModal()"></button>
       </div>
       <div class="modal-body">
         <div class="row g-4">
           <div class="col-md-8">
-            <label class="form-label">Session Title <span class="text-danger">*</span></label>
+            <label class="form-label">{{ 'live.admin.session_title' | translate }} <span class="text-danger">*</span></label>
             <input type="text" class="form-control" [(ngModel)]="editingSession.title">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Type</label>
+            <label class="form-label">{{ 'live.common.type' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingSession.session_type">
               <option *ngFor="let type of trainingTypes" [value]="type">{{ type | titlecase }}</option>
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label">Date <span class="text-danger">*</span></label>
+            <label class="form-label">{{ 'live.common.date' | translate }} <span class="text-danger">*</span></label>
             <input type="date" class="form-control" [(ngModel)]="editingSession.session_date">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Start Time</label>
+            <label class="form-label">{{ 'live.common.start_time' | translate }}</label>
             <input type="time" class="form-control" [(ngModel)]="editingSession.start_time">
           </div>
           <div class="col-md-4">
-            <label class="form-label">End Time</label>
+            <label class="form-label">{{ 'live.common.end_time' | translate }}</label>
             <input type="time" class="form-control" [(ngModel)]="editingSession.end_time">
           </div>
 
           <!-- Physical Location -->
           <div class="col-12" *ngIf="editingSession.session_type !== 'virtual'">
             <hr>
-            <label class="form-label fw-medium">Physical Location</label>
+            <label class="form-label fw-medium">{{ 'live.admin.physical_location' | translate }}</label>
           </div>
           <div class="col-md-6" *ngIf="editingSession.session_type !== 'virtual'">
-            <label class="form-label">Venue Name</label>
+            <label class="form-label">{{ 'live.admin.venue_name' | translate }}</label>
             <input type="text" class="form-control" [(ngModel)]="editingSession.venue_name">
           </div>
           <div class="col-md-6" *ngIf="editingSession.session_type !== 'virtual'">
-            <label class="form-label">Room</label>
+            <label class="form-label">{{ 'live.admin.room' | translate }}</label>
             <input type="text" class="form-control" [(ngModel)]="editingSession.venue_room">
           </div>
           <div class="col-12" *ngIf="editingSession.session_type !== 'virtual'">
-            <label class="form-label">Address</label>
+            <label class="form-label">{{ 'live.admin.address' | translate }}</label>
             <textarea class="form-control" rows="2" [(ngModel)]="editingSession.venue_address"></textarea>
           </div>
 
           <!-- Virtual Settings -->
           <div class="col-12" *ngIf="editingSession.session_type !== 'physical'">
             <hr>
-            <label class="form-label fw-medium">Virtual Meeting</label>
+            <label class="form-label fw-medium">{{ 'live.admin.virtual_meeting' | translate }}</label>
           </div>
           <div class="col-md-6" *ngIf="editingSession.session_type !== 'physical'">
-            <label class="form-label">Platform</label>
+            <label class="form-label">{{ 'live.common.platform' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingSession.video_platform">
-              <option [value]="null">Select Platform</option>
+              <option [value]="null">{{ 'live.admin.select_platform' | translate }}</option>
               <option *ngFor="let platform of videoPlatforms" [value]="platform">
                 {{ platform | titlecase }}
               </option>
@@ -787,20 +787,20 @@
             <div class="d-flex gap-4 flex-wrap">
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" [(ngModel)]="editingSession.is_mandatory" id="mandatory">
-                <label class="form-check-label" for="mandatory">Mandatory session</label>
+                <label class="form-check-label" for="mandatory">{{ 'live.admin.mandatory_session' | translate }}</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="checkbox" [(ngModel)]="editingSession.allow_late_join" id="lateJoin">
-                <label class="form-check-label" for="lateJoin">Allow late join</label>
+                <label class="form-check-label" for="lateJoin">{{ 'live.admin.allow_late_join' | translate }}</label>
               </div>
             </div>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Late Threshold (minutes)</label>
+            <label class="form-label">{{ 'live.admin.late_threshold' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingSession.late_threshold_minutes">
           </div>
           <div class="col-md-6" *ngIf="isEditMode">
-            <label class="form-label">Status</label>
+            <label class="form-label">{{ 'live.common.status' | translate }}</label>
             <select class="form-select" [(ngModel)]="editingSession.status">
               <option *ngFor="let status of sessionStatuses" [value]="status">{{ status | titlecase }}</option>
             </select>
@@ -808,11 +808,11 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeSessionModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeSessionModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveSession()"
                 [disabled]="saving || !editingSession.title || !editingSession.session_date">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          {{ isEditMode ? 'Update' : 'Create' }} Session
+          {{ (isEditMode ? 'live.admin.update_session' : 'live.admin.create_session') | translate }}
         </button>
       </div>
     </div>
@@ -828,31 +828,31 @@
       <div class="modal-header">
         <h5 class="modal-title">
           <i class="bi bi-clipboard-check me-2"></i>
-          Session Attendance - {{ selectedSession?.title }}
+          {{ 'live.admin.session_attendance' | translate }} - {{ selectedSession?.title }}
         </h5>
         <button type="button" class="btn-close" (click)="closeAttendanceModal()"></button>
       </div>
       <div class="modal-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <span class="badge bg-success me-2">{{ getAttendanceCount('present') }} Present</span>
-            <span class="badge bg-warning me-2">{{ getAttendanceCount('late') }} Late</span>
-            <span class="badge bg-danger">{{ getAttendanceCount('absent') }} Absent</span>
+            <span class="badge bg-success me-2">{{ 'live.admin.present_badge' | translate:{ count: getAttendanceCount('present') } }}</span>
+            <span class="badge bg-warning me-2">{{ 'live.admin.late_badge' | translate:{ count: getAttendanceCount('late') } }}</span>
+            <span class="badge bg-danger">{{ 'live.admin.absent_badge' | translate:{ count: getAttendanceCount('absent') } }}</span>
           </div>
           <button class="btn btn-sm btn-outline-warning" (click)="lockSessionAttendance()"
                   *ngIf="!selectedSession?.attendance_locked">
-            <i class="bi bi-lock me-1"></i>Lock Attendance
+            <i class="bi bi-lock me-1"></i>{{ 'live.common.lock_attendance' | translate }}
           </button>
         </div>
         <div class="table-responsive">
           <table class="table table-sm">
             <thead class="table-light">
             <tr>
-              <th>Learner</th>
-              <th>Mode</th>
-              <th>Status</th>
-              <th>Time</th>
-              <th class="text-end">Actions</th>
+              <th>{{ 'live.common.learner' | translate }}</th>
+              <th>{{ 'live.common.mode' | translate }}</th>
+              <th>{{ 'live.common.status' | translate }}</th>
+              <th>{{ 'live.common.time' | translate }}</th>
+              <th class="text-end">{{ 'live.common.actions' | translate }}</th>
             </tr>
             </thead>
             <tbody>
@@ -872,7 +872,7 @@
                   <span class="badge" [ngClass]="getStatusBadgeClass(att.status)">
                     {{ att.status | titlecase }}
                   </span>
-                <i class="bi bi-pencil-square text-muted ms-1" *ngIf="att.is_manual_override" title="Manual override"></i>
+                <i class="bi bi-pencil-square text-muted ms-1" *ngIf="att.is_manual_override" [title]="'live.admin.manual_override' | translate"></i>
               </td>
               <td>
                 <small>{{ att.marked_at ? formatDateTime(att.marked_at) : '-' }}</small>
@@ -890,7 +890,7 @@
 
         <!-- Override Form -->
         <div class="mt-4 p-3 bg-light rounded" *ngIf="overrideUserId">
-          <h6>Override Attendance</h6>
+          <h6>{{ 'live.admin.override_attendance' | translate }}</h6>
           <div class="row g-3">
             <div class="col-md-4">
               <select class="form-select" [(ngModel)]="overrideStatus">
@@ -898,18 +898,18 @@
               </select>
             </div>
             <div class="col-md-5">
-              <input type="text" class="form-control" [(ngModel)]="overrideReason" placeholder="Reason for override">
+              <input type="text" class="form-control" [(ngModel)]="overrideReason" placeholder="{{ 'live.admin.reason_override' | translate }}">
             </div>
             <div class="col-md-3">
               <button class="btn btn-primary w-100" (click)="submitAttendanceOverride()" [disabled]="!overrideReason">
-                Save
+                {{ 'common.save' | translate }}
               </button>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeAttendanceModal()">Close</button>
+        <button type="button" class="btn btn-secondary" (click)="closeAttendanceModal()">{{ 'common.close' | translate }}</button>
       </div>
     </div>
   </div>
@@ -923,7 +923,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-qr-code me-2"></i>Session QR Code
+          <i class="bi bi-qr-code me-2"></i>{{ 'live.common.session_qr_code' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeQRModal()"></button>
       </div>
@@ -932,18 +932,18 @@
           <img [src]="getQRCodeUrl()" alt="QR Code" class="qr-image">
         </div>
         <p class="text-muted small">
-          Learners can scan this code to mark their attendance
+          {{ 'live.common.qr_scan_hint' | translate }}
         </p>
         <div class="alert alert-info small" *ngIf="qrCodeData?.expires_at">
           <i class="bi bi-clock me-1"></i>
-          Expires: {{ formatDateTime(qrCodeData!.expires_at) }}
+          {{ 'live.admin.qr_expires' | translate:{ date: formatDateTime(qrCodeData!.expires_at) } }}
         </div>
         <button class="btn btn-primary" (click)="generateQRCode(selectedSession!)">
-          <i class="bi bi-arrow-repeat me-1"></i>Regenerate
+          <i class="bi bi-arrow-repeat me-1"></i>{{ 'live.common.regenerate' | translate }}
         </button>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeQRModal()">Close</button>
+        <button type="button" class="btn btn-secondary" (click)="closeQRModal()">{{ 'common.close' | translate }}</button>
       </div>
     </div>
   </div>
@@ -957,19 +957,19 @@
     <div class="modal-content">
       <div class="modal-header border-0">
         <h5 class="modal-title text-danger">
-          <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete
+          <i class="bi bi-exclamation-triangle me-2"></i>{{ 'live.admin.confirm_delete' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="showDeleteModal = false"></button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to delete <strong>{{ deleteName }}</strong>?</p>
-        <p class="text-muted small mb-0">This action cannot be undone.</p>
+        <p>{{ 'live.admin.delete_confirm_prefix' | translate }} <strong>{{ deleteName }}</strong>?</p>
+        <p class="text-muted small mb-0">{{ 'live.admin.cannot_undo' | translate }}</p>
       </div>
       <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" (click)="showDeleteModal = false">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="showDeleteModal = false">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-danger" (click)="executeDelete()" [disabled]="saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Delete
+          {{ 'live.common.delete' | translate }}
         </button>
       </div>
     </div>
@@ -984,35 +984,35 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-person-badge me-2"></i>Manage Instructors
+          <i class="bi bi-person-badge me-2"></i>{{ 'live.admin.manage_instructors' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeInstructorModal()"></button>
       </div>
       <div class="modal-body">
         <div class="mb-4" *ngIf="selectedSession">
           <p class="text-muted mb-0">
-            Session: <strong>{{ selectedSession.title }}</strong> - {{ formatDate(selectedSession.session_date) }}
+            {{ 'live.common.session_colon' | translate }} <strong>{{ selectedSession.title }}</strong> - {{ formatDate(selectedSession.session_date) }}
           </p>
         </div>
 
         <!-- Add Instructor Form -->
         <div class="card mb-4">
           <div class="card-header">
-            <h6 class="mb-0">Add Instructor</h6>
+            <h6 class="mb-0">{{ 'live.admin.add_instructor' | translate }}</h6>
           </div>
           <div class="card-body">
             <div class="row g-3">
               <div class="col-md-5">
-                <label class="form-label">Select Instructor</label>
+                <label class="form-label">{{ 'live.admin.select_instructor' | translate }}</label>
                 <select class="form-select" [(ngModel)]="newInstructorId">
-                  <option [ngValue]="null">-- Select --</option>
+                  <option [ngValue]="null">{{ 'live.admin.select_dash' | translate }}</option>
                   <option *ngFor="let user of availableInstructors" [ngValue]="user.user_id">
                     {{ user.first_name }} {{ user.last_name }} ({{ user.email }})
                   </option>
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label">Role</label>
+                <label class="form-label">{{ 'live.common.role' | translate }}</label>
                 <select class="form-select" [(ngModel)]="newInstructorRole">
                   <option *ngFor="let role of instructorRoles" [value]="role">
                     {{ role | titlecase }}
@@ -1020,16 +1020,16 @@
                 </select>
               </div>
               <div class="col-md-2">
-                <label class="form-label">Is Host?</label>
+                <label class="form-label">{{ 'live.admin.is_host' | translate }}</label>
                 <div class="form-check mt-2">
                   <input type="checkbox" class="form-check-input" id="isHost" [(ngModel)]="newInstructorIsHost">
-                  <label class="form-check-label" for="isHost">Yes</label>
+                  <label class="form-check-label" for="isHost">{{ 'live.common.yes' | translate }}</label>
                 </div>
               </div>
               <div class="col-md-2 d-flex align-items-end">
                 <button class="btn btn-primary w-100" (click)="assignInstructor()"
                         [disabled]="!newInstructorId || saving">
-                  <i class="bi bi-plus-lg me-1"></i>Add
+                  <i class="bi bi-plus-lg me-1"></i>{{ 'live.common.add' | translate }}
                 </button>
               </div>
             </div>
@@ -1037,15 +1037,15 @@
         </div>
 
         <!-- Current Instructors List -->
-        <h6 class="mb-3">Current Instructors</h6>
+        <h6 class="mb-3">{{ 'live.admin.current_instructors' | translate }}</h6>
         <div class="table-responsive" *ngIf="sessionInstructors.length > 0">
           <table class="table table-sm">
             <thead class="table-light">
             <tr>
-              <th>Instructor</th>
-              <th>Role</th>
-              <th>Host</th>
-              <th class="text-end">Actions</th>
+              <th>{{ 'live.common.instructor' | translate }}</th>
+              <th>{{ 'live.common.role' | translate }}</th>
+              <th>{{ 'live.host' | translate }}</th>
+              <th class="text-end">{{ 'live.common.actions' | translate }}</th>
             </tr>
             </thead>
             <tbody>
@@ -1080,11 +1080,11 @@
         </div>
         <div class="text-center py-4 text-muted" *ngIf="sessionInstructors.length === 0">
           <i class="bi bi-person-x display-4 d-block mb-2"></i>
-          No instructors assigned
+          {{ 'live.common.no_instructors' | translate }}
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeInstructorModal()">Close</button>
+        <button type="button" class="btn btn-secondary" (click)="closeInstructorModal()">{{ 'common.close' | translate }}</button>
       </div>
     </div>
   </div>
@@ -1098,28 +1098,28 @@
     <div class="modal-content">
       <div class="modal-header border-0">
         <h5 class="modal-title text-danger">
-          <i class="bi bi-exclamation-triangle me-2"></i>Revoke Certificate
+          <i class="bi bi-exclamation-triangle me-2"></i>{{ 'live.admin.revoke_certificate' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeCertificateModal()"></button>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning">
           <i class="bi bi-exclamation-triangle me-2"></i>
-          You are about to revoke the certificate for:
+          {{ 'live.admin.revoke_warning' | translate }}
           <strong>{{ selectedEnrollment?.first_name }} {{ selectedEnrollment?.last_name }}</strong>
         </div>
         <div class="mb-3">
-          <label class="form-label">Reason for Revocation <span class="text-danger">*</span></label>
+          <label class="form-label">{{ 'live.admin.reason_revocation' | translate }} <span class="text-danger">*</span></label>
           <textarea class="form-control" rows="3" [(ngModel)]="revokeReason"
-                    placeholder="Please provide a reason for revoking this certificate..."></textarea>
+                    placeholder="{{ 'live.admin.reason_revocation_placeholder' | translate }}"></textarea>
         </div>
       </div>
       <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" (click)="closeCertificateModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeCertificateModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-danger" (click)="revokeCertificate()"
                 [disabled]="!revokeReason || saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Revoke Certificate
+          {{ 'live.admin.revoke_certificate' | translate }}
         </button>
       </div>
     </div>
@@ -1134,21 +1134,21 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-camera-video me-2"></i>Mark Virtual Attendance
+          <i class="bi bi-camera-video me-2"></i>{{ 'live.common.mark_virtual' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeVirtualAttendanceModal()"></button>
       </div>
       <div class="modal-body">
         <div class="mb-3" *ngIf="selectedSession">
           <p class="text-muted mb-0">
-            Session: <strong>{{ selectedSession.title }}</strong>
+            {{ 'live.common.session_colon' | translate }} <strong>{{ selectedSession.title }}</strong>
           </p>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Learner <span class="text-danger">*</span></label>
+          <label class="form-label">{{ 'live.common.learner' | translate }} <span class="text-danger">*</span></label>
           <select class="form-select" [(ngModel)]="virtualAttendanceData.learner_id">
-            <option [ngValue]="0">-- Select Learner --</option>
+            <option [ngValue]="0">{{ 'live.admin.select_learner' | translate }}</option>
             <option *ngFor="let enrollment of enrollments" [ngValue]="enrollment.user_id">
               {{ enrollment.first_name }} {{ enrollment.last_name }}
             </option>
@@ -1157,28 +1157,28 @@
 
         <div class="row g-3">
           <div class="col-md-6">
-            <label class="form-label">Join Time</label>
+            <label class="form-label">{{ 'live.admin.join_time' | translate }}</label>
             <input type="datetime-local" class="form-control" [(ngModel)]="virtualAttendanceData.join_time">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Leave Time</label>
+            <label class="form-label">{{ 'live.admin.leave_time' | translate }}</label>
             <input type="datetime-local" class="form-control" [(ngModel)]="virtualAttendanceData.leave_time">
           </div>
         </div>
 
         <div class="mb-3 mt-3">
-          <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+          <label class="form-label">{{ 'live.common.duration_minutes' | translate }} <span class="text-danger">*</span></label>
           <input type="number" class="form-control" [(ngModel)]="virtualAttendanceData.duration_minutes"
-                 placeholder="Enter duration in minutes" min="1">
-          <small class="text-muted">Minimum duration required for attendance: {{ selectedTraining?.min_virtual_duration_minutes || 30 }} minutes</small>
+                 placeholder="{{ 'live.admin.duration_placeholder' | translate }}" min="1">
+          <small class="text-muted">{{ 'live.admin.min_duration_note' | translate:{ count: selectedTraining?.min_virtual_duration_minutes || 30 } }}</small>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeVirtualAttendanceModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeVirtualAttendanceModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="markVirtualAttendance()"
                 [disabled]="!virtualAttendanceData.learner_id || !virtualAttendanceData.duration_minutes || saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Mark Attendance
+          {{ 'live.common.mark_attendance' | translate }}
         </button>
       </div>
     </div>
@@ -1193,13 +1193,13 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-plug me-2"></i>Video Integration Settings
+          <i class="bi bi-plug me-2"></i>{{ 'live.admin.integration_settings' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeIntegrationModal()"></button>
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label">Platform <span class="text-danger">*</span></label>
+          <label class="form-label">{{ 'live.common.platform' | translate }} <span class="text-danger">*</span></label>
           <select class="form-select" [(ngModel)]="editingIntegration.platform">
             <option *ngFor="let platform of videoPlatforms" [value]="platform">
               {{ platform | titlecase }}
@@ -1208,34 +1208,34 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Client ID</label>
+          <label class="form-label">{{ 'live.admin.client_id' | translate }}</label>
           <input type="text" class="form-control" [(ngModel)]="editingIntegration.client_id"
-                 placeholder="OAuth Client ID">
+                 placeholder="{{ 'live.admin.client_id_placeholder' | translate }}">
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Client Secret</label>
+          <label class="form-label">{{ 'live.admin.client_secret' | translate }}</label>
           <input type="password" class="form-control" [(ngModel)]="editingIntegration.client_secret"
-                 placeholder="OAuth Client Secret">
+                 placeholder="{{ 'live.admin.client_secret_placeholder' | translate }}">
         </div>
 
         <div class="form-check mb-3">
           <input type="checkbox" class="form-check-input" id="integrationActive"
                  [(ngModel)]="editingIntegration.is_active">
-          <label class="form-check-label" for="integrationActive">Active</label>
+          <label class="form-check-label" for="integrationActive">{{ 'live.common.active' | translate }}</label>
         </div>
 
         <div class="alert alert-info small">
           <i class="bi bi-info-circle me-2"></i>
-          After saving, you'll need to complete the OAuth authorization process.
+          {{ 'live.admin.oauth_note' | translate }}
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeIntegrationModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeIntegrationModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveIntegration()"
                 [disabled]="!editingIntegration.platform || saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Save Integration
+          {{ 'live.admin.save_integration' | translate }}
         </button>
       </div>
     </div>
@@ -1249,20 +1249,20 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">
-          <i class="bi bi-person-plus me-2"></i>Enroll Learners
+          <i class="bi bi-person-plus me-2"></i>{{ 'live.admin.enroll_learners' | translate }}
         </h5>
         <button type="button" class="btn-close" (click)="closeEnrollModal()"></button>
       </div>
       <div class="modal-body">
         <!-- Quick Enroll by ID -->
         <div class="mb-4 p-3 bg-light rounded">
-          <label class="form-label fw-medium">Quick Enroll by User ID</label>
+          <label class="form-label fw-medium">{{ 'live.admin.quick_enroll' | translate }}</label>
           <div class="input-group">
             <input type="number" class="form-control" [(ngModel)]="quickEnrollUserId"
-                   placeholder="Enter user ID">
+                   placeholder="{{ 'live.admin.enter_user_id' | translate }}">
             <button class="btn btn-primary" (click)="enrollSingleLearner(quickEnrollUserId)"
                     [disabled]="!quickEnrollUserId || saving">
-              <i class="bi bi-person-plus-fill me-1"></i>Enroll
+              <i class="bi bi-person-plus-fill me-1"></i>{{ 'live.admin.enroll' | translate }}
             </button>
           </div>
         </div>
@@ -1270,7 +1270,7 @@
         <hr>
 
         <div class="mb-3">
-          <label class="form-label">Select Learners</label>
+          <label class="form-label">{{ 'live.admin.select_learners' | translate }}</label>
           <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
             <div class="form-check" *ngFor="let user of availableUsers">
               <input class="form-check-input" type="checkbox"
@@ -1283,21 +1283,21 @@
               </label>
             </div>
             <div class="text-center text-muted py-3" *ngIf="availableUsers.length === 0">
-              No users available for enrollment
+              {{ 'live.admin.no_users_available' | translate }}
             </div>
           </div>
         </div>
         <div class="alert alert-info" *ngIf="selectedUsers.length > 0">
           <i class="bi bi-info-circle me-2"></i>
-          {{ selectedUsers.length }} learner(s) selected for enrollment
+          {{ 'live.admin.learners_selected' | translate:{ count: selectedUsers.length } }}
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeEnrollModal()">Cancel</button>
+        <button type="button" class="btn btn-secondary" (click)="closeEnrollModal()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="enrollSelectedUsers()"
                 [disabled]="selectedUsers.length === 0 || saving">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          Enroll {{ selectedUsers.length }} Learner(s)
+          {{ 'live.admin.enroll_n_learners' | translate:{ count: selectedUsers.length } }}
         </button>
       </div>
     </div>

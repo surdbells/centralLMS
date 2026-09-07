@@ -16,6 +16,8 @@ import {
   CourseDetails,
   Category
 } from './my-learning.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 type ViewMode = 'dashboard' | 'all-courses' | 'browse' | 'course-detail';
 type StatusFilter = 'all' | 'in_progress' | 'not_started' | 'completed';
@@ -23,7 +25,7 @@ type StatusFilter = 'all' | 'in_progress' | 'not_started' | 'completed';
 @Component({
   selector: 'app-my-learning',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './my-learning.component.html',
   styleUrls: ['./my-learning.component.scss']
 })
@@ -64,7 +66,8 @@ export class MyLearningComponent implements OnInit, OnDestroy {
 
   constructor(
     private learningService: MyLearningService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -211,7 +214,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (result) => {
           if (result.success) {
-            this.showSuccess(`Enrolled in "${course.title}"`);
+            this.showSuccess(this.i18n.t('learning.enrolled_in', { title: course.title }));
             this.loadAvailableCourses();
             // Update stats
             this.learningService.getStats()
@@ -223,7 +226,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
           this.processing = false;
         },
         error: (err) => {
-          this.showError(err.error?.message || 'Failed to enroll');
+          this.showError(err.error?.message || this.i18n.t('learning.enroll_failed'));
           this.processing = false;
         }
       });
@@ -251,7 +254,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
           this.loadingDetails = false;
         },
         error: (err) => {
-          this.showError(err.error?.message || 'Failed to load course details');
+          this.showError(err.error?.message || this.i18n.t('learning.load_details_failed'));
           this.loadingDetails = false;
         }
       });
@@ -292,7 +295,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (result) => {
           if (result.success) {
-            this.showSuccess('Course started!');
+            this.showSuccess(this.i18n.t('learning.course_started'));
             this.playCourse(course.course_id);
           } else {
             this.showError(result.message);
@@ -300,7 +303,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
           this.processing = false;
         },
         error: (err) => {
-          this.showError(err.error?.message || 'Failed to start course');
+          this.showError(err.error?.message || this.i18n.t('learning.start_failed'));
           this.processing = false;
         }
       });
@@ -370,9 +373,9 @@ export class MyLearningComponent implements OnInit, OnDestroy {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays === 0) return this.i18n.t('learning.today');
+    if (diffDays === 1) return this.i18n.t('learning.yesterday');
+    if (diffDays < 7) return this.i18n.t('learning.days_ago', { count: diffDays });
     return date.toLocaleDateString();
   }
 
@@ -387,20 +390,20 @@ export class MyLearningComponent implements OnInit, OnDestroy {
 
   getDueDateText(course: EnrolledCourse): string {
     if (!course.due_date) return '';
-    if (course.is_overdue) return 'Overdue';
-    if (course.days_until_due === 0) return 'Due today';
-    if (course.days_until_due === 1) return 'Due tomorrow';
+    if (course.is_overdue) return this.i18n.t('learning.overdue');
+    if (course.days_until_due === 0) return this.i18n.t('learning.due_today');
+    if (course.days_until_due === 1) return this.i18n.t('learning.due_tomorrow');
     if (course.days_until_due !== null && course.days_until_due <= 7) {
-      return `Due in ${course.days_until_due} days`;
+      return this.i18n.t('learning.due_in_days', { days: course.days_until_due });
     }
-    return `Due ${this.formatDate(course.due_date)}`;
+    return this.i18n.t('learning.due_on', { date: this.formatDate(course.due_date) });
   }
 
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      'not_started': 'Not Started',
-      'in_progress': 'In Progress',
-      'completed': 'Completed'
+      'not_started': this.i18n.t('learning.not_started'),
+      'in_progress': this.i18n.t('learning.in_progress'),
+      'completed': this.i18n.t('learning.completed')
     };
     return labels[status] || status;
   }
@@ -416,9 +419,9 @@ export class MyLearningComponent implements OnInit, OnDestroy {
 
   getDifficultyLabel(level: string): string {
     const labels: Record<string, string> = {
-      'beginner': 'Beginner',
-      'intermediate': 'Intermediate',
-      'advanced': 'Advanced'
+      'beginner': this.i18n.t('learning.beginner'),
+      'intermediate': this.i18n.t('learning.intermediate'),
+      'advanced': this.i18n.t('learning.advanced')
     };
     return labels[level] || level;
   }

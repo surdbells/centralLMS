@@ -7,6 +7,8 @@ import {
 import { LearnerService } from '../../core/learner.service';
 import { SessionStore } from '../../core/session';
 import { BrandingService } from '../../core/branding.service';
+import { I18nService } from '../../core/i18n.service';
+import { TranslatePipe } from '../../core/translate.pipe';
 import { ActivityEntry, LearnerDashboard } from '../../core/models';
 import { firstName, initialOf, minutesLabel, thumbStyle, timeAgo } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
@@ -19,6 +21,7 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
   imports: [
     IonContent, IonRefresher, IonRefresherContent, IonIcon,
     IonSkeletonText, IonRippleEffect, EmptyStateComponent, ProgressComponent, AvatarComponent,
+    TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -34,10 +37,10 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
           }
           <div class="tb-tx">
             <p class="tb-org">{{ branding.organisation() || 'Central LMS' }}</p>
-            <p class="tb-tag">Learn. Grow. Succeed.</p>
+            <p class="tb-tag">{{ 'home.tagline' | translate }}</p>
           </div>
         </div>
-        <button class="tb-avatar" [class.has-photo]="avatarUrl()" (click)="goProfile()" aria-label="Your profile">
+        <button class="tb-avatar" [class.has-photo]="avatarUrl()" (click)="goProfile()" [attr.aria-label]="'home.your_profile' | translate">
           @if (avatarUrl(); as u) {
             <app-avatar [url]="u" [name]="fullName()" [size]="42"></app-avatar>
           } @else {
@@ -52,14 +55,14 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
           <div class="hero-greet">
             <p class="hi">{{ greeting() }} 👋</p>
             <h1>{{ fullName() }}</h1>
-            <p class="sub">Keep learning, keep growing!</p>
+            <p class="sub">{{ 'home.keep_learning' | translate }}</p>
           </div>
           @if (data()?.achievements?.rank; as r) {
             <button class="badge" (click)="goAchievements()">
               <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
               <span class="badge-tx">
                 <span class="badge-n">#{{ r.rank }}</span>
-                <span class="badge-l">{{ r.points }} points</span>
+                <span class="badge-l">{{ r.points }} {{ 'home.points' | translate }}</span>
               </span>
             </button>
           }
@@ -68,8 +71,8 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
         @if (data(); as d) {
           <div class="hprog">
             <div class="hp-top">
-              <span class="hp-title">Overall progress</span>
-              <button class="hp-link" (click)="goProgress()">View details</button>
+              <span class="hp-title">{{ 'home.overall_progress' | translate }}</span>
+              <button class="hp-link" (click)="goProgress()">{{ 'home.view_details' | translate }}</button>
             </div>
             <div class="hp-bar">
               <app-progress [value]="d.overview.overallProgress / 100"></app-progress>
@@ -78,10 +81,10 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
           </div>
 
           <div class="hstats">
-            <div class="hstat"><div class="hs-ic"><ion-icon name="book-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.enrolled }}</span><span class="hs-l">Enrolled</span></div></div>
-            <div class="hstat"><div class="hs-ic"><ion-icon name="play-circle-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.inProgress }}</span><span class="hs-l">In Progress</span></div></div>
-            <div class="hstat"><div class="hs-ic"><ion-icon name="trophy-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.completed }}</span><span class="hs-l">Completed</span></div></div>
-            <div class="hstat"><div class="hs-ic"><ion-icon name="time-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ learningTime(d.overview.secondsSpent) }}</span><span class="hs-l">Learning</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="book-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.enrolled }}</span><span class="hs-l">{{ 'home.enrolled' | translate }}</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="play-circle-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.inProgress }}</span><span class="hs-l">{{ 'home.in_progress' | translate }}</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="trophy-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ d.overview.completed }}</span><span class="hs-l">{{ 'home.completed' | translate }}</span></div></div>
+            <div class="hstat"><div class="hs-ic"><ion-icon name="time-outline"></ion-icon></div><div class="hs-tx"><span class="hs-n">{{ learningTime(d.overview.secondsSpent) }}</span><span class="hs-l">{{ 'home.learning' | translate }}</span></div></div>
           </div>
         }
       </div>
@@ -91,7 +94,7 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
         @for (q of quickActions; track q.url) {
           <button type="button" class="qa tappable" [attr.data-tone]="q.tone" (click)="go(q.url)">
             <div class="qa-ic"><ion-icon [name]="q.icon" aria-hidden="true"></ion-icon></div>
-            <span class="qa-l">{{ q.label }}</span>
+            <span class="qa-l">{{ q.label | translate }}</span>
           </button>
         }
       </div>
@@ -115,8 +118,8 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
         @if (d.courses.inProgress.length) {
           <div class="pad">
             <div class="act-head">
-              <div class="section-title">Continue learning</div>
-              <button class="see-all" (click)="goCourses()">See all</button>
+              <div class="section-title">{{ 'home.continue_learning' | translate }}</div>
+              <button class="see-all" (click)="goCourses()">{{ 'common.see_all' | translate }}</button>
             </div>
           </div>
           <div class="rail">
@@ -130,7 +133,7 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
                 <div class="rc-body">
                   <p class="rc-title">{{ c.courseTitle }}</p>
                   <app-progress [value]="c.progressPercentage / 100"></app-progress>
-                  <p class="rc-sub muted">{{ c.progressPercentage }}% complete</p>
+                  <p class="rc-sub muted">{{ c.progressPercentage }}% {{ 'home.complete' | translate }}</p>
                 </div>
               </div>
             }
@@ -138,16 +141,16 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
         } @else {
           <app-empty-state
             icon="school-outline"
-            title="Nothing in progress yet"
-            message="Pick a course and it'll show up here to pick back up."
-            actionLabel="Browse the catalogue"
+            [title]="'home.empty_progress_title' | translate"
+            [message]="'home.empty_progress_msg' | translate"
+            [actionLabel]="'home.browse_catalogue' | translate"
             (action)="goCourses()"></app-empty-state>
         }
 
         <!-- Recent activity -->
         @if (d.recentActivity.length) {
           <div class="pad">
-            <div class="section-title">Recent activity</div>
+            <div class="section-title">{{ 'home.recent_activity' | translate }}</div>
             @for (a of d.recentActivity; track $index) {
               <div class="act">
                 <div class="act-ic" [style.background]="actTint(a)">
@@ -166,7 +169,7 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
         <!-- Due soon -->
         @if (d.deadlines.length) {
           <div class="pad">
-            <div class="section-title">Due soon</div>
+            <div class="section-title">{{ 'home.due_soon' | translate }}</div>
             @for (dl of d.deadlines; track dl.enrollmentId) {
               <div class="row ion-activatable tappable" (click)="openCourse(dl.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
@@ -174,7 +177,7 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
                           [style.color]="dl.urgency === 'normal' ? 'var(--ion-color-medium)' : 'var(--ion-color-warning)'"></ion-icon>
                 <div class="row-body">
                   <p class="row-title">{{ dl.courseTitle }}</p>
-                  <p class="muted">{{ dl.daysRemaining }} day{{ dl.daysRemaining === 1 ? '' : 's' }} left · {{ dl.progress }}%</p>
+                  <p class="muted">{{ (dl.daysRemaining === 1 ? 'home.day_left' : 'home.days_left') | translate:{ count: dl.daysRemaining } }} · {{ dl.progress }}%</p>
                 </div>
                 <ion-icon name="chevron-forward" class="chev"></ion-icon>
               </div>
@@ -185,7 +188,7 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
         <!-- Recommended -->
         @if (d.recommended.length) {
           <div class="pad">
-            <div class="section-title">Recommended for you</div>
+            <div class="section-title">{{ 'home.recommended' | translate }}</div>
             @for (r of d.recommended; track r.courseId) {
               <div class="row ion-activatable tappable" (click)="openCourse(r.courseId)">
                 <ion-ripple-effect></ion-ripple-effect>
@@ -205,9 +208,9 @@ import { AvatarComponent } from '../../components/avatar/avatar.component';
       } @else {
         <app-empty-state
           icon="cloud-offline-outline"
-          title="Couldn't load your dashboard"
-          message="Check your connection and try again."
-          actionLabel="Try again"
+          [title]="'home.dashboard_error_title' | translate"
+          [message]="'common.offline' | translate"
+          [actionLabel]="'common.retry' | translate"
           (action)="reload()"></app-empty-state>
       }
     </ion-content>
@@ -316,20 +319,21 @@ export class HomePage implements OnInit {
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
   readonly branding = inject(BrandingService);
+  private readonly i18n = inject(I18nService);
 
   readonly data = signal<LearnerDashboard | null>(null);
   readonly loading = signal(true);
   readonly name = computed(() => firstName(this.session.session()?.name));
-  readonly fullName = computed(() => this.session.session()?.name || 'Learner');
+  readonly fullName = computed(() => this.session.session()?.name || this.i18n.t('home.learner'));
   readonly avatarUrl = signal<string | null>(null);
 
   readonly quickActions = [
-    { label: 'Live Classes', icon: 'videocam-outline', tone: 'red', url: '/live' },
-    { label: 'My Courses', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
-    { label: 'Assessments', icon: 'clipboard-outline', tone: 'green', url: '/assessments' },
-    { label: 'Certificates', icon: 'ribbon-outline', tone: 'purple', url: '/certificates' },
-    { label: 'Achievements', icon: 'medal-outline', tone: 'amber', url: '/achievements' },
-    { label: 'Library', icon: 'folder-open-outline', tone: 'pink', url: '/library' },
+    { label: 'actions.live_classes', icon: 'videocam-outline', tone: 'red', url: '/live' },
+    { label: 'actions.my_courses', icon: 'library-outline', tone: 'blue', url: '/tabs/courses' },
+    { label: 'actions.assessments', icon: 'clipboard-outline', tone: 'green', url: '/assessments' },
+    { label: 'actions.certificates', icon: 'ribbon-outline', tone: 'purple', url: '/certificates' },
+    { label: 'actions.achievements', icon: 'medal-outline', tone: 'amber', url: '/achievements' },
+    { label: 'actions.library', icon: 'folder-open-outline', tone: 'pink', url: '/library' },
   ];
 
   readonly thumb = thumbStyle;
@@ -353,7 +357,8 @@ export class HomePage implements OnInit {
 
   greeting(): string {
     const h = new Date().getHours();
-    return h < 12 ? 'Good morning,' : h < 18 ? 'Good afternoon,' : 'Good evening,';
+    const key = h < 12 ? 'home.greeting_morning' : h < 18 ? 'home.greeting_afternoon' : 'home.greeting_evening';
+    return this.i18n.t(key);
   }
 
   learningTime(seconds: number): string {
@@ -389,11 +394,11 @@ export class HomePage implements OnInit {
 
   actTitle(a: ActivityEntry): string {
     switch (a.kind) {
-      case 'points': return `+${a.detail ?? 0} points`;
-      case 'certificate': return 'Certificate earned';
-      case 'completion': return 'Course completed';
-      case 'enrollment': return 'Enrolled in a course';
-      case 'badge': return 'Badge earned';
+      case 'points': return this.i18n.t('home.activity_points', { count: a.detail ?? 0 });
+      case 'certificate': return this.i18n.t('home.activity_certificate');
+      case 'completion': return this.i18n.t('home.activity_completion');
+      case 'enrollment': return this.i18n.t('home.activity_enrollment');
+      case 'badge': return this.i18n.t('home.activity_badge');
       default: return this.humanize(a.kind);
     }
   }

@@ -5,12 +5,12 @@
       <div class="d-flex align-items-center gap-3">
         <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
         <div>
-          <h4 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>Audit Trail</h4>
-          <small class="text-muted">Every change made in this organisation, refused attempts included</small>
+          <h4 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>{{ 'admin.audit.title' | translate }}</h4>
+          <small class="text-muted">{{ 'admin.audit.subtitle' | translate }}</small>
         </div>
       </div>
       <button class="btn btn-sm btn-secondary" (click)="load()" [disabled]="loading">
-        <i class="bi bi-arrow-repeat me-1"></i>Refresh
+        <i class="bi bi-arrow-repeat me-1"></i>{{ 'common.refresh' | translate }}
       </button>
     </div>
 
@@ -26,38 +26,38 @@
         <div class="row g-2 align-items-center">
           <div class="col-md-3">
             <select class="form-select form-select-sm" [(ngModel)]="filters.actorId" (change)="onFilterChange()">
-              <option [ngValue]="undefined">Anyone</option>
+              <option [ngValue]="undefined">{{ 'admin.audit.anyone' | translate }}</option>
               <option *ngFor="let p of people; trackBy: trackById" [ngValue]="p.id">{{ p.fullName }}</option>
             </select>
           </div>
           <div class="col-md-3">
             <select class="form-select form-select-sm" [(ngModel)]="filters.action" (change)="onFilterChange()">
-              <option [ngValue]="undefined">Anything</option>
-              <optgroup label="By module">
-                <option *ngFor="let m of actionModules" [ngValue]="m">All {{ m }}</option>
+              <option [ngValue]="undefined">{{ 'admin.audit.anything' | translate }}</option>
+              <optgroup label="{{ 'admin.audit.by_module' | translate }}">
+                <option *ngFor="let m of actionModules" [ngValue]="m">{{ 'admin.audit.all_module' | translate:{ module: m } }}</option>
               </optgroup>
-              <optgroup label="Exactly">
+              <optgroup label="{{ 'admin.audit.exactly' | translate }}">
                 <option *ngFor="let a of actions" [ngValue]="a">{{ a }}</option>
               </optgroup>
             </select>
           </div>
           <div class="col-md-2">
             <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.from"
-                   (change)="onFilterChange()" title="From">
+                   (change)="onFilterChange()" title="{{ 'admin.audit.from' | translate }}">
           </div>
           <div class="col-md-2">
             <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.until"
-                   (change)="onFilterChange()" title="Until">
+                   (change)="onFilterChange()" title="{{ 'admin.audit.until' | translate }}">
           </div>
           <div class="col-md-1">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="failuresOnly"
                      [(ngModel)]="filters.failuresOnly" (change)="onFilterChange()">
-              <label class="form-check-label small" for="failuresOnly">Refused</label>
+              <label class="form-check-label small" for="failuresOnly">{{ 'admin.audit.refused' | translate }}</label>
             </div>
           </div>
           <div class="col-md-1 text-end">
-            <button class="btn btn-sm btn-link text-muted p-0" (click)="resetFilters()">Clear</button>
+            <button class="btn btn-sm btn-link text-muted p-0" (click)="resetFilters()">{{ 'admin.audit.clear' | translate }}</button>
           </div>
         </div>
       </div>
@@ -69,12 +69,12 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
           <tr>
-            <th style="width:150px">When</th>
-            <th>What</th>
-            <th>Who</th>
-            <th style="width:90px">Method</th>
-            <th style="width:80px">Result</th>
-            <th style="width:130px">From</th>
+            <th style="width:150px">{{ 'admin.audit.col_when' | translate }}</th>
+            <th>{{ 'admin.audit.col_what' | translate }}</th>
+            <th>{{ 'admin.audit.col_who' | translate }}</th>
+            <th style="width:90px">{{ 'admin.audit.col_method' | translate }}</th>
+            <th style="width:80px">{{ 'admin.audit.col_result' | translate }}</th>
+            <th style="width:130px">{{ 'admin.audit.col_from' | translate }}</th>
             <th style="width:40px"></th>
           </tr>
           </thead>
@@ -85,7 +85,7 @@
           <tr *ngIf="!loading && !events.length">
             <td colspan="7" class="text-center py-5 text-muted">
               <i class="bi bi-clock-history display-4 d-block mb-2"></i>
-              Nothing matches these filters
+              {{ 'admin.audit.no_match' | translate }}
             </td>
           </tr>
 
@@ -97,11 +97,11 @@
                 <code class="mono text-muted">{{ e.action }}</code>
               </td>
               <td>
-                <div class="small">{{ e.actorName || 'Unknown' }}</div>
+                <div class="small">{{ e.actorName || ('admin.audit.unknown' | translate) }}</div>
                 <small class="text-muted" *ngIf="e.actorName && e.actorEmail && e.actorName !== e.actorEmail">
                   {{ e.actorEmail }}
                 </small>
-                <small class="text-muted d-block" *ngIf="!e.actorId">no longer here</small>
+                <small class="text-muted d-block" *ngIf="!e.actorId">{{ 'admin.audit.no_longer_here' | translate }}</small>
               </td>
               <td><span class="badge" [class]="methodClass(e.method)">{{ e.method }}</span></td>
               <td><span class="badge" [class]="statusClass(e.status)">{{ e.status }}</span></td>
@@ -114,19 +114,19 @@
               <td colspan="7" class="bg-light">
                 <div class="row g-3 py-2 px-1">
                   <div class="col-md-4">
-                    <div class="text-muted small">Path</div>
+                    <div class="text-muted small">{{ 'admin.audit.path' | translate }}</div>
                     <code class="mono">{{ e.method }} {{ e.path }}</code>
                   </div>
                   <div class="col-md-3">
-                    <div class="text-muted small">Acted on</div>
+                    <div class="text-muted small">{{ 'admin.audit.acted_on' | translate }}</div>
                     <code class="mono">{{ e.subjectId || '-' }}</code>
                   </div>
                   <div class="col-md-2">
-                    <div class="text-muted small">Device</div>
+                    <div class="text-muted small">{{ 'admin.audit.device' | translate }}</div>
                     <span class="small">{{ device(e.userAgent) }}</span>
                   </div>
                   <div class="col-md-3">
-                    <div class="text-muted small">Request id</div>
+                    <div class="text-muted small">{{ 'admin.audit.request_id' | translate }}</div>
                     <code class="mono">{{ e.requestId || '-' }}</code>
                   </div>
                 </div>
@@ -138,7 +138,7 @@
       </div>
 
       <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2" *ngIf="meta.totalPages > 1">
-        <small class="text-muted">Page {{ meta.page }} of {{ meta.totalPages }} ({{ meta.total }} events)</small>
+        <small class="text-muted">{{ 'admin.audit.page_info' | translate:{ page: meta.page, totalPages: meta.totalPages, total: meta.total } }}</small>
         <div class="d-flex gap-1">
           <button class="btn btn-sm btn-secondary" [disabled]="meta.page <= 1" (click)="goPage(meta.page - 1)">&lsaquo;</button>
           <button class="btn btn-sm btn-secondary" [disabled]="meta.page >= meta.totalPages" (click)="goPage(meta.page + 1)">&rsaquo;</button>
@@ -147,8 +147,7 @@
     </div>
 
     <p class="text-muted small mt-3 mb-0">
-      Reads are not recorded - if every list request were an event the writes would be impossible to find.
-      Request bodies are never stored: they carry passwords.
+      {{ 'admin.audit.footer_note' | translate }}
     </p>
   </div>
 </main>

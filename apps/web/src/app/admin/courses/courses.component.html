@@ -7,14 +7,14 @@
           <div class="back-button" (click)="goBack()" role="button">
             <tui-icon icon="@tui.chevron-left" />
           </div>
-            <h1 class="page-title"> Courses </h1>
+            <h1 class="page-title"> {{ 'nav.courses' | translate }} </h1>
         </div>
         <div class="header-actions">
           <button class="btn btn-refresh" (click)="confirmCreate()">
-            <i class="bi bi-plus-lg"></i> <span class="ps-4">Create</span>
+            <i class="bi bi-plus-lg"></i> <span class="ps-4">{{ 'common.create' | translate }}</span>
           </button>
-          <button class="btn btn-refresh" (click)="list_course()" title="Refresh">
-            <i class="bi bi-arrow-clockwise"></i> <span class="ps-4">Refresh</span>
+          <button class="btn btn-refresh" (click)="list_course()" title="{{ 'common.refresh' | translate }}">
+            <i class="bi bi-arrow-clockwise"></i> <span class="ps-4">{{ 'common.refresh' | translate }}</span>
           </button>
         </div>
       </div>
@@ -24,7 +24,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <div>Total Courses</div>
+                  <div>{{ 'admin.courses.total_courses' | translate }}</div>
                   <div class="fw-bold fs-5 mt-1">{{ statistics.total }}</div>
                 </div>
                 <div class="text-primary align-self-center">
@@ -39,7 +39,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <div>Draft</div>
+                  <div>{{ 'admin.courses.draft' | translate }}</div>
                   <div class="fw-bold fs-5 mt-1">{{ statistics.draft }}</div>
                 </div>
                 <div class="text-primary align-self-center">
@@ -54,7 +54,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <div>Archived</div>
+                  <div>{{ 'admin.courses.archived' | translate }}</div>
                   <div class="fw-bold fs-5 mt-1">{{ statistics.archived }}</div>
                 </div>
                 <div class="text-primary align-self-center">
@@ -69,7 +69,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <div>Published</div>
+                  <div>{{ 'admin.courses.published' | translate }}</div>
                   <div class="fw-bold fs-5 mt-1">{{ statistics.published }}</div>
                 </div>
                 <div class="text-primary align-self-center">
@@ -84,7 +84,7 @@
     <div class="filters-toolbar">
       <div class="toolbar-row">
         <div class="search-wrapper">
-          <input type="text" class="form-control search-input"  placeholder="Search courses..." [(ngModel)]="searchQuery" (input)="onSearchChange()">
+          <input type="text" class="form-control search-input"  placeholder="{{ 'admin.courses.search_placeholder' | translate }}" [(ngModel)]="searchQuery" (input)="onSearchChange()">
           <button *ngIf="searchQuery" class="btn-clear-search" (click)="clearSearch()">
             <i class="bi bi-x-lg"></i>
           </button>
@@ -92,26 +92,26 @@
         <div class="status-filter-pills">
           <button class="status-pill" [class.active]="initial.status === 'published'" (click)="filterByStatus('published')">
             <i class="bi bi-check-circle"></i>
-            <span>Published</span>
+            <span>{{ 'admin.courses.published' | translate }}</span>
           </button>
           <button class="status-pill" [class.active]="initial.status === 'draft'" (click)="filterByStatus('draft')">
             <i class="bi bi-file-earmark"></i>
-            <span>Draft</span>
+            <span>{{ 'admin.courses.draft' | translate }}</span>
           </button>
           <button class="status-pill" [class.active]="initial.status === 'archived'" (click)="filterByStatus('archived')">
             <i class="bi bi-archive"></i>
-            <span>Archived</span>
+            <span>{{ 'admin.courses.archived' | translate }}</span>
           </button>
           <button class="status-pill" [class.active]="initial.status === ''" (click)="filterByStatus('')">
             <i class="bi bi-collection"></i>
-            <span>All</span>
+            <span>{{ 'common.all' | translate }}</span>
           </button>
         </div>
 
         <div class="toolbar-actions">
           <div class="filter-dropdown">
             <select class="form-select" [(ngModel)]="initial.category_id" (change)="list_course()">
-              <option [ngValue]="null">All Categories</option>
+              <option [ngValue]="null">{{ 'admin.courses.all_categories' | translate }}</option>
               <option *ngFor="let c of category" [ngValue]="c.category_id">
                 {{ c.category_name }}
               </option>
@@ -119,10 +119,10 @@
           </div>
 
           <div class="view-toggle">
-            <button class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Grid View">
+            <button class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="{{ 'admin.courses.grid_view' | translate }}">
               <i class="bi bi-grid-3x3-gap-fill"></i>
             </button>
-            <button  class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="List View">
+            <button  class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="{{ 'admin.courses.list_view' | translate }}">
               <i class="bi bi-list-ul"></i>
             </button>
           </div>
@@ -132,26 +132,26 @@
     <div class="loading-state" *ngIf="ui_controls.is_loading">
       <div class="spinner-wrapper">
         <tui-loader class="loader-custom" />
-        <p>Loading courses...</p>
+        <p>{{ 'admin.courses.loading' | translate }}</p>
       </div>
     </div>
     <div class="empty-state" *ngIf="!ui_controls.is_loading && course.length === 0">
       <div class="empty-icon">
         <i class="bi bi-folder2-open"></i>
       </div>
-      <h3>No courses found</h3>
+      <h3>{{ 'admin.courses.empty_title' | translate }}</h3>
       <p *ngIf="hasActiveFilters()">
-        Try adjusting your filters or search query
+        {{ 'admin.courses.empty_filtered' | translate }}
       </p>
       <p *ngIf="!hasActiveFilters()">
-        Get started by creating your first course
+        {{ 'admin.courses.empty_text' | translate }}
       </p>
       <button class="btn btn-create-course" *ngIf="!hasActiveFilters()" (click)="open.set(true)">
         <i class="bi bi-plus-lg"></i>
-        Create Course
+        {{ 'admin.courses.create_course' | translate }}
       </button>
       <button class="btn btn-dark" *ngIf="hasActiveFilters()" (click)="clearFilters()">
-        Clear Filters
+        {{ 'admin.courses.clear_filters' | translate }}
       </button>
     </div>
 
@@ -166,10 +166,10 @@
         <div class="card-thumbnail">
           <app-course-card [title]="c.title" [index]="i"> </app-course-card>
           <div class="thumbnail-overlay">
-            <button class="btn-quick-action" (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" title="Insights">
+            <button class="btn-quick-action" (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" title="{{ 'admin.courses.insights' | translate }}">
               <i class="bi bi-graph-up"></i>
             </button>
-            <button class="btn-quick-action" (click)="edit_course(c.course_id, c.title)" title="Edit">
+            <button class="btn-quick-action" (click)="edit_course(c.course_id, c.title)" title="{{ 'common.edit' | translate }}">
               <i class="bi bi-pencil-fill"></i>
             </button>
           </div>
@@ -182,7 +182,7 @@
 
           <!-- Featured Badge -->
           <div class="special-badges" *ngIf="c.is_featured">
-            <span class="badge-featured" title="Featured Course">
+            <span class="badge-featured" title="{{ 'admin.courses.featured_course' | translate }}">
               <i class="bi bi-star-fill"></i>
             </span>
           </div>
@@ -203,11 +203,11 @@
 
           <!-- Stats Row -->
           <div class="course-stats">
-            <div class="stat-item" title="Level">
+            <div class="stat-item" title="{{ 'admin.courses.level' | translate }}">
               <i class="bi bi-bar-chart-fill"></i>
-              <span>{{ c.level || 'Not set' }}</span>
+              <span>{{ c.level || ('admin.courses.not_set' | translate) }}</span>
             </div>
-            <div class="stat-item" title="Duration">
+            <div class="stat-item" title="{{ 'admin.courses.duration' | translate }}">
               <i class="bi bi-clock-fill"></i>
               <span>{{ c.duration_minutes }}h</span>
             </div>
@@ -220,7 +220,7 @@
               {{ formatDate(c.start_date) }}
             </span>
             <span class="meta-status" [ngClass]="c.is_active ? 'active' : 'inactive'">
-              {{ c.is_active ? 'Active' : 'Inactive' }}
+              {{ c.is_active ? ('common.active' | translate) : ('common.inactive' | translate) }}
             </span>
           </div>
         </div>
@@ -229,7 +229,7 @@
         <div class="card-actions">
           <button class="btn btn-action-primary" (click)="manage_course(c.course_id, c.title)">
             <i class="bi bi-sliders"></i>
-            Manage
+            {{ 'common.manage' | translate }}
           </button>
           <div class="dropdown">
             <button
@@ -243,45 +243,45 @@
               <li>
                 <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
                   <i class="bi bi-graph-up"></i>
-                  Insights
+                  {{ 'admin.courses.insights' | translate }}
                 </button>
               </li>
               <li>
                 <button class="dropdown-item" (click)="duplicateCourse(c)">
                   <i class="bi bi-copy"></i>
-                  Duplicate
+                  {{ 'common.duplicate' | translate }}
                 </button>
               </li>
               <li>
                 <button class="dropdown-item" (click)="edit_course(c.course_id, c.title)">
                   <i class="bi bi-pencil"></i>
-                  Edit Course
+                  {{ 'admin.courses.edit_course' | translate }}
                 </button>
               </li>
               <li><hr class="dropdown-divider"></li>
               <li *ngIf="c.status === 'draft' || c.status === 'archived'">
                 <button class="dropdown-item" (click)="confirmPublish(c)">
                   <i class="bi bi-check-circle"></i>
-                  Publish
+                  {{ 'admin.courses.publish' | translate }}
                 </button>
               </li>
               <li *ngIf="c.status === 'published'">
                 <button class="dropdown-item" (click)="confirmUnPublish(c)">
                   <i class="bi bi-eye-slash"></i>
-                  Unpublish
+                  {{ 'admin.courses.unpublish' | translate }}
                 </button>
               </li>
               <li><hr class="dropdown-divider"></li>
               <li *ngIf="c.status != 'archived'">
                 <button class="dropdown-item text-danger" (click)="confirmArchive(c)">
                   <i class="bi bi-archive"></i>
-                  Archive
+                  {{ 'admin.courses.archive' | translate }}
                 </button>
               </li>
               <li>
                 <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
                   <i class="bi bi-trash"></i>
-                  Delete
+                  {{ 'common.delete' | translate }}
                 </button>
               </li>
             </ul>
@@ -295,12 +295,12 @@
          ============================================================ -->
     <div class="courses-list" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'list'">
       <div class="list-header">
-        <div class="col-course">Course</div>
-        <div class="col-category">Category</div>
-        <div class="col-status">Status</div>
-        <div class="col-level">Level</div>
-        <div class="col-duration">Duration</div>
-        <div class="col-actions">Actions</div>
+        <div class="col-course">{{ 'admin.courses.col_course' | translate }}</div>
+        <div class="col-category">{{ 'admin.courses.col_category' | translate }}</div>
+        <div class="col-status">{{ 'admin.courses.col_status' | translate }}</div>
+        <div class="col-level">{{ 'admin.courses.level' | translate }}</div>
+        <div class="col-duration">{{ 'admin.courses.duration' | translate }}</div>
+        <div class="col-actions">{{ 'common.actions' | translate }}</div>
       </div>
       <div class="list-item" *ngFor="let c of course; let i = index">
         <div class="col-course">
@@ -337,10 +337,10 @@
 
         <div class="col-actions">
           <div class="action-buttons-list">
-            <button class="btn-icon" (click)="manage_course(c.course_id, c.title)" title="Manage">
+            <button class="btn-icon" (click)="manage_course(c.course_id, c.title)" title="{{ 'common.manage' | translate }}">
               <i class="bi bi-sliders"></i>
             </button>
-            <button class="btn-icon" (click)="edit_course(c.course_id, c.title)" title="Preview">
+            <button class="btn-icon" (click)="edit_course(c.course_id, c.title)" title="{{ 'common.edit' | translate }}">
               <i class="bi bi-pencil"></i>
             </button>
 
@@ -352,38 +352,38 @@
                 <li>
                   <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
                     <i class="bi bi-graph-up"></i>
-                    Insights
+                    {{ 'admin.courses.insights' | translate }}
                   </button>
                 </li>
                 <li>
                   <button class="dropdown-item" (click)="duplicateCourse(c)">
                     <i class="bi bi bi-copy"></i>
-                    Duplicate
+                    {{ 'common.duplicate' | translate }}
                   </button>
                 </li>
                 <li *ngIf="c.status === 'draft'">
                   <button class="dropdown-item" (click)="confirmPublish(c)">
                     <i class="bi bi-check-circle"></i>
-                    Publish
+                    {{ 'admin.courses.publish' | translate }}
                   </button>
                 </li>
                 <li *ngIf="c.status === 'published'">
                   <button class="dropdown-item" (click)="confirmUnPublish(c)">
                     <i class="bi bi-eye-slash"></i>
-                    Unpublish
+                    {{ 'admin.courses.unpublish' | translate }}
                   </button>
                 </li>
                 <li><hr class="dropdown-divider"></li>
                 <li *ngIf="c.status != 'archived'">
                   <button class="dropdown-item" (click)="confirmArchive(c)">
                     <i class="bi bi-archive"></i>
-                    Archive
+                    {{ 'admin.courses.archive' | translate }}
                   </button>
                 </li>
                 <li>
                   <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
                     <i class="bi bi-trash"></i>
-                    Delete
+                    {{ 'common.delete' | translate }}
                   </button>
                 </li>
               </ul>
@@ -394,7 +394,7 @@
     </div>
     <div class="pagination-wrapper" *ngIf="!ui_controls.is_loading && course.length > 0">
       <div class="pagination-info">
-        Showing page {{ meta.page }} of {{ meta.total_pages }} ({{ meta.total }} courses)
+        {{ 'admin.courses.pagination_info' | translate:{ page: meta.page, totalPages: meta.total_pages, total: meta.total } }}
       </div>
 
       <div class="pagination-controls">
@@ -403,11 +403,11 @@
           [(ngModel)]="initial.per_page"
           (change)="paginate()"
         >
-          <option [ngValue]="4">4 per page</option>
-          <option [ngValue]="5">5 per page</option>
-          <option [ngValue]="10">10 per page</option>
-          <option [ngValue]="25">25 per page</option>
-          <option [ngValue]="50">50 per page</option>
+          <option [ngValue]="4">{{ 'admin.courses.per_page' | translate:{ count: 4 } }}</option>
+          <option [ngValue]="5">{{ 'admin.courses.per_page' | translate:{ count: 5 } }}</option>
+          <option [ngValue]="10">{{ 'admin.courses.per_page' | translate:{ count: 10 } }}</option>
+          <option [ngValue]="25">{{ 'admin.courses.per_page' | translate:{ count: 25 } }}</option>
+          <option [ngValue]="50">{{ 'admin.courses.per_page' | translate:{ count: 50 } }}</option>
         </select>
 
         <nav aria-label="Course pagination">
@@ -452,21 +452,21 @@
     <div class="modal-icon danger">
       <i class="bi bi-exclamation-triangle-fill"></i>
     </div>
-    <h3 class="modal-title">Delete Course?</h3>
+    <h3 class="modal-title">{{ 'admin.courses.delete_title' | translate }}</h3>
     <p class="modal-message">
-      Are you sure you want to delete <strong>"{{ courseToDelete?.title }}"</strong>?
-      This action cannot be undone and all associated data will be permanently removed.
+      {{ 'admin.courses.delete_message_prefix' | translate }} <strong>"{{ courseToDelete?.title }}"</strong>?
+      {{ 'admin.courses.delete_message_suffix' | translate }}
     </p>
     <div class="modal-actions">
       <button class="btn btn-cancel" (click)="cancelDelete()">
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button type="button" class="btn btn-success"
               (click)="executeDelete()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
         <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.trash" class="me-2"></tui-icon>
-        {{ ui_controls.is_loading ? 'Deleting...' : 'Delete Course' }}
+        {{ ui_controls.is_loading ? ('admin.courses.deleting' | translate) : ('admin.courses.delete_course' | translate) }}
       </button>
     </div>
   </div>
@@ -480,20 +480,20 @@
     <div class="modal-icon danger">
       <i class="bi bi-check-all"></i>
     </div>
-    <h3 class="modal-title">Publish Course?</h3>
+    <h3 class="modal-title">{{ 'admin.courses.publish_title' | translate }}</h3>
     <p class="modal-message">
-      Are you sure you want to publish <strong>"{{ courseToPublish?.title }}"</strong>?
+      {{ 'admin.courses.publish_message_prefix' | translate }} <strong>"{{ courseToPublish?.title }}"</strong>?
     </p>
     <div class="modal-actions">
       <button class="btn btn-cancel" (click)="cancelPublish()">
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button type="button" class="btn btn-success"
               (click)="executePublish()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
         <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.check" class="me-2"></tui-icon>
-        {{ ui_controls.is_loading ? 'Publishing...' : 'Publish Course' }}
+        {{ ui_controls.is_loading ? ('admin.courses.publishing' | translate) : ('admin.courses.publish_course' | translate) }}
       </button>
     </div>
   </div>
@@ -507,20 +507,20 @@
     <div class="modal-icon danger">
       <i class="bi bi-check-all"></i>
     </div>
-    <h3 class="modal-title">UnPublish Course?</h3>
+    <h3 class="modal-title">{{ 'admin.courses.unpublish_title' | translate }}</h3>
     <p class="modal-message">
-      Are you sure you want to Unpublish <strong>"{{ courseToUnPublish?.title }}"</strong>?
+      {{ 'admin.courses.unpublish_message_prefix' | translate }} <strong>"{{ courseToUnPublish?.title }}"</strong>?
     </p>
     <div class="modal-actions">
       <button class="btn btn-cancel" (click)="cancelUnPublish()">
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button type="button" class="btn btn-success"
               (click)="executeUnPublish()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
         <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.x" class="me-2"></tui-icon>
-        {{ ui_controls.is_loading ? 'UnPublishing...' : 'UnPublish Course' }}
+        {{ ui_controls.is_loading ? ('admin.courses.unpublishing' | translate) : ('admin.courses.unpublish_course' | translate) }}
       </button>
     </div>
   </div>
@@ -534,20 +534,20 @@
     <div class="modal-icon danger">
       <i class="bi bi-check-all"></i>
     </div>
-    <h3 class="modal-title">Archive Course?</h3>
+    <h3 class="modal-title">{{ 'admin.courses.archive_title' | translate }}</h3>
     <p class="modal-message">
-      Are you sure you want to Archive <strong>"{{ courseToArchive?.title }}"</strong>?
+      {{ 'admin.courses.archive_message_prefix' | translate }} <strong>"{{ courseToArchive?.title }}"</strong>?
     </p>
     <div class="modal-actions">
       <button class="btn btn-cancel" (click)="cancelArchive()">
-        Cancel
+        {{ 'common.cancel' | translate }}
       </button>
       <button type="button" class="btn btn-success"
               (click)="executeArchive()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
         <tui-icon *ngIf="!ui_controls.is_loading" icon="@tui.archive" class="me-2"></tui-icon>
-        {{ ui_controls.is_loading ? 'Archiving...' : 'Archive Course' }}
+        {{ ui_controls.is_loading ? ('admin.courses.archiving' | translate) : ('admin.courses.archive_course' | translate) }}
       </button>
     </div>
   </div>
@@ -562,8 +562,8 @@
           <tui-icon icon="@tui.copy" class="text-primary"></tui-icon>
         </div>
         <div>
-          <h5 class="mb-0 fw-semibold">Duplicate Course</h5>
-          <small class="text-muted">Create a copy of this course with selected content</small>
+          <h5 class="mb-0 fw-semibold">{{ 'admin.courses.duplicate_course' | translate }}</h5>
+          <small class="text-muted">{{ 'admin.courses.duplicate_subtitle' | translate }}</small>
         </div>
       </div>
     </div>
@@ -573,17 +573,17 @@
       <div class="mb-4">
         <label class="form-label fw-medium">
           <tui-icon icon="@tui.type" class="me-1"></tui-icon>
-          New Course Title
+          {{ 'admin.courses.new_course_title' | translate }}
         </label>
-        <input type="text" class="form-control" [(ngModel)]="duplicate.new_title" placeholder="Enter title for the duplicated course">
-        <div class="form-text">Leave empty to use original title with "(Copy)" suffix</div>
+        <input type="text" class="form-control" [(ngModel)]="duplicate.new_title" placeholder="{{ 'admin.courses.new_title_placeholder' | translate }}">
+        <div class="form-text">{{ 'admin.courses.new_title_hint' | translate }}</div>
       </div>
 
       <!-- Copy Options -->
       <div class="mb-4">
         <label class="form-label fw-medium mb-3">
           <tui-icon icon="@tui.copy" class="me-1"></tui-icon>
-          Content to Copy
+          {{ 'admin.courses.content_to_copy' | translate }}
         </label>
 
         <div class="d-flex flex-column gap-3">
@@ -594,8 +594,8 @@
                 <tui-icon icon="@tui.folder" class="text-primary"></tui-icon>
               </div>
               <div>
-                <label class="form-check-label fw-medium mb-0" for="copyModules">Modules</label>
-                <small class="d-block text-muted">Copy all course modules</small>
+                <label class="form-check-label fw-medium mb-0" for="copyModules">{{ 'admin.courses.modules' | translate }}</label>
+                <small class="d-block text-muted">{{ 'admin.courses.copy_modules_hint' | translate }}</small>
               </div>
             </div>
             <input (change)="duplicate.copy_modules = !duplicate.copy_modules" [checked]="duplicate.copy_modules" class="form-check-input ms-3" type="checkbox" id="copyModules" style="width: 3rem; height: 1.5rem;">
@@ -608,8 +608,8 @@
                 <tui-icon icon="@tui.play" class="text-info"></tui-icon>
               </div>
               <div>
-                <label class="form-check-label fw-medium mb-0" for="copyLessons">Lessons</label>
-                <small class="d-block text-muted">Copy all lessons within modules</small>
+                <label class="form-check-label fw-medium mb-0" for="copyLessons">{{ 'admin.courses.lessons' | translate }}</label>
+                <small class="d-block text-muted">{{ 'admin.courses.copy_lessons_hint' | translate }}</small>
               </div>
             </div>
             <input (change)="duplicate.copy_lessons = !duplicate.copy_lessons" [checked]="duplicate.copy_lessons"  class="form-check-input ms-3" type="checkbox" id="copyLessons" [disabled]="!duplicate.copy_modules" style="width: 3rem; height: 1.5rem;">
@@ -622,8 +622,8 @@
                 <tui-icon icon="@tui.clipboard-list" class="text-warning"></tui-icon>
               </div>
               <div>
-                <label class="form-check-label fw-medium mb-0" for="copyAssessments">Assessments</label>
-                <small class="d-block text-muted">Copy quizzes and exams</small>
+                <label class="form-check-label fw-medium mb-0" for="copyAssessments">{{ 'admin.courses.assessments' | translate }}</label>
+                <small class="d-block text-muted">{{ 'admin.courses.copy_assessments_hint' | translate }}</small>
               </div>
             </div>
             <input
@@ -640,8 +640,8 @@
                 <tui-icon icon="@tui.file-question-mark" class="text-success"></tui-icon>
               </div>
               <div>
-                <label class="form-check-label fw-medium mb-0" for="copyQuestions">Questions</label>
-                <small class="d-block text-muted">Copy all questions and options</small>
+                <label class="form-check-label fw-medium mb-0" for="copyQuestions">{{ 'admin.courses.questions' | translate }}</label>
+                <small class="d-block text-muted">{{ 'admin.courses.copy_questions_hint' | translate }}</small>
               </div>
             </div>
             <input
@@ -661,8 +661,8 @@
               <tui-icon icon="@tui.file-text" class="text-secondary"></tui-icon>
             </div>
             <div>
-              <label class="form-check-label fw-medium mb-0" for="setAsDraft">Save as Draft</label>
-              <small class="d-block text-muted">New course will be unpublished</small>
+              <label class="form-check-label fw-medium mb-0" for="setAsDraft">{{ 'admin.courses.save_as_draft' | translate }}</label>
+              <small class="d-block text-muted">{{ 'admin.courses.save_as_draft_hint' | translate }}</small>
             </div>
           </div>
           <input class="form-check-input ms-3" type="checkbox" id="setAsDraft"  (change)="duplicate.set_as_draft = !duplicate.set_as_draft" [checked]="duplicate.set_as_draft"   style="width: 3rem; height: 1.5rem;">
@@ -674,31 +674,31 @@
         <div class="alert alert-info border-0 mb-0">
           <div class="d-flex align-items-center mb-2">
             <tui-icon icon="@tui.info" class="me-2"></tui-icon>
-            <strong>Preview Summary</strong>
+            <strong>{{ 'admin.courses.preview_summary' | translate }}</strong>
           </div>
           <div class="row g-2 mt-2">
             <div class="col-6 col-md-3">
               <div class="bg-white rounded p-2 text-center">
                 <div class="fw-bold text-primary">{{ previewData.will_copy.modules }}</div>
-                <small class="text-muted">Modules</small>
+                <small class="text-muted">{{ 'admin.courses.modules' | translate }}</small>
               </div>
             </div>
             <div class="col-6 col-md-3">
               <div class="bg-white rounded p-2 text-center">
                 <div class="fw-bold text-info">{{ previewData.will_copy.lessons }}</div>
-                <small class="text-muted">Lessons</small>
+                <small class="text-muted">{{ 'admin.courses.lessons' | translate }}</small>
               </div>
             </div>
             <div class="col-6 col-md-3">
               <div class="bg-white rounded p-2 text-center">
                 <div class="fw-bold text-warning">{{ previewData.will_copy.assessments }}</div>
-                <small class="text-muted">Assessments</small>
+                <small class="text-muted">{{ 'admin.courses.assessments' | translate }}</small>
               </div>
             </div>
             <div class="col-6 col-md-3">
               <div class="bg-white rounded p-2 text-center">
                 <div class="fw-bold text-success">{{ previewData.will_copy.questions }}</div>
-                <small class="text-muted">Questions</small>
+                <small class="text-muted">{{ 'admin.courses.questions' | translate }}</small>
               </div>
             </div>
           </div>
@@ -714,7 +714,7 @@
           (click)="onPreview()"
           [disabled]="isLoading">
           <tui-icon icon="@tui.eye" class="me-2"></tui-icon>
-          Preview
+          {{ 'admin.courses.preview' | translate }}
         </button>
         <button
           type="button"
@@ -723,7 +723,7 @@
           [disabled]="isLoading">
           <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
           <tui-icon *ngIf="!isLoading" icon="@tui.copy" class="me-2"></tui-icon>
-          Duplicate Course
+          {{ 'admin.courses.duplicate_course' | translate }}
         </button>
       </div>
     </div>

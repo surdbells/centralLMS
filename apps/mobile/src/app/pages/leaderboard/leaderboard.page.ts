@@ -9,6 +9,8 @@ import { BrandHeaderComponent } from '../../components/brand-header/brand-header
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { AvatarComponent } from '../../components/avatar/avatar.component';
 import { SheetComponent } from '../../components/sheet/sheet.component';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 type Tab = 'xp' | 'badges' | 'certificates';
 
@@ -17,7 +19,7 @@ type Tab = 'xp' | 'badges' | 'certificates';
   standalone: true,
   imports: [
     IonContent, IonRefresher, IonRefresherContent, IonSkeletonText, IonIcon,
-    BrandHeaderComponent, EmptyStateComponent, AvatarComponent, SheetComponent,
+    BrandHeaderComponent, EmptyStateComponent, AvatarComponent, SheetComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -25,8 +27,8 @@ type Tab = 'xp' | 'badges' | 'certificates';
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Leaderboard" subtitle="See how you rank among other learners" back>
-        <button actions type="button" class="chip" (click)="periodOpen.set(true)" aria-label="Change period">
+      <app-brand-header [title]="'leaderboard.title' | translate" [subtitle]="'leaderboard.subtitle' | translate" back>
+        <button actions type="button" class="chip" (click)="periodOpen.set(true)" [attr.aria-label]="'leaderboard.change_period' | translate">
           <ion-icon name="funnel-outline" aria-hidden="true"></ion-icon>
           <span>{{ periodLabel() }}</span>
           <ion-icon name="chevron-down" aria-hidden="true"></ion-icon>
@@ -43,8 +45,8 @@ type Tab = 'xp' | 'badges' | 'certificates';
       @if (tab() !== 'xp') {
         <app-empty-state
           [icon]="tab() === 'badges' ? 'medal-outline' : 'ribbon-outline'"
-          [title]="tab() === 'badges' ? 'Badge rankings' : 'Certificate rankings'"
-          message="This board is coming soon. For now, see how you rank on XP."></app-empty-state>
+          [title]="(tab() === 'badges' ? 'leaderboard.badge_rankings' : 'leaderboard.certificate_rankings') | translate"
+          [message]="'leaderboard.board_coming_soon' | translate"></app-empty-state>
       } @else if (loading()) {
         <div class="pad">
           <div class="podium-skel">
@@ -61,14 +63,14 @@ type Tab = 'xp' | 'badges' | 'certificates';
           }
         </div>
       } @else if (disabled()) {
-        <app-empty-state icon="trophy-outline" title="No leaderboard here"
-          message="Your organisation hasn't switched the leaderboard on."></app-empty-state>
+        <app-empty-state icon="trophy-outline" [title]="'leaderboard.none_here_title' | translate"
+          [message]="'leaderboard.none_here_message' | translate"></app-empty-state>
       } @else if (failed()) {
-        <app-empty-state icon="cloud-offline-outline" title="Couldn't load the leaderboard"
-          message="Check your connection and try again." actionLabel="Try again" (action)="load()"></app-empty-state>
+        <app-empty-state icon="cloud-offline-outline" [title]="'leaderboard.load_failed_title' | translate"
+          [message]="'common.offline' | translate" [actionLabel]="'common.retry' | translate" (action)="load()"></app-empty-state>
       } @else if (!entries().length) {
-        <app-empty-state icon="trophy-outline" title="No one on the board yet"
-          message="Earn XP by finishing courses to claim a spot."></app-empty-state>
+        <app-empty-state icon="trophy-outline" [title]="'leaderboard.empty_title' | translate"
+          [message]="'leaderboard.empty_message' | translate"></app-empty-state>
       } @else {
         <div class="pad">
           <!-- Podium -->
@@ -106,9 +108,9 @@ type Tab = 'xp' | 'badges' | 'certificates';
           <!-- Ranked list -->
           @if (rest().length || viewer()) {
             <div class="list-head">
-              <span class="lh-rank">Rank</span>
-              <span class="lh-learner">Learner</span>
-              <span class="lh-xp">XP Points</span>
+              <span class="lh-rank">{{ 'leaderboard.rank' | translate }}</span>
+              <span class="lh-learner">{{ 'leaderboard.learner' | translate }}</span>
+              <span class="lh-xp">{{ 'leaderboard.xp_points' | translate }}</span>
             </div>
             <div class="lb-list">
               @for (e of rest(); track e.userId) {
@@ -116,7 +118,7 @@ type Tab = 'xp' | 'badges' | 'certificates';
                   <span class="lr-rank">{{ e.rank }}</span>
                   <app-avatar [url]="e.avatarUrl" [name]="e.name" [size]="40"></app-avatar>
                   <div class="lr-info">
-                    <p class="lr-name">{{ e.name }}@if (e.isViewer) { <span class="you"> (You)</span> }</p>
+                    <p class="lr-name">{{ e.name }}@if (e.isViewer) { <span class="you"> {{ 'leaderboard.you' | translate }}</span> }</p>
                     @if (levelLabel(e)) { <p class="lr-lvl">{{ levelLabel(e) }}</p> }
                   </div>
                   <span class="lr-xp">{{ xp(e.points) }}</span>
@@ -127,7 +129,7 @@ type Tab = 'xp' | 'badges' | 'certificates';
                   <span class="lr-rank">{{ v.rank }}</span>
                   <app-avatar [url]="v.avatarUrl" [name]="v.name" [size]="40"></app-avatar>
                   <div class="lr-info">
-                    <p class="lr-name">{{ v.name }}<span class="you"> (You)</span></p>
+                    <p class="lr-name">{{ v.name }}<span class="you"> {{ 'leaderboard.you' | translate }}</span></p>
                     @if (levelLabel(v)) { <p class="lr-lvl">{{ levelLabel(v) }}</p> }
                   </div>
                   <span class="lr-xp">{{ xp(v.points) }}</span>
@@ -140,14 +142,14 @@ type Tab = 'xp' | 'badges' | 'certificates';
           <div class="foot">
             <span class="foot-ic"><ion-icon name="trophy-outline" aria-hidden="true"></ion-icon></span>
             <div class="foot-tx">
-              <p class="foot-t">Keep learning to climb the leaderboard!</p>
-              <p class="foot-s">Earn XP by completing courses, lessons, quizzes and more.</p>
+              <p class="foot-t">{{ 'leaderboard.foot_title' | translate }}</p>
+              <p class="foot-s">{{ 'leaderboard.foot_subtitle' | translate }}</p>
             </div>
           </div>
         </div>
       }
 
-      <app-sheet [(open)]="periodOpen" title="Time period" subtitle="Rank learners over…">
+      <app-sheet [(open)]="periodOpen" [title]="'leaderboard.time_period' | translate" [subtitle]="'leaderboard.rank_learners_over' | translate">
         <div class="opts">
           @for (p of periods; track p.value) {
             <button type="button" class="opt" [class.active]="period() === p.value" (click)="pickPeriod(p.value)">
@@ -263,18 +265,19 @@ type Tab = 'xp' | 'badges' | 'certificates';
 })
 export class LeaderboardPage {
   private readonly learner = inject(LearnerService);
+  private readonly i18n = inject(I18nService);
 
   readonly tabs: Array<{ value: Tab; label: string }> = [
-    { value: 'xp', label: 'XP Points' },
-    { value: 'badges', label: 'Badges' },
-    { value: 'certificates', label: 'Certificates' },
+    { value: 'xp', label: this.i18n.t('leaderboard.xp_points') },
+    { value: 'badges', label: this.i18n.t('leaderboard.badges') },
+    { value: 'certificates', label: this.i18n.t('leaderboard.certificates') },
   ];
 
   readonly periods = [
-    { value: 'daily', label: 'Today' },
-    { value: 'weekly', label: 'This Week' },
-    { value: 'monthly', label: 'This Month' },
-    { value: 'all_time', label: 'All Time' },
+    { value: 'daily', label: this.i18n.t('leaderboard.periods.daily') },
+    { value: 'weekly', label: this.i18n.t('leaderboard.periods.weekly') },
+    { value: 'monthly', label: this.i18n.t('leaderboard.periods.monthly') },
+    { value: 'all_time', label: this.i18n.t('leaderboard.periods.all_time') },
   ];
 
   readonly tab = signal<Tab>('xp');
@@ -293,7 +296,7 @@ export class LeaderboardPage {
   readonly viewer = computed(() => this.result()?.viewer ?? null);
 
   readonly periodLabel = computed(
-    () => this.periods.find((p) => p.value === this.period())?.label ?? 'This Month',
+    () => this.periods.find((p) => p.value === this.period())?.label ?? this.i18n.t('leaderboard.periods.monthly'),
   );
 
   constructor() {
@@ -312,7 +315,7 @@ export class LeaderboardPage {
     if (!n) {
       return '';
     }
-    return /^\d+$/.test(n) ? `Level ${n}` : n;
+    return /^\d+$/.test(n) ? this.i18n.t('leaderboard.level_n', { n }) : n;
   }
 
   pickPeriod(value: string): void {

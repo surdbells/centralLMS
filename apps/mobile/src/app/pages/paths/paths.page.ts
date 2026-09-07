@@ -10,6 +10,8 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
 import { SegmentComponent } from '../../components/segment/segment.component';
 import { SearchComponent } from '../../components/search/search.component';
 import { ProgressComponent } from '../../components/progress/progress.component';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 type Tab = 'mine' | 'catalogue';
 
@@ -18,7 +20,7 @@ type Tab = 'mine' | 'catalogue';
   standalone: true,
   imports: [
     IonContent, IonIcon, IonSkeletonText, IonRefresher, IonRefresherContent,
-    BrandHeaderComponent, EmptyStateComponent, SegmentComponent, SearchComponent, ProgressComponent,
+    BrandHeaderComponent, EmptyStateComponent, SegmentComponent, SearchComponent, ProgressComponent, TranslatePipe,
   ],
   template: `
     <ion-content [fullscreen]="true">
@@ -26,12 +28,12 @@ type Tab = 'mine' | 'catalogue';
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <app-brand-header title="Learning Paths" subtitle="Guided routes to a goal" back></app-brand-header>
+      <app-brand-header [title]="'paths.title' | translate" [subtitle]="'paths.subtitle' | translate" back></app-brand-header>
 
       <div class="ctrls">
         <app-segment [value]="tab()" (valueChange)="switch($any($event))" [segments]="tabs"></app-segment>
         @if (tab() === 'catalogue') {
-          <app-search placeholder="Search paths" (search)="onSearch($event)"></app-search>
+          <app-search [placeholder]="'paths.search' | translate" (search)="onSearch($event)"></app-search>
         }
       </div>
 
@@ -41,24 +43,24 @@ type Tab = 'mine' | 'catalogue';
             <ion-skeleton-text animated style="width:100%; height:96px; border-radius:16px; margin-bottom:12px;"></ion-skeleton-text>
           }
         } @else if (failed()) {
-          <app-empty-state icon="cloud-offline-outline" title="Couldn't load paths"
-            message="Check your connection and try again." actionLabel="Try again" (action)="reload()"></app-empty-state>
+          <app-empty-state icon="cloud-offline-outline" [title]="'paths.load_failed' | translate"
+            [message]="'common.offline' | translate" [actionLabel]="'common.retry' | translate" (action)="reload()"></app-empty-state>
         } @else if (tab() === 'mine') {
           @if (mine().length) {
             @for (e of mine(); track e.id) {
               <button type="button" class="path tappable rise" (click)="open(e.pathId)">
                 <div class="path-top">
                   <span class="path-title">{{ e.pathTitle }}</span>
-                  <span class="path-status" [class.done]="e.progress.isComplete">{{ e.progress.isComplete ? 'Complete' : statusLabel(e.status) }}</span>
+                  <span class="path-status" [class.done]="e.progress.isComplete">{{ e.progress.isComplete ? ('paths.status.completed' | translate) : statusLabel(e.status) }}</span>
                 </div>
                 <app-progress [value]="e.progress.percent / 100"></app-progress>
-                <p class="path-meta">{{ e.progress.completed }} of {{ e.progress.total }} complete · {{ e.progress.percent }}%</p>
+                <p class="path-meta">{{ 'paths.progress_meta' | translate:{ completed: e.progress.completed, total: e.progress.total, percent: e.progress.percent } }}</p>
               </button>
             }
           } @else {
-            <app-empty-state icon="trail-sign-outline" title="No paths yet"
-              message="You're not on any learning path. Browse the catalogue to start one."
-              actionLabel="Browse the catalogue" (action)="switch('catalogue')"></app-empty-state>
+            <app-empty-state icon="trail-sign-outline" [title]="'paths.no_paths_title' | translate"
+              [message]="'paths.mine_empty_message' | translate"
+              [actionLabel]="'paths.browse_catalogue' | translate" (action)="switch('catalogue')"></app-empty-state>
           }
         } @else {
           @if (catalogue().length) {
@@ -71,15 +73,15 @@ type Tab = 'mine' | 'catalogue';
                     @if (p.categoryName) { <span class="chip ghost">{{ p.categoryName }}</span> }
                   </div>
                   <p class="path-title">{{ p.title }}</p>
-                  <p class="path-meta">{{ p.itemCount }} {{ p.itemCount === 1 ? 'item' : 'items' }}{{ p.estimatedHours ? ' · ' + p.estimatedHours + 'h' : '' }}{{ p.enrolmentCount ? ' · ' + p.enrolmentCount + ' enrolled' : '' }}</p>
+                  <p class="path-meta">{{ catMeta(p) }}</p>
                 </div>
                 <ion-icon name="chevron-forward" class="path-chev" aria-hidden="true"></ion-icon>
               </button>
             }
           } @else {
             <app-empty-state icon="trail-sign-outline"
-              [title]="query() ? 'No matches' : 'No paths yet'"
-              [message]="query() ? 'No paths match “' + query() + '”.' : 'No learning paths are available right now.'"></app-empty-state>
+              [title]="(query() ? 'paths.no_matches' : 'paths.no_paths_title') | translate"
+              [message]="query() ? ('paths.no_matches_message' | translate:{ query: query() }) : ('paths.catalogue_empty_message' | translate)"></app-empty-state>
           }
         }
       </div>
@@ -112,10 +114,11 @@ export class PathsPage implements OnInit {
   private readonly paths = inject(LearningPathService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly i18n = inject(I18nService);
 
   readonly tabs = [
-    { value: 'mine', label: 'My paths' },
-    { value: 'catalogue', label: 'Catalogue' },
+    { value: 'mine', label: this.i18n.t('paths.tab_mine') },
+    { value: 'catalogue', label: this.i18n.t('paths.tab_catalogue') },
   ];
 
   readonly tab = signal<Tab>('mine');
@@ -173,12 +176,27 @@ export class PathsPage implements OnInit {
   }
 
   statusLabel(s: string): string {
-    const map: Record<string, string> = { active: 'In progress', pending: 'Pending', completed: 'Complete', expired: 'Expired', withdrawn: 'Withdrawn' };
-    return map[s] ?? s;
+    const map: Record<string, string> = {
+      active: 'paths.status.active', pending: 'paths.status.pending', completed: 'paths.status.completed',
+      expired: 'paths.status.expired', withdrawn: 'paths.status.withdrawn',
+    };
+    const key = map[s];
+    return key ? this.i18n.t(key) : s;
   }
 
   levelLabel(l: string): string {
-    const map: Record<string, string> = { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced', expert: 'Expert', all_levels: 'All levels' };
-    return map[l] ?? l;
+    const map: Record<string, string> = {
+      beginner: 'paths.level.beginner', intermediate: 'paths.level.intermediate', advanced: 'paths.level.advanced',
+      expert: 'paths.level.expert', all_levels: 'paths.level.all_levels',
+    };
+    const key = map[l];
+    return key ? this.i18n.t(key) : l;
+  }
+
+  catMeta(p: PathSummary): string {
+    const parts = [`${p.itemCount} ${this.i18n.t(p.itemCount === 1 ? 'paths.item' : 'paths.items')}`];
+    if (p.estimatedHours) { parts.push(this.i18n.t('paths.hours_short', { hours: p.estimatedHours })); }
+    if (p.enrolmentCount) { parts.push(this.i18n.t('paths.enrolled_count', { count: p.enrolmentCount })); }
+    return parts.join(' · ');
   }
 }

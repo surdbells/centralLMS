@@ -5,7 +5,7 @@
 
 <div style="max-width: 50rem; padding-top: 5%" class="container animate__animated animate__fadeIn">
   <span class="badge abayti_secondary_background rounded-pill mb-3">
-    <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">Back to website</a>
+    <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">{{ 'auth.back_to_website' | translate }}</a>
   </span>
   <div  class="row justify-content-center align-items-stretch g-4">
     <div class="col-12">
@@ -70,27 +70,27 @@
           </form>
 
           <div class="social-login-section mt-3">
-            <div class="text-center text-body-secondary small mb-2">Or continue with</div>
+            <div class="text-center text-body-secondary small mb-2">{{ 'login.or_continue_with' | translate }}</div>
             <div class="d-grid gap-2">
               <button *ngFor="let p of ssoProviders"
                       class="btn btn-outline-secondary social-login-btn" type="button"
                       [disabled]="loading" (click)="signInWith(p.provider)">
-                <span class="fw-semibold">Sign in with {{ p.label }}</span>
+                <span class="fw-semibold">{{ 'login.sign_in_with' | translate }} {{ p.label }}</span>
               </button>
 
               <button *ngIf="ssoProviders.length === 0"
                       class="btn btn-outline-secondary social-login-btn" type="button"
                       disabled aria-disabled="true">
-                <span class="fw-semibold">Sign in with Google or Microsoft</span>
-                <span class="small text-muted">Not configured</span>
+                <span class="fw-semibold">{{ 'login.sign_in_with_google_or_microsoft' | translate }}</span>
+                <span class="small text-muted">{{ 'login.not_configured' | translate }}</span>
               </button>
             </div>
             <p class="small text-muted text-center mt-2 mb-0" *ngIf="ssoProviders.length === 0">
               <span *ngIf="!tenantId">
-                Your organisation may offer these. Use the sign-in link it gave you.
+                {{ 'login.sso_hint_generic' | translate }}
               </span>
               <span *ngIf="tenantId">
-                This organisation has not set up a directory sign-in yet.
+                {{ 'login.sso_hint_tenant' | translate }}
               </span>
             </p>
           </div>

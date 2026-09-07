@@ -17,6 +17,8 @@ import { MediaPreviewDialogComponent } from './media-preview/media-preview.compo
 import { PolymorpheusComponent } from '@taiga-ui/polymorpheus';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { ApiError, type PageMeta } from '../../core/api';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * The media library.
@@ -51,6 +53,7 @@ import { ApiError, type PageMeta } from '../../core/api';
     TuiLoader,
     AdmintopComponent,
     TuiButton,
+    TranslatePipe,
   ],
   templateUrl: './media.component.html',
   styleUrl: './media.component.css',
@@ -60,6 +63,7 @@ export class MediaComponent implements OnInit {
   private readonly media = inject(MediaService);
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   @ViewChild('deleteDialog') deleteDialog!: TemplateRef<unknown>;
 
@@ -132,7 +136,7 @@ export class MediaComponent implements OnInit {
   delete_media(id: string): void {
     this.media.delete(id, this.deleteAllVersions).subscribe({
       next: () => {
-        this.success_notification('The file was deleted.');
+        this.success_notification(this.i18n.t('admin.media.toast_deleted'));
         this.list_media(this.meta.page);
         this.storageStatistics();
       },
@@ -142,7 +146,7 @@ export class MediaComponent implements OnInit {
 
   confirmDelete(id: string, title: string): void {
     this.dialogs
-      .open<boolean>(this.deleteDialog, { label: `Are you sure you want to delete: ${title}` })
+      .open<boolean>(this.deleteDialog, { label: this.i18n.t('admin.media.confirm_delete', { title }) })
       .subscribe((confirmed: boolean) => {
         if (confirmed) {
           this.delete_media(id);
@@ -157,14 +161,14 @@ export class MediaComponent implements OnInit {
   }
 
   onUploadError(failure: { file: File; error: string }): void {
-    this.error_notification(`Failed to upload ${failure.file.name}: ${failure.error}`);
+    this.error_notification(this.i18n.t('admin.media.toast_upload_failed', { name: failure.file.name, error: failure.error }));
   }
 
   onAllUploadsComplete(items: MediaItem[]): void {
     this.isUploading = false;
 
     if (items.length > 0) {
-      this.success_notification(`${items.length} file(s) uploaded.`);
+      this.success_notification(this.i18n.t('admin.media.toast_uploaded', { count: items.length }));
       // The library and the storage figure both moved.
       this.list_media(this.meta.page);
       this.storageStatistics();

@@ -13,6 +13,8 @@ import {
   MeetingParticipant
 } from '../services/video-integration.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 interface PlatformConfig {
   id: string;
@@ -33,13 +35,14 @@ interface TestMeetingForm {
 @Component({
   selector: 'app-integrations-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './integrations-settings.component.html',
   styleUrls: ['./integrations-settings.component.scss']
 
 })
 export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
 
   private destroy$ = new Subject<void>();
 
@@ -47,26 +50,41 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
     {
       id: 'zoom',
       name: 'Zoom',
-      description: 'Connect Zoom to automatically create and manage video meetings for your live training sessions.',
+      description: this.i18n.t('live.integrations.zoom_desc'),
       icon: 'bi-camera-video-fill',
       color: '#2D8CFF',
-      features: ['Auto meeting creation', 'Attendance tracking', 'Recording', 'Breakout rooms']
+      features: [
+        this.i18n.t('live.integrations.feat_auto_meeting'),
+        this.i18n.t('live.integrations.feat_attendance_tracking'),
+        this.i18n.t('live.integrations.feat_recording'),
+        this.i18n.t('live.integrations.feat_breakout')
+      ]
     },
     {
       id: 'microsoft_teams',
       name: 'Microsoft Teams',
-      description: 'Integrate with Microsoft Teams for seamless enterprise video conferencing.',
+      description: this.i18n.t('live.integrations.teams_desc'),
       icon: 'bi-microsoft-teams',
       color: '#6264A7',
-      features: ['Auto meeting creation', 'Attendance reports', 'Calendar sync', 'Chat integration']
+      features: [
+        this.i18n.t('live.integrations.feat_auto_meeting'),
+        this.i18n.t('live.integrations.feat_attendance_reports'),
+        this.i18n.t('live.integrations.feat_calendar_sync'),
+        this.i18n.t('live.integrations.feat_chat')
+      ]
     },
     {
       id: 'google_meet',
       name: 'Google Meet',
-      description: 'Use Google Meet for simple, reliable video meetings integrated with Google Workspace.',
+      description: this.i18n.t('live.integrations.meet_desc'),
       icon: 'bi-google',
       color: '#00897B',
-      features: ['Auto meeting creation', 'Calendar integration', 'Live captions', 'Screen sharing']
+      features: [
+        this.i18n.t('live.integrations.feat_auto_meeting'),
+        this.i18n.t('live.integrations.feat_calendar_integration'),
+        this.i18n.t('live.integrations.feat_live_captions'),
+        this.i18n.t('live.integrations.feat_screen_sharing')
+      ]
     }
   ];
 
@@ -143,7 +161,7 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
 
     if (error) {
       this.callbackSuccess = false;
-      this.callbackMessage = 'Authorization was denied or cancelled.';
+      this.callbackMessage = this.i18n.t('live.integrations.auth_denied');
       window.history.replaceState({}, '', window.location.pathname);
       return;
     }
@@ -159,14 +177,14 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
             next: () => {
               this.connecting = null;
               this.callbackSuccess = true;
-              this.callbackMessage = `Successfully connected to ${this.getDisplayName(platform)}!`;
+              this.callbackMessage = this.i18n.t('live.integrations.connected_success', { platform: this.getDisplayName(platform) });
               this.loadIntegrations();
               window.history.replaceState({}, '', window.location.pathname);
             },
             error: (err: Error) => {
               this.connecting = null;
               this.callbackSuccess = false;
-              this.callbackMessage = `Failed to connect: ${err.message || 'Unknown error'}`;
+              this.callbackMessage = this.i18n.t('live.integrations.connect_failed', { error: err.message || this.i18n.t('common.error_generic') });
               window.history.replaceState({}, '', window.location.pathname);
             }
           });
@@ -193,7 +211,7 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
   }
 
   disconnect(platformId: string): void {
-    if (!confirm(`Disconnect from ${this.getDisplayName(platformId)}? Existing meetings will not be affected.`)) {
+    if (!confirm(this.i18n.t('live.integrations.disconnect_confirm', { platform: this.getDisplayName(platformId) }))) {
       return;
     }
 
@@ -205,11 +223,11 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
           this.loadIntegrations();
           this.connectionStatusCache.set(platformId, false);
           this.callbackSuccess = true;
-          this.callbackMessage = `Disconnected from ${this.getDisplayName(platformId)}`;
+          this.callbackMessage = this.i18n.t('live.integrations.disconnected', { platform: this.getDisplayName(platformId) });
         },
         error: err => {
           this.callbackSuccess = false;
-          this.callbackMessage = `Failed to disconnect: ${err.message}`;
+          this.callbackMessage = this.i18n.t('live.integrations.disconnect_failed', { error: err.message });
         }
       });
   }
@@ -222,7 +240,7 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
         next: () => {
           this.loadIntegrations();
           this.callbackSuccess = true;
-          this.callbackMessage = `${this.getDisplayName(platformId)} is now your default platform`;
+          this.callbackMessage = this.i18n.t('live.integrations.default_set', { platform: this.getDisplayName(platformId) });
         },
         error: err => console.error('Error setting default:', err)
       });
@@ -299,12 +317,12 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
           this.testMeetingResult = meeting;
           this.testMeetingLoading = false;
           this.callbackSuccess = true;
-          this.callbackMessage = 'Test meeting created successfully!';
+          this.callbackMessage = this.i18n.t('live.integrations.test_created');
         },
         error: err => {
           this.testMeetingLoading = false;
           this.callbackSuccess = false;
-          this.callbackMessage = `Failed to create meeting: ${err.message}`;
+          this.callbackMessage = this.i18n.t('live.integrations.create_failed', { error: err.message });
         }
       });
   }
@@ -321,7 +339,7 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
         },
         error: err => {
           this.callbackSuccess = false;
-          this.callbackMessage = `Failed to get meeting: ${err.message}`;
+          this.callbackMessage = this.i18n.t('live.integrations.get_failed', { error: err.message });
         }
       });
   }
@@ -351,18 +369,18 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
         next: meeting => {
           this.currentMeeting = meeting;
           this.callbackSuccess = true;
-          this.callbackMessage = 'Meeting updated successfully!';
+          this.callbackMessage = this.i18n.t('live.integrations.update_success');
         },
         error: err => {
           this.callbackSuccess = false;
-          this.callbackMessage = `Failed to update meeting: ${err.message}`;
+          this.callbackMessage = this.i18n.t('live.integrations.update_failed', { error: err.message });
         }
       });
   }
 
   // Delete meeting
   deleteMeeting(platformId: string, meetingId: string): void {
-    if (!confirm('Are you sure you want to delete this meeting?')) return;
+    if (!confirm(this.i18n.t('live.integrations.delete_meeting_confirm'))) return;
 
     this.videoIntegrationService.deleteMeeting(platformId, meetingId)
       .pipe(takeUntil(this.destroy$))
@@ -372,11 +390,11 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
           this.currentMeeting = null;
           this.testMeetingResult = null;
           this.callbackSuccess = true;
-          this.callbackMessage = 'Meeting deleted successfully!';
+          this.callbackMessage = this.i18n.t('live.integrations.delete_success');
         },
         error: err => {
           this.callbackSuccess = false;
-          this.callbackMessage = `Failed to delete meeting: ${err.message}`;
+          this.callbackMessage = this.i18n.t('live.integrations.delete_failed', { error: err.message });
         }
       });
   }
@@ -391,7 +409,7 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
   copyToClipboard(text: string): void {
     navigator.clipboard.writeText(text).then(() => {
       this.callbackSuccess = true;
-      this.callbackMessage = 'Copied to clipboard!';
+      this.callbackMessage = this.i18n.t('live.integrations.copied');
       setTimeout(() => this.callbackMessage = null, 2000);
     });
   }

@@ -9,10 +9,10 @@
       <div>
         <h1 class="h4 fw-bold mb-1 d-flex align-items-center gap-2">
           <tui-icon icon="@tui.target" class="text-primary"></tui-icon>
-          Competency Assurance
+          {{ 'competency.shell.title' | translate }}
         </h1>
         <p class="text-muted small mb-0">
-          What each job needs, measured against what its people can do.
+          {{ 'competency.shell.subtitle' | translate }}
         </p>
       </div>
     </div>
@@ -22,33 +22,33 @@
       <li class="nav-item">
         <a class="nav-link" routerLink="/admin/competency" routerLinkActive="active"
            [routerLinkActiveOptions]="{ exact: true }">
-          <tui-icon icon="@tui.chart-pie"></tui-icon> Overview
+          <tui-icon icon="@tui.chart-pie"></tui-icon> {{ 'competency.shell.tab_overview' | translate }}
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" routerLink="/admin/competency/dictionary" routerLinkActive="active">
-          <tui-icon icon="@tui.book-open"></tui-icon> Dictionary
+          <tui-icon icon="@tui.book-open"></tui-icon> {{ 'nav.dictionary' | translate }}
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" routerLink="/admin/competency/profiles" routerLinkActive="active">
-          <tui-icon icon="@tui.briefcase"></tui-icon> Job Profiles
+          <tui-icon icon="@tui.briefcase"></tui-icon> {{ 'competency.shell.tab_profiles' | translate }}
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" routerLink="/admin/competency/assessments" routerLinkActive="active">
-          <tui-icon icon="@tui.clipboard-check"></tui-icon> Assessments
+          <tui-icon icon="@tui.clipboard-check"></tui-icon> {{ 'modules.assessments' | translate }}
         </a>
       </li>
       <li class="nav-item">
         <a class="nav-link" routerLink="/admin/competency/reports" routerLinkActive="active">
-          <tui-icon icon="@tui.file-text"></tui-icon> Reports
+          <tui-icon icon="@tui.file-text"></tui-icon> {{ 'nav.reports' | translate }}
         </a>
       </li>
       @if (canManageCycles()) {
         <li class="nav-item">
           <a class="nav-link" routerLink="/admin/competency/cycles" routerLinkActive="active">
-            <tui-icon icon="@tui.calendar"></tui-icon> Cycles
+            <tui-icon icon="@tui.calendar"></tui-icon> {{ 'competency.shell.tab_cycles' | translate }}
           </a>
         </li>
       }

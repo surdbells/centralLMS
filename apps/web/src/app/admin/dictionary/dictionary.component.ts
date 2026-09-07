@@ -17,6 +17,8 @@ import {
   type LookupKind,
 } from '../../services/lookups.service';
 import { ApiError } from '../../core/api';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 // ---------------------------------------------------------------------------
 // The six kinds, as the screen names them
@@ -104,7 +106,7 @@ interface Category {
 @Component({
   selector: 'app-dictionary',
   standalone: true,
-  imports: [DatePipe, FormsModule, CommonModule, SideComponent, TopComponent, TuiIcon, TuiLoader, AdmintopComponent],
+  imports: [DatePipe, FormsModule, CommonModule, SideComponent, TopComponent, TuiIcon, TuiLoader, AdmintopComponent, TranslatePipe],
   templateUrl: './dictionary.component.html',
   styleUrl: './dictionary.component.css',
 })
@@ -113,6 +115,7 @@ export class DictionaryComponent implements OnInit {
   private readonly lookups = inject(LookupsService);
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   branches: Branches[] = [];
   departments: Departments[] = [];
@@ -251,13 +254,18 @@ export class DictionaryComponent implements OnInit {
     activating: boolean,
     then: () => void,
   ): void {
+    const translatedNoun = this.i18n.t('dictionary.noun_' + noun.replace(/\s+/g, '_'));
+
     this.dialogs
       .open<boolean>(TUI_CONFIRM, {
-        label: 'Confirm',
+        label: this.i18n.t('common.confirm'),
         data: {
-          content: `Your ${noun} ${name} will be ${activating ? 'reactivated' : 'deactivated'}`,
-          yes: activating ? 'Activate' : 'Deactivate',
-          no: 'Cancel',
+          content: this.i18n.t(
+            activating ? 'dictionary.confirm_reactivate' : 'dictionary.confirm_deactivate',
+            { noun: translatedNoun, name },
+          ),
+          yes: this.i18n.t(activating ? 'dictionary.activate' : 'dictionary.deactivate'),
+          no: this.i18n.t('common.cancel'),
         },
       })
       .subscribe((confirmed) => {
@@ -312,7 +320,7 @@ export class DictionaryComponent implements OnInit {
       } as LookupInput),
       () => this.listBranch(),
       () => this.switchViewBranch(),
-      'The branch was created.',
+      this.i18n.t('dictionary.branch_created'),
     );
   }
 
@@ -330,7 +338,7 @@ export class DictionaryComponent implements OnInit {
       } as Partial<LookupInput>),
       () => this.listBranch(),
       () => this.switchViewBranch(),
-      'The branch was saved.',
+      this.i18n.t('dictionary.branch_saved'),
     );
   }
 
@@ -339,7 +347,7 @@ export class DictionaryComponent implements OnInit {
       this.lookups.setStatus('branch', branch, status),
       () => this.listBranch(),
       () => this.switchViewBranch(),
-      status ? 'The branch is active again.' : 'The branch was deactivated.',
+      status ? this.i18n.t('dictionary.branch_activated') : this.i18n.t('dictionary.branch_deactivated'),
     );
   }
 
@@ -384,7 +392,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listDepartment(),
       () => this.switchViewDepartment(),
-      'The department was created.',
+      this.i18n.t('dictionary.department_created'),
     );
   }
 
@@ -396,7 +404,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listDepartment(),
       () => this.switchViewDepartment(),
-      'The department was saved.',
+      this.i18n.t('dictionary.department_saved'),
     );
   }
 
@@ -405,7 +413,7 @@ export class DictionaryComponent implements OnInit {
       this.lookups.setStatus('department', department, status),
       () => this.listDepartment(),
       () => this.switchViewDepartment(),
-      status ? 'The department is active again.' : 'The department was deactivated.',
+      status ? this.i18n.t('dictionary.department_activated') : this.i18n.t('dictionary.department_deactivated'),
     );
   }
 
@@ -449,7 +457,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listJobTitle(),
       () => this.switchViewJobTitle(),
-      'The job title was created.',
+      this.i18n.t('dictionary.job_title_created'),
     );
   }
 
@@ -461,7 +469,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listJobTitle(),
       () => this.switchViewJobTitle(),
-      'The job title was saved.',
+      this.i18n.t('dictionary.job_title_saved'),
     );
   }
 
@@ -470,7 +478,7 @@ export class DictionaryComponent implements OnInit {
       this.lookups.setStatus('job_title', jobTitle, status),
       () => this.listJobTitle(),
       () => this.switchViewJobTitle(),
-      status ? 'The job title is active again.' : 'The job title was deactivated.',
+      status ? this.i18n.t('dictionary.job_title_activated') : this.i18n.t('dictionary.job_title_deactivated'),
     );
   }
 
@@ -515,7 +523,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listLevels(),
       () => this.switchViewLevels(),
-      'The level was created.',
+      this.i18n.t('dictionary.level_created'),
     );
   }
 
@@ -527,7 +535,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listLevels(),
       () => this.switchViewLevels(),
-      'The level was saved.',
+      this.i18n.t('dictionary.level_saved'),
     );
   }
 
@@ -536,7 +544,7 @@ export class DictionaryComponent implements OnInit {
       this.lookups.setStatus('level', level, status),
       () => this.listLevels(),
       () => this.switchViewLevels(),
-      status ? 'The level is active again.' : 'The level was deactivated.',
+      status ? this.i18n.t('dictionary.level_activated') : this.i18n.t('dictionary.level_deactivated'),
     );
   }
 
@@ -580,7 +588,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listCategory(),
       () => this.switchViewCategory(),
-      'The category was created.',
+      this.i18n.t('dictionary.category_created'),
     );
   }
 
@@ -592,7 +600,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listCategory(),
       () => this.switchViewCategory(),
-      'The category was saved.',
+      this.i18n.t('dictionary.category_saved'),
     );
   }
 
@@ -601,7 +609,7 @@ export class DictionaryComponent implements OnInit {
       this.lookups.setStatus('category', category, status),
       () => this.listCategory(),
       () => this.switchViewCategory(),
-      status ? 'The category is active again.' : 'The category was deactivated.',
+      status ? this.i18n.t('dictionary.category_activated') : this.i18n.t('dictionary.category_deactivated'),
     );
   }
 
@@ -646,7 +654,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listTeam(),
       () => this.switchViewTeam(),
-      'The team was created.',
+      this.i18n.t('dictionary.team_created'),
     );
   }
 
@@ -658,7 +666,7 @@ export class DictionaryComponent implements OnInit {
       }),
       () => this.listTeam(),
       () => this.switchViewTeam(),
-      'The team was saved.',
+      this.i18n.t('dictionary.team_saved'),
     );
   }
 
@@ -667,7 +675,7 @@ export class DictionaryComponent implements OnInit {
       this.lookups.setStatus('team', team, status),
       () => this.listTeam(),
       () => this.switchViewTeam(),
-      status ? 'The team is active again.' : 'The team was deactivated.',
+      status ? this.i18n.t('dictionary.team_activated') : this.i18n.t('dictionary.team_deactivated'),
     );
   }
 

@@ -13,6 +13,8 @@ import { Lesson } from '../../core/models';
 import { minutesLabel } from '../../core/ui';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
 import { ToastService } from '../../components/toast/toast.service';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
 
@@ -22,12 +24,13 @@ type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
     IonIcon, IonSkeletonText, IonSpinner, EmptyStateComponent, ButtonComponent,
+    TranslatePipe,
   ],
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start"><ion-back-button [defaultHref]="'/courses/' + courseId"></ion-back-button></ion-buttons>
-        <ion-title>{{ lesson()?.title || 'Lesson' }}</ion-title>
+        <ion-title>{{ lesson()?.title || ('lesson.type.lesson' | translate) }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -55,7 +58,7 @@ type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
               } @else {
                 <div class="stage">
                   <ion-icon name="play-circle-outline" aria-hidden="true"></ion-icon>
-                  <p>This video couldn't be loaded here. Mark it complete once you've watched it.</p>
+                  <p>{{ 'lesson.video_unavailable' | translate }}</p>
                 </div>
               }
             }
@@ -68,16 +71,16 @@ type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
               } @else if (mediaLoading()) {
                 <div class="stage"><ion-spinner name="crescent"></ion-spinner></div>
               } @else {
-                <div class="stage"><ion-icon name="musical-notes-outline" aria-hidden="true"></ion-icon><p>This audio couldn't be loaded here.</p></div>
+                <div class="stage"><ion-icon name="musical-notes-outline" aria-hidden="true"></ion-icon><p>{{ 'lesson.audio_unavailable' | translate }}</p></div>
               }
             }
             @case ('pdf') {
               @if (safeFrame()) {
-                <iframe [src]="safeFrame()" class="lesson-frame" title="Lesson document"></iframe>
+                <iframe [src]="safeFrame()" class="lesson-frame" [title]="'lesson.document_title' | translate"></iframe>
               } @else if (mediaLoading()) {
                 <div class="stage"><ion-spinner name="crescent"></ion-spinner></div>
               } @else {
-                <div class="stage"><ion-icon name="document-text-outline" aria-hidden="true"></ion-icon><p>This document couldn't be loaded here.</p></div>
+                <div class="stage"><ion-icon name="document-text-outline" aria-hidden="true"></ion-icon><p>{{ 'lesson.document_unavailable' | translate }}</p></div>
               }
             }
             @default {
@@ -91,11 +94,11 @@ type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
           @if (done()) {
             <div class="done">
               <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
-              <span>Completed</span>
+              <span>{{ 'lesson.completed' | translate }}</span>
             </div>
           } @else {
             <app-button block size="lg" class="cta" icon="checkmark-circle-outline" [loading]="saving()" (click)="complete()">
-              Mark as complete
+              {{ 'lesson.mark_complete' | translate }}
             </app-button>
           }
         </div>
@@ -103,8 +106,8 @@ type RenderMode = 'none' | 'html' | 'video' | 'audio' | 'pdf' | 'fallback';
       } @else {
         <app-empty-state
           icon="cloud-offline-outline"
-          title="Couldn't load this lesson"
-          message="Go back and open it again."></app-empty-state>
+          [title]="'lesson.load_failed' | translate"
+          [message]="'lesson.load_failed_msg' | translate"></app-empty-state>
       }
     </ion-content>
   `,
@@ -154,6 +157,7 @@ export class LessonPage implements OnInit, OnDestroy {
   private readonly location = inject(Location);
   private readonly toast = inject(ToastService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly i18n = inject(I18nService);
 
   private backTimer?: ReturnType<typeof setTimeout>;
 
@@ -228,22 +232,22 @@ export class LessonPage implements OnInit, OnDestroy {
       next: () => {
         this.saving.set(false);
         this.markedDone.set(true);
-        this.toast.success('Lesson completed 🎉', { duration: 1600 });
+        this.toast.success(this.i18n.t('lesson.completed_toast'), { duration: 1600 });
         this.backTimer = setTimeout(() => this.location.back(), 900);
       },
       error: () => {
         this.saving.set(false);
-        this.toast.error("Couldn't save progress. Try again.");
+        this.toast.error(this.i18n.t('lesson.save_failed'));
       },
     });
   }
 
   typeLabel(t: string): string {
     const map: Record<string, string> = {
-      video: 'Video', text: 'Reading', html: 'Reading', document: 'Document',
-      pdf: 'Document', quiz: 'Quiz', scorm: 'Interactive', audio: 'Audio', assignment: 'Assignment',
+      video: 'lesson.type.video', text: 'lesson.type.reading', html: 'lesson.type.reading', document: 'lesson.type.document',
+      pdf: 'lesson.type.document', quiz: 'lesson.type.quiz', scorm: 'lesson.type.interactive', audio: 'lesson.type.audio', assignment: 'lesson.type.assignment',
     };
-    return map[t] ?? 'Lesson';
+    return this.i18n.t(map[t] ?? 'lesson.type.lesson');
   }
 
   stageIcon(t: string): string {
@@ -255,14 +259,14 @@ export class LessonPage implements OnInit, OnDestroy {
 
   stageHint(t: string): string {
     if (t === 'quiz') {
-      return 'This lesson is a quiz. Take it in the full course on the web, then mark it complete here.';
+      return this.i18n.t('lesson.hint_quiz');
     }
     if (t === 'scorm') {
-      return 'This is an interactive package best run on the web. Mark it complete when you have finished it.';
+      return this.i18n.t('lesson.hint_scorm');
     }
     if (t === 'assignment') {
-      return 'This lesson is an assignment. Submit it on the web, then mark it complete here.';
+      return this.i18n.t('lesson.hint_assignment');
     }
-    return 'Open the lesson content, then mark it complete to record your progress.';
+    return this.i18n.t('lesson.hint_default');
   }
 }

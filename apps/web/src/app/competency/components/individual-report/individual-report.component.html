@@ -3,7 +3,7 @@
 </div>
 
 <div class="ir-missing" *ngIf="!loading && !report">
-  <p>This report could not be found.</p>
+  <p>{{ 'competency.report.not_found' | translate }}</p>
 </div>
 
 <ng-container *ngIf="!loading && report as r">
@@ -11,15 +11,15 @@
   <div class="ir-toolbar no-print" *ngIf="!embedded">
     <div class="ir-toolbar-left">
       <button class="btn btn-outline-secondary btn-sm ir-back" (click)="back()">
-        <i class="bi bi-arrow-left"></i> Back
+        <i class="bi bi-arrow-left"></i> {{ 'common.back' | translate }}
       </button>
       <div>
         <strong>{{ r.subject.name || r.assessment.userName }}</strong>
-        <span class="ir-muted"> · Competency Report</span>
+        <span class="ir-muted"> · {{ 'competency.report.competency_report' | translate }}</span>
       </div>
     </div>
     <button class="btn btn-primary" (click)="print()">
-      <i class="bi bi-printer"></i> Print / Save as PDF
+      <i class="bi bi-printer"></i> {{ 'competency.report.print_pdf' | translate }}
     </button>
   </div>
 
@@ -28,17 +28,17 @@
     <div class="ir-topband">
       <table class="ir-person">
         <tbody>
-          <tr><th>Name:</th><td>{{ r.subject.name || r.assessment.userName }}</td></tr>
-          <tr><th>Email Address:</th><td class="ir-email">{{ r.subject.email || '-' }}</td></tr>
-          <tr><th>Job Grade:</th><td>{{ r.subject.jobTitle || r.assessment.jobTitle || '-' }}</td></tr>
-          <tr><th>Job Level:</th><td>{{ r.subject.level || r.assessment.jobTitle || '-' }}</td></tr>
-          <tr><th>JCP Type:</th><td>{{ r.assessment.functionName || '-' }}</td></tr>
-          <tr><th>Department</th><td>{{ r.subject.department || '-' }}</td></tr>
-          <tr><th>Division</th><td>{{ r.subject.division || '-' }}</td></tr>
+          <tr><th>{{ 'competency.report.name' | translate }}</th><td>{{ r.subject.name || r.assessment.userName }}</td></tr>
+          <tr><th>{{ 'competency.report.email' | translate }}</th><td class="ir-email">{{ r.subject.email || '-' }}</td></tr>
+          <tr><th>{{ 'competency.report.job_grade' | translate }}</th><td>{{ r.subject.jobTitle || r.assessment.jobTitle || '-' }}</td></tr>
+          <tr><th>{{ 'competency.report.job_level' | translate }}</th><td>{{ r.subject.level || r.assessment.jobTitle || '-' }}</td></tr>
+          <tr><th>{{ 'competency.report.jcp_type' | translate }}</th><td>{{ r.assessment.functionName || '-' }}</td></tr>
+          <tr><th>{{ 'competency.report.department' | translate }}</th><td>{{ r.subject.department || '-' }}</td></tr>
+          <tr><th>{{ 'competency.report.division' | translate }}</th><td>{{ r.subject.division || '-' }}</td></tr>
         </tbody>
       </table>
       <div class="ir-logo">
-        <img *ngIf="branding.logoUrl()" [src]="branding.logoUrl()" [alt]="branding.organisation() || 'Organisation'">
+        <img *ngIf="branding.logoUrl()" [src]="branding.logoUrl()" [alt]="branding.organisation() || ('competency.report.organisation' | translate)">
         <span *ngIf="!branding.logoUrl()" class="ir-orgname">{{ branding.organisation() }}</span>
       </div>
     </div>
@@ -55,18 +55,18 @@
       <thead>
         <tr class="ir-grouphead">
           <th rowspan="2" class="ir-num">#</th>
-          <th rowspan="2" class="ir-comp">Competencies</th>
-          <th rowspan="2" class="ir-ideal">Ideal Proficiency Level</th>
-          <th colspan="3" class="ir-assess">Assessments</th>
-          <th rowspan="2" class="ir-ready">Competency Readiness</th>
-          <th rowspan="2" class="ir-desc">Proficiency Description<br><small>(Self Assessment)</small></th>
-          <th rowspan="2" class="ir-evi">Evidence<br><small>(Employee)</small></th>
-          <th rowspan="2" class="ir-gaps">Gaps</th>
+          <th rowspan="2" class="ir-comp">{{ 'competency.report.th_competencies' | translate }}</th>
+          <th rowspan="2" class="ir-ideal">{{ 'competency.report.th_ideal_level' | translate }}</th>
+          <th colspan="3" class="ir-assess">{{ 'competency.report.th_assessments' | translate }}</th>
+          <th rowspan="2" class="ir-ready">{{ 'competency.report.th_competency_readiness' | translate }}</th>
+          <th rowspan="2" class="ir-desc">{{ 'competency.report.th_prof_desc' | translate }}<br><small>{{ 'competency.report.self_assessment_note' | translate }}</small></th>
+          <th rowspan="2" class="ir-evi">{{ 'competency.report.th_evidence' | translate }}<br><small>{{ 'competency.report.employee_note' | translate }}</small></th>
+          <th rowspan="2" class="ir-gaps">{{ 'competency.report.th_gaps' | translate }}</th>
         </tr>
         <tr>
-          <th class="ir-self">Self Assessment</th>
-          <th class="ir-sme">SME's Assessment</th>
-          <th class="ir-exec">Line Executive's Assessment</th>
+          <th class="ir-self">{{ 'competency.report.self_assessment' | translate }}</th>
+          <th class="ir-sme">{{ 'competency.report.sme_assessment' | translate }}</th>
+          <th class="ir-exec">{{ 'competency.report.line_exec_assessment' | translate }}</th>
         </tr>
       </thead>
       <tbody>
@@ -74,10 +74,10 @@
           <td class="ir-num">{{ i + 1 }}</td>
           <td class="ir-comp">
             {{ item.competencyName }}
-            <span class="ir-star" *ngIf="item.isCritical" title="Critical">★</span>
+            <span class="ir-star" *ngIf="item.isCritical" [title]="'competency.profiles.critical' | translate">★</span>
           </td>
           <td>{{ item.requiredLabel }}</td>
-          <td>{{ item.selfLabel || 'Not Applicable' }}</td>
+          <td>{{ item.selfLabel || ('competency.report.not_applicable' | translate) }}</td>
           <td>{{ item.assessedLabel || '-' }}</td>
           <td>{{ item.lineExecutiveLabel || item.assessedLabel || '-' }}</td>
           <td [class.ir-prepared]="item.gap === 0" [class.ir-gap]="item.gap > 0">
@@ -94,8 +94,8 @@
     <table class="ir-totals">
       <tbody>
         <tr>
-          <th>Ideal Proficiency</th>
-          <th>Assessed Proficiency</th>
+          <th>{{ 'competency.report.ideal_proficiency' | translate }}</th>
+          <th>{{ 'competency.report.assessed_proficiency' | translate }}</th>
         </tr>
         <tr>
           <td>{{ r.assessment.idealProficiencyTotal ?? '-' }}</td>
@@ -108,17 +108,17 @@
     <table class="ir-kv">
       <tbody>
         <tr>
-          <th>Line Executive's Decision</th>
+          <th>{{ 'competency.detail.line_exec_decision' | translate }}</th>
           <td class="ir-decision" [class.placed]="isPlaced(r.assessment.lineExecutiveDecision)">
             {{ r.assessment.lineExecutiveDecision || '-' }}
           </td>
         </tr>
         <tr>
-          <th>Competency Rating</th>
+          <th>{{ 'competency.report.competency_rating' | translate }}</th>
           <td>{{ r.assessment.readinessPercent != null ? (r.assessment.readinessPercent + '%') : '-' }}</td>
         </tr>
         <tr>
-          <th>Time-to-Competency</th>
+          <th>{{ 'competency.report.time_to_competency' | translate }}</th>
           <td>{{ timeToCompetency(r.assessment.estimatedMonths) }}</td>
         </tr>
       </tbody>
@@ -128,23 +128,23 @@
     <table class="ir-notes">
       <tbody>
         <tr>
-          <th>Self Assessment Comments</th>
+          <th>{{ 'self_assessment.comments_label' | translate }}</th>
           <td>{{ r.assessment.selfComment || '' }}</td>
         </tr>
         <tr>
-          <th>Line Manager's Comments</th>
+          <th>{{ 'competency.detail.line_manager_comments' | translate }}</th>
           <td>{{ r.assessment.lineManagerComment || '' }}</td>
         </tr>
         <tr>
-          <th>SME's Comments</th>
+          <th>{{ 'competency.detail.sme_comments' | translate }}</th>
           <td>{{ r.assessment.assessorComment || '' }}</td>
         </tr>
         <tr>
-          <th>Gaps Identified</th>
+          <th>{{ 'competency.detail.gaps_identified' | translate }}</th>
           <td>{{ r.assessment.gapsIdentified || '' }}</td>
         </tr>
         <tr>
-          <th>Gaps Closure Interventions</th>
+          <th>{{ 'competency.detail.gaps_closure' | translate }}</th>
           <td>{{ r.assessment.gapsClosureInterventions || '' }}</td>
         </tr>
       </tbody>

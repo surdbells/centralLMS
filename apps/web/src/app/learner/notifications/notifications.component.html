@@ -8,24 +8,24 @@
       </div>
     </div>
     <div class="col">
-      <h1 class="fs-4 mb-0">Notifications</h1>
-      <small class="text-muted" *ngIf="unread > 0">{{ unread }} unread</small>
-      <small class="text-muted" *ngIf="unread === 0">Nothing unread</small>
+      <h1 class="fs-4 mb-0">{{ 'notifications.title' | translate }}</h1>
+      <small class="text-muted" *ngIf="unread > 0">{{ 'notifications.unread_count' | translate:{ count: unread } }}</small>
+      <small class="text-muted" *ngIf="unread === 0">{{ 'notifications.nothing_unread' | translate }}</small>
     </div>
     <div class="col-auto">
       <button class="btn btn-sm btn-outline-secondary" (click)="markAllRead()"
               [disabled]="unread === 0">
         <span class="material-symbols-outlined align-middle me-1">done_all</span>
-        Mark all read
+        {{ 'notifications.mark_all_read' | translate }}
       </button>
     </div>
   </div>
 
   <div class="btn-group btn-group-sm mb-3" role="group">
     <button type="button" class="btn" [class.btn-dark]="!unreadOnly"
-            [class.btn-outline-dark]="unreadOnly" (click)="showUnreadOnly(false)">All</button>
+            [class.btn-outline-dark]="unreadOnly" (click)="showUnreadOnly(false)">{{ 'notifications.filter_all' | translate }}</button>
     <button type="button" class="btn" [class.btn-dark]="unreadOnly"
-            [class.btn-outline-dark]="!unreadOnly" (click)="showUnreadOnly(true)">Unread</button>
+            [class.btn-outline-dark]="!unreadOnly" (click)="showUnreadOnly(true)">{{ 'notifications.filter_unread' | translate }}</button>
   </div>
 
   <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
@@ -52,11 +52,11 @@
 
         <div class="d-flex gap-1">
           <button class="btn btn-sm btn-link text-decoration-none" *ngIf="!n.isRead"
-                  (click)="markRead(n)" title="Mark as read">
+                  (click)="markRead(n)" [title]="'notifications.mark_as_read' | translate">
             <span class="material-symbols-outlined">mark_email_read</span>
           </button>
           <button class="btn btn-sm btn-link text-danger text-decoration-none"
-                  (click)="remove(n)" title="Delete">
+                  (click)="remove(n)" [title]="'common.delete' | translate">
             <span class="material-symbols-outlined">delete</span>
           </button>
         </div>
@@ -64,8 +64,8 @@
 
       <div class="list-group-item text-center text-muted py-5" *ngIf="notifications.length === 0">
         <span class="material-symbols-outlined d-block mb-2" style="font-size:2rem">notifications_off</span>
-        <span *ngIf="unreadOnly">Nothing unread.</span>
-        <span *ngIf="!unreadOnly">Nothing here yet.</span>
+        <span *ngIf="unreadOnly">{{ 'notifications.empty_unread' | translate }}</span>
+        <span *ngIf="!unreadOnly">{{ 'notifications.empty_all' | translate }}</span>
       </div>
     </div>
   </div>
@@ -73,13 +73,13 @@
   <nav class="mt-3" *ngIf="!loading && totalPages > 1">
     <ul class="pagination pagination-sm justify-content-center mb-0">
       <li class="page-item" [class.disabled]="page === 1">
-        <button class="page-link" (click)="goToPage(page - 1)">Previous</button>
+        <button class="page-link" (click)="goToPage(page - 1)">{{ 'common.previous' | translate }}</button>
       </li>
       <li class="page-item disabled">
-        <span class="page-link">{{ page }} of {{ totalPages }}</span>
+        <span class="page-link">{{ 'common.page_of' | translate:{ current: page, total: totalPages } }}</span>
       </li>
       <li class="page-item" [class.disabled]="page === totalPages">
-        <button class="page-link" (click)="goToPage(page + 1)">Next</button>
+        <button class="page-link" (click)="goToPage(page + 1)">{{ 'common.next' | translate }}</button>
       </li>
     </ul>
   </nav>

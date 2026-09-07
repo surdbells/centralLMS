@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HotToastService } from '@ngneat/hot-toast';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 import {
   CompetencyService,
   type CompetencyAssessment,
@@ -22,13 +24,14 @@ import {
 @Component({
   selector: 'app-self-assessment',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
   templateUrl: './self-assessment.component.html',
   styleUrl: './self-assessment.component.scss',
 })
 export class SelfAssessmentComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   saving = false;
@@ -42,11 +45,11 @@ export class SelfAssessmentComponent implements OnInit {
   /** The employee's overall account of the evidence, shown on their report. */
   selfComment = '';
 
-  readonly levelOptions: { value: ProficiencyLevel; label: string }[] = [
-    { value: 0, label: 'Not yet' },
-    { value: 1, label: 'Knowledge' },
-    { value: 2, label: 'Skill' },
-    { value: 3, label: 'Mastery' },
+  readonly levelOptions: { value: ProficiencyLevel; labelKey: string }[] = [
+    { value: 0, labelKey: 'self_assessment.level_not_yet' },
+    { value: 1, labelKey: 'self_assessment.level_knowledge' },
+    { value: 2, labelKey: 'self_assessment.level_skill' },
+    { value: 3, labelKey: 'self_assessment.level_mastery' },
   ];
 
   ngOnInit(): void {
@@ -61,7 +64,7 @@ export class SelfAssessmentComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.toast.error('Your assessments could not be loaded.');
+        this.toast.error(this.i18n.t('self_assessment.load_error'));
         this.loading = false;
       },
     });
@@ -86,7 +89,7 @@ export class SelfAssessmentComponent implements OnInit {
           this.evidence[item.competencyId] = item.comment ?? '';
         }
       },
-      error: () => this.toast.error('That assessment could not be opened.'),
+      error: () => this.toast.error(this.i18n.t('self_assessment.open_error')),
     });
   }
 
@@ -107,7 +110,7 @@ export class SelfAssessmentComponent implements OnInit {
     this.competency.selfAssess(this.open.id, submission, this.selfComment.trim(), { ...this.evidence }).subscribe({
       next: (updated) => {
         this.saving = false;
-        this.toast.success('Your self-assessment has been saved.');
+        this.toast.success(this.i18n.t('self_assessment.saved'));
         this.assessments = this.assessments.map((a) => (a.id === updated.id ? { ...a, ...updated } : a));
         this.open = null;
       },
@@ -115,8 +118,8 @@ export class SelfAssessmentComponent implements OnInit {
         this.saving = false;
         this.toast.error(
           err?.code === 'already_reviewed'
-            ? 'This assessment has already been reviewed and can no longer be changed.'
-            : 'Your self-assessment could not be saved.',
+            ? this.i18n.t('self_assessment.already_reviewed')
+            : this.i18n.t('self_assessment.save_error'),
         );
       },
     });

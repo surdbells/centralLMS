@@ -12,11 +12,11 @@
       <div class="dropdown modules-dropdown">
         <button class="btn btn-modules dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <tui-icon class="fs-5" icon="@tui.layout-grid"></tui-icon>
-          <span class="modules-label">Modules</span>
+          <span class="modules-label">{{ 'nav.modules' | translate }}</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-modules shadow-lg">
           <li class="dropdown-header">
-            <span class="fw-semibold">Advanced modules</span>
+            <span class="fw-semibold">{{ 'modules.advanced' | translate }}</span>
           </li>
           <li><hr class="dropdown-divider"></li>
           <li>
@@ -25,8 +25,8 @@
                 <tui-icon icon="@tui.presentation"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Live Training</div>
-                <small class="text-muted">ILT sessions</small>
+                <div class="fw-medium">{{ 'nav.live_training' | translate }}</div>
+                <small class="text-muted">{{ 'modules.ilt_sessions' | translate }}</small>
               </div>
 <!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
             </a>
@@ -37,8 +37,8 @@
                 <tui-icon icon="@tui.route"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Learning Paths</div>
-                <small class="text-muted">Curated journeys</small>
+                <div class="fw-medium">{{ 'modules.learning_paths' | translate }}</div>
+                <small class="text-muted">{{ 'modules.curated_journeys' | translate }}</small>
               </div>
 <!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
             </a>
@@ -49,8 +49,8 @@
                 <tui-icon icon="@tui.monitor-speaker"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Assessments</div>
-                <small class="text-muted">Papers, proctoring and marking</small>
+                <div class="fw-medium">{{ 'modules.assessments' | translate }}</div>
+                <small class="text-muted">{{ 'modules.assessments_desc' | translate }}</small>
               </div>
             </a>
           </li>
@@ -60,8 +60,8 @@
                 <tui-icon icon="@tui.library"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Question bank</div>
-                <small class="text-muted">Questions, reusable across papers</small>
+                <div class="fw-medium">{{ 'modules.question_bank' | translate }}</div>
+                <small class="text-muted">{{ 'modules.question_bank_desc' | translate }}</small>
               </div>
             </a>
           </li>
@@ -71,8 +71,8 @@
                 <tui-icon icon="@tui.pencil-line"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Marking</div>
-                <small class="text-muted">The queue, and the rubrics to mark by</small>
+                <div class="fw-medium">{{ 'modules.marking' | translate }}</div>
+                <small class="text-muted">{{ 'modules.marking_desc' | translate }}</small>
               </div>
             </a>
           </li>
@@ -82,8 +82,8 @@
                 <tui-icon icon="@tui.target"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Competency</div>
-                <small class="text-muted">Profiles, assessments and gaps</small>
+                <div class="fw-medium">{{ 'modules.competency' | translate }}</div>
+                <small class="text-muted">{{ 'modules.competency_desc' | translate }}</small>
               </div>
             </a>
           </li>
@@ -93,8 +93,8 @@
                 <tui-icon icon="@tui.library-big"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Digital Library</div>
-                <small class="text-muted">Share files with your people</small>
+                <div class="fw-medium">{{ 'modules.digital_library' | translate }}</div>
+                <small class="text-muted">{{ 'modules.digital_library_desc_admin' | translate }}</small>
               </div>
             </a>
           </li>
@@ -104,8 +104,8 @@
                 <tui-icon icon="@tui.shield-check"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Proctoring review</div>
-                <small class="text-muted">Flagged sittings and what was recorded</small>
+                <div class="fw-medium">{{ 'modules.proctoring_review' | translate }}</div>
+                <small class="text-muted">{{ 'modules.proctoring_review_desc' | translate }}</small>
               </div>
             </a>
           </li>
@@ -115,8 +115,8 @@
                 <tui-icon icon="@tui.message-square-text"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Messaging</div>
-                <small class="text-muted">Communication hub</small>
+                <div class="fw-medium">{{ 'modules.messaging' | translate }}</div>
+                <small class="text-muted">{{ 'modules.communication_hub' | translate }}</small>
               </div>
 <!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
             </a>
@@ -127,8 +127,8 @@
                 <tui-icon icon="@tui.list-tree"></tui-icon>
               </div>
               <div>
-                <div class="fw-medium">Reference data</div>
-                <small class="text-muted">Organization setup</small>
+                <div class="fw-medium">{{ 'modules.reference_data' | translate }}</div>
+                <small class="text-muted">{{ 'modules.organization_setup' | translate }}</small>
               </div>
               <!--              <span class="badge bg-warning text-dark ms-auto">BETA</span>-->
             </a>
@@ -151,63 +151,63 @@
             <a routerLink="/administration" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="" icon="@tui.panel-bottom-dashed"></tui-icon>
-              <span class="nav-label">Dashboard</span>
+              <span class="nav-label">{{ 'nav.dashboard' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/admin/users" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.users"></tui-icon>
-              <span class="nav-label">Users</span>
+              <span class="nav-label">{{ 'nav.users' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/media" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.play"></tui-icon>
-              <span class="nav-label">Media</span>
+              <span class="nav-label">{{ 'nav.media' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/enrollment" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.list-plus"></tui-icon>
-              <span class="nav-label">Enrollment</span>
+              <span class="nav-label">{{ 'nav.enrollment' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/courses" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.library-big"></tui-icon>
-              <span class="nav-label">Courses</span>
+              <span class="nav-label">{{ 'nav.courses' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/skills" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.brain"></tui-icon>
-              <span class="nav-label">Skills</span>
+              <span class="nav-label">{{ 'nav.skills' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/admin/reports" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.chart-area"></tui-icon>
-              <span class="nav-label">Reports</span>
+              <span class="nav-label">{{ 'nav.reports' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none">
             <a routerLink="/settings" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.settings"></tui-icon>
-              <span class="nav-label">Settings</span>
+              <span class="nav-label">{{ 'nav.settings' | translate }}</span>
             </a>
           </li>
           <li class="nav-item" role="none" *ngIf="user_session.can_billing">
             <a routerLink="/admin/billing" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.credit-card"></tui-icon>
-              <span class="nav-label">Billing</span>
+              <span class="nav-label">{{ 'nav.billing' | translate }}</span>
             </a>
           </li>
         </ul>
@@ -236,7 +236,7 @@
         <div class="dropdown-menu dropdown-menu-end dropdown-notifications shadow-lg">
           <!-- Header -->
           <div class="dropdown-header-notifications d-flex justify-content-between align-items-center px-3 py-2">
-            <h6 class="mb-0 fw-semibold">Notifications</h6>
+            <h6 class="mb-0 fw-semibold">{{ 'notifications.title' | translate }}</h6>
             <div class="d-flex gap-2">
               <button (click)="mark_notifications()" class="btn btn-sm btn-link p-0" type="button">
                 <span class="material-symbols-outlined fs-6">done_all</span>
@@ -252,7 +252,7 @@
             </div>
             <div *ngIf="!ui_controls.is_loading && notifications?.length === 0" class="text-center py-4 text-muted">
               <span class="material-symbols-outlined d-block mb-2" style="font-size: 2rem;">notifications_off</span>
-              <small>No notifications</small>
+              <small>{{ 'notifications.empty' | translate }}</small>
             </div>
             <div *ngIf="!ui_controls.is_loading" class="list-group list-group-flush">
               <div *ngFor="let a_notification of notifications"
@@ -273,7 +273,7 @@
           <!-- Footer -->
           <hr class="dropdown-divider m-0">
           <div class="text-center py-2">
-            <a routerLink="/notifications" class="btn btn-sm btn-link text-decoration-none">View all notifications</a>
+            <a routerLink="/notifications" class="btn btn-sm btn-link text-decoration-none">{{ 'notifications.view_all' | translate }}</a>
           </div>
         </div>
       </div>
@@ -303,19 +303,19 @@
             </div>
           </li>
           <li class="d-lg-none"><hr class="dropdown-divider"></li>
-          <li><a (click)="sessionStorage.setItem('IS_CURRENT', 'learner');" class="dropdown-item" routerLink="/account"><span class="material-symbols-outlined me-2">account_circle</span>My Profile</a></li>
+          <li><a (click)="sessionStorage.setItem('IS_CURRENT', 'learner');" class="dropdown-item" routerLink="/account"><span class="material-symbols-outlined me-2">account_circle</span>{{ 'user_menu.my_profile' | translate }}</a></li>
           <li><hr class="dropdown-divider"></li>
           <!-- Language switcher for mobile -->
           <li class="d-sm-none px-3 py-2">
-            <small class="text-muted d-block mb-2">Language</small>
+            <small class="text-muted d-block mb-2">{{ 'common.language' | translate }}</small>
             <app-language-switcher></app-language-switcher>
           </li>
           <li class="d-sm-none"><hr class="dropdown-divider"></li>
           @if(user_session.is_admin){
-            <li><a class="dropdown-item active" routerLink="/administration"><span class="material-symbols-outlined me-2">admin_panel_settings</span>Administrator</a></li>
+            <li><a class="dropdown-item active" routerLink="/administration"><span class="material-symbols-outlined me-2">admin_panel_settings</span>{{ 'user_menu.administrator' | translate }}</a></li>
             <li><hr class="dropdown-divider"></li>
           }
-          <li><a class="dropdown-item text-danger" (click)="sign_out()"><span class="material-symbols-outlined me-2">logout</span>Sign out</a></li>
+          <li><a class="dropdown-item text-danger" (click)="sign_out()"><span class="material-symbols-outlined me-2">logout</span>{{ 'nav.sign_out' | translate }}</a></li>
         </ul>
       </div>
     </div>

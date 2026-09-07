@@ -9,6 +9,8 @@ import {
   type JobCompetencyProfile,
   type ProficiencyLevel,
 } from '../../competency.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /** One row being built in the requirement editor. */
 interface RequirementDraft {
@@ -28,13 +30,14 @@ interface RequirementDraft {
 @Component({
   selector: 'app-job-profiles',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, TranslatePipe],
   templateUrl: './job-profiles.component.html',
   styleUrl: './job-profiles.component.scss',
 })
 export class JobProfilesComponent implements OnInit {
   private readonly competency = inject(CompetencyService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   loading = true;
   saving = false;
@@ -88,7 +91,7 @@ export class JobProfilesComponent implements OnInit {
           this.loading = false;
         },
         error: () => {
-          this.toast.error('The profiles could not be loaded.');
+          this.toast.error(this.i18n.t('competency.profiles.load_error'));
           this.loading = false;
         },
       });
@@ -116,7 +119,7 @@ export class JobProfilesComponent implements OnInit {
         this.expandedLoading = false;
       },
       error: () => {
-        this.toast.error('The profile could not be loaded.');
+        this.toast.error(this.i18n.t('competency.profiles.profile_load_error'));
         this.expandedLoading = false;
       },
     });
@@ -157,7 +160,17 @@ export class JobProfilesComponent implements OnInit {
   }
 
   competencyName(id: string): string {
-    return this.allCompetencies.find((c) => c.id === id)?.name ?? 'Unknown competency';
+    return this.allCompetencies.find((c) => c.id === id)?.name ?? this.i18n.t('competency.profiles.unknown_competency');
+  }
+
+  /** The tooltip for a level toggle, matching the shared level names. */
+  levelTitle(level: ProficiencyLevel): string {
+    const key: Record<number, string> = {
+      1: 'self_assessment.level_knowledge',
+      2: 'self_assessment.level_skill',
+      3: 'self_assessment.level_mastery',
+    };
+    return key[level] ? this.i18n.t(key[level]) : '';
   }
 
   // --- the editor ---------------------------------------------------------
@@ -189,7 +202,7 @@ export class JobProfilesComponent implements OnInit {
           isCritical: r.isCritical,
         }));
       },
-      error: () => this.toast.error('The profile could not be loaded.'),
+      error: () => this.toast.error(this.i18n.t('competency.profiles.profile_load_error')),
     });
   }
 
@@ -211,11 +224,11 @@ export class JobProfilesComponent implements OnInit {
 
   save(): void {
     if (!this.jobTitle.trim() || !this.functionName.trim()) {
-      this.toast.error('A profile needs a job title and a function.');
+      this.toast.error(this.i18n.t('competency.profiles.validation_title_function'));
       return;
     }
     if (!this.requirements.length) {
-      this.toast.error('Add at least one competency requirement - a profile that requires nothing measures nothing.');
+      this.toast.error(this.i18n.t('competency.profiles.validation_requirements'));
       return;
     }
     this.saving = true;
@@ -231,7 +244,7 @@ export class JobProfilesComponent implements OnInit {
 
     request.subscribe({
       next: () => {
-        this.toast.success(this.editing ? 'Profile updated.' : 'Profile created.');
+        this.toast.success(this.i18n.t(this.editing ? 'competency.profiles.updated' : 'competency.profiles.created'));
         this.saving = false;
         this.closeModal();
         this.load();
@@ -239,9 +252,11 @@ export class JobProfilesComponent implements OnInit {
       error: (err) => {
         this.saving = false;
         this.toast.error(
-          err?.code === 'duplicate_profile'
-            ? 'A profile with that job title already exists in this function.'
-            : 'The profile could not be saved.',
+          this.i18n.t(
+            err?.code === 'duplicate_profile'
+              ? 'competency.profiles.duplicate'
+              : 'competency.profiles.save_error',
+          ),
         );
       },
     });
@@ -261,12 +276,12 @@ export class JobProfilesComponent implements OnInit {
     }
     this.competency.deleteProfile(this.deleteTarget.id).subscribe({
       next: () => {
-        this.toast.success('Profile removed.');
+        this.toast.success(this.i18n.t('competency.profiles.removed'));
         this.deleteTarget = null;
         this.load();
       },
       error: () => {
-        this.toast.error('The profile could not be removed.');
+        this.toast.error(this.i18n.t('competency.profiles.remove_error'));
         this.deleteTarget = null;
       },
     });

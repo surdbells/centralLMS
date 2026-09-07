@@ -3,29 +3,29 @@
   <div class="rv-bar no-print">
     <div class="rv-bar-inner">
       <div class="rv-heading">
-        <h1>Competency Report Viewer</h1>
-        <p>Choose an employee to read and print their competency report.</p>
+        <h1>{{ 'competency.viewer.title' | translate }}</h1>
+        <p>{{ 'competency.viewer.subtitle' | translate }}</p>
       </div>
 
       <div class="rv-cycle">
-        <label class="rv-picker-label">Cycle</label>
+        <label class="rv-picker-label">{{ 'competency.common.cycle' | translate }}</label>
         <app-cycle-select
           [allowAll]="true"
-          allLabel="All cycles"
-          placeholder="All cycles"
+          [allLabel]="'competency.common.all_cycles' | translate"
+          [placeholder]="'competency.common.all_cycles' | translate"
           [ngModel]="cycle"
           (ngModelChange)="onCycleChange($event)"
         ></app-cycle-select>
       </div>
 
       <div class="rv-picker" [class.open]="open">
-        <label class="rv-picker-label">Employee</label>
+        <label class="rv-picker-label">{{ 'competency.viewer.employee' | translate }}</label>
         <div class="rv-input-wrap">
           <i class="bi bi-search"></i>
           <input
             type="text"
             class="rv-input"
-            placeholder="Search by name, job title or function…"
+            placeholder="{{ 'competency.viewer.search_placeholder' | translate }}"
             [(ngModel)]="search"
             (focus)="openMenu()"
             (blur)="closeMenu()"
@@ -35,11 +35,11 @@
         </div>
 
         <div class="rv-menu" *ngIf="open">
-          <div class="rv-loading" *ngIf="loading">Loading…</div>
+          <div class="rv-loading" *ngIf="loading">{{ 'competency.viewer.loading' | translate }}</div>
           <div class="rv-empty" *ngIf="!loading && filtered.length === 0">
-            <ng-container *ngIf="search.trim()">No one matches “{{ search }}”.</ng-container>
+            <ng-container *ngIf="search.trim()">{{ 'competency.viewer.no_match' | translate: { search: search } }}</ng-container>
             <ng-container *ngIf="!search.trim()">
-              No finalised reports {{ cycle ? 'in ' + cycle : 'yet' }}.
+              {{ cycle ? ('competency.viewer.no_reports_in' | translate: { cycle: cycle }) : ('competency.viewer.no_reports_yet' | translate) }}
             </ng-container>
           </div>
           <button
@@ -60,7 +60,7 @@
       </div>
 
       <button class="btn btn-primary rv-print" *ngIf="selected" (click)="print()">
-        <i class="bi bi-printer"></i> Print / Save as PDF
+        <i class="bi bi-printer"></i> {{ 'competency.report.print_pdf' | translate }}
       </button>
     </div>
   </div>
@@ -69,8 +69,8 @@
   <div class="rv-report">
     <div class="rv-placeholder no-print" *ngIf="!selected">
       <i class="bi bi-file-earmark-person"></i>
-      <h3>No employee chosen</h3>
-      <p>Pick someone above and their report appears here, ready to print.</p>
+      <h3>{{ 'competency.viewer.none_chosen_title' | translate }}</h3>
+      <p>{{ 'competency.viewer.none_chosen_text' | translate }}</p>
     </div>
 
     <app-individual-report

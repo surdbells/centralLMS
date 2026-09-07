@@ -7,19 +7,21 @@ import {
 } from '@ionic/angular/standalone';
 import { Assessment, Attempt, AssessmentService } from '../../core/assessment.service';
 import { EmptyStateComponent } from '../../components/empty-state/empty-state.component';
+import { TranslatePipe } from '../../core/translate.pipe';
+import { I18nService } from '../../core/i18n.service';
 
 @Component({
   selector: 'app-assessment-detail',
   standalone: true,
   imports: [
     IonContent, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle,
-    IonIcon, IonSkeletonText, EmptyStateComponent,
+    IonIcon, IonSkeletonText, EmptyStateComponent, TranslatePipe,
   ],
   template: `
     <ion-header [translucent]="true">
       <ion-toolbar>
         <ion-buttons slot="start"><ion-back-button defaultHref="/assessments"></ion-back-button></ion-buttons>
-        <ion-title>{{ assessment()?.title || 'Assessment' }}</ion-title>
+        <ion-title>{{ assessment()?.title || ('assessments.kind_assessment' | translate) }}</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -43,27 +45,27 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
           @if (a.description) { <p class="desc">{{ a.description }}</p> }
 
           <div class="info surface">
-            <div class="cell"><span class="k">Questions</span><span class="v">{{ a.questionCount }}</span></div>
-            <div class="cell"><span class="k">Total points</span><span class="v">{{ a.totalPoints }}</span></div>
-            @if (a.passingScore) { <div class="cell"><span class="k">Pass mark</span><span class="v">{{ a.passingScore }}%</span></div> }
-            @if (a.timeLimitMinutes) { <div class="cell"><span class="k">Time limit</span><span class="v">{{ a.timeLimitMinutes }} min</span></div> }
-            <div class="cell"><span class="k">Attempts</span><span class="v">{{ a.attemptCount }}{{ a.maxAttempts ? ' / ' + a.maxAttempts : '' }}</span></div>
-            @if (a.bestScore !== null) { <div class="cell"><span class="k">Best score</span><span class="v hi">{{ a.bestScore }}%</span></div> }
+            <div class="cell"><span class="k">{{ 'assessments.info_questions' | translate }}</span><span class="v">{{ a.questionCount }}</span></div>
+            <div class="cell"><span class="k">{{ 'assessments.info_total_points' | translate }}</span><span class="v">{{ a.totalPoints }}</span></div>
+            @if (a.passingScore) { <div class="cell"><span class="k">{{ 'assessments.info_pass_mark' | translate }}</span><span class="v">{{ a.passingScore }}%</span></div> }
+            @if (a.timeLimitMinutes) { <div class="cell"><span class="k">{{ 'assessments.info_time_limit' | translate }}</span><span class="v">{{ 'assessments.minutes' | translate:{ n: a.timeLimitMinutes } }}</span></div> }
+            <div class="cell"><span class="k">{{ 'assessments.info_attempts' | translate }}</span><span class="v">{{ a.attemptCount }}{{ a.maxAttempts ? ' / ' + a.maxAttempts : '' }}</span></div>
+            @if (a.bestScore !== null) { <div class="cell"><span class="k">{{ 'assessments.info_best_score' | translate }}</span><span class="v hi">{{ a.bestScore }}%</span></div> }
           </div>
 
           <div class="take" [class.proctored]="a.proctoringLevel !== 'none'">
             <ion-icon [name]="a.proctoringLevel !== 'none' ? 'shield-checkmark-outline' : 'desktop-outline'" aria-hidden="true"></ion-icon>
             <p>
               @if (a.proctoringLevel !== 'none') {
-                This is a proctored exam. Sit it on the web, where your camera and screen can be monitored.
+                {{ 'assessments.proctored_notice' | translate }}
               } @else {
-                Take this assessment in the full experience on the web, then your result will show here.
+                {{ 'assessments.web_notice' | translate }}
               }
             </p>
           </div>
 
           @if (myAttempts().length) {
-            <div class="section-title">Your attempts</div>
+            <div class="section-title">{{ 'assessments.your_attempts' | translate }}</div>
             @for (at of myAttempts(); track at.id) {
               <div class="at surface">
                 <span class="at-n">#{{ at.attemptNumber }}</span>
@@ -82,8 +84,8 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
         </div>
         }
       } @else {
-        <app-empty-state icon="cloud-offline-outline" title="Couldn't load this assessment"
-          message="Check your connection and try again." actionLabel="Try again" (action)="load()"></app-empty-state>
+        <app-empty-state icon="cloud-offline-outline" [title]="'assessments.detail_load_error_title' | translate"
+          [message]="'common.offline' | translate" [actionLabel]="'common.retry' | translate" (action)="load()"></app-empty-state>
       }
     </ion-content>
   `,
@@ -124,6 +126,7 @@ import { EmptyStateComponent } from '../../components/empty-state/empty-state.co
 export class AssessmentDetailPage implements OnInit {
   private readonly svc = inject(AssessmentService);
   private readonly route = inject(ActivatedRoute);
+  private readonly i18n = inject(I18nService);
 
   private id = '';
   readonly loading = signal(true);
@@ -164,7 +167,7 @@ export class AssessmentDetailPage implements OnInit {
   }
 
   kindLabel(kind: string): string {
-    const map: Record<string, string> = { quiz: 'Quiz', exam: 'Exam', assignment: 'Assignment', survey: 'Survey' };
-    return map[kind] ?? 'Assessment';
+    const map: Record<string, string> = { quiz: 'assessments.kind_quiz', exam: 'assessments.kind_exam', assignment: 'assessments.kind_assignment', survey: 'assessments.kind_survey' };
+    return this.i18n.t(map[kind] ?? 'assessments.kind_assessment');
   }
 }

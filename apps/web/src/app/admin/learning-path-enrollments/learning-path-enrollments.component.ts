@@ -20,13 +20,15 @@ import {
   EnrollmentStats
 } from '../../interfaces/learning-path-enrollment.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 
 @Component({
   selector: 'app-learning-path-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
   templateUrl: './learning-path-enrollments.component.html',
   styleUrls: ['./learning-path-enrollments.component.scss']
 })
@@ -75,7 +77,10 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
   stats: EnrollmentStats | null = null;
   error: string | null = null;
 
-  constructor(private enrollmentService: LearningPathEnrollmentService) {}
+  constructor(
+    private enrollmentService: LearningPathEnrollmentService,
+    private i18n: I18nService
+  ) {}
 
   ngOnInit(): void {
     this.loadInitialData();
@@ -296,15 +301,24 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
     switch (this.enrollmentType) {
       case 'department':
         const dept = this.departments.find(d => d.department_id === this.selectedDepartmentId);
-        return `All users in ${dept?.department_name || 'selected department'} (${dept?.user_count || 0} users)`;
+        return this.i18n.t('paths_admin.assign.summary_group', {
+          name: dept?.department_name || this.i18n.t('paths_admin.assign.selected_department'),
+          count: dept?.user_count || 0,
+        });
       case 'team':
         const team = this.teams.find(t => t.team_id === this.selectedTeamId);
-        return `All users in ${team?.team_name || 'selected team'} (${team?.user_count || 0} users)`;
+        return this.i18n.t('paths_admin.assign.summary_group', {
+          name: team?.team_name || this.i18n.t('paths_admin.assign.selected_team'),
+          count: team?.user_count || 0,
+        });
       case 'branch':
         const branch = this.branches.find(b => b.branch_id === this.selectedBranchId);
-        return `All users in ${branch?.branch_name || 'selected branch'} (${branch?.user_count || 0} users)`;
+        return this.i18n.t('paths_admin.assign.summary_group', {
+          name: branch?.branch_name || this.i18n.t('paths_admin.assign.selected_branch'),
+          count: branch?.user_count || 0,
+        });
       case 'users':
-        return `${this.selectedUsers.length} selected user(s)`;
+        return this.i18n.t('paths_admin.assign.summary_users', { count: this.selectedUsers.length });
       default:
         return '';
     }
@@ -327,7 +341,7 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
           this.loadingPreview = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Failed to generate preview';
+          this.error = err.error?.message || this.i18n.t('paths_admin.enroll.preview_error');
           this.loadingPreview = false;
         }
       });
@@ -355,7 +369,7 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
           this.enrolling = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Enrollment failed';
+          this.error = err.error?.message || this.i18n.t('paths_admin.enroll.enroll_failed');
           this.enrolling = false;
         }
       });
@@ -460,9 +474,10 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
   }
 
   formatDuration(hours: number | null): string {
-    if (!hours) return 'N/A';
-    if (hours < 1) return `${Math.round(hours * 60)} min`;
-    return `${hours} hr${hours > 1 ? 's' : ''}`;
+    if (!hours) return this.i18n.t('paths_admin.na');
+    if (hours < 1) return this.i18n.t('paths.minutes', { count: Math.round(hours * 60) });
+    if (hours === 1) return this.i18n.t('paths.one_hour');
+    return this.i18n.t('paths.hours', { count: hours });
   }
 
   getMinDueDate(): string {

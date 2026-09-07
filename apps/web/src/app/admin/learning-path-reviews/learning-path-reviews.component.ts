@@ -10,11 +10,13 @@ import {
   RatingSummary
 } from '../../interfaces/learning-path.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learning-path-reviews',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe],
   templateUrl: `learning-path-reviews.component.html`,
   styleUrls: [`learning-path-reviews.component.scss`]
 })
@@ -40,7 +42,8 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private learningPathService: LearningPathService
+    private learningPathService: LearningPathService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -126,7 +129,7 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
   rejectReview(review: LearningPathReview): void {
     // Required, not optional: "rejected, no reason given" is the message the
     // learner who wrote it would receive.
-    const reason = prompt('Why is this review being rejected?')?.trim();
+    const reason = prompt(this.i18n.t('paths_admin.reviews_reject_prompt'))?.trim();
 
     if (!reason) {
       return;

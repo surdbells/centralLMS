@@ -9,6 +9,7 @@ import { RolesService } from '../../../../services/roles.service';
 import { LookupsService } from '../../../../services/lookups.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../../../translate.pipe';
 
 /* The shapes this screen's template already reads. */
 
@@ -45,7 +46,7 @@ export interface UserFormData {
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
     <main class="main px-lg-6">
@@ -53,7 +54,7 @@ export interface UserFormData {
     <div class="user-form">
       <div class="d-flex align-items-center gap-3 mb-4">
         <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-        <h4 class="fw-bold mb-0"><i class="bi me-2" [class]="isEdit ? 'bi-pencil' : 'bi-person-plus'"></i>{{ isEdit ? 'Edit User' : 'Create User' }}</h4>
+        <h4 class="fw-bold mb-0"><i class="bi me-2" [class]="isEdit ? 'bi-pencil' : 'bi-person-plus'"></i>{{ isEdit ? ('admin.user_form.edit_title' | translate) : ('admin.user_form.create_title' | translate) }}</h4>
       </div>
 
       <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
@@ -64,47 +65,47 @@ export interface UserFormData {
         <!-- Personal Info -->
         <div class="col-md-6">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>Personal Information</div>
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>{{ 'admin.user_form.personal_info' | translate }}</div>
             <div class="card-body">
               <div class="mb-3">
-                <label class="form-label small fw-semibold">First Name <span class="text-danger">*</span></label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.first_name' | translate }} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="form.first_name" name="first_name" required>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Last Name</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.last_name' | translate }}</label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="form.last_name" name="last_name">
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Email <span class="text-danger">*</span></label>
+                <label class="form-label small fw-semibold">{{ 'admin.users.col_email' | translate }} <span class="text-danger">*</span></label>
                 <input type="email" class="form-control form-control-sm" [(ngModel)]="form.email" name="email" required>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Phone</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.phone' | translate }}</label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="form.phone" name="phone">
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Staff ID</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.staff_id' | translate }}</label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="form.staffId" name="staffId">
               </div>
               <div class="row g-2">
                 <div class="col-6 mb-3">
-                  <label class="form-label small fw-semibold">Language</label>
+                  <label class="form-label small fw-semibold">{{ 'common.language' | translate }}</label>
                   <select class="form-select form-select-sm" [(ngModel)]="form.language" name="language">
-                    <option value="en">English</option><option value="fr">French</option><option value="ar">Arabic</option>
+                    <option value="en">{{ 'admin.user_form.lang_en' | translate }}</option><option value="fr">{{ 'admin.user_form.lang_fr' | translate }}</option><option value="ar">{{ 'admin.user_form.lang_ar' | translate }}</option>
                   </select>
                 </div>
                 <div class="col-6 mb-3">
-                  <label class="form-label small fw-semibold">Learning Mode</label>
+                  <label class="form-label small fw-semibold">{{ 'admin.user_form.learning_mode' | translate }}</label>
                   <select class="form-select form-select-sm" [(ngModel)]="form.preferred_learning_mode" name="learning_mode">
-                    <option value="video">Video</option><option value="audio">Audio</option>
-                    <option value="reading">Reading</option><option value="interactive">Interactive</option>
+                    <option value="video">{{ 'admin.user_form.mode_video' | translate }}</option><option value="audio">{{ 'admin.user_form.mode_audio' | translate }}</option>
+                    <option value="reading">{{ 'admin.user_form.mode_reading' | translate }}</option><option value="interactive">{{ 'admin.user_form.mode_interactive' | translate }}</option>
                   </select>
                 </div>
               </div>
               <div class="mb-3" *ngIf="!isEdit">
-                <label class="form-label small fw-semibold">Temporary Password</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.temp_password' | translate }}</label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="form.password" name="password"
-                       placeholder="Leave blank to auto-generate">
+                       placeholder="{{ 'admin.user_form.temp_password_placeholder' | translate }}">
               </div>
             </div>
           </div>
@@ -113,32 +114,32 @@ export interface UserFormData {
         <!-- Org Info -->
         <div class="col-md-6">
           <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>Organization</div>
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>{{ 'admin.user_form.organization' | translate }}</div>
             <div class="card-body">
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Department</label>
+                <label class="form-label small fw-semibold">{{ 'admin.enrollees.col_department' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="form.department_id" name="department_id">
                   <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Branch</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.branch' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="form.branch_id" name="branch_id">
                   <option *ngFor="let b of branches" [ngValue]="b.branch_id">{{ b.branch_name }}</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Team</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.team' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="form.team_id" name="team_id">
                   <option *ngFor="let t of teams" [ngValue]="t.team_id">{{ t.team_name }}</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Hire Date</label>
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.hire_date' | translate }}</label>
                 <input type="date" class="form-control form-control-sm" [(ngModel)]="form.hire_date" name="hire_date">
               </div>
               <div class="mb-3">
-                <label class="form-label small fw-semibold">Roles</label>
+                <label class="form-label small fw-semibold">{{ 'admin.users.roles' | translate }}</label>
                 <div class="border rounded p-2" style="max-height:180px; overflow-y:auto">
                   <div *ngFor="let r of roles" class="form-check">
                     <input type="checkbox" class="form-check-input" [id]="'role_'+r.role_id"
@@ -151,7 +152,7 @@ export interface UserFormData {
               </div>
               <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="isActive" [(ngModel)]="isActive" name="is_active">
-                <label class="form-check-label small" for="isActive">Active account</label>
+                <label class="form-check-label small" for="isActive">{{ 'admin.user_form.active_account' | translate }}</label>
               </div>
             </div>
           </div>
@@ -161,14 +162,14 @@ export interface UserFormData {
             <button type="submit" class="btn btn-primary" [disabled]="saving || !form.first_name || !form.email">
               <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
               <i *ngIf="!saving" class="bi me-1" [class]="isEdit ? 'bi-check-lg' : 'bi-plus-lg'"></i>
-              {{ isEdit ? 'Save Changes' : 'Create User' }}
+              {{ isEdit ? ('admin.user_form.save_changes' | translate) : ('admin.user_form.create_title' | translate) }}
             </button>
-            <a routerLink="/admin/users" class="btn btn-secondary">Cancel</a>
+            <a routerLink="/admin/users" class="btn btn-secondary">{{ 'common.cancel' | translate }}</a>
           </div>
 
           <!-- Temp password result -->
           <div class="alert alert-success mt-3" *ngIf="createdPassword">
-            <strong>User created!</strong> Temporary password: <code class="user-select-all">{{ createdPassword }}</code>
+            <strong>{{ 'admin.user_form.user_created' | translate }}</strong> {{ 'admin.user_form.temp_password_result' | translate }} <code class="user-select-all">{{ createdPassword }}</code>
           </div>
         </div>
       </form>
