@@ -10,6 +10,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /** One toolbar control. */
 interface Tool {
@@ -33,7 +35,7 @@ interface Tool {
 @Component({
   selector: 'app-rich-html-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './rich-html-editor.component.html',
   styleUrl: './rich-html-editor.component.scss',
   providers: [
@@ -46,8 +48,9 @@ interface Tool {
 })
 export class RichHtmlEditorComponent implements ControlValueAccessor {
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly i18n = inject(I18nService);
 
-  @Input() placeholder = 'Write your message…';
+  @Input() placeholder = '';
   @Input() minHeight = 220;
 
   @ViewChild('surface') private surface?: ElementRef<HTMLDivElement>;
@@ -59,26 +62,26 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
   disabled = false;
 
   readonly tools: Array<Tool | 'sep'> = [
-    { cmd: 'bold', icon: 'bi-type-bold', title: 'Bold' },
-    { cmd: 'italic', icon: 'bi-type-italic', title: 'Italic' },
-    { cmd: 'underline', icon: 'bi-type-underline', title: 'Underline' },
-    { cmd: 'strikeThrough', icon: 'bi-type-strikethrough', title: 'Strikethrough' },
+    { cmd: 'bold', icon: 'bi-type-bold', title: 'shared.editor.bold' },
+    { cmd: 'italic', icon: 'bi-type-italic', title: 'shared.editor.italic' },
+    { cmd: 'underline', icon: 'bi-type-underline', title: 'shared.editor.underline' },
+    { cmd: 'strikeThrough', icon: 'bi-type-strikethrough', title: 'shared.editor.strikethrough' },
     'sep',
-    { cmd: 'formatBlock', value: 'H1', icon: 'bi-type-h1', title: 'Heading 1' },
-    { cmd: 'formatBlock', value: 'H2', icon: 'bi-type-h2', title: 'Heading 2' },
-    { cmd: 'formatBlock', value: 'P', icon: 'bi-paragraph', title: 'Paragraph' },
+    { cmd: 'formatBlock', value: 'H1', icon: 'bi-type-h1', title: 'shared.editor.heading1' },
+    { cmd: 'formatBlock', value: 'H2', icon: 'bi-type-h2', title: 'shared.editor.heading2' },
+    { cmd: 'formatBlock', value: 'P', icon: 'bi-paragraph', title: 'shared.editor.paragraph' },
     'sep',
-    { cmd: 'insertUnorderedList', icon: 'bi-list-ul', title: 'Bulleted list' },
-    { cmd: 'insertOrderedList', icon: 'bi-list-ol', title: 'Numbered list' },
-    { cmd: 'blockquote', icon: 'bi-quote', title: 'Quote' },
+    { cmd: 'insertUnorderedList', icon: 'bi-list-ul', title: 'shared.editor.bullet_list' },
+    { cmd: 'insertOrderedList', icon: 'bi-list-ol', title: 'shared.editor.numbered_list' },
+    { cmd: 'blockquote', icon: 'bi-quote', title: 'shared.editor.quote' },
     'sep',
-    { cmd: 'justifyLeft', icon: 'bi-text-left', title: 'Align left' },
-    { cmd: 'justifyCenter', icon: 'bi-text-center', title: 'Align centre' },
-    { cmd: 'justifyRight', icon: 'bi-text-right', title: 'Align right' },
+    { cmd: 'justifyLeft', icon: 'bi-text-left', title: 'shared.editor.align_left' },
+    { cmd: 'justifyCenter', icon: 'bi-text-center', title: 'shared.editor.align_center' },
+    { cmd: 'justifyRight', icon: 'bi-text-right', title: 'shared.editor.align_right' },
     'sep',
-    { cmd: 'createLink', icon: 'bi-link-45deg', title: 'Insert link' },
-    { cmd: 'unlink', icon: 'bi-link', title: 'Remove link' },
-    { cmd: 'removeFormat', icon: 'bi-eraser', title: 'Clear formatting' },
+    { cmd: 'createLink', icon: 'bi-link-45deg', title: 'shared.editor.insert_link' },
+    { cmd: 'unlink', icon: 'bi-link', title: 'shared.editor.remove_link' },
+    { cmd: 'removeFormat', icon: 'bi-eraser', title: 'shared.editor.clear_formatting' },
   ];
 
   /** The last selection made inside the surface, so a toolbar click that
@@ -147,7 +150,7 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
     this.restoreSelection();
 
     if (tool.cmd === 'createLink') {
-      const url = window.prompt('Link address', 'https://');
+      const url = window.prompt(this.i18n.t('shared.editor.prompt_link_address'), 'https://');
       if (url) {
         document.execCommand('createLink', false, url);
       }

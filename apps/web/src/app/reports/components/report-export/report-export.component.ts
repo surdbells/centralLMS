@@ -12,23 +12,25 @@ import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReportService } from '../../services/report.service';
 import { ReportFilters } from '../../models/report.models';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 declare var XLSX: any;
 
 @Component({
   selector: 'app-report-export',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <div class="dropdown d-inline-block">
       <button class="btn btn-sm dropdown-toggle" [class]="btnClass" data-bs-toggle="dropdown" [disabled]="exporting">
         <i class="bi bi-download me-1" *ngIf="!exporting"></i>
         <span class="spinner-border spinner-border-sm me-1" *ngIf="exporting"></span>
-        {{ label }}
+        {{ label || ('reports.export' | translate) }}
       </button>
       <ul class="dropdown-menu dropdown-menu-end">
         <li><a class="dropdown-item" role="button" (click)="doExport('csv')"><i class="bi bi-filetype-csv me-2 text-success"></i>CSV</a></li>
-        <li><a class="dropdown-item" role="button" (click)="doExport('xlsx')"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+        <li><a class="dropdown-item" role="button" (click)="doExport('xlsx')"><i class="bi bi-file-earmark-excel me-2 text-success"></i>{{ 'reports.export_excel_xlsx' | translate }}</a></li>
         <li><a class="dropdown-item" role="button" (click)="doExport('pdf')"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF</a></li>
       </ul>
     </div>
@@ -44,12 +46,12 @@ export class ReportExportComponent {
   @Input() title = '';
 
   /** Styling */
-  @Input() label = 'Export';
+  @Input() label = '';
   @Input() btnClass = 'btn-success';
 
   exporting = false;
 
-  constructor(private reportService: ReportService) {}
+  constructor(private reportService: ReportService, private i18n: I18nService) {}
 
   doExport(format: 'csv' | 'xlsx' | 'pdf'): void {
     if (this.data && this.data.length) {
@@ -75,8 +77,8 @@ export class ReportExportComponent {
           blob.text().then(t => {
             try {
               const err = JSON.parse(t);
-              alert(err.message || 'Export failed');
-            } catch { alert('Export failed'); }
+              alert(err.message || this.i18n.t('reports.export_failed'));
+            } catch { alert(this.i18n.t('reports.export_failed')); }
           });
           this.exporting = false;
           return;
@@ -84,7 +86,7 @@ export class ReportExportComponent {
         this.downloadBlob(blob, `${this.reportKey}_${this.datestamp()}.${ext}`);
         this.exporting = false;
       },
-      error: () => { this.exporting = false; alert('Export failed. Please try CSV format.'); }
+      error: () => { this.exporting = false; alert(this.i18n.t('reports.export_failed_csv')); }
     });
   }
 
@@ -162,7 +164,7 @@ export class ReportExportComponent {
       this.downloadBlob(blob, `${filename}_${this.datestamp()}.xlsx`);
     } catch (e) {
       console.error('XLSX export failed, falling back to CSV:', e);
-      alert('Excel export failed. Downloading as CSV instead.');
+      alert(this.i18n.t('reports.excel_export_failed'));
       this.exportClientCsv(filename);
     }
     this.exporting = false;
@@ -238,7 +240,7 @@ export class ReportExportComponent {
       doc.save(`${filename}_${this.datestamp()}.pdf`);
     } catch (e) {
       console.error('PDF export failed, falling back to CSV:', e);
-      alert('PDF export failed. Downloading as CSV instead.');
+      alert(this.i18n.t('reports.pdf_export_failed'));
       this.exportClientCsv(filename);
     }
     this.exporting = false;

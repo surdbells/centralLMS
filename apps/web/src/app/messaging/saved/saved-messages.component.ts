@@ -7,11 +7,13 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MessagingService, SavedMessage } from '../messaging.service';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-saved-messages',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
   template: `
     <app-top></app-top>
 
@@ -21,12 +23,12 @@ import { TopComponent } from '../../partials/top/top.component';
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h1 class="page-title mb-1">
-              <i class="bi bi-bookmark-star me-2"></i>Saved Messages
+              <i class="bi bi-bookmark-star me-2"></i>{{ 'messaging.saved_messages' | translate }}
             </h1>
-            <p class="text-muted mb-0">{{ savedMessages.length }} saved messages</p>
+            <p class="text-muted mb-0">{{ 'messaging.saved_count' | translate:{ count: savedMessages.length } }}</p>
           </div>
           <div class="d-flex gap-2">
-            <input type="text" class="form-control" placeholder="Search saved messages..."
+            <input type="text" class="form-control" placeholder="{{ 'messaging.search_saved' | translate }}"
                    [(ngModel)]="searchTerm" (input)="filterMessages()">
           </div>
         </div>
@@ -41,8 +43,8 @@ import { TopComponent } from '../../partials/top/top.component';
                 <div class="saved-header">
                   <div class="sender-info">
                     <strong>{{ saved.sender_first_name }} {{ saved.sender_last_name }}</strong>
-                    <span class="text-muted mx-2">in</span>
-                    <span class="conversation-name">{{ saved.conversation_name || 'Direct Message' }}</span>
+                    <span class="text-muted mx-2">{{ 'messaging.in_word' | translate }}</span>
+                    <span class="conversation-name">{{ saved.conversation_name || ('messaging.direct_message' | translate) }}</span>
                   </div>
                   <span class="saved-date text-muted small">
                     {{ formatDate(saved.message_created_at) }}
@@ -55,13 +57,13 @@ import { TopComponent } from '../../partials/top/top.component';
                 </div>
               </div>
               <div class="saved-actions">
-                <button class="btn btn-sm btn-primary" (click)="goToMessage(saved)" title="Go to message">
+                <button class="btn btn-sm btn-primary" (click)="goToMessage(saved)" [title]="'messaging.go_to_message' | translate">
                   <i class="bi bi-arrow-right"></i>
                 </button>
-                <button class="btn btn-sm btn-secondary" (click)="editNote(saved)" title="Edit note">
+                <button class="btn btn-sm btn-secondary" (click)="editNote(saved)" [title]="'messaging.edit_note' | translate">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger" (click)="unsave(saved)" title="Remove">
+                <button class="btn btn-sm btn-outline-danger" (click)="unsave(saved)" [title]="'common.remove' | translate">
                   <i class="bi bi-bookmark-x"></i>
                 </button>
               </div>
@@ -72,7 +74,7 @@ import { TopComponent } from '../../partials/top/top.component';
         <!-- Load More -->
         <div class="card-footer text-center" *ngIf="hasMore">
           <button class="btn btn-link" (click)="loadMore()" [disabled]="loading">
-            {{ loading ? 'Loading...' : 'Load More' }}
+            {{ (loading ? 'common.loading' : 'messaging.load_more') | translate }}
           </button>
         </div>
       </div>
@@ -81,9 +83,9 @@ import { TopComponent } from '../../partials/top/top.component';
         <div class="empty-state card">
           <div class="card-body text-center py-5">
             <i class="bi bi-bookmark display-4 text-muted"></i>
-            <h5 class="mt-3">No Saved Messages</h5>
+            <h5 class="mt-3">{{ 'messaging.no_saved' | translate }}</h5>
             <p class="text-muted">
-              {{ searchTerm ? 'No messages match your search.' : 'Save important messages to find them easily later.' }}
+              {{ (searchTerm ? 'messaging.no_saved_search' : 'messaging.no_saved_hint') | translate }}
             </p>
           </div>
         </div>
@@ -95,17 +97,17 @@ import { TopComponent } from '../../partials/top/top.component';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">
-                <i class="bi bi-sticky me-2"></i>Edit Note
+                <i class="bi bi-sticky me-2"></i>{{ 'messaging.edit_note' | translate }}
               </h5>
               <button type="button" class="btn-close" (click)="closeNoteModal()"></button>
             </div>
             <div class="modal-body">
               <textarea class="form-control" rows="4" [(ngModel)]="editingNote"
-                        placeholder="Add a personal note about this saved message..."></textarea>
+                        placeholder="{{ 'messaging.note_ph' | translate }}"></textarea>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeNoteModal()">Cancel</button>
-              <button class="btn btn-primary" (click)="saveNote()">Save Note</button>
+              <button class="btn btn-secondary" (click)="closeNoteModal()">{{ 'common.cancel' | translate }}</button>
+              <button class="btn btn-primary" (click)="saveNote()">{{ 'messaging.save_note' | translate }}</button>
             </div>
           </div>
         </div>
@@ -201,7 +203,7 @@ export class SavedMessagesComponent implements OnInit, OnDestroy {
   editingSaved: SavedMessage | null = null;
   editingNote = '';
 
-  constructor(private messagingService: MessagingService) {}
+  constructor(private messagingService: MessagingService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.loadSavedMessages();
@@ -280,7 +282,7 @@ export class SavedMessagesComponent implements OnInit, OnDestroy {
   }
 
   unsave(saved: SavedMessage): void {
-    if (!confirm('Remove this saved message?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_remove_saved'))) return;
 
     this.messagingService.unsaveMessage(saved.message_id)
       .pipe(takeUntil(this.destroy$))

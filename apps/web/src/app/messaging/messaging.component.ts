@@ -18,11 +18,13 @@ import {
 import {AdmintopComponent} from '../partials/top/admintop/admintop.component';
 import {FileUploadService} from './file-upload.service';
 import {TopComponent} from '../partials/top/top.component';
+import {TranslatePipe} from '../translate.pipe';
+import {I18nService} from '../i18n.service';
 
 @Component({
   selector: 'app-messaging',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TopComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TopComponent, TranslatePipe],
   templateUrl: './messaging.component.html',
   styleUrls: ['./messaging.component.scss']
 })
@@ -151,7 +153,8 @@ export class MessagingComponent implements OnInit, OnDestroy {
 
   constructor(
     public messagingService: MessagingService,
-    private fileUploadService: FileUploadService
+    private fileUploadService: FileUploadService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -479,7 +482,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
           },
           error: (err) => {
             console.error('Error uploading files:', err);
-            alert('Failed to upload attachments. Please try again.');
+            alert(this.i18n.t('messaging.upload_failed'));
           }
         });
     } else {
@@ -505,7 +508,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
         },
         error: err => {
           console.error('Error sending message:', err);
-          alert('Failed to send message. Please try again.');
+          alert(this.i18n.t('messaging.send_failed'));
         }
       });
   }
@@ -593,7 +596,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
 
   // Delete
   deleteMessage(message: Message, forEveryone: boolean = false): void {
-    if (!confirm('Are you sure you want to delete this message?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_delete_message'))) return;
 
     this.messagingService.deleteMessage(message.message_id, forEveryone)
       .pipe(takeUntil(this.destroy$))
@@ -716,7 +719,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
 
   // Report
   reportMessage(message: Message): void {
-    const reason = prompt('Please select a reason:\n1. Spam\n2. Harassment\n3. Inappropriate\n4. Other');
+    const reason = prompt(this.i18n.t('messaging.report_reason_prompt'));
     if (!reason) return;
 
     const reasons: Record<string, string> = { '1': 'spam', '2': 'harassment', '3': 'inappropriate', '4': 'other' };
@@ -726,7 +729,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert('Message reported. Thank you for helping keep our community safe.');
+          alert(this.i18n.t('messaging.report_thanks'));
         }
       });
     this.closeContextMenu();
@@ -830,7 +833,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
   createConversation(): void {
     if (this.newConversationType === 'direct') {
       if (this.selectedUsers.length !== 1) {
-        alert('Please select one user for direct message');
+        alert(this.i18n.t('messaging.select_one_user'));
         return;
       }
       this.messagingService.startDirectMessage(this.selectedUsers[0].user_id)
@@ -846,7 +849,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
         });
     } else {
       if (!this.newConversationName.trim()) {
-        alert('Please enter a name for the group/channel');
+        alert(this.i18n.t('messaging.enter_group_name'));
         return;
       }
       this.messagingService.createConversation({
@@ -904,7 +907,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
 
   archiveConversation(): void {
     if (!this.activeConversation) return;
-    if (!confirm('Archive this conversation?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_archive'))) return;
 
     this.messagingService.archiveConversation(this.activeConversation.conversation_id)
       .pipe(takeUntil(this.destroy$))
@@ -920,7 +923,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
 
   leaveConversation(): void {
     if (!this.activeConversation) return;
-    if (!confirm('Leave this conversation?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_leave'))) return;
 
     this.messagingService.leaveConversation(this.activeConversation.conversation_id)
       .pipe(takeUntil(this.destroy$))
@@ -1083,12 +1086,12 @@ export class MessagingComponent implements OnInit, OnDestroy {
   getTypingText(): string {
     if (this.typingUsers.length === 0) return '';
     if (this.typingUsers.length === 1) {
-      return `${this.typingUsers[0].first_name} is typing...`;
+      return this.i18n.t('messaging.typing_one', { name: this.typingUsers[0].first_name });
     }
     if (this.typingUsers.length === 2) {
-      return `${this.typingUsers[0].first_name} and ${this.typingUsers[1].first_name} are typing...`;
+      return this.i18n.t('messaging.typing_two', { name1: this.typingUsers[0].first_name, name2: this.typingUsers[1].first_name });
     }
-    return `${this.typingUsers.length} people are typing...`;
+    return this.i18n.t('messaging.typing_many', { count: this.typingUsers.length });
   }
 
   shouldShowDateDivider(index: number): boolean {
@@ -1104,8 +1107,8 @@ export class MessagingComponent implements OnInit, OnDestroy {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) return 'Today';
-    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    if (date.toDateString() === today.toDateString()) return this.i18n.t('messaging.today');
+    if (date.toDateString() === yesterday.toDateString()) return this.i18n.t('messaging.yesterday');
     return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
@@ -1285,7 +1288,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
   // Remove participant (uses removeParticipant)
   removeMember(participant: Participant): void {
     if (!this.activeConversation) return;
-    if (!confirm(`Remove ${participant.first_name} ${participant.last_name} from this conversation?`)) return;
+    if (!confirm(this.i18n.t('messaging.confirm_remove_member', { name: `${participant.first_name} ${participant.last_name}` }))) return;
 
     this.messagingService.removeParticipant(this.activeConversation.conversation_id, participant.user_id)
       .pipe(takeUntil(this.destroy$))

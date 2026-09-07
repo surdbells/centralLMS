@@ -12,6 +12,8 @@ import { ReportTableComponent, type TableColumn } from '../report-table/report-t
 import { ReportFiltersComponent } from '../report-filters/report-filters.component';
 import { ReportExportComponent } from '../report-export/report-export.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
+import {TranslatePipe} from '../../../translate.pipe';
+import {I18nService} from '../../../i18n.service';
 
 // ── Drilldown column definitions ──
 // Maps column names → the status filter to send to drilldown_learner_list
@@ -77,7 +79,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
 @Component({
   selector: 'app-report-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, ReportFiltersComponent, ReportExportComponent, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, ReportFiltersComponent, ReportExportComponent, AdmintopComponent, TranslatePipe],
   providers: [DecimalPipe],
   template: `
     <app-admintop></app-admintop>
@@ -87,7 +89,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
       <!-- Breadcrumb -->
       <nav class="mb-3">
         <ol class="breadcrumb small mb-0">
-          <li class="breadcrumb-item"><a routerLink="/admin/reports">Reports</a></li>
+          <li class="breadcrumb-item"><a routerLink="/admin/reports">{{ 'nav.reports' | translate }}</a></li>
           <li class="breadcrumb-item"><a routerLink="/admin/reports/catalog"
                                          [queryParams]="{category: reportItem?.category}">
             {{ formatKey(reportItem?.category || '') }}
@@ -99,16 +101,16 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
       <!-- Header -->
       <div class="d-flex justify-content-between align-items-start mb-4">
         <div>
-          <h4 class="fw-bold mb-1">{{ report?.report_name || reportItem?.name || 'Loading...' }}</h4>
+          <h4 class="fw-bold mb-1">{{ report?.report_name || reportItem?.name || ('common.loading' | translate) }}</h4>
           <p class="text-muted mb-0 small">{{ report?.description || reportItem?.description }}</p>
         </div>
         <div class="d-flex gap-2">
           <app-report-export [reportKey]="reportKey" [filters]="currentFilters"
                              *ngIf="reportItem?.exportable"></app-report-export>
-          <button class="btn btn-sm btn-primary" (click)="saveReport()" title="Save">
-            <i class="bi bi-bookmark me-1"></i>Save
+          <button class="btn btn-sm btn-primary" (click)="saveReport()" [title]="'common.save' | translate">
+            <i class="bi bi-bookmark me-1"></i>{{ 'common.save' | translate }}
           </button>
-          <button class="btn btn-sm btn-secondary" (click)="refreshReport()" title="Refresh">
+          <button class="btn btn-sm btn-secondary" (click)="refreshReport()" [title]="'common.refresh' | translate">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
         </div>
@@ -120,14 +122,14 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
           <div class="row g-3 align-items-end">
             <ng-container *ngIf="paramPickerType === 'learner'">
               <div class="col-md-5">
-                <label class="form-label small fw-semibold">Search Learner</label>
-                <input type="text" class="form-control form-control-sm" placeholder="Type name or email..."
+                <label class="form-label small fw-semibold">{{ 'reports.search_learner' | translate }}</label>
+                <input type="text" class="form-control form-control-sm" placeholder="{{ 'reports.type_name_email' | translate }}"
                        [(ngModel)]="pickerSearch" (input)="onPickerSearch()">
               </div>
               <div class="col-md-5" *ngIf="pickerOptions.length">
-                <label class="form-label small fw-semibold">Select Learner</label>
+                <label class="form-label small fw-semibold">{{ 'reports.select_learner' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
-                  <option [ngValue]="null">Choose learner...</option>
+                  <option [ngValue]="null">{{ 'reports.choose_learner' | translate }}</option>
                   <option *ngFor="let u of pickerOptions" [ngValue]="u.id || u.user_id">
                     {{ u.first_name || '' }} {{ u.last_name || '' }} ({{ u.email }})
                   </option>
@@ -136,25 +138,25 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
             </ng-container>
             <ng-container *ngIf="paramPickerType === 'assessment'">
               <div class="col-md-8">
-                <label class="form-label small fw-semibold">Select Assessment</label>
+                <label class="form-label small fw-semibold">{{ 'reports.select_assessment' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
-                  <option [ngValue]="null">Choose assessment...</option>
+                  <option [ngValue]="null">{{ 'reports.choose_assessment' | translate }}</option>
                   <option *ngFor="let a of pickerOptions" [ngValue]="a.id || a.assessment_id">{{ a.title || a.name }}</option>
                 </select>
               </div>
             </ng-container>
             <ng-container *ngIf="paramPickerType === 'course'">
               <div class="col-md-8">
-                <label class="form-label small fw-semibold">Select Course</label>
+                <label class="form-label small fw-semibold">{{ 'reports.select_course' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
-                  <option [ngValue]="null">Choose course...</option>
+                  <option [ngValue]="null">{{ 'reports.choose_course' | translate }}</option>
                   <option *ngFor="let c of pickerOptions" [ngValue]="c.id || c.course_id">{{ c.title }}</option>
                 </select>
               </div>
             </ng-container>
             <div class="col-md-2">
               <button class="btn btn-sm btn-primary w-100" (click)="loadReport()" [disabled]="!pickerSelectedId">
-                <i class="bi bi-play-fill me-1"></i>Run
+                <i class="bi bi-play-fill me-1"></i>{{ 'reports.run' | translate }}
               </button>
             </div>
           </div>
@@ -168,13 +170,13 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
       <!-- Loading -->
       <div *ngIf="loading" class="text-center py-5">
         <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Generating report...</p>
+        <p class="mt-2 text-muted">{{ 'reports.generating' | translate }}</p>
       </div>
 
       <!-- Error -->
       <div *ngIf="error" class="alert alert-danger">
         <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
-        <button class="btn btn-sm btn-outline-danger ms-2" (click)="refreshReport()">Retry</button>
+        <button class="btn btn-sm btn-outline-danger ms-2" (click)="refreshReport()">{{ 'common.retry' | translate }}</button>
       </div>
 
       <!-- ═══════ REPORT CONTENT ═══════ -->
@@ -195,12 +197,12 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
         <!-- User Profile -->
         <div class="card border-0 shadow-sm mb-4" *ngIf="report.user">
           <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-person-circle me-2"></i>Learner Profile</h6>
+            <h6 class="fw-semibold mb-3"><i class="bi bi-person-circle me-2"></i>{{ 'reports.learner_profile' | translate }}</h6>
             <div class="row g-3">
-              <div class="col-md-3"><span class="text-muted small d-block">Name</span><strong>{{ report.user.full_name }}</strong></div>
-              <div class="col-md-3"><span class="text-muted small d-block">Email</span><strong>{{ report.user.email }}</strong></div>
-              <div class="col-md-3"><span class="text-muted small d-block">Department</span><strong>{{ report.user.department }}</strong></div>
-              <div class="col-md-3"><span class="text-muted small d-block">Job Title</span><strong>{{ report.user.job_title }}</strong></div>
+              <div class="col-md-3"><span class="text-muted small d-block">{{ 'common.name' | translate }}</span><strong>{{ report.user.full_name }}</strong></div>
+              <div class="col-md-3"><span class="text-muted small d-block">{{ 'reports.email' | translate }}</span><strong>{{ report.user.email }}</strong></div>
+              <div class="col-md-3"><span class="text-muted small d-block">{{ 'reports.department' | translate }}</span><strong>{{ report.user.department }}</strong></div>
+              <div class="col-md-3"><span class="text-muted small d-block">{{ 'reports.job_title' | translate }}</span><strong>{{ report.user.job_title }}</strong></div>
             </div>
           </div>
         </div>
@@ -243,7 +245,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
               <div class="spinner-border spinner-border-sm text-primary" *ngIf="drilldown.loading"></div>
               <app-report-export *ngIf="drilldown.data.length"
                                  [data]="drilldown.data" [title]="drilldown.title"
-                                 label="Export" btnClass="btn-primary"></app-report-export>
+                                 btnClass="btn-primary"></app-report-export>
               <button class="btn btn-sm btn-secondary" (click)="closeDrilldown()">
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -254,14 +256,14 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
                               [searchable]="true" [sortable]="true" [pageSize]="10"></app-report-table>
           </div>
           <div class="card-body text-center text-muted py-4" *ngIf="!drilldown.data.length && !drilldown.loading">
-            <i class="bi bi-inbox d-block fs-3 mb-2"></i>No learners found for this filter.
+            <i class="bi bi-inbox d-block fs-3 mb-2"></i>{{ 'reports.no_learners_found' | translate }}
           </div>
         </div>
 
         <!-- Badges -->
         <div class="card border-0 shadow-sm mb-4" *ngIf="report.badges?.length">
           <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-award me-2"></i>Badges ({{ report.badges.length }})</h6>
+            <h6 class="fw-semibold mb-3"><i class="bi bi-award me-2"></i>{{ 'reports.badges_count' | translate:{ count: report.badges.length } }}</h6>
             <div class="d-flex flex-wrap gap-2">
               <span *ngFor="let b of report.badges" class="badge bg-warning-subtle text-warning px-3 py-2" style="font-size:.8rem">
                 <i class="bi bi-award me-1"></i>{{ b.badge_name }}
@@ -273,7 +275,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
         <!-- Certificates -->
         <div class="card border-0 shadow-sm mb-4" *ngIf="report.certificates?.length">
           <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-patch-check me-2"></i>Certificates</h6>
+            <h6 class="fw-semibold mb-3"><i class="bi bi-patch-check me-2"></i>{{ 'report.tab_certificates' | translate }}</h6>
             <app-report-table [data]="report.certificates" [title]="''" [sortable]="true"></app-report-table>
           </div>
         </div>
@@ -281,12 +283,12 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
         <!-- Risk Breakdown -->
         <div class="card border-0 shadow-sm mb-4" *ngIf="report.risk_breakdown">
           <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-shield-exclamation me-2"></i>Risk Breakdown</h6>
+            <h6 class="fw-semibold mb-3"><i class="bi bi-shield-exclamation me-2"></i>{{ 'reports.risk_breakdown' | translate }}</h6>
             <div class="d-flex gap-3 flex-wrap">
-              <span class="badge bg-danger px-3 py-2">Critical: {{ report.risk_breakdown.critical }}</span>
-              <span class="badge bg-warning px-3 py-2">High: {{ report.risk_breakdown.high }}</span>
-              <span class="badge bg-info px-3 py-2">Medium: {{ report.risk_breakdown.medium }}</span>
-              <span class="badge bg-secondary px-3 py-2">Low: {{ report.risk_breakdown.low }}</span>
+              <span class="badge bg-danger px-3 py-2">{{ 'reports.risk_critical' | translate }} {{ report.risk_breakdown.critical }}</span>
+              <span class="badge bg-warning px-3 py-2">{{ 'reports.risk_high' | translate }} {{ report.risk_breakdown.high }}</span>
+              <span class="badge bg-info px-3 py-2">{{ 'reports.risk_medium' | translate }} {{ report.risk_breakdown.medium }}</span>
+              <span class="badge bg-secondary px-3 py-2">{{ 'reports.risk_low' | translate }} {{ report.risk_breakdown.low }}</span>
             </div>
           </div>
         </div>
@@ -295,7 +297,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
         <div *ngIf="!sections.length && !tableData?.length && !report.user && !summaryCards.length"
              class="text-center py-5 text-muted">
           <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-          <p>No data available for the selected filters.</p>
+          <p>{{ 'reports.no_data_filters' | translate }}</p>
         </div>
       </div>
     </div>
@@ -348,7 +350,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private reportService: ReportService,
-    private dp: DecimalPipe
+    private dp: DecimalPipe,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -395,11 +398,11 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
   refreshReport(): void { this.loadReport(); }
 
   saveReport(): void {
-    const name = prompt('Save report as:', this.report?.report_name || this.reportKey);
+    const name = prompt(this.i18n.t('reports.save_prompt'), this.report?.report_name || this.reportKey);
     if (!name) return;
     this.reportService.saveReport(name, this.reportKey, this.currentFilters).subscribe({
-      next: () => alert('Report saved successfully!'),
-      error: () => alert('Failed to save report.')
+      next: () => alert(this.i18n.t('reports.save_success')),
+      error: () => alert(this.i18n.t('reports.save_failed'))
     });
   }
 
@@ -421,7 +424,7 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (res: any) => { this.report = res; this.processReport(res); this.loading = false; },
-      error: (err) => { this.error = err?.error?.message || err?.message || 'Failed to load report.'; this.loading = false; }
+      error: (err) => { this.error = err?.error?.message || err?.message || this.i18n.t('reports.load_failed'); this.loading = false; }
     });
   }
 
@@ -524,8 +527,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
 
     this.drilldown = {
       visible: true, loading: true,
-      title: `${statusLabel} Learners` + (entityName ? ` - ${entityName}` : ''),
-      subtitle: 'Loading...', data: []
+      title: this.i18n.t('reports.status_learners', { status: statusLabel }) + (entityName ? ` - ${entityName}` : ''),
+      subtitle: this.i18n.t('common.loading'), data: []
     };
 
     this.reportService.drilldown(status, filters).pipe(
@@ -535,12 +538,12 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
         const data = res.data || [];
         this.drilldown.data = data;
         this.drilldown.loading = false;
-        this.drilldown.subtitle = `${data.length} learner${data.length !== 1 ? 's' : ''} found`;
+        this.drilldown.subtitle = this.i18n.t('reports.learners_found', { count: data.length });
         setTimeout(() => document.getElementById('drilldownPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       },
       error: () => {
         this.drilldown.loading = false;
-        this.drilldown.subtitle = 'Failed to load drilldown data. The drilldown endpoint may not be configured.';
+        this.drilldown.subtitle = this.i18n.t('reports.drilldown_failed');
       }
     });
   }
@@ -577,8 +580,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
 
     this.drilldown = {
       visible: true, loading: false,
-      title: `${statusLabel} Learners - ${matchValue}`,
-      subtitle: `${filtered.length} learner${filtered.length !== 1 ? 's' : ''} found`,
+      title: this.i18n.t('reports.status_learners', { status: statusLabel }) + ` - ${matchValue}`,
+      subtitle: this.i18n.t('reports.learners_found', { count: filtered.length }),
       data: filtered
     };
 

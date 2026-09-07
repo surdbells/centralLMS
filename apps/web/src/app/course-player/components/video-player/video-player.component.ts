@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, fromEvent, interval } from 'rxjs';
 import { takeUntil, throttleTime, debounceTime } from 'rxjs/operators';
+import { TranslatePipe } from '../../../translate.pipe';
 
 export interface VideoEvent {
   type: 'play' | 'pause' | 'seek' | 'complete' | 'buffer' | 'error' | 'speed_change' | 'fullscreen' | 'progress';
@@ -23,7 +24,7 @@ export interface VideoProgress {
 @Component({
   selector: 'app-video-player',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="video-player-container"
          [class.fullscreen]="isFullscreen"
@@ -51,7 +52,7 @@ export interface VideoProgress {
       <!-- Loading Spinner -->
       <div class="loading-overlay" *ngIf="isBuffering">
         <div class="spinner-border text-light" role="status">
-          <span class="visually-hidden">Loading...</span>
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
         </div>
       </div>
 
@@ -100,23 +101,23 @@ export interface VideoProgress {
         <div class="controls-row">
           <div class="controls-left">
             <!-- Play/Pause -->
-            <button class="control-btn" (click)="togglePlay()" [title]="isPlaying ? 'Pause (Space)' : 'Play (Space)'">
+            <button class="control-btn" (click)="togglePlay()" [title]="(isPlaying ? 'video.pause' : 'video.play') | translate">
               <i class="bi" [class.bi-play-fill]="!isPlaying" [class.bi-pause-fill]="isPlaying"></i>
             </button>
 
             <!-- Skip Backward -->
-            <button class="control-btn" (click)="skip(-10)" title="Back 10s (←)">
+            <button class="control-btn" (click)="skip(-10)" [title]="'video.back_10s' | translate">
               <i class="bi bi-skip-backward-fill"></i>
             </button>
 
             <!-- Skip Forward -->
-            <button class="control-btn" (click)="skip(10)" title="Forward 10s (→)">
+            <button class="control-btn" (click)="skip(10)" [title]="'video.forward_10s' | translate">
               <i class="bi bi-skip-forward-fill"></i>
             </button>
 
             <!-- Volume -->
             <div class="volume-control">
-              <button class="control-btn" (click)="toggleMute()" [title]="isMuted ? 'Unmute (M)' : 'Mute (M)'">
+              <button class="control-btn" (click)="toggleMute()" [title]="(isMuted ? 'video.unmute' : 'video.mute') | translate">
                 <i class="bi"
                    [class.bi-volume-up-fill]="!isMuted && volume > 0.5"
                    [class.bi-volume-down-fill]="!isMuted && volume <= 0.5 && volume > 0"
@@ -154,7 +155,7 @@ export interface VideoProgress {
 
             <!-- Chapters (if available) -->
             <div class="chapters-control dropdown" *ngIf="chapters.length > 0">
-              <button class="control-btn dropdown-toggle" data-bs-toggle="dropdown" title="Chapters">
+              <button class="control-btn dropdown-toggle" data-bs-toggle="dropdown" [title]="'video.chapters' | translate">
                 <i class="bi bi-list-ul"></i>
               </button>
               <ul class="dropdown-menu dropdown-menu-dark">
@@ -168,17 +169,17 @@ export interface VideoProgress {
             </div>
 
             <!-- Bookmark -->
-            <button class="control-btn" (click)="addBookmark()" title="Add Bookmark (B)">
+            <button class="control-btn" (click)="addBookmark()" [title]="'video.add_bookmark' | translate">
               <i class="bi bi-bookmark"></i>
             </button>
 
             <!-- Picture in Picture -->
-            <button class="control-btn" (click)="togglePiP()" title="Picture in Picture" *ngIf="supportsPiP">
+            <button class="control-btn" (click)="togglePiP()" [title]="'video.picture_in_picture' | translate" *ngIf="supportsPiP">
               <i class="bi bi-pip"></i>
             </button>
 
             <!-- Fullscreen -->
-            <button class="control-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? 'Exit Fullscreen (F)' : 'Fullscreen (F)'">
+            <button class="control-btn" (click)="toggleFullscreen()" [title]="(isFullscreen ? 'video.exit_fullscreen' : 'video.fullscreen') | translate">
               <i class="bi" [class.bi-fullscreen]="!isFullscreen" [class.bi-fullscreen-exit]="isFullscreen"></i>
             </button>
           </div>
@@ -188,11 +189,11 @@ export interface VideoProgress {
       <!-- Keyboard Shortcuts Hint -->
       <div class="shortcuts-hint" *ngIf="showShortcutsHint">
         <div class="hint-content">
-          <span><kbd>Space</kbd> Play/Pause</span>
-          <span><kbd>←</kbd><kbd>→</kbd> Seek</span>
-          <span><kbd>↑</kbd><kbd>↓</kbd> Volume</span>
-          <span><kbd>F</kbd> Fullscreen</span>
-          <span><kbd>M</kbd> Mute</span>
+          <span><kbd>Space</kbd> {{ 'video.shortcut_play_pause' | translate }}</span>
+          <span><kbd>←</kbd><kbd>→</kbd> {{ 'video.shortcut_seek' | translate }}</span>
+          <span><kbd>↑</kbd><kbd>↓</kbd> {{ 'video.shortcut_volume' | translate }}</span>
+          <span><kbd>F</kbd> {{ 'video.shortcut_fullscreen' | translate }}</span>
+          <span><kbd>M</kbd> {{ 'video.shortcut_mute' | translate }}</span>
         </div>
       </div>
     </div>

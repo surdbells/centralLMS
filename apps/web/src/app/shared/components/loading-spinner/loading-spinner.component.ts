@@ -1,17 +1,18 @@
 // components/loading-spinner/loading-spinner.component.ts
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../../translate.pipe';
 
 @Component({
   selector: 'app-loading-spinner',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Inline Spinner -->
     <span *ngIf="type === 'inline'" class="spinner-inline">
       <span class="spinner-border" [ngClass]="sizeClass" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </span>
       <span *ngIf="text" class="spinner-text">{{ text }}</span>
     </span>
@@ -20,7 +21,7 @@ import { CommonModule } from '@angular/common';
     <div *ngIf="type === 'block'" class="spinner-block" [style.minHeight.px]="minHeight">
       <div class="spinner-content">
         <div class="spinner-border" [ngClass]="[sizeClass, colorClass]" role="status">
-          <span class="visually-hidden">Loading...</span>
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
         </div>
         <div *ngIf="text" class="spinner-text mt-2">{{ text }}</div>
       </div>
@@ -30,7 +31,7 @@ import { CommonModule } from '@angular/common';
     <div *ngIf="type === 'overlay'" class="spinner-overlay" [class.opaque]="opaque">
       <div class="spinner-content">
         <div class="spinner-border" [ngClass]="[sizeClass, colorClass]" role="status">
-          <span class="visually-hidden">Loading...</span>
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
         </div>
         <div *ngIf="text" class="spinner-text mt-3">{{ text }}</div>
       </div>

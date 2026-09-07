@@ -12,36 +12,38 @@ import {
   QuizQuestion,
   QuizQuestionOption
 } from '../../services/course-player.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 @Component({
   selector: 'app-quiz',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="quiz-container">
       <!-- Loading State -->
       <div class="quiz-loading" *ngIf="loading">
         <div class="spinner-border text-primary" role="status"></div>
-        <p>Loading assessment...</p>
+        <p>{{ 'quiz.loading' | translate }}</p>
       </div>
 
       <!-- Error State -->
       <div class="quiz-error" *ngIf="error">
         <i class="bi bi-exclamation-triangle"></i>
         <p>{{ error }}</p>
-        <button class="btn btn-primary" (click)="loadQuizData()">Try Again</button>
+        <button class="btn btn-primary" (click)="loadQuizData()">{{ 'common.try_again' | translate }}</button>
       </div>
 
       <!-- Cannot Attempt State -->
       <div class="quiz-locked" *ngIf="!loading && !error && quizData && !quizData.can_attempt">
         <i class="bi bi-lock"></i>
-        <h4>Maximum Attempts Reached</h4>
-        <p>You have used all {{ quizData.assessment.max_attempts }} attempts for this assessment.</p>
+        <h4>{{ 'quiz.max_attempts_reached' | translate }}</h4>
+        <p>{{ 'quiz.max_attempts_message' | translate:{ count: quizData.assessment.max_attempts } }}</p>
         <div class="best-score">
-          <span>Best Score:</span>
+          <span>{{ 'quiz.best_score' | translate }}</span>
           <strong>{{ quizData.best_score }}%</strong>
         </div>
-        <button class="btn btn-secondary" (click)="onClose.emit()">Close</button>
+        <button class="btn btn-secondary" (click)="onClose.emit()">{{ 'common.close' | translate }}</button>
       </div>
 
       <!-- Quiz Intro -->
@@ -64,34 +66,34 @@ import {
           <div class="stat-item">
             <i class="bi bi-question-circle"></i>
             <span class="stat-value">{{ quizData.assessment.total_questions }}</span>
-            <span class="stat-label">Questions</span>
+            <span class="stat-label">{{ 'quiz.questions' | translate }}</span>
           </div>
           <div class="stat-item" *ngIf="quizData.assessment.time_limit_minutes > 0">
             <i class="bi bi-clock"></i>
             <span class="stat-value">{{ quizData.assessment.time_limit_minutes }}</span>
-            <span class="stat-label">Minutes</span>
+            <span class="stat-label">{{ 'quiz.minutes' | translate }}</span>
           </div>
           <div class="stat-item">
             <i class="bi bi-award"></i>
             <span class="stat-value">{{ quizData.assessment.pass_percentage }}%</span>
-            <span class="stat-label">To Pass</span>
+            <span class="stat-label">{{ 'quiz.to_pass' | translate }}</span>
           </div>
           <div class="stat-item">
             <i class="bi bi-arrow-repeat"></i>
             <span class="stat-value">{{ attemptsUsed }}/{{ quizData.assessment.max_attempts || '∞' }}</span>
-            <span class="stat-label">Attempts</span>
+            <span class="stat-label">{{ 'quiz.attempts' | translate }}</span>
           </div>
         </div>
 
         <div class="intro-notes" *ngIf="quizData.assessment.time_limit_minutes > 0">
           <i class="bi bi-info-circle"></i>
-          <span>This is a timed assessment. The assessment will auto-submit when time runs out.</span>
+          <span>{{ 'quiz.timed_notice' | translate }}</span>
         </div>
 
         <div class="intro-actions">
-          <button class="btn btn-secondary" (click)="onClose.emit()">Cancel</button>
+          <button class="btn btn-secondary" (click)="onClose.emit()">{{ 'common.cancel' | translate }}</button>
           <button class="btn btn-primary btn-lg" (click)="startQuiz()">
-            <i class="bi bi-play-fill me-2"></i>Start Assessment
+            <i class="bi bi-play-fill me-2"></i>{{ 'quiz.start_assessment' | translate }}
           </button>
         </div>
       </div>
@@ -103,8 +105,8 @@ import {
           <div class="quiz-info">
             <h4>{{ quizData?.assessment?.title }}</h4>
             <div class="quiz-meta">
-              <span><i class="bi bi-question-circle me-1"></i>{{ questions.length }} Questions</span>
-              <span><i class="bi bi-award me-1"></i>{{ quizData?.assessment?.pass_percentage }}% to pass</span>
+              <span><i class="bi bi-question-circle me-1"></i>{{ 'quiz.n_questions' | translate:{ count: questions.length } }}</span>
+              <span><i class="bi bi-award me-1"></i>{{ 'quiz.percent_to_pass' | translate:{ percent: quizData?.assessment?.pass_percentage } }}</span>
             </div>
           </div>
 
@@ -119,15 +121,15 @@ import {
           <div class="progress">
             <div class="progress-bar" [style.width.%]="((currentQuestionIndex + 1) / questions.length) * 100"></div>
           </div>
-          <span class="progress-text">Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}</span>
+          <span class="progress-text">{{ 'quiz.question_of' | translate:{ current: currentQuestionIndex + 1, total: questions.length } }}</span>
         </div>
 
         <!-- Quiz Content -->
         <div class="quiz-content" *ngIf="currentQuestion">
           <div class="question-card">
             <div class="question-header">
-              <span class="question-number">Question {{ currentQuestionIndex + 1 }}</span>
-              <span class="question-points">{{ currentQuestion.points }} pts</span>
+              <span class="question-number">{{ 'quiz.question_n' | translate:{ n: currentQuestionIndex + 1 } }}</span>
+              <span class="question-points">{{ 'quiz.n_pts' | translate:{ count: currentQuestion.points } }}</span>
             </div>
             <div class="question-text">{{ currentQuestion.question_text }}</div>
 
@@ -166,7 +168,7 @@ import {
                        value="true"
                        [(ngModel)]="answers[currentQuestion.question_id]">
                 <span class="option-marker"><i class="bi bi-check-lg"></i></span>
-                <span class="option-text">True</span>
+                <span class="option-text">{{ 'quiz.true' | translate }}</span>
               </label>
               <label class="option-item" [class.selected]="answers[currentQuestion.question_id] === 'false'">
                 <input type="radio"
@@ -174,7 +176,7 @@ import {
                        value="false"
                        [(ngModel)]="answers[currentQuestion.question_id]">
                 <span class="option-marker"><i class="bi bi-x-lg"></i></span>
-                <span class="option-text">False</span>
+                <span class="option-text">{{ 'quiz.false' | translate }}</span>
               </label>
             </div>
 
@@ -182,7 +184,7 @@ import {
             <div class="text-answer" *ngIf="currentQuestion.question_type === 'short_answer'">
               <input type="text"
                      class="form-control"
-                     placeholder="Type your answer here..."
+                     placeholder="{{ 'quiz.short_answer_placeholder' | translate }}"
                      [(ngModel)]="answers[currentQuestion.question_id]">
             </div>
 
@@ -190,10 +192,10 @@ import {
             <div class="text-answer" *ngIf="currentQuestion.question_type === 'essay'">
               <textarea class="form-control"
                         rows="6"
-                        placeholder="Write your answer here..."
+                        placeholder="{{ 'quiz.essay_placeholder' | translate }}"
                         [(ngModel)]="answers[currentQuestion.question_id]"></textarea>
               <small class="char-count" *ngIf="answers[currentQuestion.question_id]">
-                {{ answers[currentQuestion.question_id].length }} characters
+                {{ 'quiz.n_characters' | translate:{ count: answers[currentQuestion.question_id].length } }}
               </small>
             </div>
 
@@ -201,7 +203,7 @@ import {
             <div class="text-answer" *ngIf="currentQuestion.question_type === 'fill_blank'">
               <input type="text"
                      class="form-control"
-                     placeholder="Fill in the blank..."
+                     placeholder="{{ 'quiz.fill_blank_placeholder' | translate }}"
                      [(ngModel)]="answers[currentQuestion.question_id]">
             </div>
           </div>
@@ -212,7 +214,7 @@ import {
           <button class="btn btn-secondary"
                   [disabled]="currentQuestionIndex === 0"
                   (click)="previousQuestion()">
-            <i class="bi bi-chevron-left me-1"></i>Previous
+            <i class="bi bi-chevron-left me-1"></i>{{ 'common.previous' | translate }}
           </button>
 
           <div class="question-dots">
@@ -222,20 +224,20 @@ import {
                     [class.answered]="answers[q.question_id] !== undefined && answers[q.question_id] !== ''"
                     [class.flagged]="flaggedQuestions.has(q.question_id)"
                     (click)="goToQuestion(i)"
-                    [title]="'Question ' + (i + 1)">
+                    [title]="'quiz.question_n' | translate:{ n: i + 1 }">
             </button>
           </div>
 
           <button class="btn btn-primary"
                   *ngIf="currentQuestionIndex < questions.length - 1"
                   (click)="nextQuestion()">
-            Next<i class="bi bi-chevron-right ms-1"></i>
+            {{ 'common.next' | translate }}<i class="bi bi-chevron-right ms-1"></i>
           </button>
 
           <button class="btn btn-success"
                   *ngIf="currentQuestionIndex === questions.length - 1"
                   (click)="confirmSubmit()">
-            <i class="bi bi-check-circle me-1"></i>Submit
+            <i class="bi bi-check-circle me-1"></i>{{ 'quiz.submit' | translate }}
           </button>
         </div>
 
@@ -246,7 +248,7 @@ import {
                   [class.btn-outline-warning]="!flaggedQuestions.has(currentQuestion?.question_id!)"
                   (click)="toggleFlag(currentQuestion?.question_id!)">
             <i class="bi bi-flag me-1"></i>
-            {{ flaggedQuestions.has(currentQuestion?.question_id!) ? 'Unflag' : 'Flag for Review' }}
+            {{ (flaggedQuestions.has(currentQuestion?.question_id!) ? 'quiz.unflag' : 'quiz.flag_for_review') | translate }}
           </button>
         </div>
       </ng-container>
@@ -254,21 +256,21 @@ import {
       <!-- Submit Confirmation -->
       <div class="submit-confirm-overlay" *ngIf="showSubmitConfirm" (click)="showSubmitConfirm = false">
         <div class="submit-confirm-dialog" (click)="$event.stopPropagation()">
-          <h4>Submit Assessment?</h4>
-          <p>You have answered {{ getAnsweredCount() }} of {{ questions.length }} questions.</p>
+          <h4>{{ 'quiz.submit_confirm_title' | translate }}</h4>
+          <p>{{ 'quiz.answered_count' | translate:{ answered: getAnsweredCount(), total: questions.length } }}</p>
           <div class="unanswered-warning" *ngIf="getUnansweredCount() > 0">
             <i class="bi bi-exclamation-triangle"></i>
-            {{ getUnansweredCount() }} question(s) are unanswered.
+            {{ 'quiz.unanswered_warning' | translate:{ count: getUnansweredCount() } }}
           </div>
           <div class="flagged-warning" *ngIf="flaggedQuestions.size > 0">
             <i class="bi bi-flag"></i>
-            {{ flaggedQuestions.size }} question(s) flagged for review.
+            {{ 'quiz.flagged_warning' | translate:{ count: flaggedQuestions.size } }}
           </div>
           <div class="confirm-actions">
-            <button class="btn btn-secondary" (click)="showSubmitConfirm = false">Review Answers</button>
+            <button class="btn btn-secondary" (click)="showSubmitConfirm = false">{{ 'quiz.review_answers' | translate }}</button>
             <button class="btn btn-success" (click)="submitQuiz()" [disabled]="submitting">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="submitting"></span>
-              Submit
+              {{ 'quiz.submit' | translate }}
             </button>
           </div>
         </div>
@@ -280,40 +282,40 @@ import {
           <i class="bi" [class.bi-trophy-fill]="result.passed" [class.bi-x-circle-fill]="!result.passed"></i>
         </div>
 
-        <h3>{{ result.passed ? 'Congratulations!' : 'Keep Learning!' }}</h3>
+        <h3>{{ (result.passed ? 'quiz.congratulations' : 'quiz.keep_learning') | translate }}</h3>
         <p class="result-message">
-          {{ result.passed ? 'You passed the quiz!' : 'You did not reach the passing score.' }}
+          {{ (result.passed ? 'quiz.passed_message' : 'quiz.failed_message') | translate }}
         </p>
 
         <div class="result-score">
           <div class="score-circle" [class.passed]="result.passed">
             <span class="score-value">{{ result.percentage | number:'1.0-0' }}%</span>
-            <span class="score-label">Score</span>
+            <span class="score-label">{{ 'quiz.score' | translate }}</span>
           </div>
         </div>
 
         <div class="result-details">
           <div class="detail-item">
-            <span class="detail-label">Correct Answers</span>
+            <span class="detail-label">{{ 'quiz.correct_answers' | translate }}</span>
             <span class="detail-value">{{ getCorrectCount() }}/{{ questions.length }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Points Earned</span>
+            <span class="detail-label">{{ 'quiz.points_earned' | translate }}</span>
             <span class="detail-value">{{ result.score | number:'1.0-2' }}/{{ result.max_score | number:'1.0-2' }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Time Taken</span>
+            <span class="detail-label">{{ 'quiz.time_taken' | translate }}</span>
             <span class="detail-value">{{ formatTime(timeTaken) }}</span>
           </div>
           <div class="detail-item" *ngIf="result.points_earned > 0">
-            <span class="detail-label">Bonus Points</span>
+            <span class="detail-label">{{ 'quiz.bonus_points' | translate }}</span>
             <span class="detail-value text-warning">+{{ result.points_earned }}</span>
           </div>
         </div>
 
         <!-- Review Answers -->
         <div class="review-section" *ngIf="showReview && result.show_correct_answers">
-          <h5>Review Answers</h5>
+          <h5>{{ 'quiz.review_answers' | translate }}</h5>
           <div class="review-item" *ngFor="let r of result.results; let i = index">
             <div class="review-question">
               <span class="review-number">{{ i + 1 }}.</span>
@@ -325,10 +327,10 @@ import {
             </div>
             <div class="review-answer" *ngIf="!r.is_correct">
               <div class="your-answer">
-                <strong>Your answer:</strong> {{ getAnswerText(questions[i], r.user_answer) }}
+                <strong>{{ 'quiz.your_answer' | translate }}</strong> {{ getAnswerText(questions[i], r.user_answer) }}
               </div>
               <div class="correct-answer">
-                <strong>Correct:</strong> {{ getAnswerText(questions[i], r.correct_answer) }}
+                <strong>{{ 'quiz.correct' | translate }}</strong> {{ getAnswerText(questions[i], r.correct_answer) }}
               </div>
             </div>
             <div class="review-explanation" *ngIf="r.explanation">
@@ -341,17 +343,17 @@ import {
           <button class="btn btn-secondary"
                   *ngIf="result.show_correct_answers"
                   (click)="showReview = !showReview">
-            <i class="bi bi-eye me-1"></i>{{ showReview ? 'Hide' : 'Review' }} Answers
+            <i class="bi bi-eye me-1"></i>{{ (showReview ? 'quiz.hide_answers' : 'quiz.review_answers') | translate }}
           </button>
 
           <button class="btn btn-warning"
                   *ngIf="!result.passed && canRetry()"
                   (click)="retryQuiz()">
-            <i class="bi bi-arrow-repeat me-1"></i>Try Again ({{ getRemainingAttempts() }} attempts left)
+            <i class="bi bi-arrow-repeat me-1"></i>{{ 'quiz.try_again_attempts' | translate:{ count: getRemainingAttempts() } }}
           </button>
 
           <button class="btn btn-success" (click)="onComplete.emit(result)">
-            <i class="bi bi-check me-1"></i>Continue
+            <i class="bi bi-check me-1"></i>{{ 'common.continue' | translate }}
           </button>
         </div>
       </div>
@@ -971,7 +973,7 @@ export class QuizComponent implements OnInit, OnDestroy {
   result: QuizResult | null = null;
   attemptsUsed = 0;
 
-  constructor(private playerService: CoursePlayerService) {}
+  constructor(private playerService: CoursePlayerService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.loadQuizData();
@@ -1000,7 +1002,7 @@ export class QuizComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
         error: (err) => {
-          this.error = 'Failed to load quiz. Please try again.';
+          this.error = this.i18n.t('quiz.error_load');
           this.loading = false;
         }
       });
@@ -1028,7 +1030,7 @@ export class QuizComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          this.error = 'Failed to start quiz. Please try again.';
+          this.error = this.i18n.t('quiz.error_start');
           this.loading = false;
         }
       });
@@ -1127,7 +1129,7 @@ export class QuizComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.submitting = false;
-          this.error = 'Failed to submit quiz. Please try again.';
+          this.error = this.i18n.t('quiz.error_submit');
         }
       });
   }
@@ -1184,7 +1186,7 @@ export class QuizComponent implements OnInit, OnDestroy {
     if (!question) return String(answer);
 
     if (question.question_type === 'true_false') {
-      return answer === 'true' || answer === true ? 'True' : 'False';
+      return answer === 'true' || answer === true ? this.i18n.t('quiz.true') : this.i18n.t('quiz.false');
     }
 
     if (question.question_type === 'single_choice') {

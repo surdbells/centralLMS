@@ -2,26 +2,27 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '../../../translate.pipe';
 
 @Component({
   selector: 'app-pagination',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="pagination-container" *ngIf="totalPages > 0">
       <!-- Page Size Selector -->
       <div class="page-size" *ngIf="showPageSize">
-        <label>Show</label>
+        <label>{{ 'shared.pagination.show' | translate }}</label>
         <select class="form-select form-select-sm" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
           <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
         </select>
-        <span>entries</span>
+        <span>{{ 'shared.pagination.entries' | translate }}</span>
       </div>
 
       <!-- Info -->
       <div class="page-info" *ngIf="showInfo">
-        Showing {{ startItem }} to {{ endItem }} of {{ totalItems }}
+        {{ 'shared.pagination.showing' | translate:{ from: startItem, to: endItem, total: totalItems } }}
       </div>
 
       <!-- Navigation -->
@@ -29,14 +30,14 @@ import { FormsModule } from '@angular/forms';
         <ul class="pagination pagination-sm mb-0">
           <!-- First -->
           <li class="page-item" [class.disabled]="currentPage === 1" *ngIf="showFirstLast">
-            <button class="page-link" (click)="goToPage(1)" [disabled]="currentPage === 1" title="First">
+            <button class="page-link" (click)="goToPage(1)" [disabled]="currentPage === 1" [title]="'shared.pagination.first' | translate">
               <i class="bi bi-chevron-double-left"></i>
             </button>
           </li>
 
           <!-- Previous -->
           <li class="page-item" [class.disabled]="currentPage === 1">
-            <button class="page-link" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" title="Previous">
+            <button class="page-link" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1" [title]="'common.previous' | translate">
               <i class="bi bi-chevron-left"></i>
             </button>
           </li>
@@ -53,14 +54,14 @@ import { FormsModule } from '@angular/forms';
 
           <!-- Next -->
           <li class="page-item" [class.disabled]="currentPage === totalPages">
-            <button class="page-link" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" title="Next">
+            <button class="page-link" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages" [title]="'common.next' | translate">
               <i class="bi bi-chevron-right"></i>
             </button>
           </li>
 
           <!-- Last -->
           <li class="page-item" [class.disabled]="currentPage === totalPages" *ngIf="showFirstLast">
-            <button class="page-link" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" title="Last">
+            <button class="page-link" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages" [title]="'shared.pagination.last' | translate">
               <i class="bi bi-chevron-double-right"></i>
             </button>
           </li>
@@ -69,7 +70,7 @@ import { FormsModule } from '@angular/forms';
 
       <!-- Quick Jump -->
       <div class="page-jump" *ngIf="showQuickJump && totalPages > 10">
-        <label>Go to</label>
+        <label>{{ 'shared.pagination.go_to' | translate }}</label>
         <input 
           type="number" 
           class="form-control form-control-sm"

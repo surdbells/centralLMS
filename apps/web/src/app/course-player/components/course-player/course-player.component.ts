@@ -26,11 +26,13 @@ import {
   type CourseResource,
 } from '../../../services/course-resources.service';
 import {HotToastService} from '@ngneat/hot-toast';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 @Component({
   selector: 'app-course-player',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, QuizComponent],
+  imports: [CommonModule, FormsModule, RouterModule, QuizComponent, TranslatePipe],
   templateUrl: './course-player.component.html',
   styleUrls: ['./course-player.component.scss']
 })
@@ -98,6 +100,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     private session: SessionStore,
     public playerService: CoursePlayerService,
     private courseResourcesService: CourseResourcesService,
+    private i18n: I18nService,
   ) {}
 
   // Safe URL cache to avoid re-sanitizing
@@ -216,7 +219,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.loading = false;
-        this.error = err.error?.message || 'Failed to load course';
+        this.error = err.error?.message || this.i18n.t('course_player.toast_load_failed');
       }
     });
   }
@@ -322,7 +325,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
           this.scormReady = this.currentScormUrl !== null;
         },
         error: (error: { message?: string }) =>
-          this.error_notification(error.message ?? 'That package could not be opened.'),
+          this.error_notification(error.message ?? this.i18n.t('course_player.toast_package_failed')),
       });
   }
 
@@ -404,7 +407,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: () => {
         console.log('[CoursePlayer] SCORM lesson marked complete');
-        this.success_notification('lesson completed successfully');
+        this.success_notification(this.i18n.t('course_player.toast_lesson_completed'));
         // Refresh course data to update UI
         this.loadCourse(this.courseData!.course.course_id);
 
@@ -469,7 +472,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
           const lesson = module.lessons.find(l => l.lesson_id === this.currentLesson!.lesson_id);
           if (lesson) {
             lesson.status = 'completed';
-            this.success_notification('lesson completed successfully');
+            this.success_notification(this.i18n.t('course_player.toast_lesson_completed'));
             module.completed_lessons = (module.completed_lessons || 0) + 1;
             break;
           }
@@ -506,7 +509,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
         this.router.navigate(['/courses', this.courseData!.course.course_id]);
       },
       error: (error: { message?: string }) =>
-        this.error_notification(error.message ?? 'That could not be finished.'),
+        this.error_notification(error.message ?? this.i18n.t('course_player.toast_finish_failed')),
     });
   }
 
@@ -724,7 +727,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   submitRating(): void {
     if (!this.courseData || this.userRating === 0) return;
 
-    this.error_notification('Course ratings are not available yet.');
+    this.error_notification(this.i18n.t('course_player.toast_rating_unavailable'));
     this.skipRating();
   }
 
@@ -823,7 +826,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => { this.newDiscussionPost = ''; this.loadDiscussion(); },
-        error: (err) => this.toast.error(err?.message || 'Could not post.'),
+        error: (err) => this.toast.error(err?.message || this.i18n.t('course_player.toast_post_failed')),
       });
   }
 
@@ -841,7 +844,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => { this.replyingTo = null; this.replyText = ''; this.loadDiscussion(); },
-        error: (err) => this.toast.error(err?.message || 'Could not reply.'),
+        error: (err) => this.toast.error(err?.message || this.i18n.t('course_player.toast_reply_failed')),
       });
   }
 
@@ -934,12 +937,14 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       case 'audio':
         return this.formatTime(lesson.duration_minutes * 60);
       case 'pdf':
-        return 'Ebook';
+        return this.i18n.t('course_player.meta_ebook');
       case 'html':
       case 'text':
-        return lesson.duration_minutes ? `Reading: ${lesson.duration_minutes} minutes` : 'Reading';
+        return lesson.duration_minutes
+          ? this.i18n.t('course_player.meta_reading_minutes', { minutes: lesson.duration_minutes })
+          : this.i18n.t('course_player.meta_reading');
       case 'scorm':
-        return 'Interactive';
+        return this.i18n.t('course_player.meta_interactive');
       default:
         return '';
     }
@@ -959,10 +964,15 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   }
 
   assessmentMeta(a: Assessment): string {
-    if (a.assessment_type === 'assignment') return 'Assignment';
+    if (a.assessment_type === 'assignment') return this.i18n.t('course_player.meta_assignment');
     const n = a.total_questions || 0;
-    const label = a.assessment_type === 'exam' ? 'Exam' : 'Quiz';
-    return n ? `${label}: ${n} question${n === 1 ? '' : 's'}` : label;
+    const label = a.assessment_type === 'exam'
+      ? this.i18n.t('course_player.meta_exam')
+      : this.i18n.t('course_player.meta_quiz');
+    if (!n) return label;
+    return n === 1
+      ? this.i18n.t('course_player.meta_question_count', { label, count: n })
+      : this.i18n.t('course_player.meta_questions_count', { label, count: n });
   }
 
   pathAssessmentIcon(a: Assessment): string {

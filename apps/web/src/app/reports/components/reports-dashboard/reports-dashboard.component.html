@@ -10,19 +10,19 @@
             <tui-icon icon="@tui.chevron-left"></tui-icon>
           </div>
           <div>
-            <h4 class="fw-bold mb-1">Reports & Analytics</h4>
-            <p class="text-muted mb-0 small">Comprehensive LMS reporting across {{ totalReports }} reports</p>
+            <h4 class="fw-bold mb-1">{{ 'reports.dashboard_title' | translate }}</h4>
+            <p class="text-muted mb-0 small">{{ 'reports.dashboard_subtitle' | translate:{ count: totalReports } }}</p>
           </div>
         </div>
         <div class="d-flex gap-2">
           <a routerLink="/admin/reports/catalog" class="btn btn-primary">
-            <i class="bi bi-grid-3x3-gap me-1"></i>Browse Catalog
+            <i class="bi bi-grid-3x3-gap me-1"></i>{{ 'reports.browse_catalog' | translate }}
           </a>
           <a routerLink="/admin/reports/custom" class="btn btn-primary">
-            <i class="bi bi-tools me-1"></i>Custom Builder
+            <i class="bi bi-tools me-1"></i>{{ 'reports.custom_builder' | translate }}
           </a>
           <a routerLink="/admin/reports/scheduled" class="btn btn-secondary">
-            <i class="bi bi-clock-history me-1"></i>Scheduled
+            <i class="bi bi-clock-history me-1"></i>{{ 'reports.scheduled' | translate }}
           </a>
         </div>
       </div>
@@ -47,7 +47,7 @@
       </div>
 
       <!-- Category Grid -->
-      <h5 class="fw-semibold mb-3">Report Categories</h5>
+      <h5 class="fw-semibold mb-3">{{ 'reports.categories_heading' | translate }}</h5>
       <div class="row g-3 mb-4">
         <div *ngFor="let cat of categories" class="col-sm-6 col-md-4 col-lg-3">
           <a [routerLink]="['/admin/reports/catalog']" [queryParams]="{category: cat.key}"
@@ -58,7 +58,7 @@
               </div>
               <div>
                 <h6 class="fw-semibold mb-0 text-black">{{ cat.name }}</h6>
-                <span class="small text-muted">{{ cat.count }} report{{ cat.count !== 1 ? 's' : '' }}</span>
+                <span class="small text-muted">{{ cat.count }} {{ (cat.count !== 1 ? 'reports.reports_word' : 'reports.report_word') | translate }}</span>
               </div>
             </div>
           </a>
@@ -66,7 +66,7 @@
       </div>
 
       <!-- Quick Access: Popular Reports -->
-      <h5 class="fw-semibold mb-3">Quick Access</h5>
+      <h5 class="fw-semibold mb-3">{{ 'reports.quick_access' | translate }}</h5>
       <div class="row g-3 mb-4">
         <div *ngFor="let r of quickAccess" class="col-sm-6 col-md-4 col-lg-3">
           <a [routerLink]="['/admin/reports', r.key]" class="card border-0 shadow-sm h-100 text-decoration-none" style="transition:transform .15s">
@@ -84,8 +84,8 @@
 
       <!-- Saved Reports -->
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-semibold mb-0">Saved Reports</h5>
-        <a routerLink="/admin/reports/saved" class="btn btn-sm btn-primary">View All</a>
+        <h5 class="fw-semibold mb-0">{{ 'reports.saved_reports' | translate }}</h5>
+        <a routerLink="/admin/reports/saved" class="btn btn-sm btn-primary">{{ 'common.view_all' | translate }}</a>
       </div>
       <div class="row g-3" *ngIf="savedReports.length">
         <div *ngFor="let s of savedReports.slice(0, 4)" class="col-sm-6 col-md-3">
@@ -100,7 +100,7 @@
       </div>
       <div *ngIf="!savedReports.length" class="text-center py-4 text-muted">
         <i class="bi bi-bookmark fs-3 d-block mb-2"></i>
-        <p class="small">No saved reports yet. Run a report and click Save to bookmark it.</p>
+        <p class="small">{{ 'reports.no_saved_hint' | translate }}</p>
       </div>
     </div>
   </div>

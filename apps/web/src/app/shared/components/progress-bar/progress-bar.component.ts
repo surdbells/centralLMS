@@ -1,11 +1,12 @@
 // components/progress-bar/progress-bar.component.ts
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../../translate.pipe';
 
 @Component({
   selector: 'app-progress-bar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="progress-wrapper">
@@ -30,7 +31,7 @@ import { CommonModule } from '@angular/common';
       </div>
       
       <div class="progress-footer" *ngIf="showSteps">
-        <span class="step-text">{{ current }} of {{ total }} {{ stepLabel }}</span>
+        <span class="step-text">{{ 'shared.progress.steps' | translate:{ current: current, total: total, label: stepLabel || ('shared.progress.completed' | translate) } }}</span>
       </div>
     </div>
   `,
@@ -81,7 +82,7 @@ export class ProgressBarComponent {
   @Input() current: number = 0;
   @Input() total: number = 0;
   @Input() label: string = '';
-  @Input() stepLabel: string = 'completed';
+  @Input() stepLabel: string = '';
   @Input() height: number = 20;
   @Input() color: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'auto' = 'primary';
   @Input() striped: boolean = false;

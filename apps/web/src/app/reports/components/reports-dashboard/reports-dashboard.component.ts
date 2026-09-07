@@ -6,11 +6,13 @@ import { ReportCategory, DashboardKPI } from '../../models/report.models';
 import {AdminSkillsComponent} from '../../../admin/admin-skills-page/skills/admin-skills.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TuiIcon} from '@taiga-ui/core';
+import {TranslatePipe} from '../../../translate.pipe';
+import {I18nService} from '../../../i18n.service';
 
 @Component({
   selector: 'app-reports-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, AdminSkillsComponent, AdmintopComponent, TuiIcon],
+  imports: [CommonModule, RouterLink, AdminSkillsComponent, AdmintopComponent, TuiIcon, TranslatePipe],
   templateUrl: `reports-dashboard.component.html`,
   styles: [`.cat-card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important; }`]
 })
@@ -21,7 +23,7 @@ export class ReportsDashboardComponent implements OnInit {
   savedReports: any[] = [];
   totalReports = 0;
 
-  constructor(private reportService: ReportService,private router: Router,) {}
+  constructor(private reportService: ReportService,private router: Router, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.loadData();
@@ -49,12 +51,12 @@ export class ReportsDashboardComponent implements OnInit {
     // KPIs
     this.reportService.getDashboardSummary().subscribe(data => {
       this.kpis = [
-        { label: 'Total Enrollments', value: data.enrollment.total_enrollments || 0, icon: 'bi bi-person-plus', color: 'primary', trend: 'up', change: data.enrollment_change },
-        { label: 'Completion Rate', value: (data.completion.completion_rate || 0) + '%', icon: 'bi bi-check-circle', color: 'success', trend: data.completion_trend, change: data.completion_change },
-        { label: 'Compliance Rate', value: (data.compliance.compliance_rate || 0) + '%', icon: 'bi bi-shield-check', color: 'info', trend: data.compliance_trend, change: data.compliance_change },
-        { label: 'Active Learners', value: data.assessment.unique_learners || 0, icon: 'bi bi-people', color: 'warning' },
-        { label: 'Avg Score', value: (data.assessment.avg_score || 0) + '%', icon: 'bi bi-trophy', color: 'success' },
-        { label: 'Overdue', value: data.overdue_count || 0, icon: 'bi bi-exclamation-triangle', color: 'danger' }
+        { label: this.i18n.t('reports.kpi_total_enrollments'), value: data.enrollment.total_enrollments || 0, icon: 'bi bi-person-plus', color: 'primary', trend: 'up', change: data.enrollment_change },
+        { label: this.i18n.t('reports.kpi_completion_rate'), value: (data.completion.completion_rate || 0) + '%', icon: 'bi bi-check-circle', color: 'success', trend: data.completion_trend, change: data.completion_change },
+        { label: this.i18n.t('reports.kpi_compliance_rate'), value: (data.compliance.compliance_rate || 0) + '%', icon: 'bi bi-shield-check', color: 'info', trend: data.compliance_trend, change: data.compliance_change },
+        { label: this.i18n.t('reports.kpi_active_learners'), value: data.assessment.unique_learners || 0, icon: 'bi bi-people', color: 'warning' },
+        { label: this.i18n.t('reports.kpi_avg_score'), value: (data.assessment.avg_score || 0) + '%', icon: 'bi bi-trophy', color: 'success' },
+        { label: this.i18n.t('reports.kpi_overdue'), value: data.overdue_count || 0, icon: 'bi bi-exclamation-triangle', color: 'danger' }
       ];
     });
 

@@ -5,6 +5,8 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { TopComponent } from '../../../partials/top/top.component';
 import { LibraryViewerComponent } from '../library-viewer/library-viewer.component';
 import { LibraryService, type LibraryItem, type LibraryKind } from '../../library.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 /**
  * The digital library, as a learner sees it: the files shared with them.
@@ -16,13 +18,14 @@ import { LibraryService, type LibraryItem, type LibraryKind } from '../../librar
 @Component({
   selector: 'app-library-browse',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent, LibraryViewerComponent],
+  imports: [CommonModule, FormsModule, TopComponent, LibraryViewerComponent, TranslatePipe],
   templateUrl: './library-browse.component.html',
   styleUrl: './library-browse.component.scss',
 })
 export class LibraryBrowseComponent implements OnInit {
   private readonly library = inject(LibraryService);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly items = signal<LibraryItem[]>([]);
@@ -41,7 +44,7 @@ export class LibraryBrowseComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('The library could not be loaded.');
+        this.toast.error(this.i18n.t('library.load_error'));
         this.loading.set(false);
       },
     });
@@ -76,7 +79,14 @@ export class LibraryBrowseComponent implements OnInit {
   }
 
   kindLabel(kind: LibraryKind): string {
-    return { video: 'Video', audio: 'Audio', pdf: 'PDF', document: 'Document', image: 'Image' }[kind];
+    const keys: Record<LibraryKind, string> = {
+      video: 'library.kind_video',
+      audio: 'library.kind_audio',
+      pdf: 'library.kind_pdf',
+      document: 'library.kind_document',
+      image: 'library.kind_image',
+    };
+    return this.i18n.t(keys[kind]);
   }
 
   size(bytes: number): string {

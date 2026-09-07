@@ -6,6 +6,8 @@ import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
 import { AdmintopComponent } from '../partials/top/admintop/admintop.component';
 import { RichHtmlEditorComponent } from '../shared/rich-html-editor/rich-html-editor.component';
+import { TranslatePipe } from '../translate.pipe';
+import { I18nService } from '../i18n.service';
 import {
   SettingsService,
   type SettingDefinition,
@@ -48,7 +50,7 @@ export interface SettingsTab {
 @Component({
   selector: 'app-tenant-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, RichHtmlEditorComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, RichHtmlEditorComponent, TranslatePipe],
   templateUrl: './tenant-settings.component.html',
   styleUrls: ['./tenant-settings.component.scss'],
 })
@@ -57,6 +59,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
   private readonly tenantService = inject(TenantService);
   private readonly templatesService = inject(EmailTemplatesService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   loading = true;
@@ -172,18 +175,26 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
     const tabs: SettingsTab[] = [
       {
         key: 'organisation',
-        label: 'Organisation',
-        description: 'What your organisation is called, and how to reach it.',
+        label: this.i18n.t('tenant.tab_organisation'),
+        description: this.i18n.t('tenant.tab_organisation_desc'),
         icon: this.icons['organisation'],
       },
     ];
 
+    const labelKeys: Record<string, string> = {
+      general: 'tenant.cat_general',
+      branding: 'tenant.cat_branding',
+      notifications: 'tenant.cat_notifications',
+      gamification: 'tenant.cat_gamification',
+      security: 'tenant.cat_security',
+    };
+
     const described: Record<string, string> = {
-      general: 'Language, timezone, and how dates and money are shown.',
-      branding: 'Your logo and colours, wherever the platform shows them.',
-      notifications: 'Who your email appears to come from, and whether it is sent at all.',
-      gamification: 'Whether points and badges are used, and what each is worth.',
-      security: 'What a password must look like, and who may register.',
+      general: 'tenant.desc_general',
+      branding: 'tenant.desc_branding',
+      notifications: 'tenant.desc_notifications',
+      gamification: 'tenant.desc_gamification',
+      security: 'tenant.desc_security',
     };
 
     for (const category of Object.keys(this.byCategory)) {
@@ -193,8 +204,10 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
       tabs.push({
         key: category,
-        label: category.charAt(0).toUpperCase() + category.slice(1),
-        description: described[category] ?? '',
+        label: labelKeys[category]
+          ? this.i18n.t(labelKeys[category])
+          : category.charAt(0).toUpperCase() + category.slice(1),
+        description: described[category] ? this.i18n.t(described[category]) : '',
         icon: this.icons[category] ?? 'bi-sliders',
       });
     }
@@ -202,8 +215,8 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
     if (this.templates.length > 0) {
       tabs.push({
         key: 'email',
-        label: 'Email templates',
-        description: 'What your transactional email says, in your own words.',
+        label: this.i18n.t('tenant.tab_email'),
+        description: this.i18n.t('tenant.tab_email_desc'),
         icon: this.icons['email'],
       });
     }
@@ -261,7 +274,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
         next: (tenant) => {
           this.tenant = tenant;
           this.saving = false;
-          this.successMessage = 'Saved.';
+          this.successMessage = this.i18n.t('tenant.saved');
         },
         error: (failure: ApiError) => this.fail(failure),
       });
@@ -315,14 +328,14 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
           this.values = { ...this.values, ...saved };
           this.loaded = { ...this.loaded, ...saved };
           this.saving = false;
-          this.successMessage = 'Saved.';
+          this.successMessage = this.i18n.t('tenant.saved');
         },
         error: (failure: ApiError) => this.fail(failure),
       });
   }
 
   resetCategory(category: string): void {
-    if (!confirm(`Put every ${category} setting back to its default?`)) {
+    if (!confirm(this.i18n.t('tenant.confirm_reset', { category }))) {
       return;
     }
 
@@ -337,7 +350,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
           this.values = { ...this.values, ...saved };
           this.loaded = { ...this.loaded, ...saved };
           this.saving = false;
-          this.successMessage = 'Put back to the defaults.';
+          this.successMessage = this.i18n.t('tenant.put_back_defaults');
         },
         error: (failure: ApiError) => this.fail(failure),
       });
@@ -412,7 +425,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
             (t) => (t.type === saved.type ? { ...t, ...saved } : t),
           );
           this.saving = false;
-          this.successMessage = 'Saved.';
+          this.successMessage = this.i18n.t('tenant.saved');
         },
         error: (failure: ApiError) => this.fail(failure),
       });
@@ -421,7 +434,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
   resetTemplate(): void {
     const template = this.editingTemplate;
 
-    if (template === null || !confirm('Go back to the standard wording?')) {
+    if (template === null || !confirm(this.i18n.t('tenant.confirm_back_standard'))) {
       return;
     }
 
@@ -433,7 +446,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.saving = false;
-          this.successMessage = 'Back to the standard wording.';
+          this.successMessage = this.i18n.t('tenant.back_standard_done');
           this.editTemplate(template.type);
           this.templates = this.templates.map(
             (t) => (t.type === template.type

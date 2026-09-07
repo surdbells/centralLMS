@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="col">
-        <h1 class="fs-4 mb-0">Security settings</h1>
+        <h1 class="fs-4 mb-0">{{ 'security.title' | translate }}</h1>
       </div>
       <div class="col-12 col-sm-auto mt-4 mt-sm-0">
         <!--        <a class="btn btn-secondary d-block">
@@ -27,24 +27,24 @@
       <div class="col-12 col-lg-9" data-bs-spy="scroll" data-bs-target="#accountNav" data-bs-smooth-scroll="true" tabindex="0">
         <section *ngIf="!ui_controls.is_loading" class="card card-line bg-body-tertiary border-transparent mb-5" id="visibility">
           <div class="card-body">
-            <h2 class="fs-5 mb-1">Enforce two-step verification</h2>
-            <p class="text-body-secondary">Add an extra layer of security with two-step verification.</p>
+            <h2 class="fs-5 mb-1">{{ 'security.two_step_title' | translate }}</h2>
+            <p class="text-body-secondary">{{ 'security.two_step_subtitle' | translate }}</p>
             <div class="card border-transparent">
               <div class="card-body py-0">
                 <ul class="list-group list-group-flush">
                   <li class="list-group-item px-0">
                     <div class="row align-items-center">
                       <div class="col">
-                        This setting is locked by security policy.
+                        {{ 'security.locked_note' | translate }}
                       </div>
                       <div class="col-auto">
                         <div class="form-check form-switch mb-3 align-items-center d-flex">
                           <input checked class="form-check-input" type="checkbox" role="switch">
                           <label class="form-check-label mx-2">
-                            Enable 2FA
+                            {{ 'security.enable_2fa' | translate }}
                           </label>
                           <button [disabled]="true"  type="button" class="btn btn-sm btn-secondary ms-auto">
-                            Save
+                            {{ 'common.save' | translate }}
                           </button>
                         </div>
                       </div>
@@ -57,27 +57,27 @@
         </section>
         <section *ngIf="!ui_controls.is_loading" class="card card-line bg-body-tertiary border-transparent mb-5" id="password">
           <div class="card-body">
-            <h2 class="fs-5 mb-1">Change password</h2>
-            <p class="text-body-secondary">Keep your account secure - update your password now.</p>
+            <h2 class="fs-5 mb-1">{{ 'security.change_password_title' | translate }}</h2>
+            <p class="text-body-secondary">{{ 'security.change_password_subtitle' | translate }}</p>
             <div class="card border-transparent">
               <div class="card-body">
                 <div class="mb-4">
-                  <label class="form-label">Current password</label>
+                  <label class="form-label">{{ 'security.current_password' | translate }}</label>
                   <input [(ngModel)]="update_password.current_password" type="password" name="current_password" class="form-control" autocomplete="current-password">
                 </div>
                 <div class="mb-4">
-                  <label class="form-label">New password</label>
+                  <label class="form-label">{{ 'security.new_password' | translate }}</label>
                   <input [(ngModel)]="update_password.password" type="password" name="password" class="form-control" autocomplete="new-password">
                 </div>
                 <div class="mb-4">
-                  <label class="form-label">Confirm password</label>
+                  <label class="form-label">{{ 'security.confirm_password' | translate }}</label>
                   <input [(ngModel)]="update_password.confirm_password" type="password" name="confirm_password" class="form-control" autocomplete="new-password">
                 </div>
               </div>
             </div>
           </div>
           <div class="card-footer">
-            <button (click)="password_change()" class="btn btn-secondary text-white" type="button">Save Changes</button>
+            <button (click)="password_change()" class="btn btn-secondary text-white" type="button">{{ 'common.save_changes' | translate }}</button>
           </div>
         </section>
         <tui-loader *ngIf="ui_controls.is_loading" />

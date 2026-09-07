@@ -1,6 +1,8 @@
 // components/file-uploader/file-uploader.component.ts
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 export interface UploadedFile {
   file: File;
@@ -16,7 +18,7 @@ export interface UploadedFile {
 @Component({
   selector: 'app-file-uploader',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="file-uploader" [class.disabled]="disabled">
@@ -40,10 +42,10 @@ export interface UploadedFile {
 
         <div class="drop-zone-content" *ngIf="files.length === 0">
           <i class="bi bi-cloud-arrow-up"></i>
-          <p class="drop-text">{{ dropText }}</p>
-          <p class="drop-hint">{{ dropHint }}</p>
+          <p class="drop-text">{{ dropText || ('shared.uploader.drop_text' | translate) }}</p>
+          <p class="drop-hint">{{ dropHint || ('shared.uploader.drop_hint' | translate) }}</p>
           <button type="button" class="btn btn-primary btn-sm">
-            {{ buttonText }}
+            {{ buttonText || ('shared.uploader.button' | translate) }}
           </button>
         </div>
       </div>
@@ -89,16 +91,16 @@ export interface UploadedFile {
           class="btn btn-primary btn-sm mt-2"
           (click)="openFilePicker()"
           *ngIf="multiple && files.length < maxFiles">
-          <i class="bi bi-plus-lg me-1"></i> Add More
+          <i class="bi bi-plus-lg me-1"></i> {{ 'shared.uploader.add_more' | translate }}
         </button>
       </div>
 
       <!-- Validation Messages -->
       <div class="validation-info mt-2" *ngIf="showValidation">
         <small class="text-muted">
-          <span *ngIf="acceptTypes">Allowed: {{ acceptTypes }}</span>
-          <span *ngIf="maxSizeMB"> | Max size: {{ maxSizeMB }}MB</span>
-          <span *ngIf="multiple && maxFiles"> | Max files: {{ maxFiles }}</span>
+          <span *ngIf="acceptTypes">{{ 'shared.uploader.allowed' | translate:{ types: acceptTypes } }}</span>
+          <span *ngIf="maxSizeMB"> | {{ 'shared.uploader.max_size' | translate:{ size: maxSizeMB } }}</span>
+          <span *ngIf="multiple && maxFiles"> | {{ 'shared.uploader.max_files' | translate:{ count: maxFiles } }}</span>
         </small>
       </div>
     </div>
@@ -182,9 +184,9 @@ export class FileUploaderComponent {
   @Input() showPreview: boolean = true;
   @Input() showValidation: boolean = true;
   @Input() disabled: boolean = false;
-  @Input() dropText: string = 'Drag and drop files here';
-  @Input() dropHint: string = 'or click to browse';
-  @Input() buttonText: string = 'Browse Files';
+  @Input() dropText: string = '';
+  @Input() dropHint: string = '';
+  @Input() buttonText: string = '';
 
   @Output() filesSelected = new EventEmitter<UploadedFile[]>();
   @Output() fileRemoved = new EventEmitter<{ file: UploadedFile; index: number }>();
@@ -192,6 +194,8 @@ export class FileUploaderComponent {
 
   files: UploadedFile[] = [];
   isDragOver: boolean = false;
+
+  private i18n = inject(I18nService);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -241,7 +245,7 @@ export class FileUploaderComponent {
       }
 
       if (this.files.length >= this.maxFiles) {
-        this.validationError.emit(`Maximum ${this.maxFiles} files allowed`);
+        this.validationError.emit(this.i18n.t('shared.uploader.err_max_files', { max: this.maxFiles }));
         break;
       }
 
@@ -273,7 +277,7 @@ export class FileUploaderComponent {
 
   private validateFile(file: File): string | null {
     if (this.maxSizeMB && file.size > this.maxSizeMB * 1024 * 1024) {
-      return `File "${file.name}" exceeds ${this.maxSizeMB}MB limit`;
+      return this.i18n.t('shared.uploader.err_too_large', { name: file.name, size: this.maxSizeMB });
     }
 
     if (this.acceptTypes) {
@@ -288,7 +292,7 @@ export class FileUploaderComponent {
       });
 
       if (!isAccepted) {
-        return `File type "${fileExt}" is not allowed`;
+        return this.i18n.t('shared.uploader.err_type', { ext: fileExt });
       }
     }
 

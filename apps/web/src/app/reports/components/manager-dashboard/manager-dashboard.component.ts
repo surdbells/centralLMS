@@ -4,17 +4,19 @@ import { RouterLink } from '@angular/router';
 import { ReportService } from '../../services/report.service';
 import { ReportChartComponent } from '../report-chart/report-chart.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
+import {TranslatePipe} from '../../../translate.pipe';
+import {I18nService} from '../../../i18n.service';
 
 @Component({
   selector: 'app-manager-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReportChartComponent, AdmintopComponent],
+  imports: [CommonModule, RouterLink, ReportChartComponent, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
     <main class="main px-lg-6">
       <div class="container-fluid">
     <div class="manager-dashboard">
-      <h4 class="fw-bold mb-4"><i class="bi bi-people me-2"></i>Manager Dashboard</h4>
+      <h4 class="fw-bold mb-4"><i class="bi bi-people me-2"></i>{{ 'reports.manager_dashboard' | translate }}</h4>
 
       <!-- KPIs -->
       <div class="row g-3 mb-4">
@@ -31,7 +33,7 @@ import {AdmintopComponent} from '../../../partials/top/admintop/admintop.compone
       <!-- Action Required -->
       <div class="card border-0 shadow-sm mb-4" *ngIf="actionItems.length">
         <div class="card-header bg-danger-subtle d-flex justify-content-between align-items-center">
-          <h6 class="mb-0 text-danger fw-semibold"><i class="bi bi-exclamation-circle me-2"></i>Action Required</h6>
+          <h6 class="mb-0 text-danger fw-semibold"><i class="bi bi-exclamation-circle me-2"></i>{{ 'reports.action_required' | translate }}</h6>
           <span class="badge bg-danger">{{ actionItems.length }}</span>
         </div>
         <div class="list-group list-group-flush">
@@ -41,23 +43,23 @@ import {AdmintopComponent} from '../../../partials/top/admintop/admintop.compone
               <span class="text-muted mx-1">-</span>
               <span>{{ item.course_name || item.title }}</span>
             </div>
-            <span class="badge bg-danger-subtle text-danger">{{ item.days_overdue }}d overdue</span>
+            <span class="badge bg-danger-subtle text-danger">{{ 'reports.days_overdue' | translate:{ count: item.days_overdue } }}</span>
           </div>
         </div>
       </div>
 
       <!-- Team Chart -->
       <div class="mb-4" *ngIf="teamData">
-        <app-report-chart [data]="teamData" chartType="bar" title="Team Compliance" [allowTypeChange]="true"></app-report-chart>
+        <app-report-chart [data]="teamData" chartType="bar" [title]="'reports.team_compliance' | translate" [allowTypeChange]="true"></app-report-chart>
       </div>
 
       <!-- Team Table -->
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white"><h6 class="mb-0 fw-semibold">Team Members</h6></div>
+        <div class="card-header bg-white"><h6 class="mb-0 fw-semibold">{{ 'reports.team_members' | translate }}</h6></div>
         <div class="table-responsive">
           <table class="table table-hover table-sm mb-0">
             <thead class="table-light">
-              <tr><th class="px-3">Name</th><th>Enrolled</th><th>Completed</th><th>Overdue</th><th>Status</th></tr>
+              <tr><th class="px-3">{{ 'common.name' | translate }}</th><th>{{ 'report.enrolled' | translate }}</th><th>{{ 'report.completed' | translate }}</th><th>{{ 'reports.overdue' | translate }}</th><th>{{ 'common.status' | translate }}</th></tr>
             </thead>
             <tbody>
               <tr *ngFor="let m of teamMembers">
@@ -82,7 +84,7 @@ export class ManagerDashboardComponent implements OnInit {
   actionItems: any[] = [];
   teamData: any = null;
 
-  constructor(private svc: ReportService) {}
+  constructor(private svc: ReportService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.svc.runReport('manager_team_dashboard', {}).subscribe(res => {
@@ -92,10 +94,10 @@ export class ManagerDashboardComponent implements OnInit {
       const totComp = d.reduce((s: number, m: any) => s + (m.completed || 0), 0);
       const totOvr = d.reduce((s: number, m: any) => s + (m.overdue || 0), 0);
       this.kpis = [
-        { label: 'Team Members', value: d.length, color: 'primary' },
-        { label: 'Total Enrollments', value: totEnr, color: 'info' },
-        { label: 'Completions', value: totComp, color: 'success' },
-        { label: 'Overdue Items', value: totOvr, color: 'danger' }
+        { label: this.i18n.t('reports.kpi_team_members'), value: d.length, color: 'primary' },
+        { label: this.i18n.t('reports.kpi_total_enrollments'), value: totEnr, color: 'info' },
+        { label: this.i18n.t('reports.kpi_completions'), value: totComp, color: 'success' },
+        { label: this.i18n.t('reports.kpi_overdue_items'), value: totOvr, color: 'danger' }
       ];
     });
     this.svc.runReport('manager_action_required', {}).subscribe(res => {

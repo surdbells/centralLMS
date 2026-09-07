@@ -1,12 +1,14 @@
 // components/rich-text-editor/rich-text-editor.component.ts
-import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, forwardRef, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewChild, ElementRef, forwardRef, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 @Component({
   selector: 'app-rich-text-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{
     provide: NG_VALUE_ACCESSOR,
@@ -18,67 +20,67 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
       <!-- Toolbar -->
       <div class="editor-toolbar" *ngIf="showToolbar">
         <div class="toolbar-group">
-          <button type="button" class="toolbar-btn" (click)="execCommand('bold')" title="Bold">
+          <button type="button" class="toolbar-btn" (click)="execCommand('bold')" [title]="'shared.editor.bold' | translate">
             <i class="bi bi-type-bold"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="execCommand('italic')" title="Italic">
+          <button type="button" class="toolbar-btn" (click)="execCommand('italic')" [title]="'shared.editor.italic' | translate">
             <i class="bi bi-type-italic"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="execCommand('underline')" title="Underline">
+          <button type="button" class="toolbar-btn" (click)="execCommand('underline')" [title]="'shared.editor.underline' | translate">
             <i class="bi bi-type-underline"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="execCommand('strikethrough')" title="Strikethrough">
+          <button type="button" class="toolbar-btn" (click)="execCommand('strikethrough')" [title]="'shared.editor.strikethrough' | translate">
             <i class="bi bi-type-strikethrough"></i>
           </button>
         </div>
-        
+
         <div class="toolbar-divider"></div>
-        
+
         <div class="toolbar-group">
-          <button type="button" class="toolbar-btn" (click)="execCommand('insertUnorderedList')" title="Bullet List">
+          <button type="button" class="toolbar-btn" (click)="execCommand('insertUnorderedList')" [title]="'shared.editor.bullet_list' | translate">
             <i class="bi bi-list-ul"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="execCommand('insertOrderedList')" title="Numbered List">
+          <button type="button" class="toolbar-btn" (click)="execCommand('insertOrderedList')" [title]="'shared.editor.numbered_list' | translate">
             <i class="bi bi-list-ol"></i>
           </button>
         </div>
-        
+
         <div class="toolbar-divider"></div>
-        
+
         <div class="toolbar-group">
-          <button type="button" class="toolbar-btn" (click)="execCommand('justifyLeft')" title="Align Left">
+          <button type="button" class="toolbar-btn" (click)="execCommand('justifyLeft')" [title]="'shared.editor.align_left' | translate">
             <i class="bi bi-text-left"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="execCommand('justifyCenter')" title="Align Center">
+          <button type="button" class="toolbar-btn" (click)="execCommand('justifyCenter')" [title]="'shared.editor.align_center' | translate">
             <i class="bi bi-text-center"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="execCommand('justifyRight')" title="Align Right">
+          <button type="button" class="toolbar-btn" (click)="execCommand('justifyRight')" [title]="'shared.editor.align_right' | translate">
             <i class="bi bi-text-right"></i>
           </button>
         </div>
-        
+
         <div class="toolbar-divider" *ngIf="allowLinks || allowImages"></div>
-        
+
         <div class="toolbar-group" *ngIf="allowLinks || allowImages">
-          <button type="button" class="toolbar-btn" (click)="insertLink()" title="Insert Link" *ngIf="allowLinks">
+          <button type="button" class="toolbar-btn" (click)="insertLink()" [title]="'shared.editor.insert_link' | translate" *ngIf="allowLinks">
             <i class="bi bi-link-45deg"></i>
           </button>
-          <button type="button" class="toolbar-btn" (click)="insertImage()" title="Insert Image" *ngIf="allowImages">
+          <button type="button" class="toolbar-btn" (click)="insertImage()" [title]="'shared.editor.insert_image' | translate" *ngIf="allowImages">
             <i class="bi bi-image"></i>
           </button>
         </div>
-        
+
         <div class="toolbar-divider"></div>
-        
+
         <div class="toolbar-group">
-          <button type="button" class="toolbar-btn" (click)="execCommand('removeFormat')" title="Clear Formatting">
+          <button type="button" class="toolbar-btn" (click)="execCommand('removeFormat')" [title]="'shared.editor.clear_formatting' | translate">
             <i class="bi bi-eraser"></i>
           </button>
         </div>
-        
+
         <div class="toolbar-group ms-auto" *ngIf="showWordCount">
           <span class="word-count" [class.over-limit]="isOverLimit">
-            {{ wordCount }}<span *ngIf="maxWords"> / {{ maxWords }}</span> words
+            {{ wordCount }}<span *ngIf="maxWords"> / {{ maxWords }}</span> {{ 'shared.editor.words' | translate }}
           </span>
         </div>
       </div>
@@ -90,7 +92,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
         [attr.contenteditable]="!disabled"
         [style.minHeight.px]="minHeight"
         [style.maxHeight.px]="maxHeight"
-        [attr.placeholder]="placeholder"
+        [attr.placeholder]="placeholder || ('shared.editor.placeholder' | translate)"
         (input)="onInput($event)"
         (focus)="onFocus()"
         (blur)="onBlur()"
@@ -100,10 +102,10 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
       <!-- Character/Word Limit Warning -->
       <div class="editor-footer" *ngIf="showCharCount || (showWordCount && !showToolbar)">
         <span class="char-count" *ngIf="showCharCount" [class.over-limit]="charCount > maxChars">
-          {{ charCount }}<span *ngIf="maxChars"> / {{ maxChars }}</span> characters
+          {{ charCount }}<span *ngIf="maxChars"> / {{ maxChars }}</span> {{ 'shared.editor.characters' | translate }}
         </span>
         <span class="word-count" *ngIf="showWordCount && !showToolbar" [class.over-limit]="isOverLimit">
-          {{ wordCount }}<span *ngIf="maxWords"> / {{ maxWords }}</span> words
+          {{ wordCount }}<span *ngIf="maxWords"> / {{ maxWords }}</span> {{ 'shared.editor.words' | translate }}
         </span>
       </div>
     </div>
@@ -185,7 +187,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/f
 export class RichTextEditorComponent implements ControlValueAccessor, OnInit, OnDestroy {
   @ViewChild('editor') editor!: ElementRef<HTMLDivElement>;
 
-  @Input() placeholder: string = 'Enter text here...';
+  @Input() placeholder: string = '';
   @Input() minHeight: number = 150;
   @Input() maxHeight: number = 400;
   @Input() showToolbar: boolean = true;
@@ -209,6 +211,8 @@ export class RichTextEditorComponent implements ControlValueAccessor, OnInit, On
 
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
+
+  private i18n = inject(I18nService);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -243,14 +247,14 @@ export class RichTextEditorComponent implements ControlValueAccessor, OnInit, On
   }
 
   insertLink(): void {
-    const url = prompt('Enter URL:');
+    const url = prompt(this.i18n.t('shared.editor.prompt_url'));
     if (url) {
       this.execCommand('createLink', url);
     }
   }
 
   insertImage(): void {
-    const url = prompt('Enter image URL:');
+    const url = prompt(this.i18n.t('shared.editor.prompt_image_url'));
     if (url) {
       this.execCommand('insertImage', url);
     }

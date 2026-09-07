@@ -2,16 +2,16 @@
   @if (loading) {
     <div class="lv-msg">
       <div class="spinner-border text-light" role="status"></div>
-      <div class="mt-2">Opening…</div>
+      <div class="mt-2">{{ 'library.opening' | translate }}</div>
     </div>
   } @else if (error || item === null) {
     <div class="lv-msg">
       <i class="bi bi-hourglass-split fs-1"></i>
       <p class="mb-0 mt-2">
         @if (item && !item.viewable) {
-          This document is still being prepared for viewing. Check back shortly.
+          {{ 'library.viewer_preparing' | translate }}
         } @else {
-          This file could not be opened.
+          {{ 'library.viewer_open_failed' | translate }}
         }
       </p>
     </div>

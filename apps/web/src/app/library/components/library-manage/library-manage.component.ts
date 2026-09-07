@@ -11,6 +11,8 @@ import {
   type LibraryKind,
   type AudienceType,
 } from '../../library.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 interface Option {
   id: string;
@@ -28,7 +30,7 @@ interface Option {
 @Component({
   selector: 'app-library-manage',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, LibraryViewerComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, LibraryViewerComponent, TranslatePipe],
   templateUrl: './library-manage.component.html',
   styleUrl: './library-manage.component.scss',
 })
@@ -36,6 +38,7 @@ export class LibraryManageComponent implements OnInit {
   private readonly library = inject(LibraryService);
   private readonly api = inject(ApiClient);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
 
   readonly loading = signal(true);
   readonly items = signal<LibraryItem[]>([]);
@@ -58,11 +61,11 @@ export class LibraryManageComponent implements OnInit {
   readonly preview = signal<LibraryItem | null>(null);
 
   readonly targetTypes: Array<{ value: AudienceType; label: string }> = [
-    { value: 'all', label: 'Everyone' },
-    { value: 'department', label: 'A department' },
-    { value: 'branch', label: 'A branch' },
-    { value: 'team', label: 'A team' },
-    { value: 'role', label: 'A role' },
+    { value: 'all', label: 'library.audience_all' },
+    { value: 'department', label: 'library.audience_department' },
+    { value: 'branch', label: 'library.audience_branch' },
+    { value: 'team', label: 'library.audience_team' },
+    { value: 'role', label: 'library.audience_role' },
   ];
 
   ngOnInit(): void {
@@ -78,7 +81,7 @@ export class LibraryManageComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.toast.error('The library could not be loaded.');
+        this.toast.error(this.i18n.t('library.load_error'));
         this.loading.set(false);
       },
     });
@@ -184,13 +187,13 @@ export class LibraryManageComponent implements OnInit {
     if (this.editing) {
       this.library.update(this.editing.id, input).subscribe({
         next: () => {
-          this.toast.success('Updated.');
+          this.toast.success(this.i18n.t('library.toast_updated'));
           this.saving.set(false);
           this.showForm.set(false);
           this.load();
         },
         error: () => {
-          this.toast.error('It could not be saved.');
+          this.toast.error(this.i18n.t('library.toast_save_failed'));
           this.saving.set(false);
         },
       });
@@ -201,29 +204,29 @@ export class LibraryManageComponent implements OnInit {
       next: (p) => {
         this.progress.set(p.progress);
         if (p.state === 'done') {
-          this.toast.success('Shared to the library.');
+          this.toast.success(this.i18n.t('library.toast_shared'));
           this.saving.set(false);
           this.showForm.set(false);
           this.load();
         }
       },
       error: () => {
-        this.toast.error('The file could not be uploaded.');
+        this.toast.error(this.i18n.t('library.toast_upload_failed'));
         this.saving.set(false);
       },
     });
   }
 
   remove(item: LibraryItem): void {
-    if (!confirm(`Remove “${item.title}” from the library? This cannot be undone.`)) {
+    if (!confirm(this.i18n.t('library.remove_confirm', { title: item.title }))) {
       return;
     }
     this.library.delete(item.id).subscribe({
       next: () => {
-        this.toast.success('Removed.');
+        this.toast.success(this.i18n.t('library.toast_removed'));
         this.items.set(this.items().filter((x) => x.id !== item.id));
       },
-      error: () => this.toast.error('It could not be removed.'),
+      error: () => this.toast.error(this.i18n.t('library.toast_remove_failed')),
     });
   }
 
@@ -243,8 +246,8 @@ export class LibraryManageComponent implements OnInit {
   statusLabel(item: LibraryItem): string | null {
     switch (item.conversionStatus) {
       case 'pending':
-      case 'processing': return 'Preparing…';
-      case 'failed': return 'Conversion failed';
+      case 'processing': return this.i18n.t('library.status_preparing');
+      case 'failed': return this.i18n.t('library.status_conversion_failed');
       default: return null;
     }
   }

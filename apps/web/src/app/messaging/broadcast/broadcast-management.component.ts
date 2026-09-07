@@ -7,6 +7,8 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MessagingService, Broadcast } from '../messaging.service';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 // Interface for form target criteria (non-nullable arrays)
 interface FormTargetCriteria {
@@ -18,7 +20,7 @@ interface FormTargetCriteria {
 @Component({
   selector: 'app-broadcast-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
   template: `
     <app-top></app-top>
 
@@ -28,12 +30,12 @@ interface FormTargetCriteria {
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h1 class="page-title mb-1">
-              <i class="bi bi-megaphone me-2"></i>Broadcast Messages
+              <i class="bi bi-megaphone me-2"></i>{{ 'messaging.broadcast_messages' | translate }}
             </h1>
-            <p class="text-muted mb-0">Send announcements to learners and staff</p>
+            <p class="text-muted mb-0">{{ 'messaging.broadcast_subtitle' | translate }}</p>
           </div>
           <button class="btn btn-primary" (click)="openNewBroadcastModal()">
-            <i class="bi bi-plus-lg me-2"></i>New Broadcast
+            <i class="bi bi-plus-lg me-2"></i>{{ 'messaging.new_broadcast' | translate }}
           </button>
         </div>
       </div>
@@ -47,7 +49,7 @@ interface FormTargetCriteria {
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stats.total_sent }}</div>
-              <div class="stat-label">Total Sent</div>
+              <div class="stat-label">{{ 'messaging.total_sent' | translate }}</div>
             </div>
           </div>
         </div>
@@ -58,7 +60,7 @@ interface FormTargetCriteria {
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stats.total_recipients }}</div>
-              <div class="stat-label">Total Recipients</div>
+              <div class="stat-label">{{ 'messaging.total_recipients' | translate }}</div>
             </div>
           </div>
         </div>
@@ -69,7 +71,7 @@ interface FormTargetCriteria {
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stats.avg_read_rate }}%</div>
-              <div class="stat-label">Avg Read Rate</div>
+              <div class="stat-label">{{ 'messaging.avg_read_rate' | translate }}</div>
             </div>
           </div>
         </div>
@@ -80,7 +82,7 @@ interface FormTargetCriteria {
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ stats.scheduled }}</div>
-              <div class="stat-label">Scheduled</div>
+              <div class="stat-label">{{ 'messaging.scheduled' | translate }}</div>
             </div>
           </div>
         </div>
@@ -90,12 +92,12 @@ interface FormTargetCriteria {
       <ul class="nav nav-pills mb-4">
         <li class="nav-item">
           <button class="nav-link" [class.active]="activeTab === 'sent'" (click)="activeTab = 'sent'">
-            <i class="bi bi-check2-circle me-2"></i>Sent
+            <i class="bi bi-check2-circle me-2"></i>{{ 'messaging.tab_sent' | translate }}
           </button>
         </li>
         <li class="nav-item">
           <button class="nav-link" [class.active]="activeTab === 'scheduled'" (click)="activeTab = 'scheduled'">
-            <i class="bi bi-clock me-2"></i>Scheduled
+            <i class="bi bi-clock me-2"></i>{{ 'messaging.scheduled' | translate }}
             <span class="badge bg-warning text-dark ms-2" *ngIf="scheduledBroadcasts.length">
               {{ scheduledBroadcasts.length }}
             </span>
@@ -103,7 +105,7 @@ interface FormTargetCriteria {
         </li>
         <li class="nav-item">
           <button class="nav-link" [class.active]="activeTab === 'drafts'" (click)="activeTab = 'drafts'">
-            <i class="bi bi-file-earmark me-2"></i>Drafts
+            <i class="bi bi-file-earmark me-2"></i>{{ 'messaging.tab_drafts' | translate }}
           </button>
         </li>
       </ul>
@@ -131,18 +133,18 @@ interface FormTargetCriteria {
                   </span>
                   <span class="text-muted small" *ngIf="broadcast.sent_at">
                     <i class="bi bi-clock me-1"></i>
-                    Sent {{ formatDateTime(broadcast.sent_at) }}
+                    {{ 'messaging.sent_prefix' | translate }} {{ formatDateTime(broadcast.sent_at) }}
                   </span>
                   <span class="text-muted small" *ngIf="broadcast.scheduled_at && broadcast.status === 'scheduled'">
                     <i class="bi bi-calendar me-1"></i>
-                    Scheduled for {{ formatDateTime(broadcast.scheduled_at) }}
+                    {{ 'messaging.scheduled_for' | translate }} {{ formatDateTime(broadcast.scheduled_at) }}
                   </span>
                 </div>
               </div>
               <div class="broadcast-stats text-center" *ngIf="broadcast.status === 'sent'">
                 <div class="stat-mini">
                   <div class="stat-value">{{ broadcast.read_count }}/{{ broadcast.recipients_count }}</div>
-                  <div class="stat-label">Read</div>
+                  <div class="stat-label">{{ 'messaging.read_stat' | translate }}</div>
                 </div>
                 <div class="progress mt-2" style="height: 4px; width: 80px;">
                   <div class="progress-bar bg-success" [style.width.%]="getReadPercentage(broadcast)"></div>
@@ -150,19 +152,19 @@ interface FormTargetCriteria {
               </div>
               <div class="broadcast-actions">
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-primary" (click)="viewBroadcast(broadcast)" title="View Details">
+                  <button class="btn btn-primary" (click)="viewBroadcast(broadcast)" [title]="'messaging.view_details' | translate">
                     <i class="bi bi-eye"></i>
                   </button>
                   <button class="btn btn-secondary" *ngIf="broadcast.status === 'draft'"
-                          (click)="editBroadcast(broadcast)" title="Edit">
+                          (click)="editBroadcast(broadcast)" [title]="'common.edit' | translate">
                     <i class="bi bi-pencil"></i>
                   </button>
                   <button class="btn btn-success" *ngIf="broadcast.status === 'draft'"
-                          (click)="sendBroadcast(broadcast)" title="Send Now">
+                          (click)="sendBroadcast(broadcast)" [title]="'messaging.send_now' | translate">
                     <i class="bi bi-send"></i>
                   </button>
                   <button class="btn btn-outline-danger" *ngIf="broadcast.status !== 'sent'"
-                          (click)="deleteBroadcast(broadcast)" title="Delete">
+                          (click)="deleteBroadcast(broadcast)" [title]="'common.delete' | translate">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -172,14 +174,14 @@ interface FormTargetCriteria {
           <ng-template #emptyState>
             <div class="empty-state">
               <i class="bi bi-megaphone display-4 text-muted"></i>
-              <h5 class="mt-3">No Broadcasts</h5>
+              <h5 class="mt-3">{{ 'messaging.no_broadcasts' | translate }}</h5>
               <p class="text-muted">
-                {{ activeTab === 'sent' ? 'No broadcasts have been sent yet.' :
-                activeTab === 'scheduled' ? 'No scheduled broadcasts.' :
-                  'No draft broadcasts.' }}
+                {{ (activeTab === 'sent' ? 'messaging.no_sent' :
+                activeTab === 'scheduled' ? 'messaging.no_scheduled' :
+                  'messaging.no_drafts') | translate }}
               </p>
               <button class="btn btn-primary" (click)="openNewBroadcastModal()">
-                <i class="bi bi-plus-lg me-2"></i>Create Broadcast
+                <i class="bi bi-plus-lg me-2"></i>{{ 'messaging.create_broadcast' | translate }}
               </button>
             </div>
           </ng-template>
@@ -193,7 +195,7 @@ interface FormTargetCriteria {
             <div class="modal-header">
               <h5 class="modal-title">
                 <i class="bi bi-megaphone me-2"></i>
-                {{ editingBroadcast ? 'Edit Broadcast' : 'New Broadcast' }}
+                {{ (editingBroadcast ? 'messaging.edit_broadcast' : 'messaging.new_broadcast') | translate }}
               </h5>
               <button type="button" class="btn-close" (click)="closeBroadcastModal()"></button>
             </div>
@@ -201,19 +203,19 @@ interface FormTargetCriteria {
               <form>
                 <!-- Title -->
                 <div class="mb-3">
-                  <label class="form-label">Title *</label>
+                  <label class="form-label">{{ 'messaging.bc_title' | translate }} *</label>
                   <input type="text" class="form-control" [(ngModel)]="broadcastForm.title" name="title"
-                         placeholder="Enter broadcast title" required>
+                         placeholder="{{ 'messaging.bc_title_ph' | translate }}" required>
                 </div>
 
                 <!-- Content -->
                 <div class="mb-3">
-                  <label class="form-label">Message *</label>
+                  <label class="form-label">{{ 'messaging.bc_message' | translate }} *</label>
                   <textarea class="form-control" rows="6" [(ngModel)]="broadcastForm.content" name="content"
-                            placeholder="Enter your message here..." required></textarea>
+                            placeholder="{{ 'messaging.bc_message_ph' | translate }}" required></textarea>
                   <div class="form-text">
                     <i class="bi bi-info-circle me-1"></i>
-                    You can use &#64;mentions to notify specific users or groups
+                    {{ 'messaging.bc_mentions_help' | translate }}
                   </div>
                 </div>
 
@@ -221,11 +223,11 @@ interface FormTargetCriteria {
                   <!-- Priority -->
                   <div class="col-md-6">
                     <div class="mb-3">
-                      <label class="form-label">Priority</label>
+                      <label class="form-label">{{ 'messaging.priority' | translate }}</label>
                       <select class="form-select" [(ngModel)]="broadcastForm.priority" name="priority">
-                        <option value="normal">Normal</option>
-                        <option value="important">Important</option>
-                        <option value="urgent">Urgent</option>
+                        <option value="normal">{{ 'messaging.priority_normal' | translate }}</option>
+                        <option value="important">{{ 'messaging.priority_important' | translate }}</option>
+                        <option value="urgent">{{ 'messaging.priority_urgent' | translate }}</option>
                       </select>
                     </div>
                   </div>
@@ -233,13 +235,13 @@ interface FormTargetCriteria {
                   <!-- Target Audience -->
                   <div class="col-md-6">
                     <div class="mb-3">
-                      <label class="form-label">Target Audience *</label>
+                      <label class="form-label">{{ 'messaging.target_audience' | translate }} *</label>
                       <select class="form-select" [(ngModel)]="broadcastForm.target_type" name="target_type"
                               (change)="onTargetTypeChange()">
-                        <option value="all">All Users</option>
-                        <option value="role">By Role</option>
-                        <option value="department">By Department</option>
-                        <option value="course">By Course Enrollment</option>
+                        <option value="all">{{ 'messaging.target_all' | translate }}</option>
+                        <option value="role">{{ 'messaging.target_role' | translate }}</option>
+                        <option value="department">{{ 'messaging.target_department' | translate }}</option>
+                        <option value="course">{{ 'messaging.target_course_enrollment' | translate }}</option>
                       </select>
                     </div>
                   </div>
@@ -247,7 +249,7 @@ interface FormTargetCriteria {
 
                 <!-- Target Criteria -->
                 <div class="mb-3" *ngIf="broadcastForm.target_type === 'role'">
-                  <label class="form-label">Select Roles</label>
+                  <label class="form-label">{{ 'messaging.select_roles' | translate }}</label>
                   <div class="d-flex flex-wrap gap-2">
                     <div class="form-check" *ngFor="let role of availableRoles">
                       <input type="checkbox" class="form-check-input" [id]="'role_' + role.id"
@@ -258,7 +260,7 @@ interface FormTargetCriteria {
                 </div>
 
                 <div class="mb-3" *ngIf="broadcastForm.target_type === 'department'">
-                  <label class="form-label">Select Departments</label>
+                  <label class="form-label">{{ 'messaging.select_departments' | translate }}</label>
                   <select class="form-select" multiple [ngModel]="getSelectedDepartments()"
                           (ngModelChange)="setSelectedDepartments($event)" name="departments">
                     <option *ngFor="let dept of availableDepartments" [value]="dept.id">{{ dept.name }}</option>
@@ -266,10 +268,10 @@ interface FormTargetCriteria {
                 </div>
 
                 <div class="mb-3" *ngIf="broadcastForm.target_type === 'course'">
-                  <label class="form-label">Select Course</label>
+                  <label class="form-label">{{ 'messaging.select_course' | translate }}</label>
                   <select class="form-select" [ngModel]="getSelectedCourseId()"
                           (ngModelChange)="setSelectedCourseId($event)" name="course_id">
-                    <option value="">Select a course...</option>
+                    <option value="">{{ 'messaging.select_course_ph' | translate }}</option>
                     <option *ngFor="let course of availableCourses" [value]="course.id">{{ course.title }}</option>
                   </select>
                 </div>
@@ -281,21 +283,21 @@ interface FormTargetCriteria {
                   <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="scheduleCheck"
                            [(ngModel)]="scheduleEnabled" name="scheduleEnabled">
-                    <label class="form-check-label" for="scheduleCheck">Schedule for later</label>
+                    <label class="form-check-label" for="scheduleCheck">{{ 'messaging.schedule_later' | translate }}</label>
                   </div>
                 </div>
 
                 <div class="row" *ngIf="scheduleEnabled">
                   <div class="col-md-6">
                     <div class="mb-3">
-                      <label class="form-label">Schedule Date</label>
+                      <label class="form-label">{{ 'messaging.schedule_date' | translate }}</label>
                       <input type="date" class="form-control" [(ngModel)]="broadcastForm.scheduled_date"
                              name="scheduled_date">
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="mb-3">
-                      <label class="form-label">Schedule Time</label>
+                      <label class="form-label">{{ 'messaging.schedule_time' | translate }}</label>
                       <input type="time" class="form-control" [(ngModel)]="broadcastForm.scheduled_time"
                              name="scheduled_time">
                     </div>
@@ -307,12 +309,12 @@ interface FormTargetCriteria {
                   <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="expiryCheck"
                            [(ngModel)]="expiryEnabled" name="expiryEnabled">
-                    <label class="form-check-label" for="expiryCheck">Set expiry date</label>
+                    <label class="form-check-label" for="expiryCheck">{{ 'messaging.set_expiry' | translate }}</label>
                   </div>
                 </div>
 
                 <div class="mb-3" *ngIf="expiryEnabled">
-                  <label class="form-label">Expires At</label>
+                  <label class="form-label">{{ 'messaging.expires_at' | translate }}</label>
                   <input type="datetime-local" class="form-control" [(ngModel)]="broadcastForm.expires_at"
                          name="expires_at">
                 </div>
@@ -323,21 +325,21 @@ interface FormTargetCriteria {
                     <input type="checkbox" class="form-check-input" id="ackCheck"
                            [(ngModel)]="broadcastForm.requires_acknowledgment" name="requires_acknowledgment">
                     <label class="form-check-label" for="ackCheck">
-                      Require acknowledgment
-                      <small class="text-muted d-block">Recipients must confirm they've read the message</small>
+                      {{ 'messaging.require_ack' | translate }}
+                      <small class="text-muted d-block">{{ 'messaging.require_ack_help' | translate }}</small>
                     </label>
                   </div>
                 </div>
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeBroadcastModal()">Cancel</button>
+              <button class="btn btn-secondary" (click)="closeBroadcastModal()">{{ 'common.cancel' | translate }}</button>
               <button class="btn btn-primary" (click)="saveDraft()" [disabled]="!isFormValid()">
-                <i class="bi bi-file-earmark me-2"></i>Save Draft
+                <i class="bi bi-file-earmark me-2"></i>{{ 'messaging.save_draft' | translate }}
               </button>
               <button class="btn btn-primary" (click)="submitBroadcast()" [disabled]="!isFormValid()">
                 <i class="bi me-2" [ngClass]="scheduleEnabled ? 'bi-calendar-check' : 'bi-send'"></i>
-                {{ scheduleEnabled ? 'Schedule' : 'Send Now' }}
+                {{ (scheduleEnabled ? 'messaging.schedule_action' : 'messaging.send_now') | translate }}
               </button>
             </div>
           </div>
@@ -351,7 +353,7 @@ interface FormTargetCriteria {
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">
-                <i class="bi bi-megaphone me-2"></i>Broadcast Details
+                <i class="bi bi-megaphone me-2"></i>{{ 'messaging.broadcast_details' | translate }}
               </h5>
               <button type="button" class="btn-close" (click)="closeViewModal()"></button>
             </div>
@@ -376,19 +378,19 @@ interface FormTargetCriteria {
               <div class="row g-3" *ngIf="viewingBroadcast.status === 'sent'">
                 <div class="col-md-4">
                   <div class="detail-stat">
-                    <div class="detail-stat-label">Recipients</div>
+                    <div class="detail-stat-label">{{ 'messaging.recipients' | translate }}</div>
                     <div class="detail-stat-value">{{ viewingBroadcast.recipients_count }}</div>
                   </div>
                 </div>
                 <div class="col-md-4">
                   <div class="detail-stat">
-                    <div class="detail-stat-label">Read</div>
+                    <div class="detail-stat-label">{{ 'messaging.read_stat' | translate }}</div>
                     <div class="detail-stat-value text-success">{{ viewingBroadcast.read_count }}</div>
                   </div>
                 </div>
                 <div class="col-md-4" *ngIf="viewingBroadcast.requires_acknowledgment">
                   <div class="detail-stat">
-                    <div class="detail-stat-label">Acknowledged</div>
+                    <div class="detail-stat-label">{{ 'messaging.acknowledged' | translate }}</div>
                     <div class="detail-stat-value text-primary">{{ viewingBroadcast.acknowledged_count }}</div>
                   </div>
                 </div>
@@ -398,17 +400,17 @@ interface FormTargetCriteria {
               <hr>
               <div class="row small text-muted">
                 <div class="col-md-6">
-                  <p><strong>Target:</strong> {{ getTargetLabel(viewingBroadcast) }}</p>
-                  <p *ngIf="viewingBroadcast.sent_at"><strong>Sent:</strong> {{ formatDateTime(viewingBroadcast.sent_at) }}</p>
+                  <p><strong>{{ 'messaging.target_label' | translate }}</strong> {{ getTargetLabel(viewingBroadcast) }}</p>
+                  <p *ngIf="viewingBroadcast.sent_at"><strong>{{ 'messaging.sent_label' | translate }}</strong> {{ formatDateTime(viewingBroadcast.sent_at) }}</p>
                 </div>
                 <div class="col-md-6">
-                  <p *ngIf="viewingBroadcast.expires_at"><strong>Expires:</strong> {{ formatDateTime(viewingBroadcast.expires_at) }}</p>
-                  <p><strong>Created:</strong> {{ formatDateTime(viewingBroadcast.created_at) }}</p>
+                  <p *ngIf="viewingBroadcast.expires_at"><strong>{{ 'messaging.expires_label' | translate }}</strong> {{ formatDateTime(viewingBroadcast.expires_at) }}</p>
+                  <p><strong>{{ 'messaging.created_label' | translate }}</strong> {{ formatDateTime(viewingBroadcast.created_at) }}</p>
                 </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeViewModal()">Close</button>
+              <button class="btn btn-secondary" (click)="closeViewModal()">{{ 'common.close' | translate }}</button>
             </div>
           </div>
         </div>
@@ -640,7 +642,7 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
     { id: 3, title: 'Technical Skills' }
   ];
 
-  constructor(private messagingService: MessagingService) {}
+  constructor(private messagingService: MessagingService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.loadBroadcasts();
@@ -667,7 +669,7 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
         error: (failure: { message?: string }) => {
-          this.error = failure.message ?? 'Announcements could not be loaded.';
+          this.error = failure.message ?? this.i18n.t('messaging.broadcasts_load_error');
           this.loading = false;
         },
       });
@@ -862,7 +864,7 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
   }
 
   sendBroadcast(broadcast: Broadcast): void {
-    if (!confirm('Send this broadcast now?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_send_broadcast'))) return;
 
     this.messagingService.sendBroadcast(broadcast.broadcast_id)
       .pipe(takeUntil(this.destroy$))
@@ -872,7 +874,7 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
   }
 
   deleteBroadcast(broadcast: Broadcast): void {
-    if (!confirm('Delete this broadcast?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_delete_broadcast'))) return;
     // TODO: Implement delete
     this.loadBroadcasts();
   }
@@ -910,11 +912,11 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
 
   getTargetLabel(broadcast: Broadcast): string {
     switch (broadcast.target_type) {
-      case 'all': return 'All Users';
-      case 'role': return 'By Role';
-      case 'department': return 'By Department';
-      case 'course': return 'Course Enrollees';
-      default: return 'Custom';
+      case 'all': return this.i18n.t('messaging.target_all');
+      case 'role': return this.i18n.t('messaging.target_role');
+      case 'department': return this.i18n.t('messaging.target_department');
+      case 'course': return this.i18n.t('messaging.target_course_enrollees');
+      default: return this.i18n.t('messaging.target_custom');
     }
   }
 

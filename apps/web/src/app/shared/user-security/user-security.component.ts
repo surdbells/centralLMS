@@ -9,6 +9,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { ApiError } from '../../core/api';
 import { SessionStore } from '../../core/auth/session.store';
 import { UsersService } from '../../services/users.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * Changing your own password.
@@ -36,6 +38,7 @@ import { UsersService } from '../../services/users.service';
     FormsModule,
     TuiIcon,
     TuiLoader,
+    TranslatePipe,
   ],
   templateUrl: './user-security.component.html',
   styleUrl: './user-security.component.css',
@@ -45,6 +48,7 @@ export class UserSecurityComponent implements OnDestroy {
   private readonly toast = inject(HotToastService);
   private readonly session = inject(SessionStore);
   private readonly users = inject(UsersService);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -85,7 +89,7 @@ export class UserSecurityComponent implements OnDestroy {
     const session = this.session.session();
 
     if (session === null) {
-      this.error_notification('Sign in again to change your password.');
+      this.error_notification(this.i18n.t('security.toast_sign_in_again'));
 
       return;
     }
@@ -111,7 +115,7 @@ export class UserSecurityComponent implements OnDestroy {
         next: () => {
           this.ui_controls.is_loading = false;
           this.update_password = { current_password: '', password: '', confirm_password: '' };
-          this.success_notification('Your password has been changed.');
+          this.success_notification(this.i18n.t('security.toast_password_changed'));
         },
         error: (error: ApiError) => {
           // The old screen had a branch for `response_code === 200` and one
@@ -126,19 +130,19 @@ export class UserSecurityComponent implements OnDestroy {
   /** The first thing wrong with the form, or null. */
   private whatIsWrong(): string | null {
     if (this.update_password.current_password.length === 0) {
-      return 'Enter your current password.';
+      return this.i18n.t('security.err_current_required');
     }
 
     if (this.update_password.password.length === 0) {
-      return 'Password is required';
+      return this.i18n.t('security.err_password_required');
     }
 
     if (this.update_password.confirm_password.length === 0) {
-      return 'Password does not match';
+      return this.i18n.t('security.err_password_mismatch');
     }
 
     if (this.update_password.password !== this.update_password.confirm_password) {
-      return 'Password does not match';
+      return this.i18n.t('security.err_password_mismatch');
     }
 
     return null;

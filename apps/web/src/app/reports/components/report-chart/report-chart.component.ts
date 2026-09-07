@@ -3,13 +3,15 @@
 import { Component, Input, OnChanges, SimpleChanges, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { ChartData, ChartDataset, ChartType, PieSlice } from '../../models/report.models';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 interface StackSeg { bottom: number; top: number; value: number; }
 
 @Component({
   selector: 'app-report-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   providers: [DecimalPipe],
   template: `
     <div class="report-chart card border-0 shadow-sm">
@@ -161,7 +163,7 @@ interface StackSeg { bottom: number; top: number; value: number; }
           <!-- Empty state -->
           <div *ngIf="!cd || !cd.labels.length" class="text-center py-5 text-muted">
             <i class="bi bi-bar-chart-line fs-1 d-block mb-2"></i>
-            <p class="mb-0">No chart data available</p>
+            <p class="mb-0">{{ 'reports.no_chart_data' | translate }}</p>
           </div>
         </div>
 
@@ -235,7 +237,17 @@ export class ReportChartComponent implements OnChanges {
     '#06b6d4', '#84cc16'
   ];
 
-  constructor(public dp: DecimalPipe) {}
+  constructor(public dp: DecimalPipe, private i18n: I18nService) {
+    this.availableTypes = [
+      { key: 'bar', icon: 'bi bi-bar-chart', label: this.i18n.t('reports.chart_bar') },
+      { key: 'line', icon: 'bi bi-graph-up', label: this.i18n.t('reports.chart_line') },
+      { key: 'area', icon: 'bi bi-graph-up', label: this.i18n.t('reports.chart_area') },
+      { key: 'pie', icon: 'bi bi-pie-chart', label: this.i18n.t('reports.chart_pie') },
+      { key: 'doughnut', icon: 'bi bi-circle', label: this.i18n.t('reports.chart_doughnut') },
+      { key: 'horizontal_bar', icon: 'bi bi-bar-chart-steps', label: this.i18n.t('reports.chart_horizontal') },
+      { key: 'stacked_bar', icon: 'bi bi-stack', label: this.i18n.t('reports.chart_stacked') }
+    ];
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['data'] || changes['chartType']) this.buildChart();

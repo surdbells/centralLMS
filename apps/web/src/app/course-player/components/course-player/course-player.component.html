@@ -4,9 +4,9 @@
   <!-- Loading -->
   <div *ngIf="loading" class="cp-state">
     <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
+      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p class="mt-3 text-muted">Loading course…</p>
+    <p class="mt-3 text-muted">{{ 'course_player.loading_course' | translate }}</p>
   </div>
 
   <!-- Error -->
@@ -14,7 +14,7 @@
     <div class="alert alert-danger d-inline-flex align-items-center">
       <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
     </div>
-    <div><button class="btn btn-primary mt-3" routerLink="/learning">Back to Courses</button></div>
+    <div><button class="btn btn-primary mt-3" routerLink="/learning">{{ 'course_player.back_to_courses' | translate }}</button></div>
   </div>
 
   <!-- Player -->
@@ -22,16 +22,16 @@
     <!-- Top bar -->
     <header class="cp-topbar">
       <button class="cp-back" (click)="router.navigate(['/learning'])">
-        <i class="bi bi-arrow-left"></i><span>Back</span>
+        <i class="bi bi-arrow-left"></i><span>{{ 'common.back' | translate }}</span>
       </button>
       <button class="cp-collapse-toggle" (click)="toggleSidebar()"
               [attr.aria-pressed]="sidebarCollapsed"
-              [title]="sidebarCollapsed ? 'Show course content' : 'Hide course content'">
+              [title]="(sidebarCollapsed ? 'course_player.show_course_content' : 'course_player.hide_course_content') | translate">
         <i class="bi" [class.bi-layout-sidebar]="sidebarCollapsed"
            [class.bi-layout-sidebar-inset]="!sidebarCollapsed"></i>
-        <span>{{ sidebarCollapsed ? 'Show contents' : 'Hide contents' }}</span>
+        <span>{{ (sidebarCollapsed ? 'course_player.show_contents' : 'course_player.hide_contents') | translate }}</span>
       </button>
-      <button class="cp-close" (click)="router.navigate(['/learning'])" aria-label="Close">
+      <button class="cp-close" (click)="router.navigate(['/learning'])" [attr.aria-label]="'common.close' | translate">
         <i class="bi bi-x-lg"></i>
       </button>
     </header>
@@ -40,33 +40,32 @@
       <!-- ============ LEFT: COURSE CONTENT ============ -->
       <aside class="cp-sidebar">
         <div class="cp-sidebar-head">
-          <h2 class="cp-title">Course Content</h2>
+          <h2 class="cp-title">{{ 'course_player.course_content' | translate }}</h2>
           <p class="cp-subtitle">{{ courseData.course.title }}</p>
         </div>
 
         <!-- Progress card -->
         <div class="cp-progress-card">
           <div class="cp-progress-top">
-            <span class="cp-progress-label">Your progress</span>
+            <span class="cp-progress-label">{{ 'course_player.your_progress' | translate }}</span>
             <span class="cp-progress-count">
-              {{ padded(courseData.stats.completed_lessons) }} of
-              {{ padded(courseData.stats.total_lessons) }} lessons completed
+              {{ 'course_player.lessons_completed' | translate:{ completed: padded(courseData.stats.completed_lessons), total: padded(courseData.stats.total_lessons) } }}
             </span>
           </div>
           <div class="cp-progress-track">
             <div class="cp-progress-fill" [style.width.%]="getProgressPercentage()"></div>
           </div>
           <div class="cp-progress-bottom">
-            <span>{{ padded(getProgressPercentage()) }}% completed</span>
-            <span class="cp-keep-going">Keep going! 🎯</span>
+            <span>{{ 'course_player.percent_completed' | translate:{ percent: padded(getProgressPercentage()) } }}</span>
+            <span class="cp-keep-going">{{ 'course_player.keep_going' | translate }}</span>
           </div>
         </div>
 
         <!-- Path / Learners / Discuss -->
         <nav class="cp-tabs">
-          <button class="cp-tab" [class.active]="sidebarTab === 'path'" (click)="selectSidebarTab('path')">Path</button>
-          <button class="cp-tab" [class.active]="sidebarTab === 'learners'" (click)="selectSidebarTab('learners')">Learners</button>
-          <button class="cp-tab" [class.active]="sidebarTab === 'discuss'" (click)="selectSidebarTab('discuss')">Discuss</button>
+          <button class="cp-tab" [class.active]="sidebarTab === 'path'" (click)="selectSidebarTab('path')">{{ 'course_player.tab_path' | translate }}</button>
+          <button class="cp-tab" [class.active]="sidebarTab === 'learners'" (click)="selectSidebarTab('learners')">{{ 'course_player.tab_learners' | translate }}</button>
+          <button class="cp-tab" [class.active]="sidebarTab === 'discuss'" (click)="selectSidebarTab('discuss')">{{ 'course_player.tab_discuss' | translate }}</button>
         </nav>
 
         <div class="cp-sidebar-scroll">
@@ -126,7 +125,7 @@
           <div *ngIf="sidebarTab === 'learners'" class="cp-learners">
             <div class="cp-empty" *ngIf="classmatesLoaded && classmates.length === 0">
               <i class="bi bi-people"></i>
-              <p>No one else is on this course yet.</p>
+              <p>{{ 'course_player.no_learners' | translate }}</p>
             </div>
             <div class="cp-learner" *ngFor="let mate of classmates">
               <span class="cp-avatar">
@@ -135,7 +134,7 @@
               </span>
               <span class="cp-learner-text">
                 <span class="cp-learner-name">{{ mate.name }}</span>
-                <span class="cp-learner-progress">{{ mate.progress }}% complete</span>
+                <span class="cp-learner-progress">{{ 'course_player.percent_complete' | translate:{ percent: mate.progress } }}</span>
               </span>
               <span class="cp-learner-bar"><span [style.width.%]="mate.progress"></span></span>
             </div>
@@ -144,17 +143,17 @@
           <!-- DISCUSS -->
           <div *ngIf="sidebarTab === 'discuss'" class="cp-discuss">
             <div class="cp-discuss-compose">
-              <textarea class="cp-textarea" rows="2" placeholder="Ask a question or share something…"
+              <textarea class="cp-textarea" rows="2" placeholder="{{ 'course_player.discuss_placeholder' | translate }}"
                         [(ngModel)]="newDiscussionPost"></textarea>
               <button class="btn cp-btn-primary btn-sm" [disabled]="!newDiscussionPost.trim()"
                       (click)="submitDiscussionPost()">
-                <i class="bi bi-send me-1"></i>Post
+                <i class="bi bi-send me-1"></i>{{ 'course_player.post' | translate }}
               </button>
             </div>
 
             <div class="cp-empty" *ngIf="discussionLoaded && discussion.length === 0">
               <i class="bi bi-chat-dots"></i>
-              <p>Start the conversation.</p>
+              <p>{{ 'course_player.start_conversation' | translate }}</p>
             </div>
 
             <div class="cp-post" *ngFor="let post of discussion">
@@ -166,20 +165,20 @@
                 <span class="cp-post-author">{{ post.authorName }}</span>
                 <span class="cp-post-time">{{ post.createdAt | date:'short' }}</span>
                 <button class="cp-post-del" *ngIf="post.authorId === currentUserId"
-                        (click)="deleteDiscussionPost(post.id)" aria-label="Delete">
+                        (click)="deleteDiscussionPost(post.id)" [attr.aria-label]="'common.delete' | translate">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>
               <p class="cp-post-body">{{ post.body }}</p>
               <div class="cp-post-actions">
                 <button class="cp-reply-btn" (click)="startReply(post.id)">
-                  <i class="bi bi-reply me-1"></i>Reply
+                  <i class="bi bi-reply me-1"></i>{{ 'course_player.reply' | translate }}
                 </button>
               </div>
 
               <div class="cp-reply-compose" *ngIf="replyingTo === post.id">
-                <textarea class="cp-textarea" rows="1" placeholder="Write a reply…" [(ngModel)]="replyText"></textarea>
-                <button class="btn cp-btn-primary btn-sm" [disabled]="!replyText.trim()" (click)="submitReply(post.id)">Reply</button>
+                <textarea class="cp-textarea" rows="1" placeholder="{{ 'course_player.reply_placeholder' | translate }}" [(ngModel)]="replyText"></textarea>
+                <button class="btn cp-btn-primary btn-sm" [disabled]="!replyText.trim()" (click)="submitReply(post.id)">{{ 'course_player.reply' | translate }}</button>
               </div>
 
               <div class="cp-replies" *ngIf="post.replies?.length">
@@ -193,7 +192,7 @@
                     <p class="cp-post-body mb-0">{{ reply.body }}</p>
                   </span>
                   <button class="cp-post-del" *ngIf="reply.authorId === currentUserId"
-                          (click)="deleteDiscussionPost(reply.id)" aria-label="Delete">
+                          (click)="deleteDiscussionPost(reply.id)" [attr.aria-label]="'common.delete' | translate">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
@@ -351,14 +350,14 @@
 
           <!-- Notes -->
           <div *ngIf="activeTab === 'notes'">
-            <h3 class="cp-panel-title">Notes</h3>
+            <h3 class="cp-panel-title">{{ 'course_player.notes' | translate }}</h3>
             <div class="cp-note-compose">
-              <textarea class="cp-textarea" rows="2" placeholder="Add a note at the current timestamp…"
+              <textarea class="cp-textarea" rows="2" placeholder="{{ 'course_player.note_placeholder' | translate }}"
                         [(ngModel)]="newNote" (keydown.ctrl.enter)="saveNoteFromPanel()"></textarea>
               <div class="cp-note-compose-foot">
                 <span class="cp-note-ts"><i class="bi bi-clock me-1"></i>{{ formatTime(currentTime) }}</span>
                 <button class="btn cp-btn-primary btn-sm" [disabled]="!newNote.trim()" (click)="saveNoteFromPanel()">
-                  <i class="bi bi-plus-lg me-1"></i>Add note
+                  <i class="bi bi-plus-lg me-1"></i>{{ 'course_player.add_note' | translate }}
                 </button>
               </div>
             </div>
@@ -372,14 +371,14 @@
               </div>
               <div class="cp-empty" *ngIf="notes.length === 0">
                 <i class="bi bi-journal-text"></i>
-                <p>No notes yet. Add your first above.</p>
+                <p>{{ 'course_player.no_notes' | translate }}</p>
               </div>
             </div>
           </div>
 
           <!-- Resources -->
           <div *ngIf="activeTab === 'resources'">
-            <h3 class="cp-panel-title">Download Resources</h3>
+            <h3 class="cp-panel-title">{{ 'course_player.download_resources' | translate }}</h3>
 
             <!-- Files attached to the course, any type -->
             <div class="cp-res-grid" *ngIf="courseResources.length">
@@ -389,7 +388,7 @@
                   <span class="cp-res-title">{{ res.title }}</span>
                   <span class="cp-res-meta">{{ res.originalFilename }}</span>
                 </span>
-                <button class="cp-res-act" (click)="downloadCourseResource(res)" title="Download">
+                <button class="cp-res-act" (click)="downloadCourseResource(res)" [title]="'common.download' | translate">
                   <i class="bi bi-download"></i>
                 </button>
               </div>
@@ -403,7 +402,7 @@
                   <span class="cp-res-title">{{ res.title }}</span>
                   <span class="cp-res-meta">{{ res.module }}</span>
                 </span>
-                <button class="cp-res-act" (click)="downloadResource(res.url)" title="Download">
+                <button class="cp-res-act" (click)="downloadResource(res.url)" [title]="'common.download' | translate">
                   <i class="bi bi-download"></i>
                 </button>
               </div>
@@ -411,7 +410,7 @@
 
             <div class="cp-empty" *ngIf="resources.length === 0 && courseResources.length === 0">
               <i class="bi bi-folder2-open"></i>
-              <p>No downloadable resources in this course.</p>
+              <p>{{ 'course_player.no_resources' | translate }}</p>
             </div>
           </div>
         </div>
@@ -425,20 +424,20 @@
       <div class="modal-content">
         <div class="modal-body text-center py-5">
           <div class="completion-icon mb-4"><i class="bi bi-trophy-fill text-warning fs-1"></i></div>
-          <h3>Congratulations! 🎉</h3>
-          <p class="text-muted">You've completed all lessons in this course.</p>
+          <h3>{{ 'course_player.congratulations' | translate }}</h3>
+          <p class="text-muted">{{ 'course_player.course_complete_message' | translate }}</p>
           <div class="completion-stats my-4">
             <div class="stat">
               <span class="stat-value">{{ courseData?.stats?.total_lessons || 0 }}</span>
-              <span class="stat-label">Lessons</span>
+              <span class="stat-label">{{ 'course_player.lessons' | translate }}</span>
             </div>
             <div class="stat">
               <span class="stat-value">{{ courseData?.enrollment?.time_spent_minutes || 0 }}m</span>
-              <span class="stat-label">Time Spent</span>
+              <span class="stat-label">{{ 'course_player.time_spent' | translate }}</span>
             </div>
           </div>
           <button class="btn cp-btn-primary btn-lg" (click)="completeCourse()">
-            <i class="bi bi-check-circle me-2"></i>Complete Course
+            <i class="bi bi-check-circle me-2"></i>{{ 'course_player.complete_course' | translate }}
           </button>
         </div>
       </div>
@@ -451,11 +450,11 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Rate this Course</h5>
+          <h5 class="modal-title">{{ 'course_player.rate_course' | translate }}</h5>
           <button type="button" class="btn-close" (click)="skipRating()"></button>
         </div>
         <div class="modal-body">
-          <p class="text-muted">How would you rate your learning experience?</p>
+          <p class="text-muted">{{ 'course_player.rate_prompt' | translate }}</p>
           <div class="rating-stars text-center my-4">
             <button *ngFor="let star of [1,2,3,4,5]" class="btn btn-link p-1" (click)="setRating(star)">
               <i class="bi fs-2" [class.bi-star-fill]="star <= userRating" [class.bi-star]="star > userRating"
@@ -463,16 +462,17 @@
             </button>
           </div>
           <div class="mb-3">
-            <label class="form-label">Write a review (optional)</label>
-            <textarea class="form-control" rows="3" placeholder="Share your thoughts about this course..."
+            <label class="form-label">{{ 'course_player.write_review' | translate }}</label>
+            <textarea class="form-control" rows="3" placeholder="{{ 'course_player.review_placeholder' | translate }}"
                       [(ngModel)]="userReview"></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="skipRating()">Skip</button>
-          <button type="button" class="btn cp-btn-primary" [disabled]="userRating === 0" (click)="submitRating()">Submit Rating</button>
+          <button type="button" class="btn btn-secondary" (click)="skipRating()">{{ 'course_player.skip' | translate }}</button>
+          <button type="button" class="btn cp-btn-primary" [disabled]="userRating === 0" (click)="submitRating()">{{ 'course_player.submit_rating' | translate }}</button>
         </div>
       </div>
     </div>
   </div>
-  <div class="modal-backdro
+  <div class="modal-backdrop fade show" *ngIf="showRatingModal"></div>
+</div>

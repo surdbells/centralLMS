@@ -4,11 +4,12 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReportMeta } from '../../models/report.models';
+import { TranslatePipe } from '../../../translate.pipe';
 
 @Component({
   selector: 'app-report-table',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   providers: [DecimalPipe, DatePipe],
   template: `
     <div class="report-table card border-0 shadow-sm">
@@ -17,10 +18,10 @@ import { ReportMeta } from '../../models/report.models';
         <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light" *ngIf="title || searchable">
           <h6 class="mb-0 fw-semibold" *ngIf="title">{{ title }}</h6>
           <div class="d-flex gap-2 align-items-center">
-            <span class="badge bg-primary" *ngIf="filteredData.length">{{ filteredData.length }} records</span>
+            <span class="badge bg-primary" *ngIf="filteredData.length">{{ 'reports.records_count' | translate:{ count: filteredData.length } }}</span>
             <div class="input-group input-group-sm" style="width: 220px" *ngIf="searchable">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" placeholder="Search..." [(ngModel)]="searchTerm" (input)="applySearch()">
+              <input type="text" class="form-control" placeholder="{{ 'reports.search_ph' | translate }}" [(ngModel)]="searchTerm" (input)="applySearch()">
             </div>
           </div>
         </div>
@@ -80,7 +81,7 @@ import { ReportMeta } from '../../models/report.models';
             </tr>
             <tr *ngIf="!filteredData.length">
               <td [attr.colspan]="columns.length" class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-2 d-block mb-2"></i>No data available
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>{{ 'reports.no_data' | translate }}
               </td>
             </tr>
             </tbody>
@@ -90,7 +91,7 @@ import { ReportMeta } from '../../models/report.models';
         <!-- Pagination -->
         <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light" *ngIf="totalPages > 1">
           <span class="small text-muted">
-            Page {{ currentPage }} of {{ totalPages }} ({{ filteredData.length }} total)
+            {{ 'reports.page_of_total' | translate:{ current: currentPage, total: totalPages, count: filteredData.length } }}
           </span>
           <nav>
             <ul class="pagination pagination-sm mb-0">

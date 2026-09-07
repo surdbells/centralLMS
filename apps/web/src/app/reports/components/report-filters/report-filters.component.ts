@@ -3,22 +3,24 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReportFilters, ReportCatalogItem } from '../../models/report.models';
 import { ReportService } from '../../services/report.service';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 @Component({
   selector: 'app-report-filters',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="report-filters card border-0 shadow-sm mb-4">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="mb-0 fw-semibold"><i class="bi bi-funnel me-2"></i>Filters</h6>
+          <h6 class="mb-0 fw-semibold"><i class="bi bi-funnel me-2"></i>{{ 'reports.filters' | translate }}</h6>
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-secondary" (click)="toggleExpanded()" *ngIf="!alwaysExpanded">
               <i class="bi" [class.bi-chevron-down]="!expanded" [class.bi-chevron-up]="expanded"></i>
             </button>
             <button class="btn btn-sm btn-outline-danger" (click)="reset()" *ngIf="hasActiveFilters">
-              <i class="bi bi-x-circle me-1"></i>Clear
+              <i class="bi bi-x-circle me-1"></i>{{ 'common.clear' | translate }}
             </button>
           </div>
         </div>
@@ -27,85 +29,85 @@ import { ReportService } from '../../services/report.service';
           <div class="row g-3">
             <!-- Date Range -->
             <div class="col-md-3" *ngIf="showFilter('date')">
-              <label class="form-label small text-muted">Date From</label>
+              <label class="form-label small text-muted">{{ 'reports.date_from' | translate }}</label>
               <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_from" (change)="emitFilters()">
             </div>
             <div class="col-md-3" *ngIf="showFilter('date')">
-              <label class="form-label small text-muted">Date To</label>
+              <label class="form-label small text-muted">{{ 'reports.date_to' | translate }}</label>
               <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.date_to" (change)="emitFilters()">
             </div>
 
             <!-- Department -->
             <div class="col-md-3" *ngIf="showFilter('department')">
-              <label class="form-label small text-muted">Department</label>
+              <label class="form-label small text-muted">{{ 'reports.department' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.department_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">All Departments</option>
+                <option [ngValue]="undefined">{{ 'reports.all_departments' | translate }}</option>
                 <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.department_name }}</option>
               </select>
             </div>
 
             <!-- Branch -->
             <div class="col-md-3" *ngIf="showFilter('branch')">
-              <label class="form-label small text-muted">Branch</label>
+              <label class="form-label small text-muted">{{ 'reports.branch' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.branch_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">All Branches</option>
+                <option [ngValue]="undefined">{{ 'reports.all_branches' | translate }}</option>
                 <option *ngFor="let b of branches" [ngValue]="b.id">{{ b.branch_name }}</option>
               </select>
             </div>
 
             <!-- Team -->
             <div class="col-md-3" *ngIf="showFilter('team')">
-              <label class="form-label small text-muted">Team</label>
+              <label class="form-label small text-muted">{{ 'reports.team' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.team_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">All Teams</option>
+                <option [ngValue]="undefined">{{ 'reports.all_teams' | translate }}</option>
                 <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.team_name }}</option>
               </select>
             </div>
 
             <!-- Course -->
             <div class="col-md-3" *ngIf="showFilter('course')">
-              <label class="form-label small text-muted">Course</label>
+              <label class="form-label small text-muted">{{ 'reports.course' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.course_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">All Courses</option>
+                <option [ngValue]="undefined">{{ 'reports.all_courses' | translate }}</option>
                 <option *ngFor="let c of courses" [ngValue]="c.id || c.course_id">{{ c.title }}</option>
               </select>
             </div>
 
             <!-- Status -->
             <div class="col-md-3" *ngIf="showFilter('status')">
-              <label class="form-label small text-muted">Status</label>
+              <label class="form-label small text-muted">{{ 'common.status' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.status" (change)="emitFilters()">
-                <option value="">All Statuses</option>
-                <option value="completed">Completed</option>
-                <option value="in_progress">In Progress</option>
-                <option value="not_started">Not Started</option>
-                <option value="overdue">Overdue</option>
+                <option value="">{{ 'reports.all_statuses' | translate }}</option>
+                <option value="completed">{{ 'report.completed' | translate }}</option>
+                <option value="in_progress">{{ 'report.in_progress' | translate }}</option>
+                <option value="not_started">{{ 'report.not_started' | translate }}</option>
+                <option value="overdue">{{ 'reports.overdue' | translate }}</option>
               </select>
             </div>
 
             <!-- Period -->
             <div class="col-md-3" *ngIf="showFilter('period')">
-              <label class="form-label small text-muted">Period</label>
+              <label class="form-label small text-muted">{{ 'reports.period' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.period" (change)="emitFilters()">
-                <option value="month">Monthly</option>
-                <option value="quarter">Quarterly</option>
-                <option value="week">Weekly</option>
+                <option value="month">{{ 'reports.period_monthly' | translate }}</option>
+                <option value="quarter">{{ 'reports.period_quarterly' | translate }}</option>
+                <option value="week">{{ 'reports.period_weekly' | translate }}</option>
               </select>
             </div>
 
             <!-- Group By / Breakdown -->
             <div class="col-md-3" *ngIf="showFilter('breakdown')">
-              <label class="form-label small text-muted">Group By</label>
+              <label class="form-label small text-muted">{{ 'reports.group_by' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.breakdown" (change)="emitFilters()">
-                <option value="department">Department</option>
-                <option value="branch">Branch</option>
-                <option value="team">Team</option>
+                <option value="department">{{ 'reports.department' | translate }}</option>
+                <option value="branch">{{ 'reports.branch' | translate }}</option>
+                <option value="team">{{ 'reports.team' | translate }}</option>
               </select>
             </div>
 
             <!-- Per Page -->
             <div class="col-md-2" *ngIf="showFilter('per_page')">
-              <label class="form-label small text-muted">Per Page</label>
+              <label class="form-label small text-muted">{{ 'reports.per_page' | translate }}</label>
               <select class="form-select form-select-sm" [(ngModel)]="filters.per_page" (change)="emitFilters()">
                 <option [ngValue]="25">25</option>
                 <option [ngValue]="50">50</option>
@@ -116,7 +118,7 @@ import { ReportService } from '../../services/report.service';
 
           <!-- Quick date presets -->
           <div class="mt-3 d-flex gap-2 flex-wrap" *ngIf="showFilter('date')">
-            <span class="small text-muted me-1 mt-1">Quick:</span>
+            <span class="small text-muted me-1 mt-1">{{ 'reports.quick_label' | translate }}</span>
             <button *ngFor="let p of datePresets" class="btn btn-sm btn-primary"
                     [class.active]="activePreset === p.key" (click)="applyPreset(p)">
               {{ p.label }}
@@ -156,10 +158,17 @@ export class ReportFiltersComponent implements OnInit {
     );
   }
 
-  constructor(private reportService: ReportService) {}
+  constructor(private reportService: ReportService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.filters = { per_page: 25, ...this.initialFilters };
+    this.datePresets = [
+      { key: '7d', label: this.i18n.t('reports.preset_7d'), days: 7 },
+      { key: '30d', label: this.i18n.t('reports.preset_30d'), days: 30 },
+      { key: '90d', label: this.i18n.t('reports.preset_90d'), days: 90 },
+      { key: 'ytd', label: this.i18n.t('reports.preset_ytd'), days: 0 },
+      { key: 'all', label: this.i18n.t('reports.preset_all'), days: -1 }
+    ];
     this.loadLookups();
   }
 

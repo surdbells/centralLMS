@@ -5,11 +5,12 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ReportService } from '../../services/report.service';
 import { ReportCatalogItem, ReportCategory } from '../../models/report.models';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
+import {TranslatePipe} from '../../../translate.pipe';
 
 @Component({
   selector: 'app-report-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
     <main class="main px-lg-6">
@@ -17,13 +18,13 @@ import {AdmintopComponent} from '../../../partials/top/admintop/admintop.compone
         <div class="report-catalog">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h4 class="fw-bold mb-1">Report Catalog</h4>
-          <p class="text-muted mb-0 small">{{ filteredReports.length }} reports across {{ categories.length }} categories</p>
+          <h4 class="fw-bold mb-1">{{ 'reports.catalog_title' | translate }}</h4>
+          <p class="text-muted mb-0 small">{{ 'reports.catalog_subtitle' | translate:{ reports: filteredReports.length, categories: categories.length } }}</p>
         </div>
         <div class="d-flex gap-2">
           <div class="input-group" style="width: 280px">
             <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="Search reports..." [(ngModel)]="searchTerm" (input)="applyFilters()">
+            <input type="text" class="form-control" placeholder="{{ 'reports.search_reports' | translate }}" [(ngModel)]="searchTerm" (input)="applyFilters()">
           </div>
           <div class="btn-group">
             <button class="btn btn-secondary" [class.active]="viewMode==='grid'" (click)="viewMode='grid'"><i class="bi bi-grid-3x3-gap"></i></button>
@@ -35,7 +36,7 @@ import {AdmintopComponent} from '../../../partials/top/admintop/admintop.compone
       <!-- Category Pills -->
       <div class="d-flex flex-wrap gap-2 mb-4">
         <button class="btn btn-sm" [class]="activeCategory===''?'btn-primary':'btn-primary'" (click)="filterCategory('')">
-          All <span class="badge bg-white text-primary ms-1">{{ allReports.length }}</span>
+          {{ 'common.all' | translate }} <span class="badge bg-white text-primary ms-1">{{ allReports.length }}</span>
         </button>
         <button *ngFor="let cat of categories" class="btn btn-sm"
                 [class]="activeCategory===cat.key?'btn-primary':'btn-primary'" (click)="filterCategory(cat.key)">
@@ -86,7 +87,7 @@ import {AdmintopComponent} from '../../../partials/top/admintop/admintop.compone
       <!-- Empty -->
       <div *ngIf="!filteredReports.length" class="text-center py-5 text-muted">
         <i class="bi bi-search fs-1 d-block mb-2"></i>
-        <p>No reports match your search.</p>
+        <p>{{ 'reports.no_reports_match' | translate }}</p>
       </div>
     </div>
       </div>

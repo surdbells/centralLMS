@@ -6,7 +6,8 @@ import { firstValueFrom } from 'rxjs';
  * Runtime translation for the mobile app — the same lightweight approach the
  * web app uses: a flat `{ key: string }` dictionary loaded per language from
  * `assets/i18n/<lang>.json`, a `t(key)` lookup with `{{placeholder}}` support,
- * and RTL wired for Arabic. The choice persists across launches.
+ * and a left-to-right layout for every language (Arabic is translated, not
+ * mirrored). The choice persists across launches.
  *
  * Templates read it through the impure `translate` pipe; TypeScript reads it
  * through `t()`. Adding a language is a new JSON file plus a `LangCode` case.
@@ -42,11 +43,13 @@ export class I18nService {
       const dict = await firstValueFrom(this.http.get<Dict>(`assets/i18n/${lang}.json`));
       this.dict = dict ?? {};
       this.lang.set(lang);
-      this.isRtl.set(lang === 'ar');
+      this.isRtl.set(false);
       try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* */ }
       const html = document.documentElement;
       html.setAttribute('lang', lang);
-      html.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      // Layout stays left-to-right for all languages (Arabic is translated but
+      // not mirrored), per product decision.
+      html.setAttribute('dir', 'ltr');
     } catch (err) {
       // A missing/broken file must never brick the app — fall back to English.
       // eslint-disable-next-line no-console

@@ -5,20 +5,20 @@
       <span *ngIf="t === 'sep'" class="rhe-sep"></span>
       <button *ngIf="t !== 'sep'" type="button" class="rhe-btn"
               [class.active]="isActive(t)"
-              [title]="t.title" (mousedown)="run(t, $event)">
+              [title]="t.title | translate" (mousedown)="run(t, $event)">
         <i class="bi" [ngClass]="t.icon"></i>
       </button>
     </ng-container>
     <span class="rhe-sep"></span>
     <button type="button" class="rhe-btn rhe-source" [class.active]="showSource"
-            title="Edit HTML source" (click)="toggleSource()">
+            [title]="'shared.editor.edit_source' | translate" (click)="toggleSource()">
       <i class="bi bi-code-slash"></i>
     </button>
   </div>
 
   <!-- Rich surface -->
   <div #surface class="rhe-surface" [hidden]="showSource"
-       contenteditable="true" [attr.data-placeholder]="placeholder"
+       contenteditable="true" [attr.data-placeholder]="placeholder || ('shared.editor.message_placeholder' | translate)"
        [style.min-height.px]="minHeight"
        (input)="syncFromSurface()" (keyup)="saveSelection()"
        (mouseup)="saveSelection()" (blur)="blurred()"></div>

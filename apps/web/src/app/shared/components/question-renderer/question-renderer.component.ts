@@ -3,6 +3,7 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
+import { TranslatePipe } from '../../../translate.pipe';
 
 export interface QuestionOption {
   option_id: number;
@@ -38,18 +39,18 @@ export interface Question {
 @Component({
   selector: 'app-question-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusBadgeComponent],
+  imports: [CommonModule, FormsModule, StatusBadgeComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="question-container" [class.answered]="isAnswered" [class.flagged]="flagged">
       <div class="question-header">
         <div class="question-number" *ngIf="showNumber">
           <span class="number">Q{{ questionNumber }}</span>
-          <i class="bi bi-flag-fill text-warning ms-2" *ngIf="flagged" title="Flagged"></i>
+          <i class="bi bi-flag-fill text-warning ms-2" *ngIf="flagged" [title]="'shared.question.flagged' | translate"></i>
         </div>
         <div class="question-meta">
           <app-status-badge [value]="question.question_type" type="question" size="sm"></app-status-badge>
-          <span class="points" *ngIf="showPoints">{{ points }} pt{{ points !== 1 ? 's' : '' }}</span>
+          <span class="points" *ngIf="showPoints">{{ points }} {{ (points !== 1 ? 'shared.question.pts' : 'shared.question.pt') | translate }}</span>
         </div>
       </div>
 
@@ -95,11 +96,11 @@ export interface Question {
           <div class="options-list tf">
             <div class="option-item" [class.selected]="answer === true" (click)="!disabled && selectBool(true)">
               <div class="option-marker radio"><div class="inner" *ngIf="answer === true"></div></div>
-              <span>True</span>
+              <span>{{ 'quiz.true' | translate }}</span>
             </div>
             <div class="option-item" [class.selected]="answer === false" (click)="!disabled && selectBool(false)">
               <div class="option-marker radio"><div class="inner" *ngIf="answer === false"></div></div>
-              <span>False</span>
+              <span>{{ 'quiz.false' | translate }}</span>
             </div>
           </div>
         </ng-container>
@@ -107,19 +108,19 @@ export interface Question {
         <!-- Short Answer -->
         <ng-container *ngSwitchCase="'short_answer'">
           <input type="text" class="form-control" style="max-width:500px" [value]="answer || ''" [disabled]="disabled"
-                 placeholder="Type your answer" (input)="onText($event)">
-          <div class="correct-answer mt-2" *ngIf="showCorrect">Correct: {{ question.correct_answer }}</div>
+                 placeholder="{{ 'shared.question.answer_placeholder' | translate }}" (input)="onText($event)">
+          <div class="correct-answer mt-2" *ngIf="showCorrect">{{ 'shared.question.correct' | translate }} {{ question.correct_answer }}</div>
         </ng-container>
 
         <!-- Long Answer -->
         <ng-container *ngSwitchCase="'long_answer'">
           <textarea class="form-control" rows="6" [value]="answer || ''" [disabled]="disabled"
-                    placeholder="Type your answer" (input)="onText($event)"></textarea>
+                    placeholder="{{ 'shared.question.answer_placeholder' | translate }}" (input)="onText($event)"></textarea>
           <div class="word-info mt-1" *ngIf="question.settings?.min_words || question.settings?.max_words">
             <small [class.text-danger]="wordCount > (question.settings?.max_words || 9999)">
-              {{ wordCount }} words
-              <span *ngIf="question.settings?.min_words">(min: {{ question.settings?.min_words }})</span>
-              <span *ngIf="question.settings?.max_words">(max: {{ question.settings?.max_words }})</span>
+              {{ 'shared.question.n_words' | translate:{ count: wordCount } }}
+              <span *ngIf="question.settings?.min_words">{{ 'shared.question.min' | translate:{ n: question.settings?.min_words } }}</span>
+              <span *ngIf="question.settings?.max_words">{{ 'shared.question.max' | translate:{ n: question.settings?.max_words } }}</span>
             </small>
           </div>
         </ng-container>
@@ -127,9 +128,9 @@ export interface Question {
         <!-- Numeric -->
         <ng-container *ngSwitchCase="'numeric'">
           <input type="number" class="form-control" style="max-width:200px" [value]="answer" [disabled]="disabled"
-                 placeholder="Enter number" step="any" (input)="onNumeric($event)">
+                 placeholder="{{ 'shared.question.enter_number' | translate }}" step="any" (input)="onNumeric($event)">
           <div class="correct-answer mt-2" *ngIf="showCorrect">
-            Correct: {{ question.correct_answer }}
+            {{ 'shared.question.correct' | translate }} {{ question.correct_answer }}
             <span *ngIf="question.settings?.tolerance">(± {{ question.settings?.tolerance }}{{ question.settings?.tolerance_type === 'percentage' ? '%' : '' }})</span>
           </div>
         </ng-container>
@@ -146,7 +147,7 @@ export interface Question {
               <div class="match-left">{{ opt.option_text }}</div>
               <span class="match-arrow">→</span>
               <select class="form-select match-select" [disabled]="disabled" [value]="getMatch(i)" (change)="onMatch(i, $event)">
-                <option value="">Select...</option>
+                <option value="">{{ 'shared.question.select' | translate }}</option>
                 <option *ngFor="let r of matchRightOptions" [value]="r">{{ r }}</option>
               </select>
             </div>
@@ -171,11 +172,11 @@ export interface Question {
             <input type="file" #fileIn [accept]="question.settings?.allowed_file_types?.join(',')"
                    [disabled]="disabled" (change)="onFile($event)" hidden>
             <button class="btn btn-primary" (click)="fileIn.click()" [disabled]="disabled">
-              <i class="bi bi-upload me-1"></i> Upload File
+              <i class="bi bi-upload me-1"></i> {{ 'shared.question.upload_file' | translate }}
             </button>
             <small class="d-block mt-1 text-muted" *ngIf="question.settings?.allowed_file_types">
-              Allowed: {{ question.settings?.allowed_file_types?.join(', ') }}
-              <span *ngIf="question.settings?.max_file_size_mb">| Max: {{ question.settings?.max_file_size_mb }}MB</span>
+              {{ 'shared.uploader.allowed' | translate:{ types: question.settings?.allowed_file_types?.join(', ') } }}
+              <span *ngIf="question.settings?.max_file_size_mb">| {{ 'shared.question.max_mb' | translate:{ size: question.settings?.max_file_size_mb } }}</span>
             </small>
           </div>
           <div class="uploaded-file d-flex align-items-center gap-2" *ngIf="uploadedFile">
@@ -190,19 +191,19 @@ export interface Question {
         <!-- Hotspot (placeholder) -->
         <ng-container *ngSwitchCase="'hotspot'">
           <div class="hotspot-placeholder text-muted">
-            <i class="bi bi-image"></i> Hotspot question - click on the image to mark your answer
+            <i class="bi bi-image"></i> {{ 'shared.question.hotspot_hint' | translate }}
           </div>
         </ng-container>
 
       </div>
 
       <div class="explanation mt-3 p-3 bg-warning-subtle rounded" *ngIf="showExplanation && question.explanation">
-        <strong><i class="bi bi-lightbulb me-1"></i> Explanation:</strong>
+        <strong><i class="bi bi-lightbulb me-1"></i> {{ 'shared.question.explanation' | translate }}</strong>
         <div [innerHTML]="question.explanation"></div>
       </div>
 
       <div class="feedback mt-3 p-3 bg-info-subtle rounded" *ngIf="feedback">
-        <strong><i class="bi bi-chat-text me-1"></i> Feedback:</strong> {{ feedback }}
+        <strong><i class="bi bi-chat-text me-1"></i> {{ 'shared.question.feedback' | translate }}</strong> {{ feedback }}
       </div>
     </div>
   `,

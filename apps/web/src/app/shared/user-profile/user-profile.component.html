@@ -13,7 +13,7 @@
         </div>
       </div>
       <div class="col">
-        <h1 class="fs-4 mb-0">User profile</h1>
+        <h1 class="fs-4 mb-0">{{ 'profile.title' | translate }}</h1>
       </div>
       <div class="col-12 col-sm-auto mt-4 mt-sm-0">
         <!--        <a class="btn btn-secondary d-block">
@@ -27,47 +27,47 @@
       <div class="col-12 col-lg-9">
         <section *ngIf="!ui_controls.is_loading" class="card bg-body-tertiary border-transparent mb-5" id="password">
           <div class="card-body">
-            <h2 class="fs-5 mb-1">Update profile</h2>
-            <p class="text-body-secondary">Keep your information up to date</p>
+            <h2 class="fs-5 mb-1">{{ 'profile.update_title' | translate }}</h2>
+            <p class="text-body-secondary">{{ 'profile.update_subtitle' | translate }}</p>
             <div class="container my-4">
               <form class="row g-3 align-items-center">
                 <label for="profileUpload" class="col-sm-2 col-form-label fw-semibold">
-                  Profile Picture
+                  {{ 'profile.picture' | translate }}
                 </label>
                 <div class="col-sm-6">
                   <input [(ngModel)]="user_single.avatar" name="avatar" (change)="select_avatar($event)" class="form-control" type="file" id="profileUpload" accept="image/*" />
                 </div>
                 <div class="col-sm-4 text-center">
-                  <img id="profilePreview"  src="{{user_single.avatar}}"  alt="Profile Preview" class="img-thumbnail rounded-circle" style="width:120px; height:120px; object-fit:cover;" />
+                  <img id="profilePreview"  src="{{user_single.avatar}}"  alt="{{ 'profile.picture_preview' | translate }}" class="img-thumbnail rounded-circle" style="width:120px; height:120px; object-fit:cover;" />
                 </div>
               </form>
             </div>
             <div class="card border-transparent">
               <div class="card-body">
                 <div class="mb-4">
-                  <label class="form-label">First name</label>
+                  <label class="form-label">{{ 'profile.first_name' | translate }}</label>
                   <input [disabled]="true" type="text" [(ngModel)]="user_single.first_name" name="first_name" class="form-control">
                 </div>
                 <div class="mb-4">
-                  <label class="form-label">Last name</label>
+                  <label class="form-label">{{ 'profile.last_name' | translate }}</label>
                   <input [disabled]="true" type="text" [(ngModel)]="user_single.last_name" name="last_name" class="form-control">
                 </div>
                 <div class="mb-4">
-                  <label class="form-label">Email address</label>
+                  <label class="form-label">{{ 'profile.email' | translate }}</label>
                   <input [disabled]="true" [(ngModel)]="user_single.email" type="text" name="email" class="form-control">
                   <div class="form-text">
-                    For security reasons, your name and email can’t be edited here. Please contact Support to request an update: support&#64;3bayti.com.
+                    {{ 'profile.email_note' | translate }}
                   </div>
                 </div>
                 <div class="mb-4">
-                  <label class="form-label">Phone number</label>
+                  <label class="form-label">{{ 'profile.phone' | translate }}</label>
                   <input [(ngModel)]="user_single.phone" type="text" name="phone" class="form-control">
                 </div>
               </div>
             </div>
           </div>
           <div class="card-footer">
-            <button (click)="update_changes()" class="btn btn-secondary text-white" type="button">Save Changes</button>
+            <button (click)="update_changes()" class="btn btn-secondary text-white" type="button">{{ 'common.save_changes' | translate }}</button>
           </div>
         </section>
         <tui-loader *ngIf="ui_controls.is_loading" />

@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { LibraryService, type LibraryItem } from '../../library.service';
+import { TranslatePipe } from '../../../translate.pipe';
 
 /**
  * Shows one library item inline, and does what can be done to keep it from
@@ -20,7 +21,7 @@ import { LibraryService, type LibraryItem } from '../../library.service';
 @Component({
   selector: 'app-library-viewer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TranslatePipe],
   templateUrl: './library-viewer.component.html',
   styleUrl: './library-viewer.component.scss',
 })

@@ -9,6 +9,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { ApiError } from '../../core/api';
 import { MyProfileService } from '../../services/my-profile.service';
 import type { User } from '../../services/users.service';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 /**
  * Your own name, telephone number and picture.
@@ -39,6 +41,7 @@ import type { User } from '../../services/users.service';
     FormsModule,
     TuiIcon,
     TuiLoader,
+    TranslatePipe,
   ],
   templateUrl: './user-profile.component.html',
   styleUrl: './user-profile.component.css',
@@ -47,6 +50,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
   private readonly profile = inject(MyProfileService);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
 
@@ -118,7 +122,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
         next: (user) => {
           this.user_single = adapt(user);
           this.ui_controls.is_loading = false;
-          this.success_notification('Your profile has been saved.');
+          this.success_notification(this.i18n.t('profile.toast_saved'));
         },
         error: (error: ApiError) => {
           this.ui_controls.is_loading = false;
@@ -151,7 +155,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
         next: (user) => {
           this.user_single = adapt(user);
           this.ui_controls.is_loading = false;
-          this.success_notification('Your picture has been updated.');
+          this.success_notification(this.i18n.t('profile.toast_picture_updated'));
         },
         error: (error: ApiError) => {
           this.ui_controls.is_loading = false;

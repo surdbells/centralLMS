@@ -7,11 +7,13 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MessagingService, MessagingSettings, BlockedUser } from '../messaging.service';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-messaging-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
   template: `
     <app-top></app-top>
 
@@ -19,9 +21,9 @@ import { TopComponent } from '../../partials/top/top.component';
       <!-- Header -->
       <div class="page-header mb-4">
         <h1 class="page-title">
-          <i class="bi bi-gear me-2"></i>Messaging Settings
+          <i class="bi bi-gear me-2"></i>{{ 'messaging.settings_title' | translate }}
         </h1>
-        <p class="text-muted">Manage your messaging preferences and privacy</p>
+        <p class="text-muted">{{ 'messaging.settings_subtitle' | translate }}</p>
       </div>
 
       <div class="row">
@@ -31,14 +33,14 @@ import { TopComponent } from '../../partials/top/top.component';
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="bi bi-shield-lock me-2"></i>Privacy
+                <i class="bi bi-shield-lock me-2"></i>{{ 'messaging.privacy' | translate }}
               </h5>
             </div>
             <div class="card-body">
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Allow Direct Messages</h6>
-                  <p class="setting-desc text-muted">Allow other users to send you direct messages</p>
+                  <h6 class="setting-title">{{ 'messaging.allow_dm' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.allow_dm_desc' | translate }}</p>
                 </div>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="allowDM"
@@ -48,8 +50,8 @@ import { TopComponent } from '../../partials/top/top.component';
 
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Allow Group Invites</h6>
-                  <p class="setting-desc text-muted">Allow others to add you to group conversations</p>
+                  <h6 class="setting-title">{{ 'messaging.allow_group_invites' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.allow_group_invites_desc' | translate }}</p>
                 </div>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="allowGroups"
@@ -59,8 +61,8 @@ import { TopComponent } from '../../partials/top/top.component';
 
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Show Online Status</h6>
-                  <p class="setting-desc text-muted">Let others see when you're online</p>
+                  <h6 class="setting-title">{{ 'messaging.show_online' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.show_online_desc' | translate }}</p>
                 </div>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="showOnline"
@@ -70,8 +72,8 @@ import { TopComponent } from '../../partials/top/top.component';
 
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Show Read Receipts</h6>
-                  <p class="setting-desc text-muted">Let others see when you've read their messages</p>
+                  <h6 class="setting-title">{{ 'messaging.show_receipts' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.show_receipts_desc' | translate }}</p>
                 </div>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="showRead"
@@ -85,34 +87,34 @@ import { TopComponent } from '../../partials/top/top.component';
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="bi bi-bell me-2"></i>Notifications
+                <i class="bi bi-bell me-2"></i>{{ 'messaging.notifications' | translate }}
               </h5>
             </div>
             <div class="card-body">
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Email Digest</h6>
-                  <p class="setting-desc text-muted">How often to receive email summaries of unread messages</p>
+                  <h6 class="setting-title">{{ 'messaging.email_digest' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.email_digest_desc' | translate }}</p>
                 </div>
                 <select class="form-select form-select-sm" style="width: 150px;"
                         [(ngModel)]="settings.email_digest_frequency" (change)="saveSettings()">
-                  <option value="never">Never</option>
-                  <option value="instant">Instant</option>
-                  <option value="hourly">Hourly</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
+                  <option value="never">{{ 'messaging.freq_never' | translate }}</option>
+                  <option value="instant">{{ 'messaging.freq_instant' | translate }}</option>
+                  <option value="hourly">{{ 'messaging.freq_hourly' | translate }}</option>
+                  <option value="daily">{{ 'messaging.freq_daily' | translate }}</option>
+                  <option value="weekly">{{ 'messaging.freq_weekly' | translate }}</option>
                 </select>
               </div>
 
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Quiet Hours</h6>
-                  <p class="setting-desc text-muted">Don't send notifications during these hours</p>
+                  <h6 class="setting-title">{{ 'messaging.quiet_hours' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.quiet_hours_desc' | translate }}</p>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <input type="time" class="form-control form-control-sm" style="width: 120px;"
                          [(ngModel)]="settings.quiet_hours_start" (change)="saveSettings()">
-                  <span>to</span>
+                  <span>{{ 'messaging.time_to' | translate }}</span>
                   <input type="time" class="form-control form-control-sm" style="width: 120px;"
                          [(ngModel)]="settings.quiet_hours_end" (change)="saveSettings()">
                 </div>
@@ -124,14 +126,14 @@ import { TopComponent } from '../../partials/top/top.component';
           <div class="card mb-4">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="bi bi-reply-all me-2"></i>Auto-Reply
+                <i class="bi bi-reply-all me-2"></i>{{ 'messaging.auto_reply' | translate }}
               </h5>
             </div>
             <div class="card-body">
               <div class="setting-item">
                 <div class="setting-info">
-                  <h6 class="setting-title">Enable Auto-Reply</h6>
-                  <p class="setting-desc text-muted">Automatically reply to new messages when you're away</p>
+                  <h6 class="setting-title">{{ 'messaging.enable_auto_reply' | translate }}</h6>
+                  <p class="setting-desc text-muted">{{ 'messaging.enable_auto_reply_desc' | translate }}</p>
                 </div>
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" id="autoReply"
@@ -140,10 +142,10 @@ import { TopComponent } from '../../partials/top/top.component';
               </div>
 
               <div class="mt-3" *ngIf="settings.auto_reply_enabled">
-                <label class="form-label">Auto-Reply Message</label>
+                <label class="form-label">{{ 'messaging.auto_reply_message' | translate }}</label>
                 <textarea class="form-control" rows="3"
                           [(ngModel)]="settings.auto_reply_message"
-                          placeholder="I'm currently unavailable and will respond as soon as possible."
+                          placeholder="{{ 'messaging.auto_reply_ph' | translate }}"
                           (blur)="saveSettings()"></textarea>
               </div>
             </div>
@@ -153,14 +155,14 @@ import { TopComponent } from '../../partials/top/top.component';
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="card-title mb-0">
-                <i class="bi bi-person-x me-2"></i>Blocked Users
+                <i class="bi bi-person-x me-2"></i>{{ 'messaging.blocked_users' | translate }}
               </h5>
               <span class="badge bg-secondary">{{ blockedUsers.length }}</span>
             </div>
             <div class="card-body">
               <div *ngIf="blockedUsers.length === 0" class="text-center py-4 text-muted">
                 <i class="bi bi-person-check display-6"></i>
-                <p class="mt-2 mb-0">You haven't blocked anyone</p>
+                <p class="mt-2 mb-0">{{ 'messaging.no_blocked' | translate }}</p>
               </div>
 
               <div class="blocked-list" *ngIf="blockedUsers.length > 0">
@@ -178,7 +180,7 @@ import { TopComponent } from '../../partials/top/top.component';
                     </div>
                   </div>
                   <button class="btn btn-sm btn-outline-danger" (click)="unblockUser(user)">
-                    <i class="bi bi-person-plus me-1"></i>Unblock
+                    <i class="bi bi-person-plus me-1"></i>{{ 'messaging.unblock' | translate }}
                   </button>
                 </div>
               </div>
@@ -190,18 +192,18 @@ import { TopComponent } from '../../partials/top/top.component';
         <div class="col-lg-4">
           <div class="card sticky-top" style="top: 20px;">
             <div class="card-header">
-              <h5 class="card-title mb-0">Quick Actions</h5>
+              <h5 class="card-title mb-0">{{ 'messaging.quick_actions' | translate }}</h5>
             </div>
             <div class="card-body">
               <div class="d-grid gap-2">
                 <button class="btn btn-primary text-start" (click)="exportData()">
-                  <i class="bi bi-download me-2"></i>Export My Messages
+                  <i class="bi bi-download me-2"></i>{{ 'messaging.export_messages' | translate }}
                 </button>
                 <button class="btn btn-secondary text-start" (click)="clearAllDrafts()">
-                  <i class="bi bi-file-earmark-x me-2"></i>Clear All Drafts
+                  <i class="bi bi-file-earmark-x me-2"></i>{{ 'messaging.clear_all_drafts' | translate }}
                 </button>
                 <button class="btn btn-outline-warning text-start" (click)="markAllAsRead()">
-                  <i class="bi bi-check2-all me-2"></i>Mark All as Read
+                  <i class="bi bi-check2-all me-2"></i>{{ 'messaging.mark_all_read' | translate }}
                 </button>
               </div>
 
@@ -209,7 +211,7 @@ import { TopComponent } from '../../partials/top/top.component';
 
               <div class="alert alert-info mb-0">
                 <i class="bi bi-info-circle me-2"></i>
-                <small>Changes are saved automatically when you modify settings.</small>
+                <small>{{ 'messaging.autosave_note' | translate }}</small>
               </div>
             </div>
           </div>
@@ -218,10 +220,10 @@ import { TopComponent } from '../../partials/top/top.component';
 
       <!-- Save Indicator -->
       <div class="save-indicator" *ngIf="saving">
-        <i class="bi bi-arrow-repeat spin me-2"></i>Saving...
+        <i class="bi bi-arrow-repeat spin me-2"></i>{{ 'messaging.saving' | translate }}
       </div>
       <div class="save-indicator saved" *ngIf="saved">
-        <i class="bi bi-check-circle me-2"></i>Saved
+        <i class="bi bi-check-circle me-2"></i>{{ 'messaging.saved_indicator' | translate }}
       </div>
     </div>
   `,
@@ -347,7 +349,7 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   saved = false;
   private saveTimeout: any;
 
-  constructor(private messagingService: MessagingService) {}
+  constructor(private messagingService: MessagingService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.loadSettings();
@@ -403,7 +405,7 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   }
 
   unblockUser(user: BlockedUser): void {
-    if (!confirm(`Unblock ${user.first_name} ${user.last_name}?`)) return;
+    if (!confirm(this.i18n.t('messaging.confirm_unblock', { name: `${user.first_name} ${user.last_name}` }))) return;
 
     this.messagingService.unblockUser(user.blocked_user_id)
       .pipe(takeUntil(this.destroy$))
@@ -413,18 +415,18 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   }
 
   exportData(): void {
-    alert('Your message data will be prepared and sent to your email.');
+    alert(this.i18n.t('messaging.export_alert'));
   }
 
   clearAllDrafts(): void {
-    if (!confirm('Clear all saved drafts?')) return;
-    alert('All drafts have been cleared.');
+    if (!confirm(this.i18n.t('messaging.confirm_clear_drafts'))) return;
+    alert(this.i18n.t('messaging.drafts_cleared'));
   }
 
   markAllAsRead(): void {
-    if (!confirm('Mark all conversations as read?')) return;
+    if (!confirm(this.i18n.t('messaging.confirm_mark_all'))) return;
     // TODO: Implement bulk mark as read
-    alert('All conversations marked as read.');
+    alert(this.i18n.t('messaging.marked_all_read'));
   }
 
   getInitials(firstName: string, lastName: string): string {

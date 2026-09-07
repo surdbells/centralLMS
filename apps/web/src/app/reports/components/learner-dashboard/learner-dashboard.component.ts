@@ -5,11 +5,13 @@ import { ReportChartComponent } from '../report-chart/report-chart.component';
 import { TopComponent } from '../../../partials/top/top.component';
 import { TuiIcon } from '@taiga-ui/core';
 import { Router } from '@angular/router';
+import { TranslatePipe } from '../../../translate.pipe';
+import { I18nService } from '../../../i18n.service';
 
 @Component({
   selector: 'app-learner-dashboard',
   standalone: true,
-  imports: [CommonModule, ReportChartComponent, TopComponent, TuiIcon],
+  imports: [CommonModule, ReportChartComponent, TopComponent, TuiIcon, TranslatePipe],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -22,14 +24,14 @@ import { Router } from '@angular/router';
             </div>
           </div>
           <div class="col">
-            <h4 class="fw-bold mb-0">My Learning Dashboard</h4>
+            <h4 class="fw-bold mb-0">{{ 'reports.my_learning_dashboard' | translate }}</h4>
           </div>
         </div>
 
         <!-- Loading -->
         <div *ngIf="loading" class="text-center py-5">
           <div class="spinner-border text-primary"></div>
-          <p class="text-muted mt-2 small">Loading your dashboard...</p>
+          <p class="text-muted mt-2 small">{{ 'reports.loading_dashboard' | translate }}</p>
         </div>
 
         <div *ngIf="!loading" class="learner-dashboard">
@@ -63,19 +65,19 @@ import { Router } from '@angular/router';
           <div class="row g-4 mb-4">
             <div class="col-md-8">
               <div *ngIf="progressChartData">
-                <app-report-chart [data]="progressChartData" chartType="line" title="My Performance Trend"
+                <app-report-chart [data]="progressChartData" chartType="line" [title]="'reports.my_performance_trend' | translate"
                                   [allowTypeChange]="true" height="300px"></app-report-chart>
               </div>
               <div *ngIf="!progressChartData" class="card border-0 shadow-sm">
                 <div class="card-body text-center py-5 text-muted">
                   <i class="bi bi-graph-up fs-1 d-block mb-2"></i>
-                  <p>Complete courses to see your performance trend</p>
+                  <p>{{ 'reports.complete_courses_trend' | translate }}</p>
                 </div>
               </div>
             </div>
             <div class="col-md-4">
               <div *ngIf="statusChartData">
-                <app-report-chart [data]="statusChartData" chartType="doughnut" title="Course Status"
+                <app-report-chart [data]="statusChartData" chartType="doughnut" [title]="'reports.course_status' | translate"
                                   [allowTypeChange]="false" height="300px"></app-report-chart>
               </div>
             </div>
@@ -100,20 +102,20 @@ import { Router } from '@angular/router';
                 <table class="table table-hover table-sm mb-0">
                   <thead class="table-light">
                   <tr>
-                    <th class="px-3">Course</th>
-                    <th>Category</th>
-                    <th>Status</th>
-                    <th>Progress</th>
-                    <th>Score</th>
-                    <th>Time Spent</th>
-                    <th>Due Date</th>
+                    <th class="px-3">{{ 'reports.course' | translate }}</th>
+                    <th>{{ 'reports.category' | translate }}</th>
+                    <th>{{ 'common.status' | translate }}</th>
+                    <th>{{ 'reports.progress' | translate }}</th>
+                    <th>{{ 'reports.score' | translate }}</th>
+                    <th>{{ 'report.time_spent' | translate }}</th>
+                    <th>{{ 'report.due_date' | translate }}</th>
                   </tr>
                   </thead>
                   <tbody>
                   <tr *ngFor="let c of courses" [class.table-danger-subtle]="c.is_overdue">
                     <td class="px-3">
                       <div class="fw-medium">{{ c.title }}</div>
-                      <small class="text-muted" *ngIf="c.is_mandatory"><i class="bi bi-asterisk text-danger me-1"></i>Mandatory</small>
+                      <small class="text-muted" *ngIf="c.is_mandatory"><i class="bi bi-asterisk text-danger me-1"></i>{{ 'report.mandatory' | translate }}</small>
                     </td>
                     <td><small class="text-muted">{{ c.category || '-' }}</small></td>
                     <td><span class="badge" [class]="getStatusBadge(c.status)">{{ formatStatus(c.status) }}</span></td>
@@ -139,7 +141,7 @@ import { Router } from '@angular/router';
                     </td>
                   </tr>
                   <tr *ngIf="!courses.length">
-                    <td colspan="7" class="text-center py-4 text-muted">No courses enrolled yet</td>
+                    <td colspan="7" class="text-center py-4 text-muted">{{ 'report.no_courses_enrolled' | translate }}</td>
                   </tr>
                   </tbody>
                 </table>
@@ -154,7 +156,7 @@ import { Router } from '@angular/router';
               <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0">
                   <thead class="table-light">
-                  <tr><th class="px-3">Assessment</th><th>Course</th><th>Score</th><th>Result</th><th>Attempts</th><th>Date</th></tr>
+                  <tr><th class="px-3">{{ 'reports.assessment' | translate }}</th><th>{{ 'reports.course' | translate }}</th><th>{{ 'reports.score' | translate }}</th><th>{{ 'reports.result' | translate }}</th><th>{{ 'reports.attempts' | translate }}</th><th>{{ 'reports.date' | translate }}</th></tr>
                   </thead>
                   <tbody>
                   <tr *ngFor="let a of assessments">
@@ -167,14 +169,14 @@ import { Router } from '@angular/router';
                     </td>
                     <td>
                         <span class="badge" [class]="a.passed ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
-                          {{ a.passed ? 'Passed' : a.score !== null ? 'Failed' : 'Pending' }}
+                          {{ (a.passed ? 'report.passed' : a.score !== null ? 'report.failed' : 'common.pending') | translate }}
                         </span>
                     </td>
                     <td><small class="text-muted">{{ a.attempt_number || a.attempts || '-' }}</small></td>
                     <td><small class="text-muted">{{ a.completed_at || a.submitted_at || '-' }}</small></td>
                   </tr>
                   <tr *ngIf="!assessments.length">
-                    <td colspan="6" class="text-center py-4 text-muted">No assessment results yet</td>
+                    <td colspan="6" class="text-center py-4 text-muted">{{ 'reports.no_assessment_results' | translate }}</td>
                   </tr>
                   </tbody>
                 </table>
@@ -190,7 +192,7 @@ import { Router } from '@angular/router';
                 <!-- Certificates -->
                 <div class="col-12">
                   <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white fw-semibold"><i class="bi bi-award me-2 text-warning"></i>Certificates ({{ certificates.length }})</div>
+                    <div class="card-header bg-white fw-semibold"><i class="bi bi-award me-2 text-warning"></i>{{ 'reports.certificates_count' | translate:{ count: certificates.length } }}</div>
                     <div class="list-group list-group-flush">
                       <div *ngFor="let cert of certificates" class="list-group-item d-flex justify-content-between align-items-center py-2">
                         <div>
@@ -199,7 +201,7 @@ import { Router } from '@angular/router';
                         </div>
                         <span class="badge bg-warning-subtle text-warning" *ngIf="cert.certificate_number">{{ cert.certificate_number }}</span>
                       </div>
-                      <div *ngIf="!certificates.length" class="list-group-item text-center text-muted py-3 small">No certificates earned yet</div>
+                      <div *ngIf="!certificates.length" class="list-group-item text-center text-muted py-3 small">{{ 'report.no_certificates' | translate }}</div>
                     </div>
                   </div>
                 </div>
@@ -207,7 +209,7 @@ import { Router } from '@angular/router';
                 <!-- Badges -->
                 <div class="col-12">
                   <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white fw-semibold"><i class="bi bi-star me-2 text-info"></i>Badges ({{ badges.length }})</div>
+                    <div class="card-header bg-white fw-semibold"><i class="bi bi-star me-2 text-info"></i>{{ 'reports.badges_count' | translate:{ count: badges.length } }}</div>
                     <div class="list-group list-group-flush">
                       <div *ngFor="let b of badges" class="list-group-item d-flex justify-content-between align-items-center py-2">
                         <div>
@@ -216,7 +218,7 @@ import { Router } from '@angular/router';
                         </div>
                         <small class="text-muted">{{ b.earned_at || b.achieved_at }}</small>
                       </div>
-                      <div *ngIf="!badges.length" class="list-group-item text-center text-muted py-3 small">No badges earned yet</div>
+                      <div *ngIf="!badges.length" class="list-group-item text-center text-muted py-3 small">{{ 'reports.no_badges' | translate }}</div>
                     </div>
                   </div>
                 </div>
@@ -224,7 +226,7 @@ import { Router } from '@angular/router';
 
               <!-- Timeline -->
               <div class="card border-0 shadow-sm mt-4" *ngIf="timeline.length">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-clock-history me-2"></i>Achievements Timeline</div>
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-clock-history me-2"></i>{{ 'reports.achievements_timeline' | translate }}</div>
                 <div class="card-body p-0">
                   <div class="list-group list-group-flush" style="max-height:300px; overflow-y:auto">
                     <div *ngFor="let t of timeline" class="list-group-item py-2 d-flex align-items-center gap-3">
@@ -248,7 +250,7 @@ import { Router } from '@angular/router';
               <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0">
                   <thead class="table-light">
-                  <tr><th class="px-3">Mandatory Course</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Completed</th></tr>
+                  <tr><th class="px-3">{{ 'reports.mandatory_course' | translate }}</th><th>{{ 'common.status' | translate }}</th><th>{{ 'reports.progress' | translate }}</th><th>{{ 'report.due_date' | translate }}</th><th>{{ 'report.completed' | translate }}</th></tr>
                   </thead>
                   <tbody>
                   <tr *ngFor="let c of complianceCourses" [class.table-danger-subtle]="c.is_overdue">
@@ -268,7 +270,7 @@ import { Router } from '@angular/router';
                     <td><small class="text-muted">{{ c.completed_at || '-' }}</small></td>
                   </tr>
                   <tr *ngIf="!complianceCourses.length">
-                    <td colspan="5" class="text-center py-4 text-muted">No mandatory training assigned</td>
+                    <td colspan="5" class="text-center py-4 text-muted">{{ 'reports.no_mandatory' | translate }}</td>
                   </tr>
                   </tbody>
                 </table>
@@ -317,7 +319,7 @@ export class LearnerDashboardComponent implements OnInit {
   progressChartData: any = null;
   statusChartData: any = null;
 
-  constructor(private svc: ReportService, private router: Router) {}
+  constructor(private svc: ReportService, private router: Router, private i18n: I18nService) {}
 
   /** Extract actual data from report response.
    *  runReport() does: { data: wrapper.result.data || [], ...wrapper.result }
@@ -389,18 +391,18 @@ export class LearnerDashboardComponent implements OnInit {
 
   private buildKPIs(d: any): void {
     this.kpisRow1 = [
-      { label: 'Enrolled', value: d.total_enrolled ?? 0, icon: 'bi bi-book-fill', color: 'primary' },
-      { label: 'Completed', value: d.completed ?? 0, icon: 'bi bi-check-circle-fill', color: 'success' },
-      { label: 'In Progress', value: d.in_progress ?? 0, icon: 'bi bi-hourglass-split', color: 'warning' },
-      { label: 'Overdue', value: d.overdue ?? 0, icon: 'bi bi-exclamation-triangle-fill', color: 'danger' },
+      { label: this.i18n.t('report.enrolled'), value: d.total_enrolled ?? 0, icon: 'bi bi-book-fill', color: 'primary' },
+      { label: this.i18n.t('report.completed'), value: d.completed ?? 0, icon: 'bi bi-check-circle-fill', color: 'success' },
+      { label: this.i18n.t('report.in_progress'), value: d.in_progress ?? 0, icon: 'bi bi-hourglass-split', color: 'warning' },
+      { label: this.i18n.t('reports.overdue'), value: d.overdue ?? 0, icon: 'bi bi-exclamation-triangle-fill', color: 'danger' },
     ];
     this.kpisRow2 = [
-      { label: 'Avg Progress', value: (d.avg_progress ?? 0) + '%', icon: 'bi bi-speedometer2', color: 'info' },
-      { label: 'Avg Score', value: (d.avg_score ?? 0) + '%', icon: 'bi bi-bullseye', color: 'primary' },
-      { label: 'Learning Hours', value: d.total_learning_hours ?? 0, icon: 'bi bi-clock', color: 'secondary' },
-      { label: 'Certificates', value: d.certificates ?? 0, icon: 'bi bi-award-fill', color: 'warning' },
-      { label: 'Badges', value: d.badges ?? 0, icon: 'bi bi-star-fill', color: 'info' },
-      { label: 'Points', value: d.points ?? 0, icon: 'bi bi-gem', color: 'success' },
+      { label: this.i18n.t('reports.avg_progress'), value: (d.avg_progress ?? 0) + '%', icon: 'bi bi-speedometer2', color: 'info' },
+      { label: this.i18n.t('reports.avg_score'), value: (d.avg_score ?? 0) + '%', icon: 'bi bi-bullseye', color: 'primary' },
+      { label: this.i18n.t('reports.learning_hours'), value: d.total_learning_hours ?? 0, icon: 'bi bi-clock', color: 'secondary' },
+      { label: this.i18n.t('report.tab_certificates'), value: d.certificates ?? 0, icon: 'bi bi-award-fill', color: 'warning' },
+      { label: this.i18n.t('reports.badges'), value: d.badges ?? 0, icon: 'bi bi-star-fill', color: 'info' },
+      { label: this.i18n.t('reports.points'), value: d.points ?? 0, icon: 'bi bi-gem', color: 'success' },
     ];
   }
 
@@ -421,10 +423,10 @@ export class LearnerDashboardComponent implements OnInit {
     // Safest: provide a data array with 'label' (matches labelCandidates) and 'count' (matches valueHints)
     this.statusChartData = {
       data: [
-        { label: 'Completed', count: completed },
-        { label: 'In Progress', count: inProgress },
-        { label: 'Not Started', count: notStarted },
-        { label: 'Overdue', count: overdue },
+        { label: this.i18n.t('report.completed'), count: completed },
+        { label: this.i18n.t('report.in_progress'), count: inProgress },
+        { label: this.i18n.t('report.not_started'), count: notStarted },
+        { label: this.i18n.t('reports.overdue'), count: overdue },
       ].filter(item => item.count > 0)
     };
   }
@@ -450,10 +452,10 @@ export class LearnerDashboardComponent implements OnInit {
 
   private buildTabs(d: any): void {
     this.tabs = [
-      { key: 'courses', label: 'My Courses', icon: 'bi-book', badge: 'bg-primary', count: d.total_enrolled ?? null },
-      { key: 'assessments', label: 'Assessments', icon: 'bi-pencil-square', badge: 'bg-info', count: null },
-      { key: 'achievements', label: 'Achievements', icon: 'bi-trophy', badge: 'bg-warning', count: (d.certificates ?? 0) + (d.badges ?? 0) || null },
-      { key: 'compliance', label: 'Compliance', icon: 'bi-shield-check', badge: 'bg-danger', count: d.overdue ?? null },
+      { key: 'courses', label: this.i18n.t('reports.tab_my_courses'), icon: 'bi-book', badge: 'bg-primary', count: d.total_enrolled ?? null },
+      { key: 'assessments', label: this.i18n.t('reports.tab_assessments'), icon: 'bi-pencil-square', badge: 'bg-info', count: null },
+      { key: 'achievements', label: this.i18n.t('reports.tab_achievements'), icon: 'bi-trophy', badge: 'bg-warning', count: (d.certificates ?? 0) + (d.badges ?? 0) || null },
+      { key: 'compliance', label: this.i18n.t('reports.tab_compliance'), icon: 'bi-shield-check', badge: 'bg-danger', count: d.overdue ?? null },
     ];
   }
 
@@ -548,9 +550,9 @@ export class LearnerDashboardComponent implements OnInit {
 
   formatTimelineType(type: string): string {
     const m: Record<string, string> = {
-      course_completed: 'Course Completed',
-      certificate_earned: 'Certificate Earned',
-      badge_earned: 'Badge Earned',
+      course_completed: this.i18n.t('reports.timeline_course_completed'),
+      certificate_earned: this.i18n.t('reports.timeline_certificate_earned'),
+      badge_earned: this.i18n.t('reports.timeline_badge_earned'),
     };
     return m[type] || type;
   }
