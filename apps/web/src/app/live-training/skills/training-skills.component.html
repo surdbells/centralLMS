@@ -15,12 +15,26 @@
     <h5 class="mb-0">
       <i class="bi bi-award me-2"></i>{{ 'live.skills.title' | translate }}
     </h5>
-    <button class="btn btn-primary btn-sm" (click)="showAddSkillModal = true">
+    <button class="btn btn-primary btn-sm" (click)="showAddSkillModal = true" [disabled]="!trainingId">
       <i class="bi bi-plus-circle me-1"></i>{{ 'live.skills.add_skill' | translate }}
     </button>
   </div>
 
   <div class="card-body">
+    <!-- Which programme's skills to manage (the screen carries no context on its own) -->
+    <div class="mb-4" style="max-width: 480px;">
+      <label class="form-label">{{ 'nav.live_training' | translate }}</label>
+      <select class="form-select" [(ngModel)]="trainingId" (ngModelChange)="onTrainingChange()">
+        <option [ngValue]="undefined">{{ 'live.admin.select_training' | translate }}</option>
+        <option *ngFor="let t of trainings" [value]="t.training_id">{{ t.title }}</option>
+      </select>
+    </div>
+
+    <!-- Nothing chosen yet -->
+    <div *ngIf="!trainingId" class="text-center text-muted py-4">
+      {{ 'live.skills.select_training_prompt' | translate }}
+    </div>
+
     <!-- Loading State -->
     <div *ngIf="loading" class="text-center py-4">
       <div class="spinner-border text-primary" role="status">

@@ -655,14 +655,15 @@
       </div>
     </div>
 
-    <!-- Integrations Tab -->
+    <!-- Integrations Tab — one-click OAuth, no credentials to enter -->
     <div *ngIf="activeTab === 'integrations'">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 class="mb-0">{{ 'live.admin.video_integrations' | translate }}</h5>
-        <button class="btn btn-primary" (click)="openIntegrationModal()">
-          <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.add_integration' | translate }}
-        </button>
+        <a class="btn btn-outline-secondary btn-sm" routerLink="/live-training/integrations">
+          <i class="bi bi-gear me-2"></i>{{ 'live.integrations.title' | translate }}
+        </a>
       </div>
+      <p class="text-muted small mb-4">{{ 'live.integrations.oauth_hint' | translate }}</p>
 
       <div class="row g-4">
         <div class="col-md-6 col-lg-4" *ngFor="let integration of integrations; trackBy: trackByIntegrationId">
@@ -672,20 +673,32 @@
                 <div class="integration-icon" [ngClass]="'platform-' + integration.platform">
                   <i class="bi" [ngClass]="getPlatformIcon(integration.platform)"></i>
                 </div>
-                <span class="badge" [ngClass]="integration.is_active ? 'bg-success' : 'bg-secondary'">
-                  {{ (integration.is_active ? 'live.common.active' : 'live.common.inactive') | translate }}
+                <span class="badge" [ngClass]="integration.connected ? 'bg-success' : 'bg-secondary'">
+                  {{ (integration.connected ? 'live.integrations.connected' : 'live.integrations.not_connected') | translate }}
                 </span>
               </div>
-              <h5 class="card-title mb-2">{{ integration.platform | titlecase }}</h5>
+              <h5 class="card-title mb-2">
+                {{ platformDisplayName(integration.platform) }}
+                <span class="badge bg-primary ms-1" *ngIf="integration.is_active">{{ 'live.integrations.default' | translate }}</span>
+              </h5>
               <p class="text-muted small mb-0" *ngIf="integration.account_email">
                 <i class="bi bi-envelope me-1"></i>{{ integration.account_email }}
               </p>
+              <p class="text-muted small mb-0" *ngIf="integration.platform === 'agora'">
+                {{ 'live.integrations.in_app_always' | translate }}
+              </p>
             </div>
-            <div class="card-footer d-flex gap-2">
-              <button class="btn btn-primary btn-sm flex-grow-1" (click)="openIntegrationModal(integration)">
-                <i class="bi bi-pencil me-1"></i>{{ 'live.common.edit' | translate }}
+            <div class="card-footer d-flex gap-2" *ngIf="integration.platform !== 'agora'">
+              <button *ngIf="!integration.connected" class="btn btn-primary btn-sm flex-grow-1"
+                      (click)="connectPlatform(integration.platform)">
+                <i class="bi bi-box-arrow-in-right me-1"></i>{{ 'live.integrations.connect' | translate }}
               </button>
-              <button class="btn btn-outline-danger btn-sm" (click)="disconnectIntegration(integration)">
+              <button *ngIf="integration.connected && !integration.is_active" class="btn btn-outline-primary btn-sm flex-grow-1"
+                      (click)="setDefaultPlatform(integration.platform)">
+                {{ 'live.integrations.set_default' | translate }}
+              </button>
+              <button *ngIf="integration.connected" class="btn btn-outline-danger btn-sm"
+                      (click)="disconnectPlatform(integration.platform)" [title]="'live.common.delete' | translate">
                 <i class="bi bi-x-lg"></i>
               </button>
             </div>
@@ -697,9 +710,6 @@
             <i class="bi bi-plug display-1 mb-3"></i>
             <h5>{{ 'live.admin.no_integrations_title' | translate }}</h5>
             <p>{{ 'live.admin.no_integrations_text' | translate }}</p>
-            <button class="btn btn-primary" (click)="openIntegrationModal()">
-              <i class="bi bi-plus-lg me-2"></i>{{ 'live.admin.add_integration' | translate }}
-            </button>
           </div>
         </div>
       </div>
@@ -776,7 +786,7 @@
             <select class="form-select" [(ngModel)]="editingSession.video_platform">
               <option [value]="null">{{ 'live.admin.select_platform' | translate }}</option>
               <option *ngFor="let platform of videoPlatforms" [value]="platform">
-                {{ platform | titlecase }}
+                {{ platformLabel(platform) }}
               </option>
             </select>
           </div>
@@ -1185,63 +1195,6 @@
   </div>
 </div>
 <div class="modal-backdrop fade show" *ngIf="showVirtualAttendanceModal"></div>
-
-<!-- Integration Settings Modal -->
-<div class="modal fade" [class.show]="showIntegrationModal" [style.display]="showIntegrationModal ? 'block' : 'none'"
-     tabindex="-1" *ngIf="showIntegrationModal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-plug me-2"></i>{{ 'live.admin.integration_settings' | translate }}
-        </h5>
-        <button type="button" class="btn-close" (click)="closeIntegrationModal()"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">{{ 'live.common.platform' | translate }} <span class="text-danger">*</span></label>
-          <select class="form-select" [(ngModel)]="editingIntegration.platform">
-            <option *ngFor="let platform of videoPlatforms" [value]="platform">
-              {{ platform | titlecase }}
-            </option>
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">{{ 'live.admin.client_id' | translate }}</label>
-          <input type="text" class="form-control" [(ngModel)]="editingIntegration.client_id"
-                 placeholder="{{ 'live.admin.client_id_placeholder' | translate }}">
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">{{ 'live.admin.client_secret' | translate }}</label>
-          <input type="password" class="form-control" [(ngModel)]="editingIntegration.client_secret"
-                 placeholder="{{ 'live.admin.client_secret_placeholder' | translate }}">
-        </div>
-
-        <div class="form-check mb-3">
-          <input type="checkbox" class="form-check-input" id="integrationActive"
-                 [(ngModel)]="editingIntegration.is_active">
-          <label class="form-check-label" for="integrationActive">{{ 'live.common.active' | translate }}</label>
-        </div>
-
-        <div class="alert alert-info small">
-          <i class="bi bi-info-circle me-2"></i>
-          {{ 'live.admin.oauth_note' | translate }}
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="closeIntegrationModal()">{{ 'common.cancel' | translate }}</button>
-        <button type="button" class="btn btn-primary" (click)="saveIntegration()"
-                [disabled]="!editingIntegration.platform || saving">
-          <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
-          {{ 'live.admin.save_integration' | translate }}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-<div class="modal-backdrop fade show" *ngIf="showIntegrationModal"></div>
 
 <!-- Enroll Modal -->
 <div class="modal fade" [class.show]="showEnrollModal" [style.display]="showEnrollModal ? 'block' : 'none'" tabindex="-1" *ngIf="showEnrollModal">

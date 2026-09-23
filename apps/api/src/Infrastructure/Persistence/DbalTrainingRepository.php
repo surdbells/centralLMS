@@ -481,6 +481,24 @@ final class DbalTrainingRepository implements TrainingRepository
         return $affected > 0 ? $this->findSession($tenantId, $sessionId) : null;
     }
 
+    /**
+     * Records a meeting error without touching the booking itself.
+     *
+     * Used when a reschedule fails: the existing join link is still valid and
+     * in people's calendars, so it must survive — only the error is updated so
+     * an organiser can see and retry, rather than being left with no meeting.
+     */
+    public function recordMeetingError(string $tenantId, string $sessionId, ?string $error): ?TrainingSession
+    {
+        $affected = $this->connection->executeStatement(
+            'UPDATE training_sessions SET meeting_error = :error, updated_at = NOW()
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['error' => $error, 'id' => $sessionId, 'tenant' => $tenantId],
+        );
+
+        return $affected > 0 ? $this->findSession($tenantId, $sessionId) : null;
+    }
+
     public function setSessionStatus(string $tenantId, string $id, SessionStatus $status): ?TrainingSession
     {
         $affected = $this->connection->executeStatement(
@@ -763,7 +781,8 @@ final class DbalTrainingRepository implements TrainingRepository
         $rows = $this->connection->fetchAllAssociative(
             'SELECT e.id, e.training_id, e.user_id, e.status, e.source, e.waitlisted,
                     e.attendance_percentage, e.sessions_attended, e.enrolled_at, e.completed_at,
-                    t.title AS training_title, t.delivery, t.min_attendance_percentage
+                    t.title AS training_title, t.delivery, t.min_attendance_percentage,
+                    t.mandatory_sessions_only
              FROM training_enrollments e
              JOIN live_trainings t ON t.id = e.training_id
              WHERE e.tenant_id = :tenant AND e.user_id = :user
@@ -788,7 +807,21 @@ final class DbalTrainingRepository implements TrainingRepository
             function (array $r) use ($sessions): array {
                 $trainingId = (string) $r['training_id'];
                 $attended = (int) $r['sessions_attended'];
-                $counted = count($sessions[$trainingId] ?? []);
+                // Count only the sessions that actually count toward the
+                // requirement — never cancelled ones, and only mandatory ones
+                // when the programme is mandatory-only — so the count agrees
+                // with the attendance percentage rather than contradicting it.
+                $mandatoryOnly = (bool) $r['mandatory_sessions_only'];
+                $counted = count(array_filter(
+                    $sessions[$trainingId] ?? [],
+                    static function (array $s) use ($mandatoryOnly): bool {
+                        if (($s['status'] ?? null) === 'cancelled') {
+                            return false;
+                        }
+
+                        return !$mandatoryOnly || ($s['isMandatory'] ?? false) === true;
+                    },
+                ));
                 $required = (float) $r['min_attendance_percentage'];
                 $percentage = (float) $r['attendance_percentage'];
 

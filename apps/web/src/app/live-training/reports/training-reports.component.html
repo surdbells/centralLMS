@@ -90,7 +90,7 @@
       <!-- Charts Row -->
       <div class="row g-4 mb-4">
         <!-- Attendance Trend Chart -->
-        <div class="col-md-8">
+        <div class="col-md-8" *ngIf="attendanceTrendData.length">
           <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="card-title mb-0">{{ 'live.reports.attendance_trend' | translate }}</h5>
@@ -235,7 +235,7 @@
       <!-- Top Performers Section -->
       <div class="row g-4 mb-4">
         <!-- Top Instructors -->
-        <div class="col-md-6">
+        <div class="col-md-6" *ngIf="topInstructors.length">
           <div class="card h-100">
             <div class="card-header">
               <h5 class="card-title mb-0">

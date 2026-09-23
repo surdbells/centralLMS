@@ -2,10 +2,10 @@
 // Component for managing training skills assignment
 
 import { Component, OnInit, Input, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LiveTrainingService } from '../live-training.service';
+import { LiveTrainingService, LiveTraining } from '../live-training.service';
 import {
   TrainingSkill,
   Skill,
@@ -25,9 +25,14 @@ import { I18nService } from '../../i18n.service';
 })
 export class TrainingSkillsComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly i18n = inject(I18nService);
 
   @Input() trainingId!: string;
+
+  // The programme whose skills are being managed is chosen here when the screen
+  // is opened without one (the admin "Skills" button carries no context).
+  trainings: LiveTraining[] = [];
 
   // Assigned skills
   assignedSkills: TrainingSkill[] = [];
@@ -54,11 +59,35 @@ export class TrainingSkillsComponent implements OnInit {
   constructor(private liveTrainingService: LiveTrainingService) {}
 
   ngOnInit(): void {
-    this.loadTrainingSkills();
+    // A trainingId may arrive as an @Input (embedded) or a ?trainingId= query
+    // param (deep link); otherwise the admin picks one from the list below.
+    const fromRoute = this.route.snapshot.queryParamMap.get('trainingId');
+    if (!this.trainingId && fromRoute) {
+      this.trainingId = fromRoute;
+    }
+    this.loadTrainings();
     this.loadSkillCategories();
+    if (this.trainingId) {
+      this.loadTrainingSkills();
+    }
+  }
+
+  loadTrainings(): void {
+    this.liveTrainingService.getTrainings().subscribe({
+      next: (trainings) => { this.trainings = trainings; },
+      error: () => { /* the picker simply stays empty */ }
+    });
+  }
+
+  onTrainingChange(): void {
+    this.assignedSkills = [];
+    if (this.trainingId) {
+      this.loadTrainingSkills();
+    }
   }
 
   loadTrainingSkills(): void {
+    if (!this.trainingId) { return; }
     this.loading = true;
     this.liveTrainingService.getTrainingSkills(this.trainingId).subscribe({
       next: (skills) => {

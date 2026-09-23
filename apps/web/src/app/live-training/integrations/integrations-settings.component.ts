@@ -193,9 +193,10 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
   }
 
   private getPlatformFromState(state: string): string | null {
-    // Check which platform this callback is for
+    // Check which platform this callback is for — the key must match what the
+    // service wrote at connect() time ('integration.state.<platform>').
     for (const platform of ['zoom', 'microsoft_teams', 'google_meet']) {
-      const storedState = sessionStorage.getItem(`oauth_state_${platform}`);
+      const storedState = sessionStorage.getItem(`integration.state.${platform}`);
       if (storedState === state) {
         return platform;
       }

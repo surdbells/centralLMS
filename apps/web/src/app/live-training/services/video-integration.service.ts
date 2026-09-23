@@ -81,7 +81,10 @@ export class VideoIntegrationService {
    * redirect would carry the authorisation code in clear.
    */
   private redirectUri(): string {
-    return `${window.location.origin}/integrations/callback`;
+    // The integrations screen handles the OAuth return itself (in its ngOnInit),
+    // so the provider must redirect back there — not to a route that does not
+    // exist, which is where every external connect used to land.
+    return `${window.location.origin}/live-training/integrations`;
   }
 
   // ==========================================
@@ -284,9 +287,12 @@ export class VideoIntegrationService {
 
 function toStatus(row: Record<string, unknown>): IntegrationStatus {
   return {
-    platform: String(row['platform'] ?? ''),
+    // The providers payload identifies a platform by `id` and marks the chosen
+    // one with `isDefault` — there is no `platform`/`isActive` field, so the
+    // old mapping left every platform blank and always "active".
+    platform: String(row['id'] ?? row['platform'] ?? ''),
     connected: row['connected'] === true,
-    is_active: row['isActive'] !== false,
+    is_active: row['isDefault'] === true,
     expires_at: row['expiresAt'] as string | undefined,
     account_email: row['accountEmail'] as string | undefined,
     // The deployment may have no credentials for a platform at all, which is

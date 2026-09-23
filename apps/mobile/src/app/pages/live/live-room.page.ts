@@ -249,6 +249,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
   private screenTrack: any = null;
   private rtm: any = null;
   private msgSeq = 0;
+  private renewTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.sessionId = this.route.snapshot.paramMap.get('sessionId') ?? '';
@@ -280,6 +281,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
       this.rtc = AgoraRTC;
       await this.startRtc(AgoraRTC, token);
       this.startRtm((rtmMod as any).default, token).catch(() => this.chatReady.set(false));
+      this.scheduleTokenRenewal();
       this.phase.set('live');
     } catch (e: unknown) {
       this.fail(this.i18n.t('live.err_no_video'));
@@ -305,6 +307,7 @@ export class LiveRoomPage implements OnInit, OnDestroy {
     client.on('user-left', (user: any) => {
       this.participants.update((list) => list.filter((p) => p.uid !== String(user.uid)));
     });
+    client.on('token-privilege-will-expire', () => { void this.renewTokens(); });
 
     // A failed join is a real error (bad token, no network) — let it throw.
     await client.join(token.appId, token.channel, token.rtcToken, token.uid);
@@ -337,11 +340,13 @@ export class LiveRoomPage implements OnInit, OnDestroy {
   }
 
   private async startRtm(AgoraRTM: any, token: RoomToken): Promise<void> {
-    const rtm = new AgoraRTM.RTM(token.appId, token.uid, { token: token.rtmToken });
+    const rtm = new AgoraRTM.RTM(token.appId, token.uid);
     this.rtm = rtm;
     rtm.addEventListener('message', (e: any) => this.onMessage(e));
     rtm.addEventListener('presence', (e: any) => this.onPresence(e));
-    await rtm.login();
+    // agora-rtm 2.x ignores a constructor token; it must go to login(), else the
+    // server rejects it (DYNAMIC_ENABLED_BUT_STATIC_KEY) and chat never connects.
+    await rtm.login({ token: token.rtmToken });
     await rtm.subscribe(token.channel, { withMessage: true, withPresence: true });
     try { await rtm.presence.setState(token.channel, 'MESSAGE', { name: token.displayName, hand: 'false' }); } catch { /* */ }
     this.chatReady.set(true);
@@ -506,7 +511,31 @@ export class LiveRoomPage implements OnInit, OnDestroy {
     return err?.message || this.i18n.t('live.err_join_generic');
   }
 
+  /** Renew the RTC + RTM tokens shortly before expiry so nobody is dropped. */
+  private scheduleTokenRenewal(): void {
+    if (this.renewTimer) { clearTimeout(this.renewTimer); this.renewTimer = null; }
+    const ttl = this.token?.expiresInSeconds ?? 0;
+    if (ttl <= 0) { return; }
+    this.renewTimer = setTimeout(() => { void this.renewTokens(); }, Math.max(10, ttl - 60) * 1000);
+  }
+
+  private async renewTokens(): Promise<void> {
+    let fresh: RoomToken;
+    try {
+      fresh = await firstValueFrom(this.live.roomToken(this.sessionId));
+    } catch {
+      if (this.renewTimer) { clearTimeout(this.renewTimer); }
+      this.renewTimer = setTimeout(() => { void this.renewTokens(); }, 15000);
+      return;
+    }
+    this.token = fresh;
+    try { await this.client?.renewToken(fresh.rtcToken); } catch { /* */ }
+    try { await this.rtm?.renewToken(fresh.rtmToken); } catch { /* */ }
+    this.scheduleTokenRenewal();
+  }
+
   private async teardown(): Promise<void> {
+    if (this.renewTimer) { clearTimeout(this.renewTimer); this.renewTimer = null; }
     try { await this.stopShare(); } catch { /* */ }
     for (const t of [this.micTrack, this.camTrack]) { try { t?.stop?.(); t?.close?.(); } catch { /* */ } }
     this.micTrack = this.camTrack = null;

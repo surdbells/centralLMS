@@ -154,7 +154,7 @@ final class AttendanceAction extends TrainingAction
 
         $now = new \DateTimeImmutable();
 
-        if (!$session->qrIsValid($token, $now)) {
+        if (!$session->qrIsValid($token, $now, $training->qrValidBeforeStartMinutes)) {
             // One message for a wrong code and an expired one: telling them
             // apart lets somebody test codes until one is accepted.
             throw new ConflictingState(
@@ -225,8 +225,12 @@ final class AttendanceAction extends TrainingAction
         // resolves to nothing here rather than to their session.
         $session = $this->trainings->findSessionByQrToken($tenantId, $token);
         $now     = new \DateTimeImmutable();
+        // The training carries the QR window (valid-before-start), so it is
+        // loaded before the validity check rather than after it.
+        $training = $session === null ? null : $this->trainings->find($tenantId, $session->trainingId);
 
-        if ($session === null || !$session->qrIsValid($token, $now)) {
+        if ($session === null || $training === null
+            || !$session->qrIsValid($token, $now, $training->qrValidBeforeStartMinutes)) {
             // One message for a code that does not exist, one from elsewhere
             // and one that has expired. Telling them apart lets somebody try
             // codes until one is accepted.
@@ -239,12 +243,6 @@ final class AttendanceAction extends TrainingAction
         if ($session->attendanceLocked) {
             throw new ConflictingState('This register has been signed off.', 'attendance_locked');
         }
-
-        $training = $this->trainings->find($tenantId, $session->trainingId)
-            ?? throw new ConflictingState(
-                'That code is not valid for any session running now.',
-                'invalid_check_in_code',
-            );
 
         // Late is still attendance — see AttendanceStatus::countsAsAttended().
         $status = $session->isLate($now) ? AttendanceStatus::Late : AttendanceStatus::Present;
@@ -307,15 +305,20 @@ final class AttendanceAction extends TrainingAction
             throw new ConflictingState($result['error'], 'attendance_sync_failed');
         }
 
-        // Matched by email: the provider knows an address, not a user id.
-        $roster = $this->trainings->rosterFor($tenantId, $training->id, 1, 500)['items'];
+        // Matched by email: the provider knows an address, not a user id. Page
+        // through the whole roster — rosterFor caps a page at 200, so a single
+        // call silently dropped every learner past the 200th in a large class.
         $byEmail = [];
-
-        foreach ($roster as $row) {
-            if (is_string($row['userEmail'] ?? null) && $row['userEmail'] !== '') {
-                $byEmail[strtolower($row['userEmail'])] = (string) $row['userId'];
+        $page = 1;
+        do {
+            $rosterPage = $this->trainings->rosterFor($tenantId, $training->id, $page, 200);
+            foreach ($rosterPage['items'] as $row) {
+                if (is_string($row['userEmail'] ?? null) && $row['userEmail'] !== '') {
+                    $byEmail[strtolower($row['userEmail'])] = (string) $row['userId'];
+                }
             }
-        }
+            $page++;
+        } while (($page - 1) * 200 < (int) ($rosterPage['total'] ?? 0));
 
         $matched = 0;
         $unmatched = [];

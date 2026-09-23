@@ -18,6 +18,7 @@ interface ReportData {
   training_id: string;
   title: string;
   type: string;
+  status: string;
   sessions_count: number;
   total_enrolled: number;
   avg_attendance: number;
@@ -119,26 +120,28 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
   }
 
   loadData(): void {
-    // Load overview stats
     this.loadOverviewStats();
     this.loadReports();
-    this.loadChartData();
-    this.loadTypeDistribution();
-    this.loadTopInstructors();
-    this.loadCertStats();
+    // Panels with no backing endpoint stay empty (and hidden) rather than
+    // showing invented numbers; the ones with real data are computed from the
+    // trainings/analytics once they load.
+    this.attendanceTrendData = [];
+    this.topInstructors = [];
   }
 
   loadOverviewStats(): void {
-    // Mock data - replace with API call
+    // Real totals are filled in by updateOverviewStats() once analytics load;
+    // period-over-period deltas have no source, so they are zero (which hides
+    // the trend badges) rather than fabricated.
     this.overviewStats = {
-      total_trainings: 24,
-      total_sessions: 156,
-      total_learners: 1245,
-      certificates_issued: 890,
-      trainings_change: 12,
-      sessions_change: 8,
-      learners_change: 15,
-      certificates_change: 22
+      total_trainings: 0,
+      total_sessions: 0,
+      total_learners: 0,
+      certificates_issued: 0,
+      trainings_change: 0,
+      sessions_change: 0,
+      learners_change: 0,
+      certificates_change: 0
     };
   }
 
@@ -152,6 +155,7 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
             training_id: t.training_id,
             title: t.title,
             type: t.training_type,
+            status: t.status,
             sessions_count: t.session_count || 0,
             total_enrolled: t.enrollment_count || 0,
             avg_attendance: 0, // Will be calculated from analytics
@@ -159,6 +163,7 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
             certificates_issued: 0
           }));
           this.filterReports();
+          this.loadTypeDistribution();
 
           // Load analytics for each training
           this.loadTrainingAnalytics();
@@ -208,46 +213,24 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
     this.overviewStats.total_sessions = totalSessions;
     this.overviewStats.total_learners = totalLearners;
     this.overviewStats.certificates_issued = totalCerts;
+
+    // Only "issued" has a real source; the rest have none, so leave them zero.
+    this.certStats = { total_eligible: 0, issued: totalCerts, pending: 0, revoked: 0 };
   }
 
-  loadChartData(): void {
-    // Mock attendance trend data
-    this.attendanceTrendData = [
-      { label: 'Mon', value: 85, percentage: 85 },
-      { label: 'Tue', value: 78, percentage: 78 },
-      { label: 'Wed', value: 92, percentage: 92 },
-      { label: 'Thu', value: 88, percentage: 88 },
-      { label: 'Fri', value: 75, percentage: 75 },
-      { label: 'Sat', value: 45, percentage: 45 },
-      { label: 'Sun', value: 30, percentage: 30 }
-    ];
-  }
-
+  /** Real distribution of programmes by delivery type. */
   loadTypeDistribution(): void {
-    this.typeDistribution = [
-      { type: 'physical', count: 12, percentage: 50 },
-      { type: 'virtual', count: 8, percentage: 33 },
-      { type: 'hybrid', count: 4, percentage: 17 }
-    ];
-  }
-
-  loadTopInstructors(): void {
-    this.topInstructors = [
-      { name: 'John Smith', avatar: null, sessions_conducted: 45, avg_rating: 4.8 },
-      { name: 'Sarah Johnson', avatar: null, sessions_conducted: 38, avg_rating: 4.7 },
-      { name: 'Michael Brown', avatar: null, sessions_conducted: 32, avg_rating: 4.6 },
-      { name: 'Emily Davis', avatar: null, sessions_conducted: 28, avg_rating: 4.5 },
-      { name: 'David Wilson', avatar: null, sessions_conducted: 25, avg_rating: 4.4 }
-    ];
-  }
-
-  loadCertStats(): void {
-    this.certStats = {
-      total_eligible: 1050,
-      issued: 890,
-      pending: 145,
-      revoked: 15
-    };
+    const counts = new Map<string, number>();
+    for (const r of this.reports) {
+      const type = r.type || 'other';
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
+    const total = this.reports.length || 1;
+    this.typeDistribution = [...counts.entries()].map(([type, count]) => ({
+      type,
+      count,
+      percentage: Math.round((count / total) * 100),
+    }));
   }
 
   onDateRangeChange(): void {
@@ -263,7 +246,9 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
     }
 
     if (this.filterStatus) {
-      result = result.filter(r => r.type === this.filterStatus);
+      // The dropdown is a status filter — compare against status, not the
+      // delivery type (which always emptied the table).
+      result = result.filter(r => r.status === this.filterStatus);
     }
 
     this.filteredReports = result;

@@ -51,12 +51,9 @@
               <option *ngFor="let type of trainingTypes" [value]="type">{{ type | titlecase }}</option>
             </select>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">{{ 'live.common.status' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingTraining.status">
-              <option *ngFor="let status of trainingStatuses" [value]="status">{{ status | titlecase }}</option>
-            </select>
-          </div>
+          <!-- Status is not set here: a new programme is always a draft, and
+               publishing is a separate action (it needs a session first). The
+               editable control did nothing because PUT preserves status. -->
           <div class="col-md-6">
             <label class="form-label">{{ 'live.form.max_capacity' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.max_capacity"

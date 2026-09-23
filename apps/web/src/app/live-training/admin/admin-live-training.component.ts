@@ -13,9 +13,9 @@ import {
   TrainingEnrollment,
   SessionAttendance,
   SessionInstructor,
-  TrainingAnalytics,
-  VideoIntegration
+  TrainingAnalytics
 } from '../live-training.service';
+import { VideoIntegrationService, IntegrationStatus } from '../services/video-integration.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import {RouterLink} from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
@@ -31,6 +31,7 @@ import { I18nService } from '../../i18n.service';
 export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly videoIntegrations = inject(VideoIntegrationService);
 
   private destroy$ = new Subject<void>();
 
@@ -42,7 +43,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   enrollments: TrainingEnrollment[] = [];
   attendance: SessionAttendance[] = [];
   analytics: TrainingAnalytics | null = null;
-  integrations: VideoIntegration[] = [];
+  integrations: IntegrationStatus[] = [];
 
   // UI State
   activeTab: 'list' | 'details' | 'sessions' | 'enrollments' | 'analytics' | 'integrations' = 'list';
@@ -100,10 +101,6 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   selectedEnrollment: TrainingEnrollment | null = null;
   revokeReason = '';
 
-  // Integration Management
-  showIntegrationModal = false;
-  editingIntegration: Partial<VideoIntegration> = {};
-
   // Virtual Attendance
   showVirtualAttendanceModal = false;
   virtualAttendanceData = {
@@ -119,6 +116,17 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   trainingStatuses = ['draft', 'published', 'ongoing', 'completed', 'cancelled'];
   attendanceStatuses = ['present', 'late', 'absent'];
   videoPlatforms = ['agora', 'zoom', 'google_meet', 'microsoft_teams'];
+
+  /** Friendly platform names — `titlecase` leaves 'google_meet' as 'Google_meet'. */
+  platformLabel(platform: string): string {
+    const labels: Record<string, string> = {
+      agora: 'In-app video (Agora)',
+      zoom: 'Zoom',
+      google_meet: 'Google Meet',
+      microsoft_teams: 'Microsoft Teams',
+    };
+    return labels[platform] ?? platform;
+  }
   instructorRoles = ['primary', 'co_instructor', 'assistant'];
   reminderChannels = ['email', 'in_app', 'sms', 'whatsapp'];
 
@@ -160,12 +168,17 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     this.loading = true;
 
     forkJoin({
+      // Re-fetch the training itself, not just its children: callers pass the
+      // object they already held, which is stale after a publish/status change
+      // and left the header showing "Draft" after a successful publish.
+      training: this.liveTrainingService.getTraining(training.training_id),
       sessions: this.liveTrainingService.getTrainingSessions(training.training_id),
       enrollments: this.liveTrainingService.getTrainingEnrollments(training.training_id),
       analytics: this.liveTrainingService.getTrainingAnalytics(training.training_id)
     }).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
+          this.selectedTraining = data.training;
           this.sessions = data.sessions;
           this.enrollments = data.enrollments;
           this.analytics = data.analytics;
@@ -183,7 +196,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     this.selectedSession = session;
     this.loading = true;
 
-    this.liveTrainingService.getSessionAttendance(session.session_id)
+    this.liveTrainingService.getSessionAttendance(session.session_id, session.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
@@ -199,7 +212,9 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   loadIntegrations(): void {
-    this.liveTrainingService.getIntegrations()
+    // The OAuth-status service reports every platform the deployment supports
+    // and whether this tenant has connected it — no client id/secret involved.
+    this.videoIntegrations.getAllIntegrationStatuses()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => this.integrations = data,
@@ -301,7 +316,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
     const operation = this.deleteType === 'training'
       ? this.liveTrainingService.deleteTraining(this.deleteId)
-      : this.liveTrainingService.deleteSession(this.deleteId);
+      : this.liveTrainingService.deleteSession(this.deleteId, this.selectedTraining?.training_id);
 
     operation.pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -324,7 +339,9 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   publishTraining(training: LiveTraining): void {
-    this.liveTrainingService.updateTraining(training.training_id, { status: 'published' })
+    // Publishing is PATCH /status, not PUT — the update endpoint deliberately
+    // preserves status, so updateTraining({status}) was a silent no-op.
+    this.liveTrainingService.publishTraining(training.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -444,7 +461,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   generateQRCode(session: TrainingSession): void {
-    this.liveTrainingService.generateQRCode(session.session_id)
+    this.liveTrainingService.generateQRCode(session.session_id, session.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
@@ -478,8 +495,36 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   openEnrollModal(): void {
     if (!this.selectedTraining) return;
     this.selectedUsers = [];
-    // Load available users (you'd implement this)
+    this.loadAvailableUsers();
     this.showEnrollModal = true;
+  }
+
+  /** Tenant members not already on this programme — the enrol picker's list. */
+  private loadAvailableUsers(): void {
+    this.liveTrainingService.searchUsersForEnrollment({})
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: users => {
+          const enrolled = new Set(this.enrollments.map(e => e.user_id));
+          this.availableUsers = users
+            .filter(u => !enrolled.has(u.user_id))
+            .map(u => ({ user_id: u.user_id, first_name: u.first_name, last_name: u.last_name, email: u.email }));
+        },
+        error: err => console.error('Error loading users:', err)
+      });
+  }
+
+  /** Tenant members who can be assigned to teach — the instructor picker's list. */
+  private loadAvailableInstructors(): void {
+    this.liveTrainingService.searchUsersForEnrollment({})
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: users => {
+          this.availableInstructors = users
+            .map(u => ({ user_id: u.user_id, first_name: u.first_name, last_name: u.last_name, email: u.email }));
+        },
+        error: err => console.error('Error loading instructors:', err)
+      });
   }
 
   closeEnrollModal(): void {
@@ -521,7 +566,9 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   cancelEnrollment(enrollment: TrainingEnrollment): void {
     if (!confirm(this.i18n.t('live.admin.cancel_enroll_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }))) return;
 
-    this.liveTrainingService.cancelEnrollment(enrollment.enrollment_id)
+    // Withdraw is by learner user id against the training's roster, not by
+    // enrolment id — the previous call sent the wrong id to a training-less URL.
+    this.liveTrainingService.cancelEnrollment(enrollment.user_id, undefined, this.selectedTraining?.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadTrainingDetails(this.selectedTraining!),
@@ -554,7 +601,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       this.selectedSession.session_id,
       this.overrideUserId,
       this.overrideStatus,
-      this.overrideReason
+      this.overrideReason,
+      this.selectedSession.training_id
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -573,7 +621,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     if (!this.selectedSession) return;
     if (!confirm(this.i18n.t('live.admin.lock_confirm'))) return;
 
-    this.liveTrainingService.lockAttendance(this.selectedSession.session_id)
+    this.liveTrainingService.lockAttendance(this.selectedSession.session_id, this.selectedSession.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -591,7 +639,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   issueCertificate(enrollment: TrainingEnrollment): void {
     if (!confirm(this.i18n.t('live.admin.issue_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }))) return;
 
-    this.liveTrainingService.issueCertificate(enrollment.enrollment_id)
+    this.liveTrainingService.issueCertificate(enrollment.enrollment_id, this.selectedTraining?.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadTrainingDetails(this.selectedTraining!),
@@ -790,6 +838,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   openInstructorModal(session: TrainingSession): void {
     this.selectedSession = session;
     this.loadSessionInstructors(session.session_id, session.training_id);
+    this.loadAvailableInstructors();
     this.showInstructorModal = true;
     this.newInstructorId = null;
     this.newInstructorRole = 'primary';
@@ -895,7 +944,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   checkEligibility(enrollment: TrainingEnrollment): void {
-    this.liveTrainingService.checkEligibility(enrollment.enrollment_id)
+    this.liveTrainingService.checkEligibility(enrollment.enrollment_id, this.selectedTraining?.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: updated => {
@@ -959,7 +1008,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
         join_time: this.virtualAttendanceData.join_time || undefined,
         leave_time: this.virtualAttendanceData.leave_time || undefined,
         duration_minutes: this.virtualAttendanceData.duration_minutes
-      }
+      },
+      this.selectedSession.training_id
     ).pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -979,7 +1029,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // ==========================================
 
   loadQRData(session: TrainingSession): void {
-    this.liveTrainingService.getQRData(session.session_id)
+    this.liveTrainingService.getQRData(session.session_id, session.training_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
@@ -1001,46 +1051,37 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // VIDEO INTEGRATION MANAGEMENT
   // ==========================================
 
-  openIntegrationModal(integration?: VideoIntegration): void {
-    this.editingIntegration = integration ? { ...integration } : {
-      platform: 'zoom',
-      is_active: true
-    };
-    this.showIntegrationModal = true;
+  /** Friendly platform name for the integrations UI. */
+  platformDisplayName(platform: string): string {
+    return this.platformLabel(platform);
   }
 
-  closeIntegrationModal(): void {
-    this.showIntegrationModal = false;
-    this.editingIntegration = {};
+  /**
+   * Start the OAuth handshake for a platform — no client id/secret to enter.
+   * The provider redirects back to the integrations settings page, which
+   * finishes the exchange and stores the tenant's tokens.
+   */
+  connectPlatform(platform: string): void {
+    this.videoIntegrations.connect(platform as 'zoom' | 'google_meet' | 'microsoft_teams');
   }
 
-  saveIntegration(): void {
-    if (!this.editingIntegration.platform) return;
+  disconnectPlatform(platform: string): void {
+    if (!confirm(this.i18n.t('live.integrations.disconnect_confirm', { platform: this.platformDisplayName(platform) }))) return;
 
-    this.saving = true;
-    this.liveTrainingService.saveIntegration(this.editingIntegration)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.saving = false;
-          this.closeIntegrationModal();
-          this.loadIntegrations();
-        },
-        error: err => {
-          console.error('Error saving integration:', err);
-          this.saving = false;
-        }
-      });
-  }
-
-  disconnectIntegration(integration: VideoIntegration): void {
-    if (!confirm(this.i18n.t('live.admin.disconnect_confirm', { platform: integration.platform }))) return;
-
-    this.liveTrainingService.disconnectIntegration(integration.platform)
+    this.videoIntegrations.disconnect(platform)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadIntegrations(),
         error: err => console.error('Error disconnecting integration:', err)
+      });
+  }
+
+  setDefaultPlatform(platform: string): void {
+    this.videoIntegrations.setDefaultPlatform(platform)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.loadIntegrations(),
+        error: err => console.error('Error setting default platform:', err)
       });
   }
 
@@ -1052,7 +1093,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     return String(item.id);
   }
 
-  trackByIntegrationId(index: number, item: VideoIntegration): string {
-    return item.integration_id;
+  trackByIntegrationId(index: number, item: IntegrationStatus): string {
+    return item.platform;
   }
 }

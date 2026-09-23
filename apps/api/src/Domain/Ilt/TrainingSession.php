@@ -198,9 +198,17 @@ final readonly class TrainingSession
      * Both ends matter: too early and people scan on their way past the day
      * before, too late and the code is a permanent key to the register.
      */
-    public function qrIsValid(string $token, \DateTimeImmutable $now): bool
+    public function qrIsValid(string $token, \DateTimeImmutable $now, int $validBeforeStartMinutes = 0): bool
     {
         if ($this->qrToken === null || !hash_equals($this->qrToken, $token)) {
+            return false;
+        }
+
+        // Lower bound: the code is live only from a set window before the start,
+        // so someone cannot scan it on their way past the day before. The upper
+        // bound (grace period after the start) is baked into qrExpiresAt.
+        $validFrom = $this->startsAt->modify(sprintf('-%d minutes', max(0, $validBeforeStartMinutes)));
+        if ($now < $validFrom) {
             return false;
         }
 

@@ -68,6 +68,12 @@ interface TrainingRepository
         ?string $error,
     ): ?TrainingSession;
 
+    /**
+     * Records a meeting error without clearing the booking — for a failed
+     * reschedule, where the existing join link must survive.
+     */
+    public function recordMeetingError(string $tenantId, string $sessionId, ?string $error): ?TrainingSession;
+
     public function setSessionStatus(string $tenantId, string $id, SessionStatus $status): ?TrainingSession;
 
     /**

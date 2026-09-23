@@ -131,13 +131,25 @@ final class ManageSessionsAction extends TrainingAction
         // the provider and re-notify every attendee for a typo fix.
         if ($moved && $existing->hasMeeting()) {
             $result = $this->scheduler->reschedule($updated);
-            $updated = $this->trainings->saveMeeting(
-                $tenantId,
-                $updated->id,
-                $updated->platform,
-                $result['meeting'],
-                $result['error'],
-            ) ?? $updated;
+
+            if ($result['meeting'] !== null) {
+                $updated = $this->trainings->saveMeeting(
+                    $tenantId,
+                    $updated->id,
+                    $updated->platform,
+                    $result['meeting'],
+                    $result['error'],
+                ) ?? $updated;
+            } else {
+                // The reschedule failed. The existing booking is still valid and
+                // in people's calendars, so keep it and only record the error —
+                // wiping it would leave an empty join button at the new time.
+                $updated = $this->trainings->recordMeetingError(
+                    $tenantId,
+                    $updated->id,
+                    $result['error'],
+                ) ?? $updated;
+            }
         } elseif ($updated->needsMeeting()) {
             // It became online, or the first booking failed.
             $updated = $this->bookMeeting($request, $updated) ?? $updated;

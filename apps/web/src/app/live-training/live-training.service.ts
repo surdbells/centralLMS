@@ -663,13 +663,28 @@ export class LiveTrainingService {
       .pipe(map(toAnalytics));
   }
 
-  getLearnerProgress(training_id: string, learner_id?: string): Observable<LearnerProgress> {
-    return this.getTrainingEnrollments(training_id).pipe(map((rows) => {
-      const row = learner_id === undefined
-        ? rows[0]
-        : rows.find((r) => String((r as unknown as Record<string, unknown>)['learner_id']) === learner_id);
+  getLearnerProgress(training_id: string, _learner_id?: string): Observable<LearnerProgress> {
+    // A learner's own progress comes from their enrolments — the roster is
+    // organiser-only (IltSessionManage) and would 403 a learner. /me/trainings
+    // already carries the enrolment and its sessions.
+    return this.getMyEnrollments().pipe(map((rows) => {
+      const enrollment = rows.find((r) => r.training_id === training_id) ?? rows[0];
+      const sessions = (((enrollment as unknown as Record<string, unknown>)?.['sessions'] ?? []) as TrainingSession[])
+        .map((s) => ({
+          session_id: s.session_id,
+          title: s.title,
+          session_date: s.session_date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          session_type: s.session_type,
+          session_status: s.status,
+          is_mandatory: s.is_mandatory,
+          attendance_status: null,
+          attendance_mode: null,
+          marked_at: null,
+        }));
 
-      return (row ?? {}) as unknown as LearnerProgress;
+      return { enrollment: enrollment ?? {}, sessions } as unknown as LearnerProgress;
     }));
   }
 
@@ -818,12 +833,23 @@ export class LiveTrainingService {
     const f = filters as unknown as Record<string, unknown>;
 
     return this.api
-      .getPaged<Record<string, unknown>>(Endpoints.users.list, {
+      .getPaged<Record<string, any>>(Endpoints.users.list, {
         search: f['search'] as string | undefined,
         departmentId: f['department_id'] as string | undefined,
         perPage: 100,
       })
-      .pipe(map((page) => page.items as unknown as UserForEnrollment[]));
+      // The users endpoint speaks camelCase (id, firstName, …); the picker
+      // reads the snake_case UserForEnrollment shape, so map rather than cast.
+      .pipe(map((page) => page.items.map((r) => ({
+        user_id: String(r['id'] ?? r['user_id'] ?? ''),
+        first_name: String(r['firstName'] ?? r['first_name'] ?? ''),
+        last_name: String(r['lastName'] ?? r['last_name'] ?? ''),
+        email: String(r['email'] ?? ''),
+        department_id: r['departmentId'] ?? r['department_id'] ?? null,
+        department_name: r['departmentName'] ?? r['department_name'] ?? null,
+        branch_id: r['branchId'] ?? r['branch_id'] ?? null,
+        branch_name: r['branchName'] ?? r['branch_name'] ?? null,
+      }) as UserForEnrollment)));
   }
 
   /**
@@ -1149,35 +1175,87 @@ function fromSession(data: Partial<TrainingSession> & Record<string, any>): Reco
 }
 
 function toEnrollment(row: Record<string, any>): TrainingEnrollment {
+  // Two endpoints feed this mapper with two dialects: /me/trainings speaks
+  // camelCase (userId, attendancePercentage, …) and /trainings/{id}/roster
+  // speaks snake_case (user_id, user_name, …). Read both so the admin roster
+  // and the learner dashboard are populated from the same code.
+  const userId = String(row['userId'] ?? row['user_id'] ?? '');
+  const fullName = String(row['userName'] ?? row['user_name'] ?? '').trim();
+  const nameParts = fullName.split(/\s+/).filter(Boolean);
+  const certificateId = row['certificateId'] ?? row['certificate_id'] ?? null;
+  const meetsRequirement = (row['meetsRequirement'] ?? row['meets_requirement']) === true;
+  const email = row['userEmail'] ?? row['user_email'] ?? null;
+  // Nested sessions arrive raw (camelCase); run them through the session mapper
+  // so every snake_case binding the templates read (starts_at, session_date,
+  // join_url, video_platform, …) is populated.
+  const sessions = ((row['sessions'] ?? []) as SessionPayload[]).map(toSession);
+
   return {
     enrollment_id: String(row['id'] ?? ''),
-    training_id: String(row['trainingId'] ?? ''),
-    learner_id: String(row['userId'] ?? ''),
+    training_id: String(row['trainingId'] ?? row['training_id'] ?? ''),
+    user_id: userId,
+    // Legacy alias: some call sites read learner_id rather than user_id.
+    learner_id: userId,
     status: row['status'] ?? 'enrolled',
     enrollment_type: row['source'] ?? 'self',
-    enrolled_at: row['enrolledAt'] ?? null,
-    attendance_percentage: Number(row['attendancePercentage'] ?? 0),
-    sessions_attended: Number(row['sessionsAttended'] ?? 0),
-    sessions_total: Number(row['sessionsCounted'] ?? 0),
-    meets_requirement: row['meetsRequirement'] === true,
-    certificate_id: row['certificateId'] ?? null,
-    learner_name: row['userName'] ?? null,
-    learner_email: row['userEmail'] ?? null,
-    training_title: row['trainingTitle'] ?? null,
-    sessions: row['sessions'] ?? [],
+    waitlist_position: row['waitlistPosition'] ?? row['waitlist_position'] ?? null,
+    enrolled_at: row['enrolledAt'] ?? row['enrolled_at'] ?? null,
+    completed_at: row['completedAt'] ?? row['completed_at'] ?? null,
+    attendance_percentage: Number(row['attendancePercentage'] ?? row['attendance_percentage'] ?? 0),
+    sessions_attended: Number(row['sessionsAttended'] ?? row['sessions_attended'] ?? 0),
+    sessions_total: Number(row['sessionsCounted'] ?? row['sessions_total'] ?? sessions.length),
+    meets_requirement: meetsRequirement,
+    certificate_id: certificateId,
+    // Derived, because the roster/enrolment payloads carry the facts but not a
+    // status label: a held certificate is issued; meeting the bar is eligible.
+    certification_status: certificateId ? 'issued' : (meetsRequirement ? 'eligible' : 'pending'),
+    first_name: nameParts[0] ?? '',
+    last_name: nameParts.slice(1).join(' '),
+    email,
+    profile_image: null,
+    learner_name: fullName || null,
+    learner_email: email,
+    training_title: row['trainingTitle'] ?? row['training_title'] ?? null,
+    sessions,
   } as unknown as TrainingEnrollment;
 }
 
 function toAnalytics(t: TrainingPayload): TrainingAnalytics {
+  // The template and the TrainingAnalytics interface read a nested shape
+  // (analytics.sessions.total, analytics.enrollments.active, …). Returning a
+  // flat object made analytics.sessions undefined and crashed the Analytics
+  // tab in change detection, so the groups are built here from the training
+  // payload — the fields the show endpoint does not carry stay zero rather
+  // than absent.
+  const totalSessions = Number(t['sessionCount'] ?? 0);
+  const completedSessions = Number(t['completedSessionCount'] ?? 0);
+  const enrolled = Number(t['enrolledCount'] ?? 0);
+
   return {
-    training_id: t.id,
-    title: t.title,
-    total_sessions: Number(t['sessionCount'] ?? 0),
-    total_enrollments: Number(t['enrolledCount'] ?? 0),
-    // Counted at read time on the server; the legacy stored these and every
-    // one of them drifted.
-    completed_count: Number(t['completedCount'] ?? 0),
-    average_attendance: Number(t['averageAttendance'] ?? 0),
+    training: toTraining(t),
+    sessions: {
+      total: totalSessions,
+      completed: completedSessions,
+      remaining: Math.max(0, totalSessions - completedSessions),
+    },
+    enrollments: {
+      total: enrolled,
+      active: enrolled,
+      completed: Number(t['completedCount'] ?? 0),
+    },
+    attendance: {
+      present: 0,
+      late: 0,
+      absent: 0,
+      physical: 0,
+      virtual: 0,
+      average_percentage: Number(t['averageAttendance'] ?? 0),
+    },
+    certification: {
+      eligible: 0,
+      issued: 0,
+      not_eligible: 0,
+    },
   } as unknown as TrainingAnalytics;
 }
 
