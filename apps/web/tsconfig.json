@@ -22,6 +22,15 @@
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
-    "strictTemplates": true
+    "strictTemplates": true,
+    "extendedDiagnostics": {
+      "checks": {
+        // Defensive `?.` on array-index access and optional API fields is
+        // intentional; the compiler over-reports it as removable.
+        "optionalChainNotNullable": "suppress",
+        // Standalone imports left in the array are tree-shaken; not worth a warning.
+        "unusedStandaloneImports": "suppress"
+      }
+    }
   }
 }

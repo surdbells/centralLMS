@@ -1,3 +1,4 @@
+@use 'sass:color';
 // tenant-settings/tenant-settings.component.scss
 
 // Light Theme Variables
@@ -556,8 +557,8 @@ $border-radius-lg: 0.75rem;
     &.users { background: rgba($info-color, 0.1); color: $info-color; }
     &.courses { background: rgba($primary-color, 0.1); color: $primary-color; }
     &.enrollments { background: rgba($success-color, 0.1); color: $success-color; }
-    &.completed { background: rgba($success-color, 0.15); color: darken($success-color, 5%); }
-    &.certificates { background: rgba($warning-color, 0.15); color: darken($warning-color, 15%); }
+    &.completed { background: rgba($success-color, 0.15); color: color.adjust($success-color, $lightness: -5%); }
+    &.certificates { background: rgba($warning-color, 0.15); color: color.adjust($warning-color, $lightness: -15%); }
     &.storage { background: rgba($text-secondary, 0.1); color: $text-secondary; }
   }
 

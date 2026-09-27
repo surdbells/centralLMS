@@ -16,6 +16,10 @@
                         "outputPath": "dist/central",
                         "index": "src/index.html",
                         "browser": "src/main.ts",
+                        "allowedCommonJsDependencies": [
+                            "agora-rtm",
+                            "agora-rtc-sdk-ng"
+                        ],
                         "polyfills": [
                             "zone.js"
                         ],

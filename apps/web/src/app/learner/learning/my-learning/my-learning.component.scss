@@ -1,3 +1,4 @@
+@use 'sass:color';
 // my-learning/my-learning.component.scss
 
 // Light Theme Variables
@@ -179,7 +180,7 @@ $border-radius-lg: 0.75rem;
     &.progress { background: rgba($info-color, 0.1); color: $info-color; }
     &.completed { background: rgba($success-color, 0.1); color: $success-color; }
     &.overdue { background: rgba($danger-color, 0.1); color: $danger-color; }
-    &.certificates { background: rgba($warning-color, 0.15); color: darken($warning-color, 15%); }
+    &.certificates { background: rgba($warning-color, 0.15); color: color.adjust($warning-color, $lightness: -15%); }
     &.points { background: rgba($primary-color, 0.1); color: $primary-color; }
     &.streak { background: rgba(#ff6b35, 0.1); color: #ff6b35; }
     &.time { background: rgba($text-secondary, 0.1); color: $text-secondary; }
@@ -1018,7 +1019,7 @@ $border-radius-lg: 0.75rem;
     transition: background 0.15s;
 
     &:hover {
-      background: darken($bg-tertiary, 3%);
+      background: color.adjust($bg-tertiary, $lightness: -3%);
     }
 
     .module-info {

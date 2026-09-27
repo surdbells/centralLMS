@@ -1,3 +1,4 @@
+@use 'sass:color';
 // course-enrollment/course-enrollees.component.scss
 
 // Light Theme Variables
@@ -321,7 +322,7 @@ $border-radius-lg: 0.75rem;
 
     &.progress {
       background: rgba($warning-color, 0.1);
-      color: darken($warning-color, 15%);
+      color: color.adjust($warning-color, $lightness: -15%);
     }
   }
 

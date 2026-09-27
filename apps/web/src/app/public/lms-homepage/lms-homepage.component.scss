@@ -1,3 +1,4 @@
+@use 'sass:color';
 // lms-homepage/lms-homepage.component.scss
 
 // Light Theme Variables (matching your existing LMS)
@@ -52,7 +53,7 @@ $border-radius-xl: 1rem;
   box-shadow: 0 4px 15px rgb(14, 99, 14);
 
   &:hover {
-    background: linear-gradient(135deg, $primary-dark 0%, darken($primary-dark, 5%) 100%);
+    background: linear-gradient(135deg, $primary-dark 0%, color.adjust($primary-dark, $lightness: -5%) 100%);
     color: #eaeaea;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgb(14, 99, 14);
@@ -396,7 +397,7 @@ $border-radius-xl: 1rem;
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: darken($border-color, 5%);
+    border-color: color.adjust($border-color, $lightness: -5%);
     box-shadow: $shadow-sm;
   }
 
@@ -886,7 +887,7 @@ $border-radius-xl: 1rem;
 // ================================
 .cta-section {
   padding: 6rem 0;
-  background: linear-gradient(135deg, $text-primary 0%, darken($text-primary, 5%) 100%);
+  background: linear-gradient(135deg, $text-primary 0%, color.adjust($text-primary, $lightness: -5%) 100%);
   position: relative;
   overflow: hidden;
 
@@ -1507,7 +1508,7 @@ $border-radius-xl: 1rem;
   transition: all 0.25s;
   position: relative;
 
-  &:hover { border-color: lighten($primary-color, 20%); }
+  &:hover { border-color: color.adjust($primary-color, $lightness: 20%); }
 
   &.selected {
     border-color: $primary-color;
@@ -1665,7 +1666,7 @@ $border-radius-xl: 1rem;
   cursor: pointer;
   transition: all 0.25s;
 
-  &:hover { border-color: lighten($primary-color, 20%); background: $bg-secondary; }
+  &:hover { border-color: color.adjust($primary-color, $lightness: 20%); background: $bg-secondary; }
 
   &.selected {
     border-color: $primary-color;
@@ -2376,7 +2377,7 @@ $border-radius-xl: 1rem;
   i { font-size: 1rem; }
 
   &:hover {
-    border-color: lighten($primary-color, 25%);
+    border-color: color.adjust($primary-color, $lightness: 25%);
     color: $primary-color;
   }
 

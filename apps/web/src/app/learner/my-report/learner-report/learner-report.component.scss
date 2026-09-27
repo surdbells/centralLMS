@@ -1,3 +1,4 @@
+@use 'sass:color';
 // learner-report/learner-report.component.scss
 
 // Light Theme Variables
@@ -191,7 +192,7 @@ $border-radius-lg: 0.75rem;
   &.primary .stat-icon { background: $primary-light; color: $primary-color; }
   &.success .stat-icon { background: rgba($success-color, 0.1); color: $success-color; }
   &.info .stat-icon { background: rgba($info-color, 0.1); color: $info-color; }
-  &.warning .stat-icon { background: rgba($warning-color, 0.15); color: darken($warning-color, 15%); }
+  &.warning .stat-icon { background: rgba($warning-color, 0.15); color: color.adjust($warning-color, $lightness: -15%); }
   &.danger .stat-icon { background: rgba($danger-color, 0.1); color: $danger-color; }
   &.purple .stat-icon { background: rgba($purple-color, 0.1); color: $purple-color; }
   &.orange .stat-icon { background: rgba($orange-color, 0.1); color: $orange-color; }
@@ -349,7 +350,7 @@ $border-radius-lg: 0.75rem;
     transition: height 0.3s ease;
 
     &.has-completion {
-      background: linear-gradient(180deg, $success-color 0%, darken($success-color, 10%) 100%);
+      background: linear-gradient(180deg, $success-color 0%, color.adjust($success-color, $lightness: -10%) 100%);
     }
 
     .bar-value {
@@ -484,7 +485,7 @@ $border-radius-lg: 0.75rem;
 
     &.lesson { background: rgba($info-color, 0.1); color: $info-color; }
     &.course_completed { background: rgba($success-color, 0.1); color: $success-color; }
-    &.certificate { background: rgba($warning-color, 0.15); color: darken($warning-color, 15%); }
+    &.certificate { background: rgba($warning-color, 0.15); color: color.adjust($warning-color, $lightness: -15%); }
     &.quiz { background: rgba($purple-color, 0.1); color: $purple-color; }
   }
 
@@ -962,7 +963,7 @@ $border-radius-lg: 0.75rem;
 
 .status-expiring {
   background: rgba($warning-color, 0.15);
-  color: darken($warning-color, 15%);
+  color: color.adjust($warning-color, $lightness: -15%);
 }
 
 // ==========================================

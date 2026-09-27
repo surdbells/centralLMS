@@ -1,3 +1,4 @@
+@use 'sass:color';
 // reports/styles/reports.scss
 
 // Variables
@@ -275,9 +276,9 @@ $info-color: #3b82f6;
 .bg-primary-subtle { background-color: rgba($primary-color, 0.1) !important; }
 .bg-info-subtle { background-color: rgba($info-color, 0.1) !important; }
 
-.text-success-emphasis { color: darken($success-color, 10%) !important; }
-.text-warning-emphasis { color: darken($warning-color, 10%) !important; }
-.text-danger-emphasis { color: darken($danger-color, 10%) !important; }
+.text-success-emphasis { color: color.adjust($success-color, $lightness: -10%) !important; }
+.text-warning-emphasis { color: color.adjust($warning-color, $lightness: -10%) !important; }
+.text-danger-emphasis { color: color.adjust($danger-color, $lightness: -10%) !important; }
 
 // Utility classes
 .cursor-pointer { cursor: pointer; }

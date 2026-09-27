@@ -1,3 +1,4 @@
+@use 'sass:color';
 // ========================================
 // MEDIA UPLOAD COMPONENT STYLES
 // ========================================
@@ -274,7 +275,7 @@ $transition: all 0.2s ease;
   color: $text-primary;
 
   &:hover:not(:disabled) {
-    background: lighten($bg-hover, 5%);
+    background: color.adjust($bg-hover, $lightness: 5%);
   }
 }
 
@@ -311,7 +312,7 @@ $transition: all 0.2s ease;
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, $primary, lighten($primary, 15%));
+  background: linear-gradient(90deg, $primary, color.adjust($primary, $lightness: 15%));
   border-radius: 3px;
   transition: width 0.3s ease;
 }

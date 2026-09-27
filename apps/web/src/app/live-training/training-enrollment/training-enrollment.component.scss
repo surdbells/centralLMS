@@ -1,3 +1,4 @@
+@use 'sass:color';
 // Light Theme Variables
 $primary-color: var(--brand-primary, #303234);
 // Lighter than `$primary-color`, despite the name, and used as the
@@ -879,7 +880,7 @@ $border-radius-lg: 0.75rem;
 
     .enrolled-chip {
       background: rgba($success-color, 0.1);
-      color: darken($success-color, 10%);
+      color: color.adjust($success-color, $lightness: -10%);
       padding: 0.375rem 0.75rem;
       border-radius: 20px;
       font-size: 0.8125rem;
