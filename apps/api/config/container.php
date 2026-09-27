@@ -201,7 +201,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 use function DI\autowire;
 use function DI\factory;
-use function DI\get;
+// NB: DI\get is used fully-qualified (\DI\get) rather than imported. The import
+// makes PHP-DI's compiler mis-resolve the `get()` method of the inline anonymous
+// ContainerInterface below to `\DI\get`, producing an uncompilable container.
 
 return [
     'settings' => factory(static fn (): array => require __DIR__ . '/settings.php'),
@@ -879,5 +881,5 @@ return [
     )),
 
     AuthenticationMiddleware::class => autowire()
-        ->constructorParameter('authenticator', get(TokenAuthenticator::class)),
+        ->constructorParameter('authenticator', \DI\get(TokenAuthenticator::class)),
 ];
