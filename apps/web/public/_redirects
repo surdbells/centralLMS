@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA fallback: serve index.html for any client-side route so
+# deep links (e.g. /live-training/admin, /{tenantId}/login) resolve instead of 404.
+# Real files (JS, CSS, assets) are served directly; everything else falls through here.
+/*    /index.html   200

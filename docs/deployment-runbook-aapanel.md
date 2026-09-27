@@ -240,6 +240,109 @@ location ~* \.(?:js|css|woff2?|png|jpe?g|svg|ico)$ {
 
 Reload Nginx and load `https://lms.example.com`.
 
+### 7b. Alternative: host the web on Cloudflare Pages
+
+Use this instead of §7 when the SPA should be served from Cloudflare's edge (global
+CDN, free TLS) rather than the aaPanel box — e.g. Midwestern, where the API server is a
+VPN-only private VM and only the frontend is public.
+
+**Prerequisites**
+- The domain's zone (e.g. `midwesternog.com`) is on Cloudflare (DNS managed there).
+- Node 22+ and pnpm (locally, or let Cloudflare's build runner do it).
+- The API must be reachable at a **public HTTPS URL** — the browser calls it directly.
+  A private (VPN-only) API needs a Cloudflare Tunnel first (see §7c).
+
+**1. Point the build at the API and its own origin** — `apps/web/src/environments/environment.ts`:
+
+```ts
+export const environment: AppEnvironment = {
+  production: true,
+  api: { baseUrl: 'https://api-midwesternlearning.midwesternog.com/v1' },
+  publicSiteUrl: 'https://midwesternlearning.midwesternog.com',
+};
+```
+
+The API URL is baked in at build time. Either edit this file before building, or keep
+the repo generic and inject it from a Pages env var in the build command (see 2b).
+`apps/web/public/_redirects` already ships the SPA fallback (`/* /index.html 200`) so
+deep links resolve on Pages.
+
+**2a. Direct upload (manual / one-off)**
+
+```bash
+# repo root, on any machine with Node 22 + pnpm
+pnpm install
+pnpm --filter @central/web build            # -> apps/web/dist/central/browser
+npx wrangler login                          # once
+npx wrangler pages project create midwestern-lms --production-branch main   # once
+npx wrangler pages deploy apps/web/dist/central/browser --project-name midwestern-lms
+```
+
+**2b. Git integration (CI on every push)**
+
+Cloudflare dashboard → Workers & Pages → Create → Pages → connect the repo:
+- **Production branch:** `main`
+- **Build command:**
+  `pnpm install && sed -i "s#https://api.centrallms.com/v1#$API_BASE_URL#" apps/web/src/environments/environment.ts && pnpm --filter @central/web build`
+- **Build output directory:** `apps/web/dist/central/browser`
+- **Root directory:** `/`
+- **Env vars:** `NODE_VERSION=22`, `API_BASE_URL=https://api-midwesternlearning.midwesternog.com/v1`
+
+The `sed` keeps the repo's generic default and injects the per-deployment API URL, so a
+tenant's URL is never committed.
+
+**3. Custom domain** — Pages project → Custom domains → add
+`midwesternlearning.midwesternog.com`. Cloudflare issues the cert automatically.
+
+**4. Wire the API side** — in the API `.env`, allow the Pages origin (full origin:
+scheme, host, no trailing slash) and reload PHP-FPM:
+
+```
+CORS_ALLOWED_ORIGINS=https://midwesternlearning.midwesternog.com
+```
+
+Confirm in the browser Network tab that login and a data call hit the API and return 200.
+
+### 7c. Reaching a VPN-only / private API from Cloudflare (Cloudflare Tunnel)
+
+When the API server has no public IP (e.g. a private Azure VM reachable only over VPN),
+a public Pages frontend cannot call it directly. Run a Cloudflare Tunnel on the API box:
+it dials **out** to Cloudflare, and Cloudflare forwards the API hostname to it — no
+inbound exposure, no public IP.
+
+Requires: the zone on Cloudflare, and outbound HTTPS from the box
+(`curl -sI https://cloudflare.com` returns a status line).
+
+```bash
+# on the aaPanel API server
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+sudo dpkg -i cloudflared.deb
+cloudflared tunnel login                       # opens a URL to authorize the zone
+cloudflared tunnel create midwestern-api
+cloudflared tunnel route dns midwestern-api api-midwesternlearning.midwesternog.com
+```
+
+`/etc/cloudflared/config.yml`:
+
+```yaml
+tunnel: <TUNNEL-ID-from-create>
+credentials-file: /root/.cloudflared/<TUNNEL-ID>.json
+ingress:
+  - hostname: api-midwesternlearning.midwesternog.com
+    service: http://localhost:80        # aaPanel Nginx routes by the Host header
+  - service: http_status:404
+```
+
+```bash
+sudo cloudflared service install
+sudo systemctl enable --now cloudflared
+```
+
+Gotcha: point the tunnel at the API over **plain HTTP locally** (Cloudflare does the
+public TLS). If the aaPanel API site force-redirects http→https you get a loop — either
+turn that redirect off on the API site, or use `service: https://localhost:443` with
+`originRequest: { originServerName: api-midwesternlearning.midwesternog.com, noTLSVerify: true }`.
+
 ---
 
 ## 8. The queue worker
