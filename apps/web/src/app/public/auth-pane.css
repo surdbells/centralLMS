@@ -1,8 +1,11 @@
+/* Shared layout for the public auth screens (login, register, reset):
+   a full-bleed branded hero on the left and a form on the right.
+   Included via styleUrls on each component, so it is view-encapsulated
+   per component and :host resolves to that component's host element. */
 :host {
   display: block;
 }
 
-/* Full-viewport split: branded hero on the left, sign-in form on the right. */
 .auth-split {
   display: flex;
   min-height: 100vh;
@@ -60,7 +63,7 @@
   color: #ffffff;
 }
 
-/* A dark or multi-colour logo would disappear on the green overlay, so render
+/* A dark or multi-colour logo would disappear on the brand overlay, so render
    it as a white silhouette, the way the concept shows the wordmark. */
 .auth-hero__logo {
   max-width: 200px;
@@ -118,6 +121,11 @@
   padding: 2rem 0;
 }
 
+/* Register's form carries more fields (two-column name row, phone picker). */
+.auth-form__body--wide {
+  max-width: 32rem;
+}
+
 .auth-form__logo {
   max-width: 160px;
   max-height: 52px;
@@ -138,7 +146,7 @@
 }
 
 .forgot-link {
-  color: var(--brand-secondary, #1f8a4c);
+  color: var(--brand-primary, #0e630e);
 }
 
 /* ---------- Directory (SSO) ---------- */
@@ -160,10 +168,6 @@
 
 /* ---------- Responsive: stack to a single centred form ---------- */
 @media (max-width: 991.98px) {
-  .auth-split {
-    min-height: 100dvh;
-  }
-
   .auth-form {
     flex-basis: 100%;
     max-width: 100%;

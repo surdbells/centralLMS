@@ -1,129 +1,118 @@
-<style>
-  /* keep the image filling its card without distortion */
-  .object-fit-cover { object-fit: cover; }
-</style>
+<div class="auth-split animate__animated animate__fadeIn">
 
-<div style="max-width: 55rem; padding-top: 3%" class="container animate__animated animate__fadeIn">
-    <span class="badge abayti_secondary_background rounded-pill mb-3">
-    <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">{{ 'auth.back_to_website' | translate }}</a>
-  </span>
-  <div  class="row justify-content-center align-items-stretch g-4">
-    <div class="col-12 col-lg-6 d-none d-md-flex">
-      <div class="card shadow-lg w-100 h-100 overflow-hidden">
-        <img [src]="loginBackgroundUrl || '/assets/img/learner.jpg'" [alt]="(organisation || 'Learning platform') + ' registration'" class="w-100 h-100 object-fit-cover animate__animated animate__fadeIn"
-        />
+  <!-- Left: branded hero. -->
+  <section class="auth-hero d-none d-lg-block">
+    <img class="auth-hero__img" src="/assets/img/auth-hero.webp" alt="" aria-hidden="true" />
+    <div class="auth-hero__overlay"></div>
+    <div class="auth-hero__content">
+      <img class="auth-hero__logo" [src]="logoUrl || 'assets/img/logo.png'"
+           [alt]="(organisation || 'Learning platform') + ' logo'" />
+      <div class="auth-hero__callout">
+        <h2 class="auth-hero__title">{{ 'register.hero_title' | translate }}</h2>
+        <p class="auth-hero__subtitle">{{ 'login.hero_subtitle' | translate }}</p>
       </div>
     </div>
-    <div class="col-12 col-lg-6 d-flex">
-      <div class="card">
-        <div class="card-header text-center">
-          <div class="row align-items-center">
-            <div class="col-6 text-start">
-              <img class="img-fluid" style="max-width: 140px; max-height: 56px; object-fit: contain"
-                   [src]="logoUrl || 'assets/img/logo.png'"
-                   [alt]="(organisation || 'Learning platform') + ' sign up'" />
+  </section>
+
+  <!-- Right: the registration flow (its four states). -->
+  <section class="auth-form">
+    <div class="auth-form__topbar">
+      <span class="badge abayti_secondary_background rounded-pill">
+        <a [href]="publicSiteUrl" class="btn px-1 py-0 btn-sm text-white">{{ 'auth.back_to_website' | translate }}</a>
+      </span>
+      <app-language-switcher></app-language-switcher>
+    </div>
+
+    <div class="auth-form__body auth-form__body--wide">
+      <img class="auth-form__logo d-lg-none" [src]="logoUrl || 'assets/img/logo.png'"
+           [alt]="(organisation || 'Learning platform') + ' logo'" />
+
+      <!-- The link names no organisation, or one we do not know. -->
+      <div *ngIf="notFound" class="text-center">
+        <h1 class="auth-form__title">{{ 'register.nothing_here' | translate }}</h1>
+        <p class="text-body-secondary mb-4">{{ 'register.link_unknown_org' | translate }}</p>
+        <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
+      </div>
+
+      <!-- Known organisation, but it does not take open registrations. -->
+      <div *ngIf="!notFound && !isOpen && !ui_controls.loading" class="text-center">
+        <h1 class="auth-form__title">{{ organisation }}</h1>
+        <p class="text-body-secondary mb-4">{{ organisation }} {{ 'register.closed_note' | translate }}</p>
+        <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
+      </div>
+
+      <!-- The form. -->
+      <div *ngIf="!notFound && isOpen && !ui_controls.registered">
+        <h1 class="auth-form__title">{{ 'register.title' | translate }}</h1>
+        <p class="auth-form__subtitle">
+          {{ 'register.joining' | translate }} <strong>{{ organisation }}</strong>.
+          <span *ngIf="domainNote" class="d-block small">{{ domainNote }}</span>
+        </p>
+        <form (ngSubmit)="send_otp()" method="post">
+          <div class="row">
+            <div class="col-md-6 col-12">
+              <div class="mb-3">
+                <label for="first_name" class="form-label required">{{ 'first_name' | translate }}</label>
+                <input [(ngModel)]="register.first_name" name="first_name" class="form-control" id="first_name" type="text" autocomplete="given-name" />
+              </div>
             </div>
-            <div class="col-6 text-end">
-              <app-language-switcher></app-language-switcher>
+            <div class="col-md-6 col-12">
+              <div class="mb-3">
+                <label for="last_name" class="form-label required">{{ 'last_name' | translate }}</label>
+                <input [(ngModel)]="register.last_name" name="last_name" class="form-control" id="last_name" type="text" autocomplete="family-name" />
+              </div>
             </div>
           </div>
-        </div>
-        <div *ngIf="notFound" class="card-body text-center">
-          <h1 class="fs-2">{{ 'register.nothing_here' | translate }}</h1>
-          <p class="lead text-body-secondary">
-            {{ 'register.link_unknown_org' | translate }}
-          </p>
-          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
-        </div>
-        <div *ngIf="!notFound && !isOpen && !ui_controls.loading" class="card-body text-center">
-          <h1 class="fs-2">{{ organisation }}</h1>
-          <p class="lead text-body-secondary">
-            {{ organisation }} {{ 'register.closed_note' | translate }}
-          </p>
-          <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
-        </div>
-        <div *ngIf="!notFound && isOpen && !ui_controls.registered" class="card-body">
-          <h1 class="fs-2 fw-bold mb-1">{{ 'register.title' | translate }}</h1>
-          <p class="text-body-secondary mb-4">
-            {{ 'register.joining' | translate }} <strong>{{ organisation }}</strong>.
-            <span *ngIf="domainNote" class="d-block small">{{ domainNote }}</span>
-          </p>
-          <form (ngSubmit)="send_otp()"  method="post"  class="mb-4">
-            <div class="row">
-              <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
-                <div class="mb-2">
-                  <label for="first_name" class="required">{{ 'first_name' | translate }}</label>
-                  <input [(ngModel)]="register.first_name" name="first_name" class="form-control form-control-sm" id="first_name" type="text" />
-                </div>
-              </div>
-              <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
-                <div class="mb-2">
-                  <label for="last_name" class="required">{{ 'last_name' | translate }}</label>
-                  <input [(ngModel)]="register.last_name" name="last_name" class="form-control form-control-sm" id="last_name" type="text" />
-                </div>
-              </div>
-            </div>
-            <div class="mb-2">
-              <label for="email" class="required">{{ 'email' | translate }}</label>
-              <input [(ngModel)]="register.email" name="email" class="form-control form-control-sm" id="email" type="email" />
-            </div>
-            <div class="mb-2">
-              <label class="required">{{ 'phone_number' | translate }}</label>
-              <div class="input-group">
-                <div class="btn-group" data-bs-auto-close="outside">
-                  <button class="btn abayti_secondary_background text-white btn-secondary btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="me-1">{{ selectedDial?.flag }}</span>{{ register.countryCode }}
-                  </button>
-                  <div class="dropdown-menu p-2" style="min-width: 18rem;">
-                    <input type="search" name="search"  class="form-control form-control-sm mb-2" placeholder="{{ 'register.search_country_or_code' | translate }}" [(ngModel)]="codeSearch" (click)="$event.stopPropagation()" />
-                    <div class="list-group list-group-flush code-list">
-                      <button type="button" class="list-group-item list-group-item-action py-1" *ngFor="let c of filteredDialCodes()" (click)="selectCode(c)">
-                        <span class="me-1">{{ c.flag }}</span>{{ c.name }}
-                        <span class="text-muted small">({{ c.code }})</span>
-                      </button>
-                    </div>
+          <div class="mb-3">
+            <label for="email" class="form-label required">{{ 'email' | translate }}</label>
+            <input [(ngModel)]="register.email" name="email" class="form-control" id="email" type="email" autocomplete="email" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label required">{{ 'phone_number' | translate }}</label>
+            <div class="input-group">
+              <div class="btn-group" data-bs-auto-close="outside">
+                <button class="btn abayti_secondary_background text-white btn-secondary dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <span class="me-1">{{ selectedDial?.flag }}</span>{{ register.countryCode }}
+                </button>
+                <div class="dropdown-menu p-2" style="min-width: 18rem;">
+                  <input type="search" name="search" class="form-control form-control-sm mb-2" placeholder="{{ 'register.search_country_or_code' | translate }}" [(ngModel)]="codeSearch" (click)="$event.stopPropagation()" />
+                  <div class="list-group list-group-flush code-list">
+                    <button type="button" class="list-group-item list-group-item-action py-1" *ngFor="let c of filteredDialCodes()" (click)="selectCode(c)">
+                      <span class="me-1">{{ c.flag }}</span>{{ c.name }}
+                      <span class="text-muted small">({{ c.code }})</span>
+                    </button>
                   </div>
                 </div>
-                <input [(ngModel)]="register.phone" name="phone" class="form-control form-control-sm" type="tel" inputmode="numeric" pattern="\\d*" placeholder="5XXXXXXXX" />
               </div>
-            </div>
-            <p class="text-body-secondary small mb-4">
-              {{ 'register.password_from_link' | translate }}
-            </p>
-            <tui-loader *ngIf="ui_controls.loading" />
-            <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
-              {{ 'register.cta' | translate }}
-            </button>
-          </form>
-          <p class="text-center text-body-secondary mb-0">{{ 'have_account' | translate }}
-            <a class="fw-semibold text-decoration-none abayti_secondary_color" routerLink="/login">{{ 'sign_in' | translate }}</a>
-          </p>
-        </div>
-        <div *ngIf="!notFound && ui_controls.registered" class="card-body">
-          <h1 class="fs-1">{{ 'confirm_email' | translate }}</h1>
-          <p class="lead text-body-secondary">
-            {{ 'register.link_on_its_way' | translate }}
-            <strong>{{ register.email }}</strong>.
-          </p>
-          <div class="mb-5">
-            <div class="row mt-4">
-              <div class="col-12">
-                <p>
-                  {{ 'register.check_inbox_spam' | translate }}
-                </p>
-              </div>
-              <div class="col-md-6 col-12">
-                <button type="button" class="text-black abayti_secondary_background text-white btn-secondary w-100 btn btn-sm" (click)="change_email()"> {{ 'register.change_email' | translate }} </button>
-              </div>
-              <div class="col-md-6 col-12">
-                <tui-loader *ngIf="ui_controls.loading" />
-                <button *ngIf="!ui_controls.loading" type="button" class="text-black w-100 abayti_secondary_color abayti_primary_background btn-secondary btn btn-sm" (click)="send_otp()"> {{ 'auth.send_it_again' | translate }} </button>
-              </div>
+              <input [(ngModel)]="register.phone" name="phone" class="form-control" type="tel" inputmode="numeric" pattern="\\d*" placeholder="5XXXXXXXX" />
             </div>
           </div>
+          <p class="text-body-secondary small mb-4">
+            {{ 'register.password_from_link' | translate }}
+          </p>
+          <tui-loader *ngIf="ui_controls.loading" />
+          <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
+            {{ 'register.cta' | translate }}
+          </button>
+        </form>
+        <p class="text-center text-body-secondary mb-0 mt-4">{{ 'have_account' | translate }}
+          <a class="fw-semibold text-decoration-none forgot-link" routerLink="/login">{{ 'sign_in' | translate }}</a>
+        </p>
+      </div>
+
+      <!-- Sent: check your email. -->
+      <div *ngIf="!notFound && ui_controls.registered">
+        <h1 class="auth-form__title">{{ 'confirm_email' | translate }}</h1>
+        <p class="auth-form__subtitle">
+          {{ 'register.link_on_its_way' | translate }} <strong>{{ register.email }}</strong>.
+        </p>
+        <p class="text-body-secondary small">{{ 'register.check_inbox_spam' | translate }}</p>
+        <div class="d-grid gap-2 mt-3">
+          <button type="button" class="btn abayti_secondary_background text-white btn-secondary" (click)="change_email()">{{ 'register.change_email' | translate }}</button>
+          <tui-loader *ngIf="ui_controls.loading" />
+          <button *ngIf="!ui_controls.loading" type="button" class="btn btn-outline-secondary" (click)="send_otp()">{{ 'auth.send_it_again' | translate }}</button>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </div>
-

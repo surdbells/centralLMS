@@ -48,7 +48,7 @@ import { environment } from '../../../environments/environment';
     TranslatePipe,
   ],
   templateUrl: './register.component.html',
-  styleUrl: './register.component.css',
+  styleUrls: ['./register.component.css', '../auth-pane.css'],
 })
 export class RegisterComponent implements OnInit, OnDestroy {
   /** The marketing site, which is a separate application now. */

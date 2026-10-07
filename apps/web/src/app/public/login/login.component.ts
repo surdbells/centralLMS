@@ -22,7 +22,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   imports: [TuiLoader, FormsModule, CommonModule, NgIf, RouterLink, LanguageSwitcherComponent, TranslatePipe],
   templateUrl: './login.component.html',
   standalone: true,
-  styleUrl: './login.component.css',
+  styleUrls: ['../auth-pane.css'],
 })
 export class LoginComponent implements OnInit {
   /** The marketing site, which is a separate application now. */

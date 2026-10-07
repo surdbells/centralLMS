@@ -42,7 +42,7 @@ import { environment } from '../../../environments/environment';
     LanguageSwitcherComponent,
   ],
   templateUrl: './reset.component.html',
-  styleUrl: './reset.component.css',
+  styleUrls: ['./reset.component.css', '../auth-pane.css'],
 })
 export class ResetComponent implements OnInit, OnDestroy {
   /** The marketing site, which is a separate application now. */
