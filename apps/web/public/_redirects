@@ -1,12 +1,7 @@
-# A genuinely missing /assets/* file must fail as a real 404, not fall through to
-# the SPA rule below. Serving index.html (200, text/html) for a missing .svg/.png
-# makes the browser render a broken image and hides the real "asset not deployed"
-# problem (this is exactly what masked the taiga-ui icons being absent from a stale
-# deploy). Real files are served before _redirects is consulted, so existing assets
-# are unaffected — only truly-missing ones hit this.
-/assets/*   /404.html     404
-
 # Cloudflare Pages SPA fallback: serve index.html for any client-side route so
-# deep links (e.g. /live-training/admin, /{tenantId}/login) resolve instead of 404.
-# Real files (JS, CSS, assets) are served directly; everything else falls through here.
-/*          /index.html   200
+# deep links and refreshes (e.g. /learning, /live-training/admin, /{tenantId}/login)
+# resolve instead of 404. Real files (JS, CSS, images, i18n, taiga icons) are
+# served directly by Pages; everything else resolves here. This must be the only
+# rule / the last rule — a preceding 404-status rule stops this catch-all from
+# applying, which 404s every deep-link refresh.
+/*    /index.html   200
