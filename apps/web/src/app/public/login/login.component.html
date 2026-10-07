@@ -32,44 +32,53 @@
           </div>
         </div>
         <div class="card-body d-flex flex-column justify-content-center">
-          <h1 class="fs-2">{{ 'Access Your Learning Dashboard' | translate }}</h1>
-          <p class="lead text-body-secondary">
-            {{ orgName ? ('Secure login to' | translate) + ' ' + orgName : ('Secure Login to Central LMS' | translate) }}
-          </p>
-          <form (ngSubmit)="user_login()" method="post" class="mb-2">
-            <div class="mb-2">
-              <label for="email">{{ 'email' | translate }}</label>
+          <h1 class="fs-2 fw-bold mb-1">{{ 'login.welcome_back' | translate }}</h1>
+          <p class="text-body-secondary mb-4">{{ 'login.subtitle' | translate }}</p>
+          <form (ngSubmit)="user_login()" method="post">
+            <div class="mb-3">
+              <label for="email" class="form-label">{{ 'email' | translate }}</label>
               <input
                 [(ngModel)]="login.email"
                 name="email"
                 id="email"
                 type="email"
+                autocomplete="username"
                 class="form-control"
                 placeholder="{{ 'email' | translate }}" />
             </div>
-            <div class="mb-2">
-              <label for="password">{{ 'password' | translate }}</label>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label for="password" class="form-label mb-0">{{ 'password' | translate }}</label>
+                <a routerLink="/reset" class="small text-decoration-none abayti_secondary_color">{{ 'login.forgot_password' | translate }}</a>
+              </div>
               <div class="input-group">
                 <input
                   [type]="fieldTextType ? 'text' : 'password'"
                   class="form-control"
                   name="password"
                   id="password"
+                  autocomplete="current-password"
                   [(ngModel)]="login.password"
                   placeholder="{{ 'password' | translate }}" />
-                <button (click)="toggleFieldTextType()" class="btn btn-dark" type="button">
+                <button (click)="toggleFieldTextType()" class="btn btn-outline-secondary" type="button"
+                        [attr.aria-label]="'password' | translate">
                   <span *ngIf="fieldTextType" class="material-symbols-outlined">visibility</span>
                   <span *ngIf="!fieldTextType" class="material-symbols-outlined">visibility_off</span>
                 </button>
               </div>
             </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="rememberMe" name="rememberMe" [(ngModel)]="rememberMe" />
+              <label class="form-check-label" for="rememberMe">{{ 'login.keep_signed_in' | translate }}</label>
+            </div>
             <tui-loader *ngIf="loading"></tui-loader>
             <button *ngIf="!loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
-              {{ 'sign_in' | translate }}
+              {{ 'login.cta' | translate }}
             </button>
           </form>
 
-          <div class="social-login-section mt-3">
+          <!-- Directory sign-in only when the organisation has actually connected one. -->
+          <div class="social-login-section mt-4" *ngIf="ssoProviders.length > 0">
             <div class="text-center text-body-secondary small mb-2">{{ 'login.or_continue_with' | translate }}</div>
             <div class="d-grid gap-2">
               <button *ngFor="let p of ssoProviders"
@@ -77,33 +86,12 @@
                       [disabled]="loading" (click)="signInWith(p.provider)">
                 <span class="fw-semibold">{{ 'login.sign_in_with' | translate }} {{ p.label }}</span>
               </button>
-
-              <button *ngIf="ssoProviders.length === 0"
-                      class="btn btn-outline-secondary social-login-btn" type="button"
-                      disabled aria-disabled="true">
-                <span class="fw-semibold">{{ 'login.sign_in_with_google_or_microsoft' | translate }}</span>
-                <span class="small text-muted">{{ 'login.not_configured' | translate }}</span>
-              </button>
             </div>
-            <p class="small text-muted text-center mt-2 mb-0" *ngIf="ssoProviders.length === 0">
-              <span *ngIf="!tenantId">
-                {{ 'login.sso_hint_generic' | translate }}
-              </span>
-              <span *ngIf="tenantId">
-                {{ 'login.sso_hint_tenant' | translate }}
-              </span>
-            </p>
           </div>
 
-          <p class="text-center text-body-secondary mb-0 mt-auto">
-            {{ 'not_registered_message' | translate }}
-            <a class="text-black" routerLink="/register">{{ 'register' | translate }}</a>
-          </p>
-        </div>
-        <div class="card-footer">
-          <p class="text-center text-body-secondary mb-0">
-            {{ 'forgot_password_message' | translate }}
-            <a class="text-black" routerLink="/reset">{{ 'reset_password' | translate }}</a>
+          <p class="text-center text-body-secondary mb-0 mt-4">
+            {{ 'login.no_account' | translate }}
+            <a class="fw-semibold text-decoration-none abayti_secondary_color" routerLink="/register">{{ 'login.sign_up' | translate }}</a>
           </p>
         </div>
       </div>

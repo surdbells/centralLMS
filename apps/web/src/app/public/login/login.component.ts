@@ -66,6 +66,9 @@ export class LoginComponent implements OnInit {
     password: '',
   };
 
+  /** "Keep me signed in" — persist the session across browser restarts. */
+  rememberMe = true;
+
   ngOnInit(): void {
     sessionStorage.clear();
 
@@ -177,7 +180,7 @@ export class LoginComponent implements OnInit {
 
     this.loading = true;
 
-    this.auth.signIn({ email, password: this.login.password }).subscribe({
+    this.auth.signIn({ email, password: this.login.password }, this.rememberMe).subscribe({
       next: (signedIn) => {
         this.loading = false;
 

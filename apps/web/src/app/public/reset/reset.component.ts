@@ -11,7 +11,8 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { LanguageSwitcherComponent } from '../../language-switcher.component';
 import { AuthService } from '../../core/auth/auth.service';
-import { ApiError } from '../../core/api';
+import { ApiClient, ApiError, Endpoints } from '../../core/api';
+import { BrandingService } from '../../core/branding.service';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -54,7 +55,12 @@ export class ResetComponent implements OnInit, OnDestroy {
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
+  private readonly api = inject(ApiClient);
+  private readonly branding = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
+
+  /** The organisation's logo, so the recovery screen is white-labelled too. */
+  logoUrl: string | null = null;
 
   fieldTextType = false;
 
@@ -94,11 +100,41 @@ export class ResetComponent implements OnInit, OnDestroy {
       content: 'reset LMS password Africa, forgot password eLearning Nigeria, LMS account recovery',
     });
 
+    // No tenant in the URL here, so wear the logo of the organisation this
+    // browser last signed in to; it falls back to the default mark otherwise.
+    this.loadBranding(this.rememberedTenant());
+
     const token = this.route.snapshot.queryParamMap.get('token');
 
     if (token !== null && token !== '') {
       this.acceptToken(token);
     }
+  }
+
+  private rememberedTenant(): string {
+    try {
+      return localStorage.getItem(BrandingService.LAST_TENANT_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  }
+
+  private loadBranding(tenantId: string): void {
+    const params = /^[0-9a-f-]{36}$/i.test(tenantId) ? { tenantId } : {};
+
+    this.api
+      .get<{ organisation: string | null; branding: Record<string, string | boolean> }>(
+        Endpoints.settings.public,
+        params,
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (settings) => {
+          this.branding.apply(settings.organisation, settings.branding);
+          this.logoUrl = this.branding.logoUrl();
+        },
+        error: () => undefined,
+      });
   }
 
   ngOnDestroy(): void {

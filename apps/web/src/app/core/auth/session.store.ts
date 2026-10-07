@@ -28,6 +28,9 @@ const STORAGE_KEY = 'central.session';
  */
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
+  // Where the session is persisted. localStorage survives a browser restart
+  // ("keep me signed in"); sessionStorage is cleared when the tab/window closes.
+  private store: Storage = pickStore();
   private readonly state = signal<Session | null>(readStoredSession());
 
   readonly session = this.state.asReadonly();
@@ -48,7 +51,12 @@ export class SessionStore {
     return (permission: string): boolean => held.has(permission);
   });
 
-  set(session: Session): void {
+  set(session: Session, remember = true): void {
+    // Honour the "keep me signed in" choice: localStorage persists across
+    // restarts, sessionStorage lasts only for the window. Clear the other store
+    // so a stale copy can't resurrect an old session.
+    this.store = remember ? localStorage : sessionStorage;
+    try { (remember ? sessionStorage : localStorage).removeItem(STORAGE_KEY); } catch { /* */ }
     this.state.set(session);
     this.persist(session);
   }
@@ -69,26 +77,34 @@ export class SessionStore {
   clear(): void {
     this.state.set(null);
 
+    // Remove from both stores — we don't track which one held it here.
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* */ }
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* */ }
+  }
+
+  private persist(session: Session): void {
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      this.store.setItem(STORAGE_KEY, JSON.stringify(session));
     } catch {
       // Storage can be unavailable (private mode, blocked cookies). Losing the
       // persisted copy is acceptable; the in-memory signal is the truth.
     }
   }
+}
 
-  private persist(session: Session): void {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-    } catch {
-      // As above — never let a storage failure break a sign-in.
+/** The store that currently holds a session (localStorage wins), else localStorage. */
+function pickStore(): Storage {
+  try {
+    if (sessionStorage.getItem(STORAGE_KEY) && !localStorage.getItem(STORAGE_KEY)) {
+      return sessionStorage;
     }
-  }
+  } catch { /* */ }
+  return localStorage;
 }
 
 function readStoredSession(): Session | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY);
 
     if (!raw) {
       return null;

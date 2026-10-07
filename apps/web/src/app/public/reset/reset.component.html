@@ -8,7 +8,8 @@
         <div class="card-header text-center">
           <div class="row align-items-center">
             <div class="col-6 text-start">
-              <img class="img-fluid" style="max-width: 140px" src="assets/img/logo.png" alt="Password recovery page Central LMS Africa" />
+              <img class="img-fluid" style="max-width: 140px; max-height: 56px; object-fit: contain"
+                   [src]="logoUrl || 'assets/img/logo.png'" alt="Password recovery" />
             </div>
             <div class="col-6 text-end">
               <app-language-switcher></app-language-switcher>
@@ -16,8 +17,8 @@
           </div>
         </div>
         <div *ngIf="!ui_controls.confirmed && !ui_controls.validated" class="card-body">
-          <h1 class="fs-2">{{ 'Reset Your Password' | translate }}</h1>
-          <p class="lead text-body-secondary">{{ 'Recover Your Central LMS Account' | translate }}</p>
+          <h1 class="fs-2 fw-bold mb-1">{{ 'reset.title' | translate }}</h1>
+          <p class="text-body-secondary mb-4">{{ 'reset.subtitle' | translate }}</p>
           <form (ngSubmit)="user_confirm()"  method="post"  class="mb-5">
             <div class="mb-4">
               <label for="email" class="form-label">{{ 'email' | translate }}</label>
@@ -30,7 +31,7 @@
           </form>
           <p class="text-center text-body-secondary mb-0">
             {{'have_account' | translate}}
-            <a class="text-black" routerLink="/login">{{'sign_in' | translate}}</a>
+            <a class="fw-semibold text-decoration-none abayti_secondary_color" routerLink="/login">{{'sign_in' | translate}}</a>
           </p>
         </div>
         <div *ngIf="ui_controls.confirmed && !ui_controls.validated" class="card-body">

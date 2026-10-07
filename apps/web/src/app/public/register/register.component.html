@@ -10,7 +10,7 @@
   <div  class="row justify-content-center align-items-stretch g-4">
     <div class="col-12 col-lg-6 d-none d-md-flex">
       <div class="card shadow-lg w-100 h-100 overflow-hidden">
-        <img src="assets/img/learner.jpg" alt="Central LMS registration form create account" class="w-100 h-100 object-fit-cover animate__animated animate__fadeIn"
+        <img [src]="loginBackgroundUrl || '/assets/img/learner.jpg'" [alt]="(organisation || 'Learning platform') + ' registration'" class="w-100 h-100 object-fit-cover animate__animated animate__fadeIn"
         />
       </div>
     </div>
@@ -19,7 +19,9 @@
         <div class="card-header text-center">
           <div class="row align-items-center">
             <div class="col-6 text-start">
-              <img class="img-fluid" style="max-width: 140px" src="assets/img/logo.png" alt="Sign up for online learning platform Africa" />
+              <img class="img-fluid" style="max-width: 140px; max-height: 56px; object-fit: contain"
+                   [src]="logoUrl || 'assets/img/logo.png'"
+                   [alt]="(organisation || 'Learning platform') + ' sign up'" />
             </div>
             <div class="col-6 text-end">
               <app-language-switcher></app-language-switcher>
@@ -41,13 +43,12 @@
           <a class="btn abayti_secondary_background text-white btn-secondary" routerLink="/login">{{ 'register.go_to_sign_in' | translate }}</a>
         </div>
         <div *ngIf="!notFound && isOpen && !ui_controls.registered" class="card-body">
-          <h1 class="fs-2">{{ 'register' | translate }}</h1>
-          <p class="lead text-body-secondary">
+          <h1 class="fs-2 fw-bold mb-1">{{ 'register.title' | translate }}</h1>
+          <p class="text-body-secondary mb-4">
             {{ 'register.joining' | translate }} <strong>{{ organisation }}</strong>.
             <span *ngIf="domainNote" class="d-block small">{{ domainNote }}</span>
           </p>
-          <p class="lead text-body-secondary">{{'create_account' | translate}}</p>
-          <form (ngSubmit)="send_otp()"  method="post"  class="mb-5">
+          <form (ngSubmit)="send_otp()"  method="post"  class="mb-4">
             <div class="row">
               <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6 col-12">
                 <div class="mb-2">
@@ -91,11 +92,11 @@
             </p>
             <tui-loader *ngIf="ui_controls.loading" />
             <button *ngIf="!ui_controls.loading" class="btn text-white fw-bold abayti_secondary_background btn-secondary w-100" type="submit">
-              {{'register' | translate}}
+              {{ 'register.cta' | translate }}
             </button>
           </form>
           <p class="text-center text-body-secondary mb-0">{{ 'have_account' | translate }}
-            <a class="text-black" routerLink="/login">{{'sign_in' | translate }}</a>
+            <a class="fw-semibold text-decoration-none abayti_secondary_color" routerLink="/login">{{ 'sign_in' | translate }}</a>
           </p>
         </div>
         <div *ngIf="!notFound && ui_controls.registered" class="card-body">
@@ -120,11 +121,6 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="card-footer">
-          <p class="text-center text-body-secondary mb-0">{{ 'forgot_password_message' | translate }}
-            <a class="text-black" routerLink="/reset"> {{ 'reset_password' | translate }} </a>
-          </p>
         </div>
       </div>
     </div>

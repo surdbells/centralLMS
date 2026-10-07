@@ -64,7 +64,7 @@ export class AuthService {
   private readonly api = inject(ApiClient);
   private readonly store = inject(SessionStore);
 
-  signIn(credentials: Credentials): Observable<SignedIn> {
+  signIn(credentials: Credentials, remember = true): Observable<SignedIn> {
     return this.api.post<LoginPayload>(Endpoints.auth.login, credentials).pipe(
       map((payload) => this.interpret(payload)),
       tap((signedIn) => {
@@ -72,7 +72,9 @@ export class AuthService {
         // showing them a "your account is inactive" screen leaves a valid
         // session behind that a refresh would walk straight back into.
         if (signedIn.isActive) {
-          this.store.set(signedIn.session);
+          // "Keep me signed in" → persist across restarts (localStorage);
+          // otherwise only for the window (sessionStorage).
+          this.store.set(signedIn.session, remember);
           this.writeLegacyBlob(signedIn);
         }
       }),

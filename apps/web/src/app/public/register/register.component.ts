@@ -12,7 +12,8 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { DIAL_CODES, DialCode } from '../../dial-codes';
 import { RegistrationService } from '../../services/registration.service';
-import { ApiError } from '../../core/api';
+import { ApiClient, ApiError, Endpoints } from '../../core/api';
+import { BrandingService } from '../../core/branding.service';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -60,7 +61,13 @@ export class RegisterComponent implements OnInit, OnDestroy {
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
+  private readonly api = inject(ApiClient);
+  private readonly branding = inject(BrandingService);
   private readonly destroy$ = new Subject<void>();
+
+  /** The organisation's logo and sign-in background, so the page is white-labelled. */
+  logoUrl: string | null = null;
+  loginBackgroundUrl: string | null = null;
 
   dialCodes: DialCode[] = DIAL_CODES;
   codeSearch = '';
@@ -120,7 +127,28 @@ export class RegisterComponent implements OnInit, OnDestroy {
     }
 
     this.tenantId = tenantId;
+    this.loadBranding(tenantId);
     this.loadOpening();
+  }
+
+  /** Wear the organisation's logo and background from its public branding. */
+  private loadBranding(tenantId: string): void {
+    const params = /^[0-9a-f-]{36}$/i.test(tenantId) ? { tenantId } : {};
+
+    this.api
+      .get<{ organisation: string | null; branding: Record<string, string | boolean> }>(
+        Endpoints.settings.public,
+        params,
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (settings) => {
+          this.branding.apply(settings.organisation, settings.branding);
+          this.logoUrl = this.branding.logoUrl();
+          this.loginBackgroundUrl = this.branding.loginBackgroundUrl();
+        },
+        error: () => undefined,
+      });
   }
 
   ngOnDestroy(): void {
