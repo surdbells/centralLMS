@@ -117,23 +117,21 @@ export class VideoIntegrationService {
    * The URL comes from the API, which knows the client id and signs the state
    * value with the tenant so the callback can tell whose account came back.
    */
-  connect(platform: Platform): void {
-    this.api
+  connect(platform: Platform): Observable<{ authorizationUrl: string; state: string }> {
+    // Returns the call rather than acting on it, so the caller can clear its
+    // own "connecting" state and surface the reason when a deployment without
+    // credentials answers `platform_unavailable`. Self-subscribing here meant
+    // an error only ever reached a native alert() and the button span forever.
+    return this.api
       .post<{ authorizationUrl: string; state: string }>(
         Endpoints.integrations.connect(platform),
         { redirectUri: this.redirectUri() },
       )
-      .subscribe({
-        next: (started) => {
-          // Kept so the callback can check that the state it was handed is
-          // the one we sent, which is what stops a replayed authorisation.
-          sessionStorage.setItem(`integration.state.${platform}`, started.state);
-          window.location.href = started.authorizationUrl;
-        },
-        error: (failure: { message?: string }) => {
-          alert(failure.message ?? 'That provider could not be reached.');
-        },
-      });
+      .pipe(
+        // Kept so the callback can check that the state it was handed is the
+        // one we sent, which is what stops a replayed authorisation.
+        tap((started) => sessionStorage.setItem(`integration.state.${platform}`, started.state)),
+      );
   }
 
   exchangeCodeForTokens(platform: string, code: string, state: string): Observable<OAuthToken> {

@@ -15,6 +15,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ApiError } from '../../core/api';
 
 interface PlatformConfig {
   id: string;
@@ -206,9 +207,27 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
 
   connect(platformId: string): void {
     this.connecting = platformId;
-    this.videoIntegrationService.connect(platformId as 'zoom' | 'google_meet' | 'microsoft_teams');
+    this.callbackMessage = null;
 
-    // Note: Page will redirect for OAuth, so connecting state will be reset on return
+    this.videoIntegrationService
+      .connect(platformId as 'zoom' | 'google_meet' | 'microsoft_teams')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (started) => {
+          // The page leaves for the provider; the spinner is fine until it does.
+          window.location.href = started.authorizationUrl;
+        },
+        error: (err: unknown) => {
+          // A deployment with no credentials for this provider answers
+          // `platform_unavailable`. Clear the spinner and show the reason in
+          // the banner rather than leaving the button spinning forever.
+          this.connecting = null;
+          this.callbackSuccess = false;
+          this.callbackMessage = this.i18n.t('live.integrations.connect_failed', {
+            error: err instanceof ApiError ? err.message : this.i18n.t('common.error_generic'),
+          });
+        },
+      });
   }
 
   disconnect(platformId: string): void {

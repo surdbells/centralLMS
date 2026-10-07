@@ -18,8 +18,10 @@ import {
 import { VideoIntegrationService, IntegrationStatus } from '../services/video-integration.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import {RouterLink} from '@angular/router';
+import { HotToastService } from '@ngneat/hot-toast';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ApiError } from '../../core/api';
 
 @Component({
   selector: 'app-admin-live-training',
@@ -32,6 +34,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly videoIntegrations = inject(VideoIntegrationService);
+  private readonly toast = inject(HotToastService);
 
   private destroy$ = new Subject<void>();
 
@@ -1062,7 +1065,24 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
    * finishes the exchange and stores the tenant's tokens.
    */
   connectPlatform(platform: string): void {
-    this.videoIntegrations.connect(platform as 'zoom' | 'google_meet' | 'microsoft_teams');
+    this.videoIntegrations
+      .connect(platform as 'zoom' | 'google_meet' | 'microsoft_teams')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (started) => {
+          // Leaves for the provider's consent screen.
+          window.location.href = started.authorizationUrl;
+        },
+        error: (err: unknown) => {
+          // A deployment without credentials answers `platform_unavailable`;
+          // tell the admin instead of failing silently.
+          this.toast.error(
+            this.i18n.t('live.integrations.connect_failed', {
+              error: err instanceof ApiError ? err.message : this.i18n.t('common.error_generic'),
+            }),
+          );
+        },
+      });
   }
 
   disconnectPlatform(platform: string): void {
