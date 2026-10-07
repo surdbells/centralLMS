@@ -61,6 +61,12 @@ export class LoginComponent implements OnInit {
   tenantId = '';
   fieldTextType = false;
 
+  /** The organisation to register into (from public settings), for the sign-up link. */
+  registerTenantId: string | null = null;
+
+  /** Whether this organisation takes open sign-ups, so the sign-up link shows at all. */
+  allowSelfRegistration = false;
+
   login = {
     email: '',
     password: '',
@@ -119,10 +125,12 @@ export class LoginComponent implements OnInit {
     const params = /^[0-9a-f-]{36}$/i.test(tenantId) ? { tenantId } : {};
 
     this.api
-      .get<{ organisation: string | null; branding: Record<string, string | boolean> }>(
-        Endpoints.settings.public,
-        params,
-      )
+      .get<{
+        tenantId: string | null;
+        organisation: string | null;
+        branding: Record<string, string | boolean>;
+        allowSelfRegistration: boolean;
+      }>(Endpoints.settings.public, params)
       .subscribe({
         next: (settings) => {
           // Paint the colours, logo and favicon so the sign-in buttons wear
@@ -131,6 +139,12 @@ export class LoginComponent implements OnInit {
           this.logoUrl = this.branding.logoUrl();
           this.orgName = this.branding.organisation();
           this.loginBackgroundUrl = this.branding.loginBackgroundUrl();
+          // The resolved organisation to register into, and whether it takes
+          // open sign-ups — so the "Sign up" link points at the right tenant
+          // (/{tenantId}/register, not a bare /register that belongs to nobody)
+          // and shows only when self-registration is enabled.
+          this.registerTenantId = settings.tenantId;
+          this.allowSelfRegistration = settings.allowSelfRegistration === true;
         },
         error: () => undefined,
       });

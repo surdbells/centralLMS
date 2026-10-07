@@ -10,6 +10,7 @@ use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
+use Central\Api\Domain\Identity\RegistrationPolicy;
 use Central\Api\Domain\Settings\PasswordPolicy;
 use Central\Api\Domain\Settings\SettingCatalogue;
 use Central\Api\Domain\Settings\SettingCategory;
@@ -209,6 +210,13 @@ final class TenantSettingsAction
             // resolved, so the client shows its own name.
             'organisation'   => $named ? $this->tenants->nameOf($tenantId) : null,
             'branding'       => $branding,
+            // Whether this organisation lets people make their own account, so a
+            // sign-in screen can offer a "Sign up" link that points at the right
+            // tenant — and hide it entirely when registration is by invitation
+            // only. False when no tenant resolved.
+            'allowSelfRegistration' => $named
+                ? RegistrationPolicy::from($settings->all())->isOpen
+                : false,
             'passwordPolicy' => PasswordPolicy::from($settings)->toArray(),
         ]);
     }
