@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "scripts": {
         "dev": "ng serve --port 4200",
-        "build": "ng build",
+        "build": "node scripts/set-env.mjs && ng build",
         "watch": "ng build --watch --configuration development",
         "test": "ng test --watch=false --browsers=ChromeHeadlessNoSandbox",
         "test:watch": "ng test",
