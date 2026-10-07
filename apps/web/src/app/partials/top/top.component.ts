@@ -81,6 +81,9 @@ export class TopComponent implements OnInit, OnDestroy {
    * `avatar` holds the API's URL rather than base64 — see {@link avatarSrc},
    * the one binding in the markup that had to change with it.
    */
+  /** Whether the avatar image failed to load, so initials show instead. */
+  avatarFailed = false;
+
   user_session = {
     id: '',
     tenant_id: '',

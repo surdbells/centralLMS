@@ -1,4 +1,4 @@
-import { Directive, ElementRef, Input, OnChanges, OnDestroy, inject } from '@angular/core';
+import { Directive, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ApiClient } from './api.client';
 
@@ -22,6 +22,16 @@ import { ApiClient } from './api.client';
 export class AuthImgDirective implements OnChanges, OnDestroy {
   @Input('appAuthImg') path: string | null = '';
 
+  /**
+   * Emits `true` when the image could not be loaded (missing, forbidden or a
+   * network fault) and `false` once it loads. Whether a set URL actually
+   * resolves cannot be told from the URL itself, so a template that shows
+   * initials or a placeholder binds this to swap them in on failure rather
+   * than only when the URL is blank. The element is also hidden on failure, so
+   * it never shows the browser's broken-image icon even with no binding.
+   */
+  @Output() appAuthImgError = new EventEmitter<boolean>();
+
   private readonly api = inject(ApiClient);
   private readonly el = inject<ElementRef<HTMLImageElement>>(ElementRef);
   private sub?: Subscription;
@@ -35,9 +45,11 @@ export class AuthImgDirective implements OnChanges, OnDestroy {
     this.sub?.unsubscribe();
     this.revoke();
 
+    const el = this.el.nativeElement;
     const path = (this.path ?? '').trim();
     if (path === '') {
-      this.el.nativeElement.removeAttribute('src');
+      el.removeAttribute('src');
+      el.hidden = false;
 
       return;
     }
@@ -46,11 +58,18 @@ export class AuthImgDirective implements OnChanges, OnDestroy {
       next: (blob) => {
         this.revoke();
         this.objectUrl = URL.createObjectURL(blob);
-        this.el.nativeElement.src = this.objectUrl;
+        el.src = this.objectUrl;
+        el.hidden = false;
+        this.appAuthImgError.emit(false);
       },
-      // A missing or forbidden image just leaves the element without a src,
-      // so the template's own fallback (an initial, a placeholder) shows.
-      error: () => this.el.nativeElement.removeAttribute('src'),
+      // A missing or forbidden image leaves no src. Hide the element so it does
+      // not render the broken-image icon, and signal the failure so the
+      // template's own fallback (an initial, a placeholder) can take over.
+      error: () => {
+        el.removeAttribute('src');
+        el.hidden = true;
+        this.appAuthImgError.emit(true);
+      },
     });
   }
 

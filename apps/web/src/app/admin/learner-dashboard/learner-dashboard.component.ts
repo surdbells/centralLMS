@@ -216,6 +216,8 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   isLoading = true;
   error: string | null = null;
   dashboard: DashboardData | null = null;
+  /** Whether the profile avatar failed to load, so initials show instead. */
+  avatarFailed = false;
 
   activityView: 'week' | 'month' = 'week';
 

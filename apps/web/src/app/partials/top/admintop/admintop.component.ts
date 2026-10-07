@@ -89,6 +89,9 @@ export class AdmintopComponent implements OnInit, OnDestroy {
    * see {@link avatarSrc}, which is the one binding in the template that had
    * to change with it.
    */
+  /** Whether the avatar image failed to load, so initials show instead. */
+  avatarFailed = false;
+
   user_session = {
     id: '',
     tenant_id: '',

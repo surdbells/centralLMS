@@ -209,16 +209,16 @@
       <div class="dropdown user-dropdown">
         <button class="btn btn-user dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="avatar avatar-sm">
-            <img class="avatar-img" *ngIf="user_session.avatar" [appAuthImg]="user_session.avatar" alt="User avatar" />
-            <span class="avatar-initials" *ngIf="!user_session.avatar">{{ user_session.first_name.charAt(0) }}</span>
+            <img class="avatar-img" *ngIf="user_session.avatar && !avatarFailed" [appAuthImg]="user_session.avatar" (appAuthImgError)="avatarFailed = $event" alt="User avatar" />
+            <span class="avatar-initials" *ngIf="!user_session.avatar || avatarFailed">{{ user_session.first_name.charAt(0) }}</span>
           </span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end shadow-lg">
           <li class="dropdown-header">
             <div class="d-flex align-items-center gap-2">
               <span class="avatar avatar-sm">
-                <img class="avatar-img" *ngIf="user_session.avatar" [appAuthImg]="user_session.avatar" alt="" />
-                <span class="avatar-initials" *ngIf="!user_session.avatar">{{ user_session.first_name.charAt(0) }}</span>
+                <img class="avatar-img" *ngIf="user_session.avatar && !avatarFailed" [appAuthImg]="user_session.avatar" (appAuthImgError)="avatarFailed = $event" alt="" />
+                <span class="avatar-initials" *ngIf="!user_session.avatar || avatarFailed">{{ user_session.first_name.charAt(0) }}</span>
               </span>
               <div>
                 <div class="fw-medium">{{ user_session.first_name }} {{ user_session.last_name }}</div>
