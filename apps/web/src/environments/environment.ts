@@ -10,8 +10,8 @@ export const environment: AppEnvironment = {
   production: true,
 
   api: {
-    baseUrl: 'https://api.centrallms.com/v1',
+    baseUrl: 'https://api-midwesternlearning.midwesternog.com/v1',
   },
 
-  publicSiteUrl: 'https://centrallms.com',
+  publicSiteUrl: 'https://midwesternlearning.midwesternog.com',
 };
