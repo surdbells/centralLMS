@@ -2233,6 +2233,7 @@
   "login.signed_in": "Connecté",
   "login.subtitle": "Connectez-vous à votre compte pour continuer.",
   "login.welcome_back": "Bon retour",
+  "login.welcome_to": "Bienvenue sur",
   "messaging.acknowledge": "Accuser réception",
   "messaging.acknowledged": "Accusé de réception",
   "messaging.acknowledged_label": "Accusé de réception :",

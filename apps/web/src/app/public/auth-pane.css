@@ -38,17 +38,13 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  /* Drive the tint from the same token the brand buttons use
-     (.abayti_secondary_background → var(--brand-primary)), so the hero always
-     matches the organisation's colour. color-mix lets us vary darkness and
-     opacity without needing a pre-computed rgb triplet. */
-  --hero-brand: var(--brand-primary, #0e630e);
-  background: var(--hero-brand); /* fallback for browsers without color-mix */
+  /* No brand tint — the photo shows through. Only a soft scrim along the bottom,
+     under the callout, so white text stays legible without covering the image. */
   background: linear-gradient(
-    150deg,
-    color-mix(in srgb, var(--hero-brand) 80%, transparent) 0%,
-    color-mix(in srgb, color-mix(in srgb, var(--hero-brand), #000 20%) 88%, transparent) 55%,
-    color-mix(in srgb, color-mix(in srgb, var(--hero-brand), #000 32%) 94%, transparent) 100%
+    to top,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(0, 0, 0, 0.12) 28%,
+    transparent 48%
   );
 }
 
@@ -63,35 +59,37 @@
   color: #ffffff;
 }
 
-/* A dark or multi-colour logo would disappear on the brand overlay, so render
-   it as a white silhouette, the way the concept shows the wordmark. */
+/* The organisation's own colour logo, sitting top-right over the photo. */
 .auth-hero__logo {
+  align-self: flex-end;
   max-width: 200px;
   max-height: 60px;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+  filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.35));
 }
 
 .auth-hero__callout {
-  max-width: 32rem;
+  max-width: 100%;
   margin-bottom: 1rem;
 }
 
+/* Hero text stays on a single line; a soft shadow keeps it legible on the photo. */
 .auth-hero__title {
-  font-size: clamp(2rem, 3vw, 2.85rem);
+  font-size: clamp(1.5rem, 2.4vw, 2.15rem);
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.1;
   letter-spacing: -0.02em;
-  margin: 0 0 0.9rem;
-  text-wrap: balance;
+  margin: 0 0 0.6rem;
+  white-space: nowrap;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
 }
 
 .auth-hero__subtitle {
-  font-size: clamp(1rem, 1.1vw, 1.2rem);
-  line-height: 1.6;
-  opacity: 0.92;
+  font-size: clamp(0.95rem, 1vw, 1.1rem);
+  line-height: 1.5;
   margin: 0;
-  max-width: 26rem;
+  white-space: nowrap;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* ---------- Right: form ---------- */

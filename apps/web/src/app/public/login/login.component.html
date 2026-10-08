@@ -9,7 +9,7 @@
       <img class="auth-hero__logo" [src]="logoUrl || 'assets/img/logo.png'"
            [alt]="(orgName || 'Learning platform') + ' logo'" />
       <div class="auth-hero__callout">
-        <h2 class="auth-hero__title">{{ 'login.welcome_back' | translate }}</h2>
+        <h2 class="auth-hero__title">{{ orgName ? (('login.welcome_to' | translate) + ' ' + orgName) : ('login.welcome_back' | translate) }}</h2>
         <p class="auth-hero__subtitle">{{ 'login.hero_subtitle' | translate }}</p>
       </div>
     </div>
@@ -57,8 +57,7 @@
               placeholder="{{ 'password' | translate }}" />
             <button (click)="toggleFieldTextType()" class="btn btn-outline-secondary" type="button"
                     [attr.aria-label]="'password' | translate">
-              <span *ngIf="fieldTextType" class="material-symbols-outlined">visibility</span>
-              <span *ngIf="!fieldTextType" class="material-symbols-outlined">visibility_off</span>
+              <i class="bi" [class.bi-eye]="fieldTextType" [class.bi-eye-slash]="!fieldTextType"></i>
             </button>
           </div>
         </div>
