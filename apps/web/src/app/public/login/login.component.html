@@ -55,7 +55,7 @@
               autocomplete="current-password"
               [(ngModel)]="login.password"
               placeholder="{{ 'password' | translate }}" />
-            <button (click)="toggleFieldTextType()" class="btn btn-outline-secondary" type="button"
+            <button (click)="toggleFieldTextType()" class="btn btn-black" type="button"
                     [attr.aria-label]="'password' | translate">
               <i class="bi" [class.bi-eye]="fieldTextType" [class.bi-eye-slash]="!fieldTextType"></i>
             </button>
