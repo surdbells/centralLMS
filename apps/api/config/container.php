@@ -68,6 +68,7 @@ use Central\Api\Infrastructure\Notification\HttpSender;
 use Central\Api\Infrastructure\Notification\InAppTransport;
 use Central\Api\Infrastructure\Notification\LogTransport;
 use Central\Api\Infrastructure\Notification\TermiiSmsTransport;
+use Central\Api\Infrastructure\Notification\SmtpMailTransport;
 use Central\Api\Infrastructure\Notification\ZeptoMailTransport;
 use Central\Api\Domain\Report\CsvWriter;
 use Central\Api\Domain\Report\ReportCatalogue;
@@ -684,8 +685,8 @@ return [
 
         $mail = $settings['mail'];
 
-        $transports[NotificationChannel::Email->value] = $mail['provider'] === 'zeptomail'
-            ? new ZeptoMailTransport(
+        $transports[NotificationChannel::Email->value] = match ($mail['provider']) {
+            'zeptomail' => new ZeptoMailTransport(
                 $http,
                 (string) $mail['zeptomail']['token'],
                 (string) $mail['zeptomail']['base_url'],
@@ -694,8 +695,21 @@ return [
                 $c->get(SettingsRepository::class),
                 $c->get(TenantRepository::class),
                 $logger,
-            )
-            : new LogTransport(NotificationChannel::Email, $logger);
+            ),
+            'smtp' => new SmtpMailTransport(
+                (string) $mail['smtp']['host'],
+                (int) $mail['smtp']['port'],
+                (string) $mail['smtp']['username'],
+                (string) $mail['smtp']['password'],
+                (string) $mail['smtp']['encryption'],
+                (string) $mail['from']['address'],
+                (string) $mail['from']['name'],
+                $c->get(SettingsRepository::class),
+                $c->get(TenantRepository::class),
+                $logger,
+            ),
+            default => new LogTransport(NotificationChannel::Email, $logger),
+        };
 
         $sms = $settings['sms'];
 

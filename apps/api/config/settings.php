@@ -98,6 +98,14 @@ return [
             'token'    => Env::get('ZEPTOMAIL_TOKEN', ''),
             'base_url' => Env::get('ZEPTOMAIL_BASE_URL', 'https://api.zeptomail.com/v1.1'),
         ],
+        'smtp' => [
+            'host'       => Env::get('MAIL_SMTP_HOST', ''),
+            'port'       => (int) Env::get('MAIL_SMTP_PORT', '587'),
+            'username'   => Env::get('MAIL_SMTP_USERNAME', ''),
+            'password'   => Env::get('MAIL_SMTP_PASSWORD', ''),
+            // 'tls'/'starttls' (usually :587), 'ssl' (implicit TLS, usually :465), or 'none'.
+            'encryption' => Env::get('MAIL_SMTP_ENCRYPTION', 'tls'),
+        ],
     ],
 
     'sms' => [
