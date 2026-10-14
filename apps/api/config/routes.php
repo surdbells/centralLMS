@@ -18,6 +18,7 @@ use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Action\Auth\RegisterAction;
 use Central\Api\Application\Action\Competency\CompetencyAction;
 use Central\Api\Application\Action\Competency\CompetencyAssessmentAction;
+use Central\Api\Application\Action\Competency\UserJobProfileAction;
 use Central\Api\Application\Action\Competency\CompetencyReportAction;
 use Central\Api\Application\Action\Competency\CompetencyImportAction;
 use Central\Api\Application\Action\Competency\CompetencyTemplateAction;
@@ -988,6 +989,13 @@ return static function (App $app): void {
                 $a->delete('/{id:' . $uuid . '}', [CompetencyAssessmentAction::class, 'delete'])
                     ->setName('competency-assessments.delete');
             });
+
+            // Which job competency profiles a person is assigned to — the
+            // assignment that lets a new cycle auto-start their assessment.
+            $secure->get('/users/{id:' . $uuid . '}/job-profiles', [UserJobProfileAction::class, 'show'])
+                ->setName('users.job-profiles.show');
+            $secure->put('/users/{id:' . $uuid . '}/job-profiles', [UserJobProfileAction::class, 'save'])
+                ->setName('users.job-profiles.save');
 
             // What something teaches, and what somebody has learned. Three
             // kinds, one shape: a skill is held because the person finished

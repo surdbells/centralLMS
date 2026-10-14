@@ -429,6 +429,93 @@ final class DbalCompetencyRepository implements CompetencyRepository
             ?? throw new \RuntimeException('The assessment vanished immediately after being started.');
     }
 
+    public function profilesForUser(string $tenantId, string $userId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT p.id, p.job_title, p.function_name
+             FROM user_job_profiles ujp
+             JOIN job_competency_profiles p ON p.id = ujp.profile_id
+             WHERE ujp.tenant_id = :tenant AND ujp.user_id = :user
+             ORDER BY p.function_name, p.job_title',
+            ['tenant' => $tenantId, 'user' => $userId],
+        );
+
+        return array_map(static fn (array $r): array => [
+            'id'           => (string) $r['id'],
+            'jobTitle'     => (string) $r['job_title'],
+            'functionName' => (string) $r['function_name'],
+        ], $rows);
+    }
+
+    public function setUserProfiles(string $tenantId, string $userId, array $profileIds): void
+    {
+        $this->connection->transactional(function (Connection $tx) use ($tenantId, $userId, $profileIds): void {
+            $tx->executeStatement(
+                'DELETE FROM user_job_profiles WHERE tenant_id = :tenant AND user_id = :user',
+                ['tenant' => $tenantId, 'user' => $userId],
+            );
+
+            foreach (array_unique($profileIds) as $profileId) {
+                // Only a profile that belongs to this tenant — a cross-tenant id
+                // links nothing rather than leaking a row between organisations.
+                $tx->executeStatement(
+                    'INSERT INTO user_job_profiles (tenant_id, user_id, profile_id)
+                     SELECT :tenant, :user, p.id
+                     FROM job_competency_profiles p
+                     WHERE p.id = :profile AND p.tenant_id = :tenant
+                     ON CONFLICT DO NOTHING',
+                    ['tenant' => $tenantId, 'user' => $userId, 'profile' => $profileId],
+                );
+            }
+        });
+    }
+
+    public function startCycleForAssignedEmployees(string $tenantId, string $cycleName): array
+    {
+        return $this->connection->transactional(function (Connection $tx) use ($tenantId, $cycleName): array {
+            // One draft per assigned (employee, profile) that has requirements
+            // and no live assessment for this cycle yet. ON CONFLICT DO NOTHING
+            // makes it safe under concurrency against the ca_once unique index.
+            $rows = $tx->fetchAllAssociative(
+                'INSERT INTO competency_assessments (tenant_id, user_id, profile_id, cycle)
+                 SELECT ujp.tenant_id, ujp.user_id, ujp.profile_id, :cycle
+                 FROM user_job_profiles ujp
+                 WHERE ujp.tenant_id = :tenant
+                   AND EXISTS (
+                       SELECT 1 FROM job_competency_requirements r WHERE r.profile_id = ujp.profile_id
+                   )
+                   AND NOT EXISTS (
+                       SELECT 1 FROM competency_assessments a
+                       WHERE a.tenant_id = ujp.tenant_id AND a.user_id = ujp.user_id
+                         AND a.profile_id = ujp.profile_id AND a.cycle = :cycle
+                         AND a.deleted_at IS NULL
+                   )
+                 ON CONFLICT DO NOTHING
+                 RETURNING id',
+                ['tenant' => $tenantId, 'cycle' => $cycleName],
+            );
+
+            $ids = array_map(static fn (array $r): string => (string) $r['id'], $rows);
+
+            if ($ids !== []) {
+                // Snapshot each new assessment's items from its profile, exactly
+                // as startAssessment() does for a single one.
+                $tx->executeStatement(
+                    'INSERT INTO competency_assessment_items
+                         (assessment_id, competency_id, tenant_id, required_level)
+                     SELECT a.id, r.competency_id, a.tenant_id, r.required_level
+                     FROM competency_assessments a
+                     JOIN job_competency_requirements r ON r.profile_id = a.profile_id
+                     WHERE a.id IN (:ids)',
+                    ['ids' => $ids],
+                    ['ids' => ArrayParameterType::STRING],
+                );
+            }
+
+            return ['created' => count($ids)];
+        });
+    }
+
     public function recordLevels(string $tenantId, string $assessmentId, string $field, array $levels): ?CompetencyAssessment
     {
         $column = match ($field) {

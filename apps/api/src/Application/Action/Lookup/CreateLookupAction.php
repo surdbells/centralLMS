@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Lookup;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Domain\Competency\CompetencyRepository;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Lookup\Lookup;
+use Central\Api\Domain\Lookup\LookupKind;
+use Central\Api\Domain\Lookup\LookupRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -17,6 +21,14 @@ use Ramsey\Uuid\Uuid;
  */
 final class CreateLookupAction extends LookupAction
 {
+    public function __construct(
+        LookupRepository $lookups,
+        private readonly CompetencyRepository $competency,
+        private readonly LoggerInterface $logger,
+    ) {
+        parent::__construct($lookups);
+    }
+
     /**
      * @param array<string, string> $args
      */
@@ -39,6 +51,23 @@ final class CreateLookupAction extends LookupAction
         $this->assertParentExists($lookup);
 
         $created = $this->lookups->create($lookup);
+
+        // Creating a cycle opens the exercise organisation-wide: start a draft
+        // assessment for everyone who holds a job profile, so self-assessment
+        // begins without anyone assigning people one by one. Best-effort — a
+        // seeding failure must not undo a cycle that was created, and it is
+        // idempotent, so it can be re-run.
+        if ($kind === LookupKind::Cycle) {
+            try {
+                $this->competency->startCycleForAssignedEmployees($tenantId, $created->name);
+            } catch (\Throwable $failure) {
+                $this->logger->error('Could not auto-start assessments for a new cycle', [
+                    'tenant' => $tenantId,
+                    'cycle'  => $created->name,
+                    'error'  => $failure->getMessage(),
+                ]);
+            }
+        }
 
         return Json::created($response, $created->toArray(), sprintf(
             '/v1/lookups/%s/%s',

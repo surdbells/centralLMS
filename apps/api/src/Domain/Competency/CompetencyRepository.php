@@ -110,6 +110,29 @@ interface CompetencyRepository
     ): ?CompetencyAssessment;
 
     /**
+     * The job profiles an employee is assigned to.
+     *
+     * @return list<array{id: string, jobTitle: string, functionName: string}>
+     */
+    public function profilesForUser(string $tenantId, string $userId): array;
+
+    /**
+     * Replaces an employee's profile assignments with exactly these.
+     *
+     * @param list<string> $profileIds
+     */
+    public function setUserProfiles(string $tenantId, string $userId, array $profileIds): void;
+
+    /**
+     * Starts a draft assessment for every assigned (employee, profile) that has
+     * requirements and no live assessment for this cycle yet. Idempotent, so it
+     * is safe to run when a cycle is created and again if it is re-run.
+     *
+     * @return array{created: int}
+     */
+    public function startCycleForAssignedEmployees(string $tenantId, string $cycleName): array;
+
+    /**
      * Stores the narrative fields of an individual's report. Only the keys
      * present are written, each replacing what was there; the rest are left.
      *
