@@ -69,16 +69,19 @@
     </div>
   </div>
 
-  <!-- Action bar -->
-  <div class="d-flex justify-content-end gap-2 mb-3" *ngIf="editMode === 'none' && !showFinalize">
-    <button *ngIf="a.status !== 'finalized'" class="btn btn-outline-primary btn-sm" (click)="startSelf()">
+  <!-- Action bar: the three stages, in order, each to whoever may perform it. -->
+  <div class="d-flex justify-content-end gap-2 mb-3" *ngIf="editMode === 'none'">
+    <button *ngIf="(a.status === 'draft' || a.status === 'self_assessed') && canAssess"
+            class="btn btn-outline-primary btn-sm" (click)="startSelf()">
       <tui-icon icon="@tui.user"></tui-icon> {{ (a.selfSubmittedAt ? 'competency.detail.revise_self' : 'competency.detail.record_self') | translate }}
     </button>
-    <button *ngIf="a.status !== 'draft' && a.status !== 'finalized'" class="btn btn-outline-primary btn-sm" (click)="startReview()">
-      <tui-icon icon="@tui.user-check"></tui-icon> {{ (a.reviewedAt ? 'competency.detail.revise_review' : 'competency.detail.record_review') | translate }}
+    <button *ngIf="a.status === 'self_assessed' && canSme"
+            class="btn btn-outline-primary btn-sm" (click)="startReview()">
+      <tui-icon icon="@tui.user-check"></tui-icon> {{ 'competency.detail.record_review' | translate }}
     </button>
-    <button *ngIf="a.status === 'reviewed'" class="btn btn-success btn-sm" (click)="openFinalize()">
-      <tui-icon icon="@tui.flag"></tui-icon> {{ 'competency.detail.finalise' | translate }}
+    <button *ngIf="a.status === 'reviewed' && canLine"
+            class="btn btn-success btn-sm" (click)="startLineManager()">
+      <tui-icon icon="@tui.flag"></tui-icon> {{ 'competency.detail.record_line' | translate }}
     </button>
   </div>
 
@@ -87,6 +90,7 @@
     <tui-icon icon="@tui.pencil"></tui-icon>
     <span *ngIf="editMode === 'self'" [innerHTML]="'competency.detail.recording_self' | translate"></span>
     <span *ngIf="editMode === 'review'" [innerHTML]="'competency.detail.recording_review' | translate"></span>
+    <span *ngIf="editMode === 'line'" [innerHTML]="'competency.detail.recording_line' | translate"></span>
   </div>
 
   <!-- Items -->
@@ -99,8 +103,9 @@
             <th class="text-center">{{ 'competency.detail.th_required' | translate }}</th>
             <th class="text-center">{{ 'competency.detail.th_self' | translate }}</th>
             <th class="text-center">{{ 'competency.detail.th_confirmed' | translate }}</th>
+            <th class="text-center">{{ 'competency.detail.th_line_manager' | translate }}</th>
             <th class="text-center" *ngIf="editMode !== 'none'" style="width: 200px">
-              {{ (editMode === 'self' ? 'competency.detail.set_self_level' : 'competency.detail.set_confirmed_level') | translate }}
+              {{ (editMode === 'self' ? 'competency.detail.set_self_level' : editMode === 'review' ? 'competency.detail.set_confirmed_level' : 'competency.detail.set_line_level') | translate }}
             </th>
             <th class="text-center">{{ 'competency.detail.th_gap' | translate }}</th>
           </tr>
@@ -117,6 +122,7 @@
             <td class="text-center"><span class="lvl req">{{ letter(item.requiredLevel) }}</span></td>
             <td class="text-center"><span class="lvl" [class.muted]="item.selfLevel === null">{{ letter(item.selfLevel) }}</span></td>
             <td class="text-center"><span class="lvl" [class.muted]="item.assessedLevel === null">{{ letter(item.assessedLevel) }}</span></td>
+            <td class="text-center"><span class="lvl" [class.muted]="item.lineExecutiveLevel === null">{{ letter(item.lineExecutiveLevel) }}</span></td>
             <td class="text-center" *ngIf="editMode !== 'none'">
               <div class="btn-group btn-group-sm level-toggle" role="group">
                 <button *ngFor="let opt of levelOptions" type="button" class="btn"
@@ -135,12 +141,25 @@
         </tbody>
       </table>
     </div>
-    <div class="card-footer bg-transparent d-flex justify-content-end gap-2" *ngIf="editMode !== 'none'">
-      <button class="btn btn-light btn-sm" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
-      <button class="btn btn-primary btn-sm" [disabled]="saving" (click)="submit()">
-        <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-        {{ 'competency.detail.save_levels' | translate }}
-      </button>
+    <div class="card-footer bg-transparent" *ngIf="editMode !== 'none'">
+      <!-- The line manager's closing note, gathered with their levels before
+           the assessment is finalised. -->
+      <div *ngIf="editMode === 'line'" class="mb-2">
+        <label class="form-label small mb-1">
+          {{ 'competency.detail.closing_note' | translate }}
+          <span class="text-muted">{{ 'competency.detail.optional' | translate }}</span>
+        </label>
+        <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="finalizeComment"
+                  placeholder="{{ 'competency.detail.closing_note_placeholder' | translate }}"></textarea>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-light btn-sm" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
+        <button class="btn btn-sm" [class.btn-primary]="editMode !== 'line'" [class.btn-success]="editMode === 'line'"
+                [disabled]="saving" (click)="submit()">
+          <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+          {{ (editMode === 'line' ? 'competency.detail.finalise' : 'competency.detail.save_levels') | translate }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -187,28 +206,3 @@
     </div>
   </div>
 </ng-container>
-
-<!-- Finalize modal -->
-<div class="overlay" *ngIf="showFinalize" (click)="cancelFinalize()">
-  <div class="overlay-panel sm" (click)="$event.stopPropagation()">
-    <div class="overlay-head">
-      <h5 class="mb-0">{{ 'competency.detail.finalise_title' | translate }}</h5>
-      <button class="btn btn-sm btn-icon" (click)="cancelFinalize()"><tui-icon icon="@tui.x"></tui-icon></button>
-    </div>
-    <div class="overlay-body">
-      <p class="text-muted small">
-        {{ 'competency.detail.finalise_intro' | translate }}
-      </p>
-      <label class="form-label">{{ 'competency.detail.closing_note' | translate }} <span class="text-muted">{{ 'competency.detail.optional' | translate }}</span></label>
-      <textarea class="form-control" rows="3" [(ngModel)]="finalizeComment"
-                placeholder="{{ 'competency.detail.closing_note_placeholder' | translate }}"></textarea>
-    </div>
-    <div class="overlay-foot">
-      <button class="btn btn-light" (click)="cancelFinalize()">{{ 'common.cancel' | translate }}</button>
-      <button class="btn btn-success" [disabled]="saving" (click)="finalize()">
-        <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-        {{ 'competency.detail.finalise' | translate }}
-      </button>
-    </div>
-  </div>
-</div>

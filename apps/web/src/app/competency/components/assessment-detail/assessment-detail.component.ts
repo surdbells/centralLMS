@@ -11,15 +11,18 @@ import {
 } from '../../competency.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { SessionStore } from '../../../core/auth/session.store';
 
 /** Which levels the current step lets you edit. */
-type EditMode = 'none' | 'self' | 'review';
+type EditMode = 'none' | 'self' | 'review' | 'line';
 
 /**
- * One assessment, worked through its stages: the person records their own
- * levels, an expert confirms them, and it is finalised. The gap beside each
- * competency is the API's, recomputed every time a level changes — this screen
- * shows it, it never works it out.
+ * One assessment, worked through its three stages in order: the person records
+ * their own levels (self), a subject-matter expert reviews (SME), and the line
+ * manager confirms — which finalises it. Each stage unlocks only after the one
+ * before, and needs its own permission. The gap beside each competency is the
+ * API's, recomputed every time a level changes — this screen shows it, it never
+ * works it out.
  */
 @Component({
   selector: 'app-assessment-detail',
@@ -34,16 +37,23 @@ export class AssessmentDetailComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
+  private readonly session = inject(SessionStore);
 
   loading = true;
   saving = false;
   assessment: CompetencyAssessment | null = null;
 
+  // Which stages this user may perform, so each stage's button shows only to
+  // whoever holds its permission.
+  canAssess = false;
+  canSme = false;
+  canLine = false;
+
   editMode: EditMode = 'none';
   /** Levels being edited, keyed by competency id. */
   draft: Record<string, ProficiencyLevel> = {};
+  /** The line manager's closing note, gathered with their levels. */
   finalizeComment = '';
-  showFinalize = false;
 
   // The report's qualitative side, written by the assessor / line manager.
   savingNarrative = false;
@@ -63,6 +73,11 @@ export class AssessmentDetailComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    const can = this.session.can();
+    this.canAssess = can('competency.assess');
+    this.canSme = can('competency.sme');
+    this.canLine = can('competency.line');
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.load(id);
@@ -121,6 +136,20 @@ export class AssessmentDetailComponent implements OnInit {
     }
   }
 
+  startLineManager(): void {
+    if (!this.assessment) {
+      return;
+    }
+    this.editMode = 'line';
+    this.finalizeComment = this.assessment.lineManagerComment ?? '';
+    this.draft = {};
+    for (const item of this.assessment.items) {
+      // Seed with the SME's level — the line manager confirms or corrects it.
+      this.draft[item.competencyId] =
+        item.lineExecutiveLevel ?? item.assessedLevel ?? item.selfLevel ?? 0;
+    }
+  }
+
   cancelEdit(): void {
     this.editMode = 'none';
     this.draft = {};
@@ -140,54 +169,27 @@ export class AssessmentDetailComponent implements OnInit {
     const request =
       mode === 'self'
         ? this.competency.selfAssess(id, this.draft)
-        : this.competency.review(id, this.draft);
+        : mode === 'review'
+          ? this.competency.review(id, this.draft)
+          // The line-manager stage records their levels and finalises.
+          : this.competency.finalize(id, this.draft, this.finalizeComment.trim() || undefined);
 
     request.subscribe({
       next: (updated) => {
         this.assessment = updated;
         this.saving = false;
         this.editMode = 'none';
-        this.toast.success(this.i18n.t(mode === 'self' ? 'competency.detail.self_recorded' : 'competency.detail.review_recorded'));
+        this.toast.success(this.i18n.t(
+          mode === 'self'
+            ? 'competency.detail.self_recorded'
+            : mode === 'review'
+              ? 'competency.detail.review_recorded'
+              : 'competency.detail.finalised',
+        ));
       },
       error: () => {
         this.saving = false;
         this.toast.error(this.i18n.t('competency.detail.levels_save_error'));
-      },
-    });
-  }
-
-  // --- finalising ---------------------------------------------------------
-
-  openFinalize(): void {
-    this.showFinalize = true;
-    this.finalizeComment = this.assessment?.assessorComment ?? '';
-  }
-
-  cancelFinalize(): void {
-    this.showFinalize = false;
-  }
-
-  finalize(): void {
-    if (!this.assessment) {
-      return;
-    }
-    this.saving = true;
-    this.competency.finalize(this.assessment.id, this.finalizeComment.trim() || undefined).subscribe({
-      next: (updated) => {
-        this.assessment = updated;
-        this.saving = false;
-        this.showFinalize = false;
-        this.toast.success(this.i18n.t('competency.detail.finalised'));
-      },
-      error: (err) => {
-        this.saving = false;
-        this.toast.error(
-          this.i18n.t(
-            err?.code === 'nothing_to_finalize'
-              ? 'competency.detail.nothing_assessed'
-              : 'competency.detail.finalise_error',
-          ),
-        );
       },
     });
   }

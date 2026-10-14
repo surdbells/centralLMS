@@ -515,8 +515,12 @@ export class CompetencyService {
     return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.review(id), { levels });
   }
 
-  finalize(id: string, comment?: string): Observable<CompetencyAssessment> {
-    return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.finalize(id), { comment });
+  /**
+   * The line-manager stage: records their confirming levels (where they set
+   * any — leaving them means they agree with the SME) and finalises.
+   */
+  finalize(id: string, levels?: LevelSubmission, comment?: string): Observable<CompetencyAssessment> {
+    return this.api.post<CompetencyAssessment>(Endpoints.competencyAssessments.finalize(id), { levels, comment });
   }
 
   deleteAssessment(id: string): Observable<void> {
