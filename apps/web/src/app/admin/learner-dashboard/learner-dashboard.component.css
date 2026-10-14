@@ -511,6 +511,10 @@
   margin-bottom: 1.5rem;
 }
 
+.competency-section {
+  margin-bottom: 1.5rem;
+}
+
 .stats-row {
   display: flex;
   gap: 0.5rem;

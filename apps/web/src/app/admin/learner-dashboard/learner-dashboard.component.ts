@@ -16,6 +16,7 @@ import { SkillsService } from '../../services/skills.service';
 import { GamificationService } from '../../services/gamification.service';
 import { CertificatesService } from '../../services/certificates.service';
 import { ApiClient, ApiError, AuthImgDirective } from '../../core/api';
+import { MyCompetencyComponent } from '../../learner/my-competency/my-competency.component';
 import { TranslatePipe } from '../../translate.pipe';
 
 /* The shapes this screen's template already reads. Each is filled in one
@@ -199,7 +200,7 @@ export interface DashboardData {
 @Component({
   selector: 'app-learner-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, AuthImgDirective, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, AuthImgDirective, TranslatePipe, MyCompetencyComponent],
   templateUrl: './learner-dashboard.component.html',
   styleUrls: ['./learner-dashboard.component.css'],
 })

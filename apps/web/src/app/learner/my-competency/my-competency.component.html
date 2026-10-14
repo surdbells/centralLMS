@@ -1,0 +1,203 @@
+<section class="my-competency">
+  <!-- Header: title + cycle filter -->
+  <div class="mc-head">
+    <div class="mc-title">
+      <span class="mc-badge"><i class="bi bi-bullseye"></i></span>
+      <div>
+        <h3>{{ 'my_competency.title' | translate }}</h3>
+        <p>{{ 'my_competency.subtitle' | translate }}</p>
+      </div>
+    </div>
+    <div class="mc-filters">
+      <app-cycle-select *ngIf="cycle"
+                        [ngModel]="cycle" (ngModelChange)="onCycleChange($event)"
+                        size="sm"></app-cycle-select>
+      <select *ngIf="summaries.length > 1" class="form-select form-select-sm mc-profile"
+              [ngModel]="selected?.id" (ngModelChange)="open($event)">
+        <option *ngFor="let s of summaries" [value]="s.id">{{ s.jobTitle }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="mc-tabs" role="tablist">
+    <button *ngFor="let t of tabs" class="mc-tab" role="tab"
+            [class.active]="activeTab === t.id" (click)="activeTab = t.id">
+      <i class="bi" [ngClass]="t.icon"></i>
+      <span>{{ t.labelKey | translate }}</span>
+    </button>
+  </div>
+
+  <div class="mc-body">
+    <!-- Loading -->
+    <div *ngIf="loading" class="mc-empty">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+    <!-- Nothing assigned / no assessment for this cycle -->
+    <div *ngIf="!loading && !selected" class="mc-empty">
+      <i class="bi bi-clipboard-x"></i>
+      <p>{{ 'my_competency.none' | translate }}</p>
+    </div>
+
+    <ng-container *ngIf="!loading && selected as a">
+      <!-- 1. Competency profile: the ideal the role is measured against -->
+      <div *ngIf="activeTab === 'profile'" class="mc-pane">
+        <p class="mc-pane-hint">{{ 'my_competency.profile_hint' | translate }}</p>
+        <div class="mc-table-wrap">
+          <table class="mc-table">
+            <thead>
+              <tr>
+                <th>{{ 'competency.detail.th_competency' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_required' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of a.items">
+                <td>
+                  <div class="comp">{{ item.competencyName }}
+                    <i *ngIf="item.isCritical" class="bi bi-star-fill critical" [title]="'competency.profiles.critical' | translate"></i>
+                  </div>
+                  <small>{{ item.functionName }}</small>
+                </td>
+                <td class="num"><span class="lvl lvl-ideal">{{ letter(item.requiredLevel) }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2. Last competency assurance: the full outcome -->
+      <div *ngIf="activeTab === 'last'" class="mc-pane">
+        <div class="mc-status">
+          <span class="mc-chip" [ngClass]="'status-' + a.status">{{ a.statusLabel }}</span>
+        </div>
+        <div class="mc-stats">
+          <div class="mc-stat">
+            <div class="mc-stat-label">{{ 'competency.common.readiness' | translate }}</div>
+            <div class="mc-stat-value">{{ a.readinessPercent !== null ? (a.readinessPercent | number: '1.0-0') + '%' : '–' }}</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-stat-label">{{ 'competency.common.open_gaps' | translate }}</div>
+            <div class="mc-stat-value danger">{{ openGaps }}</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-stat-label">{{ 'competency.detail.est_to_close' | translate }}</div>
+            <div class="mc-stat-value">{{ a.estimatedMonths }} {{ 'competency.common.mo' | translate }}</div>
+          </div>
+        </div>
+        <div class="mc-table-wrap">
+          <table class="mc-table">
+            <thead>
+              <tr>
+                <th>{{ 'competency.detail.th_competency' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_required' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_self' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_confirmed' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_line_manager' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_gap' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of a.items">
+                <td><div class="comp">{{ item.competencyName }}</div><small>{{ item.functionName }}</small></td>
+                <td class="num"><span class="lvl lvl-ideal">{{ letter(item.requiredLevel) }}</span></td>
+                <td class="num"><span class="lvl" [class.muted]="item.selfLevel === null">{{ letter(item.selfLevel) }}</span></td>
+                <td class="num"><span class="lvl" [class.muted]="item.assessedLevel === null">{{ letter(item.assessedLevel) }}</span></td>
+                <td class="num"><span class="lvl" [class.muted]="item.lineExecutiveLevel === null">{{ letter(item.lineExecutiveLevel) }}</span></td>
+                <td class="num"><span class="gap" [ngClass]="gapClass(item.gapCategory)">{{ item.gap === 0 ? ('competency.gap.met' | translate) : '+' + item.gap }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3. Self assessments -->
+      <div *ngIf="activeTab === 'self'" class="mc-pane">
+        <div *ngIf="canSelfAssess" class="mc-cta">
+          <div>
+            <strong>{{ 'my_competency.self_pending_title' | translate }}</strong>
+            <span>{{ 'my_competency.self_pending_hint' | translate }}</span>
+          </div>
+          <button class="btn btn-primary btn-sm" (click)="goSelfAssess()">
+            <i class="bi bi-pencil-square me-1"></i>{{ 'my_competency.self_cta' | translate }}
+          </button>
+        </div>
+        <div class="mc-table-wrap">
+          <table class="mc-table">
+            <thead>
+              <tr>
+                <th>{{ 'competency.detail.th_competency' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_required' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_self' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_gap' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of a.items">
+                <td><div class="comp">{{ item.competencyName }}</div><small>{{ item.functionName }}</small></td>
+                <td class="num"><span class="lvl lvl-ideal">{{ letter(item.requiredLevel) }}</span></td>
+                <td class="num"><span class="lvl" [class.muted]="item.selfLevel === null">{{ letter(item.selfLevel) }}</span></td>
+                <td class="num"><span class="gap" [ngClass]="gapClass(item.gapCategory)">{{ item.gap === 0 ? ('competency.gap.met' | translate) : '+' + item.gap }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. SME assessments -->
+      <div *ngIf="activeTab === 'sme'" class="mc-pane">
+        <p *ngIf="a.status === 'draft' || a.status === 'self_assessed'" class="mc-note">
+          <i class="bi bi-hourglass-split me-1"></i>{{ 'my_competency.sme_pending' | translate }}
+        </p>
+        <div class="mc-table-wrap">
+          <table class="mc-table">
+            <thead>
+              <tr>
+                <th>{{ 'competency.detail.th_competency' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_required' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_confirmed' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_gap' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of a.items">
+                <td><div class="comp">{{ item.competencyName }}</div><small>{{ item.functionName }}</small></td>
+                <td class="num"><span class="lvl lvl-ideal">{{ letter(item.requiredLevel) }}</span></td>
+                <td class="num"><span class="lvl" [class.muted]="item.assessedLevel === null">{{ letter(item.assessedLevel) }}</span></td>
+                <td class="num"><span class="gap" [ngClass]="gapClass(item.gapCategory)">{{ item.gap === 0 ? ('competency.gap.met' | translate) : '+' + item.gap }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. Line executive assessments -->
+      <div *ngIf="activeTab === 'line'" class="mc-pane">
+        <p *ngIf="a.status !== 'finalized'" class="mc-note">
+          <i class="bi bi-hourglass-split me-1"></i>{{ 'my_competency.line_pending' | translate }}
+        </p>
+        <div class="mc-table-wrap">
+          <table class="mc-table">
+            <thead>
+              <tr>
+                <th>{{ 'competency.detail.th_competency' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_required' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_line_manager' | translate }}</th>
+                <th class="num">{{ 'competency.detail.th_gap' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of a.items">
+                <td><div class="comp">{{ item.competencyName }}</div><small>{{ item.functionName }}</small></td>
+                <td class="num"><span class="lvl lvl-ideal">{{ letter(item.requiredLevel) }}</span></td>
+                <td class="num"><span class="lvl" [class.muted]="item.lineExecutiveLevel === null">{{ letter(item.lineExecutiveLevel) }}</span></td>
+                <td class="num"><span class="gap" [ngClass]="gapClass(item.gapCategory)">{{ item.gap === 0 ? ('competency.gap.met' | translate) : '+' + item.gap }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</section>
