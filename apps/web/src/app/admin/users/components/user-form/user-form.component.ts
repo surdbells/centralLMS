@@ -8,6 +8,10 @@ import { UsersService, type UserInput } from '../../../../services/users.service
 import { RolesService } from '../../../../services/roles.service';
 import { LookupsService } from '../../../../services/lookups.service';
 import { ApiError } from '../../../../core/api';
+import { SessionStore } from '../../../../core/auth/session.store';
+import { CompetencyService, type JobCompetencyProfile } from '../../../../competency/competency.service';
+import { I18nService } from '../../../../i18n.service';
+import { HotToastService } from '@ngneat/hot-toast';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 
@@ -174,6 +178,33 @@ export interface UserFormData {
         </div>
       </form>
 
+      <!-- Competency job profiles — the assignment that lets a new cycle
+           auto-start this person's assessment. Assessors only, edit mode. -->
+      <div class="card border-0 shadow-sm mt-4" *ngIf="isEdit && canAssignProfiles && !loading">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+          <span class="fw-semibold"><i class="bi bi-bullseye me-2"></i>{{ 'admin.user_form.job_profiles' | translate }}</span>
+          <button type="button" class="btn btn-primary btn-sm" [disabled]="savingProfiles" (click)="saveProfiles()">
+            <span *ngIf="savingProfiles" class="spinner-border spinner-border-sm me-1"></span>
+            {{ 'admin.user_form.save_profiles' | translate }}
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="small text-muted">{{ 'admin.user_form.job_profiles_hint' | translate }}</p>
+          <div *ngIf="allProfiles.length === 0" class="text-muted small">{{ 'admin.user_form.no_profiles' | translate }}</div>
+          <div class="row g-2">
+            <div class="col-md-6" *ngFor="let p of allProfiles">
+              <label class="d-flex align-items-start gap-2 p-2 border rounded h-100" style="cursor: pointer">
+                <input type="checkbox" class="form-check-input mt-1" [checked]="selectedProfiles.has(p.id)" (change)="toggleProfile(p.id)">
+                <span>
+                  <span class="fw-medium d-block">{{ p.jobTitle }}</span>
+                  <small class="text-muted">{{ p.functionName }} · {{ p.competencyCount }} {{ 'admin.user_form.competencies' | translate }}</small>
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
       </div>
     </main>
@@ -201,6 +232,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
   private readonly lookupsService = inject(LookupsService);
+  private readonly competency = inject(CompetencyService);
+  private readonly session = inject(SessionStore);
+  private readonly i18n = inject(I18nService);
+  private readonly toast = inject(HotToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
@@ -237,6 +272,14 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
   isActive = true;
 
+  // Competency job profiles the person is assigned to (edit mode, for
+  // assessors) — the assignment that lets a new cycle auto-start their
+  // assessment.
+  canAssignProfiles = false;
+  allProfiles: JobCompetencyProfile[] = [];
+  selectedProfiles = new Set<string>();
+  savingProfiles = false;
+
   roles: Role[] = [];
   branches: OrgUnit[] = [];
   departments: OrgUnit[] = [];
@@ -247,6 +290,11 @@ export class UserFormComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.userId = this.route.snapshot.paramMap.get('id');
     this.isEdit = this.userId !== null;
+    this.canAssignProfiles = this.session.can()('competency.assess');
+
+    if (this.isEdit && this.canAssignProfiles && this.userId !== null) {
+      this.loadProfiles(this.userId);
+    }
 
     forkJoin({
       roles: this.rolesService.list(),
@@ -280,6 +328,48 @@ export class UserFormComponent implements OnInit, OnDestroy {
         error: (e: ApiError) => {
           this.error = e.message;
           this.loading = false;
+        },
+      });
+  }
+
+  // --- competency job profiles --------------------------------------------
+
+  private loadProfiles(userId: string): void {
+    this.competency.getProfiles({ perPage: 200 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (page) => (this.allProfiles = page.items),
+      error: () => undefined,
+    });
+    this.competency.getUserProfiles(userId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => (this.selectedProfiles = new Set(res.profiles.map((p) => p.id))),
+      error: () => undefined,
+    });
+  }
+
+  toggleProfile(id: string): void {
+    if (this.selectedProfiles.has(id)) {
+      this.selectedProfiles.delete(id);
+    } else {
+      this.selectedProfiles.add(id);
+    }
+  }
+
+  saveProfiles(): void {
+    if (this.userId === null) {
+      return;
+    }
+    this.savingProfiles = true;
+    this.competency
+      .setUserProfiles(this.userId, [...this.selectedProfiles])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.selectedProfiles = new Set(res.profiles.map((p) => p.id));
+          this.savingProfiles = false;
+          this.toast.success(this.i18n.t('admin.user_form.profiles_saved'));
+        },
+        error: () => {
+          this.savingProfiles = false;
+          this.toast.error(this.i18n.t('admin.user_form.profiles_save_error'));
         },
       });
   }

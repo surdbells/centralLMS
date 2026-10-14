@@ -56,6 +56,13 @@ export interface ProfileRequirement {
   isCritical: boolean;
 }
 
+/** A job profile a person is assigned to — the lightweight assignment shape. */
+export interface AssignedProfile {
+  id: string;
+  jobTitle: string;
+  functionName: string;
+}
+
 export interface JobCompetencyProfile {
   id: string;
   jobTitle: string;
@@ -441,6 +448,21 @@ export class CompetencyService {
 
   deleteProfile(id: string): Observable<void> {
     return this.api.delete<void>(Endpoints.jobProfiles.delete(id));
+  }
+
+  // --- user <-> job-profile assignment ------------------------------------
+
+  /** The job profiles a person is assigned to. */
+  getUserProfiles(userId: string): Observable<{ profiles: AssignedProfile[] }> {
+    return this.api.get<{ profiles: AssignedProfile[] }>(Endpoints.userJobProfiles.show(userId));
+  }
+
+  /** Replaces a person's profile assignments with exactly these. */
+  setUserProfiles(userId: string, profileIds: string[]): Observable<{ profiles: AssignedProfile[] }> {
+    return this.api.put<{ profiles: AssignedProfile[] }>(
+      Endpoints.userJobProfiles.save(userId),
+      { profileIds },
+    );
   }
 
   // --- assessments --------------------------------------------------------

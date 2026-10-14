@@ -542,6 +542,12 @@ export const Endpoints = {
     delete: (id: string) => `/job-profiles/${id}`,
   },
 
+  // Which job competency profiles a person is assigned to.
+  userJobProfiles: {
+    show: (userId: string) => `/users/${userId}/job-profiles`,
+    save: (userId: string) => `/users/${userId}/job-profiles`,
+  },
+
   competencyAssessments: {
     list: '/competency-assessments',
     create: '/competency-assessments',
