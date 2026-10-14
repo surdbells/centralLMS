@@ -490,6 +490,7 @@ final class DbalCompetencyRepository implements CompetencyRepository
         AssessmentStatus $status,
         ?string $assessorId,
         ?string $assessorComment,
+        ?string $lineManagerId = null,
     ): ?CompetencyAssessment {
         // The timestamp that goes with the state. Each is set once, when the
         // state is reached, so the dates read as a history rather than being
@@ -506,17 +507,19 @@ final class DbalCompetencyRepository implements CompetencyRepository
                 'UPDATE competency_assessments
                  SET status = :status, %s,
                      assessor_id = COALESCE(:assessor, assessor_id),
+                     line_manager_id = COALESCE(:lineManager, line_manager_id),
                      assessor_comment = COALESCE(:comment, assessor_comment),
                      updated_at = NOW()
                  WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
                 $stamp,
             ),
             [
-                'status'   => $status->value,
-                'assessor' => $assessorId,
-                'comment'  => $assessorComment,
-                'id'       => $assessmentId,
-                'tenant'   => $tenantId,
+                'status'      => $status->value,
+                'assessor'    => $assessorId,
+                'lineManager' => $lineManagerId,
+                'comment'     => $assessorComment,
+                'id'          => $assessmentId,
+                'tenant'      => $tenantId,
             ],
         );
 
@@ -909,7 +912,7 @@ final class DbalCompetencyRepository implements CompetencyRepository
                     c.name AS competency,
                     c.function_name AS function,
                     i.required_level AS required_level,
-                    COALESCE(i.assessed_level, i.self_level, 0) AS demonstrated_level,
+                    COALESCE(i.line_executive_level, i.assessed_level, i.self_level, 0) AS demonstrated_level,
                     i.gap AS gap
              FROM competency_assessment_items i
              JOIN competency_assessments a ON a.id = i.assessment_id
@@ -960,10 +963,10 @@ final class DbalCompetencyRepository implements CompetencyRepository
         // level, else their own, else none. The requirement is what the job
         // asks. Both distributions read across every finalised item.
         $levels =
-            "COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 0) AS none,
-             COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 1) AS knowledge,
-             COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 2) AS skill,
-             COUNT(*) FILTER (WHERE COALESCE(i.assessed_level, i.self_level, 0) = 3) AS mastery,
+            "COUNT(*) FILTER (WHERE COALESCE(i.line_executive_level, i.assessed_level, i.self_level, 0) = 0) AS none,
+             COUNT(*) FILTER (WHERE COALESCE(i.line_executive_level, i.assessed_level, i.self_level, 0) = 1) AS knowledge,
+             COUNT(*) FILTER (WHERE COALESCE(i.line_executive_level, i.assessed_level, i.self_level, 0) = 2) AS skill,
+             COUNT(*) FILTER (WHERE COALESCE(i.line_executive_level, i.assessed_level, i.self_level, 0) = 3) AS mastery,
              COUNT(*) AS total";
 
         $from =

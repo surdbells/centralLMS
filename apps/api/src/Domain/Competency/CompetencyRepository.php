@@ -106,6 +106,7 @@ interface CompetencyRepository
         AssessmentStatus $status,
         ?string $assessorId,
         ?string $assessorComment,
+        ?string $lineManagerId = null,
     ): ?CompetencyAssessment;
 
     /**

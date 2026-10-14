@@ -112,6 +112,11 @@ enum SystemRole: string
                 Permission::CompetencyView,
                 Permission::CompetencyManage,
                 Permission::CompetencyAssess,
+                // An org admin oversees the whole exercise, so holds both
+                // reviewer stages; an organisation gives these to narrower
+                // roles (HR for SME, managers for the line stage) as it sees fit.
+                Permission::CompetencySme,
+                Permission::CompetencyLine,
                 // Sharing files with the organisation through the digital
                 // library, and taking them down.
                 Permission::LibraryManage,
@@ -135,10 +140,12 @@ enum SystemRole: string
                 Permission::UserView,
                 Permission::ReportView,
                 // HR runs the competency assessments — sitting with people,
-                // recording levels, confirming an expert's review. Defining
-                // the profiles is an org admin's job, above.
+                // recording levels, and performing the SME review. Defining
+                // the profiles is an org admin's job, above; the final
+                // line-manager sign-off is a manager's, below.
                 Permission::CompetencyView,
                 Permission::CompetencyAssess,
+                Permission::CompetencySme,
             ],
             // "HR management — users, compliance, reports".
             self::HrManager => [
@@ -151,6 +158,10 @@ enum SystemRole: string
                 Permission::UserView,
                 Permission::ProgressView,
                 Permission::ReportView,
+                // The line manager performs the final stage of their reports'
+                // competency assessments, and reads the assessment to do it.
+                Permission::CompetencyView,
+                Permission::CompetencyLine,
             ],
             // Super admin takes everything through the wildcard in
             // effectivePermissions(); listing cases here would go stale each

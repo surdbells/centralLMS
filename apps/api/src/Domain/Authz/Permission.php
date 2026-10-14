@@ -90,6 +90,12 @@ enum Permission: string
     case CompetencyView   = 'competency.view';
     case CompetencyManage = 'competency.manage';
     case CompetencyAssess = 'competency.assess';
+    // The two reviewer stages of an assessment, as distinct capabilities so an
+    // organisation can give the SME step to its subject-matter experts and the
+    // final line-manager step to managers, each without the run-everything
+    // assess permission. Self-assessment needs neither — the subject does it.
+    case CompetencySme    = 'competency.sme';
+    case CompetencyLine   = 'competency.line';
 
     // --- digital library --------------------------------------------------
     // A module distinct from the media library (which backs course content):
@@ -167,7 +173,9 @@ enum Permission: string
 
             self::CompetencyView   => "See competencies, job profiles and assessment outcomes.",
             self::CompetencyManage => "Define competencies and job competency profiles.",
-            self::CompetencyAssess => "Run and review competency assessments.",
+            self::CompetencyAssess => "Start competency assessments and assign job profiles.",
+            self::CompetencySme    => "Perform the SME review stage of an assessment.",
+            self::CompetencyLine   => "Perform the final line-manager stage of an assessment.",
 
             self::LibraryView   => "Open the digital library and view the files shared with them.",
             self::LibraryManage => "Upload, target and remove files in the digital library.",

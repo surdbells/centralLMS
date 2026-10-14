@@ -21,9 +21,9 @@ final readonly class AssessmentItem
         public ?string $competencyName = null,
         public ?string $functionName = null,
         /**
-         * The line executive's confirming level, where they have set one. It
-         * does not change the stored gap — that is the SME's assessed level —
-         * but the individual report shows it as its own column.
+         * The line manager's confirming level, where they have set one. As the
+         * final stage, it is what the gap is measured against where present,
+         * falling back to the SME's level and then the self-claim.
          */
         public ?ProficiencyLevel $lineExecutiveLevel = null,
     ) {
@@ -32,15 +32,14 @@ final readonly class AssessmentItem
     /**
      * The gap: required minus what is confirmed, never below nought.
      *
-     * The expert's level where there is one, the self level until then, nought
-     * assumed if neither — an unanswered competency is a full gap, not a
-     * missing row, because "not assessed" is not "already have it".
+     * The line manager's level where there is one, the SME's next, the self
+     * level until then, nought assumed if none — an unanswered competency is a
+     * full gap, not a missing row, because "not assessed" is not "already have
+     * it".
      */
     public function gap(): int
     {
-        $demonstrated = $this->assessedLevel ?? $this->selfLevel ?? ProficiencyLevel::None;
-
-        return max(0, $this->requiredLevel->value - $demonstrated->value);
+        return max(0, $this->requiredLevel->value - $this->demonstratedLevel()->value);
     }
 
     public function category(): GapCategory
@@ -49,12 +48,16 @@ final readonly class AssessmentItem
     }
 
     /**
-     * The level the person is credited with: the expert's where confirmed, the
-     * self-claim until then, none if neither. The other side of {@see gap()}.
+     * The level the person is credited with: the line manager's where
+     * confirmed, the SME's next, the self-claim until then, none if none. The
+     * other side of {@see gap()}.
      */
     public function demonstratedLevel(): ProficiencyLevel
     {
-        return $this->assessedLevel ?? $this->selfLevel ?? ProficiencyLevel::None;
+        return $this->lineExecutiveLevel
+            ?? $this->assessedLevel
+            ?? $this->selfLevel
+            ?? ProficiencyLevel::None;
     }
 
     /**

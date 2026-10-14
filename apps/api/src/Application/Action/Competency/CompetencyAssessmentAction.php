@@ -22,10 +22,12 @@ use Psr\Http\Message\ServerRequestInterface;
 /**
  * Competency assessments — a person measured against their job's profile.
  *
- * The flow the exercise runs: start an assessment, the learner records their
- * own levels, a subject-matter expert reviews and confirms, and it is
- * finalised. Reading needs `competency.view`; running and reviewing needs
- * `competency.assess`, which is the SME's permission.
+ * The flow the exercise runs, each stage unlocking only after the one before:
+ * the assessment is started (`competency.assess`), the learner records their
+ * own levels (the subject, no permission), a subject-matter expert reviews
+ * (`competency.sme`), and the line manager confirms and finalises
+ * (`competency.line`). Reading everyone's needs `competency.view`; a subject
+ * may always read their own.
  */
 final class CompetencyAssessmentAction
 {
@@ -299,7 +301,9 @@ final class CompetencyAssessmentAction
     }
 
     /**
-     * Records the expert's confirmed levels and moves it to reviewed.
+     * The SME review stage: records the expert's confirmed levels and moves it
+     * to reviewed. It comes after the self-assessment and before the line
+     * manager, and is the SME's own permission.
      *
      * @param array<string, string> $args
      */
@@ -308,10 +312,50 @@ final class CompetencyAssessmentAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        return $this->record($request, $response, $args, 'assessed', AssessmentStatus::Reviewed);
+        $caller = $this->caller($request);
+        $caller->mustHave(Permission::CompetencySme);
+
+        $tenantId   = $this->tenantId($request);
+        $assessment = $this->require($request, $args['id'] ?? '');
+
+        // Order is the process: the SME reviews only once the person has
+        // self-assessed, and only once — re-opening a line-manager-confirmed
+        // assessment to a fresh SME level would discard a final finding.
+        if ($assessment->status !== AssessmentStatus::SelfAssessed) {
+            throw new ConflictingState(
+                $assessment->status === AssessmentStatus::Draft
+                    ? 'This person has not self-assessed yet.'
+                    : 'This assessment has already passed SME review.',
+                'self_assessment_required',
+            );
+        }
+
+        $body   = $this->body($request);
+        $levels = $this->levels($body['levels'] ?? null);
+
+        if ($levels !== []) {
+            $this->repository->recordLevels($tenantId, $assessment->id, 'assessed', $levels);
+        }
+
+        $updated = $this->repository->setStatus(
+            $tenantId,
+            $assessment->id,
+            AssessmentStatus::Reviewed,
+            // The SME is recorded as the assessor.
+            $caller->id,
+            $this->str($body['comment'] ?? null),
+            null,
+        );
+
+        return Json::ok($response, ($updated ?? $assessment)->toArray());
     }
 
     /**
+     * The line-manager stage: records the line manager's confirming levels and
+     * finalises the assessment. It is the final stage — it comes after the SME
+     * review, is the line manager's own permission, and marks the assessment
+     * complete so it counts in the outcome report.
+     *
      * @param array<string, string> $args
      */
     public function finalize(
@@ -320,28 +364,46 @@ final class CompetencyAssessmentAction
         array $args,
     ): ResponseInterface {
         $caller = $this->caller($request);
-        $caller->mustHave(Permission::CompetencyAssess);
+        $caller->mustHave(Permission::CompetencyLine);
 
         $tenantId = $this->tenantId($request);
         $assessment = $this->require($request, $args['id'] ?? '');
 
-        if ($assessment->status === AssessmentStatus::Draft) {
+        if ($assessment->status !== AssessmentStatus::Reviewed) {
             throw new ConflictingState(
-                'Nothing has been assessed yet.',
-                'nothing_to_finalize',
+                $assessment->status === AssessmentStatus::Finalized
+                    ? 'This assessment has already been finalised.'
+                    : 'The SME has not reviewed this assessment yet.',
+                'sme_review_required',
             );
         }
 
-        $comment = trim((string) ($this->body($request)['comment'] ?? '')) ?: null;
+        $body = $this->body($request);
+
+        // The line manager's confirming levels, where they set any — these are
+        // what the gap is measured against. Leaving them unset means the line
+        // manager agrees with the SME, and the SME's level stands.
+        $levels = $this->levels($body['levels'] ?? null);
+        if ($levels !== []) {
+            $this->repository->recordLevels($tenantId, $assessment->id, 'line_executive', $levels);
+        }
+
+        $comment = $this->str($body['comment'] ?? null);
+        if ($comment !== null) {
+            $this->repository->saveNarrative($tenantId, $assessment->id, [
+                'line_manager_comment' => $comment,
+            ]);
+        }
 
         $finalized = $this->repository->setStatus(
             $tenantId,
             $assessment->id,
             AssessmentStatus::Finalized,
-            // The expert who finalises is recorded as the assessor, so a
-            // finalised assessment always names who confirmed it.
-            $assessment->assessorId ?? $caller->id,
-            $comment,
+            // Keep the SME in assessor_id; record the line manager separately so
+            // a finalised assessment names both reviewers.
+            null,
+            null,
+            $caller->id,
         );
 
         return Json::ok($response, ($finalized ?? $assessment)->toArray());
@@ -376,7 +438,10 @@ final class CompetencyAssessmentAction
             // show the proof points for the level a person is credited with.
             'descriptors' => $this->repository->descriptorsFor(
                 $tenantId,
-                array_map(static fn ($i): string => $i['competencyId'], $assessment->toArray()['items']),
+                array_values(array_map(
+                    static fn ($i): string => $i['competencyId'],
+                    $assessment->toArray()['items'],
+                )),
             ),
         ]);
     }
@@ -469,39 +534,6 @@ final class CompetencyAssessmentAction
     }
 
     // --- internals ------------------------------------------------------------
-
-    /**
-     * @param array<string, string> $args
-     */
-    private function record(
-        ServerRequestInterface $request,
-        ResponseInterface $response,
-        array $args,
-        string $field,
-        AssessmentStatus $status,
-    ): ResponseInterface {
-        $caller = $this->caller($request);
-        $caller->mustHave(Permission::CompetencyAssess);
-
-        $tenantId = $this->tenantId($request);
-        $assessment = $this->require($request, $args['id'] ?? '');
-
-        $levels = $this->levels($this->body($request)['levels'] ?? null);
-
-        if ($levels !== []) {
-            $this->repository->recordLevels($tenantId, $assessment->id, $field, $levels);
-        }
-
-        $updated = $this->repository->setStatus(
-            $tenantId,
-            $assessment->id,
-            $status,
-            $field === 'assessed' ? $caller->id : null,
-            null,
-        );
-
-        return Json::ok($response, ($updated ?? $assessment)->toArray());
-    }
 
     private function require(ServerRequestInterface $request, string $id): CompetencyAssessment
     {
