@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Meta, Title } from '@angular/platform-browser';
+import { Meta } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { TuiLoader } from '@taiga-ui/core';
@@ -32,7 +32,6 @@ export class LoginComponent implements OnInit {
   private readonly sso = inject(SsoService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
   private readonly api = inject(ApiClient);
@@ -78,15 +77,14 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     sessionStorage.clear();
 
-    this.titleService.setTitle('Login | Central LMS Africa User Portal');
     this.metaService.updateTag({
       name: 'title',
-      content: 'LMS Login Africa | Access Your Central LMS Account',
+      content: 'LMS Login Africa | Access Your Learning Portal Account',
     });
     this.metaService.updateTag({
       name: 'description',
       content:
-        'Login to Central LMS to access your courses, training materials, and employee learning dashboard from anywhere in Africa.',
+        'Login to your learning portal to access your courses, training materials, and employee learning dashboard from anywhere in Africa.',
     });
     this.metaService.updateTag({
       name: 'keywords',

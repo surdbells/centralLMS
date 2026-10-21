@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Title, Meta } from '@angular/platform-browser';
+import { Meta } from '@angular/platform-browser';
 import { HotToastService } from '@ngneat/hot-toast';
 import { FormsModule } from '@angular/forms';
 import { TuiLoader } from '@taiga-ui/core';
@@ -51,7 +51,6 @@ export class ResetComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
@@ -85,14 +84,13 @@ export class ResetComponent implements OnInit, OnDestroy {
   private token = '';
 
   ngOnInit(): void {
-    this.titleService.setTitle('Reset Password | Central LMS Account Recovery');
     this.metaService.updateTag({
       name: 'title',
-      content: 'Reset LMS Password | Central LMS Africa Support',
+      content: 'Reset LMS Password | Your Learning Portal Support',
     });
     this.metaService.updateTag({
       name: 'description',
-      content: 'Recover your Central LMS account password and continue your eLearning '
+      content: 'Recover your learning portal account password and continue your eLearning '
         + 'and training activities across Africa.',
     });
     this.metaService.updateTag({

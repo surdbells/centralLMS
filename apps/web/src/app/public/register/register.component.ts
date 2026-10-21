@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Title, Meta } from '@angular/platform-browser';
+import { Meta } from '@angular/platform-browser';
 import { TuiLoader } from '@taiga-ui/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -57,7 +57,6 @@ export class RegisterComponent implements OnInit, OnDestroy {
   private readonly registration = inject(RegistrationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
@@ -101,14 +100,13 @@ export class RegisterComponent implements OnInit, OnDestroy {
   private tenantId = '';
 
   ngOnInit(): void {
-    this.titleService.setTitle('Create Account | Central LMS Africa Registration');
     this.metaService.updateTag({
       name: 'title',
-      content: 'Sign Up LMS Africa | Register for Central Learning Management System',
+      content: 'Sign Up LMS Africa | Register for Your Learning Portal',
     });
     this.metaService.updateTag({
       name: 'description',
-      content: 'Register for Central LMS to access corporate training, online courses, '
+      content: 'Register for your learning portal to access corporate training, online courses, '
         + 'and employee development tools across Africa.',
     });
     this.metaService.updateTag({

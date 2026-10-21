@@ -9,7 +9,8 @@ interface PublicBranding {
 }
 
 /**
- * Paints the application in the organisation's own colours, logo and favicon.
+ * Paints the application in the organisation's own colours, logo and favicon —
+ * and its name into the browser tab.
  *
  * Every one of these settings has been in the catalogue since it was written,
  * `primary_color` says in as many words that it is honoured by "the web app
@@ -23,6 +24,15 @@ interface PublicBranding {
  * colour reaches every button, link and accent at once. The logo and
  * organisation name are exposed as signals for the navigation bars to read;
  * the favicon is swapped directly.
+ *
+ * **No flash of the default look.** Painting only once the API answers meant a
+ * corporate saw the neutral product defaults first, then its own brand — poor
+ * for a white-labelled deployment. Two things stop that: the last-applied
+ * branding is cached in `localStorage` and re-painted synchronously in the
+ * constructor, before the first paint, so a returning visitor never sees the
+ * default; and fresh public branding is fetched at construction for the
+ * remembered tenant (or the deployment's default), so even a cold first load of
+ * any screen brands itself without waiting for that screen to ask.
  */
 @Injectable({ providedIn: 'root' })
 export class BrandingService {
@@ -35,8 +45,21 @@ export class BrandingService {
   /** The sign-in background image, or null to fall back to the default. */
   readonly loginBackgroundUrl = signal<string | null>(null);
 
+  /**
+   * The current route's own title (set by {@see BrandingTitleStrategy}), which
+   * is composed with the organisation name into the tab title below.
+   */
+  readonly pageTitle = signal<string | null>(null);
+
   /** The tenant whose branding is currently applied, so it is fetched once. */
   private applied: string | null = null;
+
+  /**
+   * The tab title to wear when no organisation is known yet — whatever the
+   * (build-time-injected) index.html shipped, captured before anything changes
+   * it.
+   */
+  private readonly defaultTitle = typeof document !== 'undefined' ? document.title : '';
 
   /**
    * Where the last-branded tenant is remembered, so the sign-in screen — which
@@ -45,8 +68,22 @@ export class BrandingService {
    */
   static readonly LAST_TENANT_KEY = 'central.brandTenant';
 
+  /** Where the last-applied branding payload is cached, to paint it instantly on the next load. */
+  static readonly BRAND_CACHE_KEY = 'central.brand';
+
   constructor() {
-    // Signing in, signing out and switching organisation all move this.
+    // 1. Repaint the last-known branding immediately — before the first paint —
+    //    so a returning visitor never sees the neutral default flash.
+    this.applyCached();
+
+    // 2. Fetch fresh public branding for the remembered tenant (or, with none,
+    //    the deployment default resolved server-side from DEFAULT_TENANT_ID),
+    //    so a cold load of any page is branded without a screen having to ask.
+    //    This does not claim `applied`, so a session naming the real tenant
+    //    still supersedes it below.
+    this.load(this.rememberedTenant());
+
+    // 3. Signing in, signing out and switching organisation all move this.
     effect(() => {
       const tenantId = this.session.session()?.tenantId ?? null;
 
@@ -55,12 +92,16 @@ export class BrandingService {
       }
 
       this.applied = tenantId;
-      try {
-        localStorage.setItem(BrandingService.LAST_TENANT_KEY, tenantId);
-      } catch {
-        // Private mode or storage disabled — the logo simply falls back.
-      }
+      this.remember(tenantId);
       this.load(tenantId);
+    });
+
+    // 4. Keep the tab title in step with the organisation and the current page,
+    //    whichever changes — a late-arriving brand updates an already-shown page.
+    effect(() => {
+      const appName = this.organisation()?.trim() || this.defaultTitle;
+      const page = this.pageTitle()?.trim();
+      document.title = page ? `${page} · ${appName}` : appName;
     });
   }
 
@@ -72,13 +113,17 @@ export class BrandingService {
   apply(organisation: string | null, branding: Partial<Record<string, string | boolean>>): void {
     this.organisation.set(organisation);
     this.paint(branding);
+    this.cache(organisation, branding);
   }
 
   private load(tenantId: string): void {
-    this.api.get<PublicBranding>(Endpoints.settings.public, { tenantId }).subscribe({
+    const params = this.isTenant(tenantId) ? { tenantId } : {};
+
+    this.api.get<PublicBranding>(Endpoints.settings.public, params).subscribe({
       next: (settings) => {
         this.organisation.set(settings.organisation);
         this.paint(settings.branding);
+        this.cache(settings.organisation, settings.branding);
       },
       // Silently: an organisation that has set no colours looks exactly like
       // one whose settings failed to load, and the defaults are perfectly
@@ -86,6 +131,54 @@ export class BrandingService {
       // that has never opened the branding tab.
       error: () => undefined,
     });
+  }
+
+  /** Re-paints whatever branding was last cached, synchronously, so it is on screen before the first API answer. */
+  private applyCached(): void {
+    try {
+      const raw = localStorage.getItem(BrandingService.BRAND_CACHE_KEY);
+
+      if (raw === null) {
+        return;
+      }
+
+      const cached = JSON.parse(raw) as PublicBranding;
+      this.organisation.set(cached.organisation ?? null);
+      this.paint(cached.branding ?? {});
+    } catch {
+      // Corrupt or unavailable storage — the defaults are fine.
+    }
+  }
+
+  private cache(organisation: string | null, branding: Partial<Record<string, string | boolean>>): void {
+    try {
+      localStorage.setItem(
+        BrandingService.BRAND_CACHE_KEY,
+        JSON.stringify({ organisation, branding }),
+      );
+    } catch {
+      // Private mode or storage disabled — only the next load's flash returns.
+    }
+  }
+
+  private rememberedTenant(): string {
+    try {
+      return localStorage.getItem(BrandingService.LAST_TENANT_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  }
+
+  private remember(tenantId: string): void {
+    try {
+      localStorage.setItem(BrandingService.LAST_TENANT_KEY, tenantId);
+    } catch {
+      // Private mode or storage disabled — the logo simply falls back.
+    }
+  }
+
+  private isTenant(tenantId: string): boolean {
+    return /^[0-9a-f-]{36}$/i.test(tenantId);
   }
 
   private paint(branding: Partial<Record<string, string | boolean>>): void {

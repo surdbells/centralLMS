@@ -2,7 +2,9 @@
 <nav class="navbar navbar-expand-lg bg-white sticky-top">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center gap-2" routerLink="/">
-      <img src="assets/img/logo.png" alt="Central LMS" class="rounded-2 animate__animated animate__fadeIn bg-white"/>
+      <img [src]="branding.logoUrl() || 'assets/img/logo.png'"
+           [alt]="branding.organisation() || 'Learning Portal'"
+           class="rounded-2 animate__animated animate__fadeIn bg-white"/>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
