@@ -19,6 +19,8 @@ import { FormsModule } from '@angular/forms';
 import {TopComponent} from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-learning-path-viewer',
@@ -103,6 +105,8 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
   progressStatuses = PROGRESS_STATUSES;
 
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
+  private readonly toast = inject(HotToastService);
 
   constructor(
     private route: ActivatedRoute,
@@ -293,7 +297,7 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Enrollment failed:', error);
-        alert(error.error?.error || this.i18n.t('paths.enroll_failed'));
+        this.toast.error(error.error?.error || this.i18n.t('paths.enroll_failed'));
         this.enrolling.set(false);
       }
     });
@@ -377,17 +381,17 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
         this.loadProgress(p.path_id);
         if (result.path_completed) {
           // Show completion modal or redirect
-          alert(this.i18n.t('paths.path_completed_alert'));
+          this.toast.success(this.i18n.t('paths.path_completed_alert'));
         }
       }
     });
   }
 
-  withdraw(): void {
+  async withdraw(): Promise<void> {
     const p = this.path();
     if (!p) return;
 
-    if (confirm(this.i18n.t('paths.withdraw_confirm'))) {
+    if (await this.dialog.confirm(this.i18n.t('paths.withdraw_confirm'), { type: 'danger' })) {
       this.learningPathService.withdraw(p.path_id).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
           this.enrollment.set(null);

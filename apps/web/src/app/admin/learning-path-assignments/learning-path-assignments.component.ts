@@ -13,6 +13,8 @@ import {
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 import { LearningPathEnrollmentService } from '../../services/learning-path-enrollment.service';
 import type {
   Branch,
@@ -161,6 +163,8 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     // what this would do", each a direct call to the legacy endpoint.
     private enrollmentService: LearningPathEnrollmentService,
     private i18n: I18nService,
+    private dialog: ConfirmDialogService,
+    private toast: HotToastService,
   ) {}
 
   ngOnInit(): void {
@@ -595,14 +599,14 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   // ASSIGNMENT ACTIONS
   // ==========================================
 
-  pauseAssignment(assignment: LearningPathAssignment): void {
-    if (!confirm(this.i18n.t('paths_admin.assign.confirm_pause'))) return;
+  async pauseAssignment(assignment: LearningPathAssignment): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('paths_admin.assign.confirm_pause'), { type: 'warning' }))) return;
 
     this.learningPathService.pauseAssignment(assignment.assignment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadAssignments(),
-        error: (err) => alert(this.i18n.t('paths_admin.assign.pause_failed'))
+        error: (err) => this.toast.error(this.i18n.t('paths_admin.assign.pause_failed'))
       });
   }
 
@@ -611,18 +615,18 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadAssignments(),
-        error: (err) => alert(this.i18n.t('paths_admin.assign.resume_failed'))
+        error: (err) => this.toast.error(this.i18n.t('paths_admin.assign.resume_failed'))
       });
   }
 
-  cancelAssignment(assignment: LearningPathAssignment): void {
-    if (!confirm(this.i18n.t('paths_admin.assign.confirm_cancel'))) return;
+  async cancelAssignment(assignment: LearningPathAssignment): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('paths_admin.assign.confirm_cancel'), { type: 'danger' }))) return;
 
     this.learningPathService.cancelAssignment(assignment.assignment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadAssignments(),
-        error: (err) => alert(this.i18n.t('paths_admin.assign.cancel_failed'))
+        error: (err) => this.toast.error(this.i18n.t('paths_admin.assign.cancel_failed'))
       });
   }
 
@@ -649,14 +653,14 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
     this.assignmentStats = null;
   }
 
-  sendReminders(assignment: LearningPathAssignment): void {
-    if (!confirm(this.i18n.t('paths_admin.assign.confirm_reminders'))) return;
+  async sendReminders(assignment: LearningPathAssignment): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('paths_admin.assign.confirm_reminders')))) return;
 
     this.learningPathService.sendAssignmentReminders(assignment.assignment_id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (result) => alert(this.i18n.t('paths_admin.assign.reminders_sent', { count: result.sent })),
-        error: () => alert(this.i18n.t('paths_admin.assign.reminders_failed'))
+        next: (result) => this.toast.success(this.i18n.t('paths_admin.assign.reminders_sent', { count: result.sent })),
+        error: () => this.toast.error(this.i18n.t('paths_admin.assign.reminders_failed'))
       });
   }
 

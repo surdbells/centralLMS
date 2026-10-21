@@ -20,6 +20,8 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 // Course and Assessment interfaces
 interface Course {
@@ -147,7 +149,9 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private learningPathService: LearningPathService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private dialog: ConfirmDialogService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -343,8 +347,8 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     }
   }
 
-  deleteSection(section: LearningPathSection): void {
-    if (!confirm(this.i18n.t('paths_admin.builder.confirm_delete_section', { title: section.title }))) return;
+  async deleteSection(section: LearningPathSection): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('paths_admin.builder.confirm_delete_section', { title: section.title }), { type: 'danger' }))) return;
     if (!this.path) return;
 
     this.learningPathService.deleteSection(section.section_id)
@@ -429,8 +433,8 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
     }
   }
 
-  deleteItem(item: LearningPathItem): void {
-    if (!confirm(this.i18n.t('paths_admin.builder.confirm_delete_item', { title: item.display_title || item.external_title }))) return;
+  async deleteItem(item: LearningPathItem): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('paths_admin.builder.confirm_delete_item', { title: item.display_title || item.external_title }), { type: 'danger' }))) return;
     if (!this.path) return;
 
     this.learningPathService.deleteItem(this.path.path_id, item.item_id)
@@ -638,24 +642,24 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   // PUBLISH
   // ==========================================
 
-  publishPath(): void {
+  async publishPath(): Promise<void> {
     if (!this.path) return;
 
     if (this.totalItems === 0) {
-      alert(this.i18n.t('paths_admin.cannot_publish_item'));
+      this.toast.error(this.i18n.t('paths_admin.cannot_publish_item'));
       return;
     }
 
-    if (confirm(this.i18n.t('paths_admin.confirm_publish_path'))) {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_publish_path'), { type: 'warning' })) {
       this.learningPathService.publish(this.path.path_id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
             this.loadPath(this.path!.path_id);
-            alert(this.i18n.t('paths_admin.builder.publish_success'));
+            this.toast.success(this.i18n.t('paths_admin.builder.publish_success'));
           },
           error: (error) => {
-            alert(error.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
+            this.toast.error(error.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
           }
         });
     }

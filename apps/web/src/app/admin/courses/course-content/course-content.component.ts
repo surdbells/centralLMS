@@ -26,6 +26,7 @@ import {
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 /* The shapes this screen's template already reads. */
 
@@ -132,6 +133,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
   private readonly destroy$ = new Subject<void>();
 
   courseId = '';
@@ -272,8 +274,8 @@ export class CourseContentComponent implements OnInit, OnDestroy {
     this.resourcesService.download(this.courseId, resource);
   }
 
-  deleteResource(resource: CourseResource): void {
-    if (!confirm(this.i18n.t('admin.course_content.toast_remove_resource_confirm', { title: resource.title }))) {
+  async deleteResource(resource: CourseResource): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('admin.course_content.toast_remove_resource_confirm', { title: resource.title }), { type: 'danger' }))) {
       return;
     }
     this.resourcesService

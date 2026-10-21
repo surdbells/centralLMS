@@ -12,6 +12,7 @@ import {
 import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 /**
  * Everything that has been sent to the signed-in person.
@@ -35,6 +36,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   private readonly notificationsService = inject(NotificationsService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
   private readonly destroy$ = new Subject<void>();
 
   notifications: Notification[] = [];
@@ -147,8 +149,8 @@ export class NotificationsComponent implements OnInit, OnDestroy {
       });
   }
 
-  remove(notification: Notification): void {
-    if (!confirm(this.i18n.t('notifications.delete_confirm'))) {
+  async remove(notification: Notification): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('notifications.delete_confirm'), { type: 'danger' }))) {
       return;
     }
 

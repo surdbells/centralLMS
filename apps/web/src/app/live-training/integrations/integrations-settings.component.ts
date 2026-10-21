@@ -15,6 +15,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { ApiError } from '../../core/api';
 
 interface PlatformConfig {
@@ -44,6 +45,7 @@ interface TestMeetingForm {
 export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
 
   private destroy$ = new Subject<void>();
 
@@ -230,8 +232,8 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
-  disconnect(platformId: string): void {
-    if (!confirm(this.i18n.t('live.integrations.disconnect_confirm', { platform: this.getDisplayName(platformId) }))) {
+  async disconnect(platformId: string): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('live.integrations.disconnect_confirm', { platform: this.getDisplayName(platformId) }), { type: 'warning' }))) {
       return;
     }
 
@@ -399,8 +401,8 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
   }
 
   // Delete meeting
-  deleteMeeting(platformId: string, meetingId: string): void {
-    if (!confirm(this.i18n.t('live.integrations.delete_meeting_confirm'))) return;
+  async deleteMeeting(platformId: string, meetingId: string): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('live.integrations.delete_meeting_confirm'), { type: 'danger' }))) return;
 
     this.videoIntegrationService.deleteMeeting(platformId, meetingId)
       .pipe(takeUntil(this.destroy$))

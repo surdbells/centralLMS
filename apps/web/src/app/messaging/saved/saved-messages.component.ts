@@ -9,6 +9,7 @@ import { MessagingService, SavedMessage } from '../messaging.service';
 import { TopComponent } from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-saved-messages',
@@ -203,7 +204,7 @@ export class SavedMessagesComponent implements OnInit, OnDestroy {
   editingSaved: SavedMessage | null = null;
   editingNote = '';
 
-  constructor(private messagingService: MessagingService, private i18n: I18nService) {}
+  constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService) {}
 
   ngOnInit(): void {
     this.loadSavedMessages();
@@ -281,8 +282,8 @@ export class SavedMessagesComponent implements OnInit, OnDestroy {
       });
   }
 
-  unsave(saved: SavedMessage): void {
-    if (!confirm(this.i18n.t('messaging.confirm_remove_saved'))) return;
+  async unsave(saved: SavedMessage): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_remove_saved'), { type: 'danger' }))) return;
 
     this.messagingService.unsaveMessage(saved.message_id)
       .pipe(takeUntil(this.destroy$))

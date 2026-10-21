@@ -20,6 +20,8 @@ import {FileUploadService} from './file-upload.service';
 import {TopComponent} from '../partials/top/top.component';
 import {TranslatePipe} from '../translate.pipe';
 import {I18nService} from '../i18n.service';
+import {ConfirmDialogService} from '../shared/components/confirmation-dialog/confirmation-dialog.component';
+import {HotToastService} from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-messaging',
@@ -154,7 +156,9 @@ export class MessagingComponent implements OnInit, OnDestroy {
   constructor(
     public messagingService: MessagingService,
     private fileUploadService: FileUploadService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private dialog: ConfirmDialogService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -482,7 +486,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
           },
           error: (err) => {
             console.error('Error uploading files:', err);
-            alert(this.i18n.t('messaging.upload_failed'));
+            this.toast.error(this.i18n.t('messaging.upload_failed'));
           }
         });
     } else {
@@ -508,7 +512,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
         },
         error: err => {
           console.error('Error sending message:', err);
-          alert(this.i18n.t('messaging.send_failed'));
+          this.toast.error(this.i18n.t('messaging.send_failed'));
         }
       });
   }
@@ -595,8 +599,8 @@ export class MessagingComponent implements OnInit, OnDestroy {
   }
 
   // Delete
-  deleteMessage(message: Message, forEveryone: boolean = false): void {
-    if (!confirm(this.i18n.t('messaging.confirm_delete_message'))) return;
+  async deleteMessage(message: Message, forEveryone: boolean = false): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_delete_message'), { type: 'danger' }))) return;
 
     this.messagingService.deleteMessage(message.message_id, forEveryone)
       .pipe(takeUntil(this.destroy$))
@@ -729,7 +733,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          alert(this.i18n.t('messaging.report_thanks'));
+          this.toast.success(this.i18n.t('messaging.report_thanks'));
         }
       });
     this.closeContextMenu();
@@ -753,7 +757,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
       // Validate file using FileUploadService
       const validation = this.fileUploadService.validateFile(file);
       if (!validation.valid) {
-        alert(validation.error);
+        this.toast.error(validation.error);
         continue;
       }
 
@@ -833,7 +837,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
   createConversation(): void {
     if (this.newConversationType === 'direct') {
       if (this.selectedUsers.length !== 1) {
-        alert(this.i18n.t('messaging.select_one_user'));
+        this.toast.error(this.i18n.t('messaging.select_one_user'));
         return;
       }
       this.messagingService.startDirectMessage(this.selectedUsers[0].user_id)
@@ -849,7 +853,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
         });
     } else {
       if (!this.newConversationName.trim()) {
-        alert(this.i18n.t('messaging.enter_group_name'));
+        this.toast.error(this.i18n.t('messaging.enter_group_name'));
         return;
       }
       this.messagingService.createConversation({
@@ -905,9 +909,9 @@ export class MessagingComponent implements OnInit, OnDestroy {
       });
   }
 
-  archiveConversation(): void {
+  async archiveConversation(): Promise<void> {
     if (!this.activeConversation) return;
-    if (!confirm(this.i18n.t('messaging.confirm_archive'))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_archive'), { type: 'warning' }))) return;
 
     this.messagingService.archiveConversation(this.activeConversation.conversation_id)
       .pipe(takeUntil(this.destroy$))
@@ -921,9 +925,9 @@ export class MessagingComponent implements OnInit, OnDestroy {
       });
   }
 
-  leaveConversation(): void {
+  async leaveConversation(): Promise<void> {
     if (!this.activeConversation) return;
-    if (!confirm(this.i18n.t('messaging.confirm_leave'))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_leave'), { type: 'warning' }))) return;
 
     this.messagingService.leaveConversation(this.activeConversation.conversation_id)
       .pipe(takeUntil(this.destroy$))
@@ -1286,9 +1290,9 @@ export class MessagingComponent implements OnInit, OnDestroy {
   }
 
   // Remove participant (uses removeParticipant)
-  removeMember(participant: Participant): void {
+  async removeMember(participant: Participant): Promise<void> {
     if (!this.activeConversation) return;
-    if (!confirm(this.i18n.t('messaging.confirm_remove_member', { name: `${participant.first_name} ${participant.last_name}` }))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_remove_member', { name: `${participant.first_name} ${participant.last_name}` }), { type: 'danger' }))) return;
 
     this.messagingService.removeParticipant(this.activeConversation.conversation_id, participant.user_id)
       .pipe(takeUntil(this.destroy$))

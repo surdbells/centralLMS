@@ -5,10 +5,11 @@
 // Renders all 11 question types for exam-taking
 // =============================================
 
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TuiIcon } from '@taiga-ui/core';
+import { HotToastService } from '@ngneat/hot-toast';
 
 interface QuestionOption { id: string; option_text: string; order_position: number; image_url?: string; }
 interface MatchPair { id: string; premise: string; response: string; }
@@ -310,6 +311,8 @@ export class QuestionRendererComponent implements OnChanges {
   @Input() savedAnswer?: QuestionAnswer;
   @Output() answerChange = new EventEmitter<QuestionAnswer>();
 
+  private readonly toast = inject(HotToastService);
+
   answer: QuestionAnswer = this.blankAnswer('');
   showHint = false;
 
@@ -463,7 +466,7 @@ export class QuestionRendererComponent implements OnChanges {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const maxMb = this.question?.max_file_size_mb || 10;
-    if (file.size > maxMb * 1024 * 1024) { alert(`File too large. Max ${maxMb}MB.`); return; }
+    if (file.size > maxMb * 1024 * 1024) { this.toast.error(`File too large. Max ${maxMb}MB.`); return; }
     this.uploadedFileName = file.name;
     this.uploadedFileSize = this.formatSize(file.size);
     this.uploading = true; this.uploadProgress = 0;

@@ -6,6 +6,7 @@ import { SavedReport } from '../../models/report.models';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-saved-reports',
@@ -50,11 +51,11 @@ import {I18nService} from '../../../i18n.service';
 })
 export class SavedReportsComponent implements OnInit {
   saved: SavedReport[] = [];
-  constructor(private svc: ReportService, private i18n: I18nService) {}
+  constructor(private svc: ReportService, private i18n: I18nService, private dialog: ConfirmDialogService) {}
   ngOnInit(): void { this.load(); }
   private load(): void { this.svc.getSavedReports().subscribe(d => this.saved = d); }
-  remove(s: SavedReport): void {
-    if (!confirm(this.i18n.t('reports.confirm_delete', { name: s.name }))) return;
+  async remove(s: SavedReport): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('reports.confirm_delete', { name: s.name }), { type: 'danger' }))) return;
     this.svc.deleteSavedReport(s.id).subscribe(() => this.load());
   }
 }

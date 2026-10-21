@@ -22,6 +22,7 @@ import { LiveTrainingService } from '../live-training.service';
 import type { EnrollmentRule } from '../live-training.interfaces';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 
@@ -36,6 +37,7 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly trainings$ = inject(LiveTrainingService);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
 
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
@@ -276,9 +278,9 @@ export class TrainingEnrollmentComponent implements OnInit, OnDestroy {
       });
   }
 
-  deleteRule(rule: EnrollmentRule): void {
+  async deleteRule(rule: EnrollmentRule): Promise<void> {
     if (!rule.rule_id) return;
-    if (!confirm(this.i18n.t('live.enroll.delete_rule_confirm'))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('live.enroll.delete_rule_confirm'), { type: 'danger' }))) return;
 
     this.trainings$.deleteEnrollmentRule(rule.rule_id)
       .pipe(takeUntil(this.destroy$))

@@ -15,6 +15,8 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-learning-path-detail',
@@ -44,7 +46,9 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private learningPathService: LearningPathService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private dialog: ConfirmDialogService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -83,16 +87,16 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
   }
 
   // Actions
-  publishPath(): void {
+  async publishPath(): Promise<void> {
     const p = this.path();
     if (!p) return;
 
     if (p.total_items === 0) {
-      alert(this.i18n.t('paths_admin.cannot_publish_content'));
+      this.toast.error(this.i18n.t('paths_admin.cannot_publish_content'));
       return;
     }
 
-    if (confirm(this.i18n.t('paths_admin.confirm_publish_path'))) {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_publish_path'), { type: 'warning' })) {
       this.publishing.set(true);
       this.learningPathService.publish(p.path_id).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => {
@@ -100,15 +104,15 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
           this.publishing.set(false);
         },
         error: (err) => {
-          alert(err.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
+          this.toast.error(err.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
           this.publishing.set(false);
         }
       });
     }
   }
 
-  archivePath(): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_archive_path'))) {
+  async archivePath(): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_archive_path'), { type: 'warning' })) {
       this.learningPathService.archive(this.pathId).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => this.loadData()
       });
@@ -131,8 +135,8 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  deletePath(): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_delete_path'))) {
+  async deletePath(): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_delete_path'), { type: 'danger' })) {
       this.learningPathService.delete(this.pathId).pipe(takeUntil(this.destroy$)).subscribe({
         next: () => this.router.navigate(['/admin/learning-paths'])
       });

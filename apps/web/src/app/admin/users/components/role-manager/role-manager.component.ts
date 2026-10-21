@@ -9,6 +9,8 @@ import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { I18nService } from '../../../../i18n.service';
+import { ConfirmDialogService } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 /*
  * The shapes this screen's template already reads.
@@ -181,6 +183,8 @@ export type PermissionGroup = Record<string, Permission[]>;
 export class RoleManagerComponent implements OnInit, OnDestroy {
   private readonly rolesService = inject(RolesService);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
+  private readonly toast = inject(HotToastService);
   private readonly destroy$ = new Subject<void>();
 
   roles: Role[] = [];
@@ -301,7 +305,7 @@ export class RoleManagerComponent implements OnInit, OnDestroy {
           this.savingPerms = false;
           // The refusals are worth reading: a built-in cannot be edited, and
           // nobody may grant a permission they do not hold themselves.
-          alert(e.violation('permissions') ?? e.message);
+          this.toast.error(e.violation('permissions') ?? e.message);
         },
       });
   }
@@ -361,10 +365,10 @@ export class RoleManagerComponent implements OnInit, OnDestroy {
     });
   }
 
-  deleteRole(): void {
+  async deleteRole(): Promise<void> {
     const role = this.selectedRole;
 
-    if (role === null || !confirm(this.i18n.t('admin.roles.confirm_delete', { name: role.role_name }))) {
+    if (role === null || !(await this.dialog.confirm(this.i18n.t('admin.roles.confirm_delete', { name: role.role_name }), { type: 'danger' }))) {
       return;
     }
 
@@ -378,7 +382,7 @@ export class RoleManagerComponent implements OnInit, OnDestroy {
         },
         // Refused while somebody still holds it, with the count. The old
         // screen warned "Users will lose this role" and then let it happen.
-        error: (e: ApiError) => alert(e.message),
+        error: (e: ApiError) => this.toast.error(e.message),
       });
   }
 

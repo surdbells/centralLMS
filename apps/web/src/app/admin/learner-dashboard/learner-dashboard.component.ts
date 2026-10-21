@@ -18,6 +18,7 @@ import { CertificatesService } from '../../services/certificates.service';
 import { ApiClient, ApiError, AuthImgDirective } from '../../core/api';
 import { MyCompetencyComponent } from '../../learner/my-competency/my-competency.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { HotToastService } from '@ngneat/hot-toast';
 
 /* The shapes this screen's template already reads. Each is filled in one
  * place — `adapt()` below — so the markup keeps the names it was written
@@ -212,6 +213,7 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   private readonly certificates = inject(CertificatesService);
   private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
+  private readonly toast = inject(HotToastService);
   private readonly destroy$ = new Subject<void>();
 
   isLoading = true;
@@ -558,7 +560,7 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
       .openForPrinting(certificateId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        error: (failure: ApiError) => alert(failure.message),
+        error: (failure: ApiError) => this.toast.error(failure.message),
       });
   }
 

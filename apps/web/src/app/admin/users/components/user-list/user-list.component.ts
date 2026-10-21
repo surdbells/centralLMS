@@ -18,6 +18,8 @@ import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { I18nService } from '../../../../i18n.service';
+import { ConfirmDialogService } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 /* The shapes this screen's template already reads. */
 
@@ -109,6 +111,8 @@ export class UserListComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(SettingsService);
   private readonly session = inject(SessionStore);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
+  private readonly toast = inject(HotToastService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly search$ = new Subject<string>();
@@ -173,7 +177,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         },
         error: (failure: ApiError) => {
           this.savingRegistration = false;
-          alert(failure.message);
+          this.toast.error(failure.message);
         },
       });
   }
@@ -379,12 +383,12 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   // --- one person ----------------------------------------------------------
 
-  quickAction(action: string, user: User): void {
-    if (action === 'delete' && !confirm(this.i18n.t('admin.users.confirm_delete_user', { name: user.full_name }))) {
+  async quickAction(action: string, user: User): Promise<void> {
+    if (action === 'delete' && !(await this.dialog.confirm(this.i18n.t('admin.users.confirm_delete_user', { name: user.full_name }), { type: 'danger' }))) {
       return;
     }
 
-    if (action === 'suspend' && !confirm(this.i18n.t('admin.users.confirm_suspend_user', { name: user.full_name }))) {
+    if (action === 'suspend' && !(await this.dialog.confirm(this.i18n.t('admin.users.confirm_suspend_user', { name: user.full_name }), { type: 'warning' }))) {
       return;
     }
 
@@ -428,23 +432,23 @@ export class UserListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.passwordFor = null;
-          alert(this.i18n.t('admin.users.password_set', { name: user.full_name }));
+          this.toast.success(this.i18n.t('admin.users.password_set', { name: user.full_name }));
         },
         error: (e: ApiError) => {
           this.passwordFor = null;
-          alert(e.violation('password') ?? e.message);
+          this.toast.error(e.violation('password') ?? e.message);
         },
       });
   }
 
   // --- several people ------------------------------------------------------
 
-  bulkAction(action: string, extra: { role_id?: string } = {}): void {
+  async bulkAction(action: string, extra: { role_id?: string } = {}): Promise<void> {
     if (this.selectedIds.length === 0) {
       return;
     }
 
-    if (action === 'delete' && !confirm(this.i18n.t('admin.users.confirm_delete_bulk', { count: this.selectedIds.length }))) {
+    if (action === 'delete' && !(await this.dialog.confirm(this.i18n.t('admin.users.confirm_delete_bulk', { count: this.selectedIds.length }), { type: 'danger' }))) {
       return;
     }
 
@@ -479,7 +483,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         this.loadStats();
 
         if (failed.length > 0) {
-          alert(this.i18n.t('admin.users.bulk_result', { done: results.length - failed.length, failed: failed.length, message: failed[0].message }));
+          this.toast.error(this.i18n.t('admin.users.bulk_result', { done: results.length - failed.length, failed: failed.length, message: failed[0].message }));
         }
       });
   }
@@ -491,7 +495,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         this.loadStats();
       },
       // The server's own words where it has them.
-      error: (e: ApiError) => alert(e.message || whenItFails),
+      error: (e: ApiError) => this.toast.error(e.message || whenItFails),
     });
   }
 

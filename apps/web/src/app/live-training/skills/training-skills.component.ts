@@ -15,6 +15,8 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-training-skills',
@@ -27,6 +29,8 @@ export class TrainingSkillsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
+  private readonly toast = inject(HotToastService);
 
   @Input() trainingId!: string;
 
@@ -149,21 +153,21 @@ export class TrainingSkillsComponent implements OnInit {
         this.adding = false;
       },
       error: (err) => {
-        alert(this.i18n.t('live.skills.add_failed') + (err.error?.message || err.message));
+        this.toast.error(this.i18n.t('live.skills.add_failed') + (err.error?.message || err.message));
         this.adding = false;
       }
     });
   }
 
-  removeSkill(skill: TrainingSkill): void {
-    if (!confirm(this.i18n.t('live.skills.remove_confirm', { name: skill.skill_name }))) return;
+  async removeSkill(skill: TrainingSkill): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('live.skills.remove_confirm', { name: skill.skill_name }), { type: 'danger' }))) return;
 
     this.liveTrainingService.removeSkill(this.trainingId, skill.skill_id).subscribe({
       next: () => {
         this.loadTrainingSkills();
       },
       error: (err) => {
-        alert(this.i18n.t('live.skills.remove_failed') + (err.error?.message || err.message));
+        this.toast.error(this.i18n.t('live.skills.remove_failed') + (err.error?.message || err.message));
       }
     });
   }

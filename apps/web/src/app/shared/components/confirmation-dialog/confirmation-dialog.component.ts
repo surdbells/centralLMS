@@ -1,230 +1,270 @@
-// components/confirmation-dialog/confirmation-dialog.component.ts
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy, inject } from '@angular/core';
+// shared/components/confirmation-dialog/confirmation-dialog.component.ts
+//
+// A premium, self-mounting confirmation / prompt dialog that replaces the
+// browser's native confirm() and prompt(). The service creates the component on
+// demand and appends it to <body>, so it works inside any layout without a host
+// in the template, and returns a Promise the caller can await.
+
+import {
+  ApplicationRef,
+  Component,
+  ElementRef,
+  EnvironmentInjector,
+  EventEmitter,
+  HostListener,
+  Injectable,
+  Input,
+  Output,
+  ViewChild,
+  createComponent,
+  inject,
+  type EmbeddedViewRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 
-export interface ConfirmDialogConfig {
-  title: string;
+export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';
+
+export interface ConfirmDialogData {
+  title?: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
-  type?: 'info' | 'warning' | 'danger' | 'success';
+  type?: ConfirmType;
   showCancel?: boolean;
-  inputRequired?: boolean;
+  /** 'confirm' resolves boolean; 'prompt' resolves the typed string or null. */
+  mode?: 'confirm' | 'prompt';
   inputLabel?: string;
   inputPlaceholder?: string;
+  inputValue?: string;
+  inputRequired?: boolean;
 }
 
 @Component({
   selector: 'app-confirmation-dialog',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, FormsModule, TranslatePipe],
   template: `
-    <div class="modal-backdrop" *ngIf="isOpen" (click)="onBackdropClick($event)">
-      <div class="modal-dialog" [class.modal-dialog-centered]="centered" role="dialog">
-        <div class="modal-content">
-          <div class="modal-header" [ngClass]="headerClass">
-            <div class="modal-icon" *ngIf="showIcon">
-              <i class="bi" [ngClass]="iconClass"></i>
-            </div>
-            <h5 class="modal-title">{{ config.title }}</h5>
-            <button type="button" class="btn-close" (click)="close()" *ngIf="showCloseButton"></button>
-          </div>
-          
-          <div class="modal-body">
-            <p [innerHTML]="config.message"></p>
-            
-            <div class="input-group mt-3" *ngIf="config.inputRequired">
-              <label class="form-label w-100" *ngIf="config.inputLabel">{{ config.inputLabel }}</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                [placeholder]="config.inputPlaceholder || ''"
-                [(ngModel)]="inputValue"
-                (keyup.enter)="confirm()">
-            </div>
-          </div>
-          
-          <div class="modal-footer">
-            <button 
-              type="button" 
-              class="btn btn-secondary" 
-              (click)="cancel()"
-              *ngIf="config.showCancel !== false">
-              {{ config.cancelText || ('common.cancel' | translate) }}
-            </button>
-            <button 
-              type="button" 
-              class="btn" 
-              [ngClass]="confirmButtonClass"
-              (click)="confirm()"
-              [disabled]="config.inputRequired && !inputValue?.trim()">
-              {{ config.confirmText || ('common.confirm' | translate) }}
-            </button>
-          </div>
+    <div class="cd-backdrop" (mousedown)="onBackdrop($event)">
+      <div class="cd-card" [class.shake]="shaking" role="dialog" aria-modal="true">
+        <div class="cd-icon" [ngClass]="'t-' + type">
+          <i class="bi" [ngClass]="iconClass"></i>
+        </div>
+        <h3 class="cd-title">{{ data.title }}</h3>
+        <p class="cd-message" [innerHTML]="data.message"></p>
+
+        <div class="cd-field" *ngIf="data.mode === 'prompt'">
+          <label *ngIf="data.inputLabel" class="cd-label">{{ data.inputLabel }}</label>
+          <input #promptInput type="text" class="cd-input" [(ngModel)]="inputValue"
+                 [placeholder]="data.inputPlaceholder || ''" (keyup.enter)="onConfirm()" />
+        </div>
+
+        <div class="cd-actions">
+          <button type="button" class="cd-btn cd-btn-ghost" *ngIf="data.showCancel !== false"
+                  (click)="onCancel()">
+            {{ data.cancelText || ('common.cancel' | translate) }}
+          </button>
+          <button #confirmBtn type="button" class="cd-btn" [ngClass]="'cd-btn-' + type"
+                  (click)="onConfirm()">
+            {{ data.confirmText || ('common.confirm' | translate) }}
+          </button>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1050;
-      animation: fadeIn 0.15s ease-out;
+    :host { position: fixed; inset: 0; z-index: 2000; }
+    .cd-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: grid; place-items: center;
+      padding: 1rem;
+      animation: cd-fade 0.16s ease-out;
     }
-    .modal-dialog {
-      max-width: 500px;
-      width: 90%;
-      animation: slideIn 0.2s ease-out;
+    .cd-card {
+      width: 100%; max-width: 420px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 1.9rem 1.75rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
+      animation: cd-pop 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .modal-content {
-      border: none;
-      border-radius: 0.5rem;
-      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-    .modal-header {
-      border-bottom: none;
-      padding: 1.5rem 1.5rem 0.5rem;
-    }
-    .modal-header.header-danger { background: #fff5f5; }
-    .modal-header.header-warning { background: #fffbeb; }
-    .modal-header.header-success { background: #f0fdf4; }
-    .modal-header.header-info { background: #eff6ff; }
-    .modal-icon {
-      width: 48px;
-      height: 48px;
+    .cd-card.shake { animation: cd-shake 0.3s ease; }
+    .cd-icon {
+      width: 64px; height: 64px; margin: 0 auto 1rem;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 1rem;
-      font-size: 1.5rem;
+      display: grid; place-items: center;
+      font-size: 1.8rem;
     }
-    .modal-icon.icon-danger { background: #fee2e2; color: #dc3545; }
-    .modal-icon.icon-warning { background: #fef3c7; color: #f59e0b; }
-    .modal-icon.icon-success { background: #d1fae5; color: #10b981; }
-    .modal-icon.icon-info { background: #dbeafe; color: #3b82f6; }
-    .modal-title { margin: 0; flex-grow: 1; }
-    .modal-body { padding: 1rem 1.5rem; color: #6b7280; }
-    .modal-footer { border-top: none; padding: 0.5rem 1.5rem 1.5rem; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-  `]
+    .cd-icon.t-danger  { background: #fee2e2; color: #dc2626; box-shadow: 0 0 0 8px rgba(220,38,38,0.08); }
+    .cd-icon.t-warning { background: #fef3c7; color: #d97706; box-shadow: 0 0 0 8px rgba(217,119,6,0.08); }
+    .cd-icon.t-info    { background: #dbeafe; color: #2563eb; box-shadow: 0 0 0 8px rgba(37,99,235,0.08); }
+    .cd-icon.t-success { background: #dcfce7; color: #16a34a; box-shadow: 0 0 0 8px rgba(22,163,74,0.08); }
+    .cd-title { margin: 0 0 0.4rem; font-size: 1.2rem; font-weight: 700; color: #0f172a; }
+    .cd-message { margin: 0; color: #64748b; font-size: 0.92rem; line-height: 1.55; }
+    .cd-field { margin-top: 1rem; text-align: left; }
+    .cd-label { display: block; font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; }
+    .cd-input {
+      width: 100%; padding: 0.6rem 0.75rem;
+      border: 1px solid #d7dce1; border-radius: 10px; font-size: 0.92rem;
+      outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cd-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .cd-actions { display: flex; gap: 0.6rem; justify-content: center; margin-top: 1.5rem; }
+    .cd-btn {
+      appearance: none; border: 0; cursor: pointer;
+      padding: 0.6rem 1.25rem; border-radius: 10px;
+      font-weight: 600; font-size: 0.9rem; min-width: 110px;
+      transition: transform 0.08s ease, filter 0.15s ease, background 0.15s ease;
+    }
+    .cd-btn:active { transform: translateY(1px); }
+    .cd-btn-ghost { background: #f1f5f9; color: #475569; }
+    .cd-btn-ghost:hover { background: #e2e8f0; }
+    .cd-btn-danger  { background: #dc2626; color: #fff; }
+    .cd-btn-danger:hover  { filter: brightness(1.07); }
+    .cd-btn-warning { background: #d97706; color: #fff; }
+    .cd-btn-warning:hover { filter: brightness(1.07); }
+    .cd-btn-info    { background: var(--brand-primary, #2563eb); color: #fff; }
+    .cd-btn-info:hover    { filter: brightness(1.07); }
+    .cd-btn-success { background: #16a34a; color: #fff; }
+    .cd-btn-success:hover { filter: brightness(1.07); }
+    @keyframes cd-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes cd-pop { from { transform: scale(0.94) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+    @keyframes cd-shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+    @media (prefers-color-scheme: dark) {
+      .cd-card { background: #1e293b; }
+      .cd-title { color: #f1f5f9; }
+      .cd-message { color: #94a3b8; }
+      .cd-input { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+      .cd-btn-ghost { background: #334155; color: #cbd5e1; }
+    }
+  `],
 })
 export class ConfirmationDialogComponent {
-  @Input() config: ConfirmDialogConfig = { title: '', message: '' };
-  @Input() isOpen: boolean = false;
-  @Input() centered: boolean = true;
-  @Input() showIcon: boolean = true;
-  @Input() showCloseButton: boolean = true;
+  @Input() data: ConfirmDialogData = { message: '' };
+  @Output() result = new EventEmitter<boolean | string | null>();
 
-  @Output() confirmed = new EventEmitter<string | boolean>();
-  @Output() cancelled = new EventEmitter<void>();
-  @Output() closed = new EventEmitter<void>();
+  @ViewChild('confirmBtn') confirmBtn?: ElementRef<HTMLButtonElement>;
+  @ViewChild('promptInput') promptInput?: ElementRef<HTMLInputElement>;
 
-  inputValue: string = '';
+  inputValue = '';
+  shaking = false;
 
-  get type(): string {
-    return this.config.type || 'info';
-  }
-
-  get headerClass(): string {
-    return `header-${this.type}`;
+  get type(): ConfirmType {
+    return this.data.type ?? 'info';
   }
 
   get iconClass(): string {
-    const icons: Record<string, string> = {
-      'danger': 'bi-exclamation-triangle-fill icon-danger',
-      'warning': 'bi-exclamation-circle-fill icon-warning',
-      'success': 'bi-check-circle-fill icon-success',
-      'info': 'bi-info-circle-fill icon-info'
-    };
-    return icons[this.type] || icons['info'];
+    return {
+      danger: 'bi-exclamation-triangle-fill',
+      warning: 'bi-exclamation-circle-fill',
+      info: 'bi-question-circle-fill',
+      success: 'bi-check-circle-fill',
+    }[this.type];
   }
 
-  get confirmButtonClass(): string {
-    const classes: Record<string, string> = {
-      'danger': 'btn-danger',
-      'warning': 'btn-warning',
-      'success': 'btn-success',
-      'info': 'btn-primary'
-    };
-    return classes[this.type] || 'btn-primary';
+  ngOnInit(): void {
+    this.inputValue = this.data.inputValue ?? '';
   }
 
-  confirm(): void {
-    if (this.config.inputRequired && !this.inputValue?.trim()) return;
-    this.confirmed.emit(this.config.inputRequired ? this.inputValue : true);
-    this.reset();
+  ngAfterViewInit(): void {
+    // Land focus where the person acts, so Enter/Esc work immediately.
+    setTimeout(() => (this.promptInput?.nativeElement ?? this.confirmBtn?.nativeElement)?.focus(), 0);
   }
 
-  cancel(): void {
-    this.cancelled.emit();
-    this.reset();
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.onCancel();
   }
 
-  close(): void {
-    this.closed.emit();
-    this.reset();
-  }
-
-  onBackdropClick(event: MouseEvent): void {
-    if ((event.target as HTMLElement).classList.contains('modal-backdrop')) {
-      this.close();
+  onConfirm(): void {
+    if (this.data.mode === 'prompt') {
+      const value = this.inputValue.trim();
+      if (this.data.inputRequired && value === '') {
+        this.shaking = true;
+        setTimeout(() => (this.shaking = false), 320);
+        return;
+      }
+      this.result.emit(value === '' ? null : value);
+      return;
     }
+    this.result.emit(true);
   }
 
-  private reset(): void {
-    this.inputValue = '';
+  onCancel(): void {
+    this.result.emit(this.data.mode === 'prompt' ? null : false);
+  }
+
+  onBackdrop(event: MouseEvent): void {
+    if ((event.target as HTMLElement).classList.contains('cd-backdrop')) {
+      this.onCancel();
+    }
   }
 }
 
-
-// components/confirmation-dialog/confirmation-dialog.service.ts
-import { Injectable } from '@angular/core';
-import { Subject, Observable } from 'rxjs';
-
+/**
+ * Opens the dialog and awaits the answer. Drop-in for native confirm()/prompt():
+ *
+ *   if (!(await this.dialog.confirm('Delete this?'))) return;
+ *   const name = await this.dialog.prompt('New name');
+ */
 @Injectable({ providedIn: 'root' })
-export class ConfirmationDialogService {
-  private confirmSubject = new Subject<{ config: ConfirmDialogConfig; resolve: (value: any) => void }>();
-  
-  confirm$ = this.confirmSubject.asObservable();
+export class ConfirmDialogService {
+  private readonly appRef = inject(ApplicationRef);
+  private readonly envInjector = inject(EnvironmentInjector);
+  private readonly i18n = inject(I18nService);
 
-  confirm(config: ConfirmDialogConfig): Promise<string | boolean> {
+  /** Resolves true when confirmed, false when cancelled. */
+  confirm(message: string, opts: Partial<ConfirmDialogData> = {}): Promise<boolean> {
+    return this.open({
+      title: this.i18n.t('common.please_confirm'),
+      type: 'info',
+      ...opts,
+      message,
+      mode: 'confirm',
+    }) as Promise<boolean>;
+  }
+
+  danger(message: string, opts: Partial<ConfirmDialogData> = {}): Promise<boolean> {
+    return this.confirm(message, { type: 'danger', confirmText: this.i18n.t('common.delete'), ...opts });
+  }
+
+  warning(message: string, opts: Partial<ConfirmDialogData> = {}): Promise<boolean> {
+    return this.confirm(message, { type: 'warning', ...opts });
+  }
+
+  /** Resolves the typed value, or null if cancelled / left empty. */
+  prompt(message: string, opts: Partial<ConfirmDialogData> = {}): Promise<string | null> {
+    return this.open({
+      title: this.i18n.t('common.please_confirm'),
+      type: 'info',
+      ...opts,
+      message,
+      mode: 'prompt',
+    }) as Promise<string | null>;
+  }
+
+  private open(data: ConfirmDialogData): Promise<boolean | string | null> {
     return new Promise((resolve) => {
-      this.confirmSubject.next({ config, resolve });
+      const ref = createComponent(ConfirmationDialogComponent, {
+        environmentInjector: this.envInjector,
+      });
+      ref.instance.data = data;
+
+      const done = (value: boolean | string | null): void => {
+        resolve(value);
+        this.appRef.detachView(ref.hostView);
+        ref.destroy();
+      };
+      ref.instance.result.subscribe(done);
+
+      this.appRef.attachView(ref.hostView);
+      document.body.appendChild((ref.hostView as EmbeddedViewRef<unknown>).rootNodes[0] as Node);
     });
-  }
-
-  danger(title: string, message: string, confirmText: string = 'Delete'): Promise<boolean> {
-    return this.confirm({ title, message, confirmText, type: 'danger' }) as Promise<boolean>;
-  }
-
-  warning(title: string, message: string, confirmText: string = 'Continue'): Promise<boolean> {
-    return this.confirm({ title, message, confirmText, type: 'warning' }) as Promise<boolean>;
-  }
-
-  info(title: string, message: string, confirmText: string = 'OK'): Promise<boolean> {
-    return this.confirm({ title, message, confirmText, type: 'info', showCancel: false }) as Promise<boolean>;
-  }
-
-  prompt(title: string, message: string, inputLabel: string, inputPlaceholder?: string): Promise<string> {
-    return this.confirm({ 
-      title, message, 
-      inputRequired: true, 
-      inputLabel, 
-      inputPlaceholder,
-      type: 'info' 
-    }) as Promise<string>;
   }
 }

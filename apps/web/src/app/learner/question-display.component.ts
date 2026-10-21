@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { HotToastService } from '@ngneat/hot-toast';
 import { Question, QuestionOption, AnswerData, AttemptAnswer, getQuestionTypeLabel } from '../../../models/assessments.models';
 
 @Component({
@@ -823,7 +824,7 @@ export class QuestionDisplayComponent implements OnChanges {
   orderedItems: QuestionOption[] = [];
   showHint = false;
 
-  constructor(private sanitizer: DomSanitizer) {}
+  constructor(private sanitizer: DomSanitizer, private toast: HotToastService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['question']) {
@@ -1049,7 +1050,7 @@ export class QuestionDisplayComponent implements OnChanges {
     // Validate file size
     const maxSize = (this.question.max_file_size_mb || 10) * 1024 * 1024;
     if (file.size > maxSize) {
-      alert(`File too large. Maximum size is ${this.question.max_file_size_mb}MB.`);
+      this.toast.error(`File too large. Maximum size is ${this.question.max_file_size_mb}MB.`);
       return;
     }
 
@@ -1057,7 +1058,7 @@ export class QuestionDisplayComponent implements OnChanges {
     const ext = file.name.split('.').pop()?.toLowerCase();
     const allowed = this.question.allowed_file_types.split(',').map(t => t.trim().toLowerCase());
     if (ext && !allowed.includes(ext)) {
-      alert(`Invalid file type. Allowed types: ${this.question.allowed_file_types}`);
+      this.toast.error(`Invalid file type. Allowed types: ${this.question.allowed_file_types}`);
       return;
     }
 

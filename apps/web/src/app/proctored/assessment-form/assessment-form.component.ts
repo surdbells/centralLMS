@@ -12,6 +12,7 @@ import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { ApiClient, Endpoints } from '../../core/api';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import {
   AssessmentAdminService,
   type AssessmentDetail,
@@ -752,6 +753,7 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   private apiClient = inject(ApiClient);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private dialog = inject(ConfirmDialogService);
   private destroy$ = new Subject<void>();
 
   isEdit = false;
@@ -1100,9 +1102,9 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$)).subscribe({ next: () => { s.is_editing = false; } });
   }
 
-  deleteSection(s: Section): void {
+  async deleteSection(s: Section): Promise<void> {
     if (!this.form.assessment_id || !s.section_id) return;
-    if (s.questions.length > 0 && !confirm('Delete section with ' + s.questions.length + ' questions?')) return;
+    if (s.questions.length > 0 && !(await this.dialog.confirm('Delete section with ' + s.questions.length + ' questions?', { type: 'danger' }))) return;
     this.api.deleteSection(this.form.assessment_id, s.section_id)
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: () => { this.sections = this.sections.filter(x => x.section_id !== s.section_id); }

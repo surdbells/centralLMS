@@ -15,6 +15,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 interface InstructorSession extends TrainingSession {
   training_title?: string;
@@ -33,6 +34,7 @@ interface InstructorSession extends TrainingSession {
 export class InstructorDashboardComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
 
   private destroy$ = new Subject<void>();
 
@@ -212,9 +214,9 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
-  lockAttendance(): void {
+  async lockAttendance(): Promise<void> {
     if (!this.selectedSessionForAttendance) return;
-    if (!confirm(this.i18n.t('live.instructor.lock_confirm'))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('live.instructor.lock_confirm'), { type: 'warning' }))) return;
 
     this.liveTrainingService.lockAttendance(this.selectedSessionForAttendance.session_id)
       .pipe(takeUntil(this.destroy$))

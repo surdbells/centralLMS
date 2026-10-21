@@ -21,6 +21,7 @@ import {RouterLink} from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { ApiError } from '../../core/api';
 
 @Component({
@@ -35,6 +36,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   private readonly i18n = inject(I18nService);
   private readonly videoIntegrations = inject(VideoIntegrationService);
   private readonly toast = inject(HotToastService);
+  private readonly dialog = inject(ConfirmDialogService);
 
   private destroy$ = new Subject<void>();
 
@@ -566,8 +568,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     }
   }
 
-  cancelEnrollment(enrollment: TrainingEnrollment): void {
-    if (!confirm(this.i18n.t('live.admin.cancel_enroll_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }))) return;
+  async cancelEnrollment(enrollment: TrainingEnrollment): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('live.admin.cancel_enroll_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }), { type: 'danger' }))) return;
 
     // Withdraw is by learner user id against the training's roster, not by
     // enrolment id — the previous call sent the wrong id to a training-less URL.
@@ -620,9 +622,9 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  lockSessionAttendance(): void {
+  async lockSessionAttendance(): Promise<void> {
     if (!this.selectedSession) return;
-    if (!confirm(this.i18n.t('live.admin.lock_confirm'))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('live.admin.lock_confirm'), { type: 'warning' }))) return;
 
     this.liveTrainingService.lockAttendance(this.selectedSession.session_id, this.selectedSession.training_id)
       .pipe(takeUntil(this.destroy$))
@@ -639,8 +641,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // CERTIFICATION
   // ==========================================
 
-  issueCertificate(enrollment: TrainingEnrollment): void {
-    if (!confirm(this.i18n.t('live.admin.issue_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` }))) return;
+  async issueCertificate(enrollment: TrainingEnrollment): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('live.admin.issue_confirm', { name: `${enrollment.first_name} ${enrollment.last_name}` })))) return;
 
     this.liveTrainingService.issueCertificate(enrollment.enrollment_id, this.selectedTraining?.training_id)
       .pipe(takeUntil(this.destroy$))
@@ -891,9 +893,9 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  removeInstructor(instructor: SessionInstructor): void {
+  async removeInstructor(instructor: SessionInstructor): Promise<void> {
     if (!this.selectedSession) return;
-    if (!confirm(this.i18n.t('live.admin.remove_instructor_confirm', { name: `${instructor.first_name} ${instructor.last_name}` }))) return;
+    if (!(await this.dialog.confirm(this.i18n.t('live.admin.remove_instructor_confirm', { name: `${instructor.first_name} ${instructor.last_name}` }), { type: 'danger' }))) return;
 
     this.liveTrainingService.removeInstructor(
       this.selectedSession.session_id,
@@ -1085,8 +1087,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
-  disconnectPlatform(platform: string): void {
-    if (!confirm(this.i18n.t('live.integrations.disconnect_confirm', { platform: this.platformDisplayName(platform) }))) return;
+  async disconnectPlatform(platform: string): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('live.integrations.disconnect_confirm', { platform: this.platformDisplayName(platform) }), { type: 'warning' }))) return;
 
     this.videoIntegrations.disconnect(platform)
       .pipe(takeUntil(this.destroy$))

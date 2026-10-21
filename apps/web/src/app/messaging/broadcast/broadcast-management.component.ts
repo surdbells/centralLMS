@@ -9,6 +9,7 @@ import { MessagingService, Broadcast } from '../messaging.service';
 import { TopComponent } from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 // Interface for form target criteria (non-nullable arrays)
 interface FormTargetCriteria {
@@ -642,7 +643,7 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
     { id: 3, title: 'Technical Skills' }
   ];
 
-  constructor(private messagingService: MessagingService, private i18n: I18nService) {}
+  constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService) {}
 
   ngOnInit(): void {
     this.loadBroadcasts();
@@ -863,8 +864,8 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
     };
   }
 
-  sendBroadcast(broadcast: Broadcast): void {
-    if (!confirm(this.i18n.t('messaging.confirm_send_broadcast'))) return;
+  async sendBroadcast(broadcast: Broadcast): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_send_broadcast'), { type: 'warning' }))) return;
 
     this.messagingService.sendBroadcast(broadcast.broadcast_id)
       .pipe(takeUntil(this.destroy$))
@@ -873,8 +874,8 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
       });
   }
 
-  deleteBroadcast(broadcast: Broadcast): void {
-    if (!confirm(this.i18n.t('messaging.confirm_delete_broadcast'))) return;
+  async deleteBroadcast(broadcast: Broadcast): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_delete_broadcast'), { type: 'danger' }))) return;
     // TODO: Implement delete
     this.loadBroadcasts();
   }

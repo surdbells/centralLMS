@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, tap } from 'rxjs';
+import { HotToastService } from '@ngneat/hot-toast';
 import { ApiClient, Endpoints, type Paged } from '../core/api';
 
 // ---------------------------------------------------------------------------
@@ -104,6 +105,7 @@ export interface CertificateVerification {
 @Injectable({ providedIn: 'root' })
 export class CertificatesService {
   private readonly api = inject(ApiClient);
+  private readonly toast = inject(HotToastService);
 
   list(filters: CertificateFilters = {}): Observable<Paged<Certificate>> {
     return this.api.get<Paged<Certificate>>(Endpoints.certificates.list, { ...filters });
@@ -153,7 +155,7 @@ export class CertificatesService {
       tap((rendered) => {
         if (window_ === null) {
           // Blocked. Saying so beats a button that looks broken.
-          alert('Allow pop-ups for this site to open your certificate.');
+          this.toast.error('Allow pop-ups for this site to open your certificate.');
 
           return;
         }

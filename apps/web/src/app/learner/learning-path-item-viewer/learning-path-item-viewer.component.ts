@@ -10,6 +10,7 @@ import {
   ITEM_TYPES
 } from '../../interfaces/learning-path.interfaces';
 import { TopComponent } from '../../partials/top/top.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-learning-path-item-viewer',
@@ -333,7 +334,8 @@ export class LearningPathItemViewerComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private learningPathService: LearningPathService
+    private learningPathService: LearningPathService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -419,7 +421,7 @@ export class LearningPathItemViewerComponent implements OnInit, OnDestroy {
         this.loadData();
 
         if (result.path_completed) {
-          alert('Congratulations! You have completed the learning path!');
+          this.toast.success('Congratulations! You have completed the learning path!');
           this.router.navigate(['/learner/paths', this.pathId]);
         }
       },

@@ -13,6 +13,7 @@ import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { AssessmentsService } from '../../services/assessments.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 // ==========================================
 // INTERFACES
@@ -691,6 +692,7 @@ interface FilterState {
 export class QuestionListComponent implements OnInit, OnDestroy {
   private assessments = inject(AssessmentsService);
   private router = inject(Router);
+  private dialog = inject(ConfirmDialogService);
   private destroy$ = new Subject<void>();
   Math = Math;
 
@@ -1095,9 +1097,9 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     }
   }
 
-  deleteBank(bank: QuestionBank): void {
+  async deleteBank(bank: QuestionBank): Promise<void> {
     if (bank.question_count > 0) { this.showToast('Cannot delete bank with questions', 'error'); return; }
-    if (!confirm(`Delete bank "${bank.name}"?`)) return;
+    if (!(await this.dialog.confirm(`Delete bank "${bank.name}"?`, { type: 'danger' }))) return;
     this.assessments.deleteBank(bank.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => { this.showToast('Bank deleted', 'success'); this.loadBanks(); },
       error: () => this.showToast('Failed to delete bank', 'error'),

@@ -14,6 +14,8 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-learning-paths-list',
@@ -87,7 +89,9 @@ export class LearningPathsListComponent implements OnInit {
 
   constructor(
     private learningPathService: LearningPathService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private dialog: ConfirmDialogService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -208,29 +212,29 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   // Actions
-  publishPath(path: LearningPath): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_publish', { title: path.title }))) {
+  async publishPath(path: LearningPath): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_publish', { title: path.title }), { type: 'warning' })) {
       this.learningPathService.publish(path.path_id).subscribe({
         next: () => {
           this.loadPaths();
         },
         error: (error) => {
-          alert(error.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
+          this.toast.error(error.error?.errors?.join('\n') || this.i18n.t('paths_admin.publish_failed'));
         }
       });
     }
   }
 
-  archivePath(path: LearningPath): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_archive', { title: path.title }))) {
+  async archivePath(path: LearningPath): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_archive', { title: path.title }), { type: 'warning' })) {
       this.learningPathService.archive(path.path_id).subscribe({
         next: () => this.loadPaths()
       });
     }
   }
 
-  deletePath(path: LearningPath): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_delete', { title: path.title }))) {
+  async deletePath(path: LearningPath): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_delete', { title: path.title }), { type: 'danger' })) {
       this.learningPathService.delete(path.path_id).subscribe({
         next: () => this.loadPaths()
       });
@@ -247,8 +251,8 @@ export class LearningPathsListComponent implements OnInit {
   }
 
   // Bulk actions
-  bulkPublish(): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_bulk_publish', { count: this.selectedIds().size }))) {
+  async bulkPublish(): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_bulk_publish', { count: this.selectedIds().size }), { type: 'warning' })) {
       const ids = Array.from(this.selectedIds());
       // Sequential publish
       ids.forEach(id => {
@@ -258,8 +262,8 @@ export class LearningPathsListComponent implements OnInit {
     }
   }
 
-  bulkArchive(): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_bulk_archive', { count: this.selectedIds().size }))) {
+  async bulkArchive(): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_bulk_archive', { count: this.selectedIds().size }), { type: 'warning' })) {
       const ids = Array.from(this.selectedIds());
       ids.forEach(id => {
         this.learningPathService.archive(id).subscribe();
@@ -268,8 +272,8 @@ export class LearningPathsListComponent implements OnInit {
     }
   }
 
-  bulkDelete(): void {
-    if (confirm(this.i18n.t('paths_admin.confirm_bulk_delete', { count: this.selectedIds().size }))) {
+  async bulkDelete(): Promise<void> {
+    if (await this.dialog.confirm(this.i18n.t('paths_admin.confirm_bulk_delete', { count: this.selectedIds().size }), { type: 'danger' })) {
       const ids = Array.from(this.selectedIds());
       ids.forEach(id => {
         this.learningPathService.delete(id).subscribe();

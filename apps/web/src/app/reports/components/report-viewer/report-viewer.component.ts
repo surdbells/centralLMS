@@ -14,6 +14,7 @@ import { ReportExportComponent } from '../report-export/report-export.component'
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
+import { HotToastService } from '@ngneat/hot-toast';
 
 // ── Drilldown column definitions ──
 // Maps column names → the status filter to send to drilldown_learner_list
@@ -351,7 +352,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     private router: Router,
     private reportService: ReportService,
     private dp: DecimalPipe,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private toast: HotToastService
   ) {}
 
   ngOnInit(): void {
@@ -401,8 +403,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     const name = prompt(this.i18n.t('reports.save_prompt'), this.report?.report_name || this.reportKey);
     if (!name) return;
     this.reportService.saveReport(name, this.reportKey, this.currentFilters).subscribe({
-      next: () => alert(this.i18n.t('reports.save_success')),
-      error: () => alert(this.i18n.t('reports.save_failed'))
+      next: () => this.toast.success(this.i18n.t('reports.save_success')),
+      error: () => this.toast.error(this.i18n.t('reports.save_failed'))
     });
   }
 

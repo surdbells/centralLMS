@@ -10,6 +10,8 @@ import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { I18nService } from '../../../../i18n.service';
+import { ConfirmDialogService } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 type UserStatus = 'active' | 'invited' | 'suspended' | 'locked';
 
@@ -242,6 +244,8 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   private readonly auditService = inject(AuditService);
   private readonly route = inject(ActivatedRoute);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
+  private readonly toast = inject(HotToastService);
   private readonly destroy$ = new Subject<void>();
 
   user: UserDetail | null = null;
@@ -395,10 +399,10 @@ export class UserDetailComponent implements OnInit, OnDestroy {
     this.save([...user.roles.map((r) => r.role_id), roleId]);
   }
 
-  removeRole(roleId: string): void {
+  async removeRole(roleId: string): Promise<void> {
     const user = this.user;
 
-    if (user === null || !confirm(this.i18n.t('admin.user_detail.confirm_remove_role'))) {
+    if (user === null || !(await this.dialog.confirm(this.i18n.t('admin.user_detail.confirm_remove_role'), { type: 'danger' }))) {
       return;
     }
 
@@ -411,7 +415,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (user) => this.apply(user),
-        error: (e: ApiError) => alert(e.violation('roleIds') ?? e.message),
+        error: (e: ApiError) => this.toast.error(e.violation('roleIds') ?? e.message),
       });
   }
 
@@ -427,7 +431,7 @@ export class UserDetailComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (updated) => this.apply(updated),
-        error: (e: ApiError) => alert(e.message),
+        error: (e: ApiError) => this.toast.error(e.message),
       });
   }
 

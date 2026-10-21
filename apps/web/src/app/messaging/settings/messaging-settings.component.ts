@@ -9,6 +9,8 @@ import { MessagingService, MessagingSettings, BlockedUser } from '../messaging.s
 import { TopComponent } from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 @Component({
   selector: 'app-messaging-settings',
@@ -349,7 +351,7 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   saved = false;
   private saveTimeout: any;
 
-  constructor(private messagingService: MessagingService, private i18n: I18nService) {}
+  constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService, private toast: HotToastService) {}
 
   ngOnInit(): void {
     this.loadSettings();
@@ -404,8 +406,8 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
-  unblockUser(user: BlockedUser): void {
-    if (!confirm(this.i18n.t('messaging.confirm_unblock', { name: `${user.first_name} ${user.last_name}` }))) return;
+  async unblockUser(user: BlockedUser): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_unblock', { name: `${user.first_name} ${user.last_name}` }), { type: 'warning' }))) return;
 
     this.messagingService.unblockUser(user.blocked_user_id)
       .pipe(takeUntil(this.destroy$))
@@ -415,18 +417,18 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   }
 
   exportData(): void {
-    alert(this.i18n.t('messaging.export_alert'));
+    this.toast.success(this.i18n.t('messaging.export_alert'));
   }
 
-  clearAllDrafts(): void {
-    if (!confirm(this.i18n.t('messaging.confirm_clear_drafts'))) return;
-    alert(this.i18n.t('messaging.drafts_cleared'));
+  async clearAllDrafts(): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_clear_drafts'), { type: 'danger' }))) return;
+    this.toast.success(this.i18n.t('messaging.drafts_cleared'));
   }
 
-  markAllAsRead(): void {
-    if (!confirm(this.i18n.t('messaging.confirm_mark_all'))) return;
+  async markAllAsRead(): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_mark_all')))) return;
     // TODO: Implement bulk mark as read
-    alert(this.i18n.t('messaging.marked_all_read'));
+    this.toast.success(this.i18n.t('messaging.marked_all_read'));
   }
 
   getInitials(firstName: string, lastName: string): string {

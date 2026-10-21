@@ -11,6 +11,8 @@ import { RolesService } from '../services/roles.service';
 import { SessionStore } from '../core/auth/session.store';
 import { ApiError, AuthImgDirective } from '../core/api';
 import { TopComponent } from '../partials/top/top.component';
+import { HotToastService } from '@ngneat/hot-toast';
+import { ConfirmDialogService } from '../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 /* The shapes this screen's template already reads. */
 
@@ -429,6 +431,8 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   private readonly rolesService = inject(RolesService);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
+  private readonly toast = inject(HotToastService);
+  private readonly dialog = inject(ConfirmDialogService);
   private readonly destroy$ = new Subject<void>();
 
   @ViewChild('avatarInput') avatarInputRef?: ElementRef<HTMLInputElement>;
@@ -645,7 +649,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     // Checked here as a courtesy; the server checks the bytes it actually
     // received, which is the number that counts.
     if (file.size > 2 * 1024 * 1024) {
-      alert('Image must be under 2MB');
+      this.toast.error('Image must be under 2MB');
 
       return;
     }
@@ -683,13 +687,13 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         },
         error: (e: ApiError) => {
           this.uploadingAvatar = false;
-          alert(e.violation('file') ?? e.message);
+          this.toast.error(e.violation('file') ?? e.message);
         },
       });
   }
 
-  removeAvatar(): void {
-    if (!confirm('Remove your profile picture?')) {
+  async removeAvatar(): Promise<void> {
+    if (!(await this.dialog.confirm('Remove your profile picture?', { type: 'danger' }))) {
       return;
     }
 
@@ -704,7 +708,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
 
           this.cancelAvatarUpload();
         },
-        error: (e: ApiError) => alert(e.message),
+        error: (e: ApiError) => this.toast.error(e.message),
       });
   }
 
@@ -819,7 +823,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         },
         error: (e: ApiError) => {
           this.savingConsent = false;
-          alert(e.message);
+          this.toast.error(e.message);
         },
       });
   }
@@ -867,8 +871,12 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   }
 
   /** Ends one session. Not something the old screen could do. */
-  endSession(record: LoginRecord): void {
-    if (!record.active || !confirm('Sign out of this session?')) {
+  async endSession(record: LoginRecord): Promise<void> {
+    if (!record.active) {
+      return;
+    }
+
+    if (!(await this.dialog.confirm('Sign out of this session?', { type: 'warning' }))) {
       return;
     }
 
@@ -877,7 +885,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => this.loadHistory(),
-        error: (e: ApiError) => alert(e.message),
+        error: (e: ApiError) => this.toast.error(e.message),
       });
   }
 

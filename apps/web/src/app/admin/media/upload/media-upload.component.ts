@@ -14,6 +14,7 @@ import {
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { HotToastService } from '@ngneat/hot-toast';
 
 interface QueuedFile {
   id: string;
@@ -38,6 +39,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   private readonly i18n = inject(I18nService);
+  private readonly toast = inject(HotToastService);
 
   // No credentials here any more: the auth interceptor attaches the bearer
   // token. This component used to be handed `token`, `userId` and `tenantId`
@@ -143,7 +145,7 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
   handleFiles(files: File[]): void {
     // Check max files limit
     if (this.fileQueue.length + files.length > this.maxFiles) {
-      alert(this.i18n.t('admin.media_upload.max_files', { max: this.maxFiles }));
+      this.toast.error(this.i18n.t('admin.media_upload.max_files', { max: this.maxFiles }));
       return;
     }
 

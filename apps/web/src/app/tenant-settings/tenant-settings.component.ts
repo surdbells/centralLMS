@@ -8,6 +8,7 @@ import { AdmintopComponent } from '../partials/top/admintop/admintop.component';
 import { RichHtmlEditorComponent } from '../shared/rich-html-editor/rich-html-editor.component';
 import { TranslatePipe } from '../translate.pipe';
 import { I18nService } from '../i18n.service';
+import { ConfirmDialogService } from '../shared/components/confirmation-dialog/confirmation-dialog.component';
 import {
   SettingsService,
   type SettingDefinition,
@@ -60,6 +61,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
   private readonly templatesService = inject(EmailTemplatesService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
   private readonly destroy$ = new Subject<void>();
 
   loading = true;
@@ -334,8 +336,8 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
-  resetCategory(category: string): void {
-    if (!confirm(this.i18n.t('tenant.confirm_reset', { category }))) {
+  async resetCategory(category: string): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('tenant.confirm_reset', { category }), { type: 'danger' }))) {
       return;
     }
 
@@ -431,10 +433,10 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
-  resetTemplate(): void {
+  async resetTemplate(): Promise<void> {
     const template = this.editingTemplate;
 
-    if (template === null || !confirm(this.i18n.t('tenant.confirm_back_standard'))) {
+    if (template === null || !(await this.dialog.confirm(this.i18n.t('tenant.confirm_back_standard'), { type: 'danger' }))) {
       return;
     }
 
