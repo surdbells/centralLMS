@@ -5,7 +5,7 @@
   "description": "Central LMS — the learner app. An Ionic + Angular app in a Capacitor native shell, talking to the same API as @central/web.",
   "scripts": {
     "dev": "ng serve --port 8100",
-    "build": "ng build",
+    "build": "node scripts/set-env.mjs && ng build",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "sync": "cap sync",
     "mobile": "pnpm run build && cap sync",

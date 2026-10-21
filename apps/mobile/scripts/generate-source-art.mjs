@@ -10,8 +10,13 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
 
-const INDIGO = '#3316a6';
-const INDIGO_LIGHT = '#5a3ff0';
+// The brand field. Overridable for a per-client build via BRAND_COLOR (the
+// deeper shade, used for the icon/splash field and to match the native splash
+// background) and BRAND_COLOR_LIGHT (the gradient's lighter end). With neither
+// set, the Central indigo. Keep these in step with capacitor.config.ts's
+// BRAND_COLOR and, if changed, the `assets` script's --*BackgroundColor flags.
+const INDIGO = process.env.BRAND_COLOR ?? '#3316a6';
+const INDIGO_LIGHT = process.env.BRAND_COLOR_LIGHT ?? '#5a3ff0';
 const NIGHT = '#0f1420';
 const NIGHT_2 = '#1b2233';
 

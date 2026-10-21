@@ -7,10 +7,20 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * it inside the WebView. The app talks to the production API over HTTPS, and the
  * tenant is resolved from whoever signs in — there is no subdomain on a device,
  * and none is needed.
+ *
+ * **Per-client builds.** The identity below is overridable by build-time
+ * environment variables so one repo ships a differently-named, separately-
+ * installable app per client — the same build-time-injection idea as the web's
+ * scripts/set-env.mjs. `cap add`/`cap sync` bake these into the generated
+ * (git-ignored) native project, so they must be set before those run. With
+ * nothing set, the generic Central LMS identity is used. See
+ * docs/mobile-android-build.md for the Midwestern profile.
  */
+const brandColor = process.env.BRAND_COLOR ?? '#3316a6';
+
 const config: CapacitorConfig = {
-  appId: 'com.centrallms.app',
-  appName: 'Central LMS',
+  appId: process.env.CAP_APP_ID ?? 'com.centrallms.app',
+  appName: process.env.CAP_APP_NAME ?? 'Central LMS',
   // This package's Angular build output (see angular.json). `pnpm run mobile`
   // builds it and then `cap sync` copies it into the native projects.
   webDir: 'www',
@@ -23,7 +33,9 @@ const config: CapacitorConfig = {
       // art so there is no flash of a different colour behind it.
       launchAutoHide: true,
       launchShowDuration: 1500,
-      backgroundColor: '#3316a6',
+      // Matches the generated splash art, so there is no flash of a different
+      // colour behind it. Follows BRAND_COLOR for a per-client build.
+      backgroundColor: brandColor,
       showSpinner: false,
       androidScaleType: 'CENTER_CROP',
     },
