@@ -119,11 +119,11 @@ export class LearningPathDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  duplicatePath(): void {
+  async duplicatePath(): Promise<void> {
     const p = this.path();
     if (!p) return;
 
-    const newTitle = prompt(this.i18n.t('paths_admin.prompt_copy_title'), this.i18n.t('paths_admin.copy_suffix', { title: p.title }));
+    const newTitle = await this.dialog.prompt(this.i18n.t('paths_admin.prompt_copy_title'), { inputValue: this.i18n.t('paths_admin.copy_suffix', { title: p.title }) });
     if (newTitle) {
       this.learningPathService.duplicate(p.path_id, newTitle).pipe(takeUntil(this.destroy$)).subscribe({
         next: (response) => {

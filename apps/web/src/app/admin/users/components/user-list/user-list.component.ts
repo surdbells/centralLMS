@@ -417,8 +417,8 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.run(call, this.i18n.t('admin.users.action_failed', { name: user.full_name }));
   }
 
-  private promptForPassword(user: User): void {
-    const password = prompt(this.i18n.t('admin.users.password_prompt', { name: user.full_name }));
+  private async promptForPassword(user: User): Promise<void> {
+    const password = await this.dialog.prompt(this.i18n.t('admin.users.password_prompt', { name: user.full_name }));
 
     if (password === null || password.trim() === '') {
       this.passwordFor = null;

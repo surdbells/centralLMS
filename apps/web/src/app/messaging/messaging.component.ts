@@ -722,8 +722,8 @@ export class MessagingComponent implements OnInit, OnDestroy {
   }
 
   // Report
-  reportMessage(message: Message): void {
-    const reason = prompt(this.i18n.t('messaging.report_reason_prompt'));
+  async reportMessage(message: Message): Promise<void> {
+    const reason = await this.dialog.prompt(this.i18n.t('messaging.report_reason_prompt'));
     if (!reason) return;
 
     const reasons: Record<string, string> = { '1': 'spam', '2': 'harassment', '3': 'inappropriate', '4': 'other' };

@@ -1086,8 +1086,8 @@ export class QuestionListComponent implements OnInit, OnDestroy {
       });
   }
 
-  editBank(bank: QuestionBank): void {
-    const newName = prompt('Bank name:', bank.name);
+  async editBank(bank: QuestionBank): Promise<void> {
+    const newName = await this.dialog.prompt('Bank name:', { inputValue: bank.name });
     if (newName && newName.trim()) {
       this.assessments.updateBank(bank.id, { name: newName.trim() })
         .pipe(takeUntil(this.destroy$)).subscribe({

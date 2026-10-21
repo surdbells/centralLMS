@@ -14,6 +14,7 @@ import { ReportService } from '../../services/report.service';
 import { ReportFilters } from '../../models/report.models';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { HotToastService } from '@ngneat/hot-toast';
 
 declare var XLSX: any;
 
@@ -51,7 +52,7 @@ export class ReportExportComponent {
 
   exporting = false;
 
-  constructor(private reportService: ReportService, private i18n: I18nService) {}
+  constructor(private reportService: ReportService, private i18n: I18nService, private toast: HotToastService) {}
 
   doExport(format: 'csv' | 'xlsx' | 'pdf'): void {
     if (this.data && this.data.length) {
@@ -77,8 +78,8 @@ export class ReportExportComponent {
           blob.text().then(t => {
             try {
               const err = JSON.parse(t);
-              alert(err.message || this.i18n.t('reports.export_failed'));
-            } catch { alert(this.i18n.t('reports.export_failed')); }
+              this.toast.error(err.message || this.i18n.t('reports.export_failed'));
+            } catch { this.toast.error(this.i18n.t('reports.export_failed')); }
           });
           this.exporting = false;
           return;
@@ -86,7 +87,7 @@ export class ReportExportComponent {
         this.downloadBlob(blob, `${this.reportKey}_${this.datestamp()}.${ext}`);
         this.exporting = false;
       },
-      error: () => { this.exporting = false; alert(this.i18n.t('reports.export_failed_csv')); }
+      error: () => { this.exporting = false; this.toast.error(this.i18n.t('reports.export_failed_csv')); }
     });
   }
 
@@ -164,7 +165,7 @@ export class ReportExportComponent {
       this.downloadBlob(blob, `${filename}_${this.datestamp()}.xlsx`);
     } catch (e) {
       console.error('XLSX export failed, falling back to CSV:', e);
-      alert(this.i18n.t('reports.excel_export_failed'));
+      this.toast.error(this.i18n.t('reports.excel_export_failed'));
       this.exportClientCsv(filename);
     }
     this.exporting = false;
@@ -240,7 +241,7 @@ export class ReportExportComponent {
       doc.save(`${filename}_${this.datestamp()}.pdf`);
     } catch (e) {
       console.error('PDF export failed, falling back to CSV:', e);
-      alert(this.i18n.t('reports.pdf_export_failed'));
+      this.toast.error(this.i18n.t('reports.pdf_export_failed'));
       this.exportClientCsv(filename);
     }
     this.exporting = false;

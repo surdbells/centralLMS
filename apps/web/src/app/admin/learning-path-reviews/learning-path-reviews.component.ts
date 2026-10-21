@@ -12,6 +12,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-learning-path-reviews',
@@ -43,7 +44,8 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private learningPathService: LearningPathService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private dialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -126,10 +128,10 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
       .subscribe({ next: () => this.loadReviews() });
   }
 
-  rejectReview(review: LearningPathReview): void {
+  async rejectReview(review: LearningPathReview): Promise<void> {
     // Required, not optional: "rejected, no reason given" is the message the
     // learner who wrote it would receive.
-    const reason = prompt(this.i18n.t('paths_admin.reviews_reject_prompt'))?.trim();
+    const reason = (await this.dialog.prompt(this.i18n.t('paths_admin.reviews_reject_prompt')))?.trim();
 
     if (!reason) {
       return;

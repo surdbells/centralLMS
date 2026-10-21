@@ -7,6 +7,7 @@ import { ScheduledReport, ReportCatalogItem } from '../../models/report.models';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-report-scheduler',
@@ -108,7 +109,7 @@ export class ReportSchedulerComponent implements OnInit {
   showForm = false;
   newSchedule: Partial<ScheduledReport> = { frequency: 'weekly', export_format: 'csv', recipients: '' };
 
-  constructor(private svc: ReportService, private i18n: I18nService) {}
+  constructor(private svc: ReportService, private i18n: I18nService, private dialog: ConfirmDialogService) {}
 
   ngOnInit(): void {
     this.load();
@@ -125,8 +126,8 @@ export class ReportSchedulerComponent implements OnInit {
     });
   }
 
-  remove(s: ScheduledReport): void {
-    if (!confirm(this.i18n.t('reports.confirm_delete_schedule'))) return;
+  async remove(s: ScheduledReport): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('reports.confirm_delete_schedule'), { type: 'danger' }))) return;
     this.svc.deleteScheduledReport(s.id).subscribe(() => this.load());
   }
 

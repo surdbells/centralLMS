@@ -272,8 +272,8 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
       .subscribe({ next: () => this.loadReviews(review.path_id) });
   }
 
-  reportReview(review: LearningPathReview): void {
-    const reason = prompt(this.i18n.t('paths.report_prompt'))?.trim();
+  async reportReview(review: LearningPathReview): Promise<void> {
+    const reason = (await this.dialog.prompt(this.i18n.t('paths.report_prompt')))?.trim();
 
     if (!reason) {
       return;

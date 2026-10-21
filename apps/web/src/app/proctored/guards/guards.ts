@@ -2,6 +2,8 @@
 import { Injectable, inject } from '@angular/core';
 import { CanActivate, CanDeactivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Observable } from 'rxjs';
+import { HotToastService } from '@ngneat/hot-toast';
+import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 // ==========================================
 // ASSESSMENT ACCESS GUARD
@@ -73,17 +75,23 @@ export interface HasUnsavedChanges {
 
 @Injectable({ providedIn: 'root' })
 export class UnsavedChangesGuard implements CanDeactivate<HasUnsavedChanges> {
+  private dialog = inject(ConfirmDialogService);
+
   canDeactivate(
     component: HasUnsavedChanges,
     currentRoute: ActivatedRouteSnapshot,
     currentState: RouterStateSnapshot,
     nextState?: RouterStateSnapshot
   ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    
+
     if (component.hasUnsavedChanges && component.hasUnsavedChanges()) {
-      return confirm('You have unsaved changes. Are you sure you want to leave this page?');
+      return this.dialog.confirm('You have unsaved changes. Are you sure you want to leave this page?', {
+        type: 'warning',
+        confirmText: 'Leave',
+        cancelText: 'Stay',
+      });
     }
-    
+
     return true;
   }
 }
@@ -94,28 +102,32 @@ export class UnsavedChangesGuard implements CanDeactivate<HasUnsavedChanges> {
 // ==========================================
 @Injectable({ providedIn: 'root' })
 export class AttemptInProgressGuard implements CanDeactivate<any> {
+  private dialog = inject(ConfirmDialogService);
+
   canDeactivate(
     component: any,
     currentRoute: ActivatedRouteSnapshot,
     currentState: RouterStateSnapshot,
     nextState?: RouterStateSnapshot
-  ): boolean {
-    
+  ): boolean | Promise<boolean> {
+
     const attemptInProgress = sessionStorage.getItem('attemptInProgress') === 'true';
-    
+
     if (attemptInProgress) {
-      const confirmLeave = confirm(
-        'You have an assessment in progress. Leaving this page may result in your attempt being auto-submitted. Are you sure you want to leave?'
-      );
-      
-      if (!confirmLeave) {
-        return false;
-      }
-      
-      // Optionally trigger auto-submit here
-      sessionStorage.removeItem('attemptInProgress');
+      return this.dialog.confirm(
+        'You have an assessment in progress. Leaving this page may result in your attempt being auto-submitted. Are you sure you want to leave?',
+        { type: 'warning', confirmText: 'Leave', cancelText: 'Stay' }
+      ).then((confirmLeave) => {
+        if (!confirmLeave) {
+          return false;
+        }
+
+        // Optionally trigger auto-submit here
+        sessionStorage.removeItem('attemptInProgress');
+        return true;
+      });
     }
-    
+
     return true;
   }
 }
@@ -183,12 +195,14 @@ export class TimeWindowGuard implements CanActivate {
 // ==========================================
 @Injectable({ providedIn: 'root' })
 export class FullscreenGuard implements CanActivate {
+  private toast = inject(HotToastService);
+
   canActivate(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Promise<boolean> {
     const requireFullscreen = route.data['requireFullscreen'] === true;
-    
+
     if (!requireFullscreen) {
       return Promise.resolve(true);
     }
@@ -202,7 +216,7 @@ export class FullscreenGuard implements CanActivate {
     return document.documentElement.requestFullscreen()
       .then(() => true)
       .catch(() => {
-        alert('This assessment requires fullscreen mode. Please allow fullscreen access.');
+        this.toast.error('This assessment requires fullscreen mode. Please allow fullscreen access.');
         return false;
       });
   }

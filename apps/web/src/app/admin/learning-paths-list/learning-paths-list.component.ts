@@ -241,8 +241,8 @@ export class LearningPathsListComponent implements OnInit {
     }
   }
 
-  duplicatePath(path: LearningPath): void {
-    const newTitle = prompt(this.i18n.t('paths_admin.prompt_copy_title'), this.i18n.t('paths_admin.copy_suffix', { title: path.title }));
+  async duplicatePath(path: LearningPath): Promise<void> {
+    const newTitle = await this.dialog.prompt(this.i18n.t('paths_admin.prompt_copy_title'), { inputValue: this.i18n.t('paths_admin.copy_suffix', { title: path.title }) });
     if (newTitle) {
       this.learningPathService.duplicate(path.path_id, newTitle).subscribe({
         next: () => this.loadPaths()

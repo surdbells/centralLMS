@@ -15,6 +15,7 @@ import {AdmintopComponent} from '../../../partials/top/admintop/admintop.compone
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
 import { HotToastService } from '@ngneat/hot-toast';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 // ── Drilldown column definitions ──
 // Maps column names → the status filter to send to drilldown_learner_list
@@ -353,7 +354,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     private reportService: ReportService,
     private dp: DecimalPipe,
     private i18n: I18nService,
-    private toast: HotToastService
+    private toast: HotToastService,
+    private dialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -399,8 +401,8 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
   onPageChange(p: number): void { this.currentFilters = { ...this.currentFilters, page: p }; this.loadReport(); }
   refreshReport(): void { this.loadReport(); }
 
-  saveReport(): void {
-    const name = prompt(this.i18n.t('reports.save_prompt'), this.report?.report_name || this.reportKey);
+  async saveReport(): Promise<void> {
+    const name = await this.dialog.prompt(this.i18n.t('reports.save_prompt'), { inputValue: this.report?.report_name || this.reportKey });
     if (!name) return;
     this.reportService.saveReport(name, this.reportKey, this.currentFilters).subscribe({
       next: () => this.toast.success(this.i18n.t('reports.save_success')),

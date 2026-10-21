@@ -12,6 +12,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { DomSanitizer, type SafeHtml } from '@angular/platform-browser';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { ConfirmDialogService } from '../components/confirmation-dialog/confirmation-dialog.component';
 
 /** One toolbar control. */
 interface Tool {
@@ -49,6 +50,7 @@ interface Tool {
 export class RichHtmlEditorComponent implements ControlValueAccessor {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
 
   @Input() placeholder = '';
   @Input() minHeight = 220;
@@ -140,7 +142,7 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
   }
 
   /** Runs a formatting command against the current selection. */
-  run(tool: Tool, event: Event): void {
+  async run(tool: Tool, event: Event): Promise<void> {
     event.preventDefault();
     if (this.disabled) {
       return;
@@ -150,7 +152,7 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
     this.restoreSelection();
 
     if (tool.cmd === 'createLink') {
-      const url = window.prompt(this.i18n.t('shared.editor.prompt_link_address'), 'https://');
+      const url = await this.dialog.prompt(this.i18n.t('shared.editor.prompt_link_address'), { inputValue: 'https://' });
       if (url) {
         document.execCommand('createLink', false, url);
       }

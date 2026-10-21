@@ -13,6 +13,7 @@ import {
 } from '../../library.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 interface Option {
   id: string;
@@ -39,6 +40,7 @@ export class LibraryManageComponent implements OnInit {
   private readonly api = inject(ApiClient);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
+  private readonly dialog = inject(ConfirmDialogService);
 
   readonly loading = signal(true);
   readonly items = signal<LibraryItem[]>([]);
@@ -217,8 +219,8 @@ export class LibraryManageComponent implements OnInit {
     });
   }
 
-  remove(item: LibraryItem): void {
-    if (!confirm(this.i18n.t('library.remove_confirm', { title: item.title }))) {
+  async remove(item: LibraryItem): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('library.remove_confirm', { title: item.title }), { type: 'danger' }))) {
       return;
     }
     this.library.delete(item.id).subscribe({

@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, of, takeUntil, interval } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
+import { HotToastService } from '@ngneat/hot-toast';
 import { AssessmentsService } from '../../services/assessments.service';
 import { QuestionRendererComponent, PlayerQuestion, QuestionAnswer } from '../question-renderer/question-renderer.component';
 import { ProctoringMonitorComponent } from '../proctoring-monitor/proctoring-monitor.component';
@@ -309,6 +310,7 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
   private assessments = inject(AssessmentsService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private readonly toast = inject(HotToastService);
   private destroy$ = new Subject<void>();
 
   attempt: AttemptData|null = null;
@@ -688,7 +690,7 @@ export class AssessmentPlayerComponent implements OnInit, OnDestroy {
           if (this.timerInterval) clearInterval(this.timerInterval);
           void this.router.navigate(['/learner/assessments', attempt.assessment_id, 'results', attempt.attempt_id]);
         },
-        error: () => { this.submitting = false; alert('Submission failed. Please try again.'); },
+        error: () => { this.submitting = false; this.toast.error('Submission failed. Please try again.'); },
       });
     };
     if (saves.length === 0) { finalize(); return; }

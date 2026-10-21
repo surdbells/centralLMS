@@ -8,6 +8,8 @@ import { ReportTableComponent } from '../report-table/report-table.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
+import { HotToastService } from '@ngneat/hot-toast';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-custom-report-builder',
@@ -272,7 +274,7 @@ export class CustomReportBuilderComponent implements OnInit {
   saving = false;
   editingReport: any = null;
 
-  constructor(private svc: ReportService, private i18n: I18nService) {}
+  constructor(private svc: ReportService, private i18n: I18nService, private toast: HotToastService, private dialog: ConfirmDialogService) {}
 
   ngOnInit(): void {
     this.svc.getCustomSources().subscribe(s => this.sources = s);
@@ -394,7 +396,7 @@ export class CustomReportBuilderComponent implements OnInit {
   duplicateSaved(report: any): void {
     this.svc.duplicateCustomReport(report.id).subscribe({
       next: () => this.loadSavedReports(),
-      error: () => alert(this.i18n.t('reports.duplicate_failed'))
+      error: () => this.toast.error(this.i18n.t('reports.duplicate_failed'))
     });
   }
 
@@ -408,18 +410,18 @@ export class CustomReportBuilderComponent implements OnInit {
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: () => alert(this.i18n.t('reports.export_failed'))
+      error: () => this.toast.error(this.i18n.t('reports.export_failed'))
     });
   }
 
-  deleteSaved(report: any): void {
-    if (!confirm(this.i18n.t('reports.confirm_delete_undone', { name: report.name }))) return;
+  async deleteSaved(report: any): Promise<void> {
+    if (!(await this.dialog.confirm(this.i18n.t('reports.confirm_delete_undone', { name: report.name }), { type: 'danger' }))) return;
     this.svc.deleteCustomReport(report.id).subscribe({
       next: () => {
         this.savedReports = this.savedReports.filter(r => r.id !== report.id);
         if (this.editingReport?.id === report.id) this.clearEdit();
       },
-      error: () => alert(this.i18n.t('reports.delete_failed'))
+      error: () => this.toast.error(this.i18n.t('reports.delete_failed'))
     });
   }
 

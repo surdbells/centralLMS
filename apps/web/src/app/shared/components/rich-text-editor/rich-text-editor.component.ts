@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { ConfirmDialogService } from '../confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-rich-text-editor',
@@ -213,6 +214,7 @@ export class RichTextEditorComponent implements ControlValueAccessor, OnInit, On
   private onTouched: () => void = () => {};
 
   private i18n = inject(I18nService);
+  private dialog = inject(ConfirmDialogService);
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -246,15 +248,15 @@ export class RichTextEditorComponent implements ControlValueAccessor, OnInit, On
     this.emitChange();
   }
 
-  insertLink(): void {
-    const url = prompt(this.i18n.t('shared.editor.prompt_url'));
+  async insertLink(): Promise<void> {
+    const url = await this.dialog.prompt(this.i18n.t('shared.editor.prompt_url'));
     if (url) {
       this.execCommand('createLink', url);
     }
   }
 
-  insertImage(): void {
-    const url = prompt(this.i18n.t('shared.editor.prompt_image_url'));
+  async insertImage(): Promise<void> {
+    const url = await this.dialog.prompt(this.i18n.t('shared.editor.prompt_image_url'));
     if (url) {
       this.execCommand('insertImage', url);
     }
