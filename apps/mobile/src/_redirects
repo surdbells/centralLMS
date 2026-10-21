@@ -1,0 +1,5 @@
+# Cloudflare Pages SPA fallback: serve index.html for any client-side route so
+# deep links and refreshes resolve instead of 404. Real files (JS, CSS, the
+# manifest, sw.js, icons, i18n) are served directly; everything else lands here.
+# Must be the only / last rule — a preceding 404 rule would stop this catch-all.
+/*    /index.html   200

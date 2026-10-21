@@ -19,7 +19,10 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               { "glob": "**/*", "input": "src/assets", "output": "assets" },
-              "src/manifest.webmanifest"
+              "src/manifest.webmanifest",
+              "src/sw.js",
+              "src/_redirects",
+              "src/_headers"
             ],
             "styles": [
               "node_modules/@fontsource-variable/hanken-grotesk/index.css",

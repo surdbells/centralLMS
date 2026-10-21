@@ -23,6 +23,56 @@ or branding — it will not survive regeneration.
 
 ---
 
+## PWA (Cloudflare Pages) — interim install path, no SDK needed
+
+The `www/` build is also an **installable PWA** (manifest + service worker + SPA
+fallback). It needs no Android SDK and no app store, so it is the quickest way
+to put the app on learners' home screens — deploy it to Cloudflare Pages the
+same way the web app is, on a Midwestern subdomain such as
+`app.midwesternlearning.midwesternog.com`.
+
+Build (same profile vars as the native build; `BRAND_COLOR` optional):
+
+```bash
+export API_BASE_URL="https://api-midwesternlearning.midwesternog.com/v1"
+export CAP_APP_NAME="Midwestern Learning"
+pnpm --filter @central/mobile build        # -> apps/mobile/www
+```
+
+`set-env.mjs` stamps the API, the manifest (`name`/`short_name`/colours) and the
+index `<title>`, so `www/` ships as "Midwestern Learning" with
+`index.html`, `manifest.webmanifest`, `sw.js`, `_redirects`, `_headers` and the
+hashed bundles.
+
+Deploy (Midwestern's Cloudflare account):
+
+```bash
+npx wrangler login                                                          # once, interactive
+npx wrangler pages project create midwestern-app --production-branch main   # once
+npx wrangler pages deploy apps/mobile/www --project-name midwestern-app
+```
+
+Then add the custom domain `app.midwesternlearning.midwesternog.com` to the
+Pages project (dashboard → the project → Custom domains); Cloudflare issues the
+TLS cert automatically. To ship an update, re-build and `pages deploy` again —
+the service worker is network-first for navigations, so clients pick up the new
+deploy on their next launch.
+
+**REQUIRED API change — CORS.** The PWA runs at its own origin, so the Midwestern
+API's `CORS_ALLOWED_ORIGINS` must include it (comma-separated; reload php-fpm
+after):
+
+```
+CORS_ALLOWED_ORIGINS=https://midwesternlearning.midwesternog.com,https://app.midwesternlearning.midwesternog.com,https://localhost,capacitor://localhost
+```
+
+(`https://localhost` / `capacitor://localhost` serve the native app; the PWA
+needs its own web origin.) The service worker is registered only in the browser
+build — never inside the native shell — and never caches the API (a different
+origin); it caches the app shell for offline open and makes the app installable.
+
+---
+
 ## 1. Build-machine prerequisites
 
 - **JDK 17** (recommended) or 21 — *not* 26. `java -version` to confirm.

@@ -1,0 +1,8 @@
+# Cloudflare Pages response headers.
+# Keep the service worker from being held in an HTTP cache, so a new deploy's
+# sw.js is fetched on the next visit and its network-first logic takes over.
+/sw.js
+  Cache-Control: no-cache
+# The manifest can change per deploy (name/colour); revalidate it too.
+/manifest.webmanifest
+  Cache-Control: no-cache
