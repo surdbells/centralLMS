@@ -113,6 +113,14 @@ final readonly class NotificationDispatcher
                 sprintf('%s is not configured on this deployment.', $delivery->channel->label()),
             );
 
+            // Logged, not only written to the delivery row, so an operator
+            // grepping the log can see why mail is not leaving the box (e.g. a
+            // blank MAIL_SMTP_HOST, or a stale compiled container still routing
+            // to the log transport).
+            $this->logger->warning('A delivery channel is not configured; skipping', [
+                'channel' => $delivery->channel->value,
+            ]);
+
             return 'skipped';
         }
 

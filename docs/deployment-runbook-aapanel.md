@@ -347,8 +347,11 @@ turn that redirect off on the API site, or use `service: https://localhost:443` 
 
 ## 8. The queue worker
 
-Background jobs (emails, notifications) run through Symfony Messenger over
-Redis. Keep one consumer alive.
+The Symfony Messenger worker drains the Redis job queue — currently the
+digital-library document→PDF conversions. **Emails and notifications do NOT go
+through this worker**: they are written to a database outbox and sent by the
+`notifications:dispatch` cron (§10), which you must also set up. Keep one
+consumer alive.
 
 **Option A — systemd (recommended):** create `/etc/systemd/system/central-lms-worker.service`:
 
@@ -390,17 +393,28 @@ hostnames resolve publicly before requesting certificates.
 
 ---
 
-## 10. Scheduled tasks (cron)
+## 10. Scheduled tasks (cron) — REQUIRED for email
 
-If session reminders / due-soon notifications are enabled, run the scheduler
-every minute via aaPanel **Cron** (or system cron) as user `www`:
+Every notification — **invitations, password resets**, session reminders,
+broadcasts — is written to a database outbox (`notification_deliveries`) and
+actually sent by `notifications:dispatch`. Run it every minute via aaPanel
+**Cron** (or system cron) as user `www`:
 
 ```bash
-* * * * * cd /www/wwwroot/central-lms/apps/api && /usr/bin/php8.3 bin/console scheduler:run >> /dev/null 2>&1
+* * * * * cd /www/wwwroot/central-lms/apps/api && /usr/bin/php8.3 bin/console notifications:dispatch >> /dev/null 2>&1
 ```
 
-> Check `apps/api/bin/console list` for the exact command name before enabling;
-> only add this if a scheduler command exists in your build.
+Without this cron, invitation and reset emails sit `pending` in
+`notification_deliveries` and never send — the Messenger worker (§8) does **not**
+send them. After adding the cron, flush any backlog once by hand and watch it:
+
+```bash
+cd /www/wwwroot/central-lms/apps/api && sudo -u www php8.3 bin/console notifications:dispatch -v
+```
+
+> `-v` prints which channels it considers configured, which is the quickest way
+> to confirm `MAIL_PROVIDER=smtp` took effect (see §13 for the full email
+> troubleshooting checklist).
 
 ---
 
@@ -457,7 +471,7 @@ Restore: `gunzip -c dump.sql.gz | psql -U central_lms -h 127.0.0.1 central_lms`.
 | `500` from API | `apps/api/var/log/` and the site's Nginx/PHP error log; confirm `pdo_pgsql` is loaded (`php8.3 -m`). |
 | API boots but every call is `unauthenticated` | `JWT_SECRET` set and identical across restarts; server clock in sync (`timedatectl`). |
 | CORS errors in the browser | `CORS_ALLOWED_ORIGINS` matches the web origin exactly (scheme + host, no trailing slash). |
-| Emails never arrive | worker running (`systemctl status central-lms-worker`); `MAIL_PROVIDER` and its token set; check the worker log. |
+| Emails never arrive | **the `notifications:dispatch` cron is running (§10) — this, not the Messenger worker, sends email**; `MAIL_PROVIDER` + its creds set and picked up (reload php-fpm after .env, `rm -rf var/cache/container` after a container.php deploy); then inspect `notification_deliveries` — `status=pending` means the cron isn't draining, a `provider_message_id` starting `log-` means it went to the log transport (stale container / wrong provider), `status=failed` shows the SMTP error in the `error` column; log at `apps/api/var/log/app.log`. Run `php8.3 bin/console notifications:dispatch -v` to send + see configured channels. |
 | Migrations "already at latest" but a column is missing | a migration is recorded but did not run — inspect `doctrine_migration_versions`; never hand-edit unless you know the SQL ran. |
 | Uploads fail at ~1 MB | raise `client_max_body_size` (Nginx) and `upload_max_filesize` / `post_max_size` (PHP) to 128M. |
 | SPA deep links 404 | the web site's `try_files … /index.html` rewrite is missing. |
