@@ -230,7 +230,7 @@ final class PasswordResetAction
                 : NotificationType::PasswordReset,
             [
                 // The only place the secret ever appears outside this method.
-                'link'      => $this->link($request, $secret, $purpose),
+                'link'      => $this->link($request, $secret),
                 'expiresIn' => $purpose === PasswordTokenPurpose::Reset ? 'one hour' : 'fourteen days',
             ],
         );
@@ -243,7 +243,6 @@ final class PasswordResetAction
     private function link(
         ServerRequestInterface $request,
         string $secret,
-        PasswordTokenPurpose $purpose,
     ): string {
         $base = rtrim((string) ($_ENV['APP_WEB_URL'] ?? ''), '/');
 
@@ -256,9 +255,16 @@ final class PasswordResetAction
                 . ($uri->getPort() === null ? '' : ':' . $uri->getPort());
         }
 
-        $path = $purpose === PasswordTokenPurpose::Invitation ? '/register' : '/reset';
-
-        return $base . $path . '?token=' . rawurlencode($secret);
+        // Both an invitation and a reset redeem a single-use password token,
+        // and the web app does that at /reset: it checks the token, reads its
+        // purpose, and — for an invitation — sets the password and flips the
+        // account to active. /register is the *self-registration* page; it
+        // resolves an organisation from a /{tenantId}/register path and is
+        // gated by the tenant's allow-self-registration flag, so an invitation
+        // sent there lands on the bare page with no tenant and reads "not a
+        // recognised organisation". The token carries the tenant server-side,
+        // so /reset needs nothing else in the URL.
+        return $base . '/reset?token=' . rawurlencode($secret);
     }
 
     /** @return array<string, mixed> */
