@@ -35,6 +35,7 @@ Build (same profile vars as the native build; `BRAND_COLOR` optional):
 
 ```bash
 export API_BASE_URL="https://api-midwesternlearning.midwesternog.com/v1"
+export INSTITUTION_CODE="midwestern"
 export CAP_APP_NAME="Midwestern Learning"
 pnpm --filter @central/mobile build        # -> apps/mobile/www
 ```
@@ -69,6 +70,7 @@ Workers & Pages → Create → Pages → connect this repo:
 - **Environment variables:**
   - `NODE_VERSION=24` (matches the repo's `.nvmrc`; Pages reads it automatically)
   - `API_BASE_URL=https://api-midwesternlearning.midwesternog.com/v1`
+  - `INSTITUTION_CODE=midwestern` — pins the institution so the institution-code screen is never shown
   - `CAP_APP_NAME=Midwestern Learning`
   - *(optional)* `BRAND_COLOR=#RRGGBB` — Midwestern's brand colour for the icon, splash and manifest
 
@@ -114,6 +116,7 @@ Set these in the shell (or as CI variables) before building:
 
 ```bash
 export API_BASE_URL="https://api-midwesternlearning.midwesternog.com/v1"
+export INSTITUTION_CODE="midwestern"   # Midwestern's institution code
 export CAP_APP_ID="com.midwesternog.learning"
 export CAP_APP_NAME="Midwestern Learning"
 # Optional — only if Midwestern supplies an official brand colour:
@@ -122,6 +125,10 @@ export CAP_APP_NAME="Midwestern Learning"
 ```
 
 With nothing set, you get the generic Central LMS app on `api.centrallms.com`.
+`INSTITUTION_CODE` pins the build to one institution: the app resolves that
+organisation at launch and **never shows the institution-code screen**, so a
+Midwestern learner opens the app straight onto sign-in (use the real code from
+the org's settings).
 
 ## 3. Build the web bundle and generate the native project
 

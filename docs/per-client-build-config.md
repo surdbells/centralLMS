@@ -30,6 +30,7 @@ untouched.
 | Variable | Injected into | Notes |
 | --- | --- | --- |
 | `API_BASE_URL` | `environment.prod.ts` `apiBaseUrl` | Absolute, includes `/v1` |
+| `INSTITUTION_CODE` | `environment.prod.ts` `institutionCode` | Pins a single-tenant build to one institution — the app resolves it at launch and the **institution-code screen is never shown** (PWA and native) |
 | `CAP_APP_NAME` | manifest `name` + `index.html` `<title>` (and the native app name via `capacitor.config.ts`) | The installed app's name |
 | `CAP_APP_SHORT_NAME` | manifest `short_name` | Optional; defaults to the first word of `CAP_APP_NAME` |
 | `BRAND_COLOR` | manifest `theme`/`background` + `index` theme-color (and the native splash + icon field) | 6-digit hex |

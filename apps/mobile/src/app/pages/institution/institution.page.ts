@@ -25,7 +25,7 @@ import { ButtonComponent } from '../../components/button/button.component';
       <div class="inst-wrap">
         <div class="brand">
           <div class="brand-mark"><ion-icon name="school-outline"></ion-icon></div>
-          <h1>Central LMS</h1>
+          <h1>{{ branding.organisation() || 'Learning Portal' }}</h1>
           <p class="muted">{{ 'institution.find' | translate }}</p>
         </div>
 
@@ -68,7 +68,7 @@ import { ButtonComponent } from '../../components/button/button.component';
   `],
 })
 export class InstitutionPage {
-  private readonly branding = inject(BrandingService);
+  readonly branding = inject(BrandingService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
 

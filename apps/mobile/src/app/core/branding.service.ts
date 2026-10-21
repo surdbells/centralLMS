@@ -2,6 +2,7 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of } from 'rxjs';
 import { ApiClient } from './api';
 import { SessionStore } from './session';
+import { environment } from '../../environments/environment';
 
 interface PublicBranding {
   /** The resolved tenant — null when a code named no organisation, or none is set. */
@@ -73,12 +74,16 @@ export class BrandingService {
     // Paint the remembered brand immediately, so sign-in is already branded.
     this.applyStored();
 
-    // Signed out (the sign-in screen): refresh the brand. If the learner has
-    // already named their institution, ask by that code; otherwise ask for the
-    // deployment's default (on-prem/single-tenant returns it, a multi-tenant
-    // cloud with no default returns nothing — which sends them to name one).
+    // Signed out (the sign-in screen): refresh the brand. A single-tenant build
+    // pins its institution by code (environment.institutionCode), so it resolves
+    // that organisation at launch and the institution-code screen is never
+    // shown. Otherwise use the code the learner named earlier; failing that, ask
+    // for the deployment's default (on-prem/single-tenant returns it, a
+    // multi-tenant cloud with no default returns nothing — which sends them to
+    // name one).
     if (!this.session.session()) {
-      const code = this.code();
+      const pinned = environment.institutionCode?.trim();
+      const code = pinned || this.code();
       this.load(code ? { code } : undefined);
     } else {
       this.ready();
