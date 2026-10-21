@@ -54,9 +54,32 @@ npx wrangler pages deploy apps/mobile/www --project-name midwestern-app
 
 Then add the custom domain `app.midwesternlearning.midwesternog.com` to the
 Pages project (dashboard → the project → Custom domains); Cloudflare issues the
-TLS cert automatically. To ship an update, re-build and `pages deploy` again —
-the service worker is network-first for navigations, so clients pick up the new
-deploy on their next launch.
+TLS cert automatically.
+
+### Git auto-deploy (recommended — same as the web)
+
+Instead of running `pages deploy` by hand, connect the repo so every push to
+`main` rebuilds and redeploys, exactly like the web Pages project. Dashboard →
+Workers & Pages → Create → Pages → connect this repo:
+
+- **Production branch:** `main`
+- **Build command:** `pnpm install && pnpm --filter @central/mobile build`
+- **Build output directory:** `apps/mobile/www`
+- **Root directory:** `/`
+- **Environment variables:**
+  - `NODE_VERSION=24` (matches the repo's `.nvmrc`; Pages reads it automatically)
+  - `API_BASE_URL=https://api-midwesternlearning.midwesternog.com/v1`
+  - `CAP_APP_NAME=Midwestern Learning`
+  - *(optional)* `BRAND_COLOR=#RRGGBB` — Midwestern's brand colour for the icon, splash and manifest
+
+`set-env.mjs` (run by the build) reads those vars and bakes the API, the PWA
+name and the colour into `www/`, so nothing client-specific is committed — no
+`sed` step (unlike the older web build command). The committed defaults stay
+the generic Central LMS app, so a plain build is unaffected. Keep this a
+**separate** Pages project from the web's: different build command, output
+directory and custom domain (`app.…` vs the web's root domain). Pushing to
+`main` then redeploys both. The service worker is network-first for
+navigations, so installed clients pick up each new deploy on their next launch.
 
 **REQUIRED API change — CORS.** The PWA runs at its own origin, so the Midwestern
 API's `CORS_ALLOWED_ORIGINS` must include it (comma-separated; reload php-fpm
