@@ -13,7 +13,6 @@ use Central\Api\Domain\Settings\SettingsRepository;
 use Central\Api\Domain\Tenant\TenantRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
-use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
@@ -71,12 +70,17 @@ final readonly class SmtpMailTransport implements NotificationTransport
 
         $sender = $this->senderFor($delivery->tenantId);
 
+        // The notification body is already the rendered, branded HTML email
+        // (see EmailTemplateDefaults / EmailTemplateRenderer), so it goes in the
+        // HTML part as-is, with a stripped-down plain-text alternative.
+        // Escaping and re-wrapping it — as this used to — showed the raw markup
+        // as text in the inbox.
         $email = (new Email())
             ->from(new Address($this->fromAddress, $sender['name']))
             ->to($address)
             ->subject($delivery->title)
-            ->text($delivery->body)
-            ->html($this->html($delivery));
+            ->html($delivery->body)
+            ->text($this->plainText($delivery->body));
 
         if ($sender['replyTo'] !== null) {
             $email->replyTo($sender['replyTo']);
@@ -87,7 +91,9 @@ final readonly class SmtpMailTransport implements NotificationTransport
         }
 
         try {
-            $sent = $this->mailer()->send($email);
+            // The transport's send() returns the SentMessage (the Mailer
+            // wrapper's is void), so we can record the provider's message id.
+            $sent = $this->transport()->send($email);
 
             return TransportResult::sent($sent?->getMessageId());
         } catch (TransportExceptionInterface $failure) {
@@ -108,7 +114,7 @@ final readonly class SmtpMailTransport implements NotificationTransport
         }
     }
 
-    private function mailer(): Mailer
+    private function transport(): EsmtpTransport
     {
         // null = negotiate STARTTLS when the server offers it (the :587 norm);
         // true = implicit TLS from the first byte (the :465 norm); false = none.
@@ -125,7 +131,7 @@ final readonly class SmtpMailTransport implements NotificationTransport
             $transport->setPassword($this->password);
         }
 
-        return new Mailer($transport);
+        return $transport;
     }
 
     /**
@@ -215,19 +221,16 @@ final readonly class SmtpMailTransport implements NotificationTransport
     }
 
     /**
-     * A plain, readable HTML part, with every value escaped — a title can carry
-     * a course name an author typed, a body a learner's own name.
+     * A readable plain-text alternative to the HTML body, for clients that
+     * prefer text. Block tags become line breaks, the rest is stripped, and
+     * entities are decoded back to real characters.
      */
-    private function html(PendingDelivery $delivery): string
+    private function plainText(string $html): string
     {
-        $title = htmlspecialchars($delivery->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $body  = nl2br(htmlspecialchars($delivery->body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+        $text = preg_replace('#<(?:br|/p|/div|/h[1-6]|/tr|/li)\s*/?>#i', "\n", $html) ?? $html;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        return <<<HTML
-            <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1f2933">
-                <h1 style="font-size:18px;margin:0 0 12px">{$title}</h1>
-                <p style="margin:0">{$body}</p>
-            </div>
-            HTML;
+        // Collapse the runs of blank lines the stripping leaves behind.
+        return trim(preg_replace("/\n[ \t]*(?:\n[ \t]*)+/", "\n\n", $text) ?? $text);
     }
 }

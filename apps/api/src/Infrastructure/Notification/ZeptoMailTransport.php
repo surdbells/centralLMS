@@ -103,8 +103,11 @@ final readonly class ZeptoMailTransport implements NotificationTransport
             'from'     => ['address' => $this->fromAddress, 'name' => $sender['name']],
             'to'       => [['email_address' => ['address' => $address]]],
             'subject'  => $delivery->title,
-            'textbody' => $delivery->body,
-            'htmlbody' => $this->html($delivery),
+            // The body is already the rendered, branded HTML email; send it as
+            // the HTML part with a plain-text alternative, rather than escaping
+            // and re-wrapping it (which showed the raw markup as text).
+            'textbody' => $this->plainText($delivery->body),
+            'htmlbody' => $delivery->body,
         ];
 
         if ($sender['replyTo'] !== null) {
@@ -227,16 +230,15 @@ final readonly class ZeptoMailTransport implements NotificationTransport
      * from a form, and an email client that renders HTML is not the place to
      * discover that.
      */
-    private function html(PendingDelivery $delivery): string
+    /**
+     * A readable plain-text alternative to the HTML body: block tags become
+     * line breaks, the rest is stripped, entities decoded.
+     */
+    private function plainText(string $html): string
     {
-        $title = htmlspecialchars($delivery->title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $body  = nl2br(htmlspecialchars($delivery->body, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+        $text = preg_replace('#<(?:br|/p|/div|/h[1-6]|/tr|/li)\s*/?>#i', "\n", $html) ?? $html;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-        return <<<HTML
-            <div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1f2933">
-                <h1 style="font-size:18px;margin:0 0 12px">{$title}</h1>
-                <p style="margin:0">{$body}</p>
-            </div>
-            HTML;
+        return trim(preg_replace("/\n[ \t]*(?:\n[ \t]*)+/", "\n\n", $text) ?? $text);
     }
 }
