@@ -20,6 +20,19 @@ final readonly class PersonInput
     private const EMAIL = '/^[^\s@]+@[^\s@]+\.[^\s@]+$/';
 
     /**
+     * What `gender` may be.
+     *
+     * A short, fixed set the form offers as a dropdown. The column itself is
+     * free text, so a deployment that needs another value is a configuration
+     * change, not a migration — but the common case is validated so a typo
+     * does not reach the record.
+     *
+     * Public so self-service ({@see \Central\Api\Application\Action\People\MyProfileAction})
+     * validates against the same set rather than keeping its own copy.
+     */
+    public const GENDERS = ['male', 'female', 'other', 'undisclosed'];
+
+    /**
      * @param  array<string, mixed>  $input
      * @param  array<string, string> $violations
      */
@@ -80,6 +93,22 @@ final readonly class PersonInput
             $violations['managerId'] = 'Somebody cannot report to themselves.';
         }
 
+        $lineExecutiveId = self::uuid($input, 'lineExecutiveId', $existing?->lineExecutiveId);
+
+        if ($lineExecutiveId !== null && $id !== null && $lineExecutiveId === $id) {
+            $violations['lineExecutiveId'] = 'Somebody cannot be their own line executive.';
+        }
+
+        $gender = self::text($input, 'gender', $existing?->gender);
+
+        if ($gender !== null) {
+            $gender = strtolower($gender);
+
+            if (!in_array($gender, self::GENDERS, true)) {
+                $violations['gender'] = 'Choose one of: ' . implode(', ', self::GENDERS) . '.';
+            }
+        }
+
         $roleIds = self::roleIds($input, $existing->roleIds ?? [], $violations);
 
         if ($violations !== []) {
@@ -102,6 +131,9 @@ final readonly class PersonInput
             teamId: self::uuid($input, 'teamId', $existing?->teamId),
             levelId: self::uuid($input, 'levelId', $existing?->levelId),
             jobTitleId: self::uuid($input, 'jobTitleId', $existing?->jobTitleId),
+            gender: $gender,
+            employeeId: self::text($input, 'employeeId', $existing?->employeeId),
+            lineExecutiveId: $lineExecutiveId,
             hireDate: $hireDate,
             probationEndDate: $probationEnds,
             roleIds: $roleIds,

@@ -22,21 +22,31 @@ final readonly class PersonPlacement
         public ?string $level = null,
         public ?string $jobTitle = null,
         public ?string $manager = null,
+        public ?string $lineExecutive = null,
     ) {
     }
 
     /**
+     * The `…Name` keys every screen reads.
+     *
+     * The suffix is deliberate and load-bearing: the web and mobile apps bind
+     * `placement.departmentName`, `placement.managerName` and so on throughout.
+     * Emitting the bare `department` these were resolved from would leave every
+     * one of those bindings undefined — which is exactly how the org side of
+     * the profile came to show a column of dashes.
+     *
      * @return array<string, ?string>
      */
     public function toArray(): array
     {
         return [
-            'branch'     => $this->branch,
-            'department' => $this->department,
-            'team'       => $this->team,
-            'level'      => $this->level,
-            'jobTitle'   => $this->jobTitle,
-            'manager'    => $this->manager,
+            'branchName'        => $this->branch,
+            'departmentName'    => $this->department,
+            'teamName'          => $this->team,
+            'levelName'         => $this->level,
+            'jobTitleName'      => $this->jobTitle,
+            'managerName'       => $this->manager,
+            'lineExecutiveName' => $this->lineExecutive,
         ];
     }
 }

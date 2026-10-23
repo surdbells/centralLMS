@@ -175,6 +175,51 @@ final class PersonInputTest extends TestCase
     }
 
     #[Test]
+    public function nobody_is_their_own_line_executive(): void
+    {
+        $violations = [];
+
+        PersonInput::toPerson(
+            self::TENANT,
+            self::PERSON,
+            [...$this->valid(), 'lineExecutiveId' => self::PERSON],
+            $violations,
+        );
+
+        self::assertArrayHasKey('lineExecutiveId', $violations);
+    }
+
+    #[Test]
+    public function a_gender_outside_the_set_is_refused(): void
+    {
+        // The column is free text, but the common case is validated so a typo
+        // ('mael') does not reach the record.
+        $violations = [];
+
+        PersonInput::toPerson(self::TENANT, null, [...$this->valid(), 'gender' => 'mael'], $violations);
+
+        self::assertArrayHasKey('gender', $violations);
+    }
+
+    #[Test]
+    public function a_known_gender_is_lower_cased_and_kept(): void
+    {
+        $violations = [];
+
+        $person = PersonInput::toPerson(
+            self::TENANT,
+            null,
+            [...$this->valid(), 'gender' => 'Female', 'employeeId' => 'EMP-0042'],
+            $violations,
+        );
+
+        self::assertSame([], $violations);
+        self::assertNotNull($person);
+        self::assertSame('female', $person->gender);
+        self::assertSame('EMP-0042', $person->employeeId);
+    }
+
+    #[Test]
     public function a_locale_is_always_set(): void
     {
         // The column is NOT NULL with a default; passing an explicit null

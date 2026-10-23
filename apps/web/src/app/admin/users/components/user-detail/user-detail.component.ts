@@ -346,15 +346,19 @@ export class UserDetailComponent implements OnInit, OnDestroy {
       { label: this.i18n.t('admin.user_detail.full_name'), value: u.fullName },
       { label: this.i18n.t('admin.users.col_email'), value: u.email },
       { label: this.i18n.t('admin.user_form.phone'), value: u.phone ?? '' },
+      { label: this.i18n.t('admin.user_form.gender'), value: u.gender === null ? '' : this.i18n.t('admin.user_form.gender_' + u.gender) },
       { label: this.i18n.t('common.language'), value: this.i18n.t(LANGUAGES[u.locale] ?? '') || u.locale },
     ];
 
     this.orgFields = [
-      { label: this.i18n.t('admin.user_form.branch'), value: u.placement?.branchName ?? '' },
-      { label: this.i18n.t('admin.enrollees.col_department'), value: u.placement?.departmentName ?? '' },
-      { label: this.i18n.t('admin.user_form.team'), value: u.placement?.teamName ?? '' },
+      { label: this.i18n.t('admin.user_form.employee_id'), value: u.employeeId ?? '' },
       { label: this.i18n.t('admin.user_detail.job_title'), value: u.placement?.jobTitleName ?? '' },
+      { label: this.i18n.t('admin.enrollees.col_department'), value: u.placement?.departmentName ?? '' },
+      { label: this.i18n.t('admin.user_form.job_grade'), value: u.placement?.levelName ?? '' },
+      { label: this.i18n.t('admin.user_form.team'), value: u.placement?.teamName ?? '' },
+      { label: this.i18n.t('admin.user_form.branch'), value: u.placement?.branchName ?? '' },
       { label: this.i18n.t('admin.user_detail.manager'), value: u.placement?.managerName ?? '' },
+      { label: this.i18n.t('admin.user_form.line_executive'), value: u.placement?.lineExecutiveName ?? '' },
       { label: this.i18n.t('admin.user_form.hire_date'), value: onDay(u.hireDate) },
     ];
 

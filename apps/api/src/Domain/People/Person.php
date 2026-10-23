@@ -41,6 +41,12 @@ final readonly class Person
         public ?string $teamId = null,
         public ?string $levelId = null,
         public ?string $jobTitleId = null,
+        /** One of 'male', 'female', 'other', 'undisclosed'; null when unset. */
+        public ?string $gender = null,
+        /** The organisation's own staff number. Free text — their format. */
+        public ?string $employeeId = null,
+        /** A second reporting line, above the line manager. */
+        public ?string $lineExecutiveId = null,
         public ?\DateTimeImmutable $hireDate = null,
         public ?\DateTimeImmutable $probationEndDate = null,
         public array $roleIds = [],
@@ -80,6 +86,9 @@ final readonly class Person
             teamId: $this->teamId,
             levelId: $this->levelId,
             jobTitleId: $this->jobTitleId,
+            gender: $this->gender,
+            employeeId: $this->employeeId,
+            lineExecutiveId: $this->lineExecutiveId,
             hireDate: $this->hireDate,
             probationEndDate: $this->probationEndDate,
             roleIds: $this->roleIds,
@@ -135,6 +144,10 @@ final readonly class Person
             'teamId'       => $this->teamId,
             'levelId'      => $this->levelId,
             'jobTitleId'   => $this->jobTitleId,
+
+            'gender'          => $this->gender,
+            'employeeId'      => $this->employeeId,
+            'lineExecutiveId' => $this->lineExecutiveId,
 
             'hireDate'         => $this->hireDate?->format('Y-m-d'),
             'probationEndDate' => $this->probationEndDate?->format('Y-m-d'),

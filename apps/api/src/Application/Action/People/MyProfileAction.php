@@ -9,6 +9,7 @@ use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Identity\RefreshTokenRepository;
 use Central\Api\Domain\People\Person;
+use Central\Api\Domain\People\PersonInput;
 use Central\Api\Domain\People\PersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
 use Central\Api\Support\Clock;
@@ -100,16 +101,34 @@ final class MyProfileAction extends PeopleAction
             $violations['locale'] = 'Choose a language.';
         }
 
-        if ($violations !== []) {
-            throw ValidationFailed::fromArray($violations);
-        }
-
-        $updated = $this->people->update($this->with($me, [
+        $changes = [
             'firstName' => $firstName,
             'lastName'  => $lastName,
             'phone'     => $phone,
             'locale'    => $locale,
-        ]));
+        ];
+
+        // Gender is the one organisation-blank field somebody sets about
+        // themselves — the rest of the record (employee id, line executive,
+        // where they sit) stays an administrator's. Absent leaves it alone;
+        // empty clears it.
+        if (array_key_exists('gender', $body)) {
+            $gender = strtolower(trim((string) $body['gender']));
+
+            if ($gender === '') {
+                $changes['gender'] = null;
+            } elseif (in_array($gender, PersonInput::GENDERS, true)) {
+                $changes['gender'] = $gender;
+            } else {
+                $violations['gender'] = 'Choose one of: ' . implode(', ', PersonInput::GENDERS) . '.';
+            }
+        }
+
+        if ($violations !== []) {
+            throw ValidationFailed::fromArray($violations);
+        }
+
+        $updated = $this->people->update($this->with($me, $changes));
 
         return Json::ok($response, $updated->toArray());
     }
@@ -317,7 +336,7 @@ final class MyProfileAction extends PeopleAction
      *
      * @param array{
      *     firstName?: string, lastName?: string, phone?: ?string,
-     *     locale?: string, avatarUrl?: ?string
+     *     locale?: string, avatarUrl?: ?string, gender?: ?string
      * } $changes
      */
     private function with(Person $person, array $changes): Person
@@ -338,6 +357,12 @@ final class MyProfileAction extends PeopleAction
             teamId: $person->teamId,
             levelId: $person->levelId,
             jobTitleId: $person->jobTitleId,
+            // Carried through untouched. Employee id and line executive are an
+            // administrator's to set; gender is replaced only when this save
+            // names it, below.
+            gender: array_key_exists('gender', $changes) ? $changes['gender'] : $person->gender,
+            employeeId: $person->employeeId,
+            lineExecutiveId: $person->lineExecutiveId,
             hireDate: $person->hireDate,
             probationEndDate: $person->probationEndDate,
             roleIds: $person->roleIds,

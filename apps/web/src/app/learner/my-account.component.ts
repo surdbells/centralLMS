@@ -43,6 +43,8 @@ export interface ProfileForm {
   first_name: string;
   last_name: string;
   phone: string;
+  /** '' | 'male' | 'female' | 'other' | 'undisclosed'. */
+  gender: string;
   language: string;
   /**
    * On the form and not stored: this system has no such field. Left in the
@@ -186,6 +188,16 @@ export interface LoginRecord {
                     <div class="mb-3">
                       <label class="form-label small fw-semibold">Phone</label>
                       <input type="text" class="form-control form-control-sm" [(ngModel)]="profileForm.phone">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label small fw-semibold">Gender</label>
+                      <select class="form-select form-select-sm" [(ngModel)]="profileForm.gender">
+                        <option value="">Prefer not to say</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                        <option value="undisclosed">Undisclosed</option>
+                      </select>
                     </div>
                     <div class="mb-3">
                       <label class="form-label small fw-semibold">Language</label>
@@ -458,6 +470,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
     first_name: '',
     last_name: '',
     phone: '',
+    gender: '',
     language: 'en',
     preferred_learning_mode: '',
   };
@@ -528,6 +541,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
             first_name: me.firstName,
             last_name: me.lastName,
             phone: me.phone ?? '',
+            gender: me.gender ?? '',
             language: me.locale,
             preferred_learning_mode: '',
           };
@@ -549,15 +563,18 @@ export class MyAccountComponent implements OnInit, OnDestroy {
 
   private buildInfoCards(me: {
     firstName: string; lastName: string; email: string; phone: string | null; locale: string;
+    gender: string | null; employeeId: string | null;
     hireDate: string | null; lastLoginAt: string | null; loginCount: number; createdAt: string | null;
     placement?: { branchName: string | null; departmentName: string | null; teamName: string | null;
-      managerName: string | null } | null;
+      levelName: string | null; jobTitleName: string | null; managerName: string | null;
+      lineExecutiveName: string | null } | null;
   }): void {
     this.personalInfo = [
       { label: 'First Name', value: me.firstName },
       { label: 'Last Name', value: me.lastName },
       { label: 'Email', value: me.email },
       { label: 'Phone', value: me.phone ?? '' },
+      { label: 'Gender', value: this.genderLabel(me.gender) },
       {
         label: 'Language',
         value: ({ en: 'English', fr: 'French', ar: 'Arabic' } as Record<string, string>)[me.locale]
@@ -565,11 +582,17 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       },
     ];
 
+    // Everything an administrator sets: the whole org side of the profile,
+    // including the employee number and both reporting lines.
     this.orgInfo = [
+      { label: 'Employee ID', value: me.employeeId ?? '' },
+      { label: 'Job Title', value: me.placement?.jobTitleName ?? '' },
       { label: 'Department', value: me.placement?.departmentName ?? '' },
+      { label: 'Job Grade', value: me.placement?.levelName ?? '' },
       { label: 'Team', value: me.placement?.teamName ?? '' },
-      { label: 'Branch', value: me.placement?.branchName ?? '' },
-      { label: 'Manager', value: me.placement?.managerName ?? '' },
+      { label: 'Work Location', value: me.placement?.branchName ?? '' },
+      { label: 'Line Manager', value: me.placement?.managerName ?? '' },
+      { label: 'Line Executive', value: me.placement?.lineExecutiveName ?? '' },
       { label: 'Hire Date', value: this.onDay(me.hireDate) },
     ];
 
@@ -619,6 +642,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
         firstName: this.profileForm.first_name,
         lastName: this.profileForm.last_name,
         phone: this.profileForm.phone || null,
+        gender: this.profileForm.gender || null,
         locale: this.profileForm.language,
       })
       .pipe(takeUntil(this.destroy$))
@@ -890,6 +914,16 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   }
 
   /* ═══════ HELPERS ═══════ */
+
+  /** A stored gender token as a label; empty stays empty, so the card shows '-'. */
+  genderLabel(value: string | null): string {
+    return ({
+      male: 'Male',
+      female: 'Female',
+      other: 'Other',
+      undisclosed: 'Undisclosed',
+    } as Record<string, string>)[value ?? ''] ?? '';
+  }
 
   getColor(name: string): string {
     const colors = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948', '#b07aa1'];

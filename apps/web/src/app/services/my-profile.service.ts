@@ -13,6 +13,8 @@ export interface ProfileInput {
   lastName?: string;
   phone?: string | null;
   locale?: string;
+  /** The one organisation-blank field somebody sets about themselves. */
+  gender?: string | null;
 }
 
 export interface Consents {

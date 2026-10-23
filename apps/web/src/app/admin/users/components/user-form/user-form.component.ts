@@ -37,10 +37,16 @@ export interface UserFormData {
   last_name: string;
   email: string;
   phone: string;
+  gender: string;
+  /** The organisation's own staff number — stored as `employeeId`. */
   staffId: string;
   branch_id: string | null;
   department_id: string | null;
   team_id: string | null;
+  job_title_id: string | null;
+  level_id: string | null;
+  manager_id: string | null;
+  line_executive_id: string | null;
   hire_date: string;
   language: string;
   preferred_learning_mode: string;
@@ -87,9 +93,21 @@ export interface UserFormData {
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.phone' | translate }}</label>
                 <input type="text" class="form-control form-control-sm" [(ngModel)]="form.phone" name="phone">
               </div>
-              <div class="mb-3">
-                <label class="form-label small fw-semibold">{{ 'admin.user_form.staff_id' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.staffId" name="staffId">
+              <div class="row g-2">
+                <div class="col-6 mb-3">
+                  <label class="form-label small fw-semibold">{{ 'admin.user_form.gender' | translate }}</label>
+                  <select class="form-select form-select-sm" [(ngModel)]="form.gender" name="gender">
+                    <option value="">{{ 'admin.user_form.gender_unspecified' | translate }}</option>
+                    <option value="male">{{ 'admin.user_form.gender_male' | translate }}</option>
+                    <option value="female">{{ 'admin.user_form.gender_female' | translate }}</option>
+                    <option value="other">{{ 'admin.user_form.gender_other' | translate }}</option>
+                    <option value="undisclosed">{{ 'admin.user_form.gender_undisclosed' | translate }}</option>
+                  </select>
+                </div>
+                <div class="col-6 mb-3">
+                  <label class="form-label small fw-semibold">{{ 'admin.user_form.employee_id' | translate }}</label>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="form.staffId" name="staffId">
+                </div>
               </div>
               <div class="row g-2">
                 <div class="col-6 mb-3">
@@ -136,6 +154,34 @@ export interface UserFormData {
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.team' | translate }}</label>
                 <select class="form-select form-select-sm" [(ngModel)]="form.team_id" name="team_id">
                   <option *ngFor="let t of teams" [ngValue]="t.team_id">{{ t.team_name }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">{{ 'admin.user_detail.job_title' | translate }}</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.job_title_id" name="job_title_id">
+                  <option [ngValue]="null">—</option>
+                  <option *ngFor="let j of jobTitles" [ngValue]="j.id">{{ j.name }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.job_grade' | translate }}</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.level_id" name="level_id">
+                  <option [ngValue]="null">—</option>
+                  <option *ngFor="let l of levels" [ngValue]="l.id">{{ l.name }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">{{ 'admin.user_detail.manager' | translate }}</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.manager_id" name="manager_id">
+                  <option [ngValue]="null">—</option>
+                  <option *ngFor="let p of people" [ngValue]="p.id">{{ p.fullName }}</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">{{ 'admin.user_form.line_executive' | translate }}</label>
+                <select class="form-select form-select-sm" [(ngModel)]="form.line_executive_id" name="line_executive_id">
+                  <option [ngValue]="null">—</option>
+                  <option *ngFor="let p of people" [ngValue]="p.id">{{ p.fullName }}</option>
                 </select>
               </div>
               <div class="mb-3">
@@ -223,10 +269,11 @@ export interface UserFormData {
  *  - **A role from another organisation is refused**, rather than written and
  *    later ignored.
  *
- * `preferred_learning_mode` and `staffId` are on the form and are not stored:
- * neither exists in this system. They are left in place rather than silently
- * dropped from the markup, and the component says so here rather than
- * pretending to save them.
+ * `preferred_learning_mode` is on the form and is not stored: this system has
+ * no such field. It is left in place rather than silently dropped from the
+ * markup. `staffId`, once the same kind of orphan, is now the stored
+ * `employeeId`; gender, job title, job grade, line manager and line executive
+ * are all persisted too.
  */
 export class UserFormComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
@@ -260,10 +307,15 @@ export class UserFormComponent implements OnInit, OnDestroy {
     last_name: '',
     email: '',
     phone: '',
+    gender: '',
     staffId: '',
     branch_id: null,
     department_id: null,
     team_id: null,
+    job_title_id: null,
+    level_id: null,
+    manager_id: null,
+    line_executive_id: null,
     hire_date: '',
     language: 'en',
     preferred_learning_mode: '',
@@ -284,6 +336,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
   branches: OrgUnit[] = [];
   departments: OrgUnit[] = [];
   teams: OrgUnit[] = [];
+  jobTitles: Array<{ id: string; name: string }> = [];
+  levels: Array<{ id: string; name: string }> = [];
+  /** People the manager / line-executive pickers choose from. */
+  people: Array<{ id: string; fullName: string }> = [];
 
   selectedRoleIds = new Set<string>();
 
@@ -301,6 +357,11 @@ export class UserFormComponent implements OnInit, OnDestroy {
       branches: this.lookupsService.active('branch'),
       departments: this.lookupsService.active('department'),
       teams: this.lookupsService.active('team'),
+      jobTitles: this.lookupsService.active('job_title'),
+      levels: this.lookupsService.active('level'),
+      // The manager / line-executive pickers. A plain list, capped — the same
+      // shape every other picker on this form uses.
+      people: this.usersService.options(undefined, 500),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -316,6 +377,13 @@ export class UserFormComponent implements OnInit, OnDestroy {
             department_name: d.name,
           }));
           this.teams = reference.teams.map((t) => ({ team_id: t.id, team_name: t.name }));
+          this.jobTitles = reference.jobTitles.map((j) => ({ id: j.id, name: j.name }));
+          this.levels = reference.levels.map((l) => ({ id: l.id, name: l.name }));
+          // A person cannot be their own manager or line executive; leaving
+          // themselves out of the picker is clearer than a server refusal.
+          this.people = reference.people.items
+            .filter((p) => p.id !== this.userId)
+            .map((p) => ({ id: p.id, fullName: p.fullName }));
 
           if (this.userId === null) {
             this.loading = false;
@@ -390,10 +458,15 @@ export class UserFormComponent implements OnInit, OnDestroy {
             last_name: user.lastName,
             email: user.email,
             phone: user.phone ?? '',
-            staffId: '',
+            gender: user.gender ?? '',
+            staffId: user.employeeId ?? '',
             branch_id: user.branchId,
             department_id: user.departmentId,
             team_id: user.teamId,
+            job_title_id: user.jobTitleId,
+            level_id: user.levelId,
+            manager_id: user.managerId,
+            line_executive_id: user.lineExecutiveId,
             hire_date: user.hireDate ?? '',
             language: user.locale,
             preferred_learning_mode: '',
@@ -426,10 +499,16 @@ export class UserFormComponent implements OnInit, OnDestroy {
       firstName: this.form.first_name.trim(),
       lastName: this.form.last_name.trim(),
       phone: this.form.phone || null,
+      gender: this.form.gender || null,
+      employeeId: this.form.staffId.trim() || null,
       locale: this.form.language || 'en',
       branchId: this.form.branch_id,
       departmentId: this.form.department_id,
       teamId: this.form.team_id,
+      jobTitleId: this.form.job_title_id,
+      levelId: this.form.level_id,
+      managerId: this.form.manager_id,
+      lineExecutiveId: this.form.line_executive_id,
       hireDate: this.form.hire_date || null,
       roleIds: [...this.selectedRoleIds],
       // The tick is "can they sign in?". Unticking it suspends the account;

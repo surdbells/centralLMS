@@ -18,6 +18,7 @@ final class DbalPersonRepository implements PersonRepository
     private const COLUMNS = 'u.id, u.tenant_id, u.email, u.first_name, u.last_name, u.status,
                              u.phone, u.avatar_url, u.locale, u.manager_id,
                              u.branch_id, u.department_id, u.team_id, u.level_id, u.job_title_id,
+                             u.gender, u.employee_id, u.line_executive_id,
                              u.hire_date, u.probation_end_date, u.two_factor_enabled,
                              u.last_login_at, u.login_count, u.created_at';
 
@@ -34,14 +35,17 @@ final class DbalPersonRepository implements PersonRepository
                                l.name AS level_name,
                                j.name AS job_title_name,
                                NULLIF(btrim(COALESCE(m.first_name, '') || ' ' || COALESCE(m.last_name, '')), '')
-                                   AS manager_name";
+                                   AS manager_name,
+                               NULLIF(btrim(COALESCE(x.first_name, '') || ' ' || COALESCE(x.last_name, '')), '')
+                                   AS line_executive_name";
 
     private const PLACEMENT_JOINS = 'LEFT JOIN lookups b ON b.id = u.branch_id
                                      LEFT JOIN lookups d ON d.id = u.department_id
                                      LEFT JOIN lookups t ON t.id = u.team_id
                                      LEFT JOIN lookups l ON l.id = u.level_id
                                      LEFT JOIN lookups j ON j.id = u.job_title_id
-                                     LEFT JOIN users m ON m.id = u.manager_id';
+                                     LEFT JOIN users m ON m.id = u.manager_id
+                                     LEFT JOIN users x ON x.id = u.line_executive_id';
 
     /**
      * Enrolment counts, as one correlated subquery rather than four.
@@ -161,10 +165,12 @@ final class DbalPersonRepository implements PersonRepository
                         (tenant_id, email, password_hash, first_name, last_name, status,
                          phone, avatar_url, locale, manager_id,
                          branch_id, department_id, team_id, level_id, job_title_id,
+                         gender, employee_id, line_executive_id,
                          hire_date, probation_end_date, two_factor_enabled, created_by)
                      VALUES (:tenant, :email, :hash, :first, :last, :status,
                              :phone, :avatar, :locale, :manager,
                              :branch, :department, :team, :level, :jobTitle,
+                             :gender, :employeeId, :lineExecutive,
                              :hireDate, :probationEnd, :twoFactor, :createdBy)
                      RETURNING id',
                     $this->writableColumns($person, ['hash' => $passwordHash, 'createdBy' => $actorId]),
@@ -193,6 +199,7 @@ final class DbalPersonRepository implements PersonRepository
                         phone = :phone, avatar_url = :avatar, locale = :locale, manager_id = :manager,
                         branch_id = :branch, department_id = :department, team_id = :team,
                         level_id = :level, job_title_id = :jobTitle,
+                        gender = :gender, employee_id = :employeeId, line_executive_id = :lineExecutive,
                         hire_date = :hireDate, probation_end_date = :probationEnd,
                         two_factor_enabled = :twoFactor, updated_at = now()
                      WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
@@ -450,6 +457,9 @@ final class DbalPersonRepository implements PersonRepository
                 teamId: $p->teamId,
                 levelId: $p->levelId,
                 jobTitleId: $p->jobTitleId,
+                gender: $p->gender,
+                employeeId: $p->employeeId,
+                lineExecutiveId: $p->lineExecutiveId,
                 hireDate: $p->hireDate,
                 probationEndDate: $p->probationEndDate,
                 roleIds: $byUser[(string) $p->id] ?? [],
@@ -501,6 +511,9 @@ final class DbalPersonRepository implements PersonRepository
             'team'         => $person->teamId,
             'level'        => $person->levelId,
             'jobTitle'     => $person->jobTitleId,
+            'gender'       => $person->gender,
+            'employeeId'   => $person->employeeId,
+            'lineExecutive' => $person->lineExecutiveId,
             'hireDate'     => $person->hireDate?->format('Y-m-d'),
             'probationEnd' => $person->probationEndDate?->format('Y-m-d'),
             'twoFactor'    => $person->twoFactorEnabled,
@@ -521,6 +534,7 @@ final class DbalPersonRepository implements PersonRepository
                 level: $this->text($row['level_name'] ?? null),
                 jobTitle: $this->text($row['job_title_name'] ?? null),
                 manager: $this->text($row['manager_name'] ?? null),
+                lineExecutive: $this->text($row['line_executive_name'] ?? null),
             )
             : null;
 
@@ -540,6 +554,9 @@ final class DbalPersonRepository implements PersonRepository
             teamId: $this->text($row['team_id'] ?? null),
             levelId: $this->text($row['level_id'] ?? null),
             jobTitleId: $this->text($row['job_title_id'] ?? null),
+            gender: $this->text($row['gender'] ?? null),
+            employeeId: $this->text($row['employee_id'] ?? null),
+            lineExecutiveId: $this->text($row['line_executive_id'] ?? null),
             hireDate: $this->date($row['hire_date'] ?? null),
             probationEndDate: $this->date($row['probation_end_date'] ?? null),
             twoFactorEnabled: (bool) ($row['two_factor_enabled'] ?? false),

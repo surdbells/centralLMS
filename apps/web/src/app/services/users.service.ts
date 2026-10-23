@@ -18,6 +18,7 @@ export interface Placement {
   levelName: string | null;
   jobTitleName: string | null;
   managerName: string | null;
+  lineExecutiveName: string | null;
 }
 
 /** What somebody has been doing. Derived from their enrolments, never stored. */
@@ -46,6 +47,12 @@ export interface User {
   teamId: string | null;
   levelId: string | null;
   jobTitleId: string | null;
+  /** One of 'male' | 'female' | 'other' | 'undisclosed'; null when unset. */
+  gender: string | null;
+  /** The organisation's own staff number. */
+  employeeId: string | null;
+  /** A second reporting line, above the line manager. */
+  lineExecutiveId: string | null;
   hireDate: string | null;
   probationEndDate: string | null;
   roleIds: string[];
@@ -101,6 +108,9 @@ export interface UserInput {
   teamId?: string | null;
   levelId?: string | null;
   jobTitleId?: string | null;
+  gender?: string | null;
+  employeeId?: string | null;
+  lineExecutiveId?: string | null;
   hireDate?: string | null;
   probationEndDate?: string | null;
   roleIds?: string[];
