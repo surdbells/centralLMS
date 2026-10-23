@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, of, shareReplay, throwError } from 'rxjs';
-import { catchError, switchMap, tap } from 'rxjs/operators';
+import { Observable, map, of, shareReplay, throwError, timer } from 'rxjs';
+import { catchError, first, switchMap, take, tap } from 'rxjs/operators';
 import { ApiClient, Endpoints, type Paged, type UploadProgress } from '../core/api';
 
 export type { UploadProgress };
@@ -32,6 +32,8 @@ export interface MediaItem {
   launchUrl: string | null;
   /** True once a SCORM package has finished unpacking and can be played. */
   scormReady: boolean;
+  /** How far unpacking has got (SCORM only; null otherwise). */
+  scormStatus: 'pending' | 'processing' | 'ready' | 'failed' | null;
   metadata: Record<string, unknown>;
   rootMediaId: string | null;
   versionNumber: number;
@@ -140,6 +142,38 @@ export class MediaService {
 
   show(id: string): Observable<MediaItem> {
     return this.api.get<MediaItem>(Endpoints.media.show(id));
+  }
+
+  /**
+   * Waits for a SCORM package to finish unpacking, for the upload screen.
+   *
+   * A SCORM upload is stored at once but unzipped by a worker a moment later,
+   * so the file is not playable the instant the upload returns. This polls the
+   * item until the worker is done and emits the ready item (with its parsed
+   * entry file and version), errors if the extraction failed, and gives up
+   * after a couple of minutes — the worker keeps going regardless.
+   */
+  pollScormExtraction(id: string): Observable<MediaItem> {
+    return timer(0, 2500).pipe(
+      take(60), // ~2.5 minutes
+      switchMap(() => this.show(id)),
+      first((item) => item.scormStatus === 'ready' || item.scormStatus === 'failed', null),
+      map((item) => {
+        if (item === null) {
+          throw new Error(
+            'Unpacking is taking longer than expected — it will keep running in the background. Refresh in a moment.',
+          );
+        }
+
+        if (item.scormStatus === 'failed') {
+          throw new Error(
+            'The package could not be unpacked. Please check it is a valid SCORM zip, or contact support.',
+          );
+        }
+
+        return item;
+      }),
+    );
   }
 
   statistics(): Observable<MediaStatistics> {

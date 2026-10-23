@@ -35,6 +35,8 @@ final readonly class MediaItem
         public ?string $scormVersion = null,
         public ?string $launchUrl = null,
         public ?string $extractedPath = null,
+        /** The worker's progress: 'processing' or 'failed'; null until it starts. */
+        public ?string $scormStatus = null,
         public array $metadata = [],
         public ?string $sha256 = null,
         /** Null only before the row is written; every stored row has one. */
@@ -93,11 +95,16 @@ final readonly class MediaItem
             'height'           => $this->height,
             'pageCount'        => $this->pageCount,
             'scormVersion'     => $this->scormVersion,
-            // The entry file inside the extracted package, and whether the
-            // package has finished unpacking — a SCORM file can be played only
-            // once `scormReady` is true. Both null/false for non-SCORM.
+            // The entry file inside the extracted package, and how far unpacking
+            // has got — a SCORM file plays only once `scormReady` is true. For a
+            // SCORM file: 'ready' once extracted, else the worker's recorded
+            // state ('processing'/'failed') or 'pending' before it starts.
+            // All null/false for non-SCORM.
             'launchUrl'        => $this->launchUrl,
             'scormReady'       => $this->kind === MediaKind::Scorm && $this->extractedPath !== null,
+            'scormStatus'      => $this->kind !== MediaKind::Scorm
+                ? null
+                : ($this->extractedPath !== null ? 'ready' : ($this->scormStatus ?? 'pending')),
             'metadata'         => (object) $this->metadata,
             'rootMediaId'      => $this->rootMediaId,
             'versionNumber'    => $this->versionNumber,

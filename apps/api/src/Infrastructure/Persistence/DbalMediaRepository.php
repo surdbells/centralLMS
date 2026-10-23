@@ -16,7 +16,7 @@ final class DbalMediaRepository implements MediaRepository
     private const COLUMNS = 'm.id, m.tenant_id, m.uploaded_by, m.kind, m.title, m.description,
                              m.original_filename, m.storage_key, m.file_size, m.mime_type, m.extension,
                              m.duration_seconds, m.width, m.height, m.page_count,
-                             m.scorm_version, m.launch_url, m.extracted_path,
+                             m.scorm_version, m.launch_url, m.extracted_path, m.scorm_status,
                              m.metadata, m.sha256,
                              m.root_media_id, m.version_number, m.version_label, m.version_notes,
                              m.course_id, m.created_at, m.updated_at';
@@ -220,10 +220,10 @@ final class DbalMediaRepository implements MediaRepository
         string $scormVersion,
     ): void {
         $this->connection->executeStatement(
-            'UPDATE media SET
+            "UPDATE media SET
                  extracted_path = :path, launch_url = :launch, scorm_version = :version,
-                 updated_at = now()
-             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+                 scorm_status = 'ready', updated_at = now()
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL",
             [
                 'id'      => $id,
                 'tenant'  => $tenantId,
@@ -231,6 +231,15 @@ final class DbalMediaRepository implements MediaRepository
                 'launch'  => $launchUrl,
                 'version' => $scormVersion,
             ],
+        );
+    }
+
+    public function setScormStatus(string $tenantId, string $id, string $status): void
+    {
+        $this->connection->executeStatement(
+            'UPDATE media SET scorm_status = :status, updated_at = now()
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['id' => $id, 'tenant' => $tenantId, 'status' => $status],
         );
     }
 
@@ -451,6 +460,7 @@ final class DbalMediaRepository implements MediaRepository
             scormVersion: $this->text($row['scorm_version'] ?? null),
             launchUrl: $this->text($row['launch_url'] ?? null),
             extractedPath: $this->text($row['extracted_path'] ?? null),
+            scormStatus: $this->text($row['scorm_status'] ?? null),
             metadata: $this->json($row['metadata'] ?? null),
             sha256: $this->text($row['sha256'] ?? null),
             rootMediaId: $this->text($row['root_media_id'] ?? null),

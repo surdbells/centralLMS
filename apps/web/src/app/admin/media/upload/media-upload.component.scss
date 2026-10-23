@@ -716,3 +716,47 @@ textarea.form-control {
     overflow-y: auto;
   }
 }
+
+// SCORM extraction progress + manifest summary (shown in the upload queue).
+.file-item.extracting { opacity: 1; }
+
+.extracting-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--brand-primary, #4f46e5);
+
+  i { animation: spin 1.2s linear infinite; }
+}
+
+.scorm-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+
+  .scorm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0f7c43;
+    background: #e7f8ee;
+  }
+
+  .scorm-detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: #6b7280;
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

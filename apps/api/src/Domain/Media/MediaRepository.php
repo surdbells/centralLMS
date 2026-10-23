@@ -68,6 +68,14 @@ interface MediaRepository
     ): void;
 
     /**
+     * Records where a SCORM extraction has got to — 'processing' while the
+     * worker runs, 'failed' if it could not finish. ('ready' is written by
+     * {@see markExtracted}, which also sets the extracted path.) Lets the upload
+     * screen show progress rather than guess.
+     */
+    public function setScormStatus(string $tenantId, string $id, string $status): void;
+
+    /**
      * SCORM packages that have been uploaded but not yet unpacked.
      *
      * For the backfill command, which re-dispatches extraction for packages

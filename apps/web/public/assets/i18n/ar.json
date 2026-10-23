@@ -618,6 +618,8 @@
   "admin.media_upload.title_label": "العنوان",
   "admin.media_upload.title_placeholder": "أدخل عنوان الملف",
   "admin.media_upload.upload_failed": "فشل الرفع",
+  "admin.media_upload.scorm_unpacking": "جارٍ فك حزمة SCORM…",
+  "admin.media_upload.scorm_ready": "جاهز للتشغيل",
   "admin.media_upload.version_label": "تسمية الإصدار",
   "admin.media_upload.version_label_placeholder": "مثال: v2.0، النهائي",
   "admin.media_upload.version_notes": "ملاحظات الإصدار",

@@ -618,6 +618,8 @@
   "admin.media_upload.title_label": "Titre",
   "admin.media_upload.title_placeholder": "Saisissez le titre du fichier",
   "admin.media_upload.upload_failed": "Échec du téléversement",
+  "admin.media_upload.scorm_unpacking": "Décompression du paquet SCORM…",
+  "admin.media_upload.scorm_ready": "Prêt à lire",
   "admin.media_upload.version_label": "Étiquette de version",
   "admin.media_upload.version_label_placeholder": "p. ex. v2.0, Final",
   "admin.media_upload.version_notes": "Notes de version",

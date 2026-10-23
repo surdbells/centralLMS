@@ -107,6 +107,7 @@
         class="file-item"
         *ngFor="let queuedFile of fileQueue"
         [class.uploading]="queuedFile.status === 'uploading'"
+        [class.extracting]="queuedFile.status === 'extracting'"
         [class.success]="queuedFile.status === 'success'"
         [class.error]="queuedFile.status === 'error'">
 
@@ -123,6 +124,11 @@
                       [style.stroke-dashoffset]="100 - queuedFile.progress"/>
             </svg>
             <span class="progress-percent">{{ queuedFile.progress }}%</span>
+          </div>
+
+          <!-- Unpacking (SCORM) Overlay -->
+          <div class="progress-overlay" *ngIf="queuedFile.status === 'extracting'">
+            <span class="spinner-border spinner-border-sm text-light" role="status"></span>
           </div>
 
           <!-- Status Icon Overlay -->
@@ -152,8 +158,24 @@
             {{ queuedFile.error }}
           </div>
 
+          <!-- Unpacking a SCORM package -->
+          <div class="extracting-message" *ngIf="queuedFile.status === 'extracting'">
+            <i class="bi bi-hourglass-split"></i>
+            {{ 'admin.media_upload.scorm_unpacking' | translate }}
+          </div>
+
+          <!-- SCORM manifest summary (once unpacked) -->
+          <div class="scorm-summary"
+               *ngIf="queuedFile.status === 'success' && queuedFile.kind === 'scorm' && queuedFile.response?.scormReady">
+            <span class="scorm-chip"><i class="bi bi-box-seam"></i> {{ 'admin.media_upload.scorm_ready' | translate }}</span>
+            <span class="scorm-detail">SCORM {{ queuedFile.response?.scormVersion }}</span>
+            <span class="scorm-detail" *ngIf="queuedFile.response?.launchUrl">
+              <i class="bi bi-file-earmark-play"></i> {{ queuedFile.response?.launchUrl }}
+            </span>
+          </div>
+
           <!-- Success Info -->
-          <div class="success-info" *ngIf="queuedFile.response">
+          <div class="success-info" *ngIf="queuedFile.response && queuedFile.status === 'success'">
             <a role="button" (click)="openUploaded(queuedFile.response)" class="file-link">
               <i class="bi bi-box-arrow-up-right"></i>
               {{ 'admin.media_upload.view_file' | translate }}

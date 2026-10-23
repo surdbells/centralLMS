@@ -22,7 +22,7 @@ interface QueuedFile {
   kind: MediaKind;
   preview?: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'extracting' | 'success' | 'error';
   response?: MediaItem;
   error?: string;
   details: UploadDetails;
@@ -337,10 +337,18 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
           }
 
           if (event.state === 'done' && event.result) {
-            nextFile.status = 'success';
             nextFile.response = event.result;
             nextFile.progress = 100;
             this.uploadComplete.emit(event.result);
+
+            if (nextFile.kind === 'scorm') {
+              // The zip is stored, but a SCORM package is only playable once the
+              // worker has unpacked it — wait on screen and show the result.
+              this.awaitScormExtraction(nextFile);
+            } else {
+              nextFile.status = 'success';
+            }
+
             this.uploadNextFile();
           }
         },
@@ -350,6 +358,40 @@ export class MediaUploadComponent implements OnInit, OnDestroy {
           nextFile.error = error.message || this.i18n.t('admin.media_upload.upload_failed');
           this.uploadError.emit({ file: nextFile.file, error: nextFile.error });
           this.uploadNextFile();
+        },
+      });
+  }
+
+  /**
+   * Waits on screen for a SCORM package to finish unpacking.
+   *
+   * The upload is already done; this polls the worker's progress and settles
+   * the queued file on the parsed result (entry file + version) or the failure.
+   * The rest of the queue keeps uploading meanwhile.
+   */
+  private awaitScormExtraction(queuedFile: QueuedFile): void {
+    queuedFile.status = 'extracting';
+
+    const id = queuedFile.response?.id;
+
+    if (id === undefined) {
+      queuedFile.status = 'success';
+
+      return;
+    }
+
+    this.mediaService
+      .pollScormExtraction(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (ready) => {
+          queuedFile.response = ready;
+          queuedFile.status = 'success';
+        },
+        error: (error: { message?: string }) => {
+          queuedFile.status = 'error';
+          queuedFile.error = error.message ?? this.i18n.t('admin.media_upload.upload_failed');
+          this.uploadError.emit({ file: queuedFile.file, error: queuedFile.error });
         },
       });
   }

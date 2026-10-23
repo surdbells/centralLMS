@@ -618,6 +618,8 @@
   "admin.media_upload.title_label": "Title",
   "admin.media_upload.title_placeholder": "Enter file title",
   "admin.media_upload.upload_failed": "Upload failed",
+  "admin.media_upload.scorm_unpacking": "Unpacking the SCORM package…",
+  "admin.media_upload.scorm_ready": "Ready to play",
   "admin.media_upload.version_label": "Version Label",
   "admin.media_upload.version_label_placeholder": "e.g., v2.0, Final",
   "admin.media_upload.version_notes": "Version Notes",

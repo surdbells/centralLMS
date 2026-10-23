@@ -56,6 +56,9 @@ final readonly class ExtractScormPackageHandler
             return;
         }
 
+        // So the upload screen can show "unpacking…" rather than guess.
+        $this->media->setScormStatus($message->tenantId, $message->mediaId, 'processing');
+
         $workDir = $this->makeWorkDir();
         $zipPath = $workDir . '/package.zip';
         $outDir  = $workDir . '/out';
@@ -117,7 +120,10 @@ final readonly class ExtractScormPackageHandler
             ]);
         } catch (\Throwable $e) {
             // Left unextracted so it can be retried; any partial upload is
-            // overwritten by the next run writing the same keys.
+            // overwritten by the next run writing the same keys. The status
+            // lets the upload screen say so instead of waiting for ever.
+            $this->media->setScormStatus($message->tenantId, $message->mediaId, 'failed');
+
             $this->logger->error('SCORM extraction failed', [
                 'mediaId' => $message->mediaId,
                 'error'   => $e->getMessage(),
