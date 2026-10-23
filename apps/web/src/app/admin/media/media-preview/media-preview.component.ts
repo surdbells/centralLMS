@@ -3,7 +3,6 @@ import { TuiDialogContext } from '@taiga-ui/core';
 import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ScormAPI } from '../../../scorm-api';
 import { MediaUploadComponent } from '../upload/media-upload.component';
 import { MediaService, type MediaItem, type MediaKind } from '../../../services/media.service';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -70,13 +69,33 @@ export class MediaPreviewDialogComponent {
   ) {
     this.data = this.context.data;
 
-    // Both SCORM dialects, because a package may target either.
-    const api = new ScormAPI();
-    (window as unknown as Record<string, unknown>)['API'] = api; // SCORM 1.2
-    (window as unknown as Record<string, unknown>)['API_1484_11'] = api; // SCORM 2004
+    // A SCORM package looks for this runtime on `window` as it loads. In the
+    // preview — an administrator checking a package plays — nothing is tracked,
+    // so a no-op that simply lets the content initialise is enough; the real
+    // tracking runtime lives in the course player (ScormAdapterService).
+    if (this.data.kind === 'scorm') {
+      this.exposeNoopScormApi();
+    }
 
     this.loadFile();
     this.loadVersions();
+  }
+
+  /** A do-nothing SCORM 1.2 / 2004 runtime, so a previewed package can start. */
+  private exposeNoopScormApi(): void {
+    const ok = (): string => 'true';
+    const empty = (): string => '';
+
+    const api: Record<string, (...args: string[]) => string> = {
+      LMSInitialize: ok, LMSFinish: ok, LMSGetValue: empty, LMSSetValue: ok,
+      LMSCommit: ok, LMSGetLastError: () => '0', LMSGetErrorString: empty, LMSGetDiagnostic: empty,
+      Initialize: ok, Terminate: ok, GetValue: empty, SetValue: ok, Commit: ok,
+      GetLastError: () => '0', GetErrorString: empty, GetDiagnostic: empty,
+    };
+
+    const w = window as unknown as Record<string, unknown>;
+    w['API'] = api; // SCORM 1.2
+    w['API_1484_11'] = api; // SCORM 2004
   }
 
   /**
@@ -87,12 +106,19 @@ export class MediaPreviewDialogComponent {
    * which is what every one of these dialogs used to show.
    */
   private loadFile(): void {
-    this.media.fileUrl({ id: this.data.id }).subscribe({
+    // A SCORM package is played from its unpacked entry page, not streamed as
+    // the zip (which just downloads). Everything else streams the file.
+    const url$ = this.data.kind === 'scorm'
+      ? this.media.scormLaunchUrl(this.data.id)
+      : this.media.fileUrl({ id: this.data.id });
+
+    url$.subscribe({
       next: (url) => {
         this.url = url;
         this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
       },
-      error: (error: ApiError) => this.error_notification(error.message),
+      error: (error: { message?: string }) =>
+        this.error_notification(error.message ?? this.i18n.t('admin.media_preview.opening')),
     });
   }
 

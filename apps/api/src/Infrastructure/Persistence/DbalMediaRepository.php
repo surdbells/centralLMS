@@ -212,6 +212,45 @@ final class DbalMediaRepository implements MediaRepository
         return $changed === 0 ? null : $this->find($item->tenantId, (string) $item->id);
     }
 
+    public function markExtracted(
+        string $tenantId,
+        string $id,
+        string $extractedPath,
+        string $launchUrl,
+        string $scormVersion,
+    ): void {
+        $this->connection->executeStatement(
+            'UPDATE media SET
+                 extracted_path = :path, launch_url = :launch, scorm_version = :version,
+                 updated_at = now()
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            [
+                'id'      => $id,
+                'tenant'  => $tenantId,
+                'path'    => $extractedPath,
+                'launch'  => $launchUrl,
+                'version' => $scormVersion,
+            ],
+        );
+    }
+
+    public function pendingScormExtractions(): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            sprintf(
+                'SELECT %s, %s FROM media m %s
+                 WHERE m.kind = :scorm AND m.extracted_path IS NULL AND m.deleted_at IS NULL
+                 ORDER BY m.created_at ASC',
+                self::COLUMNS,
+                self::VERSIONS,
+                self::VERSION_JOIN,
+            ),
+            ['scorm' => MediaKind::Scorm->value],
+        );
+
+        return array_map($this->hydrate(...), $rows);
+    }
+
     public function softDelete(string $tenantId, string $id, bool $allVersions = false): array
     {
         return $this->connection->transactional(

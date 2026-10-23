@@ -8,6 +8,7 @@ use Central\Api\Application\Console\CheckIltProvidersCommand;
 use Central\Api\Application\Console\GenerateOpenApiCommand;
 use Central\Api\Application\Console\ApplyEnrollmentRulesCommand;
 use Central\Api\Application\Console\ConsumeMessagesCommand;
+use Central\Api\Application\Console\ExtractPendingScormCommand;
 use Central\Api\Application\Console\DispatchNotificationsCommand;
 use Central\Api\Application\Console\DispatchScheduledReportsCommand;
 use Central\Api\Application\Console\RunBillingCommand;
@@ -85,6 +86,7 @@ $app->addCommands([
     $container->get(CheckIltProvidersCommand::class),
     $container->get(CheckFrontendRoutesCommand::class),
     $container->get(ConsumeMessagesCommand::class),
+    $container->get(ExtractPendingScormCommand::class),
     $container->get(DispatchNotificationsCommand::class),
     $container->get(DispatchScheduledReportsCommand::class),
     $container->get(ApplyEnrollmentRulesCommand::class),

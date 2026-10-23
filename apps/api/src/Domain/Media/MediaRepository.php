@@ -52,6 +52,33 @@ interface MediaRepository
     public function update(MediaItem $item): ?MediaItem;
 
     /**
+     * Records where a SCORM package was unpacked and how it launches.
+     *
+     * Written by the extraction worker once a package has been unzipped: the
+     * folder its files live under in storage, the entry file named by the
+     * manifest, and the SCORM version the manifest declares. Until this is set,
+     * `extracted_path` is null and the package is not yet playable.
+     */
+    public function markExtracted(
+        string $tenantId,
+        string $id,
+        string $extractedPath,
+        string $launchUrl,
+        string $scormVersion,
+    ): void;
+
+    /**
+     * SCORM packages that have been uploaded but not yet unpacked.
+     *
+     * For the backfill command, which re-dispatches extraction for packages
+     * that predate the worker (or whose extraction failed and left the row
+     * with no `extracted_path`). Across all tenants.
+     *
+     * @return list<MediaItem>
+     */
+    public function pendingScormExtractions(): array;
+
+    /**
      * Soft delete. Returns the storage keys that are now unreferenced.
      *
      * @param  bool $allVersions whether to remove the whole chain

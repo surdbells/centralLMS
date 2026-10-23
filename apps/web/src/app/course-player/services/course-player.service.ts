@@ -827,6 +827,20 @@ export class CoursePlayerService {
     return this.media.resolve(reference);
   }
 
+  /**
+   * The URL that plays a SCORM lesson's package — its unpacked entry page,
+   * behind a path-carried ticket — or null if the lesson points elsewhere.
+   *
+   * Distinct from {@link resolveContent}, which hands back the stored file: for
+   * a SCORM package that is the zip, which a browser downloads rather than
+   * plays. See {@link MediaService.scormLaunchUrl}.
+   */
+  scormLaunchUrl(reference: string | null): Observable<string | null> {
+    const id = MediaService.idFromReference(reference);
+
+    return id === null ? of(null) : this.media.scormLaunchUrl(id);
+  }
+
   formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);

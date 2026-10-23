@@ -116,6 +116,7 @@ use Central\Api\Application\Action\Note\MyNotesAction;
 use Central\Api\Application\Action\Settings\TenantSettingsAction;
 use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
+use Central\Api\Application\Action\Media\ScormContentAction;
 use Central\Api\Application\Action\Library\LibraryAction;
 use Central\Api\Application\Action\Library\ManageLibraryAction;
 use Central\Api\Application\Action\Library\StreamLibraryAction;
@@ -280,6 +281,15 @@ return static function (App $app): void {
         // permission. The ticket names one file and lasts minutes.
         $v1->get('/media/{id:' . $uuid . '}/file', StreamMediaAction::class)
             ->setName('media.file');
+
+        // One file out of an unpacked SCORM package, for the iframe that plays
+        // it. Outside the authenticated group for the same reason as /file —
+        // the iframe fetches the package's assets by relative path, with no
+        // header. The ticket is in the PATH, not the query, so those relative
+        // fetches carry it too (a cookie would be third-party here). See
+        // ScormContentAction.
+        $v1->get('/media/{id:' . $uuid . '}/scorm/{ticket}/{path:.*}', ScormContentAction::class)
+            ->setName('media.scorm');
 
         // The digital library serves its bytes the same way, and only inline —
         // there is deliberately no download route. See StreamLibraryAction.

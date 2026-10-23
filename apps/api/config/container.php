@@ -114,6 +114,8 @@ use Central\Api\Infrastructure\Persistence\DbalPersonRepository;
 use Central\Api\Infrastructure\Storage\MediaStorage;
 use Central\Api\Application\Library\ConvertDocumentToPdf;
 use Central\Api\Application\Library\ConvertDocumentToPdfHandler;
+use Central\Api\Application\Media\ExtractScormPackage;
+use Central\Api\Application\Media\ExtractScormPackageHandler;
 use Central\Api\Domain\Library\DigitalLibraryRepository;
 use Central\Api\Infrastructure\Persistence\DbalDigitalLibraryRepository;
 use Central\Api\Infrastructure\Persistence\DbalEmailTemplateRepository;
@@ -335,6 +337,14 @@ return [
                 ConvertDocumentToPdf::class => [
                     new ConvertDocumentToPdfHandler(
                         $c->get(DigitalLibraryRepository::class),
+                        $c->get(MediaStorage::class),
+                        $c->get(LoggerInterface::class),
+                    ),
+                ],
+                // SCORM packages are unzipped off the request, by the worker.
+                ExtractScormPackage::class => [
+                    new ExtractScormPackageHandler(
+                        $c->get(MediaRepository::class),
                         $c->get(MediaStorage::class),
                         $c->get(LoggerInterface::class),
                     ),

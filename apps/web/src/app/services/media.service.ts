@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, of, shareReplay } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, map, of, shareReplay, throwError } from 'rxjs';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ApiClient, Endpoints, type Paged, type UploadProgress } from '../core/api';
 
 export type { UploadProgress };
@@ -28,6 +28,10 @@ export interface MediaItem {
   height: number | null;
   pageCount: number | null;
   scormVersion: string | null;
+  /** The entry file inside an extracted SCORM package; null for other kinds. */
+  launchUrl: string | null;
+  /** True once a SCORM package has finished unpacking and can be played. */
+  scormReady: boolean;
   metadata: Record<string, unknown>;
   rootMediaId: string | null;
   versionNumber: number;
@@ -246,6 +250,35 @@ export class MediaService {
   /** The same URL, asking the browser to save the file rather than show it. */
   downloadUrl(item: MediaItem | { id: string }): Observable<string> {
     return this.fileUrl(item).pipe(map((url) => `${url}&download=1`));
+  }
+
+  /**
+   * The URL that plays a SCORM package: its entry page, behind a ticket.
+   *
+   * A package is served unpacked, not as the zip — the zip just downloads. Its
+   * entry page then pulls in its own JS, CSS and media by *relative* path, with
+   * no header and no `?ticket`, so the ticket is carried in the PATH
+   * (`…/scorm/{ticket}/index.html`): a relative `./js/app.js` resolves to
+   * `…/scorm/{ticket}/js/app.js` and carries the same ticket. Errors if the
+   * package is still being unpacked.
+   */
+  scormLaunchUrl(id: string): Observable<string> {
+    return this.show(id).pipe(
+      switchMap((item) => {
+        const launch = item.launchUrl;
+
+        if (!item.scormReady || !launch) {
+          return throwError(() => new Error(
+            'This SCORM package is still being prepared. Try again in a moment.',
+          ));
+        }
+
+        return this.api
+          .post<MediaTicket>(Endpoints.media.ticket(id), {})
+          .pipe(map((ticket) =>
+            this.api.urlFor(`/media/${id}/scorm/${ticket.ticket}/${encodeURI(launch)}`)));
+      }),
+    );
   }
 
   /**

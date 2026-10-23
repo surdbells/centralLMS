@@ -315,7 +315,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     }
 
     this.playerService
-      .resolveContent(lesson.content_url)
+      .scormLaunchUrl(lesson.content_url)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (url) => {

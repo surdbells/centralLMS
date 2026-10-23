@@ -93,6 +93,11 @@ final readonly class MediaItem
             'height'           => $this->height,
             'pageCount'        => $this->pageCount,
             'scormVersion'     => $this->scormVersion,
+            // The entry file inside the extracted package, and whether the
+            // package has finished unpacking — a SCORM file can be played only
+            // once `scormReady` is true. Both null/false for non-SCORM.
+            'launchUrl'        => $this->launchUrl,
+            'scormReady'       => $this->kind === MediaKind::Scorm && $this->extractedPath !== null,
             'metadata'         => (object) $this->metadata,
             'rootMediaId'      => $this->rootMediaId,
             'versionNumber'    => $this->versionNumber,

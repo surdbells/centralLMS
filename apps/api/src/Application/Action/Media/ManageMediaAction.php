@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Media;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Media\ExtractScormPackage;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\ValidationFailed;
@@ -19,6 +20,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The media library.
@@ -54,6 +56,7 @@ final class ManageMediaAction extends MediaAction
         private readonly MediaStorage $storage,
         private readonly Connection $connection,
         private readonly JwtTokenService $tokens,
+        private readonly MessageBusInterface $bus,
     ) {
         parent::__construct($media);
     }
@@ -196,6 +199,8 @@ final class ManageMediaAction extends MediaAction
 
         $item = $this->media->create($this->assemble($checked, $upload, $request, $body, $tenantId));
 
+        $this->unpackIfScorm($item);
+
         return Json::created($response, $item->toArray(), '/v1/media/' . $item->id);
     }
 
@@ -238,7 +243,23 @@ final class ManageMediaAction extends MediaAction
             throw new ConflictingState('That file was removed while the new version was uploading.');
         }
 
+        $this->unpackIfScorm($item);
+
         return Json::created($response, $item->toArray(), '/v1/media/' . $item->id);
+    }
+
+    /**
+     * Hands a freshly uploaded SCORM package to the worker to be unzipped.
+     *
+     * Only SCORM packages; every other kind is playable as the file it is. The
+     * worker reads the row, so dispatching before the response is sent is safe —
+     * the bytes are already stored.
+     */
+    private function unpackIfScorm(MediaItem $item): void
+    {
+        if ($item->kind === MediaKind::Scorm && $item->id !== null) {
+            $this->bus->dispatch(new ExtractScormPackage($item->tenantId, $item->id));
+        }
     }
 
     /**
