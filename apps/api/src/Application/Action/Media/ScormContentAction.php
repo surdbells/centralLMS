@@ -79,16 +79,22 @@ final class ScormContentAction extends MediaAction
             throw new EntityNotFound('SCORM content', (string) $item->id);
         }
 
-        // The requested path within the package; empty means the entry page.
         $path = $this->within($args['path'] ?? '');
 
+        // The player wrapper. The app embeds `…/scorm/{ticket}/` (empty path):
+        // a synthetic page, served from THIS origin, that holds the SCORM API
+        // and frames the real entry file. The content's window.parent is then
+        // this wrapper — same origin — so it can actually reach the API; the
+        // app is a further frame up, cross-origin, which it never has to touch.
+        // The wrapper relays the outcome to the app by postMessage, the way the
+        // course player's message handler expects.
         if ($path === '') {
-            $path = ltrim((string) $item->launchUrl, '/');
+            return $this->wrapper($response, ltrim((string) $item->launchUrl, '/'));
         }
 
         $key = $item->extractedPath . '/' . $path;
 
-        if ($path === '' || !$this->storage->has($key)) {
+        if (!$this->storage->has($key)) {
             throw new EntityNotFound('SCORM file', $path);
         }
 
@@ -102,6 +108,93 @@ final class ScormContentAction extends MediaAction
             ->withHeader('Cache-Control', 'private, max-age=300')
             ->withHeader('X-Content-Type-Options', 'nosniff')
             ->withBody($stream);
+    }
+
+    /**
+     * The player wrapper page.
+     *
+     * Carries a SCORM 1.2 / 2004 runtime on its own `window`, so the content it
+     * frames — same origin, one level down — finds the API by the standard
+     * parent scan without ever touching the cross-origin app. Every call is
+     * relayed to the app (this wrapper's own parent) by postMessage, in the
+     * shape the course player's message handler reads; the app records the
+     * status and score as lesson progress. In the admin preview there is no
+     * handler listening, and the content simply plays.
+     */
+    private function wrapper(ResponseInterface $response, string $launchUrl): ResponseInterface
+    {
+        $html = str_replace(
+            '__LAUNCH_SRC__',
+            htmlspecialchars($launchUrl, ENT_QUOTES),
+            <<<'HTML'
+            <!doctype html>
+            <html>
+            <head>
+            <meta charset="utf-8">
+            <style>html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#fff}iframe{border:0;width:100%;height:100%;display:block}</style>
+            <script>
+            (function () {
+              var data = {};
+              function post(type, extra) {
+                try {
+                  var msg = { type: type, cmiData: data };
+                  if (extra) { for (var k in extra) { msg[k] = extra[k]; } }
+                  parent.postMessage(msg, '*');
+                } catch (e) {}
+              }
+              function status() {
+                return String(data['cmi.completion_status'] || data['cmi.success_status']
+                  || data['cmi.core.lesson_status'] || '').toLowerCase();
+              }
+              function score() {
+                var s = data['cmi.score.raw'];
+                if (s == null) { s = data['cmi.core.score.raw']; }
+                return (s == null || s === '') ? undefined : Number(s);
+              }
+              function get(k) { return data[k] != null ? String(data[k]) : ''; }
+              function set(k, v) {
+                data[k] = v;
+                if (k === 'cmi.core.lesson_status' || k === 'cmi.completion_status' || k === 'cmi.success_status') {
+                  post('scorm_status_change', { status: status(), score: score() });
+                }
+                return 'true';
+              }
+              var api = {
+                LMSInitialize: function () { post('scorm_initialize'); return 'true'; },
+                LMSFinish: function () { post('scorm_finish', { status: status(), score: score() }); return 'true'; },
+                LMSGetValue: function (k) { return get(k); },
+                LMSSetValue: function (k, v) { return set(k, v); },
+                LMSCommit: function () { post('scorm_commit'); return 'true'; },
+                LMSGetLastError: function () { return '0'; },
+                LMSGetErrorString: function () { return 'No error'; },
+                LMSGetDiagnostic: function () { return 'No error'; },
+                Initialize: function () { post('scorm_initialize'); return 'true'; },
+                Terminate: function () { post('scorm_finish', { status: status(), score: score() }); return 'true'; },
+                GetValue: function (k) { return get(k); },
+                SetValue: function (k, v) { return set(k, v); },
+                Commit: function () { post('scorm_commit'); return 'true'; },
+                GetLastError: function () { return '0'; },
+                GetErrorString: function () { return 'No error'; },
+                GetDiagnostic: function () { return 'No error'; }
+              };
+              window.API = api;
+              window.API_1484_11 = api;
+              post('scorm_wrapper_ready');
+            })();
+            </script>
+            </head>
+            <body>
+            <iframe src="__LAUNCH_SRC__" allowfullscreen allow="autoplay; fullscreen; microphone; camera"></iframe>
+            </body>
+            </html>
+            HTML,
+        );
+
+        $response->getBody()->write($html);
+
+        return $response
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+            ->withHeader('Cache-Control', 'private, max-age=60');
     }
 
     /**

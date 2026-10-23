@@ -253,21 +253,19 @@ export class MediaService {
   }
 
   /**
-   * The URL that plays a SCORM package: its entry page, behind a ticket.
+   * The URL that plays a SCORM package: the player wrapper, behind a ticket.
    *
-   * A package is served unpacked, not as the zip — the zip just downloads. Its
-   * entry page then pulls in its own JS, CSS and media by *relative* path, with
-   * no header and no `?ticket`, so the ticket is carried in the PATH
-   * (`…/scorm/{ticket}/index.html`): a relative `./js/app.js` resolves to
-   * `…/scorm/{ticket}/js/app.js` and carries the same ticket. Errors if the
-   * package is still being unpacked.
+   * A package is served unpacked, not as the zip — the zip just downloads. The
+   * URL points at the wrapper (`…/scorm/{ticket}/`, no file), which carries the
+   * SCORM runtime and frames the package's entry file from the same origin, so
+   * the content can reach the API across the app↔API origin boundary. The
+   * ticket is in the PATH, so the content's relative asset requests — which send
+   * no header or query — carry it too. Errors if the package is still unpacking.
    */
   scormLaunchUrl(id: string): Observable<string> {
     return this.show(id).pipe(
       switchMap((item) => {
-        const launch = item.launchUrl;
-
-        if (!item.scormReady || !launch) {
+        if (!item.scormReady) {
           return throwError(() => new Error(
             'This SCORM package is still being prepared. Try again in a moment.',
           ));
@@ -275,8 +273,7 @@ export class MediaService {
 
         return this.api
           .post<MediaTicket>(Endpoints.media.ticket(id), {})
-          .pipe(map((ticket) =>
-            this.api.urlFor(`/media/${id}/scorm/${ticket.ticket}/${encodeURI(launch)}`)));
+          .pipe(map((ticket) => this.api.urlFor(`/media/${id}/scorm/${ticket.ticket}/`)));
       }),
     );
   }
