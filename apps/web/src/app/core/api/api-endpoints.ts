@@ -130,6 +130,15 @@ export const Endpoints = {
     status: (kind: LookupKind, id: string) => `/lookups/${kind}/${id}/status`,
   },
 
+  // Per-tenant custom profile fields. Reading is open to any signed-in user
+  // (a profile form renders them); writing rides on user.manage.
+  customFields: {
+    list: '/custom-fields',
+    create: '/custom-fields',
+    update: (id: string) => `/custom-fields/${id}`,
+    delete: (id: string) => `/custom-fields/${id}`,
+  },
+
   // --- catalogue --------------------------------------------------------
   courses: {
     /** What a learner may browse: published, and visible to them. */

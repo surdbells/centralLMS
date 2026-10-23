@@ -68,6 +68,11 @@ export interface User {
    */
   placement?: Placement | null;
   activity?: UserActivity | null;
+  /**
+   * Answers to the tenant's custom fields, keyed by field key. Present on the
+   * single-person endpoints (show, create, update), not on the list.
+   */
+  customFields?: Record<string, string | number | boolean>;
 }
 
 /** Just enough to fill a picker. */
@@ -114,6 +119,8 @@ export interface UserInput {
   hireDate?: string | null;
   probationEndDate?: string | null;
   roleIds?: string[];
+  /** Answers to the tenant's custom fields, keyed by field key. */
+  customFields?: Record<string, string | number | boolean>;
 }
 
 export interface UserStatistics {

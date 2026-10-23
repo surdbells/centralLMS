@@ -175,6 +175,14 @@ export const routes: Routes = [
     title: 'Settings'
   },
   {
+    // Per-tenant custom profile fields — define what else, beyond the fixed
+    // profile, this organisation records about its people.
+    path: 'admin/custom-fields',
+    loadComponent: () =>
+      import('./admin/custom-fields/custom-fields.component').then(m => m.CustomFieldsComponent),
+    title: 'Custom Profile Fields',
+  },
+  {
     path: 'learning',
     component: LearningComponent,
     title: 'Learning'

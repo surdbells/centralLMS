@@ -149,6 +149,7 @@ use Central\Api\Application\Action\Ilt\ManageTrainingsAction;
 use Central\Api\Application\Action\Ilt\TrainingEnrolmentAction;
 use Central\Api\Application\Action\Ilt\VideoIntegrationAction;
 use Central\Api\Application\Action\Lookup\ActiveLookupsAction;
+use Central\Api\Application\Action\CustomField\ManageCustomFieldsAction;
 use Central\Api\Application\Action\Lookup\CreateLookupAction;
 use Central\Api\Application\Action\Lookup\ListLookupsAction;
 use Central\Api\Application\Action\Lookup\SetLookupStatusAction;
@@ -557,6 +558,18 @@ return static function (App $app): void {
                 $l->get('/{id:' . $uuid . '}', ShowLookupAction::class)->setName('lookups.show');
                 $l->put('/{id:' . $uuid . '}', UpdateLookupAction::class)->setName('lookups.update');
                 $l->patch('/{id:' . $uuid . '}/status', SetLookupStatusAction::class)->setName('lookups.status');
+            });
+
+            // Per-tenant custom profile fields. Reading the definitions needs
+            // no permission (a profile form has to render them); editing them
+            // rides on user.manage, checked inside the action.
+            $secure->group('/custom-fields', function (RouteCollectorProxy $f) use ($uuid): void {
+                $f->get('', [ManageCustomFieldsAction::class, 'list'])->setName('customFields.list');
+                $f->post('', [ManageCustomFieldsAction::class, 'create'])->setName('customFields.create');
+                $f->put('/{id:' . $uuid . '}', [ManageCustomFieldsAction::class, 'update'])
+                    ->setName('customFields.update');
+                $f->delete('/{id:' . $uuid . '}', [ManageCustomFieldsAction::class, 'delete'])
+                    ->setName('customFields.delete');
             });
 
             // Reusable questions. There is no learner-facing route onto a

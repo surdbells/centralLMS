@@ -8,6 +8,8 @@ use Central\Api\Application\Http\Json;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Authz\Role;
 use Central\Api\Domain\Authz\RoleRepository;
+use Central\Api\Domain\CustomField\CustomFieldDefinitionRepository;
+use Central\Api\Domain\CustomField\CustomFieldValues;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\ValidationFailed;
@@ -55,6 +57,7 @@ final class ManagePeopleAction extends PeopleAction
         private readonly PasswordHasher $hasher,
         private readonly SettingsRepository $settings,
         private readonly PasswordResetAction $passwords,
+        private readonly CustomFieldDefinitionRepository $customFields,
     ) {
         parent::__construct($people);
     }
@@ -169,7 +172,12 @@ final class ManagePeopleAction extends PeopleAction
             $this->caller($request)->mustHave(Permission::UserView);
         }
 
-        return Json::ok($response, $this->require($request, $id)->toArray());
+        $person = $this->require($request, $id);
+
+        return Json::ok($response, [
+            ...$person->toArray(),
+            'customFields' => $this->people->customFieldsFor($this->tenantId($request), (string) $person->id),
+        ]);
     }
 
     public function create(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -189,6 +197,16 @@ final class ManagePeopleAction extends PeopleAction
         if ($password !== null && $password !== '') {
             PersonInput::checkPassword($password, $violations, policy: $this->policyFor($request));
         }
+
+        // Validated against the definitions before the person is written, so a
+        // bad custom value fails the whole request rather than leaving a new
+        // account with half its profile.
+        $customValues = CustomFieldValues::validate(
+            $this->customFields->allForTenant($tenantId, true),
+            (array) ($body['customFields'] ?? []),
+            [],
+            $violations,
+        );
 
         if ($violations !== []) {
             throw ValidationFailed::fromArray($violations);
@@ -224,6 +242,10 @@ final class ManagePeopleAction extends PeopleAction
             $this->userId($request),
         );
 
+        if ($customValues !== [] && $created->id !== null) {
+            $this->people->saveCustomFields($tenantId, $created->id, $customValues);
+        }
+
         // The invitation `UserStatus::Invited` has always promised.
         //
         // Its own message tells the person to check their email for it, an
@@ -241,7 +263,7 @@ final class ManagePeopleAction extends PeopleAction
 
         return Json::created(
             $response,
-            [...$created->toArray(), 'invitationSent' => $invited],
+            [...$created->toArray(), 'customFields' => $customValues, 'invitationSent' => $invited],
             '/v1/users/' . $created->id,
         );
     }
@@ -263,13 +285,32 @@ final class ManagePeopleAction extends PeopleAction
 
         // The existing record is the base, so a form that sends three fields
         // does not blank the other seventeen.
+        $body = $this->body($request);
+
         $person = PersonInput::toPerson(
             $tenantId,
             $existing->id,
-            $this->body($request),
+            $body,
             $violations,
             $existing,
         );
+
+        // Only touched when the request actually carries custom fields. An
+        // edit that does not mention them — a status change, a renamed
+        // department from a caller that sends nothing else — leaves the stored
+        // values exactly as they are, rather than revalidating (and possibly
+        // rejecting) a profile the caller never meant to change. A partial save
+        // keeps what it does not mention, so the existing map is the base.
+        $customValues = null;
+
+        if (array_key_exists('customFields', $body)) {
+            $customValues = CustomFieldValues::validate(
+                $this->customFields->allForTenant($tenantId, true),
+                (array) $body['customFields'],
+                $this->people->customFieldsFor($tenantId, (string) $existing->id),
+                $violations,
+            );
+        }
 
         if ($violations !== []) {
             throw ValidationFailed::fromArray($violations);
@@ -298,7 +339,17 @@ final class ManagePeopleAction extends PeopleAction
             );
         }
 
-        return Json::ok($response, $this->people->update($person)->toArray());
+        $updated = $this->people->update($person);
+
+        if ($customValues !== null) {
+            $this->people->saveCustomFields($tenantId, (string) $existing->id, $customValues);
+        }
+
+        return Json::ok($response, [
+            ...$updated->toArray(),
+            'customFields' => $customValues
+                ?? $this->people->customFieldsFor($tenantId, (string) $existing->id),
+        ]);
     }
 
     /**

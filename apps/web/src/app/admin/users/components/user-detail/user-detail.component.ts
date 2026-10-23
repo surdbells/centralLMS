@@ -5,6 +5,7 @@ import { Subject, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { UsersService, type User as ApiUser } from '../../../../services/users.service';
 import { RolesService, type Role as ApiRole } from '../../../../services/roles.service';
+import { CustomFieldsService, type CustomFieldDefinition } from '../../../../services/custom-fields.service';
 import { AuditService } from '../../../../services/audit.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
@@ -152,6 +153,15 @@ function onDay(value: string | null): string {
               </div>
             </div>
           </div>
+          <div class="card border-0 shadow-sm mt-3" *ngIf="customFields.length">
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>{{ 'admin.user_form.additional_info' | translate }}</div>
+            <div class="card-body">
+              <div class="row mb-2" *ngFor="let f of customFields">
+                <div class="col-5 text-muted small">{{ f.label }}</div>
+                <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+              </div>
+            </div>
+          </div>
           <div class="card border-0 shadow-sm mt-3">
             <div class="card-header bg-white fw-semibold"><i class="bi bi-clock me-2"></i>{{ 'admin.user_detail.account' | translate }}</div>
             <div class="card-body">
@@ -241,6 +251,7 @@ function onDay(value: string | null): string {
 export class UserDetailComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
+  private readonly customFieldsService = inject(CustomFieldsService);
   private readonly auditService = inject(AuditService);
   private readonly route = inject(ActivatedRoute);
   private readonly i18n = inject(I18nService);
@@ -265,9 +276,12 @@ export class UserDetailComponent implements OnInit, OnDestroy {
   personalFields: Array<{ label: string; value: string }> = [];
   orgFields: Array<{ label: string; value: string }> = [];
   accountFields: Array<{ label: string; value: string }> = [];
+  customFields: Array<{ label: string; value: string }> = [];
 
   /** The full role records, so permissions can be worked out without a fetch. */
   private roleIndex = new Map<string, ApiRole>();
+  /** The tenant's active custom field definitions, for labels and ordering. */
+  private customDefs: CustomFieldDefinition[] = [];
   private userId = '';
 
   ngOnInit(): void {
@@ -282,15 +296,17 @@ export class UserDetailComponent implements OnInit, OnDestroy {
     forkJoin({
       user: this.usersService.show(this.userId),
       roles: this.rolesService.list(),
+      customFields: this.customFieldsService.list(),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ user, roles }) => {
+        next: ({ user, roles, customFields }) => {
           for (const role of roles) {
             this.roleIndex.set(role.id, role);
           }
 
           this.allRoles = roles.map((r) => ({ role_id: r.id, role_name: r.name }));
+          this.customDefs = customFields.filter((f) => f.isActive);
           this.apply(user);
           this.loading = false;
         },
@@ -341,6 +357,21 @@ export class UserDetailComponent implements OnInit, OnDestroy {
     this.buildFields(user);
   }
 
+  private formatCustom(
+    value: string | number | boolean | undefined,
+    field: CustomFieldDefinition,
+  ): string {
+    if (value === undefined || value === null || value === '') {
+      return '';
+    }
+
+    if (field.type === 'boolean') {
+      return value ? this.i18n.t('common.yes') : this.i18n.t('common.no');
+    }
+
+    return String(value);
+  }
+
   private buildFields(u: ApiUser): void {
     this.personalFields = [
       { label: this.i18n.t('admin.user_detail.full_name'), value: u.fullName },
@@ -361,6 +392,11 @@ export class UserDetailComponent implements OnInit, OnDestroy {
       { label: this.i18n.t('admin.user_form.line_executive'), value: u.placement?.lineExecutiveName ?? '' },
       { label: this.i18n.t('admin.user_form.hire_date'), value: onDay(u.hireDate) },
     ];
+
+    this.customFields = this.customDefs.map((f) => ({
+      label: f.label,
+      value: this.formatCustom(u.customFields?.[f.key], f),
+    }));
 
     this.accountFields = [
       { label: this.i18n.t('admin.enrollees.col_status'), value: this.i18n.t('admin.users.status_' + u.status) },

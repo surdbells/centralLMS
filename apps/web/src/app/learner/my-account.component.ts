@@ -8,6 +8,7 @@ import { takeUntil } from 'rxjs/operators';
 import { MyProfileService, type Consents } from '../services/my-profile.service';
 import { UsersService } from '../services/users.service';
 import { RolesService } from '../services/roles.service';
+import { CustomFieldsService, type CustomFieldDefinition } from '../services/custom-fields.service';
 import { SessionStore } from '../core/auth/session.store';
 import { ApiError, AuthImgDirective } from '../core/api';
 import { TopComponent } from '../partials/top/top.component';
@@ -244,6 +245,17 @@ export interface LoginRecord {
                 </div>
               </div>
 
+              <!-- Additional (tenant custom) info, read-only -->
+              <div class="card border-0 shadow-sm mb-3" *ngIf="customInfo.length">
+                <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>Additional Information</div>
+                <div class="card-body">
+                  <div class="row mb-3" *ngFor="let f of customInfo">
+                    <div class="col-5 text-muted small">{{ f.label }}</div>
+                    <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Account info -->
               <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold"><i class="bi bi-info-circle me-2"></i>Account</div>
@@ -441,6 +453,7 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   private readonly profileService = inject(MyProfileService);
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
+  private readonly customFieldsService = inject(CustomFieldsService);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
@@ -463,6 +476,8 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   personalInfo: Array<{ label: string; value: string }> = [];
   orgInfo: Array<{ label: string; value: string }> = [];
   accountInfo: Array<{ label: string; value: string }> = [];
+  /** This tenant's custom fields, with the person's values resolved. */
+  customInfo: Array<{ label: string; value: string }> = [];
 
   // Profile
   editingProfile = false;
@@ -518,10 +533,11 @@ export class MyAccountComponent implements OnInit, OnDestroy {
       me: this.profileService.show(),
       consents: this.profileService.consents(),
       roles: this.rolesService.list(),
+      customFields: this.customFieldsService.list(),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ me, consents, roles }) => {
+        next: ({ me, consents, roles, customFields }) => {
           const mine = roles.filter((role) => me.roleIds.includes(role.id));
 
           this.profile = {
@@ -536,6 +552,9 @@ export class MyAccountComponent implements OnInit, OnDestroy {
           };
 
           this.buildInfoCards(me);
+          this.customInfo = customFields
+            .filter((f) => f.isActive)
+            .map((f) => ({ label: f.label, value: this.formatCustom(me.customFields?.[f.key], f) }));
 
           this.profileForm = {
             first_name: me.firstName,
@@ -914,6 +933,22 @@ export class MyAccountComponent implements OnInit, OnDestroy {
   }
 
   /* ═══════ HELPERS ═══════ */
+
+  /** A custom-field value as text; a boolean reads Yes/No, blank stays blank. */
+  private formatCustom(
+    value: string | number | boolean | undefined,
+    field: CustomFieldDefinition,
+  ): string {
+    if (value === undefined || value === null || value === '') {
+      return '';
+    }
+
+    if (field.type === 'boolean') {
+      return value ? 'Yes' : 'No';
+    }
+
+    return String(value);
+  }
 
   /** A stored gender token as a label; empty stays empty, so the card shows '-'. */
   genderLabel(value: string | null): string {

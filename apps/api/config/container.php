@@ -47,6 +47,7 @@ use Central\Api\Domain\Catalog\LessonRepository;
 use Central\Api\Domain\Enrollment\EnrollmentRepository;
 use Central\Api\Domain\Enrollment\LessonProgressRepository;
 use Central\Api\Domain\Catalog\ModuleRepository;
+use Central\Api\Domain\CustomField\CustomFieldDefinitionRepository;
 use Central\Api\Domain\Lookup\LookupRepository;
 use Central\Api\Infrastructure\Persistence\DbalAssessmentAssignmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
@@ -152,6 +153,7 @@ use Central\Api\Infrastructure\Persistence\DbalEnrollmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonProgressRepository;
 use Central\Api\Infrastructure\Persistence\DbalLessonRepository;
 use Central\Api\Infrastructure\Persistence\DbalModuleRepository;
+use Central\Api\Infrastructure\Persistence\DbalCustomFieldDefinitionRepository;
 use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
 use Central\Api\Infrastructure\Authz\DbalRoleRepository;
 use Central\Api\Infrastructure\Persistence\DbalPasswordTokenRepository;
@@ -601,6 +603,10 @@ return [
 
     LookupRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalLookupRepository($c->get(Connection::class)),
+    ),
+
+    CustomFieldDefinitionRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalCustomFieldDefinitionRepository($c->get(Connection::class)),
     ),
 
     // --- notifications ----------------------------------------------------

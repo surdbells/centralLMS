@@ -73,7 +73,15 @@ final class MyProfileAction extends PeopleAction
 
     public function show(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        return Json::ok($response, $this->me($request)->toArray());
+        $me = $this->me($request);
+
+        // The values are shown read-only: custom fields are an administrator's
+        // to set (a tenant's "Division" is not something staff reassign), so
+        // the self-service update below never writes them.
+        return Json::ok($response, [
+            ...$me->toArray(),
+            'customFields' => $this->people->customFieldsFor($me->tenantId, (string) $me->id),
+        ]);
     }
 
     /**

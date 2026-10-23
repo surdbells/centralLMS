@@ -276,6 +276,49 @@ final class DbalPersonRepository implements PersonRepository
         ) > 0;
     }
 
+    public function customFieldsFor(string $tenantId, string $id): array
+    {
+        $raw = $this->connection->fetchOne(
+            'SELECT custom_fields FROM users WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['id' => $id, 'tenant' => $tenantId],
+        );
+
+        if (!is_string($raw)) {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $values = [];
+
+        foreach ($decoded as $key => $value) {
+            // Scalars only: the column is free-form JSON, and a value that
+            // somehow became an array or object is not something a field holds.
+            if (is_string($value) || is_bool($value) || (is_int($value) || is_float($value))) {
+                $values[(string) $key] = is_int($value) ? (float) $value : $value;
+            }
+        }
+
+        return $values;
+    }
+
+    public function saveCustomFields(string $tenantId, string $id, array $values): bool
+    {
+        return $this->connection->executeStatement(
+            'UPDATE users SET custom_fields = :values::jsonb, updated_at = now()
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            [
+                'id'     => $id,
+                'tenant' => $tenantId,
+                'values' => json_encode((object) $values, JSON_THROW_ON_ERROR),
+            ],
+        ) > 0;
+    }
+
     public function setPasswordHash(string $tenantId, string $id, string $hash): bool
     {
         // Status moves off `invited` in the same statement: somebody who has

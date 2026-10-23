@@ -7,6 +7,7 @@ import { takeUntil } from 'rxjs/operators';
 import { UsersService, type UserInput } from '../../../../services/users.service';
 import { RolesService } from '../../../../services/roles.service';
 import { LookupsService } from '../../../../services/lookups.service';
+import { CustomFieldsService, type CustomFieldDefinition } from '../../../../services/custom-fields.service';
 import { ApiError } from '../../../../core/api';
 import { SessionStore } from '../../../../core/auth/session.store';
 import { CompetencyService, type JobCompetencyProfile } from '../../../../competency/competency.service';
@@ -207,6 +208,34 @@ export interface UserFormData {
             </div>
           </div>
 
+          <!-- Custom fields — whatever this tenant records beyond the fixed profile -->
+          <div class="card border-0 shadow-sm mt-4" *ngIf="customFields.length">
+            <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>{{ 'admin.user_form.additional_info' | translate }}</div>
+            <div class="card-body">
+              <div class="mb-3" *ngFor="let f of customFields">
+                <label class="form-label small fw-semibold">{{ f.label }}<span class="text-danger" *ngIf="f.required"> *</span></label>
+                <ng-container [ngSwitch]="f.type">
+                  <select *ngSwitchCase="'dropdown'" class="form-select form-select-sm"
+                          [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
+                    <option [ngValue]="null">—</option>
+                    <option *ngFor="let o of f.options" [ngValue]="o">{{ o }}</option>
+                  </select>
+                  <input *ngSwitchCase="'number'" type="number" class="form-control form-control-sm"
+                         [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
+                  <input *ngSwitchCase="'date'" type="date" class="form-control form-control-sm"
+                         [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
+                  <div *ngSwitchCase="'boolean'" class="form-check">
+                    <input type="checkbox" class="form-check-input" [id]="'cf_' + f.key"
+                           [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
+                    <label class="form-check-label small" [for]="'cf_' + f.key">{{ 'common.yes' | translate }}</label>
+                  </div>
+                  <input *ngSwitchDefault type="text" class="form-control form-control-sm"
+                         [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
+                </ng-container>
+              </div>
+            </div>
+          </div>
+
           <!-- Submit -->
           <div class="d-flex gap-2 mt-3">
             <button type="submit" class="btn btn-primary" [disabled]="saving || !form.first_name || !form.email">
@@ -279,6 +308,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private readonly usersService = inject(UsersService);
   private readonly rolesService = inject(RolesService);
   private readonly lookupsService = inject(LookupsService);
+  private readonly customFieldsService = inject(CustomFieldsService);
   private readonly competency = inject(CompetencyService);
   private readonly session = inject(SessionStore);
   private readonly i18n = inject(I18nService);
@@ -341,6 +371,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
   /** People the manager / line-executive pickers choose from. */
   people: Array<{ id: string; fullName: string }> = [];
 
+  /** The tenant's active custom fields, and this person's answers to them. */
+  customFields: CustomFieldDefinition[] = [];
+  customFieldValues: Record<string, string | number | boolean> = {};
+
   selectedRoleIds = new Set<string>();
 
   ngOnInit(): void {
@@ -362,6 +396,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       // The manager / line-executive pickers. A plain list, capped — the same
       // shape every other picker on this form uses.
       people: this.usersService.options(undefined, 500),
+      customFields: this.customFieldsService.list(),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -384,6 +419,9 @@ export class UserFormComponent implements OnInit, OnDestroy {
           this.people = reference.people.items
             .filter((p) => p.id !== this.userId)
             .map((p) => ({ id: p.id, fullName: p.fullName }));
+          // Only active fields are offered on the form; an inactive definition
+          // stops being asked for without losing the values already stored.
+          this.customFields = reference.customFields.filter((f) => f.isActive);
 
           if (this.userId === null) {
             this.loading = false;
@@ -475,6 +513,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
           this.isActive = user.status === 'active';
           this.selectedRoleIds = new Set(user.roleIds);
+          this.customFieldValues = { ...(user.customFields ?? {}) };
           this.loading = false;
         },
         error: (e: ApiError) => {
@@ -510,6 +549,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       managerId: this.form.manager_id,
       lineExecutiveId: this.form.line_executive_id,
       hireDate: this.form.hire_date || null,
+      customFields: this.customFieldValues,
       roleIds: [...this.selectedRoleIds],
       // The tick is "can they sign in?". Unticking it suspends the account;
       // a new one with no password stays `invited` until they set one.

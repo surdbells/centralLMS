@@ -81,6 +81,25 @@ interface PersonRepository
     public function saveConsents(string $tenantId, string $id, array $consents): bool;
 
     /**
+     * Somebody's answers to the tenant's custom profile fields.
+     *
+     * Stored as JSON on `users.custom_fields`, keyed by each field's key —
+     * the same shape as {@see consentsFor()}. Kept apart from {@see update()}
+     * because the values are validated against the tenant's definitions, which
+     * the people repository has no business knowing about: the action loads the
+     * definitions, checks the values and hands the clean map here.
+     *
+     * @return array<string, string|float|bool>
+     */
+    public function customFieldsFor(string $tenantId, string $id): array;
+
+    /**
+     * @param array<string, string|float|bool> $values a map already validated
+     *                                                  against the definitions
+     */
+    public function saveCustomFields(string $tenantId, string $id, array $values): bool;
+
+    /**
      * The stored hash, for verifying somebody's current password.
      *
      * Returned rather than compared here so the hashing algorithm stays in one
