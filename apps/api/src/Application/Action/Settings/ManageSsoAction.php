@@ -61,6 +61,7 @@ final class ManageSsoAction
                 'directory'     => null,
                 'domains'       => [],
                 'autoProvision' => false,
+                'managed'       => false,
             ];
         }
 

@@ -223,6 +223,35 @@ return [
         ],
     ],
 
+    // Single sign-on (user login via Entra / Google) for the deployment's
+    // DEFAULT tenant. On a multi-tenant cloud SSO is configured per
+    // organisation in the database; on a single-tenant deployment it can be
+    // configured here instead and is read for DEFAULT_TENANT_ID only. These are
+    // LOGIN credentials and are separate from the Teams / Zoom / Meet
+    // credentials under `ilt`, which are for live-class meetings. A database
+    // connection for a tenant, if one exists, overrides what is set here.
+    'sso' => [
+        'microsoft' => [
+            'client_id'      => Env::get('SSO_MICROSOFT_CLIENT_ID', ''),
+            'client_secret'  => Env::get('SSO_MICROSOFT_CLIENT_SECRET', ''),
+            // The Entra directory (tenant) id to authenticate against; empty
+            // falls back to `organizations` (any work/school account).
+            'directory'      => Env::get('SSO_MICROSOFT_TENANT_ID', ''),
+            'enabled'        => Env::bool('SSO_MICROSOFT_ENABLED', true),
+            'domains'        => Env::get('SSO_MICROSOFT_DOMAINS', ''),
+            'auto_provision' => Env::bool('SSO_MICROSOFT_AUTO_PROVISION', false),
+        ],
+        'google' => [
+            'client_id'      => Env::get('SSO_GOOGLE_CLIENT_ID', ''),
+            'client_secret'  => Env::get('SSO_GOOGLE_CLIENT_SECRET', ''),
+            // Google has no directory id; a Workspace is narrowed by domains.
+            'directory'      => '',
+            'enabled'        => Env::bool('SSO_GOOGLE_ENABLED', true),
+            'domains'        => Env::get('SSO_GOOGLE_DOMAINS', ''),
+            'auto_provision' => Env::bool('SSO_GOOGLE_AUTO_PROVISION', false),
+        ],
+    ],
+
     'security' => [
         // Encrypts tenant OAuth credentials at rest. Rotating it disconnects
         // every integration (they must reconnect) but loses no other data.

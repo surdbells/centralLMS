@@ -142,7 +142,7 @@
 
       <!-- ============ Settings, rendered from the catalogue ============ -->
       <div class="panel-content"
-           *ngIf="activeTab !== 'organisation' && activeTab !== 'email'">
+           *ngIf="activeTab !== 'organisation' && activeTab !== 'email' && activeTab !== 'sso'">
         <div class="panel-header">
           <h2>{{ activeTabInfo?.label }}</h2>
           <p>{{ activeTabInfo?.description }}</p>
@@ -209,6 +209,66 @@
             <span *ngIf="!saving">{{ 'common.save_changes' | translate }}</span>
             <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
           </button>
+        </div>
+      </div>
+
+      <!-- ============ Single sign-on (read-only) ============ -->
+      <div class="panel-content" *ngIf="activeTab === 'sso'">
+        <div class="panel-header">
+          <h2>{{ 'tenant.sso_title' | translate }}</h2>
+          <p>{{ 'tenant.sso_desc' | translate }}</p>
+        </div>
+
+        <div class="form-section">
+          <div class="history-list">
+            <div class="history-item" *ngFor="let c of ssoConnections" style="cursor: default;">
+              <div class="history-icon">
+                <i class="bi" [ngClass]="c.provider === 'microsoft' ? 'bi-microsoft' : 'bi-google'"></i>
+              </div>
+              <div class="history-content">
+                <div class="history-header">
+                  <strong>{{ c.providerLabel }}</strong>
+                  <span class="chip"
+                        [class.bg-success]="c.enabled && c.clientId"
+                        [class.bg-secondary]="!c.enabled || !c.clientId">
+                    {{ (c.clientId
+                          ? (c.enabled ? 'tenant.sso_on' : 'tenant.sso_off')
+                          : 'tenant.sso_not_configured') | translate }}
+                  </span>
+                  <span class="chip bg-info" *ngIf="c.managed">
+                    <i class="bi bi-hdd-network me-1"></i>{{ 'tenant.sso_env_managed' | translate }}
+                  </span>
+                </div>
+
+                <div class="history-changes" *ngIf="c.clientId">
+                  <div>
+                    <span class="text-muted">{{ 'tenant.sso_client_id' | translate }}:</span>
+                    <code>{{ c.clientId }}</code>
+                  </div>
+                  <div *ngIf="c.directory">
+                    <span class="text-muted">{{ 'tenant.sso_directory' | translate }}:</span>
+                    <code>{{ c.directory }}</code>
+                  </div>
+                  <div *ngIf="c.domains.length">
+                    <span class="text-muted">{{ 'tenant.sso_domains' | translate }}:</span>
+                    {{ c.domains.join(', ') }}
+                  </div>
+                  <div>
+                    <span class="text-muted">{{ 'tenant.sso_auto_provision' | translate }}:</span>
+                    {{ (c.autoProvision ? 'tenant.sso_yes' : 'tenant.sso_no') | translate }}
+                  </div>
+                </div>
+
+                <div class="history-changes text-muted" *ngIf="!c.clientId">
+                  {{ 'tenant.sso_not_configured_help' | translate }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info mt-3" *ngIf="ssoManagedCount > 0">
+            <i class="bi bi-info-circle me-2"></i>{{ 'tenant.sso_env_note' | translate }}
+          </div>
         </div>
       </div>
 

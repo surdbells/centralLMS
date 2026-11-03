@@ -162,6 +162,30 @@ MAIL_FROM_NAME=Central LMS
 Generate the JWT secret with `openssl rand -hex 32`. Lock the file down:
 `chmod 600 .env && chown www:www .env`.
 
+### 6.2a Single sign-on (optional)
+
+SSO sign-in (Microsoft Entra / Google) is normally configured per organisation
+in the database. For a single-tenant deployment — one with `DEFAULT_TENANT_ID`
+set — you can configure the default tenant's SSO from `.env` instead, with no
+admin UI:
+
+```dotenv
+DEFAULT_TENANT_ID=<the tenant's UUID>
+SSO_MICROSOFT_CLIENT_ID=<application (client) ID>
+SSO_MICROSOFT_CLIENT_SECRET=<client secret value>
+SSO_MICROSOFT_TENANT_ID=<Entra directory (tenant) ID>
+# Optional: restrict to work domains, and auto-create accounts on first sign-in
+# SSO_MICROSOFT_DOMAINS=example.com
+# SSO_MICROSOFT_AUTO_PROVISION=false
+```
+
+These are **login** credentials, distinct from the `MS_*`/`ZOOM_*`/`GOOGLE_*`
+keys above, which are for Teams/Zoom/Meet live-class meetings. Register the
+redirect URI `<APP_WEB_URL>/sso/callback` with the provider. A database SSO
+connection for a tenant, if one exists, overrides these. After changing them,
+reload PHP-FPM. The admin **Settings → Single sign-on** tab then shows the
+resulting connection, marked "From environment" and read-only.
+
 ### 6.3 Run migrations
 
 ```bash

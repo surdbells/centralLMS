@@ -35,6 +35,11 @@ export interface SsoConnection {
   directory: string | null;
   domains: string[];
   autoProvision: boolean;
+  /**
+   * Configured in the environment for the deployment's default tenant, rather
+   * than in the database — read-only here, changed where it is set.
+   */
+  managed: boolean;
 }
 
 export interface SsoConnectionInput {

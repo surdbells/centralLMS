@@ -19,6 +19,7 @@ import {
   EmailTemplatesService,
   type EmailTemplate,
 } from '../services/email-templates.service';
+import { SsoService, type SsoConnection } from '../services/sso.service';
 import { ApiError } from '../core/api';
 
 /** A tab. The catalogue's categories, plus the two that are not settings. */
@@ -59,6 +60,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(SettingsService);
   private readonly tenantService = inject(TenantService);
   private readonly templatesService = inject(EmailTemplatesService);
+  private readonly ssoService = inject(SsoService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly dialog = inject(ConfirmDialogService);
@@ -97,6 +99,11 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
   editingTemplate: EmailTemplate | null = null;
   templateForm = { subject: '', body: '', enabled: true };
 
+  // --- single sign-on (read-only) -----------------------------------------
+
+  /** Every provider, configured or not; env-managed ones are read-only. */
+  ssoConnections: SsoConnection[] = [];
+
   private readonly icons: Record<string, string> = {
     organisation: 'bi-building',
     general: 'bi-globe',
@@ -105,6 +112,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
     gamification: 'bi-trophy',
     security: 'bi-shield-lock',
     email: 'bi-envelope-paper',
+    sso: 'bi-box-arrow-in-right',
   };
 
   ngOnInit(): void {
@@ -129,10 +137,14 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       templates: this.templatesService.list().pipe(
         catchError(() => of({ templates: [], placeholders: [] })),
       ),
+      // Read-only on this screen; it must never stop the rest loading.
+      sso: this.ssoService.connections().pipe(
+        catchError(() => of([] as SsoConnection[])),
+      ),
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ tenant, catalogue, values, templates }) => {
+        next: ({ tenant, catalogue, values, templates, sso }) => {
           this.tenant = tenant;
           this.tenantForm = {
             name: tenant.name,
@@ -156,6 +168,8 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
           this.templates = templates.templates;
           this.placeholders = templates.placeholders;
+
+          this.ssoConnections = sso;
 
           this.tabs = this.buildTabs(catalogue);
           this.loading = false;
@@ -214,6 +228,15 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       });
     }
 
+    // Always shown, even with nothing configured, so an administrator can see
+    // the sign-in setup — including a connection managed from the environment.
+    tabs.push({
+      key: 'sso',
+      label: this.i18n.t('tenant.sso_title'),
+      description: this.i18n.t('tenant.sso_desc'),
+      icon: this.icons['sso'],
+    });
+
     if (this.templates.length > 0) {
       tabs.push({
         key: 'email',
@@ -235,6 +258,11 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
   get activeTabInfo(): SettingsTab | undefined {
     return this.tabs.find((t) => t.key === this.activeTab);
+  }
+
+  /** How many SSO providers are configured from the environment (read-only). */
+  get ssoManagedCount(): number {
+    return this.ssoConnections.filter((c) => c.managed).length;
   }
 
   // --- the organisation ----------------------------------------------------

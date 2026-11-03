@@ -27,6 +27,12 @@ final readonly class SsoConnection
         public ?string $directory = null,
         public array $domains = [],
         public bool $autoProvision = false,
+        /**
+         * Configured outside the application — in the environment, for the
+         * deployment's default tenant — rather than stored in the database. An
+         * administrator cannot edit it here; it is changed where it is set.
+         */
+        public bool $managed = false,
     ) {
     }
 
@@ -115,6 +121,9 @@ final readonly class SsoConnection
             'directory'     => $this->directory,
             'domains'       => $this->domains,
             'autoProvision' => $this->autoProvision,
+            // Whether it is configured in the environment (read-only here) as
+            // opposed to the database, so a settings screen can say so.
+            'managed'       => $this->managed,
         ];
     }
 }

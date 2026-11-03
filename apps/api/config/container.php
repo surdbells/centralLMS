@@ -158,6 +158,7 @@ use Central\Api\Infrastructure\Persistence\DbalLookupRepository;
 use Central\Api\Infrastructure\Authz\DbalRoleRepository;
 use Central\Api\Infrastructure\Persistence\DbalPasswordTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalSsoRepository;
+use Central\Api\Infrastructure\Sso\EnvFallbackSsoRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
@@ -482,11 +483,18 @@ return [
     ),
 
     // The client secrets are encrypted with the same cipher the
-    // conferencing credentials use.
-    SsoRepository::class => factory(static fn (ContainerInterface $c) => new DbalSsoRepository(
-        $c->get(Connection::class),
-        $c->get(Cipher::class),
-    )),
+    // conferencing credentials use. The database is the real store; a
+    // single-tenant deployment may additionally configure its default tenant's
+    // SSO from the environment, which the decorator layers on as a fallback.
+    SsoRepository::class => factory(static function (ContainerInterface $c): SsoRepository {
+        $settings = $c->get('settings');
+
+        return new EnvFallbackSsoRepository(
+            new DbalSsoRepository($c->get(Connection::class), $c->get(Cipher::class)),
+            (string) ($settings['tenant']['default'] ?? ''),
+            is_array($settings['sso'] ?? null) ? $settings['sso'] : [],
+        );
+    }),
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
