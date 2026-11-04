@@ -19,7 +19,12 @@ import {
   EmailTemplatesService,
   type EmailTemplate,
 } from '../services/email-templates.service';
-import { SsoService, type SsoConnection } from '../services/sso.service';
+import {
+  SsoService,
+  type SsoConnection,
+  type SsoConnectionInput,
+  type SsoProviderId,
+} from '../services/sso.service';
 import { ApiError } from '../core/api';
 
 /** A tab. The catalogue's categories, plus the two that are not settings. */
@@ -99,10 +104,26 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
   editingTemplate: EmailTemplate | null = null;
   templateForm = { subject: '', body: '', enabled: true };
 
-  // --- single sign-on (read-only) -----------------------------------------
+  // --- single sign-on ------------------------------------------------------
 
   /** Every provider, configured or not; env-managed ones are read-only. */
   ssoConnections: SsoConnection[] = [];
+
+  /** Editable form per provider; the secret starts blank (it is never returned). */
+  ssoForm: Record<string, {
+    enabled: boolean;
+    clientId: string;
+    clientSecret: string;
+    directory: string;
+    domains: string;
+    autoProvision: boolean;
+  }> = {};
+
+  /** The provider whose save/delete is in flight, to disable its controls. */
+  ssoSavingProvider: string | null = null;
+
+  /** The redirect URI an administrator registers with the provider. */
+  readonly ssoRedirectUri = `${window.location.origin}/sso/callback`;
 
   private readonly icons: Record<string, string> = {
     organisation: 'bi-building',
@@ -170,6 +191,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
           this.placeholders = templates.placeholders;
 
           this.ssoConnections = sso;
+          this.hydrateSsoForms();
 
           this.tabs = this.buildTabs(catalogue);
           this.loading = false;
@@ -501,6 +523,102 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
   goBack(): void {
     void this.router.navigate(['/administration']);
+  }
+
+  // --- single sign-on ------------------------------------------------------
+
+  /** The connection for a provider, configured or a blank placeholder. */
+  ssoConn(provider: string): SsoConnection | undefined {
+    return this.ssoConnections.find((c) => c.provider === provider);
+  }
+
+  /** Rebuild the editable forms from the connections (secret always blank). */
+  private hydrateSsoForms(): void {
+    this.ssoForm = {};
+
+    for (const c of this.ssoConnections) {
+      this.ssoForm[c.provider] = {
+        enabled: c.enabled,
+        clientId: c.clientId,
+        clientSecret: '',
+        directory: c.directory ?? '',
+        domains: c.domains.join(', '),
+        autoProvision: c.autoProvision,
+      };
+    }
+  }
+
+  saveSso(provider: SsoProviderId): void {
+    const form = this.ssoForm[provider];
+
+    if (!form || this.ssoSavingProvider) {
+      return;
+    }
+
+    this.clearMessages();
+    this.ssoSavingProvider = provider;
+
+    const input: SsoConnectionInput = {
+      clientId: form.clientId.trim(),
+      enabled: form.enabled,
+      // Only Microsoft has a directory; Google is narrowed by domains instead.
+      directory: provider === 'microsoft' ? form.directory.trim() || null : null,
+      domains: form.domains,
+      autoProvision: form.autoProvision,
+    };
+
+    // A blank secret keeps the one already stored; the endpoint never returns it.
+    const secret = form.clientSecret.trim();
+    if (secret !== '') {
+      input.clientSecret = secret;
+    }
+
+    this.ssoService
+      .save(provider, input)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (saved) => {
+          this.ssoConnections = this.ssoConnections.map((c) => (c.provider === provider ? saved : c));
+          this.hydrateSsoForms();
+          this.ssoSavingProvider = null;
+          this.successMessage = this.i18n.t('tenant.saved');
+        },
+        error: (failure: ApiError) => {
+          this.ssoSavingProvider = null;
+          this.fail(failure);
+        },
+      });
+  }
+
+  async removeSso(provider: SsoProviderId): Promise<void> {
+    const label = this.ssoConn(provider)?.providerLabel ?? provider;
+
+    if (!(await this.dialog.confirm(this.i18n.t('tenant.sso_confirm_remove', { provider: label }), { type: 'danger' }))) {
+      return;
+    }
+
+    this.clearMessages();
+    this.ssoSavingProvider = provider;
+
+    this.ssoService
+      .remove(provider)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.ssoConnections = this.ssoConnections.map((c) =>
+            c.provider === provider
+              ? { ...c, id: null, enabled: false, clientId: '', hasSecret: false, directory: null, domains: [], autoProvision: false, managed: false }
+              : c,
+          );
+          this.hydrateSsoForms();
+          this.ssoSavingProvider = null;
+          this.successMessage = this.i18n.t('tenant.sso_removed');
+        },
+        error: (failure: ApiError) => {
+          this.ssoSavingProvider = null;
+          this.fail(failure);
+        },
+      });
   }
 
   private fail(failure: ApiError): void {

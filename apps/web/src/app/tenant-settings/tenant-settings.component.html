@@ -212,7 +212,7 @@
         </div>
       </div>
 
-      <!-- ============ Single sign-on (read-only) ============ -->
+      <!-- ============ Single sign-on ============ -->
       <div class="panel-content" *ngIf="activeTab === 'sso'">
         <div class="panel-header">
           <h2>{{ 'tenant.sso_title' | translate }}</h2>
@@ -220,54 +220,121 @@
         </div>
 
         <div class="form-section">
-          <div class="history-list">
-            <div class="history-item" *ngFor="let c of ssoConnections" style="cursor: default;">
-              <div class="history-icon">
-                <i class="bi" [ngClass]="c.provider === 'microsoft' ? 'bi-microsoft' : 'bi-google'"></i>
-              </div>
-              <div class="history-content">
-                <div class="history-header">
-                  <strong>{{ c.providerLabel }}</strong>
-                  <span class="chip"
-                        [class.bg-success]="c.enabled && c.clientId"
-                        [class.bg-secondary]="!c.enabled || !c.clientId">
-                    {{ (c.clientId
-                          ? (c.enabled ? 'tenant.sso_on' : 'tenant.sso_off')
-                          : 'tenant.sso_not_configured') | translate }}
-                  </span>
-                  <span class="chip bg-info" *ngIf="c.managed">
-                    <i class="bi bi-hdd-network me-1"></i>{{ 'tenant.sso_env_managed' | translate }}
-                  </span>
-                </div>
-
-                <div class="history-changes" *ngIf="c.clientId">
-                  <div>
-                    <span class="text-muted">{{ 'tenant.sso_client_id' | translate }}:</span>
-                    <code>{{ c.clientId }}</code>
-                  </div>
-                  <div *ngIf="c.directory">
-                    <span class="text-muted">{{ 'tenant.sso_directory' | translate }}:</span>
-                    <code>{{ c.directory }}</code>
-                  </div>
-                  <div *ngIf="c.domains.length">
-                    <span class="text-muted">{{ 'tenant.sso_domains' | translate }}:</span>
-                    {{ c.domains.join(', ') }}
-                  </div>
-                  <div>
-                    <span class="text-muted">{{ 'tenant.sso_auto_provision' | translate }}:</span>
-                    {{ (c.autoProvision ? 'tenant.sso_yes' : 'tenant.sso_no') | translate }}
-                  </div>
-                </div>
-
-                <div class="history-changes text-muted" *ngIf="!c.clientId">
-                  {{ 'tenant.sso_not_configured_help' | translate }}
-                </div>
-              </div>
-            </div>
+          <!-- The one redirect URI to register with each provider. -->
+          <div class="alert alert-info d-flex align-items-center gap-2">
+            <i class="bi bi-link-45deg"></i>
+            <span>{{ 'tenant.sso_redirect_hint' | translate }} <code>{{ ssoRedirectUri }}</code></span>
           </div>
 
-          <div class="alert alert-info mt-3" *ngIf="ssoManagedCount > 0">
-            <i class="bi bi-info-circle me-2"></i>{{ 'tenant.sso_env_note' | translate }}
+          <div class="info-card mb-3" *ngFor="let c of ssoConnections">
+            <div class="info-card-header">
+              <h3 class="d-flex align-items-center gap-2">
+                <i class="bi" [ngClass]="c.provider === 'microsoft' ? 'bi-microsoft' : 'bi-google'"></i>
+                {{ c.providerLabel }}
+              </h3>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge"
+                      [class.bg-success]="c.enabled && c.clientId"
+                      [class.bg-secondary]="!c.enabled || !c.clientId">
+                  {{ (c.clientId
+                        ? (c.enabled ? 'tenant.sso_on' : 'tenant.sso_off')
+                        : 'tenant.sso_not_configured') | translate }}
+                </span>
+                <span class="badge bg-info" *ngIf="c.managed">
+                  <i class="bi bi-hdd-network me-1"></i>{{ 'tenant.sso_env_managed' | translate }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Managed in the environment → read-only, changed where it is set. -->
+            <ng-container *ngIf="c.managed; else editable">
+              <div class="info-grid">
+                <div class="info-item">
+                  <label class="form-label">{{ 'tenant.sso_client_id' | translate }}</label>
+                  <div><code>{{ c.clientId }}</code></div>
+                </div>
+                <div class="info-item" *ngIf="c.directory">
+                  <label class="form-label">{{ 'tenant.sso_directory' | translate }}</label>
+                  <div><code>{{ c.directory }}</code></div>
+                </div>
+                <div class="info-item" *ngIf="c.domains.length">
+                  <label class="form-label">{{ 'tenant.sso_domains' | translate }}</label>
+                  <div>{{ c.domains.join(', ') }}</div>
+                </div>
+                <div class="info-item">
+                  <label class="form-label">{{ 'tenant.sso_auto_provision' | translate }}</label>
+                  <div>{{ (c.autoProvision ? 'tenant.sso_yes' : 'tenant.sso_no') | translate }}</div>
+                </div>
+              </div>
+              <div class="alert alert-info mt-2 mb-0">
+                <i class="bi bi-hdd-network me-2"></i>{{ 'tenant.sso_env_note' | translate }}
+              </div>
+            </ng-container>
+
+            <!-- Editable (database-backed) connection. -->
+            <ng-template #editable>
+              <div class="info-grid" *ngIf="ssoForm[c.provider] as f">
+                <div class="info-item">
+                  <label class="form-label">{{ 'tenant.sso_client_id' | translate }}</label>
+                  <input class="form-control" type="text" [(ngModel)]="f.clientId"
+                         [disabled]="ssoSavingProvider === c.provider">
+                </div>
+                <div class="info-item">
+                  <label class="form-label">{{ 'tenant.sso_client_secret' | translate }}</label>
+                  <input class="form-control" type="password" autocomplete="new-password"
+                         [(ngModel)]="f.clientSecret"
+                         [placeholder]="c.hasSecret ? ('tenant.sso_secret_set' | translate) : ''"
+                         [disabled]="ssoSavingProvider === c.provider">
+                  <small class="text-muted">
+                    {{ (c.hasSecret ? 'tenant.sso_secret_keep_help' : 'tenant.sso_secret_help') | translate }}
+                  </small>
+                </div>
+                <div class="info-item" *ngIf="c.provider === 'microsoft'">
+                  <label class="form-label">{{ 'tenant.sso_directory' | translate }}</label>
+                  <input class="form-control" type="text" [(ngModel)]="f.directory"
+                         placeholder="organizations" [disabled]="ssoSavingProvider === c.provider">
+                  <small class="text-muted">{{ 'tenant.sso_directory_help' | translate }}</small>
+                </div>
+                <div class="info-item full-width">
+                  <label class="form-label">{{ 'tenant.sso_domains' | translate }}</label>
+                  <input class="form-control" type="text" [(ngModel)]="f.domains"
+                         placeholder="example.com, acme.co" [disabled]="ssoSavingProvider === c.provider">
+                  <small class="text-muted">{{ 'tenant.sso_domains_help' | translate }}</small>
+                </div>
+              </div>
+
+              <ng-container *ngIf="ssoForm[c.provider] as f">
+                <div class="form-check-item">
+                  <input class="form-check-input" type="checkbox" [id]="c.provider + '-sso-enabled'"
+                         [(ngModel)]="f.enabled" [disabled]="ssoSavingProvider === c.provider">
+                  <label class="form-check-label" [for]="c.provider + '-sso-enabled'">
+                    {{ 'tenant.sso_enable' | translate }}
+                  </label>
+                </div>
+                <div class="form-check-item">
+                  <input class="form-check-input" type="checkbox" [id]="c.provider + '-sso-auto'"
+                         [(ngModel)]="f.autoProvision" [disabled]="ssoSavingProvider === c.provider">
+                  <label class="form-check-label" [for]="c.provider + '-sso-auto'">
+                    {{ 'tenant.sso_auto_provision' | translate }}
+                  </label>
+                </div>
+              </ng-container>
+
+              <div class="info-card-footer d-flex justify-content-between">
+                <button class="btn btn-outline-danger" *ngIf="c.id; else noRemove"
+                        [disabled]="ssoSavingProvider === c.provider" (click)="removeSso(c.provider)">
+                  {{ 'tenant.sso_remove' | translate }}
+                </button>
+                <ng-template #noRemove><span></span></ng-template>
+                <button class="btn btn-primary" [disabled]="ssoSavingProvider === c.provider"
+                        (click)="saveSso(c.provider)">
+                  <span *ngIf="ssoSavingProvider !== c.provider">{{ 'common.save' | translate }}</span>
+                  <span *ngIf="ssoSavingProvider === c.provider">
+                    <span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}
+                  </span>
+                </button>
+              </div>
+            </ng-template>
           </div>
         </div>
       </div>
