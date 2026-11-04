@@ -133,6 +133,25 @@ app-course-player main {
   --bs-btn-active-border-color: var(--brand-primary);
 }
 
+/* The vendored Bootstrap is a dark-themed build: it ships
+   `.btn-outline-secondary` as WHITE text with a black/transparent fill, which is
+   invisible on the app's light cards until hover gives it a background (the SSO
+   "Sign in with Microsoft" button and several admin buttons). Route it through
+   the brand's neutral — the same way `.btn-outline-primary` is routed through
+   the brand colour above — so these buttons are legible at rest everywhere. */
+.btn-outline-secondary {
+  --bs-btn-color: var(--brand-secondary, #6c757d);
+  --bs-btn-border-color: var(--brand-secondary, #6c757d);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--brand-secondary, #6c757d);
+  --bs-btn-hover-border-color: var(--brand-secondary, #6c757d);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--brand-secondary, #6c757d);
+  --bs-btn-active-border-color: var(--brand-secondary, #6c757d);
+  --bs-btn-disabled-color: var(--brand-secondary, #6c757d);
+  --bs-btn-disabled-border-color: var(--brand-secondary, #6c757d);
+}
+
 .text-primary { color: var(--brand-primary) !important; }
 /* Respect the `bg-opacity-*` utilities the way Bootstrap's own rule does —
    a bare `background-color` here made every `.bg-primary.bg-opacity-10`
