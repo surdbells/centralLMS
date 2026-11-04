@@ -143,6 +143,19 @@ export class LoginComponent implements OnInit {
           // and shows only when self-registration is enabled.
           this.registerTenantId = settings.tenantId;
           this.allowSelfRegistration = settings.allowSelfRegistration === true;
+
+          // On a single-tenant / default deployment there is no tenant in the
+          // URL, but one is resolved here — adopt it so this organisation's SSO
+          // providers (and signInWith) work at plain /login too. Skipped when a
+          // tenant was already named in the URL (providers fetched in ngOnInit).
+          if (this.tenantId === '' && settings.tenantId
+              && /^[0-9a-f-]{36}$/i.test(settings.tenantId)) {
+            this.tenantId = settings.tenantId;
+            this.sso.providers(settings.tenantId).subscribe({
+              next: (providers) => (this.ssoProviders = providers),
+              error: () => (this.ssoProviders = []),
+            });
+          }
         },
         error: () => undefined,
       });
