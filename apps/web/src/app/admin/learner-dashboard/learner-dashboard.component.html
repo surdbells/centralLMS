@@ -78,44 +78,6 @@
           <div class="stat-value">{{ dashboard.overview.courses_completed }}</div>
           <div class="stat-label">{{ 'learner_dash.completed_courses' | translate }}</div>
         </div>
-
-        <!-- Activity Chart Card -->
-        <div class="hero-card activity-card">
-          <div class="activity-header">
-            <div class="activity-title">
-              <h3>{{ 'learner_dash.activity' | translate }}</h3>
-              <span class="activity-range">{{ getActivityDateRange() }}</span>
-            </div>
-            <div class="activity-toggle">
-              <button [class.active]="activityView === 'week'" (click)="setActivityView('week')">{{ 'learner_dash.week' | translate }}</button>
-              <button [class.active]="activityView === 'month'" (click)="setActivityView('month')">{{ 'learner_dash.month' | translate }}</button>
-            </div>
-          </div>
-          <div class="activity-chart">
-            <button class="chart-nav prev" (click)="navigateActivity(-1)">
-              <tui-icon icon="@tui.chevron-left"></tui-icon>
-            </button>
-            <div class="lollipop-chart">
-              <div class="lollipop-item" *ngFor="let day of dashboard.weekly_progress"
-                   [class.active]="isToday(day.date)"
-                   [class.has-activity]="day.minutes > 0">
-                <div class="lollipop-stick">
-                  <div class="lollipop-fill" [style.height.%]="getActivityHeight(day.minutes)"></div>
-                </div>
-                <div class="lollipop-head" [class.filled]="day.minutes > 0">
-                  <span class="tooltip" *ngIf="day.minutes > 0">
-                    {{ formatActivityTime(day.minutes) }}
-                    <small>{{ formatActivityDate(day.date) }}</small>
-                  </span>
-                </div>
-                <span class="lollipop-label">{{ day.day }}</span>
-              </div>
-            </div>
-            <button class="chart-nav next" (click)="navigateActivity(1)">
-              <tui-icon icon="@tui.chevron-right"></tui-icon>
-            </button>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -219,10 +181,49 @@
     </section>
 
     <!-- ==================== COMPETENCY ASSURANCE ==================== -->
-    <section class="competency-section">
+<!--     <section class="competency-section">
       <app-my-competency></app-my-competency>
     </section>
+    <section> -->
 
+        <!-- Activity Chart Card -->
+        <div class="hero-card activity-card">
+          <div class="activity-header">
+            <div class="activity-title">
+              <h3>{{ 'learner_dash.activity' | translate }}</h3>
+              <span class="activity-range">{{ getActivityDateRange() }}</span>
+            </div>
+            <div class="activity-toggle">
+              <button [class.active]="activityView === 'week'" (click)="setActivityView('week')">{{ 'learner_dash.week' | translate }}</button>
+              <button [class.active]="activityView === 'month'" (click)="setActivityView('month')">{{ 'learner_dash.month' | translate }}</button>
+            </div>
+          </div>
+          <div class="activity-chart">
+            <button class="chart-nav prev" (click)="navigateActivity(-1)">
+              <tui-icon icon="@tui.chevron-left"></tui-icon>
+            </button>
+            <div class="lollipop-chart">
+              <div class="lollipop-item" *ngFor="let day of dashboard.weekly_progress"
+                   [class.active]="isToday(day.date)"
+                   [class.has-activity]="day.minutes > 0">
+                <div class="lollipop-stick">
+                  <div class="lollipop-fill" [style.height.%]="getActivityHeight(day.minutes)"></div>
+                </div>
+                <div class="lollipop-head" [class.filled]="day.minutes > 0">
+                  <span class="tooltip" *ngIf="day.minutes > 0">
+                    {{ formatActivityTime(day.minutes) }}
+                    <small>{{ formatActivityDate(day.date) }}</small>
+                  </span>
+                </div>
+                <span class="lollipop-label">{{ day.day }}</span>
+              </div>
+            </div>
+            <button class="chart-nav next" (click)="navigateActivity(1)">
+              <tui-icon icon="@tui.chevron-right"></tui-icon>
+            </button>
+          </div>
+        </div>
+    </section>
     <!-- ==================== MAIN CONTENT GRID ==================== -->
     <section class="main-content">
       <div class="content-grid">
