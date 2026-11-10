@@ -67,16 +67,47 @@
           </div>
         </div>
 
+
+        <!-- Number of courses assigned -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">{{ dashboard.overview.courses_enrolled }}</div>
+          <div class="stat-label">{{ 'learner_dash.enrolled' | translate }}</div>
+        </div>
+
+        <!-- Number of courses Completed -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">{{ dashboard.overview.courses_completed }}</div>
+          <div class="stat-label">{{ 'learner_dash.completed_courses' | translate }}</div>
+        </div>
+
+                <!-- Number of courses in progress -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">{{ dashboard.overview.courses_in_progress }}</div>
+          <div class="stat-label">{{ 'learner_dash.in_progress' | translate }}</div>
+        </div>
+
+        <!-- Number of courses yet to attempt -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Number of courses yet to attempt</div>
+        </div>
+      
+                <!-- Average Course Completion % -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Average Course Completion %</div>
+        </div>
+
+        <!-- Number of courses yet to attempt -->
+        <div class="hero-card stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Number of courses yet to attempt</div>
+        </div>
+
         <!-- Days in Training Stat -->
         <div class="hero-card stat-card">
           <div class="stat-value">{{ getTotalDaysLearning() }}</div>
           <div class="stat-label">{{ 'learner_dash.days_in_training' | translate }}</div>
-        </div>
-
-        <!-- Completed Courses Stat -->
-        <div class="hero-card stat-card">
-          <div class="stat-value">{{ dashboard.overview.courses_completed }}</div>
-          <div class="stat-label">{{ 'learner_dash.completed_courses' | translate }}</div>
         </div>
       </div>
     </section>
@@ -98,28 +129,6 @@
           </div>
           <div class="mini-stat-content">
             <span class="mini-stat-label">{{ 'skills.progress' | translate }}</span>
-          </div>
-        </div>
-
-        <!-- Courses Enrolled -->
-        <div class="mini-stat">
-          <div class="mini-stat-icon courses">
-            <tui-icon icon="@tui.book-open"></tui-icon>
-          </div>
-          <div class="mini-stat-content">
-            <span class="mini-stat-value">{{ dashboard.overview.courses_enrolled }}</span>
-            <span class="mini-stat-label">{{ 'learner_dash.enrolled' | translate }}</span>
-          </div>
-        </div>
-
-        <!-- In Progress -->
-        <div class="mini-stat">
-          <div class="mini-stat-icon progress-icon">
-            <tui-icon icon="@tui.loader"></tui-icon>
-          </div>
-          <div class="mini-stat-content">
-            <span class="mini-stat-value">{{ dashboard.overview.courses_in_progress }}</span>
-            <span class="mini-stat-label">{{ 'skills.in_progress' | translate }}</span>
           </div>
         </div>
 
