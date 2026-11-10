@@ -36,6 +36,8 @@ use Central\Api\Application\Action\Catalog\DuplicateCourseAction;
 use Central\Api\Application\Action\Catalog\CourseOutlineAction;
 use Central\Api\Application\Action\Catalog\CourseResourceAction;
 use Central\Api\Application\Action\Catalog\CourseReviewAction;
+use Central\Api\Application\Action\Analytics\HeartbeatAction;
+use Central\Api\Application\Action\Analytics\EngagementAnalyticsAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
 use Central\Api\Application\Action\Catalog\CreateModuleAction;
@@ -424,6 +426,15 @@ return static function (App $app): void {
 
             // Every course the caller has rated, for their own report screens.
             $secure->get('/me/reviews', [CourseReviewAction::class, 'mineAll'])->setName('me.reviews');
+
+            // "I am still here" — the client pings this while the app is open,
+            // so engagement analytics have a session to measure.
+            $secure->post('/me/session/ping', HeartbeatAction::class)->setName('me.session.ping');
+
+            // Engagement analytics: active learners, session length, sign-in
+            // frequency and device split. Needs report.view (as the dashboard).
+            $secure->get('/analytics/engagement', EngagementAnalyticsAction::class)
+                ->setName('analytics.engagement');
 
             // What the caller is booked on. Distinct from a programme's
             // roster, which is other people's names — see MyTrainingsAction.

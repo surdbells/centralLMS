@@ -213,6 +213,8 @@ export const Endpoints = {
     enrollments: '/me/enrollments',
     /** Every course the caller has rated. */
     reviews: '/me/reviews',
+    /** Presence ping, for engagement analytics. */
+    sessionPing: '/me/session/ping',
     course: (courseId: string) => `/me/enrollments/${courseId}`,
     recordProgress: (courseId: string, lessonId: string) =>
       `/me/enrollments/${courseId}/lessons/${lessonId}/progress`,

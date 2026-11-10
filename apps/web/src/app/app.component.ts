@@ -1,7 +1,8 @@
 import { TuiRoot } from "@taiga-ui/core";
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { BrandingService } from './core/branding.service';
+import { HeartbeatService } from './services/heartbeat.service';
 
 @Component({
   selector: 'app-root',
@@ -10,7 +11,7 @@ import { BrandingService } from './core/branding.service';
   standalone: true,
   styleUrl: './app.component.css'
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'ThreeBayti';
 
   /**
@@ -21,4 +22,11 @@ export class AppComponent {
    * root component is the one thing alive for as long as the application.
    */
   private readonly branding = inject(BrandingService);
+
+  /** Presence pings for engagement analytics, for the life of the app. */
+  private readonly heartbeat = inject(HeartbeatService);
+
+  ngOnInit(): void {
+    this.heartbeat.start();
+  }
 }

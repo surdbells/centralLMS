@@ -161,6 +161,8 @@ use Central\Api\Infrastructure\Persistence\DbalSsoRepository;
 use Central\Api\Infrastructure\Sso\EnvFallbackSsoRepository;
 use Central\Api\Domain\Catalog\CourseReviewRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseReviewRepository;
+use Central\Api\Domain\Engagement\UserSessionRepository;
+use Central\Api\Infrastructure\Persistence\DbalUserSessionRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
@@ -499,6 +501,10 @@ return [
     }),
 
     CourseReviewRepository::class => factory(static fn (ContainerInterface $c) => new DbalCourseReviewRepository(
+        $c->get(Connection::class),
+    )),
+
+    UserSessionRepository::class => factory(static fn (ContainerInterface $c) => new DbalUserSessionRepository(
         $c->get(Connection::class),
     )),
 
