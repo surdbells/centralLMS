@@ -3235,6 +3235,8 @@
   "report.rank": "Rank #{{rank}}",
   "report.recent_activity": "Recent Activity",
   "report.review": "Review",
+  "report.rate_course": "Rate this course",
+  "report.rating_saved": "Saved",
   "report.start": "Start",
   "report.subtitle": "Track your progress, achievements, and learning analytics",
   "report.tab_activity": "Activity",

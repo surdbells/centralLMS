@@ -19,6 +19,8 @@ import {
 } from './learner-report.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { StarRatingComponent } from '../../../shared/star-rating/star-rating.component';
+import { CourseReviewsService } from '../../../services/course-reviews.service';
 
 type TabType = 'overview' | 'courses' | 'activity' | 'quizzes' | 'certificates';
 type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
@@ -26,7 +28,7 @@ type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
 @Component({
   selector: 'app-learner-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, StarRatingComponent],
   templateUrl: './learner-report.component.html',
   styleUrls: ['./learner-report.component.scss']
 })
@@ -46,6 +48,11 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
   certificates: Certificate[] = [];
   recentActivities: RecentActivity[] = [];
 
+  /** The caller's own star rating per course_id, for the Courses tab. */
+  myRatings: Record<string, number> = {};
+  /** The course_id just rated, to flash a confirmation. */
+  justRated: string | null = null;
+
   // Activity chart settings
   activityPeriod: ActivityPeriod = 'daily';
   activityDays = 30;
@@ -63,11 +70,13 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
   constructor(
     private reportService: LearnerReportService,
     private router: Router,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private reviews: CourseReviewsService
   ) {}
 
   ngOnInit(): void {
     this.loadOverview();
+    this.loadMyRatings();
   }
 
   ngOnDestroy(): void {
@@ -244,6 +253,39 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
 
   playCourse(courseId: string): void {
     this.router.navigate(['/player', courseId]);
+  }
+
+  /** Preload which courses the learner has already rated. */
+  private loadMyRatings(): void {
+    this.reviews.mine()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (list) => {
+          for (const r of list) {
+            this.myRatings[r.courseId] = r.rating;
+          }
+        },
+        error: () => undefined
+      });
+  }
+
+  /** Leave or change the caller's rating for a course (optimistic). */
+  rateCourse(courseId: string, rating: number): void {
+    this.myRatings[courseId] = rating;
+
+    this.reviews.submit(courseId, { rating })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.justRated = courseId;
+          setTimeout(() => {
+            if (this.justRated === courseId) {
+              this.justRated = null;
+            }
+          }, 2000);
+        },
+        error: () => undefined
+      });
   }
 
   viewCertificate(cert: Certificate): void {

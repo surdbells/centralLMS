@@ -161,6 +161,11 @@ export const Endpoints = {
     resources: (id: string) => `/courses/${id}/resources`,
     resourceFile: (id: string, resourceId: string) => `/courses/${id}/resources/${resourceId}/file`,
     resourceDelete: (id: string, resourceId: string) => `/courses/${id}/resources/${resourceId}`,
+    /** Learner 5-star evaluations of the course. */
+    reviews: (id: string) => `/courses/${id}/reviews`,
+    review: (id: string) => `/courses/${id}/review`,
+    reviewMine: (id: string) => `/courses/${id}/review/mine`,
+    reviewVisibility: (reviewId: string) => `/courses/reviews/${reviewId}/visibility`,
   },
 
   modules: {
@@ -206,6 +211,8 @@ export const Endpoints = {
    */
   me: {
     enrollments: '/me/enrollments',
+    /** Every course the caller has rated. */
+    reviews: '/me/reviews',
     course: (courseId: string) => `/me/enrollments/${courseId}`,
     recordProgress: (courseId: string, lessonId: string) =>
       `/me/enrollments/${courseId}/lessons/${lessonId}/progress`,

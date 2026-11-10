@@ -326,6 +326,15 @@
             <span class="value">{{ course.days_to_complete }} {{ 'report.days_word' | translate }}</span>
           </div>
         </div>
+        <div class="course-rate" *ngIf="course.status !== 'not_started'">
+          <span class="rate-label">{{ 'report.rate_course' | translate }}</span>
+          <app-star-rating [value]="myRatings[course.course_id] || 0"
+                           [label]="'report.rate_course' | translate"
+                           (rate)="rateCourse(course.course_id, $event)"></app-star-rating>
+          <span class="rate-saved" *ngIf="justRated === course.course_id">
+            <i class="bi bi-check-circle-fill"></i> {{ 'report.rating_saved' | translate }}
+          </span>
+        </div>
         <div class="course-actions">
           <button class="btn btn-primary btn-sm" (click)="playCourse(course.course_id)"
                   *ngIf="course.status !== 'completed'">

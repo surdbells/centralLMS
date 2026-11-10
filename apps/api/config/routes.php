@@ -35,6 +35,7 @@ use Central\Api\Application\Action\Catalog\DeleteCourseAction;
 use Central\Api\Application\Action\Catalog\DuplicateCourseAction;
 use Central\Api\Application\Action\Catalog\CourseOutlineAction;
 use Central\Api\Application\Action\Catalog\CourseResourceAction;
+use Central\Api\Application\Action\Catalog\CourseReviewAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
 use Central\Api\Application\Action\Catalog\CreateModuleAction;
@@ -421,6 +422,9 @@ return static function (App $app): void {
             $secure->get('/me/attempts', MyAttemptsAction::class)->setName('me.attempts');
             $secure->get('/me/assessments', LearnerCatalogueAction::class)->setName('me.assessments');
 
+            // Every course the caller has rated, for their own report screens.
+            $secure->get('/me/reviews', [CourseReviewAction::class, 'mineAll'])->setName('me.reviews');
+
             // What the caller is booked on. Distinct from a programme's
             // roster, which is other people's names — see MyTrainingsAction.
             $secure->get('/me/trainings', MyTrainingsAction::class)->setName('me.trainings');
@@ -464,6 +468,12 @@ return static function (App $app): void {
                 // declared first so `catalogue` is not swallowed by `/{id}`.
                 $c->get('/catalogue', CourseCatalogueAction::class)->setName('courses.catalogue');
                 $c->get('/statistics', CourseStatisticsAction::class)->setName('courses.statistics');
+
+                // Moderating a review — hide or republish one. Before the
+                // `/{id}` routes so "reviews" is not read as a course id.
+                $c->patch('/reviews/{id:' . $uuid . '}/visibility', [CourseReviewAction::class, 'setVisibility'])
+                    ->setName('courses.reviews.visibility');
+
                 $c->get('', ListCoursesAction::class)->setName('courses.list');
                 $c->post('', CreateCourseAction::class)->setName('courses.create');
                 $c->get('/{id:' . $uuid . '}', ShowCourseAction::class)->setName('courses.show');
@@ -493,6 +503,12 @@ return static function (App $app): void {
                     // putting other people on it, and needs only
                     // `enrollment.self`.
                     $s->post('/enroll', SelfEnrollAction::class)->setName('courses.selfEnroll');
+
+                    // Learner evaluations of the course (the 5-star rating).
+                    $s->get('/reviews', [CourseReviewAction::class, 'list'])->setName('courses.reviews.list');
+                    $s->get('/review/mine', [CourseReviewAction::class, 'mine'])->setName('courses.review.mine');
+                    $s->put('/review', [CourseReviewAction::class, 'submit'])->setName('courses.review.submit');
+                    $s->delete('/review', [CourseReviewAction::class, 'remove'])->setName('courses.review.remove');
 
                     $s->group('/enrollments', function (RouteCollectorProxy $e) use ($uuid): void {
                         // Before `/{userId}`, or `stats` is read as a user id.

@@ -159,6 +159,8 @@ use Central\Api\Infrastructure\Authz\DbalRoleRepository;
 use Central\Api\Infrastructure\Persistence\DbalPasswordTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalSsoRepository;
 use Central\Api\Infrastructure\Sso\EnvFallbackSsoRepository;
+use Central\Api\Domain\Catalog\CourseReviewRepository;
+use Central\Api\Infrastructure\Persistence\DbalCourseReviewRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
@@ -495,6 +497,10 @@ return [
             is_array($settings['sso'] ?? null) ? $settings['sso'] : [],
         );
     }),
+
+    CourseReviewRepository::class => factory(static fn (ContainerInterface $c) => new DbalCourseReviewRepository(
+        $c->get(Connection::class),
+    )),
 
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
