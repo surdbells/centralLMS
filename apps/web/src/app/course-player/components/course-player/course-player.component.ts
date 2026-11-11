@@ -885,6 +885,19 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * A post body with @mentions wrapped for styling. The body is already
+   * sanitized HTML (server + Angular), and this only wraps @tokens that fall
+   * in text, never inside a tag, so Angular's binding sanitizer keeps it safe.
+   */
+  bodyHtml(body: string): string {
+    if (!body.includes('@')) return body;
+    return body.replace(
+      /(<[^>]+>)|(?<![\w@])@[\p{L}][\p{L}0-9._-]*/gu,
+      (match, tag) => (tag ? tag : `<span class="cp-mention">${match}</span>`),
+    );
+  }
+
   hasReacted(post: DiscussionPost, kind: ReactionKind): boolean {
     return (post.myReactions ?? []).includes(kind);
   }

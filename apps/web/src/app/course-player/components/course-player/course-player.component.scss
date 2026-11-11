@@ -395,6 +395,16 @@ $cp-card: #ffffff;
 .cp-btn-ghost { background: none; border: 1px solid $cp-line; color: $cp-muted; &:hover { color: $cp-ink; } }
 .cp-locked-note { font-size: 13px; color: $cp-muted; display: inline-flex; align-items: center; }
 
+.cp-compose-foot { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cp-mention-hint {
+  font-size: 12px; color: $cp-muted; display: inline-flex; align-items: center; gap: 4px;
+  i { font-size: 13px; }
+}
+.cp-mention {
+  color: $cp-purple; font-weight: 600;
+  background: rgba(109, 94, 246, .1); border-radius: 4px; padding: 0 3px;
+}
+
 // ---- stage ------------------------------------------------------------
 .cp-stage { padding: 22px; }
 

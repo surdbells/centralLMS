@@ -1462,6 +1462,7 @@
   "course_player.lock": "قفل الموضوع",
   "course_player.locked": "مقفل",
   "course_player.mark_answer": "تحديد كإجابة",
+  "course_player.mention_hint": "أشر إلى زميل بكتابة @الاسم لإشعاره",
   "course_player.pin": "تثبيت",
   "course_player.pinned": "مثبّت",
   "course_player.react_celebrate": "تهنئة",

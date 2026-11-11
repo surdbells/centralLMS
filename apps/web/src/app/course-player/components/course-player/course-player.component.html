@@ -146,10 +146,13 @@
               <app-rich-html-editor [compact]="true" [minHeight]="80"
                                     placeholder="{{ 'course_player.discuss_placeholder' | translate }}"
                                     [(ngModel)]="newDiscussionPost"></app-rich-html-editor>
-              <button class="btn cp-btn-primary btn-sm" [disabled]="!newDiscussionPost.trim()"
-                      (click)="submitDiscussionPost()">
-                <i class="bi bi-send me-1"></i>{{ 'course_player.post' | translate }}
-              </button>
+              <div class="cp-compose-foot">
+                <span class="cp-mention-hint"><i class="bi bi-at"></i>{{ 'course_player.mention_hint' | translate }}</span>
+                <button class="btn cp-btn-primary btn-sm" [disabled]="!newDiscussionPost.trim()"
+                        (click)="submitDiscussionPost()">
+                  <i class="bi bi-send me-1"></i>{{ 'course_player.post' | translate }}
+                </button>
+              </div>
             </div>
 
             <div class="cp-discuss-search" *ngIf="discussion.length > 0">
@@ -220,7 +223,7 @@
                 </div>
               </ng-container>
               <ng-template #postBody>
-                <div class="cp-post-body cp-rich" [innerHTML]="post.body"></div>
+                <div class="cp-post-body cp-rich" [innerHTML]="bodyHtml(post.body)"></div>
               </ng-template>
 
               <div class="cp-reactions">
@@ -275,7 +278,7 @@
                       </div>
                     </ng-container>
                     <ng-template #replyBody>
-                      <div class="cp-post-body cp-rich mb-0" [innerHTML]="reply.body"></div>
+                      <div class="cp-post-body cp-rich mb-0" [innerHTML]="bodyHtml(reply.body)"></div>
                     </ng-template>
 
                     <span class="cp-reply-tools">

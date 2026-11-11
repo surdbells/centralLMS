@@ -1462,6 +1462,7 @@
   "course_player.lock": "Lock thread",
   "course_player.locked": "Locked",
   "course_player.mark_answer": "Mark as answer",
+  "course_player.mention_hint": "Mention a classmate with @name to notify them",
   "course_player.pin": "Pin",
   "course_player.pinned": "Pinned",
   "course_player.react_celebrate": "Celebrate",

@@ -1462,6 +1462,7 @@
   "course_player.lock": "Verrouiller le fil",
   "course_player.locked": "Verrouillé",
   "course_player.mark_answer": "Marquer comme réponse",
+  "course_player.mention_hint": "Mentionnez un participant avec @nom pour le notifier",
   "course_player.pin": "Épingler",
   "course_player.pinned": "Épinglé",
   "course_player.react_celebrate": "Féliciter",

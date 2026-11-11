@@ -44,6 +44,10 @@ enum NotificationType: string
     case SessionRescheduled = 'session_rescheduled';
     case SessionCancelled   = 'session_cancelled';
 
+    // --- course forum -----------------------------------------------------
+    case ForumReply   = 'forum_reply';
+    case ForumMention = 'forum_mention';
+
     // --- from a person, not an event -------------------------------------
     case Announcement = 'announcement';
 
@@ -84,7 +88,12 @@ enum NotificationType: string
             // Pleasant to see on the bell; an email about it is noise.
             self::Welcome,
             self::CourseCompleted,
-            self::AssessmentGraded => [NotificationChannel::InApp],
+            self::AssessmentGraded,
+            // Forum chatter belongs on the bell, not in an inbox: a reply or a
+            // mention is worth seeing next time you look, not worth an email
+            // each time somebody answers.
+            self::ForumReply,
+            self::ForumMention     => [NotificationChannel::InApp],
 
             // Email and nothing else. Both carry a link that sets a
             // password, and the in-app copy would leave that link sitting
@@ -183,6 +192,10 @@ enum NotificationType: string
             self::SessionRescheduled,
             self::SessionCancelled   => 'training_session',
 
+            // The thing to open is the course whose forum it is.
+            self::ForumReply,
+            self::ForumMention       => 'course',
+
             self::Welcome,
             self::Invitation,
             self::PasswordReset,
@@ -223,6 +236,8 @@ enum NotificationType: string
             self::SessionReminder    => 'Session reminder',
             self::SessionRescheduled => 'Session moved',
             self::SessionCancelled   => 'Session cancelled',
+            self::ForumReply         => 'Forum reply',
+            self::ForumMention       => 'Forum mention',
             self::Announcement       => 'Announcement',
         };
     }

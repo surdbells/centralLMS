@@ -6,6 +6,8 @@ namespace Central\Api\Application\Action\Enrollment;
 
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Catalog\CourseDiscussionRepository;
@@ -33,6 +35,7 @@ final class CoursePlayerExtrasAction
         private readonly CourseDiscussionRepository $discussion,
         private readonly Connection $connection,
         private readonly HtmlSanitizer $html,
+        private readonly Notifier $notifier,
     ) {
     }
 
@@ -118,6 +121,21 @@ final class CoursePlayerExtrasAction
             $parentId,
             $this->uuidOrNull($body['lessonId'] ?? null),
         );
+
+        // Reply and @mention notifications. Never let a notification failure
+        // lose the post that was just written.
+        try {
+            $this->notifyAboutPost(
+                $tenantId,
+                $args['courseId'] ?? '',
+                $caller->id,
+                is_string($post['authorName'] ?? null) ? $post['authorName'] : 'Someone',
+                $parentId,
+                $text,
+            );
+        } catch (\Throwable) {
+            // Swallowed on purpose: the post stands regardless.
+        }
 
         return Json::created($response, $post);
     }
@@ -320,6 +338,122 @@ final class CoursePlayerExtrasAction
         }
 
         return $clean;
+    }
+
+    /**
+     * Raises reply and @mention notifications for a newly written post.
+     *
+     * The author of the post being answered hears about the reply; anyone
+     * named with @ hears about the mention, except the author themselves and
+     * the reply's target (who already got the louder reply notice).
+     */
+    private function notifyAboutPost(
+        string $tenantId,
+        string $courseId,
+        string $actorId,
+        string $actorName,
+        ?string $parentId,
+        string $html,
+    ): void {
+        if ($courseId === '') {
+            return;
+        }
+
+        $courseTitle = $this->connection->fetchOne(
+            'SELECT title FROM courses WHERE id = :id AND tenant_id = :tenant',
+            ['id' => $courseId, 'tenant' => $tenantId],
+        );
+
+        $data = [
+            'subjectTitle' => is_string($courseTitle) && $courseTitle !== '' ? $courseTitle : 'the course',
+            'actorName'    => $actorName,
+            'snippet'      => $this->snippet($html),
+            'courseId'     => $courseId,
+        ];
+
+        $replyTarget = null;
+        if ($parentId !== null) {
+            $found = $this->connection->fetchOne(
+                'SELECT user_id FROM course_discussion_posts
+                 WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+                ['id' => $parentId, 'tenant' => $tenantId],
+            );
+            $replyTarget = is_string($found) ? $found : null;
+        }
+
+        if ($replyTarget !== null && $replyTarget !== $actorId) {
+            $this->notifier->notify($tenantId, [$replyTarget], NotificationType::ForumReply, $data, $courseId);
+        }
+
+        $mentioned = array_values(array_filter(
+            $this->resolveMentions($tenantId, $courseId, $html),
+            static fn (string $id): bool => $id !== $actorId && $id !== $replyTarget,
+        ));
+
+        if ($mentioned !== []) {
+            $this->notifier->notify($tenantId, $mentioned, NotificationType::ForumMention, $data, $courseId);
+        }
+    }
+
+    /** A one-line plain-text quote of a post body, for a notification. */
+    private function snippet(string $html): string
+    {
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+
+        if (mb_strlen($text) > 120) {
+            $text = rtrim(mb_substr($text, 0, 117)) . '…';
+        }
+
+        return $text;
+    }
+
+    /**
+     * Resolves @mentions in a body to user ids by matching the people on the
+     * course by name. A full "@First Last" is preferred; "@First" is a
+     * fallback, so a shared first name can notify more than one person — a
+     * deliberate err-wide-rather-than-miss for a v1 heuristic.
+     *
+     * @return list<string>
+     */
+    private function resolveMentions(string $tenantId, string $courseId, string $html): array
+    {
+        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        if (!str_contains($text, '@')) {
+            return [];
+        }
+
+        $people = $this->connection->fetchAllAssociative(
+            "SELECT DISTINCT u.id,
+                    TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS full_name,
+                    u.first_name
+             FROM users u
+             WHERE u.tenant_id = :tenant AND u.deleted_at IS NULL AND u.status = 'active'
+               AND (
+                   u.id IN (SELECT user_id FROM enrollments
+                            WHERE course_id = :course AND tenant_id = :tenant AND deleted_at IS NULL)
+                   OR u.id IN (SELECT instructor_id FROM courses WHERE id = :course AND tenant_id = :tenant)
+                   OR u.id IN (SELECT created_by FROM courses WHERE id = :course AND tenant_id = :tenant)
+               )",
+            ['course' => $courseId, 'tenant' => $tenantId],
+        );
+
+        $haystack = ' ' . mb_strtolower($text) . ' ';
+        $matched  = [];
+
+        foreach ($people as $p) {
+            $id = (string) $p['id'];
+            foreach ([(string) $p['full_name'], (string) $p['first_name']] as $name) {
+                $name = trim($name);
+                if ($name !== '' && str_contains($haystack, '@' . mb_strtolower($name))) {
+                    $matched[$id] = true;
+                    break;
+                }
+            }
+        }
+
+        return array_keys($matched);
     }
 
     private function uuidOrNull(mixed $value): ?string

@@ -114,6 +114,24 @@ final readonly class NotificationComposer
                 'body'  => $this->because($data, 'Do not travel to it.'),
             ],
 
+            NotificationType::ForumReply => [
+                'title' => $this->text($data, 'actorName', 'Someone') . ' replied to your post',
+                'body'  => $this->withSnippet($data, sprintf(
+                    '%s replied in %s.',
+                    $this->text($data, 'actorName', 'Someone'),
+                    $subject,
+                )),
+            ],
+
+            NotificationType::ForumMention => [
+                'title' => $this->text($data, 'actorName', 'Someone') . ' mentioned you',
+                'body'  => $this->withSnippet($data, sprintf(
+                    '%s mentioned you in %s.',
+                    $this->text($data, 'actorName', 'Someone'),
+                    $subject,
+                )),
+            ],
+
             NotificationType::Announcement => [
                 'title' => $this->text($data, 'title', 'Announcement'),
                 'body'  => $this->text($data, 'body', ''),
@@ -139,6 +157,10 @@ final readonly class NotificationComposer
             NotificationType::Invitation,
             NotificationType::PasswordReset => ['link'],
             NotificationType::Announcement => ['title'],
+            // A forum notification that cannot name who acted reads as a ghost
+            // ("Someone replied"), so the actor is required alongside the course.
+            NotificationType::ForumReply,
+            NotificationType::ForumMention => ['subjectTitle', 'actorName'],
             default                        => ['subjectTitle'],
         };
     }
@@ -158,6 +180,18 @@ final readonly class NotificationComposer
         }
 
         return $missing;
+    }
+
+    /**
+     * Appends a short quote of what was written, where there is one.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function withSnippet(array $data, string $sentence): string
+    {
+        $snippet = $this->text($data, 'snippet', '');
+
+        return $snippet === '' ? $sentence : $sentence . ' "' . $snippet . '"';
     }
 
     /**
