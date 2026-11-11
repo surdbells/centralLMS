@@ -175,6 +175,16 @@ export const routes: Routes = [
     title: 'Analytics'
   },
   {
+    path: 'admin/learning-plans',
+    loadComponent: () => import('./admin/learning-plans/learning-plans.component').then((m) => m.LearningPlansComponent),
+    title: 'Learning Plans'
+  },
+  {
+    path: 'learning-plan',
+    loadComponent: () => import('./learner/my-learning-plan/my-learning-plan.component').then((m) => m.MyLearningPlanComponent),
+    title: 'My Learning Plan'
+  },
+  {
     path: 'settings',
     component: SettingsComponent,
     title: 'Settings'

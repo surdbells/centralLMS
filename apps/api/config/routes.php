@@ -39,6 +39,8 @@ use Central\Api\Application\Action\Catalog\CourseReviewAction;
 use Central\Api\Application\Action\Analytics\HeartbeatAction;
 use Central\Api\Application\Action\Analytics\EngagementAnalyticsAction;
 use Central\Api\Application\Action\Analytics\AnalyticsSummaryAction;
+use Central\Api\Application\Action\LearningPlan\ManageLearningPlanAction;
+use Central\Api\Application\Action\LearningPlan\MyLearningPlanAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
 use Central\Api\Application\Action\Catalog\CreateModuleAction;
@@ -427,6 +429,29 @@ return static function (App $app): void {
 
             // Every course the caller has rated, for their own report screens.
             $secure->get('/me/reviews', [CourseReviewAction::class, 'mineAll'])->setName('me.reviews');
+
+            // The learner's own Learning Plan (by year), and scheduling items.
+            $secure->get('/me/learning-plans', [MyLearningPlanAction::class, 'mine'])->setName('me.learning-plans');
+            $secure->put('/me/learning-plans/items/{itemId:' . $uuid . '}/schedule', [MyLearningPlanAction::class, 'schedule'])
+                ->setName('me.learning-plans.schedule');
+            $secure->put('/me/learning-plans/items/{itemId:' . $uuid . '}/status', [MyLearningPlanAction::class, 'setStatus'])
+                ->setName('me.learning-plans.status');
+
+            // Administering per-year learning plans.
+            $secure->group('/learning-plans', function (RouteCollectorProxy $g) use ($uuid): void {
+                $g->get('', [ManageLearningPlanAction::class, 'list'])->setName('learning-plans.list');
+                $g->post('', [ManageLearningPlanAction::class, 'create'])->setName('learning-plans.create');
+                $g->get('/{id:' . $uuid . '}', [ManageLearningPlanAction::class, 'show'])->setName('learning-plans.show');
+                $g->put('/{id:' . $uuid . '}', [ManageLearningPlanAction::class, 'update'])->setName('learning-plans.update');
+                $g->patch('/{id:' . $uuid . '}/status', [ManageLearningPlanAction::class, 'setStatus'])->setName('learning-plans.status');
+                $g->delete('/{id:' . $uuid . '}', [ManageLearningPlanAction::class, 'delete'])->setName('learning-plans.delete');
+                $g->get('/{id:' . $uuid . '}/items', [ManageLearningPlanAction::class, 'items'])->setName('learning-plans.items');
+                $g->post('/{id:' . $uuid . '}/items', [ManageLearningPlanAction::class, 'saveItem'])->setName('learning-plans.items.save');
+                $g->delete('/{id:' . $uuid . '}/items/{itemId:' . $uuid . '}', [ManageLearningPlanAction::class, 'deleteItem'])->setName('learning-plans.items.delete');
+                $g->get('/{id:' . $uuid . '}/members', [ManageLearningPlanAction::class, 'members'])->setName('learning-plans.members');
+                $g->post('/{id:' . $uuid . '}/members', [ManageLearningPlanAction::class, 'assign'])->setName('learning-plans.members.assign');
+                $g->delete('/{id:' . $uuid . '}/members/{userId:' . $uuid . '}', [ManageLearningPlanAction::class, 'removeMember'])->setName('learning-plans.members.remove');
+            });
 
             // "I am still here" — the client pings this while the app is open,
             // so engagement analytics have a session to measure.

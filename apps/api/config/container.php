@@ -514,6 +514,12 @@ return [
         $c->get(Connection::class),
     )),
 
+    \Central\Api\Domain\LearningPlan\LearningPlanRepository::class => factory(
+        static fn (ContainerInterface $c) => new \Central\Api\Infrastructure\Persistence\DbalLearningPlanRepository(
+            $c->get(Connection::class),
+        ),
+    ),
+
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
     ),

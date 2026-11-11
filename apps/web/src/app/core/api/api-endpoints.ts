@@ -173,6 +173,16 @@ export const Endpoints = {
     summary: '/analytics/summary',
   },
 
+  learningPlans: {
+    list: '/learning-plans',
+    one: (id: string) => `/learning-plans/${id}`,
+    status: (id: string) => `/learning-plans/${id}/status`,
+    items: (id: string) => `/learning-plans/${id}/items`,
+    item: (id: string, itemId: string) => `/learning-plans/${id}/items/${itemId}`,
+    members: (id: string) => `/learning-plans/${id}/members`,
+    member: (id: string, userId: string) => `/learning-plans/${id}/members/${userId}`,
+  },
+
   modules: {
     list: (courseId: string) => `/courses/${courseId}/modules`,
     create: (courseId: string) => `/courses/${courseId}/modules`,
@@ -220,6 +230,10 @@ export const Endpoints = {
     reviews: '/me/reviews',
     /** Presence ping, for engagement analytics. */
     sessionPing: '/me/session/ping',
+    /** The learner's own Learning Plan, and scheduling its items. */
+    learningPlans: '/me/learning-plans',
+    planSchedule: (itemId: string) => `/me/learning-plans/items/${itemId}/schedule`,
+    planItemStatus: (itemId: string) => `/me/learning-plans/items/${itemId}/status`,
     course: (courseId: string) => `/me/enrollments/${courseId}`,
     recordProgress: (courseId: string, lessonId: string) =>
       `/me/enrollments/${courseId}/lessons/${lessonId}/progress`,
