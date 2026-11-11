@@ -51,7 +51,18 @@ export interface AnalyticsSummary {
   assessment: { attempts: number; learners: number; averageScore: number; passRate: number };
   competency: { items: number; met: number; rate: number };
   competencyTrend: { cycle: string; items: number; met: number; rate: number; avgGap: number }[];
-  engagement: { forum: { posts: number; participants: number }; avgActiveDays: number };
+  engagement: {
+    forum: {
+      posts: number;
+      threads: number;
+      replies: number;
+      participants: number;
+      reactions: number;
+      answeredThreads: number;
+      answerRate: number;
+    };
+    avgActiveDays: number;
+  };
   satisfaction: {
     average: number;
     count: number;

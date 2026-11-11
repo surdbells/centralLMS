@@ -242,22 +242,55 @@ final class DbalAnalyticsRepository implements AnalyticsRepository
 
     public function forumParticipation(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
     {
+        $params = [
+            'tenant' => $tenantId,
+            'from'   => $from->format(\DateTimeInterface::ATOM),
+            'to'     => $to->format(\DateTimeInterface::ATOM),
+        ];
+
         $row = $this->connection->fetchAssociative(
-            'SELECT COUNT(*) AS posts, COUNT(DISTINCT user_id) AS participants
+            "SELECT
+                COUNT(*)                                        AS posts,
+                COUNT(*) FILTER (WHERE parent_id IS NULL)       AS threads,
+                COUNT(*) FILTER (WHERE parent_id IS NOT NULL)   AS replies,
+                COUNT(DISTINCT user_id)                         AS participants
              FROM course_discussion_posts
-             WHERE tenant_id = :tenant AND created_at >= :from AND created_at < :to',
-            [
-                'tenant' => $tenantId,
-                'from'   => $from->format(\DateTimeInterface::ATOM),
-                'to'     => $to->format(\DateTimeInterface::ATOM),
-            ],
+             WHERE tenant_id = :tenant AND deleted_at IS NULL
+               AND created_at >= :from AND created_at < :to",
+            $params,
         );
 
         $row = $row === false ? [] : $row;
 
+        $reactions = (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM discussion_reactions
+             WHERE tenant_id = :tenant AND created_at >= :from AND created_at < :to',
+            $params,
+        );
+
+        // A thread counts as answered when one of its replies is the accepted
+        // answer, judged on threads opened inside the window.
+        $answered = (int) $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM course_discussion_posts q
+             WHERE q.tenant_id = :tenant AND q.parent_id IS NULL AND q.deleted_at IS NULL
+               AND q.created_at >= :from AND q.created_at < :to
+               AND EXISTS (
+                   SELECT 1 FROM course_discussion_posts a
+                   WHERE a.parent_id = q.id AND a.is_answer AND a.deleted_at IS NULL
+               )",
+            $params,
+        );
+
+        $threads = (int) ($row['threads'] ?? 0);
+
         return [
-            'posts'        => (int) ($row['posts'] ?? 0),
-            'participants' => (int) ($row['participants'] ?? 0),
+            'posts'           => (int) ($row['posts'] ?? 0),
+            'threads'         => $threads,
+            'replies'         => (int) ($row['replies'] ?? 0),
+            'participants'    => (int) ($row['participants'] ?? 0),
+            'reactions'       => $reactions,
+            'answeredThreads' => $answered,
+            'answerRate'      => $threads > 0 ? round($answered / $threads, 3) : 0.0,
         ];
     }
 

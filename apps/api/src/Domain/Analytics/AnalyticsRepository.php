@@ -98,10 +98,11 @@ interface AnalyticsRepository
     public function competencyTrend(string $tenantId): array;
 
     /**
-     * Discussion-forum participation over the window: posts and distinct
-     * participants.
+     * Discussion-forum participation over the window: threads and replies,
+     * distinct participants, reactions given, and how many questions reached
+     * an accepted answer.
      *
-     * @return array{posts: int, participants: int}
+     * @return array{posts: int, threads: int, replies: int, participants: int, reactions: int, answeredThreads: int, answerRate: float}
      */
     public function forumParticipation(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
 }

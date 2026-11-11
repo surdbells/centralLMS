@@ -149,12 +149,23 @@
           <span class="kpi-sub">{{ 'analytics.per_learner' | translate }}</span>
         </div>
         <div class="kpi">
-          <span class="kpi-value">{{ summary.engagement.forum.posts }}</span>
-          <span class="kpi-label">{{ 'analytics.forum_posts' | translate }}</span>
+          <span class="kpi-value">{{ summary.engagement.forum.threads }}</span>
+          <span class="kpi-label">{{ 'analytics.forum_threads' | translate }}</span>
+          <span class="kpi-sub">{{ summary.engagement.forum.replies }} {{ 'analytics.forum_replies' | translate }}</span>
         </div>
         <div class="kpi">
           <span class="kpi-value">{{ summary.engagement.forum.participants }}</span>
           <span class="kpi-label">{{ 'analytics.forum_participants' | translate }}</span>
+          <span class="kpi-sub">{{ summary.engagement.forum.posts }} {{ 'analytics.forum_posts' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.engagement.forum.reactions }}</span>
+          <span class="kpi-label">{{ 'analytics.forum_reactions' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ (summary.engagement.forum.answerRate * 100) | number:'1.0-0' }}<small>%</small></span>
+          <span class="kpi-label">{{ 'analytics.forum_answer_rate' | translate }}</span>
+          <span class="kpi-sub">{{ summary.engagement.forum.answeredThreads }} / {{ summary.engagement.forum.threads }}</span>
         </div>
       </div>
     </section>
