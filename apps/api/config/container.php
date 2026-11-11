@@ -520,6 +520,12 @@ return [
         ),
     ),
 
+    \Central\Api\Domain\Feedback\BehaviourFeedbackRepository::class => factory(
+        static fn (ContainerInterface $c) => new \Central\Api\Infrastructure\Persistence\DbalBehaviourFeedbackRepository(
+            $c->get(Connection::class),
+        ),
+    ),
+
     CourseRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseRepository($c->get(Connection::class)),
     ),

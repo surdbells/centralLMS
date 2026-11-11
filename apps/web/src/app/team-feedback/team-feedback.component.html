@@ -1,0 +1,33 @@
+<div class="tf-wrap">
+  <header class="tf-head">
+    <h1>{{ 'feedback.title' | translate }}</h1>
+    <p>{{ 'feedback.subtitle' | translate }}</p>
+  </header>
+
+  <div class="tf-state" *ngIf="loading"><div class="spinner-border text-primary"></div></div>
+  <div class="tf-state error" *ngIf="failed && !loading">{{ 'feedback.failed' | translate }}</div>
+
+  <div class="tf-empty" *ngIf="!loading && !failed && reports.length === 0">
+    <i class="bi bi-people"></i>
+    <p>{{ 'feedback.none' | translate }}</p>
+  </div>
+
+  <section class="report-card" *ngFor="let r of reports">
+    <h2>{{ r.name }}</h2>
+    <ul class="course-rows">
+      <li *ngFor="let row of r.rows">
+        <div class="cr-main">
+          <span class="cr-title"><i class="bi bi-journal-check"></i> {{ row.course_title }}</span>
+          <span class="cr-rate">
+            <app-star-rating [value]="row.rating || 0"
+                             [label]="'feedback.behaviour_change' | translate"
+                             (rate)="rate(row, $event)"></app-star-rating>
+            <span class="cr-saved" *ngIf="saved === key(row)"><i class="bi bi-check-circle-fill"></i></span>
+          </span>
+        </div>
+        <input type="text" class="cr-note" [(ngModel)]="row.comments" (blur)="saveComment(row)"
+               [placeholder]="'feedback.note_placeholder' | translate">
+      </li>
+    </ul>
+  </section>
+</div>

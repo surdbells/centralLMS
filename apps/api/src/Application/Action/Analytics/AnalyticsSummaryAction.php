@@ -10,6 +10,7 @@ use Central\Api\Domain\Analytics\AnalyticsRepository;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Engagement\UserSessionRepository;
 use Central\Api\Domain\Exception\AccessDenied;
+use Central\Api\Domain\Feedback\BehaviourFeedbackRepository;
 use Central\Api\Support\Clock;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -27,6 +28,7 @@ final class AnalyticsSummaryAction
     public function __construct(
         private readonly AnalyticsRepository $analytics,
         private readonly UserSessionRepository $sessions,
+        private readonly BehaviourFeedbackRepository $feedback,
         private readonly Clock $clock,
     ) {
     }
@@ -61,6 +63,7 @@ final class AnalyticsSummaryAction
             'compliance'   => $this->analytics->complianceStatus($t),
             'adoption'     => $adoption,
             'satisfaction' => $this->analytics->satisfaction($t),
+            'behaviour'    => $this->feedback->summary($t),
         ]);
     }
 }

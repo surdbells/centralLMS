@@ -231,6 +231,8 @@ export const Endpoints = {
     reviews: '/me/reviews',
     /** Presence ping, for engagement analytics. */
     sessionPing: '/me/session/ping',
+    /** A manager's behaviour-change feedback on their reports' training. */
+    teamFeedback: '/me/team/feedback',
     /** The learner's own Learning Plan, and scheduling its items. */
     learningPlans: '/me/learning-plans',
     planSchedule: (itemId: string) => `/me/learning-plans/items/${itemId}/schedule`,

@@ -185,6 +185,11 @@ export const routes: Routes = [
     title: 'My Learning Plan'
   },
   {
+    path: 'team-feedback',
+    loadComponent: () => import('./team-feedback/team-feedback.component').then((m) => m.TeamFeedbackComponent),
+    title: 'Team Feedback'
+  },
+  {
     path: 'settings',
     component: SettingsComponent,
     title: 'Settings'

@@ -183,4 +183,19 @@ export class AnalyticsComponent implements OnInit {
   satBar(star: number): number {
     return Math.round((this.satCount(star) / this.satMax) * 100);
   }
+
+  // --- behaviour change (L3) ------------------------------------------------
+
+  behCount(star: number): number {
+    return this.summary?.behaviour.distribution[star] ?? 0;
+  }
+
+  private get behMax(): number {
+    const d = this.summary?.behaviour.distribution;
+    return d ? Math.max(1, ...this.stars.map((s) => d[s] ?? 0)) : 1;
+  }
+
+  behBar(star: number): number {
+    return Math.round((this.behCount(star) / this.behMax) * 100);
+  }
 }

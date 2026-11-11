@@ -172,6 +172,29 @@
       </div>
     </section>
 
+    <!-- ================= H · Business impact ================= -->
+    <section class="an-section">
+      <h2><span class="tag">H</span> {{ 'analytics.impact' | translate }}</h2>
+      <div class="chart-row">
+        <div class="chart-card sat-score">
+          <span class="sat-avg">{{ summary.behaviour.average | number:'1.1-1' }}</span>
+          <app-star-rating [value]="summary.behaviour.average" [readonly]="true"></app-star-rating>
+          <span class="kpi-sub">{{ summary.behaviour.count }} {{ 'analytics.evaluations' | translate }}</span>
+          <div class="sat-dist">
+            <div class="sat-row" *ngFor="let s of stars">
+              <span class="sat-star">{{ s }}★</span>
+              <div class="sat-track"><div class="sat-fill beh" [style.width.%]="behBar(s)"></div></div>
+              <span class="sat-count">{{ behCount(s) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><h3>{{ 'analytics.behaviour_change' | translate }}</h3></div>
+          <p class="muted small">{{ 'analytics.behaviour_note' | translate }}</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= Deeper breakdowns ================= -->
     <section class="an-section">
       <h2><span class="tag">B–H</span> {{ 'analytics.deeper' | translate }}</h2>

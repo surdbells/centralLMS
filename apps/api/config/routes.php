@@ -42,6 +42,7 @@ use Central\Api\Application\Action\Analytics\AnalyticsSummaryAction;
 use Central\Api\Application\Action\Analytics\AnalyticsByFieldAction;
 use Central\Api\Application\Action\LearningPlan\ManageLearningPlanAction;
 use Central\Api\Application\Action\LearningPlan\MyLearningPlanAction;
+use Central\Api\Application\Action\Feedback\TeamFeedbackAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
 use Central\Api\Application\Action\Catalog\CreateModuleAction;
@@ -430,6 +431,10 @@ return static function (App $app): void {
 
             // Every course the caller has rated, for their own report screens.
             $secure->get('/me/reviews', [CourseReviewAction::class, 'mineAll'])->setName('me.reviews');
+
+            // A manager's behaviour-change feedback on their reports' training.
+            $secure->get('/me/team/feedback', [TeamFeedbackAction::class, 'pending'])->setName('me.team.feedback');
+            $secure->put('/me/team/feedback', [TeamFeedbackAction::class, 'submit'])->setName('me.team.feedback.submit');
 
             // The learner's own Learning Plan (by year), and scheduling items.
             $secure->get('/me/learning-plans', [MyLearningPlanAction::class, 'mine'])->setName('me.learning-plans');

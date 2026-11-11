@@ -54,6 +54,11 @@ export interface AnalyticsSummary {
     top: RatedCourse[];
     low: RatedCourse[];
   };
+  behaviour: {
+    average: number;
+    count: number;
+    distribution: Record<number, number>;
+  };
 }
 
 export interface FieldSlice {
