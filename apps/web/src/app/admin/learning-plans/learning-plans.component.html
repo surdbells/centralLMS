@@ -45,6 +45,13 @@
         <button class="btn btn-sm btn-outline-secondary" *ngIf="plan.status === 'published'" (click)="setStatus(plan, 'draft')">{{ 'plan.unpublish' | translate }}</button>
         <button class="btn btn-sm btn-outline-secondary" (click)="setStatus(plan, 'archived')">{{ 'plan.archive' | translate }}</button>
         <button class="btn btn-sm btn-outline-primary" (click)="assignEveryone()">{{ 'plan.assign_everyone' | translate }}</button>
+        <span class="assign-dept" *ngIf="departments.length">
+          <select class="form-select form-select-sm" [(ngModel)]="assignDept">
+            <option value="">{{ 'plan.pick_department' | translate }}</option>
+            <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
+          </select>
+          <button class="btn btn-sm btn-outline-primary" [disabled]="!assignDept" (click)="assignDepartment()">{{ 'plan.assign_dept' | translate }}</button>
+        </span>
         <button class="btn btn-sm btn-outline-danger" (click)="removePlan(plan)">{{ 'common.delete' | translate }}</button>
       </div>
 

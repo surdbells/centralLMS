@@ -57,11 +57,14 @@ final class AnalyticsSummaryAction
         $adoption['activeLearnerRate'] = $adoption['people'] > 0
             ? round($active / $adoption['people'] * 100, 1)
             : 0.0;
+        $adoption['avgCoursesPerEmployee'] = $this->analytics->avgCoursesPerEmployee($t);
 
         return Json::ok($response, [
             'days'         => $days,
             'compliance'   => $this->analytics->complianceStatus($t),
             'adoption'     => $adoption,
+            'assessment'   => $this->analytics->assessment($t),
+            'competency'   => $this->analytics->competencyReadiness($t),
             'satisfaction' => $this->analytics->satisfaction($t),
             'behaviour'    => $this->feedback->summary($t),
         ]);

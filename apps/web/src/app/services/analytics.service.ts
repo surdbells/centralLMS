@@ -46,7 +46,10 @@ export interface AnalyticsSummary {
     firstTimeLoginRate: number;
     activeLearners: number;
     activeLearnerRate: number;
+    avgCoursesPerEmployee: number;
   };
+  assessment: { attempts: number; learners: number; averageScore: number; passRate: number };
+  competency: { items: number; met: number; rate: number };
   satisfaction: {
     average: number;
     count: number;

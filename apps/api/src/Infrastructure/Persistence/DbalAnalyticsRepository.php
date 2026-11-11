@@ -149,6 +149,68 @@ final class DbalAnalyticsRepository implements AnalyticsRepository
         }, $rows);
     }
 
+    public function assessment(string $tenantId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT COUNT(*)                                                     AS attempts,
+                    COUNT(DISTINCT user_id)                                      AS learners,
+                    COALESCE(AVG(percentage) FILTER (WHERE percentage IS NOT NULL), 0) AS avg_score,
+                    COUNT(*) FILTER (WHERE passed)                               AS passed,
+                    COUNT(*) FILTER (WHERE passed IS NOT NULL)                   AS graded
+             FROM attempts
+             WHERE tenant_id = :tenant',
+            ['tenant' => $tenantId],
+        );
+
+        $row    = $row === false ? [] : $row;
+        $graded = (int) ($row['graded'] ?? 0);
+
+        return [
+            'attempts'     => (int) ($row['attempts'] ?? 0),
+            'learners'     => (int) ($row['learners'] ?? 0),
+            'averageScore' => round((float) ($row['avg_score'] ?? 0), 1),
+            'passRate'     => $graded > 0 ? round((int) ($row['passed'] ?? 0) / $graded * 100, 1) : 0.0,
+        ];
+    }
+
+    public function competencyReadiness(string $tenantId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            "SELECT COUNT(*)                          AS items,
+                    COUNT(*) FILTER (WHERE i.gap = 0) AS met
+             FROM competency_assessment_items i
+             JOIN competency_assessments a ON a.id = i.assessment_id
+             WHERE a.tenant_id = :tenant AND a.status IN ('reviewed', 'finalized')",
+            ['tenant' => $tenantId],
+        );
+
+        $row   = $row === false ? [] : $row;
+        $items = (int) ($row['items'] ?? 0);
+        $met   = (int) ($row['met'] ?? 0);
+
+        return [
+            'items' => $items,
+            'met'   => $met,
+            'rate'  => $items > 0 ? round($met / $items * 100, 1) : 0.0,
+        ];
+    }
+
+    public function avgCoursesPerEmployee(string $tenantId): float
+    {
+        $avg = $this->connection->fetchOne(
+            "SELECT COALESCE(AVG(cnt), 0) FROM (
+                 SELECT u.id, COUNT(e.id) FILTER (WHERE e.status = 'completed') AS cnt
+                 FROM users u
+                 LEFT JOIN enrollments e ON e.user_id = u.id AND e.tenant_id = u.tenant_id
+                 WHERE u.tenant_id = :tenant AND u.deleted_at IS NULL AND u.status = 'active'
+                 GROUP BY u.id
+             ) s",
+            ['tenant' => $tenantId],
+        );
+
+        return round((float) $avg, 2);
+    }
+
     /**
      * @param  'ASC'|'DESC' $direction
      * @return list<array<string, mixed>>

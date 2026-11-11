@@ -60,6 +60,10 @@
           <span class="kpi-value">{{ summary.adoption.neverSignedIn }}</span>
           <span class="kpi-label">{{ 'analytics.never_signed_in' | translate }}</span>
         </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.adoption.avgCoursesPerEmployee | number:'1.1-1' }}</span>
+          <span class="kpi-label">{{ 'analytics.courses_per_employee' | translate }}</span>
+        </div>
       </div>
 
       <div class="chart-row">
@@ -111,6 +115,26 @@
             <span class="unit-count">{{ r.completed }}/{{ r.enrolled }}</span>
           </div>
           <p class="muted small" *ngIf="!fieldRows.length">{{ 'analytics.no_enrolments' | translate }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= C · Assessment ================= -->
+    <section class="an-section">
+      <h2><span class="tag">C</span> {{ 'analytics.assessment' | translate }}</h2>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.assessment.passRate }}%</span>
+          <span class="kpi-label">{{ 'analytics.pass_rate' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.assessment.averageScore }}%</span>
+          <span class="kpi-label">{{ 'analytics.avg_score' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.assessment.attempts }}</span>
+          <span class="kpi-label">{{ 'analytics.attempts' | translate }}</span>
+          <span class="kpi-sub">{{ summary.assessment.learners }} {{ 'analytics.active_learners' | translate }}</span>
         </div>
       </div>
     </section>
@@ -169,6 +193,22 @@
           </ul>
           <ng-template #noRatings><p class="muted small">{{ 'analytics.no_ratings_yet' | translate }}</p></ng-template>
         </div>
+      </div>
+    </section>
+
+    <!-- ================= F · Competency ================= -->
+    <section class="an-section">
+      <h2><span class="tag">F</span> {{ 'analytics.competency' | translate }}</h2>
+      <div class="an-panel">
+        <div class="compliance-bar" *ngIf="summary.competency.items > 0">
+          <div class="seg done" [style.width.%]="summary.competency.rate"></div>
+          <div class="seg todo" [style.width.%]="100 - summary.competency.rate"></div>
+        </div>
+        <div class="compliance-legend">
+          <div><span class="dot done"></span>{{ 'analytics.meeting_competency' | translate }} <b>{{ summary.competency.rate }}%</b></div>
+          <div class="muted small">{{ summary.competency.met }} / {{ summary.competency.items }} {{ 'analytics.requirements_met' | translate }}</div>
+        </div>
+        <p class="muted small" *ngIf="summary.competency.items === 0">{{ 'analytics.no_competency' | translate }}</p>
       </div>
     </section>
 

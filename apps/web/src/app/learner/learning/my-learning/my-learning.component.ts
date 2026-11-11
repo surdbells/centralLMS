@@ -19,6 +19,7 @@ import {
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { MyCompetencyComponent } from '../../my-competency/my-competency.component';
+import { MyLearningPlanComponent } from '../../my-learning-plan/my-learning-plan.component';
 
 type ViewMode = 'dashboard' | 'all-courses' | 'browse' | 'course-detail';
 type StatusFilter = 'all' | 'in_progress' | 'not_started' | 'completed';
@@ -26,7 +27,7 @@ type StatusFilter = 'all' | 'in_progress' | 'not_started' | 'completed';
 @Component({
   selector: 'app-my-learning',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, MyCompetencyComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, MyCompetencyComponent, MyLearningPlanComponent],
   templateUrl: './my-learning.component.html',
   styleUrls: ['./my-learning.component.scss']
 })

@@ -66,6 +66,16 @@
 
         <li class="nav-item" role="presentation">
             <button class="nav-link"
+                    id="tab3-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#tab3"
+                    type="button" role="tab">
+               {{ 'plan.my_title' | translate }}
+            </button>
+        </li>
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link"
                     id="tab2-tab"
                     data-bs-toggle="tab"
                     data-bs-target="#tab2"
@@ -513,6 +523,12 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab3" role="tabpanel">
+        <section class="learning-plan-section">
+          <app-my-learning-plan></app-my-learning-plan>
+        </section>
         </div>
 
         <div class="tab-pane fade" id="tab2" role="tabpanel">

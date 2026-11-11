@@ -37,6 +37,8 @@ export class LearningPlansComponent implements OnInit {
 
   plans: LearningPlan[] = [];
   courses: CourseOption[] = [];
+  departments: { id: string; name: string }[] = [];
+  assignDept = '';
 
   newPlan = { year: new Date().getFullYear(), title: '' };
 
@@ -47,6 +49,10 @@ export class LearningPlansComponent implements OnInit {
   ngOnInit(): void {
     this.loadPlans();
     this.loadCourses();
+    this.api.get<{ id: string; name: string }[]>(Endpoints.lookups.active('department')).subscribe({
+      next: (rows) => (this.departments = rows),
+      error: () => undefined,
+    });
   }
 
   private loadPlans(): void {
@@ -134,12 +140,22 @@ export class LearningPlansComponent implements OnInit {
   }
 
   assignEveryone(): void {
+    this.doAssign({ everyone: true });
+  }
+
+  assignDepartment(): void {
+    if (this.assignDept) {
+      this.doAssign({ departmentId: this.assignDept });
+    }
+  }
+
+  private doAssign(body: { everyone?: boolean; departmentId?: string }): void {
     const plan = this.selected;
     if (!plan) {
       return;
     }
     this.clear();
-    this.svc.assign(plan.id, { everyone: true }).subscribe({
+    this.svc.assign(plan.id, body).subscribe({
       next: (r) => { this.message = this.i18n.t('plan.assigned', { count: r.assigned }); this.refreshCounts(plan.id); },
       error: () => (this.error = this.i18n.t('plan.save_failed')),
     });

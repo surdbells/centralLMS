@@ -26,7 +26,8 @@
 .plan-editor { background: #fff; border: 1px solid var(--lp-line); border-radius: 12px; padding: 16px; }
 .editor-head { display: flex; align-items: center; justify-content: space-between;
   h2 { font-size: 1.05rem; font-weight: 700; margin: 0; } }
-.editor-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 8px; }
+.editor-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 8px; }
+.assign-dept { display: inline-flex; align-items: center; gap: 6px; .form-select { max-width: 180px; } }
 
 .sub { font-size: .85rem; font-weight: 700; color: var(--lp-muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 8px; }
 .item-admin-list { list-style: none; margin: 0; padding: 0;

@@ -68,4 +68,24 @@ interface AnalyticsRepository
      * @return list<array{value: string, enrolled: int, completed: int, rate: float}>
      */
     public function completionByCustomField(string $tenantId, string $fieldKey): array;
+
+    /**
+     * Assessment outcomes tenant-wide: attempts, distinct learners, average
+     * score and the pass rate over graded attempts.
+     *
+     * @return array{attempts: int, learners: int, averageScore: float, passRate: float}
+     */
+    public function assessment(string $tenantId): array;
+
+    /**
+     * Competency readiness: of the requirement rows on reviewed/finalised
+     * assessments, how many are met (gap of zero) — the "% meeting role
+     * competency" figure.
+     *
+     * @return array{items: int, met: int, rate: float}
+     */
+    public function competencyReadiness(string $tenantId): array;
+
+    /** Average number of courses completed per active employee. */
+    public function avgCoursesPerEmployee(string $tenantId): float;
 }
