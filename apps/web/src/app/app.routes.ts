@@ -170,6 +170,11 @@ export const routes: Routes = [
     title: 'Course Enrolments',
   },
   {
+    path: 'admin/analytics',
+    loadComponent: () => import('./admin/analytics/analytics.component').then((m) => m.AnalyticsComponent),
+    title: 'Analytics'
+  },
+  {
     path: 'settings',
     component: SettingsComponent,
     title: 'Settings'

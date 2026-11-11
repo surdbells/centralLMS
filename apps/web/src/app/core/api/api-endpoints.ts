@@ -168,6 +168,11 @@ export const Endpoints = {
     reviewVisibility: (reviewId: string) => `/courses/reviews/${reviewId}/visibility`,
   },
 
+  analytics: {
+    engagement: '/analytics/engagement',
+    summary: '/analytics/summary',
+  },
+
   modules: {
     list: (courseId: string) => `/courses/${courseId}/modules`,
     create: (courseId: string) => `/courses/${courseId}/modules`,

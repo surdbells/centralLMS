@@ -1,0 +1,164 @@
+<app-admintop></app-admintop>
+
+<div class="analytics-wrap">
+  <header class="an-header">
+    <div>
+      <h1>{{ 'analytics.title' | translate }}</h1>
+      <p>{{ 'analytics.subtitle' | translate }}</p>
+    </div>
+    <div class="period" role="group" [attr.aria-label]="'analytics.period' | translate">
+      <button type="button" *ngFor="let d of [7, 30, 90, 365]"
+              [class.active]="days === d" (click)="setDays(d)">
+        {{ d }}{{ 'analytics.days_short' | translate }}
+      </button>
+    </div>
+  </header>
+
+  <div class="an-state" *ngIf="loading">
+    <div class="spinner-border text-primary"></div>
+    <p>{{ 'analytics.loading' | translate }}</p>
+  </div>
+
+  <div class="an-state error" *ngIf="failed && !loading">
+    <i class="bi bi-exclamation-triangle"></i>
+    <p>{{ 'analytics.failed' | translate }}</p>
+  </div>
+
+  <ng-container *ngIf="!loading && !failed && engagement && summary">
+
+    <!-- ================= A · Participation & access ================= -->
+    <section class="an-section">
+      <h2><span class="tag">A</span> {{ 'analytics.participation' | translate }}</h2>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.adoption.adoptionRate }}%</span>
+          <span class="kpi-label">{{ 'analytics.adoption_rate' | translate }}</span>
+          <span class="kpi-sub">{{ summary.adoption.activated }} / {{ summary.adoption.people }} {{ 'analytics.activated' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.adoption.activeLearners }}</span>
+          <span class="kpi-label">{{ 'analytics.active_learners' | translate }}</span>
+          <span class="kpi-sub">{{ summary.adoption.activeLearnerRate }}% {{ 'analytics.of_headcount' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.adoption.firstTimeLoginRate }}%</span>
+          <span class="kpi-label">{{ 'analytics.first_login_rate' | translate }}</span>
+          <span class="kpi-sub">{{ summary.adoption.newActivated }} / {{ summary.adoption.newUsers }} {{ 'analytics.new_joiners' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ engagement.login.averagePerLearner }}</span>
+          <span class="kpi-label">{{ 'analytics.login_frequency' | translate }}</span>
+          <span class="kpi-sub">{{ engagement.login.signIns }} {{ 'analytics.sign_ins' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ engagement.totals.averageMinutes }}<small>m</small></span>
+          <span class="kpi-label">{{ 'analytics.avg_session' | translate }}</span>
+          <span class="kpi-sub">{{ engagement.totals.sessions }} {{ 'analytics.sessions' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.adoption.neverSignedIn }}</span>
+          <span class="kpi-label">{{ 'analytics.never_signed_in' | translate }}</span>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card">
+          <div class="chart-head">
+            <h3>{{ 'analytics.active_over_time' | translate }}</h3>
+            <span class="chart-note">{{ chartBucketKey | translate }}</span>
+          </div>
+          <div class="bars" *ngIf="chartSeries.length">
+            <div class="bar-col" *ngFor="let p of chartSeries" [title]="p.period + ' — ' + p.learners">
+              <div class="bar" [style.height.%]="barHeight(p.learners)"></div>
+            </div>
+          </div>
+          <div class="chart-empty" *ngIf="!chartSeries.length">{{ 'analytics.no_sessions_yet' | translate }}</div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head"><h3>{{ 'analytics.device_split' | translate }}</h3></div>
+          <div class="donut-wrap">
+            <div class="donut" [style.background]="deviceGradient"><div class="donut-hole"></div></div>
+            <ul class="legend">
+              <li *ngFor="let d of devices">
+                <span class="dot" [style.background]="deviceColors[d.device] || '#c9ccd1'"></span>
+                <span class="legend-name">{{ ('analytics.device_' + d.device) | translate }}</span>
+                <span class="legend-val">{{ devicePct(d) }}%</span>
+              </li>
+              <li *ngIf="!devices.length" class="muted">{{ 'analytics.no_sessions_yet' | translate }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= G · Compliance ================= -->
+    <section class="an-section">
+      <h2><span class="tag">G</span> {{ 'analytics.compliance' | translate }}</h2>
+      <div class="an-panel">
+        <div class="compliance-bar" *ngIf="summary.compliance.total > 0">
+          <div class="seg done" [style.width.%]="compliancePct('completed')"></div>
+          <div class="seg prog" [style.width.%]="compliancePct('inProgress')"></div>
+          <div class="seg todo" [style.width.%]="compliancePct('yetToAttempt')"></div>
+        </div>
+        <div class="compliance-legend">
+          <div><span class="dot done"></span>{{ 'analytics.completed' | translate }}
+            <b>{{ summary.compliance.completed }}</b> ({{ compliancePct('completed') }}%)</div>
+          <div><span class="dot prog"></span>{{ 'analytics.in_progress' | translate }}
+            <b>{{ summary.compliance.inProgress }}</b> ({{ compliancePct('inProgress') }}%)</div>
+          <div><span class="dot todo"></span>{{ 'analytics.yet_to_attempt' | translate }}
+            <b>{{ summary.compliance.yetToAttempt }}</b> ({{ compliancePct('yetToAttempt') }}%)</div>
+        </div>
+        <p class="muted small" *ngIf="summary.compliance.total === 0">{{ 'analytics.no_mandatory' | translate }}</p>
+      </div>
+    </section>
+
+    <!-- ================= E · Satisfaction ================= -->
+    <section class="an-section">
+      <h2><span class="tag">E</span> {{ 'analytics.satisfaction' | translate }}</h2>
+      <div class="chart-row">
+        <div class="chart-card sat-score">
+          <span class="sat-avg">{{ summary.satisfaction.average | number:'1.1-1' }}</span>
+          <app-star-rating [value]="summary.satisfaction.average" [readonly]="true"></app-star-rating>
+          <span class="kpi-sub">{{ summary.satisfaction.count }} {{ 'analytics.ratings' | translate }}</span>
+          <div class="sat-dist">
+            <div class="sat-row" *ngFor="let s of stars">
+              <span class="sat-star">{{ s }}★</span>
+              <div class="sat-track"><div class="sat-fill" [style.width.%]="satBar(s)"></div></div>
+              <span class="sat-count">{{ satCount(s) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><h3>{{ 'analytics.top_rated' | translate }}</h3></div>
+          <ul class="course-rank" *ngIf="summary.satisfaction.top.length; else noRatings">
+            <li *ngFor="let c of summary.satisfaction.top">
+              <span class="rank-title">{{ c.title }}</span>
+              <span class="rank-score">{{ c.average | number:'1.1-1' }}★ <small>({{ c.reviews }})</small></span>
+            </li>
+          </ul>
+          <div class="chart-head" *ngIf="summary.satisfaction.low.length"><h3>{{ 'analytics.lowest_rated' | translate }}</h3></div>
+          <ul class="course-rank" *ngIf="summary.satisfaction.low.length">
+            <li *ngFor="let c of summary.satisfaction.low">
+              <span class="rank-title">{{ c.title }}</span>
+              <span class="rank-score low">{{ c.average | number:'1.1-1' }}★ <small>({{ c.reviews }})</small></span>
+            </li>
+          </ul>
+          <ng-template #noRatings><p class="muted small">{{ 'analytics.no_ratings_yet' | translate }}</p></ng-template>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Deeper breakdowns ================= -->
+    <section class="an-section">
+      <h2><span class="tag">B–H</span> {{ 'analytics.deeper' | translate }}</h2>
+      <div class="an-panel links">
+        <a routerLink="/admin/reports"><i class="bi bi-bar-chart-line"></i> {{ 'analytics.open_reports' | translate }}</a>
+        <a routerLink="/administration"><i class="bi bi-grid"></i> {{ 'analytics.open_competency' | translate }}</a>
+        <p class="muted small">{{ 'analytics.deeper_note' | translate }}</p>
+      </div>
+    </section>
+
+  </ng-container>
+</div>

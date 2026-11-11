@@ -38,6 +38,7 @@ use Central\Api\Application\Action\Catalog\CourseResourceAction;
 use Central\Api\Application\Action\Catalog\CourseReviewAction;
 use Central\Api\Application\Action\Analytics\HeartbeatAction;
 use Central\Api\Application\Action\Analytics\EngagementAnalyticsAction;
+use Central\Api\Application\Action\Analytics\AnalyticsSummaryAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
 use Central\Api\Application\Action\Catalog\CreateLessonAction;
 use Central\Api\Application\Action\Catalog\CreateModuleAction;
@@ -435,6 +436,11 @@ return static function (App $app): void {
             // frequency and device split. Needs report.view (as the dashboard).
             $secure->get('/analytics/engagement', EngagementAnalyticsAction::class)
                 ->setName('analytics.engagement');
+
+            // Compliance three-way, adoption/activation and course satisfaction
+            // — the figures the admin dashboard does not already carry.
+            $secure->get('/analytics/summary', AnalyticsSummaryAction::class)
+                ->setName('analytics.summary');
 
             // What the caller is booked on. Distinct from a programme's
             // roster, which is other people's names — see MyTrainingsAction.

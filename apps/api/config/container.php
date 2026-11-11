@@ -163,6 +163,8 @@ use Central\Api\Domain\Catalog\CourseReviewRepository;
 use Central\Api\Infrastructure\Persistence\DbalCourseReviewRepository;
 use Central\Api\Domain\Engagement\UserSessionRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserSessionRepository;
+use Central\Api\Domain\Analytics\AnalyticsRepository;
+use Central\Api\Infrastructure\Persistence\DbalAnalyticsRepository;
 use Central\Api\Infrastructure\Persistence\DbalRefreshTokenRepository;
 use Central\Api\Infrastructure\Persistence\DbalUserRepository;
 use Central\Api\Infrastructure\Security\PasswordHasher;
@@ -505,6 +507,10 @@ return [
     )),
 
     UserSessionRepository::class => factory(static fn (ContainerInterface $c) => new DbalUserSessionRepository(
+        $c->get(Connection::class),
+    )),
+
+    AnalyticsRepository::class => factory(static fn (ContainerInterface $c) => new DbalAnalyticsRepository(
         $c->get(Connection::class),
     )),
 

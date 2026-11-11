@@ -208,6 +208,13 @@
             </a>
           </li>
           <li class="nav-item" role="none">
+            <a routerLink="/admin/analytics" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+               class="nav-link" role="menuitem">
+              <tui-icon class="nav-icon" icon="@tui.activity"></tui-icon>
+              <span class="nav-label">{{ 'nav.analytics' | translate }}</span>
+            </a>
+          </li>
+          <li class="nav-item" role="none">
             <a routerLink="/settings" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.settings"></tui-icon>
