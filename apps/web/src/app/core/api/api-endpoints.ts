@@ -231,6 +231,8 @@ export const Endpoints = {
     reviews: '/me/reviews',
     /** Presence ping, for engagement analytics. */
     sessionPing: '/me/session/ping',
+    /** The caller's own engagement (device/sign-ins/session length). */
+    engagement: '/me/engagement',
     /** A manager's behaviour-change feedback on their reports' training. */
     teamFeedback: '/me/team/feedback',
     /** The learner's own Learning Plan, and scheduling its items. */

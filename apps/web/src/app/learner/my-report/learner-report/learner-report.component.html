@@ -155,6 +155,27 @@
           <span>{{ planCompletion.completed }}/{{ planCompletion.total }} {{ 'report.completed_word' | translate }}</span>
         </div>
       </div>
+
+      <!-- Main device -->
+      <div class="stat-card" *ngIf="myEngagement && topDevice">
+        <div class="stat-icon"><i class="bi bi-phone"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ ('analytics.device_' + topDevice) | translate }}</span>
+          <span class="stat-label">{{ 'report.main_device' | translate }}</span>
+        </div>
+      </div>
+
+      <!-- Sign-ins -->
+      <div class="stat-card" *ngIf="myEngagement && myEngagement.signIns > 0">
+        <div class="stat-icon"><i class="bi bi-box-arrow-in-right"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ myEngagement.signIns }}</span>
+          <span class="stat-label">{{ 'report.sign_ins' | translate }}</span>
+        </div>
+        <div class="stat-breakdown">
+          <span>{{ myEngagement.averageMinutes }}m {{ 'report.avg_session' | translate }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Two Column Layout -->

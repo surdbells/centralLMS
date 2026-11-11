@@ -55,6 +55,19 @@
         <button class="btn btn-sm btn-outline-danger" (click)="removePlan(plan)">{{ 'common.delete' | translate }}</button>
       </div>
 
+      <div class="assign-user">
+        <label>{{ 'plan.assign_individual' | translate }}</label>
+        <div class="user-search">
+          <input type="text" class="form-control form-control-sm" [(ngModel)]="userSearch"
+                 (ngModelChange)="searchUsers()" [placeholder]="'plan.search_user' | translate">
+          <ul class="user-results" *ngIf="userResults.length">
+            <li *ngFor="let u of userResults" (click)="assignUser(u)">
+              <span>{{ u.fullName }}</span><small>{{ u.email }}</small>
+            </li>
+          </ul>
+        </div>
+      </div>
+
       <h3 class="sub">{{ 'plan.items' | translate }}</h3>
       <ul class="item-admin-list">
         <li *ngFor="let item of items">

@@ -22,6 +22,7 @@ import { I18nService } from '../../../i18n.service';
 import { StarRatingComponent } from '../../../shared/star-rating/star-rating.component';
 import { CourseReviewsService } from '../../../services/course-reviews.service';
 import { LearningPlansService, type PlanCompletion } from '../../../services/learning-plans.service';
+import { AnalyticsService, type MyEngagement } from '../../../services/analytics.service';
 
 type TabType = 'overview' | 'courses' | 'activity' | 'quizzes' | 'certificates';
 type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
@@ -57,6 +58,14 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
   /** The learner's Learning Plan completion, for an overview card. */
   planCompletion: PlanCompletion | null = null;
 
+  /** The learner's own engagement (sign-ins, device), for overview cards. */
+  myEngagement: MyEngagement | null = null;
+
+  get topDevice(): string | null {
+    const d = this.myEngagement?.devices ?? [];
+    return d.length ? d[0].device : null;
+  }
+
   // Activity chart settings
   activityPeriod: ActivityPeriod = 'daily';
   activityDays = 30;
@@ -76,13 +85,17 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
     private router: Router,
     private i18n: I18nService,
     private reviews: CourseReviewsService,
-    private plans: LearningPlansService
+    private plans: LearningPlansService,
+    private analytics: AnalyticsService
   ) {}
 
   ngOnInit(): void {
     this.loadOverview();
     this.loadMyRatings();
     this.loadPlanCompletion();
+    this.analytics.myEngagement()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: (e) => (this.myEngagement = e), error: () => undefined });
   }
 
   private loadPlanCompletion(): void {

@@ -40,6 +40,7 @@ use Central\Api\Application\Action\Analytics\HeartbeatAction;
 use Central\Api\Application\Action\Analytics\EngagementAnalyticsAction;
 use Central\Api\Application\Action\Analytics\AnalyticsSummaryAction;
 use Central\Api\Application\Action\Analytics\AnalyticsByFieldAction;
+use Central\Api\Application\Action\Analytics\MyEngagementAction;
 use Central\Api\Application\Action\LearningPlan\ManageLearningPlanAction;
 use Central\Api\Application\Action\LearningPlan\MyLearningPlanAction;
 use Central\Api\Application\Action\Feedback\TeamFeedbackAction;
@@ -431,6 +432,9 @@ return static function (App $app): void {
 
             // Every course the caller has rated, for their own report screens.
             $secure->get('/me/reviews', [CourseReviewAction::class, 'mineAll'])->setName('me.reviews');
+
+            // The caller's own engagement (sessions/device/sign-ins) for their report.
+            $secure->get('/me/engagement', MyEngagementAction::class)->setName('me.engagement');
 
             // A manager's behaviour-change feedback on their reports' training.
             $secure->get('/me/team/feedback', [TeamFeedbackAction::class, 'pending'])->setName('me.team.feedback');

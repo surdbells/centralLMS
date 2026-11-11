@@ -61,12 +61,17 @@ final class AnalyticsSummaryAction
 
         return Json::ok($response, [
             'days'         => $days,
-            'compliance'   => $this->analytics->complianceStatus($t),
-            'adoption'     => $adoption,
-            'assessment'   => $this->analytics->assessment($t),
-            'competency'   => $this->analytics->competencyReadiness($t),
-            'satisfaction' => $this->analytics->satisfaction($t),
-            'behaviour'    => $this->feedback->summary($t),
+            'compliance'      => $this->analytics->complianceStatus($t),
+            'adoption'        => $adoption,
+            'assessment'      => $this->analytics->assessment($t),
+            'competency'      => $this->analytics->competencyReadiness($t),
+            'competencyTrend' => $this->analytics->competencyTrend($t),
+            'satisfaction'    => $this->analytics->satisfaction($t),
+            'behaviour'       => $this->feedback->summary($t),
+            'engagement'      => [
+                'forum'         => $this->analytics->forumParticipation($t, $from, $to),
+                'avgActiveDays' => $this->sessions->avgActiveDays($t, $from, $to),
+            ],
         ]);
     }
 }

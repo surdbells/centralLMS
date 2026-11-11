@@ -5,11 +5,14 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ApiClient, Endpoints } from '../../core/api';
+import { UsersService } from '../../services/users.service';
 import {
   LearningPlansService,
   type LearningPlan,
   type AdminPlanItem,
 } from '../../services/learning-plans.service';
+
+interface UserOption { id: string; fullName: string; email: string; }
 
 interface CourseOption { id: string; title: string; }
 
@@ -29,6 +32,7 @@ export class LearningPlansComponent implements OnInit {
   private readonly svc = inject(LearningPlansService);
   private readonly api = inject(ApiClient);
   private readonly i18n = inject(I18nService);
+  private readonly usersService = inject(UsersService);
 
   loading = true;
   saving = false;
@@ -39,6 +43,8 @@ export class LearningPlansComponent implements OnInit {
   courses: CourseOption[] = [];
   departments: { id: string; name: string }[] = [];
   assignDept = '';
+  userSearch = '';
+  userResults: UserOption[] = [];
 
   newPlan = { year: new Date().getFullYear(), title: '' };
 
@@ -147,6 +153,24 @@ export class LearningPlansComponent implements OnInit {
     if (this.assignDept) {
       this.doAssign({ departmentId: this.assignDept });
     }
+  }
+
+  searchUsers(): void {
+    const term = this.userSearch.trim();
+    if (term.length < 2) {
+      this.userResults = [];
+      return;
+    }
+    this.usersService.options(term, 10).subscribe({
+      next: (res) => (this.userResults = (res.items ?? []).map((u) => ({ id: u.id, fullName: u.fullName, email: u.email }))),
+      error: () => (this.userResults = []),
+    });
+  }
+
+  assignUser(user: UserOption): void {
+    this.userResults = [];
+    this.userSearch = '';
+    this.doAssign({ userIds: [user.id] });
   }
 
   private doAssign(body: { everyone?: boolean; departmentId?: string }): void {

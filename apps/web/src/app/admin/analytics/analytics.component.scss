@@ -100,4 +100,9 @@
   .unit-count { color: var(--an-muted); text-align: right; } }
 @media (max-width: 640px) { .unit-row { grid-template-columns: 1fr 50px 56px; .unit-track { display: none; } } }
 
+.trend { margin-top: 16px; }
+.trend-head { display: flex; align-items: center; justify-content: space-between; font-size: .82rem;
+  color: var(--an-muted); font-weight: 600; margin-bottom: 8px;
+  .closure { color: #c0392b; &.up { color: #1f8a53; } } }
+
 .muted { color: var(--an-muted); } .small { font-size: .82rem; }

@@ -139,6 +139,26 @@
       </div>
     </section>
 
+    <!-- ================= D · Engagement ================= -->
+    <section class="an-section">
+      <h2><span class="tag">D</span> {{ 'analytics.engagement_detail' | translate }}</h2>
+      <div class="kpi-grid">
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.engagement.avgActiveDays }}</span>
+          <span class="kpi-label">{{ 'analytics.active_days' | translate }}</span>
+          <span class="kpi-sub">{{ 'analytics.per_learner' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.engagement.forum.posts }}</span>
+          <span class="kpi-label">{{ 'analytics.forum_posts' | translate }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-value">{{ summary.engagement.forum.participants }}</span>
+          <span class="kpi-label">{{ 'analytics.forum_participants' | translate }}</span>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= G · Compliance ================= -->
     <section class="an-section">
       <h2><span class="tag">G</span> {{ 'analytics.compliance' | translate }}</h2>
@@ -209,6 +229,23 @@
           <div class="muted small">{{ summary.competency.met }} / {{ summary.competency.items }} {{ 'analytics.requirements_met' | translate }}</div>
         </div>
         <p class="muted small" *ngIf="summary.competency.items === 0">{{ 'analytics.no_competency' | translate }}</p>
+
+        <div class="trend" *ngIf="summary.competencyTrend.length > 1">
+          <div class="trend-head">
+            <span>{{ 'analytics.readiness_trend' | translate }}</span>
+            <span class="closure" *ngIf="competencyClosure !== null" [class.up]="competencyClosure >= 0">
+              {{ competencyClosure >= 0 ? '+' : '' }}{{ competencyClosure }}% {{ 'analytics.vs_prev' | translate }}
+            </span>
+          </div>
+          <div class="unit-rows">
+            <div class="unit-row" *ngFor="let c of summary.competencyTrend">
+              <span class="unit-name" [title]="c.cycle">{{ c.cycle }}</span>
+              <div class="unit-track"><div class="unit-fill" [style.width.%]="c.rate"></div></div>
+              <span class="unit-rate">{{ c.rate }}%</span>
+              <span class="unit-count">{{ c.met }}/{{ c.items }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

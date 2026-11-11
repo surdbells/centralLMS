@@ -50,6 +50,8 @@ export interface AnalyticsSummary {
   };
   assessment: { attempts: number; learners: number; averageScore: number; passRate: number };
   competency: { items: number; met: number; rate: number };
+  competencyTrend: { cycle: string; items: number; met: number; rate: number; avgGap: number }[];
+  engagement: { forum: { posts: number; participants: number }; avgActiveDays: number };
   satisfaction: {
     average: number;
     count: number;
@@ -94,4 +96,17 @@ export class AnalyticsService {
   byField(field?: string): Observable<ByFieldAnalytics> {
     return this.api.get<ByFieldAnalytics>(Endpoints.analytics.byField, field ? { field } : undefined);
   }
+
+  /** The caller's own engagement, for their report. */
+  myEngagement(days = 30): Observable<MyEngagement> {
+    return this.api.get<MyEngagement>(Endpoints.me.engagement, { days });
+  }
+}
+
+export interface MyEngagement {
+  sessions: number;
+  averageMinutes: number;
+  signIns: number;
+  devices: DeviceUsage[];
+  days?: number;
 }

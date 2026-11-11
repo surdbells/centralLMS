@@ -88,4 +88,20 @@ interface AnalyticsRepository
 
     /** Average number of courses completed per active employee. */
     public function avgCoursesPerEmployee(string $tenantId): float;
+
+    /**
+     * Competency readiness per cycle (oldest first), so the gap-closure trend —
+     * how readiness has moved from one cycle to the next — can be read off it.
+     *
+     * @return list<array{cycle: string, items: int, met: int, rate: float, avgGap: float}>
+     */
+    public function competencyTrend(string $tenantId): array;
+
+    /**
+     * Discussion-forum participation over the window: posts and distinct
+     * participants.
+     *
+     * @return array{posts: int, participants: int}
+     */
+    public function forumParticipation(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
 }

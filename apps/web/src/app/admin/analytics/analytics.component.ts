@@ -198,4 +198,15 @@ export class AnalyticsComponent implements OnInit {
   behBar(star: number): number {
     return Math.round((this.behCount(star) / this.behMax) * 100);
   }
+
+  // --- competency gap-closure trend ----------------------------------------
+
+  /** The change in readiness from the previous cycle to the latest, or null. */
+  get competencyClosure(): number | null {
+    const t = this.summary?.competencyTrend ?? [];
+    if (t.length < 2) {
+      return null;
+    }
+    return Math.round((t[t.length - 1].rate - t[t.length - 2].rate) * 10) / 10;
+  }
 }

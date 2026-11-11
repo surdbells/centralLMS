@@ -66,4 +66,23 @@ interface UserSessionRepository
      * @return array{signIns: int, learners: int, averagePerLearner: float}
      */
     public function loginFrequency(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array;
+
+    /**
+     * Consistency: the average number of distinct days an active learner showed
+     * up over the window (a proxy for learning streaks).
+     */
+    public function avgActiveDays(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): float;
+
+    /**
+     * One person's own engagement, for their report: sessions, average length,
+     * sign-ins and their device split over the window.
+     *
+     * @return array{sessions: int, averageMinutes: float, signIns: int, devices: list<array{device: string, sessions: int}>}
+     */
+    public function forUser(
+        string $tenantId,
+        string $userId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): array;
 }

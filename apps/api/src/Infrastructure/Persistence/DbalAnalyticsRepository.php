@@ -211,6 +211,56 @@ final class DbalAnalyticsRepository implements AnalyticsRepository
         return round((float) $avg, 2);
     }
 
+    public function competencyTrend(string $tenantId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT a.cycle,
+                    COUNT(*)                          AS items,
+                    COUNT(*) FILTER (WHERE i.gap = 0) AS met,
+                    COALESCE(AVG(i.gap), 0)           AS avg_gap
+             FROM competency_assessment_items i
+             JOIN competency_assessments a ON a.id = i.assessment_id
+             WHERE a.tenant_id = :tenant AND a.status IN ('reviewed', 'finalized')
+             GROUP BY a.cycle
+             ORDER BY a.cycle",
+            ['tenant' => $tenantId],
+        );
+
+        return array_map(static function (array $r): array {
+            $items = (int) $r['items'];
+            $met   = (int) $r['met'];
+
+            return [
+                'cycle'  => (string) $r['cycle'],
+                'items'  => $items,
+                'met'    => $met,
+                'rate'   => $items > 0 ? round($met / $items * 100, 1) : 0.0,
+                'avgGap' => round((float) $r['avg_gap'], 2),
+            ];
+        }, $rows);
+    }
+
+    public function forumParticipation(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS posts, COUNT(DISTINCT user_id) AS participants
+             FROM course_discussion_posts
+             WHERE tenant_id = :tenant AND created_at >= :from AND created_at < :to',
+            [
+                'tenant' => $tenantId,
+                'from'   => $from->format(\DateTimeInterface::ATOM),
+                'to'     => $to->format(\DateTimeInterface::ATOM),
+            ],
+        );
+
+        $row = $row === false ? [] : $row;
+
+        return [
+            'posts'        => (int) ($row['posts'] ?? 0),
+            'participants' => (int) ($row['participants'] ?? 0),
+        ];
+    }
+
     /**
      * @param  'ASC'|'DESC' $direction
      * @return list<array<string, mixed>>

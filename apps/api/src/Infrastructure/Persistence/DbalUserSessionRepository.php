@@ -151,6 +151,63 @@ final class DbalUserSessionRepository implements UserSessionRepository
         ];
     }
 
+    public function avgActiveDays(string $tenantId, \DateTimeImmutable $from, \DateTimeImmutable $to): float
+    {
+        $avg = $this->connection->fetchOne(
+            'SELECT COALESCE(AVG(days), 0) FROM (
+                 SELECT user_id, COUNT(DISTINCT started_at::date) AS days
+                 FROM user_sessions
+                 WHERE tenant_id = :tenant AND started_at >= :from AND started_at < :to
+                 GROUP BY user_id
+             ) s',
+            $this->window($tenantId, $from, $to),
+        );
+
+        return round((float) $avg, 1);
+    }
+
+    public function forUser(
+        string $tenantId,
+        string $userId,
+        \DateTimeImmutable $from,
+        \DateTimeImmutable $to,
+    ): array {
+        $params = $this->window($tenantId, $from, $to) + ['user' => $userId];
+
+        $totals = $this->connection->fetchAssociative(
+            'SELECT COUNT(*) AS sessions,
+                    COALESCE(AVG(EXTRACT(EPOCH FROM (last_seen_at - started_at)) / 60), 0) AS avg_minutes
+             FROM user_sessions
+             WHERE tenant_id = :tenant AND user_id = :user AND started_at >= :from AND started_at < :to',
+            $params,
+        );
+        $totals = $totals === false ? [] : $totals;
+
+        $signIns = (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM refresh_tokens
+             WHERE user_id = :user AND issued_at >= :from AND issued_at < :to',
+            ['user' => $userId, 'from' => $from->format(\DateTimeInterface::ATOM), 'to' => $to->format(\DateTimeInterface::ATOM)],
+        );
+
+        $devices = $this->connection->fetchAllAssociative(
+            'SELECT device_type AS device, COUNT(*) AS sessions
+             FROM user_sessions
+             WHERE tenant_id = :tenant AND user_id = :user AND started_at >= :from AND started_at < :to
+             GROUP BY device_type ORDER BY sessions DESC',
+            $params,
+        );
+
+        return [
+            'sessions'       => (int) ($totals['sessions'] ?? 0),
+            'averageMinutes' => round((float) ($totals['avg_minutes'] ?? 0), 1),
+            'signIns'        => $signIns,
+            'devices'        => array_map(static fn (array $r): array => [
+                'device'   => (string) $r['device'],
+                'sessions' => (int) $r['sessions'],
+            ], $devices),
+        ];
+    }
+
     // --- internals ------------------------------------------------------------
 
     /**
