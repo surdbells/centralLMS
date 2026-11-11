@@ -298,7 +298,28 @@ $cp-card: #ffffff;
   margin-left: auto; border: none; background: none; color: #c4c8d2;
   &:hover { color: #dc2626; }
 }
-.cp-post-body { font-size: 14px; color: #374151; margin: 0 0 6px; white-space: pre-wrap; }
+.cp-post-body { font-size: 14px; color: #374151; margin: 0 0 6px; }
+// Rendered rich-text bodies (sanitized HTML from the editor).
+.cp-rich {
+  line-height: 1.55; word-break: break-word;
+  p { margin: 0 0 8px; &:last-child { margin-bottom: 0; } }
+  ul, ol { margin: 0 0 8px; padding-left: 20px; }
+  a { color: $cp-purple; text-decoration: underline; }
+  blockquote {
+    margin: 0 0 8px; padding: 2px 12px; border-left: 3px solid $cp-line; color: $cp-muted;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; background: rgba(109, 94, 246, .08);
+    padding: 1px 5px; border-radius: 5px;
+  }
+  pre {
+    margin: 0 0 8px; padding: 10px 12px; border-radius: 10px;
+    background: #1e1e2e; color: #e8e8f0; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+    code { background: none; padding: 0; color: inherit; }
+  }
+}
 .cp-post-actions { margin-bottom: 4px; }
 .cp-reply-btn { border: none; background: none; color: $cp-muted; font-size: 13px; font-weight: 500; &:hover { color: $cp-purple; } }
 .cp-replies { margin: 10px 0 0 14px; padding-left: 14px; border-left: 2px solid $cp-line; display: flex; flex-direction: column; gap: 12px; }

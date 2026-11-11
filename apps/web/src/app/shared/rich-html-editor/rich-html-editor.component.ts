@@ -54,6 +54,8 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
 
   @Input() placeholder = '';
   @Input() minHeight = 220;
+  /** A leaner toolbar for short-form writing like forum posts. */
+  @Input() compact = false;
 
   @ViewChild('surface') private surface?: ElementRef<HTMLDivElement>;
 
@@ -85,6 +87,25 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
     { cmd: 'unlink', icon: 'bi-link', title: 'shared.editor.remove_link' },
     { cmd: 'removeFormat', icon: 'bi-eraser', title: 'shared.editor.clear_formatting' },
   ];
+
+  /** The forum toolbar: everyday formatting plus a code block, no headings. */
+  readonly compactTools: Array<Tool | 'sep'> = [
+    { cmd: 'bold', icon: 'bi-type-bold', title: 'shared.editor.bold' },
+    { cmd: 'italic', icon: 'bi-type-italic', title: 'shared.editor.italic' },
+    { cmd: 'strikeThrough', icon: 'bi-type-strikethrough', title: 'shared.editor.strikethrough' },
+    'sep',
+    { cmd: 'insertUnorderedList', icon: 'bi-list-ul', title: 'shared.editor.bullet_list' },
+    { cmd: 'insertOrderedList', icon: 'bi-list-ol', title: 'shared.editor.numbered_list' },
+    { cmd: 'blockquote', icon: 'bi-quote', title: 'shared.editor.quote' },
+    { cmd: 'codeBlock', icon: 'bi-code-square', title: 'shared.editor.code_block' },
+    'sep',
+    { cmd: 'createLink', icon: 'bi-link-45deg', title: 'shared.editor.insert_link' },
+    { cmd: 'unlink', icon: 'bi-link', title: 'shared.editor.remove_link' },
+  ];
+
+  get visibleTools(): Array<Tool | 'sep'> {
+    return this.compact ? this.compactTools : this.tools;
+  }
 
   /** The last selection made inside the surface, so a toolbar click that
    *  steals focus can still act on what the user had selected. */
@@ -158,6 +179,8 @@ export class RichHtmlEditorComponent implements ControlValueAccessor {
       }
     } else if (tool.cmd === 'blockquote') {
       document.execCommand('formatBlock', false, 'BLOCKQUOTE');
+    } else if (tool.cmd === 'codeBlock') {
+      document.execCommand('formatBlock', false, 'PRE');
     } else {
       document.execCommand(tool.cmd, false, tool.value);
     }

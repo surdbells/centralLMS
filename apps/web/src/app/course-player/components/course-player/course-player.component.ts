@@ -21,6 +21,7 @@ import {
 } from '../../services/course-player.service';
 import { ScormAdapterService } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
+import { RichHtmlEditorComponent } from '../../../shared/rich-html-editor/rich-html-editor.component';
 import { SessionStore } from '../../../core/auth/session.store';
 import {
   CourseResourcesService,
@@ -33,7 +34,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-course-player',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, QuizComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterModule, QuizComponent, TranslatePipe, RichHtmlEditorComponent],
   templateUrl: './course-player.component.html',
   styleUrls: ['./course-player.component.scss']
 })

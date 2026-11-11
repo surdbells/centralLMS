@@ -13,6 +13,7 @@ use Central\Api\Domain\Enrollment\EnrollmentRepository;
 use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
+use Central\Api\Support\HtmlSanitizer;
 use Doctrine\DBAL\Connection;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -31,6 +32,7 @@ final class CoursePlayerExtrasAction
         private readonly EnrollmentRepository $enrollments,
         private readonly CourseDiscussionRepository $discussion,
         private readonly Connection $connection,
+        private readonly HtmlSanitizer $html,
     ) {
     }
 
@@ -99,12 +101,8 @@ final class CoursePlayerExtrasAction
         $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
         $body     = $this->body($request);
 
-        $text     = trim((string) ($body['body'] ?? ''));
+        $text     = $this->cleanBody((string) ($body['body'] ?? ''));
         $parentId = $this->uuidOrNull($body['parentId'] ?? null);
-
-        if ($text === '') {
-            throw ValidationFailed::fromArray(['body' => 'Write something first.']);
-        }
 
         // A locked thread takes no new replies; a lock on the question still
         // lets the question itself stand.
@@ -134,11 +132,7 @@ final class CoursePlayerExtrasAction
     ): ResponseInterface {
         $caller   = $this->caller($request);
         $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
-        $text     = trim((string) ($this->body($request)['body'] ?? ''));
-
-        if ($text === '') {
-            throw ValidationFailed::fromArray(['body' => 'Write something first.']);
-        }
+        $text     = $this->cleanBody((string) ($this->body($request)['body'] ?? ''));
 
         $post = $this->discussion->edit(
             $tenantId,
@@ -309,6 +303,23 @@ final class CoursePlayerExtrasAction
     private function caller(ServerRequestInterface $request): AuthenticatedUser
     {
         return AuthenticationMiddleware::require($request);
+    }
+
+    /**
+     * Sanitizes a post body to the forum's allowlist and refuses an empty one.
+     *
+     * "Empty" is judged on the text that survives, not the markup: a body of
+     * only whitespace or stray tags carries no message.
+     */
+    private function cleanBody(string $raw): string
+    {
+        $clean = $this->html->clean($raw);
+
+        if (trim(html_entity_decode(strip_tags($clean), ENT_QUOTES | ENT_HTML5, 'UTF-8')) === '') {
+            throw ValidationFailed::fromArray(['body' => 'Write something first.']);
+        }
+
+        return $clean;
     }
 
     private function uuidOrNull(mixed $value): ?string

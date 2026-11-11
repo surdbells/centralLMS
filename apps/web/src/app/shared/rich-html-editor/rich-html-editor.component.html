@@ -1,7 +1,7 @@
 <div class="rhe" [class.disabled]="disabled">
   <!-- Toolbar -->
   <div class="rhe-toolbar">
-    <ng-container *ngFor="let t of tools">
+    <ng-container *ngFor="let t of visibleTools">
       <span *ngIf="t === 'sep'" class="rhe-sep"></span>
       <button *ngIf="t !== 'sep'" type="button" class="rhe-btn"
               [class.active]="isActive(t)"

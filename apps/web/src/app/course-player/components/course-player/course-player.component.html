@@ -143,8 +143,9 @@
           <!-- DISCUSS -->
           <div *ngIf="sidebarTab === 'discuss'" class="cp-discuss">
             <div class="cp-discuss-compose">
-              <textarea class="cp-textarea" rows="2" placeholder="{{ 'course_player.discuss_placeholder' | translate }}"
-                        [(ngModel)]="newDiscussionPost"></textarea>
+              <app-rich-html-editor [compact]="true" [minHeight]="80"
+                                    placeholder="{{ 'course_player.discuss_placeholder' | translate }}"
+                                    [(ngModel)]="newDiscussionPost"></app-rich-html-editor>
               <button class="btn cp-btn-primary btn-sm" [disabled]="!newDiscussionPost.trim()"
                       (click)="submitDiscussionPost()">
                 <i class="bi bi-send me-1"></i>{{ 'course_player.post' | translate }}
@@ -212,14 +213,14 @@
               </div>
 
               <ng-container *ngIf="editingPostId === post.id; else postBody">
-                <textarea class="cp-textarea" rows="3" [(ngModel)]="editText"></textarea>
+                <app-rich-html-editor [compact]="true" [minHeight]="80" [(ngModel)]="editText"></app-rich-html-editor>
                 <div class="cp-edit-actions">
                   <button class="btn cp-btn-primary btn-sm" [disabled]="!editText.trim()" (click)="saveEdit(post)">{{ 'common.save' | translate }}</button>
                   <button class="btn btn-sm cp-btn-ghost" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
                 </div>
               </ng-container>
               <ng-template #postBody>
-                <p class="cp-post-body">{{ post.body }}</p>
+                <div class="cp-post-body cp-rich" [innerHTML]="post.body"></div>
               </ng-template>
 
               <div class="cp-reactions">
@@ -242,7 +243,9 @@
               </div>
 
               <div class="cp-reply-compose" *ngIf="replyingTo === post.id && !post.isLocked">
-                <textarea class="cp-textarea" rows="1" placeholder="{{ 'course_player.reply_placeholder' | translate }}" [(ngModel)]="replyText"></textarea>
+                <app-rich-html-editor [compact]="true" [minHeight]="64"
+                                      placeholder="{{ 'course_player.reply_placeholder' | translate }}"
+                                      [(ngModel)]="replyText"></app-rich-html-editor>
                 <button class="btn cp-btn-primary btn-sm" [disabled]="!replyText.trim()" (click)="submitReply(post.id)">{{ 'course_player.reply' | translate }}</button>
               </div>
 
@@ -265,14 +268,14 @@
                     </span>
 
                     <ng-container *ngIf="editingPostId === reply.id; else replyBody">
-                      <textarea class="cp-textarea" rows="2" [(ngModel)]="editText"></textarea>
+                      <app-rich-html-editor [compact]="true" [minHeight]="64" [(ngModel)]="editText"></app-rich-html-editor>
                       <div class="cp-edit-actions">
                         <button class="btn cp-btn-primary btn-sm" [disabled]="!editText.trim()" (click)="saveEdit(reply)">{{ 'common.save' | translate }}</button>
                         <button class="btn btn-sm cp-btn-ghost" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
                       </div>
                     </ng-container>
                     <ng-template #replyBody>
-                      <p class="cp-post-body mb-0">{{ reply.body }}</p>
+                      <div class="cp-post-body cp-rich mb-0" [innerHTML]="reply.body"></div>
                     </ng-template>
 
                     <span class="cp-reply-tools">
