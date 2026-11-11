@@ -12,6 +12,7 @@ import {
   type AnalyticsSummary,
   type ActivePoint,
   type DeviceUsage,
+  type FieldSlice,
 } from '../../services/analytics.service';
 
 type Part = 'completed' | 'inProgress' | 'yetToAttempt';
@@ -39,6 +40,11 @@ export class AnalyticsComponent implements OnInit {
   engagement: EngagementAnalytics | null = null;
   summary: AnalyticsSummary | null = null;
 
+  /** Completion sliced by a custom field (Division / Subsidiary / Entity). */
+  fields: { key: string; label: string }[] = [];
+  selectedField = '';
+  fieldRows: FieldSlice[] = [];
+
   readonly stars = [5, 4, 3, 2, 1];
   readonly deviceColors: Record<string, string> = {
     desktop: '#2f4b7c',
@@ -48,6 +54,27 @@ export class AnalyticsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.loadByField();
+  }
+
+  private loadByField(field?: string): void {
+    this.analytics.byField(field).subscribe({
+      next: (res) => {
+        this.fields = res.fields;
+        this.selectedField = res.field ?? '';
+        this.fieldRows = res.rows;
+      },
+      error: () => undefined,
+    });
+  }
+
+  onFieldChange(key: string): void {
+    this.selectedField = key;
+    this.loadByField(key);
+  }
+
+  get maxFieldEnrolled(): number {
+    return Math.max(1, ...this.fieldRows.map((r) => r.enrolled));
   }
 
   setDays(days: number): void {

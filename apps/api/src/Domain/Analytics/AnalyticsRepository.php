@@ -50,4 +50,22 @@ interface AnalyticsRepository
      * }
      */
     public function satisfaction(string $tenantId): array;
+
+    /**
+     * The custom profile fields an organisation can slice analytics by — its
+     * text and dropdown fields (Division, Subsidiary, Entity …). The core org
+     * columns are branch/department/team; these are the tenant's own.
+     *
+     * @return list<array{key: string, label: string}>
+     */
+    public function sliceableFields(string $tenantId): array;
+
+    /**
+     * Enrolment and completion grouped by the values of one custom field, so an
+     * admin can read completion by Division / Subsidiary / Entity. Unset values
+     * fall under "—".
+     *
+     * @return list<array{value: string, enrolled: int, completed: int, rate: float}>
+     */
+    public function completionByCustomField(string $tenantId, string $fieldKey): array;
 }

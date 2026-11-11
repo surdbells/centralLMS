@@ -93,6 +93,28 @@
       </div>
     </section>
 
+    <!-- ================= B · Completion by org unit ================= -->
+    <section class="an-section" *ngIf="fields.length">
+      <h2><span class="tag">B</span> {{ 'analytics.by_unit' | translate }}</h2>
+      <div class="an-panel">
+        <div class="field-picker">
+          <label>{{ 'analytics.slice_by' | translate }}</label>
+          <select class="form-select" [ngModel]="selectedField" (ngModelChange)="onFieldChange($event)">
+            <option *ngFor="let f of fields" [value]="f.key">{{ f.label }}</option>
+          </select>
+        </div>
+        <div class="unit-rows">
+          <div class="unit-row" *ngFor="let r of fieldRows">
+            <span class="unit-name" [title]="r.value">{{ r.value }}</span>
+            <div class="unit-track"><div class="unit-fill" [style.width.%]="r.rate"></div></div>
+            <span class="unit-rate">{{ r.rate }}%</span>
+            <span class="unit-count">{{ r.completed }}/{{ r.enrolled }}</span>
+          </div>
+          <p class="muted small" *ngIf="!fieldRows.length">{{ 'analytics.no_enrolments' | translate }}</p>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= G · Compliance ================= -->
     <section class="an-section">
       <h2><span class="tag">G</span> {{ 'analytics.compliance' | translate }}</h2>

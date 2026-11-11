@@ -103,6 +103,52 @@ final class DbalAnalyticsRepository implements AnalyticsRepository
         ];
     }
 
+    public function sliceableFields(string $tenantId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT field_key, label
+             FROM tenant_custom_fields
+             WHERE tenant_id = :tenant AND is_active AND type IN ('text', 'dropdown')
+             ORDER BY sort_order, label",
+            ['tenant' => $tenantId],
+        );
+
+        return array_map(static fn (array $r): array => [
+            'key'   => (string) $r['field_key'],
+            'label' => (string) $r['label'],
+        ], $rows);
+    }
+
+    public function completionByCustomField(string $tenantId, string $fieldKey): array
+    {
+        // The field key is a bound value read out of the JSONB map — never
+        // concatenated into SQL — so an arbitrary key is at worst all "—".
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT COALESCE(NULLIF(TRIM(u.custom_fields ->> :key), ''), '—') AS value,
+                    COUNT(*)                                       AS enrolled,
+                    COUNT(*) FILTER (WHERE e.status = 'completed')  AS completed
+             FROM enrollments e
+             JOIN users u ON u.id = e.user_id
+             WHERE e.tenant_id = :tenant AND u.deleted_at IS NULL
+             GROUP BY 1
+             ORDER BY enrolled DESC
+             LIMIT 60",
+            ['tenant' => $tenantId, 'key' => $fieldKey],
+        );
+
+        return array_map(static function (array $r): array {
+            $enrolled  = (int) $r['enrolled'];
+            $completed = (int) $r['completed'];
+
+            return [
+                'value'     => (string) $r['value'],
+                'enrolled'  => $enrolled,
+                'completed' => $completed,
+                'rate'      => $enrolled > 0 ? round($completed / $enrolled * 100, 1) : 0.0,
+            ];
+        }, $rows);
+    }
+
     /**
      * @param  'ASC'|'DESC' $direction
      * @return list<array<string, mixed>>

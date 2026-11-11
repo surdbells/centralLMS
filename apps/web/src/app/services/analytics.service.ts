@@ -56,6 +56,19 @@ export interface AnalyticsSummary {
   };
 }
 
+export interface FieldSlice {
+  value: string;
+  enrolled: number;
+  completed: number;
+  rate: number;
+}
+
+export interface ByFieldAnalytics {
+  fields: { key: string; label: string }[];
+  field: string | null;
+  rows: FieldSlice[];
+}
+
 /** Admin learner-analytics: engagement (sessions/device/login) and the summary. */
 @Injectable({ providedIn: 'root' })
 export class AnalyticsService {
@@ -67,5 +80,10 @@ export class AnalyticsService {
 
   summary(days = 30): Observable<AnalyticsSummary> {
     return this.api.get<AnalyticsSummary>(Endpoints.analytics.summary, { days });
+  }
+
+  /** Enrolment/completion sliced by a custom field (Division/Subsidiary/Entity). */
+  byField(field?: string): Observable<ByFieldAnalytics> {
+    return this.api.get<ByFieldAnalytics>(Endpoints.analytics.byField, field ? { field } : undefined);
   }
 }

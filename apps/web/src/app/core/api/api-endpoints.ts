@@ -171,6 +171,7 @@ export const Endpoints = {
   analytics: {
     engagement: '/analytics/engagement',
     summary: '/analytics/summary',
+    byField: '/analytics/by-field',
   },
 
   learningPlans: {

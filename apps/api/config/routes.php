@@ -39,6 +39,7 @@ use Central\Api\Application\Action\Catalog\CourseReviewAction;
 use Central\Api\Application\Action\Analytics\HeartbeatAction;
 use Central\Api\Application\Action\Analytics\EngagementAnalyticsAction;
 use Central\Api\Application\Action\Analytics\AnalyticsSummaryAction;
+use Central\Api\Application\Action\Analytics\AnalyticsByFieldAction;
 use Central\Api\Application\Action\LearningPlan\ManageLearningPlanAction;
 use Central\Api\Application\Action\LearningPlan\MyLearningPlanAction;
 use Central\Api\Application\Action\Catalog\CreateCourseAction;
@@ -466,6 +467,10 @@ return static function (App $app): void {
             // — the figures the admin dashboard does not already carry.
             $secure->get('/analytics/summary', AnalyticsSummaryAction::class)
                 ->setName('analytics.summary');
+
+            // Enrolment/completion sliced by a custom field (Division/Subsidiary/Entity).
+            $secure->get('/analytics/by-field', AnalyticsByFieldAction::class)
+                ->setName('analytics.by-field');
 
             // What the caller is booked on. Distinct from a programme's
             // roster, which is other people's names — see MyTrainingsAction.
