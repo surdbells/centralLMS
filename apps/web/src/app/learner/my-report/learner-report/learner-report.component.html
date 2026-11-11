@@ -143,6 +143,18 @@
           <span>{{ overview.enrollment_stats.mandatory_completed }}/{{ overview.enrollment_stats.mandatory_total }} {{ 'report.completed_word' | translate }}</span>
         </div>
       </div>
+
+      <!-- Learning Plan completion -->
+      <div class="stat-card" *ngIf="planCompletion && planCompletion.total > 0">
+        <div class="stat-icon"><i class="bi bi-calendar2-check"></i></div>
+        <div class="stat-content">
+          <span class="stat-value">{{ planCompletion.rate }}%</span>
+          <span class="stat-label">{{ 'report.learning_plan' | translate }}</span>
+        </div>
+        <div class="stat-breakdown">
+          <span>{{ planCompletion.completed }}/{{ planCompletion.total }} {{ 'report.completed_word' | translate }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Two Column Layout -->

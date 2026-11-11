@@ -214,7 +214,16 @@ export class LearnerReportService {
   // ==========================================
 
   getOverview(): Observable<LearningOverview> {
-    return this.dashboards.forMe().pipe(map(toOverview));
+    // The dashboard carries most of the overview but not the quiz aggregate —
+    // how many were taken, how many passed, the pass rate — which live on the
+    // attempts. Fetch both and fill the performance block from the attempts
+    // rather than leaving it stubbed at zero.
+    return forkJoin({
+      mine: this.dashboards.forMe(),
+      attempts: this.api.get<AttemptPayload[]>(Endpoints.me.attempts, { limit: 200 }),
+    }).pipe(
+      map(({ mine, attempts }) => ({ ...toOverview(mine), performance: perfFromAttempts(attempts) })),
+    );
   }
 
   // ==========================================
@@ -382,6 +391,23 @@ function toOverview(mine: LearnerDashboard): LearningOverview {
     },
     current_streak: mine.streak.current,
     rank: mine.achievements.rank?.rank ?? null,
+  };
+}
+
+/** The quiz aggregate for the overview card, computed from the attempts. */
+function perfFromAttempts(rows: AttemptPayload[]): LearningOverview['performance'] {
+  const scored = rows.filter((r) => typeof r.percentage === 'number');
+  const taken = rows.length;
+  const passed = rows.filter((r) => r.passed === true).length;
+
+  return {
+    quizzes_taken: taken,
+    quizzes_passed: passed,
+    average_score: scored.length
+      ? Math.round(scored.reduce((sum, r) => sum + (r.percentage ?? 0), 0) / scored.length)
+      : 0,
+    highest_score: scored.length ? Math.round(Math.max(...scored.map((r) => r.percentage ?? 0))) : 0,
+    pass_rate: taken ? Math.round((passed / taken) * 100) : 0,
   };
 }
 

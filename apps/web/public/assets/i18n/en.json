@@ -3297,6 +3297,7 @@
   "report.loading_quizzes": "Loading quizzes...",
   "report.mandatory": "Mandatory",
   "report.mandatory_compliance": "Mandatory Compliance",
+  "report.learning_plan": "Learning Plan",
   "report.mins_ago": "{{count}}m ago",
   "report.monthly_12": "Monthly (12 months)",
   "report.monthly_activity": "Monthly Learning Activity",

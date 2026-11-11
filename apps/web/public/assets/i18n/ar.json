@@ -3297,6 +3297,7 @@
   "report.loading_quizzes": "جارٍ تحميل الاختبارات...",
   "report.mandatory": "إلزامي",
   "report.mandatory_compliance": "الامتثال الإلزامي",
+  "report.learning_plan": "خطة التعلّم",
   "report.mins_ago": "قبل {{count}} دقيقة",
   "report.monthly_12": "شهري (12 شهراً)",
   "report.monthly_activity": "نشاط التعلّم الشهري",

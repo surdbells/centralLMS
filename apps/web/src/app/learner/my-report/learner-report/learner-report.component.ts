@@ -21,6 +21,7 @@ import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { StarRatingComponent } from '../../../shared/star-rating/star-rating.component';
 import { CourseReviewsService } from '../../../services/course-reviews.service';
+import { LearningPlansService, type PlanCompletion } from '../../../services/learning-plans.service';
 
 type TabType = 'overview' | 'courses' | 'activity' | 'quizzes' | 'certificates';
 type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
@@ -53,6 +54,9 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
   /** The course_id just rated, to flash a confirmation. */
   justRated: string | null = null;
 
+  /** The learner's Learning Plan completion, for an overview card. */
+  planCompletion: PlanCompletion | null = null;
+
   // Activity chart settings
   activityPeriod: ActivityPeriod = 'daily';
   activityDays = 30;
@@ -71,12 +75,23 @@ export class LearnerReportComponent implements OnInit, OnDestroy {
     private reportService: LearnerReportService,
     private router: Router,
     private i18n: I18nService,
-    private reviews: CourseReviewsService
+    private reviews: CourseReviewsService,
+    private plans: LearningPlansService
   ) {}
 
   ngOnInit(): void {
     this.loadOverview();
     this.loadMyRatings();
+    this.loadPlanCompletion();
+  }
+
+  private loadPlanCompletion(): void {
+    this.plans.mine()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ completion }) => (this.planCompletion = completion),
+        error: () => undefined
+      });
   }
 
   ngOnDestroy(): void {
