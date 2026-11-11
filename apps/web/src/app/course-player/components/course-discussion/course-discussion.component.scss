@@ -1,0 +1,170 @@
+// course-discussion — the forum, styled self-containedly so it renders the
+// same inside the player's Discuss tab and on the standalone page.
+
+$cp-purple: #6d5ef6;
+$cp-purple-2: #7c6cf8;
+$cp-ink: #1e2433;
+$cp-muted: #6b7280;
+$cp-line: #eceef3;
+
+:host { display: block; }
+
+// --- shared primitives the forum markup relies on ----------------------
+.cp-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, $cp-purple, $cp-purple-2);
+  color: #fff; font-weight: 600; display: grid; place-items: center; overflow: hidden; flex-shrink: 0;
+  img { width: 100%; height: 100%; object-fit: cover; }
+  &.sm { width: 30px; height: 30px; font-size: 13px; }
+}
+.cp-empty {
+  text-align: center; color: $cp-muted; padding: 30px 10px;
+  i { font-size: 34px; color: #c4c8d2; display: block; margin-bottom: 10px; }
+  p { margin: 0; font-size: 14px; }
+}
+.cp-btn-primary {
+  background: linear-gradient(135deg, $cp-purple, $cp-purple-2);
+  border: none; color: #fff; font-weight: 600; border-radius: 10px;
+  &:hover { color: #fff; filter: brightness(1.04); }
+  &:disabled { opacity: .55; }
+}
+
+// --- discuss -----------------------------------------------------------
+.cp-discuss { padding: 14px 0; }
+.cp-discuss-compose, .cp-reply-compose {
+  display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px;
+  align-items: flex-end;
+}
+.cp-reply-compose { margin: 10px 0 4px; }
+.cp-textarea {
+  width: 100%; border: 1px solid $cp-line; border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; resize: vertical;
+  &:focus { outline: none; border-color: $cp-purple; box-shadow: 0 0 0 3px rgba(109, 94, 246, .12); }
+}
+.cp-post { padding: 14px 0; border-bottom: 1px solid $cp-line; }
+.cp-post-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cp-post-author { font-weight: 600; font-size: 14px; color: $cp-ink; }
+.cp-post-time { font-size: 12px; color: $cp-muted; }
+.cp-post-body { font-size: 14px; color: #374151; margin: 0 0 6px; }
+// Rendered rich-text bodies (sanitized HTML from the editor).
+.cp-rich {
+  line-height: 1.55; word-break: break-word;
+  p { margin: 0 0 8px; &:last-child { margin-bottom: 0; } }
+  ul, ol { margin: 0 0 8px; padding-left: 20px; }
+  a { color: $cp-purple; text-decoration: underline; }
+  blockquote {
+    margin: 0 0 8px; padding: 2px 12px; border-left: 3px solid $cp-line; color: $cp-muted;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; background: rgba(109, 94, 246, .08);
+    padding: 1px 5px; border-radius: 5px;
+  }
+  pre {
+    margin: 0 0 8px; padding: 10px 12px; border-radius: 10px;
+    background: #1e1e2e; color: #e8e8f0; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px;
+    code { background: none; padding: 0; color: inherit; }
+  }
+}
+.cp-post-actions { margin-bottom: 4px; }
+.cp-reply-btn { border: none; background: none; color: $cp-muted; font-size: 13px; font-weight: 500; &:hover { color: $cp-purple; } }
+.cp-replies { margin: 10px 0 0 14px; padding-left: 14px; border-left: 2px solid $cp-line; display: flex; flex-direction: column; gap: 12px; }
+.cp-reply { display: flex; gap: 10px; align-items: flex-start; }
+.cp-reply-text { flex: 1; min-width: 0; }
+
+// ---- premium forum: search, badges, reactions, moderation -------------
+.cp-discuss-search {
+  position: relative; margin-bottom: 14px;
+  i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: $cp-muted; font-size: 13px; }
+}
+.cp-search-input {
+  width: 100%; border: 1px solid $cp-line; border-radius: 999px; padding: 8px 12px 8px 32px;
+  font-size: 13px;
+  &:focus { outline: none; border-color: $cp-purple; box-shadow: 0 0 0 3px rgba(109, 94, 246, .12); }
+}
+
+.cp-post-pinned { background: rgba(109, 94, 246, .04); border-radius: 12px; padding: 14px 12px; margin: 0 -12px; }
+
+.cp-reply-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.cp-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; line-height: 1;
+  padding: 3px 8px; border-radius: 999px;
+  i { font-size: 11px; }
+}
+.cp-badge-instructor { background: rgba(109, 94, 246, .12); color: $cp-purple; }
+.cp-badge-answered   { background: rgba(16, 185, 129, .14); color: #047857; }
+.cp-badge-pin        { background: rgba(245, 158, 11, .16); color: #b45309; }
+.cp-badge-locked     { background: rgba(107, 114, 128, .14); color: #4b5563; }
+.cp-badge-hidden     { background: rgba(107, 114, 128, .18); color: #374151; }
+.cp-badge-reported   { background: rgba(220, 38, 38, .14); color: #b91c1c; }
+
+.cp-post-removed {
+  font-size: 13px; color: $cp-muted; font-style: italic;
+  padding: 8px 12px; border: 1px dashed $cp-line; border-radius: 8px; background: rgba(107, 114, 128, .04);
+}
+
+.cp-discuss-filters { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.cp-discuss-filters .cp-discuss-search { flex: 1; margin-bottom: 0; }
+.cp-lesson-filter {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  border: 1px solid $cp-line; background: #fff; border-radius: 999px;
+  padding: 7px 12px; font-size: 12px; font-weight: 600; color: $cp-muted; cursor: pointer;
+  transition: all .12s;
+  &:hover { border-color: $cp-purple; color: $cp-purple; }
+  &.active { border-color: $cp-purple; background: rgba(109, 94, 246, .1); color: $cp-purple; }
+}
+
+.cp-post-edited { font-size: 12px; color: $cp-muted; font-style: italic; }
+.cp-post-tools { margin-left: auto; display: inline-flex; gap: 2px; }
+
+.cp-icon-btn {
+  border: none; background: none; color: #b6bac6; padding: 4px; border-radius: 6px; line-height: 1;
+  cursor: pointer; transition: color .12s, background .12s;
+  &:hover { color: $cp-purple; background: rgba(109, 94, 246, .1); }
+  &.active { color: $cp-purple; }
+  &.danger:hover { color: #dc2626; background: rgba(220, 38, 38, .1); }
+}
+
+.cp-reactions { display: flex; gap: 6px; margin: 8px 0 2px; flex-wrap: wrap; }
+.cp-reply-tools { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.cp-react {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid $cp-line; background: #fff; border-radius: 999px;
+  padding: 3px 9px; font-size: 13px; line-height: 1; cursor: pointer;
+  transition: border-color .12s, background .12s;
+  &:hover { border-color: $cp-purple; }
+  &.reacted { border-color: $cp-purple; background: rgba(109, 94, 246, .1); }
+  &.sm { padding: 2px 7px; font-size: 12px; }
+}
+.cp-react-count { font-size: 12px; font-weight: 600; color: $cp-ink; }
+
+.cp-answer-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid $cp-line; background: #fff; border-radius: 999px;
+  padding: 3px 10px; font-size: 12px; font-weight: 600; color: $cp-muted; cursor: pointer;
+  transition: all .12s;
+  &:hover { border-color: #10b981; color: #047857; }
+  &.active { border-color: #10b981; background: rgba(16, 185, 129, .12); color: #047857; }
+}
+
+.cp-reply-answer {
+  background: rgba(16, 185, 129, .06); border-radius: 10px; padding: 8px; margin-left: -8px;
+}
+.cp-reply-ctl { display: inline-flex; gap: 2px; }
+
+.cp-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.cp-btn-ghost { background: none; border: 1px solid $cp-line; color: $cp-muted; &:hover { color: $cp-ink; } }
+.cp-locked-note { font-size: 13px; color: $cp-muted; display: inline-flex; align-items: center; }
+
+.cp-compose-foot { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cp-mention-hint {
+  font-size: 12px; color: $cp-muted; display: inline-flex; align-items: center; gap: 4px;
+  i { font-size: 13px; }
+}
+.cp-mention {
+  color: $cp-purple; font-weight: 600;
+  background: rgba(109, 94, 246, .1); border-radius: 4px; padding: 0 3px;
+}

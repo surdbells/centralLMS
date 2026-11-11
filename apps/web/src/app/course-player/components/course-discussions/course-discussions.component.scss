@@ -1,0 +1,41 @@
+// course-discussions — a standalone page frame for the course forum.
+
+$cd-purple: #6d5ef6;
+$cd-ink: #1e2433;
+$cd-muted: #6b7280;
+$cd-line: #eceef3;
+$cd-bg: #eef0f5;
+
+:host { display: block; background: $cd-bg; min-height: 100vh; }
+
+.cd-page { min-height: 100vh; padding: 24px 20px 48px; display: flex; justify-content: center; }
+.cd-shell { width: 100%; max-width: 820px; }
+
+.cd-header { margin-bottom: 18px; }
+.cd-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: $cd-muted; text-decoration: none;
+  margin-bottom: 14px; transition: color .12s;
+  &:hover { color: $cd-purple; }
+  i { font-size: 14px; }
+}
+.cd-heading { display: flex; flex-direction: column; gap: 4px; }
+.cd-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: $cd-purple;
+  i { font-size: 13px; }
+}
+.cd-title {
+  margin: 0; font-size: 24px; font-weight: 700; color: $cd-ink; text-wrap: balance; line-height: 1.2;
+}
+
+.cd-body {
+  background: #fff; border: 1px solid $cd-line; border-radius: 16px;
+  padding: 8px 20px 20px; box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+}
+
+@media (max-width: 640px) {
+  .cd-page { padding: 16px 12px 36px; }
+  .cd-body { padding: 4px 14px 16px; border-radius: 14px; }
+  .cd-title { font-size: 20px; }
+}

@@ -279,6 +279,14 @@ $cp-card: #ffffff;
 }
 
 // discuss
+.cp-discuss-wrap { display: flex; flex-direction: column; }
+.cp-discuss-popout {
+  align-self: flex-end; display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: $cp-muted; text-decoration: none;
+  padding: 6px 2px; transition: color .12s;
+  &:hover { color: $cp-purple; }
+  i { font-size: 12px; }
+}
 .cp-discuss { padding: 14px 0; }
 .cp-discuss-compose, .cp-reply-compose {
   display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px;

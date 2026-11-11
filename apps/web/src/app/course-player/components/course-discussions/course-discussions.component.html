@@ -1,0 +1,17 @@
+<div class="cd-page">
+  <div class="cd-shell">
+    <header class="cd-header">
+      <a class="cd-back" [routerLink]="['/player', courseId]">
+        <i class="bi bi-arrow-left"></i>{{ 'course_player.back_to_course' | translate }}
+      </a>
+      <div class="cd-heading">
+        <span class="cd-eyebrow"><i class="bi bi-chat-square-text"></i>{{ 'course_player.tab_discuss' | translate }}</span>
+        <h1 class="cd-title">{{ courseTitle || ('course_player.course_discussion' | translate) }}</h1>
+      </div>
+    </header>
+
+    <section class="cd-body">
+      <app-course-discussion *ngIf="courseId" [courseId]="courseId"></app-course-discussion>
+    </section>
+  </div>
+</div>

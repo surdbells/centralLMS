@@ -3,6 +3,12 @@
 import { Routes } from '@angular/router';
 export const COURSE_PLAYER_ROUTES: Routes = [
   {
+    path: ':courseId/discussions',
+    loadComponent: () => import('./components/course-discussions/course-discussions.component')
+      .then(m => m.CourseDiscussionsComponent),
+    title: 'Discussions'
+  },
+  {
     path: ':courseId',
     loadComponent: () => import('./components/course-player/course-player.component')
       .then(m => m.CoursePlayerComponent),
