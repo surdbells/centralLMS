@@ -10,26 +10,45 @@ use Doctrine\DBAL\Connection;
 final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
 {
     private const COLUMNS = "p.id, p.course_id, p.parent_id, p.lesson_id, p.body,
-                             p.user_id, p.created_at,
+                             p.user_id, p.created_at, p.edited_at,
+                             p.is_answer, p.is_pinned, p.is_locked,
                              TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS author_name,
-                             u.avatar_url AS author_avatar";
+                             u.avatar_url AS author_avatar,
+                             (p.user_id = c.instructor_id OR p.user_id = c.created_by) AS is_instructor,
+                             (
+                                 SELECT COALESCE(jsonb_object_agg(k.kind, k.cnt), '{}'::jsonb)
+                                 FROM (
+                                     SELECT kind, COUNT(*) AS cnt FROM discussion_reactions r
+                                     WHERE r.post_id = p.id GROUP BY kind
+                                 ) k
+                             ) AS reactions,
+                             (
+                                 SELECT COALESCE(jsonb_agg(r.kind), '[]'::jsonb)
+                                 FROM discussion_reactions r
+                                 WHERE r.post_id = p.id AND r.user_id = :viewer
+                             ) AS my_reactions";
+
+    private const JOINS = 'JOIN users u ON u.id = p.user_id
+                           JOIN courses c ON c.id = p.course_id';
 
     public function __construct(private readonly Connection $connection)
     {
     }
 
-    public function thread(string $tenantId, string $courseId): array
+    public function thread(string $tenantId, string $courseId, string $viewerId): array
     {
+        $params = ['tenant' => $tenantId, 'course' => $courseId, 'viewer' => $viewerId];
+
         $posts = $this->connection->fetchAllAssociative(
             sprintf(
-                "SELECT %s FROM course_discussion_posts p
-                 JOIN users u ON u.id = p.user_id
+                "SELECT %s FROM course_discussion_posts p %s
                  WHERE p.tenant_id = :tenant AND p.course_id = :course
                    AND p.parent_id IS NULL AND p.deleted_at IS NULL
-                 ORDER BY p.created_at DESC",
+                 ORDER BY p.is_pinned DESC, p.created_at DESC",
                 self::COLUMNS,
+                self::JOINS,
             ),
-            ['tenant' => $tenantId, 'course' => $courseId],
+            $params,
         );
 
         if ($posts === []) {
@@ -38,14 +57,14 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
 
         $replies = $this->connection->fetchAllAssociative(
             sprintf(
-                "SELECT %s FROM course_discussion_posts p
-                 JOIN users u ON u.id = p.user_id
+                "SELECT %s FROM course_discussion_posts p %s
                  WHERE p.tenant_id = :tenant AND p.course_id = :course
                    AND p.parent_id IS NOT NULL AND p.deleted_at IS NULL
-                 ORDER BY p.created_at",
+                 ORDER BY p.is_answer DESC, p.created_at",
                 self::COLUMNS,
+                self::JOINS,
             ),
-            ['tenant' => $tenantId, 'course' => $courseId],
+            $params,
         );
 
         $byParent = [];
@@ -54,13 +73,19 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             $byParent[(string) $reply['parent_id']][] = $this->hydrate($reply);
         }
 
-        return array_map(
-            fn (array $post): array => [
-                ...$this->hydrate($post),
-                'replies' => $byParent[(string) $post['id']] ?? [],
-            ],
-            $posts,
-        );
+        return array_map(function (array $post) use ($byParent): array {
+            $replies  = $byParent[(string) $post['id']] ?? [];
+            $answered = false;
+
+            foreach ($replies as $r) {
+                if ($r['isAnswer'] === true) {
+                    $answered = true;
+                    break;
+                }
+            }
+
+            return [...$this->hydrate($post), 'replies' => $replies, 'answered' => $answered];
+        }, $posts);
     }
 
     public function post(
@@ -71,8 +96,6 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
         ?string $parentId,
         ?string $lessonId,
     ): array {
-        // Attach a reply to its parent's own post, so a reply to a reply still
-        // lands on the top-level question rather than nesting deeper.
         if ($parentId !== null) {
             $parentId = (string) ($this->connection->fetchOne(
                 'SELECT COALESCE(parent_id, id) FROM course_discussion_posts
@@ -100,21 +123,33 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             ],
         );
 
-        $row = $this->connection->fetchAssociative(
-            sprintf(
-                'SELECT %s FROM course_discussion_posts p
-                 JOIN users u ON u.id = p.user_id WHERE p.id = :id',
-                self::COLUMNS,
-            ),
-            ['id' => $id],
+        return $this->one($tenantId, $id, $userId);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function edit(string $tenantId, string $postId, string $userId, string $body, bool $isModerator): ?array
+    {
+        $where  = 'id = :id AND tenant_id = :tenant AND deleted_at IS NULL';
+        $params = ['id' => $postId, 'tenant' => $tenantId, 'body' => $body];
+
+        if (!$isModerator) {
+            $where .= ' AND user_id = :user';
+            $params['user'] = $userId;
+        }
+
+        $changed = $this->connection->executeStatement(
+            sprintf('UPDATE course_discussion_posts SET body = :body, edited_at = NOW() WHERE %s', $where),
+            $params,
         );
 
-        return [...$this->hydrate($row === false ? [] : $row), 'replies' => []];
+        return $changed > 0 ? $this->one($tenantId, $postId, $userId) : null;
     }
 
     public function delete(string $tenantId, string $id, string $byUserId, bool $isModerator): bool
     {
-        $where = 'id = :id AND tenant_id = :tenant AND deleted_at IS NULL';
+        $where  = 'id = :id AND tenant_id = :tenant AND deleted_at IS NULL';
         $params = ['id' => $id, 'tenant' => $tenantId];
 
         if (!$isModerator) {
@@ -122,9 +157,6 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             $params['user'] = $byUserId;
         }
 
-        // Take the replies with it: an answer to a deleted question answers
-        // nothing, and leaving them orphaned reads as a conversation with a
-        // hole in it.
         return $this->connection->executeStatement(
             sprintf(
                 'UPDATE course_discussion_posts SET deleted_at = NOW()
@@ -133,6 +165,103 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             ),
             $params,
         ) > 0;
+    }
+
+    public function react(string $tenantId, string $postId, string $userId, string $kind): bool
+    {
+        // Toggle: delete the row if it exists, otherwise insert it.
+        $removed = $this->connection->executeStatement(
+            'DELETE FROM discussion_reactions
+             WHERE post_id = :post AND user_id = :user AND kind = :kind AND tenant_id = :tenant',
+            ['post' => $postId, 'user' => $userId, 'kind' => $kind, 'tenant' => $tenantId],
+        );
+
+        if ($removed > 0) {
+            return false;
+        }
+
+        // Only onto a post that exists in this tenant.
+        $this->connection->executeStatement(
+            'INSERT INTO discussion_reactions (post_id, user_id, tenant_id, kind)
+             SELECT :post, :user, :tenant, :kind
+             FROM course_discussion_posts p
+             WHERE p.id = :post AND p.tenant_id = :tenant AND p.deleted_at IS NULL
+             ON CONFLICT DO NOTHING',
+            ['post' => $postId, 'user' => $userId, 'tenant' => $tenantId, 'kind' => $kind],
+        );
+
+        return true;
+    }
+
+    public function setAnswer(string $tenantId, string $replyId, string $userId, bool $isModerator): bool
+    {
+        $reply = $this->connection->fetchAssociative(
+            'SELECT parent_id, is_answer FROM course_discussion_posts
+             WHERE id = :id AND tenant_id = :tenant AND parent_id IS NOT NULL AND deleted_at IS NULL',
+            ['id' => $replyId, 'tenant' => $tenantId],
+        );
+
+        if ($reply === false || $reply['parent_id'] === null) {
+            return false;
+        }
+
+        $parentId = (string) $reply['parent_id'];
+
+        if (!$isModerator) {
+            // Only the question's author may accept an answer.
+            $askerId = $this->connection->fetchOne(
+                'SELECT user_id FROM course_discussion_posts WHERE id = :id AND tenant_id = :tenant',
+                ['id' => $parentId, 'tenant' => $tenantId],
+            );
+
+            if ($askerId !== $userId) {
+                return false;
+            }
+        }
+
+        $setting = !(bool) $reply['is_answer'];
+
+        // One answer per thread: clear the siblings first, then set (or leave
+        // cleared when toggling off).
+        $this->connection->executeStatement(
+            'UPDATE course_discussion_posts SET is_answer = FALSE
+             WHERE parent_id = :parent AND tenant_id = :tenant',
+            ['parent' => $parentId, 'tenant' => $tenantId],
+        );
+
+        if ($setting) {
+            $this->connection->executeStatement(
+                'UPDATE course_discussion_posts SET is_answer = TRUE
+                 WHERE id = :id AND tenant_id = :tenant',
+                ['id' => $replyId, 'tenant' => $tenantId],
+            );
+        }
+
+        return true;
+    }
+
+    public function setPinned(string $tenantId, string $postId, bool $pinned): bool
+    {
+        return $this->setFlag($tenantId, $postId, 'is_pinned', $pinned);
+    }
+
+    public function setLocked(string $tenantId, string $postId, bool $locked): bool
+    {
+        return $this->setFlag($tenantId, $postId, 'is_locked', $locked);
+    }
+
+    public function isLocked(string $tenantId, string $parentId): bool
+    {
+        // The lock lives on the top-level post; a reply's parent chain is one
+        // deep, so COALESCE(parent_id, id) is the thread root.
+        return (bool) $this->connection->fetchOne(
+            'SELECT is_locked FROM course_discussion_posts
+             WHERE id = (
+                 SELECT COALESCE(parent_id, id) FROM course_discussion_posts
+                 WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL
+             ) AND tenant_id = :tenant',
+            ['id' => $parentId, 'tenant' => $tenantId],
+        );
     }
 
     public function countFor(string $tenantId, string $courseId): int
@@ -144,6 +273,38 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
         );
     }
 
+    // --- internals ------------------------------------------------------------
+
+    private function setFlag(string $tenantId, string $postId, string $column, bool $value): bool
+    {
+        // Pin/lock are thread-level, so they only apply to top-level posts.
+        return $this->connection->executeStatement(
+            sprintf(
+                'UPDATE course_discussion_posts SET %s = :value
+                 WHERE id = :id AND tenant_id = :tenant AND parent_id IS NULL AND deleted_at IS NULL',
+                $column,
+            ),
+            ['value' => $value ? 'true' : 'false', 'id' => $postId, 'tenant' => $tenantId],
+        ) > 0;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function one(string $tenantId, string $id, string $viewerId): array
+    {
+        $row = $this->connection->fetchAssociative(
+            sprintf(
+                'SELECT %s FROM course_discussion_posts p %s WHERE p.id = :id AND p.tenant_id = :tenant',
+                self::COLUMNS,
+                self::JOINS,
+            ),
+            ['id' => $id, 'tenant' => $tenantId, 'viewer' => $viewerId],
+        );
+
+        return $row === false ? [] : [...$this->hydrate($row), 'replies' => [], 'answered' => false];
+    }
+
     /**
      * @param array<string, mixed> $row
      *
@@ -152,6 +313,11 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
     private function hydrate(array $row): array
     {
         $name = is_string($row['author_name'] ?? null) ? trim($row['author_name']) : '';
+
+        /** @var array<string, int> $reactions */
+        $reactions = json_decode((string) ($row['reactions'] ?? '{}'), true);
+        /** @var list<string> $mine */
+        $mine = json_decode((string) ($row['my_reactions'] ?? '[]'), true);
 
         return [
             'id'          => (string) ($row['id'] ?? ''),
@@ -162,7 +328,14 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             'authorAvatar' => is_string($row['author_avatar'] ?? null) && $row['author_avatar'] !== ''
                 ? $row['author_avatar']
                 : null,
-            'createdAt'   => (string) ($row['created_at'] ?? ''),
+            'isInstructor' => (bool) ($row['is_instructor'] ?? false),
+            'isAnswer'     => (bool) ($row['is_answer'] ?? false),
+            'isPinned'     => (bool) ($row['is_pinned'] ?? false),
+            'isLocked'     => (bool) ($row['is_locked'] ?? false),
+            'reactions'    => is_array($reactions) ? (object) $reactions : (object) [],
+            'myReactions'  => is_array($mine) ? array_values($mine) : [],
+            'createdAt'    => (string) ($row['created_at'] ?? ''),
+            'editedAt'     => $row['edited_at'] === null ? null : (string) ($row['edited_at'] ?? ''),
         ];
     }
 }

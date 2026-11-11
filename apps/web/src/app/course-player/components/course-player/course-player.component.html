@@ -151,50 +151,155 @@
               </button>
             </div>
 
+            <div class="cp-discuss-search" *ngIf="discussion.length > 0">
+              <i class="bi bi-search"></i>
+              <input type="search" class="cp-search-input" [(ngModel)]="discussionSearch"
+                     placeholder="{{ 'course_player.discuss_search' | translate }}">
+            </div>
+
             <div class="cp-empty" *ngIf="discussionLoaded && discussion.length === 0">
               <i class="bi bi-chat-dots"></i>
               <p>{{ 'course_player.start_conversation' | translate }}</p>
             </div>
+            <div class="cp-empty" *ngIf="discussionLoaded && discussion.length > 0 && visibleDiscussion.length === 0">
+              <i class="bi bi-search"></i>
+              <p>{{ 'course_player.discuss_no_results' | translate }}</p>
+            </div>
 
-            <div class="cp-post" *ngFor="let post of discussion">
+            <div class="cp-post" *ngFor="let post of visibleDiscussion"
+                 [class.cp-post-pinned]="post.isPinned" [class.cp-post-answered]="post.answered">
               <div class="cp-post-head">
                 <span class="cp-avatar sm">
                   <img *ngIf="post.authorAvatar" [src]="post.authorAvatar" [alt]="post.authorName">
                   <span *ngIf="!post.authorAvatar">{{ post.authorName.charAt(0) }}</span>
                 </span>
                 <span class="cp-post-author">{{ post.authorName }}</span>
+                <span class="cp-badge cp-badge-instructor" *ngIf="post.isInstructor">
+                  <i class="bi bi-mortarboard-fill"></i>{{ 'course_player.instructor' | translate }}
+                </span>
+                <span class="cp-badge cp-badge-pin" *ngIf="post.isPinned">
+                  <i class="bi bi-pin-angle-fill"></i>{{ 'course_player.pinned' | translate }}
+                </span>
+                <span class="cp-badge cp-badge-answered" *ngIf="post.answered">
+                  <i class="bi bi-check-circle-fill"></i>{{ 'course_player.answered' | translate }}
+                </span>
+                <span class="cp-badge cp-badge-locked" *ngIf="post.isLocked">
+                  <i class="bi bi-lock-fill"></i>{{ 'course_player.locked' | translate }}
+                </span>
                 <span class="cp-post-time">{{ post.createdAt | date:'short' }}</span>
-                <button class="cp-post-del" *ngIf="post.authorId === currentUserId"
-                        (click)="deleteDiscussionPost(post.id)" [attr.aria-label]="'common.delete' | translate">
-                  <i class="bi bi-trash"></i>
-                </button>
+                <span class="cp-post-edited" *ngIf="post.editedAt">· {{ 'course_player.edited' | translate }}</span>
+
+                <span class="cp-post-tools">
+                  <button class="cp-icon-btn" *ngIf="canModerate" (click)="togglePin(post)"
+                          [class.active]="post.isPinned"
+                          [attr.aria-label]="'course_player.pin' | translate" [attr.title]="'course_player.pin' | translate">
+                    <i class="bi bi-pin-angle"></i>
+                  </button>
+                  <button class="cp-icon-btn" *ngIf="canModerate" (click)="toggleLock(post)"
+                          [class.active]="post.isLocked"
+                          [attr.aria-label]="'course_player.lock' | translate" [attr.title]="'course_player.lock' | translate">
+                    <i class="bi" [ngClass]="post.isLocked ? 'bi-unlock' : 'bi-lock'"></i>
+                  </button>
+                  <button class="cp-icon-btn" *ngIf="canEditPost(post)" (click)="startEdit(post)"
+                          [attr.aria-label]="'common.edit' | translate" [attr.title]="'common.edit' | translate">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="cp-icon-btn danger" *ngIf="canEditPost(post)" (click)="deleteDiscussionPost(post.id)"
+                          [attr.aria-label]="'common.delete' | translate" [attr.title]="'common.delete' | translate">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </span>
               </div>
-              <p class="cp-post-body">{{ post.body }}</p>
-              <div class="cp-post-actions">
-                <button class="cp-reply-btn" (click)="startReply(post.id)">
-                  <i class="bi bi-reply me-1"></i>{{ 'course_player.reply' | translate }}
+
+              <ng-container *ngIf="editingPostId === post.id; else postBody">
+                <textarea class="cp-textarea" rows="3" [(ngModel)]="editText"></textarea>
+                <div class="cp-edit-actions">
+                  <button class="btn cp-btn-primary btn-sm" [disabled]="!editText.trim()" (click)="saveEdit(post)">{{ 'common.save' | translate }}</button>
+                  <button class="btn btn-sm cp-btn-ghost" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
+                </div>
+              </ng-container>
+              <ng-template #postBody>
+                <p class="cp-post-body">{{ post.body }}</p>
+              </ng-template>
+
+              <div class="cp-reactions">
+                <button class="cp-react" *ngFor="let kind of reactionKinds"
+                        [class.reacted]="hasReacted(post, kind)"
+                        (click)="toggleReaction(post, kind)"
+                        [attr.aria-label]="('course_player.react_' + kind) | translate">
+                  <span class="cp-react-emoji">{{ reactionEmoji[kind] }}</span>
+                  <span class="cp-react-count" *ngIf="reactionCount(post, kind) > 0">{{ reactionCount(post, kind) }}</span>
                 </button>
               </div>
 
-              <div class="cp-reply-compose" *ngIf="replyingTo === post.id">
+              <div class="cp-post-actions">
+                <button class="cp-reply-btn" *ngIf="!post.isLocked" (click)="startReply(post.id)">
+                  <i class="bi bi-reply me-1"></i>{{ 'course_player.reply' | translate }}
+                </button>
+                <span class="cp-locked-note" *ngIf="post.isLocked">
+                  <i class="bi bi-lock-fill me-1"></i>{{ 'course_player.thread_locked' | translate }}
+                </span>
+              </div>
+
+              <div class="cp-reply-compose" *ngIf="replyingTo === post.id && !post.isLocked">
                 <textarea class="cp-textarea" rows="1" placeholder="{{ 'course_player.reply_placeholder' | translate }}" [(ngModel)]="replyText"></textarea>
                 <button class="btn cp-btn-primary btn-sm" [disabled]="!replyText.trim()" (click)="submitReply(post.id)">{{ 'course_player.reply' | translate }}</button>
               </div>
 
               <div class="cp-replies" *ngIf="post.replies?.length">
-                <div class="cp-reply" *ngFor="let reply of post.replies">
+                <div class="cp-reply" *ngFor="let reply of post.replies" [class.cp-reply-answer]="reply.isAnswer">
                   <span class="cp-avatar sm">
                     <img *ngIf="reply.authorAvatar" [src]="reply.authorAvatar" [alt]="reply.authorName">
                     <span *ngIf="!reply.authorAvatar">{{ reply.authorName.charAt(0) }}</span>
                   </span>
                   <span class="cp-reply-text">
-                    <span class="cp-post-author">{{ reply.authorName }}</span>
-                    <p class="cp-post-body mb-0">{{ reply.body }}</p>
+                    <span class="cp-reply-head">
+                      <span class="cp-post-author">{{ reply.authorName }}</span>
+                      <span class="cp-badge cp-badge-instructor" *ngIf="reply.isInstructor">
+                        <i class="bi bi-mortarboard-fill"></i>{{ 'course_player.instructor' | translate }}
+                      </span>
+                      <span class="cp-badge cp-badge-answered" *ngIf="reply.isAnswer">
+                        <i class="bi bi-check-circle-fill"></i>{{ 'course_player.best_answer' | translate }}
+                      </span>
+                      <span class="cp-post-edited" *ngIf="reply.editedAt">· {{ 'course_player.edited' | translate }}</span>
+                    </span>
+
+                    <ng-container *ngIf="editingPostId === reply.id; else replyBody">
+                      <textarea class="cp-textarea" rows="2" [(ngModel)]="editText"></textarea>
+                      <div class="cp-edit-actions">
+                        <button class="btn cp-btn-primary btn-sm" [disabled]="!editText.trim()" (click)="saveEdit(reply)">{{ 'common.save' | translate }}</button>
+                        <button class="btn btn-sm cp-btn-ghost" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
+                      </div>
+                    </ng-container>
+                    <ng-template #replyBody>
+                      <p class="cp-post-body mb-0">{{ reply.body }}</p>
+                    </ng-template>
+
+                    <span class="cp-reply-tools">
+                      <button class="cp-react sm" *ngFor="let kind of reactionKinds"
+                              [class.reacted]="hasReacted(reply, kind)"
+                              (click)="toggleReaction(reply, kind)"
+                              [attr.aria-label]="('course_player.react_' + kind) | translate">
+                        <span class="cp-react-emoji">{{ reactionEmoji[kind] }}</span>
+                        <span class="cp-react-count" *ngIf="reactionCount(reply, kind) > 0">{{ reactionCount(reply, kind) }}</span>
+                      </button>
+                      <button class="cp-answer-btn" *ngIf="canAcceptAnswer(post)"
+                              [class.active]="reply.isAnswer" (click)="markAnswer(reply)">
+                        <i class="bi" [ngClass]="reply.isAnswer ? 'bi-check-circle-fill' : 'bi-check-circle'"></i>
+                        {{ (reply.isAnswer ? 'course_player.unmark_answer' : 'course_player.mark_answer') | translate }}
+                      </button>
+                    </span>
                   </span>
-                  <button class="cp-post-del" *ngIf="reply.authorId === currentUserId"
-                          (click)="deleteDiscussionPost(reply.id)" [attr.aria-label]="'common.delete' | translate">
-                    <i class="bi bi-trash"></i>
-                  </button>
+                  <span class="cp-reply-ctl">
+                    <button class="cp-icon-btn" *ngIf="canEditPost(reply)" (click)="startEdit(reply)"
+                            [attr.aria-label]="'common.edit' | translate">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="cp-icon-btn danger" *ngIf="canEditPost(reply)" (click)="deleteDiscussionPost(reply.id)"
+                            [attr.aria-label]="'common.delete' | translate">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </span>
                 </div>
               </div>
             </div>

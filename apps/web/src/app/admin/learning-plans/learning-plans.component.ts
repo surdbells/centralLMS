@@ -173,7 +173,7 @@ export class LearningPlansComponent implements OnInit {
     this.doAssign({ userIds: [user.id] });
   }
 
-  private doAssign(body: { everyone?: boolean; departmentId?: string }): void {
+  private doAssign(body: { everyone?: boolean; departmentId?: string; userIds?: string[] }): void {
     const plan = this.selected;
     if (!plan) {
       return;

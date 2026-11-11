@@ -21,9 +21,9 @@ use Psr\Http\Message\ServerRequestInterface;
  * The course player's "Learners" and "Discuss" tabs.
  *
  * Both hang off a course the caller is on: who else is taking it, and the
- * questions being asked about it. Being enrolled is the gate — you can see
- * your classmates and join the discussion of a course you are on, and no
- * other.
+ * forum attached to it. Being enrolled is the gate for taking part; moderating
+ * (pin, lock) needs `course.publish` instead, so a course's author can keep its
+ * discussion tidy without being enrolled on it.
  */
 final class CoursePlayerExtrasAction
 {
@@ -84,7 +84,7 @@ final class CoursePlayerExtrasAction
     ): ResponseInterface {
         $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
 
-        return Json::ok($response, $this->discussion->thread($tenantId, $args['courseId'] ?? ''));
+        return Json::ok($response, $this->discussion->thread($tenantId, $args['courseId'] ?? '', $this->caller($request)->id));
     }
 
     /**
@@ -95,14 +95,21 @@ final class CoursePlayerExtrasAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        $caller = $this->caller($request);
+        $caller   = $this->caller($request);
         $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
-        $body = $this->body($request);
+        $body     = $this->body($request);
 
-        $text = trim((string) ($body['body'] ?? ''));
+        $text     = trim((string) ($body['body'] ?? ''));
+        $parentId = $this->uuidOrNull($body['parentId'] ?? null);
 
         if ($text === '') {
             throw ValidationFailed::fromArray(['body' => 'Write something first.']);
+        }
+
+        // A locked thread takes no new replies; a lock on the question still
+        // lets the question itself stand.
+        if ($parentId !== null && $this->discussion->isLocked($tenantId, $parentId)) {
+            throw ValidationFailed::fromArray(['thread' => 'This thread is locked.']);
         }
 
         $post = $this->discussion->post(
@@ -110,11 +117,42 @@ final class CoursePlayerExtrasAction
             $args['courseId'] ?? '',
             $caller->id,
             $text,
-            $this->uuidOrNull($body['parentId'] ?? null),
+            $parentId,
             $this->uuidOrNull($body['lessonId'] ?? null),
         );
 
         return Json::created($response, $post);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function edit(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $caller   = $this->caller($request);
+        $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
+        $text     = trim((string) ($this->body($request)['body'] ?? ''));
+
+        if ($text === '') {
+            throw ValidationFailed::fromArray(['body' => 'Write something first.']);
+        }
+
+        $post = $this->discussion->edit(
+            $tenantId,
+            $args['postId'] ?? '',
+            $caller->id,
+            $text,
+            $caller->can(Permission::CoursePublish),
+        );
+
+        if ($post === null) {
+            throw new EntityNotFound('Post', $args['postId'] ?? '');
+        }
+
+        return Json::ok($response, $post);
     }
 
     /**
@@ -125,9 +163,9 @@ final class CoursePlayerExtrasAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
-        $caller = $this->caller($request);
+        $caller   = $this->caller($request);
         $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
-        $id = $args['postId'] ?? '';
+        $id       = $args['postId'] ?? '';
 
         $removed = $this->discussion->delete(
             $tenantId,
@@ -139,6 +177,92 @@ final class CoursePlayerExtrasAction
         if (!$removed) {
             throw new EntityNotFound('Post', $id);
         }
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * Toggles one of the caller's reactions on a post (body: {kind}).
+     *
+     * @param array<string, string> $args
+     */
+    public function react(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $caller   = $this->caller($request);
+        $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
+        $kind     = (string) ($this->body($request)['kind'] ?? '');
+
+        if (!in_array($kind, CourseDiscussionRepository::REACTIONS, true)) {
+            throw ValidationFailed::fromArray(['kind' => 'Unknown reaction.']);
+        }
+
+        $reacted = $this->discussion->react($tenantId, $args['postId'] ?? '', $caller->id, $kind);
+
+        return Json::ok($response, ['kind' => $kind, 'reacted' => $reacted]);
+    }
+
+    /**
+     * Marks a reply as the thread's accepted answer, or clears it.
+     *
+     * @param array<string, string> $args
+     */
+    public function answer(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $caller   = $this->caller($request);
+        $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
+
+        $ok = $this->discussion->setAnswer(
+            $tenantId,
+            $args['postId'] ?? '',
+            $caller->id,
+            $caller->can(Permission::CoursePublish),
+        );
+
+        if (!$ok) {
+            throw new AccessDenied(Permission::EnrollmentSelf->value);
+        }
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * Pins/unpins a top-level post (moderator). Body: {value: bool}.
+     *
+     * @param array<string, string> $args
+     */
+    public function pin(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->requireModerator($request);
+        $value    = filter_var($this->body($request)['value'] ?? true, FILTER_VALIDATE_BOOL);
+
+        $this->discussion->setPinned($tenantId, $args['postId'] ?? '', $value);
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * Locks/unlocks a thread against new replies (moderator). Body: {value: bool}.
+     *
+     * @param array<string, string> $args
+     */
+    public function lock(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->requireModerator($request);
+        $value    = filter_var($this->body($request)['value'] ?? true, FILTER_VALIDATE_BOOL);
+
+        $this->discussion->setLocked($tenantId, $args['postId'] ?? '', $value);
 
         return Json::noContent($response);
     }
@@ -164,6 +288,19 @@ final class CoursePlayerExtrasAction
 
         if ($enrolment === null) {
             throw new EntityNotFound('Course', $courseId);
+        }
+
+        return $caller->tenantId;
+    }
+
+    /** Moderating does not require enrolment — a course's author keeps its forum tidy. */
+    private function requireModerator(ServerRequestInterface $request): string
+    {
+        $caller = $this->caller($request);
+        $caller->mustHave(Permission::CoursePublish);
+
+        if ($caller->tenantId === null) {
+            throw new AccessDenied(Permission::CoursePublish->value);
         }
 
         return $caller->tenantId;

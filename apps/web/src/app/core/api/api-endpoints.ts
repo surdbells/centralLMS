@@ -248,6 +248,16 @@ export const Endpoints = {
     discussion: (courseId: string) => `/me/enrollments/${courseId}/discussion`,
     deleteDiscussionPost: (courseId: string, postId: string) =>
       `/me/enrollments/${courseId}/discussion/${postId}`,
+    editDiscussionPost: (courseId: string, postId: string) =>
+      `/me/enrollments/${courseId}/discussion/${postId}`,
+    discussionReact: (courseId: string, postId: string) =>
+      `/me/enrollments/${courseId}/discussion/${postId}/reactions`,
+    discussionAnswer: (courseId: string, postId: string) =>
+      `/me/enrollments/${courseId}/discussion/${postId}/answer`,
+    discussionPin: (courseId: string, postId: string) =>
+      `/me/enrollments/${courseId}/discussion/${postId}/pin`,
+    discussionLock: (courseId: string, postId: string) =>
+      `/me/enrollments/${courseId}/discussion/${postId}/lock`,
     certificates: '/me/certificates',
     /** The assessments this person has sat — not a marker's queue. */
     attempts: '/me/attempts',

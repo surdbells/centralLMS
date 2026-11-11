@@ -16,7 +16,8 @@ import {
   Note,
   QuizResult,
   Classmate,
-  DiscussionPost
+  DiscussionPost,
+  ReactionKind
 } from '../../services/course-player.service';
 import { ScormAdapterService } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
@@ -76,6 +77,13 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   replyingTo: string | null = null;
   replyText = '';
   currentUserId = '';
+  editingPostId: string | null = null;
+  editText = '';
+  discussionSearch = '';
+  readonly reactionKinds: ReactionKind[] = ['up', 'heart', 'celebrate', 'insightful'];
+  readonly reactionEmoji: Record<ReactionKind, string> = {
+    up: '👍', heart: '❤️', celebrate: '🎉', insightful: '💡',
+  };
 
   // Video tracking
   settingsOpen = false;
@@ -853,6 +861,115 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.playerService.deleteDiscussionPost(this.courseId, postId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({ next: () => this.loadDiscussion() });
+  }
+
+  // --- premium forum: reactions, best answer, moderation, inline edit --------
+
+  /** A moderator (course author/instructor) may pin, lock and accept answers. */
+  get canModerate(): boolean {
+    return this.session.can()('course.publish');
+  }
+
+  /** The visible threads, after the free-text search box. */
+  get visibleDiscussion(): DiscussionPost[] {
+    const q = this.discussionSearch.trim().toLowerCase();
+    if (!q) return this.discussion;
+    return this.discussion.filter((post) => {
+      if (post.body.toLowerCase().includes(q) || post.authorName.toLowerCase().includes(q)) {
+        return true;
+      }
+      return (post.replies ?? []).some(
+        (r) => r.body.toLowerCase().includes(q) || r.authorName.toLowerCase().includes(q),
+      );
+    });
+  }
+
+  hasReacted(post: DiscussionPost, kind: ReactionKind): boolean {
+    return (post.myReactions ?? []).includes(kind);
+  }
+
+  reactionCount(post: DiscussionPost, kind: ReactionKind): number {
+    return post.reactions?.[kind] ?? 0;
+  }
+
+  /** Toggle a reaction, updating the counts in place so the UI feels instant. */
+  toggleReaction(post: DiscussionPost, kind: ReactionKind): void {
+    if (!this.courseId) return;
+
+    const mine = new Set(post.myReactions ?? []);
+    const reactions = { ...(post.reactions ?? {}) };
+    const had = mine.has(kind);
+
+    // Optimistic: flip locally first.
+    if (had) {
+      mine.delete(kind);
+      reactions[kind] = Math.max(0, (reactions[kind] ?? 1) - 1);
+      if (reactions[kind] === 0) delete reactions[kind];
+    } else {
+      mine.add(kind);
+      reactions[kind] = (reactions[kind] ?? 0) + 1;
+    }
+    post.myReactions = [...mine];
+    post.reactions = reactions;
+
+    this.playerService.reactToPost(this.courseId, post.id, kind)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ error: () => this.loadDiscussion() });
+  }
+
+  /** The question's author, or a moderator, may accept one reply as the answer. */
+  canAcceptAnswer(thread: DiscussionPost): boolean {
+    return this.canModerate || thread.authorId === this.currentUserId;
+  }
+
+  markAnswer(reply: DiscussionPost): void {
+    if (!this.courseId) return;
+    this.playerService.markAnswer(this.courseId, reply.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.loadDiscussion(),
+        error: (err) => this.toast.error(err?.message || this.i18n.t('course_player.toast_post_failed')),
+      });
+  }
+
+  togglePin(post: DiscussionPost): void {
+    if (!this.courseId) return;
+    this.playerService.pinPost(this.courseId, post.id, !post.isPinned)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadDiscussion() });
+  }
+
+  toggleLock(post: DiscussionPost): void {
+    if (!this.courseId) return;
+    this.playerService.lockThread(this.courseId, post.id, !post.isLocked)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadDiscussion() });
+  }
+
+  canEditPost(post: DiscussionPost): boolean {
+    return this.canModerate || post.authorId === this.currentUserId;
+  }
+
+  startEdit(post: DiscussionPost): void {
+    this.editingPostId = post.id;
+    this.editText = post.body;
+  }
+
+  cancelEdit(): void {
+    this.editingPostId = null;
+    this.editText = '';
+  }
+
+  saveEdit(post: DiscussionPost): void {
+    const text = this.editText.trim();
+    if (!text || !this.courseId) return;
+
+    this.playerService.editDiscussionPost(this.courseId, post.id, text)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => { this.cancelEdit(); this.loadDiscussion(); },
+        error: (err) => this.toast.error(err?.message || this.i18n.t('course_player.toast_post_failed')),
+      });
   }
 
   // ==========================================

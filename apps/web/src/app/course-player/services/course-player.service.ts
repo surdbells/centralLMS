@@ -114,9 +114,19 @@ export interface Classmate {
   status: string;
 }
 
+export type ReactionKind = 'up' | 'heart' | 'celebrate' | 'insightful';
+
 export interface DiscussionPost {
   id: string;
   body: string;
+  isInstructor?: boolean;
+  isAnswer?: boolean;
+  isPinned?: boolean;
+  isLocked?: boolean;
+  answered?: boolean;
+  reactions?: Record<string, number>;
+  myReactions?: string[];
+  editedAt?: string | null;
   lessonId: string | null;
   authorId: string;
   authorName: string;
@@ -632,6 +642,27 @@ export class CoursePlayerService {
     return this.api
       .delete(Endpoints.me.deleteDiscussionPost(courseId, postId))
       .pipe(map(() => undefined));
+  }
+
+  editDiscussionPost(courseId: string, postId: string, body: string): Observable<DiscussionPost> {
+    return this.api.put<DiscussionPost>(Endpoints.me.editDiscussionPost(courseId, postId), { body });
+  }
+
+  reactToPost(courseId: string, postId: string, kind: ReactionKind): Observable<{ kind: string; reacted: boolean }> {
+    return this.api.post<{ kind: string; reacted: boolean }>(
+      Endpoints.me.discussionReact(courseId, postId), { kind });
+  }
+
+  markAnswer(courseId: string, postId: string): Observable<void> {
+    return this.api.post<void>(Endpoints.me.discussionAnswer(courseId, postId), {}).pipe(map(() => undefined));
+  }
+
+  pinPost(courseId: string, postId: string, value: boolean): Observable<void> {
+    return this.api.post<void>(Endpoints.me.discussionPin(courseId, postId), { value }).pipe(map(() => undefined));
+  }
+
+  lockThread(courseId: string, postId: string, value: boolean): Observable<void> {
+    return this.api.post<void>(Endpoints.me.discussionLock(courseId, postId), { value }).pipe(map(() => undefined));
   }
 
   // ==========================================

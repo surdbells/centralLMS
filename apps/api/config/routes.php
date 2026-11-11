@@ -515,6 +515,26 @@ return static function (App $app): void {
                     '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}',
                     [CoursePlayerExtrasAction::class, 'deletePost'],
                 )->setName('me.enrollments.discussion.delete');
+                $m->put(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}',
+                    [CoursePlayerExtrasAction::class, 'edit'],
+                )->setName('me.enrollments.discussion.edit');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/reactions',
+                    [CoursePlayerExtrasAction::class, 'react'],
+                )->setName('me.enrollments.discussion.react');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/answer',
+                    [CoursePlayerExtrasAction::class, 'answer'],
+                )->setName('me.enrollments.discussion.answer');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/pin',
+                    [CoursePlayerExtrasAction::class, 'pin'],
+                )->setName('me.enrollments.discussion.pin');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/lock',
+                    [CoursePlayerExtrasAction::class, 'lock'],
+                )->setName('me.enrollments.discussion.lock');
             });
 
             // The course catalogue.
