@@ -155,10 +155,17 @@
               </div>
             </div>
 
-            <div class="cp-discuss-search" *ngIf="discussion.length > 0">
-              <i class="bi bi-search"></i>
-              <input type="search" class="cp-search-input" [(ngModel)]="discussionSearch"
-                     placeholder="{{ 'course_player.discuss_search' | translate }}">
+            <div class="cp-discuss-filters" *ngIf="discussion.length > 0">
+              <div class="cp-discuss-search">
+                <i class="bi bi-search"></i>
+                <input type="search" class="cp-search-input" [(ngModel)]="discussionSearch"
+                       placeholder="{{ 'course_player.discuss_search' | translate }}">
+              </div>
+              <button type="button" class="cp-lesson-filter" *ngIf="currentLesson"
+                      [class.active]="discussLessonOnly" (click)="discussLessonOnly = !discussLessonOnly">
+                <i class="bi" [ngClass]="discussLessonOnly ? 'bi-funnel-fill' : 'bi-funnel'"></i>
+                {{ 'course_player.this_lesson_only' | translate }}
+              </button>
             </div>
 
             <div class="cp-empty" *ngIf="discussionLoaded && discussion.length === 0">
@@ -190,10 +197,29 @@
                 <span class="cp-badge cp-badge-locked" *ngIf="post.isLocked">
                   <i class="bi bi-lock-fill"></i>{{ 'course_player.locked' | translate }}
                 </span>
+                <span class="cp-badge cp-badge-hidden" *ngIf="post.isHidden">
+                  <i class="bi bi-eye-slash-fill"></i>{{ 'course_player.hidden' | translate }}
+                </span>
+                <span class="cp-badge cp-badge-reported" *ngIf="post.reportCount">
+                  <i class="bi bi-flag-fill"></i>{{ post.reportCount }}
+                </span>
                 <span class="cp-post-time">{{ post.createdAt | date:'short' }}</span>
                 <span class="cp-post-edited" *ngIf="post.editedAt">· {{ 'course_player.edited' | translate }}</span>
 
                 <span class="cp-post-tools">
+                  <button class="cp-icon-btn" *ngIf="canReport(post)" (click)="reportPost(post)"
+                          [attr.aria-label]="'course_player.report' | translate" [attr.title]="'course_player.report' | translate">
+                    <i class="bi bi-flag"></i>
+                  </button>
+                  <button class="cp-icon-btn" *ngIf="canModerate && post.reportCount" (click)="dismissReports(post)"
+                          [attr.aria-label]="'course_player.dismiss_reports' | translate" [attr.title]="'course_player.dismiss_reports' | translate">
+                    <i class="bi bi-flag-fill"></i>
+                  </button>
+                  <button class="cp-icon-btn" *ngIf="canModerate" (click)="toggleHide(post)"
+                          [class.active]="post.isHidden"
+                          [attr.aria-label]="'course_player.hide' | translate" [attr.title]="'course_player.hide' | translate">
+                    <i class="bi" [ngClass]="post.isHidden ? 'bi-eye' : 'bi-eye-slash'"></i>
+                  </button>
                   <button class="cp-icon-btn" *ngIf="canModerate" (click)="togglePin(post)"
                           [class.active]="post.isPinned"
                           [attr.aria-label]="'course_player.pin' | translate" [attr.title]="'course_player.pin' | translate">
@@ -223,7 +249,10 @@
                 </div>
               </ng-container>
               <ng-template #postBody>
-                <div class="cp-post-body cp-rich" [innerHTML]="bodyHtml(post.body)"></div>
+                <div class="cp-post-removed" *ngIf="post.isHidden && !post.body">
+                  <i class="bi bi-eye-slash me-1"></i>{{ 'course_player.post_removed' | translate }}
+                </div>
+                <div class="cp-post-body cp-rich" *ngIf="post.body" [innerHTML]="bodyHtml(post.body)"></div>
               </ng-template>
 
               <div class="cp-reactions">
@@ -267,6 +296,12 @@
                       <span class="cp-badge cp-badge-answered" *ngIf="reply.isAnswer">
                         <i class="bi bi-check-circle-fill"></i>{{ 'course_player.best_answer' | translate }}
                       </span>
+                      <span class="cp-badge cp-badge-hidden" *ngIf="reply.isHidden">
+                        <i class="bi bi-eye-slash-fill"></i>{{ 'course_player.hidden' | translate }}
+                      </span>
+                      <span class="cp-badge cp-badge-reported" *ngIf="reply.reportCount">
+                        <i class="bi bi-flag-fill"></i>{{ reply.reportCount }}
+                      </span>
                       <span class="cp-post-edited" *ngIf="reply.editedAt">· {{ 'course_player.edited' | translate }}</span>
                     </span>
 
@@ -278,7 +313,10 @@
                       </div>
                     </ng-container>
                     <ng-template #replyBody>
-                      <div class="cp-post-body cp-rich mb-0" [innerHTML]="bodyHtml(reply.body)"></div>
+                      <div class="cp-post-removed" *ngIf="reply.isHidden && !reply.body">
+                        <i class="bi bi-eye-slash me-1"></i>{{ 'course_player.post_removed' | translate }}
+                      </div>
+                      <div class="cp-post-body cp-rich mb-0" *ngIf="reply.body" [innerHTML]="bodyHtml(reply.body)"></div>
                     </ng-template>
 
                     <span class="cp-reply-tools">
@@ -297,6 +335,19 @@
                     </span>
                   </span>
                   <span class="cp-reply-ctl">
+                    <button class="cp-icon-btn" *ngIf="canReport(reply)" (click)="reportPost(reply)"
+                            [attr.aria-label]="'course_player.report' | translate" [attr.title]="'course_player.report' | translate">
+                      <i class="bi bi-flag"></i>
+                    </button>
+                    <button class="cp-icon-btn" *ngIf="canModerate && reply.reportCount" (click)="dismissReports(reply)"
+                            [attr.aria-label]="'course_player.dismiss_reports' | translate" [attr.title]="'course_player.dismiss_reports' | translate">
+                      <i class="bi bi-flag-fill"></i>
+                    </button>
+                    <button class="cp-icon-btn" *ngIf="canModerate" (click)="toggleHide(reply)"
+                            [class.active]="reply.isHidden"
+                            [attr.aria-label]="'course_player.hide' | translate" [attr.title]="'course_player.hide' | translate">
+                      <i class="bi" [ngClass]="reply.isHidden ? 'bi-eye' : 'bi-eye-slash'"></i>
+                    </button>
                     <button class="cp-icon-btn" *ngIf="canEditPost(reply)" (click)="startEdit(reply)"
                             [attr.aria-label]="'common.edit' | translate">
                       <i class="bi bi-pencil"></i>

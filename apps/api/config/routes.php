@@ -535,6 +535,18 @@ return static function (App $app): void {
                     '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/lock',
                     [CoursePlayerExtrasAction::class, 'lock'],
                 )->setName('me.enrollments.discussion.lock');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/report',
+                    [CoursePlayerExtrasAction::class, 'report'],
+                )->setName('me.enrollments.discussion.report');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/hide',
+                    [CoursePlayerExtrasAction::class, 'hide'],
+                )->setName('me.enrollments.discussion.hide');
+                $m->post(
+                    '/{courseId:' . $uuid . '}/discussion/{postId:' . $uuid . '}/dismiss-reports',
+                    [CoursePlayerExtrasAction::class, 'dismissReports'],
+                )->setName('me.enrollments.discussion.dismiss');
             });
 
             // The course catalogue.

@@ -11,10 +11,14 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
 {
     private const COLUMNS = "p.id, p.course_id, p.parent_id, p.lesson_id, p.body,
                              p.user_id, p.created_at, p.edited_at,
-                             p.is_answer, p.is_pinned, p.is_locked,
+                             p.is_answer, p.is_pinned, p.is_locked, p.is_hidden,
                              TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS author_name,
                              u.avatar_url AS author_avatar,
                              (p.user_id = c.instructor_id OR p.user_id = c.created_by) AS is_instructor,
+                             (
+                                 SELECT COUNT(*) FROM discussion_reports rep
+                                 WHERE rep.post_id = p.id AND rep.resolved_at IS NULL
+                             ) AS report_count,
                              (
                                  SELECT COALESCE(jsonb_object_agg(k.kind, k.cnt), '{}'::jsonb)
                                  FROM (
@@ -35,7 +39,7 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
     {
     }
 
-    public function thread(string $tenantId, string $courseId, string $viewerId): array
+    public function thread(string $tenantId, string $courseId, string $viewerId, bool $isModerator): array
     {
         $params = ['tenant' => $tenantId, 'course' => $courseId, 'viewer' => $viewerId];
 
@@ -70,10 +74,10 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
         $byParent = [];
 
         foreach ($replies as $reply) {
-            $byParent[(string) $reply['parent_id']][] = $this->hydrate($reply);
+            $byParent[(string) $reply['parent_id']][] = $this->hydrate($reply, $isModerator);
         }
 
-        return array_map(function (array $post) use ($byParent): array {
+        return array_map(function (array $post) use ($byParent, $isModerator): array {
             $replies  = $byParent[(string) $post['id']] ?? [];
             $answered = false;
 
@@ -84,7 +88,7 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
                 }
             }
 
-            return [...$this->hydrate($post), 'replies' => $replies, 'answered' => $answered];
+            return [...$this->hydrate($post, $isModerator), 'replies' => $replies, 'answered' => $answered];
         }, $posts);
     }
 
@@ -250,6 +254,48 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
         return $this->setFlag($tenantId, $postId, 'is_locked', $locked);
     }
 
+    public function report(string $tenantId, string $postId, string $reporterId, string $reason): bool
+    {
+        // Only onto a post that actually exists in this tenant; a second report
+        // by the same person updates the reason and re-opens it.
+        return $this->connection->executeStatement(
+            "INSERT INTO discussion_reports (post_id, tenant_id, reporter_id, reason)
+             SELECT :post, :tenant, :reporter, :reason
+             FROM course_discussion_posts p
+             WHERE p.id = :post AND p.tenant_id = :tenant AND p.deleted_at IS NULL
+             ON CONFLICT (post_id, reporter_id)
+             DO UPDATE SET reason = EXCLUDED.reason, resolved_at = NULL, created_at = NOW()",
+            ['post' => $postId, 'tenant' => $tenantId, 'reporter' => $reporterId, 'reason' => $reason],
+        ) > 0;
+    }
+
+    public function setHidden(string $tenantId, string $postId, bool $hidden): bool
+    {
+        // Hiding applies to any post, reply included, so it is not the
+        // top-level-only setFlag used by pin and lock.
+        $changed = $this->connection->executeStatement(
+            'UPDATE course_discussion_posts SET is_hidden = :value
+             WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+            ['value' => $hidden ? 'true' : 'false', 'id' => $postId, 'tenant' => $tenantId],
+        );
+
+        // Hiding settles the complaint that prompted it.
+        if ($changed > 0 && $hidden) {
+            $this->dismissReports($tenantId, $postId);
+        }
+
+        return $changed > 0;
+    }
+
+    public function dismissReports(string $tenantId, string $postId): bool
+    {
+        return $this->connection->executeStatement(
+            'UPDATE discussion_reports SET resolved_at = NOW()
+             WHERE post_id = :post AND tenant_id = :tenant AND resolved_at IS NULL',
+            ['post' => $postId, 'tenant' => $tenantId],
+        ) > 0;
+    }
+
     public function isLocked(string $tenantId, string $parentId): bool
     {
         // The lock lives on the top-level post; a reply's parent chain is one
@@ -302,7 +348,7 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             ['id' => $id, 'tenant' => $tenantId, 'viewer' => $viewerId],
         );
 
-        return $row === false ? [] : [...$this->hydrate($row), 'replies' => [], 'answered' => false];
+        return $row === false ? [] : [...$this->hydrate($row, true), 'replies' => [], 'answered' => false];
     }
 
     /**
@@ -310,7 +356,7 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
      *
      * @return array<string, mixed>
      */
-    private function hydrate(array $row): array
+    private function hydrate(array $row, bool $isModerator): array
     {
         $name = is_string($row['author_name'] ?? null) ? trim($row['author_name']) : '';
 
@@ -319,9 +365,15 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
         /** @var list<string> $mine */
         $mine = json_decode((string) ($row['my_reactions'] ?? '[]'), true);
 
+        $hidden      = (bool) ($row['is_hidden'] ?? false);
+        // A hidden post keeps its place in the thread, but only a moderator
+        // reads what it said; to everyone else it is a removed-post shell.
+        $showBody    = $isModerator || !$hidden;
+        $reportCount = $isModerator ? (int) ($row['report_count'] ?? 0) : 0;
+
         return [
             'id'          => (string) ($row['id'] ?? ''),
-            'body'        => (string) ($row['body'] ?? ''),
+            'body'        => $showBody ? (string) ($row['body'] ?? '') : '',
             'lessonId'    => $row['lesson_id'] === null ? null : (string) $row['lesson_id'],
             'authorId'    => (string) ($row['user_id'] ?? ''),
             'authorName'  => $name === '' ? 'Someone' : $name,
@@ -332,6 +384,8 @@ final class DbalCourseDiscussionRepository implements CourseDiscussionRepository
             'isAnswer'     => (bool) ($row['is_answer'] ?? false),
             'isPinned'     => (bool) ($row['is_pinned'] ?? false),
             'isLocked'     => (bool) ($row['is_locked'] ?? false),
+            'isHidden'     => $hidden,
+            'reportCount'  => $reportCount,
             'reactions'    => is_array($reactions) ? (object) $reactions : (object) [],
             'myReactions'  => is_array($mine) ? array_values($mine) : [],
             'createdAt'    => (string) ($row['created_at'] ?? ''),

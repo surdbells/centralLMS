@@ -123,6 +123,8 @@ export interface DiscussionPost {
   isAnswer?: boolean;
   isPinned?: boolean;
   isLocked?: boolean;
+  isHidden?: boolean;
+  reportCount?: number;
   answered?: boolean;
   reactions?: Record<string, number>;
   myReactions?: string[];
@@ -663,6 +665,18 @@ export class CoursePlayerService {
 
   lockThread(courseId: string, postId: string, value: boolean): Observable<void> {
     return this.api.post<void>(Endpoints.me.discussionLock(courseId, postId), { value }).pipe(map(() => undefined));
+  }
+
+  reportPost(courseId: string, postId: string, reason: string): Observable<void> {
+    return this.api.post<void>(Endpoints.me.discussionReport(courseId, postId), { reason }).pipe(map(() => undefined));
+  }
+
+  hidePost(courseId: string, postId: string, value: boolean): Observable<void> {
+    return this.api.post<void>(Endpoints.me.discussionHide(courseId, postId), { value }).pipe(map(() => undefined));
+  }
+
+  dismissReports(courseId: string, postId: string): Observable<void> {
+    return this.api.post<void>(Endpoints.me.discussionDismissReports(courseId, postId), {}).pipe(map(() => undefined));
   }
 
   // ==========================================

@@ -30,6 +30,7 @@ import {
 import {HotToastService} from '@ngneat/hot-toast';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-course-player',
@@ -81,6 +82,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   editingPostId: string | null = null;
   editText = '';
   discussionSearch = '';
+  discussLessonOnly = false;
   readonly reactionKinds: ReactionKind[] = ['up', 'heart', 'celebrate', 'insightful'];
   readonly reactionEmoji: Record<ReactionKind, string> = {
     up: '👍', heart: '❤️', celebrate: '🎉', insightful: '💡',
@@ -110,6 +112,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     public playerService: CoursePlayerService,
     private courseResourcesService: CourseResourcesService,
     private i18n: I18nService,
+    private dialog: ConfirmDialogService,
   ) {}
 
   // Safe URL cache to avoid re-sanitizing
@@ -871,11 +874,18 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     return this.session.can()('course.publish');
   }
 
-  /** The visible threads, after the free-text search box. */
+  /** The visible threads, after the free-text search and the lesson filter. */
   get visibleDiscussion(): DiscussionPost[] {
     const q = this.discussionSearch.trim().toLowerCase();
-    if (!q) return this.discussion;
+    const lessonId = this.discussLessonOnly ? this.currentLesson?.lesson_id ?? null : null;
+
     return this.discussion.filter((post) => {
+      if (lessonId && post.lessonId !== lessonId) {
+        return false;
+      }
+      if (!q) {
+        return true;
+      }
       if (post.body.toLowerCase().includes(q) || post.authorName.toLowerCase().includes(q)) {
         return true;
       }
@@ -984,6 +994,40 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
         next: () => { this.cancelEdit(); this.loadDiscussion(); },
         error: (err) => this.toast.error(err?.message || this.i18n.t('course_player.toast_post_failed')),
       });
+  }
+
+  /** You can report anyone's post but your own. */
+  canReport(post: DiscussionPost): boolean {
+    return post.authorId !== this.currentUserId && !post.isHidden;
+  }
+
+  async reportPost(post: DiscussionPost): Promise<void> {
+    if (!this.courseId) return;
+    const reason = await this.dialog.prompt(this.i18n.t('course_player.report_prompt'), {
+      confirmText: this.i18n.t('course_player.report'),
+    });
+    if (reason === null) return; // cancelled
+
+    this.playerService.reportPost(this.courseId, post.id, reason)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.toast.success(this.i18n.t('course_player.report_thanks')),
+        error: (err) => this.toast.error(err?.message || this.i18n.t('course_player.toast_post_failed')),
+      });
+  }
+
+  toggleHide(post: DiscussionPost): void {
+    if (!this.courseId) return;
+    this.playerService.hidePost(this.courseId, post.id, !post.isHidden)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadDiscussion() });
+  }
+
+  dismissReports(post: DiscussionPost): void {
+    if (!this.courseId) return;
+    this.playerService.dismissReports(this.courseId, post.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ next: () => this.loadDiscussion() });
   }
 
   // ==========================================

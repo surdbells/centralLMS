@@ -11,11 +11,14 @@ interface CourseDiscussionRepository
     /**
      * The thread on one course: pinned posts first then newest, each with its
      * replies oldest first, reaction counts, the viewer's own reactions, and
-     * the answer/pin/lock/edited/instructor flags.
+     * the answer/pin/lock/edited/instructor/hidden flags.
+     *
+     * A moderator sees hidden bodies and open-report counts; everyone else
+     * sees a hidden post as a placeholder with no body and no report counts.
      *
      * @return list<array<string, mixed>>
      */
-    public function thread(string $tenantId, string $courseId, string $viewerId): array;
+    public function thread(string $tenantId, string $courseId, string $viewerId, bool $isModerator): array;
 
     /**
      * Adds a post, or a reply when a parent is named. Replies never nest deeper
@@ -52,6 +55,18 @@ interface CourseDiscussionRepository
      * the question's author or a moderator. One answer per thread.
      */
     public function setAnswer(string $tenantId, string $replyId, string $userId, bool $isModerator): bool;
+
+    /**
+     * Records a report of a post by one of its readers, with a reason. Re-opens
+     * an earlier report by the same person. Returns false if the post is gone.
+     */
+    public function report(string $tenantId, string $postId, string $reporterId, string $reason): bool;
+
+    /** Hides or unhides any post (moderator); hiding also resolves its reports. */
+    public function setHidden(string $tenantId, string $postId, bool $hidden): bool;
+
+    /** Clears the open reports on a post without hiding it (moderator dismiss). */
+    public function dismissReports(string $tenantId, string $postId): bool;
 
     /** Pins or unpins a top-level post (moderator). */
     public function setPinned(string $tenantId, string $postId, bool $pinned): bool;

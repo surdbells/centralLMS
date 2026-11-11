@@ -87,9 +87,15 @@ final class CoursePlayerExtrasAction
         ResponseInterface $response,
         array $args,
     ): ResponseInterface {
+        $caller   = $this->caller($request);
         $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
 
-        return Json::ok($response, $this->discussion->thread($tenantId, $args['courseId'] ?? '', $this->caller($request)->id));
+        return Json::ok($response, $this->discussion->thread(
+            $tenantId,
+            $args['courseId'] ?? '',
+            $caller->id,
+            $caller->can(Permission::CoursePublish),
+        ));
     }
 
     /**
@@ -275,6 +281,63 @@ final class CoursePlayerExtrasAction
         $value    = filter_var($this->body($request)['value'] ?? true, FILTER_VALIDATE_BOOL);
 
         $this->discussion->setLocked($tenantId, $args['postId'] ?? '', $value);
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * Reports a post for a moderator to look at (any reader). Body: {reason}.
+     *
+     * @param array<string, string> $args
+     */
+    public function report(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $caller   = $this->caller($request);
+        $tenantId = $this->requireEnrolled($request, $args['courseId'] ?? '');
+        $reason   = trim((string) ($this->body($request)['reason'] ?? ''));
+        $reason   = mb_substr($reason, 0, 500);
+
+        if (!$this->discussion->report($tenantId, $args['postId'] ?? '', $caller->id, $reason)) {
+            throw new EntityNotFound('Post', $args['postId'] ?? '');
+        }
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * Hides or unhides a post (moderator). Body: {value: bool}.
+     *
+     * @param array<string, string> $args
+     */
+    public function hide(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->requireModerator($request);
+        $value    = filter_var($this->body($request)['value'] ?? true, FILTER_VALIDATE_BOOL);
+
+        $this->discussion->setHidden($tenantId, $args['postId'] ?? '', $value);
+
+        return Json::noContent($response);
+    }
+
+    /**
+     * Dismisses the open reports on a post without hiding it (moderator).
+     *
+     * @param array<string, string> $args
+     */
+    public function dismissReports(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->requireModerator($request);
+
+        $this->discussion->dismissReports($tenantId, $args['postId'] ?? '');
 
         return Json::noContent($response);
     }
