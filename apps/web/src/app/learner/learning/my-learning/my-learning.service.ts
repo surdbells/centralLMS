@@ -219,15 +219,25 @@ export class MyLearningService {
   }
 
   getInProgressCourses(limit = 5): Observable<InProgressCourse[]> {
+    // Most recently touched first: the server orders by overdue and due date,
+    // which is right for a to-do list but not for "pick up where you left off".
     return this.enrollments
       .mine({ status: 'in_progress' })
-      .pipe(map((rows) => rows.slice(0, limit).map(toInProgress)));
+      .pipe(map((rows) => [...rows]
+        .sort((a, b) => byNewest(a.lastActivityAt, b.lastActivityAt))
+        .slice(0, limit)
+        .map(toInProgress)));
   }
 
   getCompletedCourses(limit = 10): Observable<CompletedCourse[]> {
+    // "Recently completed" means by completion date, which is not the order
+    // the server returns them in — slicing first showed an arbitrary few.
     return this.enrollments
       .mine({ status: 'completed' })
-      .pipe(map((rows) => rows.slice(0, limit).map(toCompleted)));
+      .pipe(map((rows) => [...rows]
+        .sort((a, b) => byNewest(a.completedAt, b.completedAt))
+        .slice(0, limit)
+        .map(toCompleted)));
   }
 
   /**
@@ -334,6 +344,14 @@ interface OutlinePayload {
 interface MyProgressPayload {
   enrollment: Record<string, any>;
   lessons: Record<string, Record<string, any>>;
+}
+
+/** Newest timestamp first; missing ones sink to the end. */
+function byNewest(a: string | null, b: string | null): number {
+  const ta = a ? Date.parse(a) : 0;
+  const tb = b ? Date.parse(b) : 0;
+
+  return (tb || 0) - (ta || 0);
 }
 
 function toEnrolled(e: ApiEnrollment): EnrolledCourse {

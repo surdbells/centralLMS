@@ -1,121 +1,815 @@
 @use 'sass:color';
+@use 'sass:map';
 // my-learning/my-learning.component.scss
+//
+// Shared --ui-* design tokens, each with its fallback so the page holds
+// together before (or without) the global definitions in styles.scss. The
+// accent is always the tenant's brand colour — var(--brand-primary) and its
+// -rgb triplet — never a hard-coded hue, so every client sees their own.
 
-// Light Theme Variables
-$primary-color: #303234;
-$primary-dark:   #696969;
-$primary-light: rgba(201, 162, 39, 0.1);
+// Tokens (with fallbacks)
+$canvas:        var(--ui-canvas, #f4f5f4);
+$surface:       var(--ui-surface, #fff);
+$surface-2:     var(--ui-surface-2, #f7f8f7);
+$border:        var(--ui-border, #e7e9e7);
+$border-strong: var(--ui-border-strong, #d9ddd9);
+$text:          var(--ui-text, #1b1f1c);
+$text-muted:    var(--ui-text-muted, #6a716b);
+$text-subtle:   var(--ui-text-subtle, #8d948e);
+$r-panel:       var(--ui-radius-panel, 16px);
+$r-card:        var(--ui-radius-card, 12px);
+$r-ctl:         var(--ui-radius-ctl, 8px);
+$ctl-h:         var(--ui-ctl-h, 36px);
+$shadow-xs:     var(--ui-shadow-xs, 0 1px 2px rgba(16, 24, 18, .04));
 
-$bg-primary: #ffffff;
-$bg-secondary: #ffffff;
-$bg-tertiary: #f1f3f5;
-$text-primary: #212529;
-$text-secondary: #6c757d;
-$text-muted: #adb5bd;
-$border-color: #e9ecef;
+$brand:         var(--brand-primary, #303234);
+@function brand-a($a) { @return rgba(var(--brand-primary-rgb, 48, 50, 52), $a); }
 
-$success-color: #28a745;
-$warning-color: #ffc107;
-$danger-color: #dc3545;
-$info-color: #17a2b8;
+// Status tones: soft pills — ~10% tint, ~28% border, the tone itself as text.
+$tones: (
+  success: #2e7d4f,
+  warning: #b25e09,
+  danger:  #c0352b,
+  info:    #2563a8,
+  neutral: #4b524c,
+);
 
-$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+@function darken-tone($c) { @return color.mix(#000, $c, 12%); }
 
-$border-radius: 0.5rem;
-$border-radius-lg: 0.75rem;
-
-// Container
-.my-learning-container {
-  min-height: 100vh;
-  background: $bg-primary;
-  padding-bottom: 3rem;
+@mixin tone($c) {
+  background: rgba($c, .1);
+  border-color: rgba($c, .28);
+  color: darken-tone($c);
 }
 
-// Header
-.page-header {
-  background: linear-gradient(135deg, var(--brand-primary, #{$primary-color}) 0%,
-    color-mix(in srgb, var(--brand-primary, #{$primary-color}) 78%, #000) 100%);
-  padding: 1.5rem 2rem;
+:host {
+  display: block;
+  color: $text;
+  font-feature-settings: 'cv11', 'ss01';
+}
 
-  .header-content {
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+.my-learning-container {
+  padding-bottom: 1rem;
+}
+
+.muted { color: $text-muted; }
+.small { font-size: .8125rem; }
+
+// ==========================================
+// TABS
+// ==========================================
+
+.ml-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 20px;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-card;
+  overflow-x: auto;
+  scrollbar-width: none;
+  width: fit-content;
+  max-width: 100%;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.ml-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: $ctl-h;
+  padding: 0 14px;
+  border: 0;
+  border-radius: $r-ctl;
+  background: transparent;
+  color: $text-muted;
+  font-size: .875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+
+  &:hover { color: $text; background: $surface-2; }
+
+  &.is-active {
+    background: brand-a(.1);
+    color: $brand;
+    font-weight: 600;
   }
 
-  .header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+  &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: 1px; }
+}
+
+.ml-pane-plain {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-panel;
+  padding: 20px;
+}
+
+// ==========================================
+// MESSAGES
+// ==========================================
+
+.messages-container {
+  margin-bottom: 16px;
+
+  .alert {
+    border-radius: $r-card;
+    border: 1px solid $border;
+    box-shadow: $shadow-xs;
+  }
+}
+
+// ==========================================
+// SHARED PIECES
+// ==========================================
+
+.panel {
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-panel;
+  padding: 20px 22px 22px;
+  margin-bottom: 20px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 650;
+    letter-spacing: -.005em;
+    color: $text;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: .8125rem;
+    color: $text-muted;
+  }
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 550;
+  white-space: nowrap;
+  line-height: 1;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  i { font-size: .8rem; }
+}
+
+@each $name, $c in $tones {
+  .tone-#{$name}.pill,
+  .state-icon.tone-#{$name} { @include tone($c); }
+}
+
+.bar {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: $surface-2;
+  box-shadow: inset 0 0 0 1px $border;
+  overflow: hidden;
+
+  span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: inherit;
+    background: $brand;
+    transition: width .4s ease;
+  }
+}
+
+.pct {
+  min-width: 38px;
+  text-align: right;
+  font-size: .75rem;
+  font-weight: 600;
+  color: $text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: $ctl-h;
+  padding: 0 14px;
+  border: 1px solid $brand;
+  border-radius: $r-ctl;
+  background: $brand;
+  color: #fff;
+  font-size: .8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter .15s ease, background .15s ease;
+
+  &:hover { color: #fff; filter: brightness(1.08); }
+  &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: 2px; }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+
+  // Review / secondary actions: brand-tinted rather than solid.
+  &.is-secondary {
+    background: brand-a(.08);
+    border-color: brand-a(.28);
+    color: $brand;
+
+    &:hover { color: $brand; background: brand-a(.12); filter: none; }
+  }
+
+  &.btn-lg-cta { height: 42px; padding: 0 18px; font-size: .875rem; }
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: $ctl-h;
+  padding: 0 12px;
+  border: 1px solid $border;
+  border-radius: $r-ctl;
+  background: $surface;
+  color: $text;
+  font-size: .8125rem;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+
+  &:hover { border-color: $border-strong; background: $surface-2; }
+  &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: 2px; }
+}
+
+.btn-link-subtle {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: $text-muted;
+  font-size: .8125rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover { color: $text; text-decoration: underline; }
+}
+
+.link-title {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  color: $text;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { color: $brand; }
+  &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: 2px; border-radius: 4px; }
+}
+
+// Lettered tile for a course without a usable cover, in the tenant colour.
+.cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(120% 120% at 0% 0%, brand-a(.22) 0%, transparent 60%),
+    linear-gradient(135deg, brand-a(.14), brand-a(.04));
+  color: $brand;
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: .02em;
+}
+
+// Skeletons
+.sk {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, $surface-2 0%, #eceeec 50%, $surface-2 100%);
+  background-size: 200% 100%;
+  animation: ml-shimmer 1.4s ease-in-out infinite;
+}
+
+.sk-line { height: 10px; margin-bottom: 10px; }
+.sk-num  { height: 28px; width: 56px; margin-top: 4px; }
+.sk-bar  { height: 6px; margin-top: 8px; }
+.w-40 { width: 40%; }
+.w-60 { width: 60%; }
+.w-70 { width: 70%; }
+.w-90 { width: 90%; }
+
+@keyframes ml-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk { animation: none; }
+  .bar span { transition: none; }
+}
+
+// ==========================================
+// SUB-VIEW HEADER (browse / detail)
+// ==========================================
+
+.subview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 650;
   }
 
   .btn-back {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    background: transparent;
-    color: #fff;
-    display: flex;
+    width: $ctl-h;
+    height: $ctl-h;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid $border;
+    border-radius: $r-ctl;
+    background: $surface;
+    color: $text-muted;
     cursor: pointer;
-    transition: all 0.2s;
 
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: #fff;
-    }
-  }
-
-  .header-text {
-    h1 {
-      color: #fff;
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin: 0;
-
-      i {
-        margin-right: 0.5rem;
-      }
-    }
-
-    p {
-      color: rgba(255, 255, 255, 0.85);
-      margin: 0.25rem 0 0 0;
-      font-size: 0.875rem;
-    }
-  }
-
-  .header-actions .btn {
-    border-color: rgba(255, 255, 255, 0.5);
-    color: #fff;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: #fff;
-    }
+    &:hover { border-color: $border-strong; color: $text; }
   }
 }
 
-// Messages
-.messages-container {
-  max-width: 1200px;
-  margin: 1rem auto 0;
-  padding: 0 1.5rem;
+// ==========================================
+// DASHBOARD — KPIs
+// ==========================================
 
-  .alert {
-    border-radius: $border-radius;
-    border: none;
-    box-shadow: $shadow-sm;
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 16px 18px;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-card;
+  text-align: left;
+  color: $text;
+  box-shadow: $shadow-xs;
+  transition: border-color .15s ease, box-shadow .15s ease;
+
+  &.is-active {
+    border-color: brand-a(.55);
+    box-shadow: 0 0 0 3px brand-a(.1);
+  }
+
+  .kpi-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .75rem;
+    font-weight: 550;
+    color: $text-muted;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+
+    i { font-size: .85rem; color: $text-subtle; }
+  }
+
+  .kpi-value {
+    font-size: 1.75rem;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+
+    small { font-size: .55em; font-weight: 600; color: $text-muted; margin-left: 1px; }
+  }
+
+  @each $name, $c in $tones {
+    &.tone-#{$name} .kpi-label i { color: $c; }
+  }
+
+  .kpi-bar {
+    width: 100%;
+    flex: none;
+    margin-top: 2px;
+  }
+
+  &.is-skeleton { pointer-events: none; }
+}
+
+// The status cards double as a filter.
+button.kpi-card {
+  cursor: pointer;
+
+  &:hover { border-color: $border-strong; }
+  &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: 2px; }
+}
+
+.insights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+// ==========================================
+// DASHBOARD — CONTINUE LEARNING
+// ==========================================
+
+.continue-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.continue-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid $border;
+  border-radius: $r-card;
+  background: $surface;
+  min-width: 0;
+
+  .continue-thumb {
+    position: relative;
+    width: 64px;
+    height: 48px;
+    flex-shrink: 0;
+    padding: 0;
+    border: 0;
+    border-radius: $r-ctl;
+    overflow: hidden;
+    background: $surface-2;
+    cursor: pointer;
+
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cover-fallback { font-size: .95rem; }
+  }
+
+  .continue-info {
+    flex: 1;
+    min-width: 0;
+
+    .link-title {
+      font-size: .875rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .continue-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 2px;
+  }
+
+  .btn-cta { height: 32px; padding: 0 12px; }
+}
+
+// ==========================================
+// DASHBOARD — MY COURSES
+// ==========================================
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: $ctl-h;
+  padding: 0 12px;
+  border: 1px solid $border;
+  border-radius: $r-ctl;
+  background: $surface;
+  color: $text-muted;
+  font-size: .8125rem;
+  font-weight: 550;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+
+  &:hover { border-color: $border-strong; color: $text; }
+  &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: 2px; }
+
+  .chip-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: $surface-2;
+    color: $text-muted;
+    font-size: .6875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-active {
+    border-color: brand-a(.45);
+    background: brand-a(.08);
+    color: $brand;
+
+    .chip-count { background: brand-a(.14); color: $brand; }
   }
 }
 
-// Loading State
+.search {
+  position: relative;
+  flex: 0 1 300px;
+  min-width: 200px;
+
+  > i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $text-subtle;
+    font-size: .85rem;
+    pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    height: $ctl-h;
+    padding: 0 34px 0 34px;
+    border: 1px solid $border;
+    border-radius: $r-ctl;
+    background: $surface;
+    color: $text;
+    font-size: .8125rem;
+    transition: border-color .15s ease, box-shadow .15s ease;
+
+    &::placeholder { color: $text-subtle; }
+    &::-webkit-search-cancel-button { display: none; }
+
+    &:focus {
+      outline: none;
+      border-color: brand-a(.55);
+      box-shadow: 0 0 0 3px brand-a(.12);
+    }
+  }
+
+  .search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: $text-subtle;
+    font-size: .7rem;
+    cursor: pointer;
+
+    &:hover { background: $surface-2; color: $text; }
+  }
+}
+
+.result-count {
+  margin-bottom: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.course-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-card;
+  overflow: hidden;
+  transition: border-color .15s ease, box-shadow .2s ease;
+
+  &:hover {
+    border-color: $border-strong;
+    box-shadow: 0 6px 20px rgba(16, 24, 18, .06);
+  }
+
+  // Overdue: a hairline of the danger tone along the top, not a shout.
+  &.is-overdue::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: map.get($tones, danger);
+    z-index: 1;
+  }
+
+  .cover {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid $border;
+    background: $surface-2;
+    overflow: hidden;
+    cursor: pointer;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .35s ease;
+    }
+
+    &:hover img { transform: scale(1.025); }
+    &:focus-visible { outline: 2px solid brand-a(.35); outline-offset: -2px; }
+  }
+
+  .cover-flag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    height: 22px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .92);
+    border: 1px solid rgba(map.get($tones, danger), .28);
+    color: map.get($tones, danger);
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 10px;
+    padding: 14px 16px 16px;
+  }
+
+  .category {
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: $text-subtle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .link-title {
+    font-size: .9375rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: calc(.9375rem * 1.35 * 2);
+  }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .card-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  .card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid $border;
+  }
+
+  &.is-skeleton {
+    pointer-events: none;
+
+    .cover { cursor: default; }
+  }
+}
+
+// Empty / error / no-match
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 16px;
+  border: 1px dashed $border-strong;
+  border-radius: $r-card;
+  background: $surface-2;
+
+  h3 {
+    margin: 12px 0 4px;
+    font-size: 1rem;
+    font-weight: 650;
+  }
+
+  p {
+    max-width: 420px;
+    margin: 0 0 16px;
+    font-size: .875rem;
+    color: $text-muted;
+  }
+
+  h3 + .btn-cta,
+  h3 + .btn-ghost { margin-top: 12px; }
+}
+
+.state-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid brand-a(.2);
+  border-radius: $r-card;
+  background: brand-a(.08);
+  color: $brand;
+  font-size: 1.25rem;
+}
+
+// ==========================================
+// BROWSE COURSES VIEW
+// ==========================================
+
 .loading-state {
   display: flex;
   justify-content: center;
@@ -126,702 +820,139 @@ $border-radius-lg: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: .75rem;
   padding: 3rem;
-  color: $text-secondary;
+  color: $text-muted;
 }
 
-// ==========================================
-// DASHBOARD VIEW
-// ==========================================
-
-.dashboard-view {
-  margin: 0 auto;
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-}
-
-// Stats Grid
-.stats-section {
-  margin-bottom: 2rem;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1rem;
-}
-
-.stat-card {
-  background: $bg-secondary;
-  border-radius: $border-radius;
-  padding: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: $shadow-sm;
-  transition: all 0.2s;
-
-  &:hover {
-    box-shadow: $shadow-md;
-    transform: translateY(-2px);
-  }
-
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-
-    &.enrolled { background: rgba($primary-color, 0.1); color: $primary-color; }
-    &.progress { background: rgba($info-color, 0.1); color: $info-color; }
-    &.completed { background: rgba($success-color, 0.1); color: $success-color; }
-    &.overdue { background: rgba($danger-color, 0.1); color: $danger-color; }
-    &.certificates { background: rgba($warning-color, 0.15); color: color.adjust($warning-color, $lightness: -15%); }
-    &.points { background: rgba($primary-color, 0.1); color: $primary-color; }
-    &.streak { background: rgba(#ff6b35, 0.1); color: #ff6b35; }
-    &.time { background: rgba($text-secondary, 0.1); color: $text-secondary; }
-  }
-
-  .stat-content {
-    .stat-value {
-      display: block;
-      font-size: 1.5rem;
-      font-weight: 700;
-      line-height: 1.2;
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      color: $text-secondary;
-    }
-  }
-}
-
-// Sections
-.section {
-  margin-bottom: 2rem;
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-
-    h2 {
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      i {
-        color: $primary-color;
-      }
-    }
-
-    .view-all {
-      font-size: 0.875rem;
-      color: $primary-color;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-  }
-
-  .section-hint {
-    color: $text-secondary;
-    font-size: 0.875rem;
-  }
-}
-
-// Course Cards Grid
-.course-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.course-card {
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  overflow: hidden;
-  box-shadow: $shadow-md;
-  transition: all 0.2s;
-
-  &:hover {
-    box-shadow: $shadow-lg;
-    transform: translateY(-4px);
-  }
-
-  .card-thumbnail {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    cursor: pointer;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .progress-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-
-    &:hover .progress-overlay {
-      opacity: 1;
-    }
-
-    .progress-ring {
-      width: 80px;
-      height: 80px;
-      position: relative;
-
-      svg {
-        transform: rotate(-90deg);
-
-        .bg {
-          fill: none;
-          stroke: rgba(255, 255, 255, 0.2);
-          stroke-width: 3;
-        }
-
-        .progress {
-          fill: none;
-          stroke: $primary-color;
-          stroke-width: 3;
-          stroke-linecap: round;
-        }
-      }
-
-      .progress-text {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-        font-weight: 600;
-        font-size: 0.875rem;
-      }
-    }
-
-    .mandatory-badge,
-    .overdue-badge {
-      position: absolute;
-      top: 0.75rem;
-      left: 0.75rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.6875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .mandatory-badge {
-      background: $danger-color;
-      color: #fff;
-    }
-
-    .overdue-badge {
-      background: $warning-color;
-      color: #000;
-      top: auto;
-      bottom: 0.75rem;
-    }
-  }
-
-  .card-content {
-    padding: 1rem;
-
-    h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      cursor: pointer;
-
-      &:hover {
-        color: $primary-color;
-      }
-    }
-
-    .next-lesson {
-      font-size: 0.8125rem;
-      color: $text-secondary;
-      margin-bottom: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-
-      i {
-        color: $primary-color;
-      }
-    }
-
-    .card-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      .duration {
-        font-size: 0.75rem;
-        color: $text-muted;
-
-        i {
-          margin-right: 0.25rem;
-        }
-      }
-    }
-  }
-}
-
-// Completed List
-.completed-list {
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  overflow: hidden;
-  box-shadow: $shadow-sm;
-}
-
-.completed-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid $border-color;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  .completed-thumb {
-    width: 60px;
-    height: 40px;
-    border-radius: 6px;
-    overflow: hidden;
-    position: relative;
-    flex-shrink: 0;
-    cursor: pointer;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .check-badge {
-      position: absolute;
-      bottom: -4px;
-      right: -4px;
-      width: 20px;
-      height: 20px;
-      background: $success-color;
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.6875rem;
-    }
-  }
-
-  .completed-info {
-    flex: 1;
-    min-width: 0;
-
-    h4 {
-      font-size: 0.9375rem;
-      font-weight: 500;
-      margin: 0 0 0.25rem 0;
-      cursor: pointer;
-
-      &:hover {
-        color: $primary-color;
-      }
-    }
-
-    p {
-      font-size: 0.75rem;
-      color: $text-secondary;
-      margin: 0;
-    }
-  }
-}
-
-// Empty Dashboard
-.empty-dashboard {
-  text-align: center;
-  padding: 4rem 2rem;
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  box-shadow: $shadow-sm;
-
-  .empty-icon {
-    font-size: 4rem;
-    color: $text-muted;
-    margin-bottom: 1rem;
-  }
-
-  h3 {
-    font-size: 1.25rem;
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    color: $text-secondary;
-    margin-bottom: 1.5rem;
-  }
-}
-
-// ==========================================
-// ALL COURSES VIEW
-// ==========================================
-
-.all-courses-view,
-.browse-courses-view {
-  margin: 0 auto;
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-}
-
-// Filters Bar
 .filters-bar {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 12px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
 
   .search-box {
     flex: 1;
-    min-width: 250px;
+    min-width: 220px;
     position: relative;
 
     i {
       position: absolute;
-      left: 1rem;
+      left: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: $text-muted;
+      color: $text-subtle;
     }
 
     input {
-      padding-left: 2.75rem;
-      border-radius: $border-radius;
-      border: 1px solid $border-color;
-      background: $bg-secondary;
+      height: $ctl-h;
+      padding-left: 34px;
+      border-radius: $r-ctl;
+      border: 1px solid $border;
+      background: $surface;
+      font-size: .875rem;
 
       &:focus {
-        border-color: $primary-color;
-        box-shadow: 0 0 0 3px $primary-light;
+        border-color: brand-a(.55);
+        box-shadow: 0 0 0 3px brand-a(.12);
       }
     }
   }
 
-  .filter-group {
-    .form-select {
-      min-width: 180px;
-      border-radius: $border-radius;
-      border-color: $border-color;
+  .filter-group .form-select {
+    height: $ctl-h;
+    min-width: 180px;
+    border-radius: $r-ctl;
+    border-color: $border;
+    font-size: .875rem;
 
-      &:focus {
-        border-color: $primary-color;
-        box-shadow: 0 0 0 3px $primary-light;
-      }
+    &:focus {
+      border-color: brand-a(.55);
+      box-shadow: 0 0 0 3px brand-a(.12);
     }
   }
 }
-
-// Course List
-.course-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.course-list-item {
-  display: flex;
-  gap: 1.25rem;
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  padding: 1.25rem;
-  box-shadow: $shadow-sm;
-  transition: all 0.2s;
-
-  &:hover {
-    box-shadow: $shadow-md;
-  }
-
-  &.completed {
-    opacity: 0.85;
-  }
-
-  &.overdue {
-    border-left: 4px solid $danger-color;
-  }
-
-  .course-thumb {
-    width: 160px;
-    height: 100px;
-    border-radius: $border-radius;
-    overflow: hidden;
-    flex-shrink: 0;
-    position: relative;
-    cursor: pointer;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .status-indicator {
-      position: absolute;
-      top: 0.5rem;
-      left: 0.5rem;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-
-      &.status-not-started { background: $text-muted; }
-      &.status-in-progress { background: $info-color; }
-      &.status-completed { background: $success-color; }
-    }
-  }
-
-  .course-info {
-    flex: 1;
-    min-width: 0;
-
-    .course-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      margin-bottom: 0.5rem;
-
-      h3 {
-        font-size: 1.0625rem;
-        font-weight: 600;
-        margin: 0;
-        cursor: pointer;
-
-        &:hover {
-          color: $primary-color;
-        }
-      }
-
-      .course-badges {
-        display: flex;
-        gap: 0.5rem;
-        flex-shrink: 0;
-
-        .badge {
-          font-size: 0.6875rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 500;
-
-          &.mandatory {
-            background: rgba($danger-color, 0.1);
-            color: $danger-color;
-          }
-
-          &.status-not-started {
-            background: rgba($text-secondary, 0.1);
-            color: $text-secondary;
-          }
-
-          &.status-in-progress {
-            background: rgba($info-color, 0.1);
-            color: $info-color;
-          }
-
-          &.status-completed {
-            background: rgba($success-color, 0.1);
-            color: $success-color;
-          }
-        }
-      }
-    }
-
-    .course-description {
-      font-size: 0.875rem;
-      color: $text-secondary;
-      margin-bottom: 0.75rem;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .course-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      font-size: 0.75rem;
-      color: $text-muted;
-      margin-bottom: 0.75rem;
-
-      span {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-      }
-
-      .category {
-        background: $bg-tertiary;
-        padding: 0.125rem 0.5rem;
-        border-radius: 4px;
-      }
-
-      .due-date {
-        &.overdue {
-          color: $danger-color;
-          font-weight: 500;
-        }
-
-        &.due-soon {
-          color: $warning-color;
-          font-weight: 500;
-        }
-      }
-    }
-
-    .progress-bar-container {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-
-      .progress {
-        flex: 1;
-        height: 6px;
-        background: $bg-tertiary;
-        border-radius: 3px;
-
-        .progress-bar {
-          background: $primary-color;
-          border-radius: 3px;
-        }
-      }
-
-      .progress-label {
-        font-size: 0.75rem;
-        color: $text-secondary;
-        min-width: 35px;
-      }
-    }
-  }
-
-  .course-actions {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-  }
-}
-
-// ==========================================
-// BROWSE COURSES VIEW
-// ==========================================
 
 .available-courses-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .available-course-card {
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-card;
   overflow: hidden;
-  box-shadow: $shadow-md;
   display: flex;
   flex-direction: column;
+  transition: border-color .15s ease, box-shadow .2s ease;
+
+  &:hover { border-color: $border-strong; box-shadow: 0 6px 20px rgba(16, 24, 18, .06); }
 
   .card-thumbnail {
     aspect-ratio: 16 / 9;
     position: relative;
+    background: $surface-2;
+    border-bottom: 1px solid $border;
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    img { width: 100%; height: 100%; object-fit: cover; }
 
     .difficulty-badge {
       position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.6875rem;
-      font-weight: 500;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
+      top: 10px;
+      right: 10px;
+      height: 22px;
+      padding: 0 8px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      font-size: .6875rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, .92);
+      border: 1px solid $border;
+      color: $text;
     }
   }
 
   .card-content {
-    padding: 1.25rem;
+    padding: 14px 16px;
     flex: 1;
 
-    h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
+    h3 { font-size: .9375rem; font-weight: 600; margin-bottom: 6px; }
 
     .description {
-      font-size: 0.8125rem;
-      color: $text-secondary;
+      font-size: .8125rem;
+      color: $text-muted;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      margin-bottom: 1rem;
+      margin-bottom: 12px;
     }
 
     .card-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
-      font-size: 0.75rem;
-      color: $text-muted;
+      gap: 10px;
+      font-size: .75rem;
+      color: $text-subtle;
 
-      span {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-      }
+      span { display: flex; align-items: center; gap: 4px; }
 
       .category {
-        background: $primary-light;
-        color: $primary-dark;
-        padding: 0.125rem 0.5rem;
-        border-radius: 4px;
+        background: brand-a(.08);
+        color: $brand;
+        padding: 2px 8px;
+        border-radius: 999px;
       }
     }
   }
 
   .card-footer {
-    padding: 0 1.25rem 1.25rem;
+    padding: 0 16px 16px;
+    background: none;
+    border: 0;
   }
 }
 
@@ -829,401 +960,304 @@ $border-radius-lg: 0.75rem;
 // COURSE DETAIL VIEW
 // ==========================================
 
-.course-detail-view {
-  margin: 0 auto;
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-}
-
 .detail-header {
   display: flex;
-  gap: 2rem;
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  padding: 1.5rem;
-  box-shadow: $shadow-md;
-  margin-bottom: 1.5rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
+  gap: 24px;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-panel;
+  padding: 20px;
+  margin-bottom: 16px;
 
   .header-thumbnail {
     width: 320px;
     aspect-ratio: 16 / 9;
-    border-radius: $border-radius;
+    border-radius: $r-card;
     overflow: hidden;
     flex-shrink: 0;
+    background: $surface-2;
 
-    @media (max-width: 768px) {
-      width: 100%;
-    }
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    img { width: 100%; height: 100%; object-fit: cover; }
   }
 
   .header-info {
     flex: 1;
+    min-width: 0;
 
     .header-badges {
       display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
 
       .badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 4px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        font-size: .75rem;
+        font-weight: 550;
 
-        &.status-not-started {
-          background: rgba($text-secondary, 0.1);
-          color: $text-secondary;
-        }
-
-        &.status-in-progress {
-          background: rgba($info-color, 0.1);
-          color: $info-color;
-        }
-
-        &.status-completed {
-          background: rgba($success-color, 0.1);
-          color: $success-color;
-        }
-
-        &.mandatory {
-          background: rgba($danger-color, 0.1);
-          color: $danger-color;
-        }
-
-        &.overdue {
-          background: $danger-color;
-          color: #fff;
-        }
+        &.status-not-started { @include tone(map.get($tones, neutral)); }
+        &.status-in-progress { @include tone(map.get($tones, info)); }
+        &.status-completed   { @include tone(map.get($tones, success)); }
+        &.mandatory,
+        &.overdue            { @include tone(map.get($tones, danger)); }
       }
     }
 
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
+    h1 { font-size: 1.375rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -.01em; }
 
-    .description {
-      color: $text-secondary;
-      margin-bottom: 1rem;
-      font-size: 0.9375rem;
-    }
+    .description { color: $text-muted; margin-bottom: 14px; font-size: .9375rem; }
 
     .header-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 1.25rem;
-      font-size: 0.875rem;
-      color: $text-secondary;
-      margin-bottom: 1rem;
+      gap: 16px;
+      font-size: .8125rem;
+      color: $text-muted;
+      margin-bottom: 14px;
 
-      span {
-        display: flex;
-        align-items: center;
-        gap: 0.375rem;
-      }
+      span { display: flex; align-items: center; gap: 6px; }
     }
 
     .detail-progress {
       display: flex;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
+      gap: 12px;
+      margin-bottom: 16px;
 
-      .progress {
-        flex: 1;
-        height: 8px;
-        background: $bg-tertiary;
-        border-radius: 4px;
-
-        .progress-bar {
-          background: $primary-color;
-          border-radius: 4px;
-        }
-      }
-
-      span {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: $text-secondary;
+      .pct-label {
+        font-size: .8125rem;
+        font-weight: 550;
+        color: $text-muted;
+        font-variant-numeric: tabular-nums;
       }
     }
 
-    .detail-actions {
-      display: flex;
-      gap: 1rem;
-    }
+    .detail-actions { display: flex; flex-wrap: wrap; gap: 10px; }
   }
 }
 
 .detail-content {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .content-section {
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  padding: 1.5rem;
-  box-shadow: $shadow-sm;
+  background: $surface;
+  border: 1px solid $border;
+  border-radius: $r-panel;
+  padding: 20px;
 
   h3 {
-    font-size: 1.0625rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 650;
+    margin-bottom: 14px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 
-    i {
-      color: $primary-color;
-    }
+    i { color: $brand; }
   }
 
   .objectives-text {
-    color: $text-secondary;
+    color: $text-muted;
     line-height: 1.6;
     white-space: pre-line;
   }
 }
 
-// Modules List
 .modules-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .module-item {
-  border: 1px solid $border-color;
-  border-radius: $border-radius;
+  border: 1px solid $border;
+  border-radius: $r-card;
   overflow: hidden;
 
   .module-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
-    background: $bg-tertiary;
+    gap: 12px;
+    padding: 12px 16px;
+    background: $surface-2;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background .15s;
 
-    &:hover {
-      background: color.adjust($bg-tertiary, $lightness: -3%);
-    }
+    &:hover { background: #eef0ee; }
 
     .module-info {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 10px;
+      min-width: 0;
 
-      i {
-        color: $text-secondary;
-      }
-
-      .module-title {
-        font-weight: 600;
-      }
-
-      .module-count {
-        font-size: 0.75rem;
-        color: $text-muted;
-      }
+      i { color: $text-muted; }
+      .module-title { font-weight: 600; }
+      .module-count { font-size: .75rem; color: $text-subtle; white-space: nowrap; }
     }
 
     .module-progress {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 10px;
 
       .mini-progress {
         width: 60px;
         height: 4px;
-        background: rgba(0, 0, 0, 0.1);
-        border-radius: 2px;
+        background: $border;
+        border-radius: 999px;
+        overflow: hidden;
 
-        .mini-progress-bar {
-          height: 100%;
-          background: $success-color;
-          border-radius: 2px;
-        }
+        .mini-progress-bar { height: 100%; background: $brand; border-radius: inherit; }
       }
 
-      span {
-        font-size: 0.75rem;
-        color: $text-secondary;
-        min-width: 35px;
-      }
+      span { font-size: .75rem; color: $text-muted; min-width: 35px; font-variant-numeric: tabular-nums; }
     }
   }
 }
 
-.lessons-list {
-  padding: 0.5rem 0;
-}
+.lessons-list { padding: 4px 0; }
 
 .lesson-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
+  gap: 12px;
+  padding: 10px 16px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background .15s;
 
-  &:hover {
-    background: $bg-tertiary;
-  }
+  &:hover { background: $surface-2; }
 
   &.completed {
-    .lesson-title {
-      color: $text-secondary;
-    }
-
-    .lesson-status i {
-      color: $success-color;
-    }
+    .lesson-title { color: $text-muted; }
+    .lesson-status i { color: map.get($tones, success); }
   }
 
-  .lesson-status {
-    width: 24px;
-    text-align: center;
-    color: $text-muted;
-  }
+  .lesson-status { width: 24px; text-align: center; color: $text-subtle; }
 
   .lesson-info {
     flex: 1;
+    min-width: 0;
 
-    .lesson-title {
-      display: block;
-      font-size: 0.9375rem;
-    }
+    .lesson-title { display: block; font-size: .875rem; }
 
     .lesson-meta {
-      font-size: 0.75rem;
-      color: $text-muted;
+      font-size: .75rem;
+      color: $text-subtle;
 
-      .type {
-        text-transform: capitalize;
-      }
-
-      .duration {
-        margin-left: 0.75rem;
-      }
+      .type { text-transform: capitalize; }
+      .duration { margin-left: 10px; }
     }
   }
 
-  .lesson-progress {
-    font-size: 0.75rem;
-    color: $primary-color;
-    font-weight: 500;
-  }
+  .lesson-progress { font-size: .75rem; color: $brand; font-weight: 600; }
 }
 
-// Certificate Section
-.certificate-section {
-  .certificate-card {
+.certificate-section .certificate-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(map.get($tones, success), .06);
+  border: 1px solid rgba(map.get($tones, success), .28);
+  border-radius: $r-card;
+
+  .certificate-icon {
+    width: 52px;
+    height: 52px;
+    background: map.get($tones, success);
+    color: #fff;
+    border-radius: $r-card;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, rgba($success-color, 0.05) 0%, rgba($primary-color, 0.05) 100%);
-    border: 1px solid rgba($success-color, 0.2);
-    border-radius: $border-radius;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
 
-    .certificate-icon {
-      width: 64px;
-      height: 64px;
-      background: $success-color;
-      color: #fff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.75rem;
-      flex-shrink: 0;
-    }
+  .certificate-info {
+    flex: 1;
 
-    .certificate-info {
-      flex: 1;
+    h4 { font-size: 1rem; font-weight: 650; margin-bottom: 2px; color: darken-tone(map.get($tones, success)); }
 
-      h4 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: $success-color;
-      }
-
-      p {
-        margin: 0;
-        font-size: 0.875rem;
-        color: $text-secondary;
-
-        &.issued,
-        &.expires {
-          font-size: 0.8125rem;
-        }
-      }
+    p {
+      margin: 0;
+      font-size: .8125rem;
+      color: $text-muted;
     }
   }
 }
 
-// Empty State
 .empty-state {
   text-align: center;
   padding: 3rem;
-  color: $text-muted;
+  color: $text-subtle;
 
-  &.full-width {
-    grid-column: 1 / -1;
-  }
+  &.full-width { grid-column: 1 / -1; }
 
-  i {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-  }
-
-  p {
-    margin-bottom: 1rem;
-  }
+  i { font-size: 2.5rem; display: block; margin-bottom: 1rem; opacity: .6; }
+  p { margin-bottom: 1rem; }
 }
 
-// Responsive
-@media (max-width: 768px) {
-  .page-header .header-content {
+// ==========================================
+// RESPONSIVE
+// ==========================================
+
+@media (max-width: 1199.98px) {
+  .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .continue-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767.98px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi-progress { grid-column: 1 / -1; }
+  .continue-list { grid-template-columns: 1fr; }
+
+  .panel { padding: 16px; border-radius: $r-card; }
+
+  .panel-head { flex-wrap: wrap; }
+
+  .toolbar { flex-direction: column; align-items: stretch; }
+
+  // Chips scroll sideways rather than wrapping into a tall block.
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -2px;
+    padding: 2px;
+
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .search { flex: 1 1 auto; min-width: 0; }
+
+  .detail-header {
     flex-direction: column;
-    align-items: flex-start;
+
+    .header-thumbnail { width: 100%; }
   }
 
-  .course-list-item {
-    flex-direction: column;
+  .ml-pane-plain { padding: 14px; }
+}
 
-    .course-thumb {
-      width: 100%;
-      height: 160px;
-    }
+@media (max-width: 420px) {
+  .kpi-card { padding: 12px 14px; }
+  .kpi-card .kpi-value { font-size: 1.5rem; }
 
-    .course-actions {
-      width: 100%;
+  .course-grid,
+  .available-courses-grid { grid-template-columns: 1fr; }
 
-      button {
-        width: 100%;
-      }
-    }
-  }
+  .continue-row .btn-cta { padding: 0 10px; }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .course-card .card-foot .btn-cta { flex: 1; }
 }

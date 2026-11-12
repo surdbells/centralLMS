@@ -1,7 +1,13 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 import { ApiClient, Endpoints, type Paged } from '../core/api';
+
+/** The API's own ceiling for `perPage` on a listing. */
+const MINE_PAGE_SIZE = 200;
+
+/** 50 × 200 = 10,000 enrolments: far past any real learner, short of a runaway. */
+const MINE_MAX_PAGES = 50;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -146,9 +152,36 @@ export class EnrollmentsService {
    * everybody's in order to show one person's.
    */
   mine(filters: { status?: EnrollmentStatus; search?: string } = {}): Observable<Enrollment[]> {
-    return this.api
-      .getPaged<Enrollment>(Endpoints.me.enrollments, { ...filters, perPage: 100 })
-      .pipe(map((page) => page.items));
+    // Every page, not just the first. This used to read page 1 of 100 and
+    // stop, so a learner on 101 courses silently lost one from My Learning
+    // and from their report. 200 is the most the API will hand out per page
+    // (EnrollmentAction::listing clamps it), so most people need one request;
+    // anybody past that gets the remaining pages fetched side by side.
+    const query = { ...filters, perPage: MINE_PAGE_SIZE };
+    const page = (n: number) =>
+      this.api.getPaged<Enrollment>(Endpoints.me.enrollments, { ...query, page: n });
+
+    return page(1).pipe(
+      switchMap((first) => {
+        // Bounded, so a server that misreports its page count cannot turn
+        // one screen load into an unbounded burst of requests.
+        const pages = Math.min(first.meta?.totalPages ?? 1, MINE_MAX_PAGES);
+        if (pages <= 1) {
+          return of(first.items);
+        }
+
+        const rest = Array.from({ length: pages - 1 }, (_, i) =>
+          page(i + 2).pipe(map((p) => p.items)),
+        );
+
+        // De-duplicated: a row whose status changes while the parallel pages
+        // are in flight can move from one page to the next.
+        return forkJoin(rest).pipe(map((more) => {
+          const seen = new Set<string>();
+          return first.items.concat(...more).filter((e) => !seen.has(e.id) && !!seen.add(e.id));
+        }));
+      }),
+    );
   }
 
   stats(courseId: string): Observable<EnrollmentStats> {

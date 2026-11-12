@@ -1,17 +1,16 @@
 <app-top></app-top>
-<main class="main">
-  <div class="container-fluid py-4">
-    <div class="row align-items-center mb-4">
-      <div (click)="goBack()" role="button" class="col-auto">
-        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-          <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-        </div>
+<main class="main learning-page">
+  <div class="learning-shell">
+    <header class="lp-header">
+      <button type="button" class="lp-back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <tui-icon icon="@tui.chevron-left"></tui-icon>
+      </button>
+      <div class="lp-icon" aria-hidden="true"><i class="bi bi-journal-bookmark"></i></div>
+      <div class="lp-titles">
+        <h1>{{ 'learning.my_learning' | translate }}</h1>
+        <p>{{ 'learning.subtitle' | translate }}</p>
       </div>
-      <div class="col">
-        <h1 class="fs-4 mb-0">{{ 'learning.my_learning' | translate }}</h1>
-        <small class="text-muted">{{ 'learning.subtitle' | translate }}</small>
-      </div>
-    </div>
+    </header>
     <app-my-learning></app-my-learning>
   </div>
 </main>

@@ -3,7 +3,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
@@ -11,7 +11,6 @@ import {
   LearningStats,
   EnrolledCourse,
   InProgressCourse,
-  CompletedCourse,
   AvailableCourse,
   CourseDetails,
   Category
@@ -21,13 +20,27 @@ import { I18nService } from '../../../i18n.service';
 import { MyCompetencyComponent } from '../../my-competency/my-competency.component';
 import { MyLearningPlanComponent } from '../../my-learning-plan/my-learning-plan.component';
 
-type ViewMode = 'dashboard' | 'all-courses' | 'browse' | 'course-detail';
+/**
+ * The full list of enrolments used to live in a separate 'all-courses' view
+ * that a learner only reached through "View all" — the landing view showed at
+ * most four in-progress and four completed courses and never a not-started
+ * one. The list is the landing view now, so that mode is gone.
+ */
+type ViewMode = 'dashboard' | 'browse' | 'course-detail';
 type StatusFilter = 'all' | 'in_progress' | 'not_started' | 'completed';
+type LearningTab = 'learning' | 'plan' | 'competency';
+
+/** In progress first, then the ones still to start, then the finished ones. */
+const STATUS_RANK: Record<EnrolledCourse['status'], number> = {
+  in_progress: 0,
+  not_started: 1,
+  completed: 2,
+};
 
 @Component({
   selector: 'app-my-learning',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, MyCompetencyComponent, MyLearningPlanComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, MyCompetencyComponent, MyLearningPlanComponent],
   templateUrl: './my-learning.component.html',
   styleUrls: ['./my-learning.component.scss']
 })
@@ -39,25 +52,58 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   viewMode: ViewMode = 'dashboard';
   selectedCourseId: string | null = null;
 
+  /**
+   * Which tab is showing, and which have been opened at least once.
+   *
+   * The tabs used to be Bootstrap's data-attribute tabs, which rely on the
+   * theme bundle's JS having bound itself to the DOM. They are plain state now,
+   * and a tab's component is only created the first time it is opened — so
+   * landing on My Learning no longer fetches the plan and competency data too —
+   * then kept (hidden) so switching back does not refetch it.
+   */
+  activeTab: LearningTab = 'learning';
+  visitedTabs = new Set<LearningTab>(['learning']);
+
   // Data
   stats: LearningStats | null = null;
-  inProgressCourses: InProgressCourse[] = [];
-  completedCourses: CompletedCourse[] = [];
-  enrolledCourses: EnrolledCourse[] = [];
+  /** Every enrolment the learner has, in display order. Nothing is capped. */
+  allCourses: EnrolledCourse[] = [];
+  /** `allCourses` narrowed by the status chips and the search box. */
+  filteredCourses: EnrolledCourse[] = [];
+  /** A short "pick up where you left off" strip: the most recently active in-progress courses. */
+  continueCourses: EnrolledCourse[] = [];
+  counts: Record<StatusFilter, number> = { all: 0, in_progress: 0, not_started: 0, completed: 0 };
+  /** Average progress across every enrolment, completed ones counting as 100. */
+  overallProgress = 0;
+
   availableCourses: AvailableCourse[] = [];
   categories: Category[] = [];
   courseDetails: CourseDetails | null = null;
 
   // Filters
   statusFilter: StatusFilter = 'all';
+  /** The browse view's search, which goes to the server. */
   searchQuery = '';
+  /**
+   * The My courses search. Kept apart from `searchQuery` and applied in the
+   * browser: the whole list is already here, and /me/enrollments ignores
+   * `search` anyway, so a round trip per keystroke would change nothing.
+   */
+  courseSearch = '';
   selectedCategoryId: string | null = null;
 
+  readonly statusChips: StatusFilter[] = ['all', 'in_progress', 'not_started', 'completed'];
+
   // UI State
-  loading = false;
   loadingCourses = false;
+  /** False until the first list arrives, so the KPIs show a skeleton rather than a row of zeros. */
+  coursesLoaded = false;
+  coursesError = false;
   loadingDetails = false;
   processing = false;
+
+  /** Covers that failed to load; those cards fall back to the lettered tile. */
+  brokenCovers = new Set<string>();
 
   // Messages
   successMessage = '';
@@ -87,17 +133,25 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // ==========================================
 
   private setupSearch(): void {
+    // Only the browse view searches on the server; My courses filters locally.
     this.searchSubject$.pipe(
       debounceTime(300),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
-    ).subscribe(search => {
-      if (this.viewMode === 'all-courses') {
-        this.loadEnrolledCourses();
-      } else if (this.viewMode === 'browse') {
+    ).subscribe(() => {
+      if (this.viewMode === 'browse') {
         this.loadAvailableCourses();
       }
     });
+  }
+
+  // ==========================================
+  // TABS
+  // ==========================================
+
+  selectTab(tab: LearningTab): void {
+    this.activeTab = tab;
+    this.visitedTabs.add(tab);
   }
 
   // ==========================================
@@ -106,67 +160,156 @@ export class MyLearningComponent implements OnInit, OnDestroy {
 
   loadDashboard(): void {
     this.viewMode = 'dashboard';
-    this.loading = true;
 
-    // Load stats
+    // The secondary figures (time, streak, certificates…). The headline counts
+    // come from the list itself so they always agree with the cards below.
     this.learningService.getStats()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (stats) => {
-          this.stats = stats;
-          this.loading = false;
-        },
-        error: () => this.loading = false
+        next: (stats) => this.stats = stats,
+        error: () => this.stats = null
       });
 
-    // Load in-progress courses
-    this.learningService.getInProgressCourses(4)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (courses) => this.inProgressCourses = courses
-      });
-
-    // Load recently completed
-    this.learningService.getCompletedCourses(4)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (courses) => this.completedCourses = courses
-      });
-  }
-
-  // ==========================================
-  // ALL COURSES VIEW
-  // ==========================================
-
-  showAllCourses(): void {
-    this.viewMode = 'all-courses';
-    this.statusFilter = 'all';
-    this.searchQuery = '';
     this.loadEnrolledCourses();
   }
 
+  /**
+   * Every enrolment, whatever its state.
+   *
+   * No status goes to the server: the chips filter what has already arrived,
+   * so switching between them is instant and the counts on them stay right.
+   */
   loadEnrolledCourses(): void {
     this.loadingCourses = true;
-    const status = this.statusFilter === 'all' ? undefined : this.statusFilter;
-    const search = this.searchQuery.trim() || undefined;
+    this.coursesError = false;
 
-    this.learningService.getEnrolledCourses(status, search)
+    this.learningService.getEnrolledCourses()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (courses) => {
-          this.enrolledCourses = courses;
+          this.allCourses = [...courses].sort(compareCourses);
+          this.summarise();
+          this.applyFilters();
           this.loadingCourses = false;
+          this.coursesLoaded = true;
         },
-        error: () => this.loadingCourses = false
+        error: () => {
+          this.loadingCourses = false;
+          this.coursesError = true;
+        }
       });
   }
 
+  private summarise(): void {
+    const counts: Record<StatusFilter, number> = { all: 0, in_progress: 0, not_started: 0, completed: 0 };
+    let progressTotal = 0;
+
+    for (const course of this.allCourses) {
+      counts.all++;
+      if (course.status in counts) {
+        counts[course.status]++;
+      }
+      progressTotal += course.status === 'completed' ? 100 : clampPercent(course.progress_percentage);
+    }
+
+    this.counts = counts;
+    this.overallProgress = counts.all > 0 ? Math.round(progressTotal / counts.all) : 0;
+
+    // Only worth a strip when it says something the grid's first row does not.
+    // `allCourses` already leads with in-progress courses, so with only a
+    // handful the strip would just repeat them.
+    this.continueCourses = this.allCourses
+      .filter((c) => c.status === 'in_progress' && !!c.last_accessed_at)
+      .sort((a, b) => timeOf(b.last_accessed_at) - timeOf(a.last_accessed_at))
+      .slice(0, 3);
+    if (this.allCourses.length <= 3) {
+      this.continueCourses = [];
+    }
+  }
+
+  applyFilters(): void {
+    const needle = this.courseSearch.trim().toLocaleLowerCase();
+
+    this.filteredCourses = this.allCourses.filter((course) => {
+      if (this.statusFilter !== 'all' && course.status !== this.statusFilter) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+
+      return course.title.toLocaleLowerCase().includes(needle)
+        || (course.category_name ?? '').toLocaleLowerCase().includes(needle);
+    });
+  }
+
+  setStatusFilter(filter: StatusFilter): void {
+    this.statusFilter = filter;
+    this.applyFilters();
+  }
+
+  clearCourseFilters(): void {
+    this.statusFilter = 'all';
+    this.courseSearch = '';
+    this.applyFilters();
+  }
+
+  /** Kept for anything that still asks for "all my courses": it is the dashboard now. */
+  showAllCourses(): void {
+    this.clearCourseFilters();
+    if (this.viewMode !== 'dashboard') {
+      this.loadDashboard();
+    }
+  }
+
   onStatusFilterChange(): void {
-    this.loadEnrolledCourses();
+    this.applyFilters();
   }
 
   onSearchChange(): void {
     this.searchSubject$.next(this.searchQuery);
+  }
+
+  onCoverError(enrollmentId: string): void {
+    this.brokenCovers.add(enrollmentId);
+  }
+
+  hasCover(course: { enrollment_id: string; thumbnail_url: string | null }): boolean {
+    return !!course.thumbnail_url && !this.brokenCovers.has(course.enrollment_id);
+  }
+
+  /** Up to two letters for a course without a usable cover. */
+  initials(title: string): string {
+    const words = (title || '').trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return '?';
+
+    return words.slice(0, 2).map((w) => w.charAt(0)).join('').toLocaleUpperCase();
+  }
+
+  trackByEnrollment(_index: number, course: EnrolledCourse): string {
+    return course.enrollment_id;
+  }
+
+  getStatusFilterLabel(filter: StatusFilter): string {
+    return filter === 'all' ? this.i18n.t('common.all') : this.getStatusLabel(filter);
+  }
+
+  getCtaLabel(course: EnrolledCourse): string {
+    if (course.status === 'completed') return this.i18n.t('learning.review');
+    if (course.status === 'in_progress') return this.i18n.t('common.continue');
+
+    return this.i18n.t('learning.start_course');
+  }
+
+  getCtaIcon(course: EnrolledCourse): string {
+    if (course.status === 'completed') return 'bi-arrow-counterclockwise';
+    if (course.status === 'in_progress') return 'bi-arrow-right';
+
+    return 'bi-play-fill';
+  }
+
+  progressOf(course: EnrolledCourse): number {
+    return course.status === 'completed' ? 100 : clampPercent(course.progress_percentage);
   }
 
   // ==========================================
@@ -316,7 +459,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   }
 
   playCourse(courseId: string): void {
-    this.router.navigate(['/player', courseId]).then(r => console.log(r));
+    void this.router.navigate(['/player', courseId]);
   }
 
   goToLesson(courseId: string, lessonId: string): void {
@@ -335,14 +478,12 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // ==========================================
 
   goBack(): void {
-    if (this.viewMode === 'course-detail') {
-      this.viewMode = 'all-courses';
-      this.courseDetails = null;
-      this.selectedCourseId = null;
-      this.loadEnrolledCourses();
-    } else {
-      this.loadDashboard();
-    }
+    // Both sub-views return to the dashboard, which is where the full list
+    // lives now. It reloads, so a course self-enrolled from Browse appears.
+    this.courseDetails = null;
+    this.selectedCourseId = null;
+    this.searchQuery = '';
+    this.loadDashboard();
   }
 
   // ==========================================
@@ -374,7 +515,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) return this.i18n.t('learning.today');
     if (diffDays === 1) return this.i18n.t('learning.yesterday');
     if (diffDays < 7) return this.i18n.t('learning.days_ago', { count: diffDays });
@@ -456,4 +597,46 @@ export class MyLearningComponent implements OnInit, OnDestroy {
     this.errorMessage = message;
     this.successMessage = '';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Ordering
+// ---------------------------------------------------------------------------
+
+function timeOf(value: string | null): number {
+  const t = value ? Date.parse(value) : NaN;
+
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function clampPercent(value: number): number {
+  const n = Number(value) || 0;
+
+  return Math.max(0, Math.min(100, n));
+}
+
+/**
+ * In progress, then not started, then completed. Within the first two, what
+ * is overdue or due soonest leads — an undated course waits behind a dated
+ * one, as it would on any to-do list — then the most recently touched, then
+ * the newest enrolment; completed courses are newest-finished first.
+ */
+function compareCourses(a: EnrolledCourse, b: EnrolledCourse): number {
+  const byStatus = (STATUS_RANK[a.status] ?? 3) - (STATUS_RANK[b.status] ?? 3);
+  if (byStatus !== 0) return byStatus;
+
+  if (a.status === 'completed') {
+    return timeOf(b.completed_at) - timeOf(a.completed_at);
+  }
+
+  if (a.is_overdue !== b.is_overdue) return a.is_overdue ? -1 : 1;
+
+  const dueA = a.due_date ? timeOf(a.due_date) : Number.POSITIVE_INFINITY;
+  const dueB = b.due_date ? timeOf(b.due_date) : Number.POSITIVE_INFINITY;
+  if (dueA !== dueB) return dueA < dueB ? -1 : 1;
+
+  const active = timeOf(b.last_accessed_at) - timeOf(a.last_accessed_at);
+  if (active !== 0) return active;
+
+  return timeOf(b.enrolled_at) - timeOf(a.enrolled_at);
 }
