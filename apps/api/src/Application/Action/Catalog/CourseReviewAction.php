@@ -36,6 +36,9 @@ final class CourseReviewAction
     ) {
     }
 
+    /**
+     * @param array<string, string> $args
+     */
     public function list(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -74,6 +77,8 @@ final class CourseReviewAction
 
     /**
      * The caller's own review for the course, plus whether they may leave one.
+     *
+     * @param array<string, string> $args
      */
     public function mine(
         ServerRequestInterface $request,
@@ -82,7 +87,7 @@ final class CourseReviewAction
     ): ResponseInterface {
         $caller     = AuthenticationMiddleware::require($request);
         $courseId   = (string) ($args['courseId'] ?? '');
-        $enrollment = $this->callerEnrollment($request, $courseId, false);
+        $enrollment = $this->callerEnrollment($request, $courseId);
 
         $review = $enrollment === null
             ? null
@@ -94,6 +99,9 @@ final class CourseReviewAction
         ]);
     }
 
+    /**
+     * @param array<string, string> $args
+     */
     public function submit(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -101,8 +109,13 @@ final class CourseReviewAction
     ): ResponseInterface {
         $caller     = AuthenticationMiddleware::require($request);
         $courseId   = (string) ($args['courseId'] ?? '');
-        $enrollment = $this->callerEnrollment($request, $courseId, true);
+        $enrollment = $this->callerEnrollment($request, $courseId);
         $body       = (array) ($request->getParsedBody() ?? []);
+
+        // Only somebody who took the course evaluates it.
+        if ($enrollment === null) {
+            throw new AccessDenied(Permission::CourseView->value);
+        }
 
         // Keep the id of an existing review so a re-submit updates it; the
         // unique index on enrolment would otherwise refuse a second row.
@@ -125,6 +138,9 @@ final class CourseReviewAction
         ]);
     }
 
+    /**
+     * @param array<string, string> $args
+     */
     public function remove(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -132,7 +148,7 @@ final class CourseReviewAction
     ): ResponseInterface {
         $caller     = AuthenticationMiddleware::require($request);
         $courseId   = (string) ($args['courseId'] ?? '');
-        $enrollment = $this->callerEnrollment($request, $courseId, false);
+        $enrollment = $this->callerEnrollment($request, $courseId);
 
         $review = $enrollment === null
             ? null
@@ -147,6 +163,8 @@ final class CourseReviewAction
 
     /**
      * Moderator hides or republishes a review (body: {published: bool}).
+     *
+     * @param array<string, string> $args
      */
     public function setVisibility(
         ServerRequestInterface $request,
@@ -172,25 +190,18 @@ final class CourseReviewAction
     // --- internals ------------------------------------------------------------
 
     /**
-     * The caller's enrolment on the course. When $required and there is none
-     * (or it was dropped), refuses — only somebody who took the course evaluates
-     * it.
+     * The caller's usable enrolment on the course, or null when there is none
+     * (or it was dropped).
      */
     private function callerEnrollment(
         ServerRequestInterface $request,
         string $courseId,
-        bool $required,
     ): ?\Central\Api\Domain\Enrollment\Enrollment {
         $caller     = AuthenticationMiddleware::require($request);
         $enrollment = $this->enrollments->findForUserAndCourse((string) $caller->tenantId, (string) $caller->id, $courseId);
 
-        $usable = $enrollment !== null && $enrollment->status->value !== 'dropped';
-
-        if (!$usable && $required) {
-            // Only somebody who took the course evaluates it.
-            throw new AccessDenied(Permission::CourseView->value);
-        }
-
-        return $usable ? $enrollment : null;
+        // A dropped enrolment does not count: only somebody on the course
+        // evaluates it. Callers that need one refuse on null themselves.
+        return $enrollment !== null && $enrollment->status->value !== 'dropped' ? $enrollment : null;
     }
 }

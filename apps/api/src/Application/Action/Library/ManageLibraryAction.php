@@ -269,7 +269,8 @@ final class ManageLibraryAction
     private function file(ServerRequestInterface $request): UploadedFileInterface
     {
         $files = $request->getUploadedFiles();
-        $file = $files['file'] ?? (is_array($files) ? reset($files) : null);
+        // Any field name will do; reset() of no uploads is false, refused below.
+        $file = $files['file'] ?? reset($files);
 
         if (!$file instanceof UploadedFileInterface) {
             throw ValidationFailed::fromArray(['file' => 'Attach a file to share.']);

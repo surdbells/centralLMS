@@ -138,6 +138,11 @@ final class WorkbookDecryptor
 
     private function magic(string $path, int $bytes): string
     {
+        // fread() throws on a length below 1 (PHP 8); nothing to read anyway.
+        if ($bytes < 1) {
+            return '';
+        }
+
         $handle = @fopen($path, 'rb');
         if ($handle === false) {
             return '';

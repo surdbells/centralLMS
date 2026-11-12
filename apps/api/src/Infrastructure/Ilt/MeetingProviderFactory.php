@@ -167,6 +167,13 @@ final class MeetingProviderFactory implements MeetingProviderResolver
                 $this->logger,
                 $this->clock,
             ),
+            // In-app video has no OAuth connection to build from — it comes
+            // straight from deployment keys (buildAgora()). An Agora integration
+            // row would be a data error; say so rather than an unhandled match.
+            MeetingProviderId::Agora => throw new MeetingProviderError(
+                MeetingProviderId::Agora,
+                'In-app video is not an OAuth integration; it is configured by the deployment.',
+            ),
         };
     }
 

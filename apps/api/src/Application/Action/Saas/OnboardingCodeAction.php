@@ -112,11 +112,11 @@ final class OnboardingCodeAction
             code: $code,
             description: array_key_exists('description', $body) ? $this->str($body['description']) : $existing?->description,
             maxUses: $this->nullableInt($body, 'maxUses', $existing?->maxUses),
-            usedCount: $existing?->usedCount ?? 0,
+            usedCount: $existing->usedCount ?? 0,
             allowedPlanIds: $this->planIds($body, $existing?->allowedPlanIds),
             validFrom: $this->date($body, 'validFrom', $existing?->validFrom),
             validUntil: $this->date($body, 'validUntil', $existing?->validUntil),
-            isActive: $this->bool($body['isActive'] ?? null, $existing?->isActive ?? true),
+            isActive: $this->bool($body['isActive'] ?? null, $existing->isActive ?? true),
         );
     }
 

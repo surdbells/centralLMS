@@ -464,8 +464,14 @@ final class DbalProctoringRepository implements ProctoringRepository
         return [
             'violationCount'    => (int) $counts['total'],
             'flaggedViolations' => (int) $counts['flagged'],
-            'byType'            => $this->violationGroup($tenantId, $sessionId, 'type'),
-            'bySeverity'        => $this->violationGroup($tenantId, $sessionId, 'severity'),
+            'byType'            => array_map(
+                static fn (array $g): array => ['type' => $g['key'], 'count' => $g['count']],
+                $this->violationGroup($tenantId, $sessionId, 'type'),
+            ),
+            'bySeverity'        => array_map(
+                static fn (array $g): array => ['severity' => $g['key'], 'count' => $g['count']],
+                $this->violationGroup($tenantId, $sessionId, 'severity'),
+            ),
             'snapshotCount'     => (int) $snaps['total'],
             'flaggedSnapshots'  => (int) $snaps['flagged'],
             'trust'             => $this->trustFor($tenantId, $sessionId)->toArray(),
@@ -473,7 +479,12 @@ final class DbalProctoringRepository implements ProctoringRepository
     }
 
     /**
-     * @return list<array{type?: string, severity?: string, count: int}>
+     * Violation counts grouped by one column, as {key, count}; the caller names
+     * the key (type / severity) so each list keeps an exact shape.
+     *
+     * @param 'type'|'severity' $column
+     *
+     * @return list<array{key: string, count: int}>
      */
     private function violationGroup(string $tenantId, string $sessionId, string $column): array
     {
@@ -489,7 +500,7 @@ final class DbalProctoringRepository implements ProctoringRepository
         );
 
         return array_map(
-            static fn (array $r): array => [$column => (string) $r['key'], 'count' => (int) $r['count']],
+            static fn (array $r): array => ['key' => (string) $r['key'], 'count' => (int) $r['count']],
             $rows,
         );
     }

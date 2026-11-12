@@ -118,11 +118,15 @@ final class DbalOnboardingCodeRepository implements OnboardingCodeRepository
      */
     private function hydrate(array $row): OnboardingCode
     {
+        // Stored as JSON text, but a driver may hand back an array already; either
+        // way it becomes a list of plan-id strings (or null for "any plan").
         $allowed = $row['allowed_plan_ids'] ?? null;
         if (is_string($allowed)) {
-            $decoded = json_decode($allowed, true);
-            $allowed = is_array($decoded) ? array_values(array_map('strval', $decoded)) : null;
+            $allowed = json_decode($allowed, true);
         }
+        $allowed = is_array($allowed)
+            ? array_values(array_map(static fn (mixed $id): string => is_scalar($id) ? (string) $id : '', $allowed))
+            : null;
 
         return new OnboardingCode(
             id: (string) $row['id'],

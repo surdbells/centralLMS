@@ -94,6 +94,9 @@ final class ImportQuestionsAction extends AssessmentAction
         }
     }
 
+    /**
+     * @param CsvReader|XlsxReader $reader the two formats the import accepts
+     */
     private function run(
         ReaderInterface $reader,
         string $path,

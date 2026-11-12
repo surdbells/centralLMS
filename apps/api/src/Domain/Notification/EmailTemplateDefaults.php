@@ -18,8 +18,8 @@ namespace Central\Api\Domain\Notification;
  */
 final class EmailTemplateDefaults
 {
-    /** The rich HTML body for a type, or null for types with no rich default. */
-    public function body(NotificationType $type): ?string
+    /** The rich HTML body for a type. Every type has one (the match is exhaustive). */
+    public function body(NotificationType $type): string
     {
         $inner = match ($type) {
             NotificationType::Welcome => $this->paragraphs([
@@ -90,6 +90,14 @@ final class EmailTemplateDefaults
             NotificationType::SessionCancelled => $this->paragraphs([
                 '<strong>{{subject}}</strong> has been cancelled.',
                 'Reason: {{reason}}. Please do not travel to it.',
+            ]),
+
+            // The forum sentence names who acted and quotes them; the placeholder
+            // list has no actor or snippet, so it rides in on {{default_body}}.
+            NotificationType::ForumReply,
+            NotificationType::ForumMention => $this->paragraphs([
+                '{{default_body}}',
+                'Open <strong>{{subject}}</strong> to join the discussion.',
             ]),
 
             NotificationType::Announcement => $this->paragraphs([

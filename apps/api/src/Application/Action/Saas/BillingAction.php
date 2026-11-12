@@ -54,7 +54,7 @@ final class BillingAction
         return Json::ok($response, [
             'subscription' => $sub === null ? null : ($sub->toArray() + [
                 'planName'     => $plan?->name,
-                'planFeatures' => (object) ($plan?->features ?? []),
+                'planFeatures' => (object) ($plan->features ?? []),
             ]),
             'invoices' => array_map(static fn (Invoice $i): array => $i->toArray(), $this->invoices->forTenant($tenantId)),
         ]);

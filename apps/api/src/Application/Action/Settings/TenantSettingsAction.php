@@ -175,7 +175,7 @@ final class TenantSettingsAction
         // short code. Resolve that first; an unknown code resolves to nothing,
         // and the client can tell "no such institution" from "no default tenant".
         if ($code !== '') {
-            $tenantId = $this->tenants->findByCode($code)?->id ?? '';
+            $tenantId = $this->tenants->findByCode($code)->id ?? '';
         } elseif (!$this->isTenantId($tenantId)) {
             // No code and no explicit id — fall back to the deployment's default
             // tenant (on-prem single-tenant, or a conglomerate's shared face).

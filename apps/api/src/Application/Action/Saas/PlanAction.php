@@ -106,7 +106,7 @@ final class PlanAction
      */
     private function fromBody(array $body, ?Plan $existing): Plan
     {
-        $code = $existing?->code ?? $this->str($body['code'] ?? null);
+        $code = $existing->code ?? $this->str($body['code'] ?? null);
         $name = $this->str($body['name'] ?? null) ?? $existing?->name;
 
         $violations = [];
@@ -125,16 +125,16 @@ final class PlanAction
             code: (string) $code,
             name: (string) $name,
             description: array_key_exists('description', $body) ? $this->str($body['description']) : $existing?->description,
-            priceMonthly: $this->int($body['priceMonthly'] ?? null, $existing?->priceMonthly ?? 0),
-            priceYearly: $this->int($body['priceYearly'] ?? null, $existing?->priceYearly ?? 0),
-            currency: $this->str($body['currency'] ?? null) ?? $existing?->currency ?? 'NGN',
+            priceMonthly: $this->int($body['priceMonthly'] ?? null, $existing->priceMonthly ?? 0),
+            priceYearly: $this->int($body['priceYearly'] ?? null, $existing->priceYearly ?? 0),
+            currency: $this->str($body['currency'] ?? null) ?? $existing->currency ?? 'NGN',
             usersLimit: $this->nullableInt($body, 'usersLimit', $existing?->usersLimit),
             storageLimitMb: $this->nullableInt($body, 'storageLimitMb', $existing?->storageLimitMb),
-            features: is_array($body['features'] ?? null) ? $body['features'] : ($existing?->features ?? []),
-            trialDays: $this->int($body['trialDays'] ?? null, $existing?->trialDays ?? 14),
-            isActive: $this->bool($body['isActive'] ?? null, $existing?->isActive ?? true),
-            isPublic: $this->bool($body['isPublic'] ?? null, $existing?->isPublic ?? true),
-            sortOrder: $this->int($body['sortOrder'] ?? null, $existing?->sortOrder ?? 0),
+            features: is_array($body['features'] ?? null) ? $body['features'] : ($existing->features ?? []),
+            trialDays: $this->int($body['trialDays'] ?? null, $existing->trialDays ?? 14),
+            isActive: $this->bool($body['isActive'] ?? null, $existing->isActive ?? true),
+            isPublic: $this->bool($body['isPublic'] ?? null, $existing->isPublic ?? true),
+            sortOrder: $this->int($body['sortOrder'] ?? null, $existing->sortOrder ?? 0),
         );
     }
 

@@ -140,7 +140,9 @@ final class PaymentService
     private function settle(GatewayCharge $charge): ?Payment
     {
         $payment = $this->payments->findByReference($charge->reference);
-        if ($payment === null) {
+        // A stored payment always has an id; the model allows null only for one
+        // not yet saved, which findByReference never returns.
+        if ($payment === null || $payment->id === null) {
             return null;
         }
 

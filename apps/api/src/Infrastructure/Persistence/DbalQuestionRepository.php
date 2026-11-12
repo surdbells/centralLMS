@@ -382,19 +382,17 @@ final class DbalQuestionRepository implements QuestionRepository
         return [
             'total'        => (int) $totals['total'],
             'active'       => (int) $totals['active'],
-            'byType'       => $this->groupCounts(
+            'byType'       => $this->typeCounts(
                 "SELECT type AS key, COUNT(*) AS count FROM questions
                  WHERE tenant_id = :tenant AND bank_id = :bank AND deleted_at IS NULL
                  GROUP BY type ORDER BY type",
                 ['tenant' => $tenantId, 'bank' => $bankId],
-                'type',
             ),
-            'byDifficulty' => $this->groupCounts(
+            'byDifficulty' => $this->difficultyCounts(
                 "SELECT COALESCE(difficulty, 'unspecified') AS key, COUNT(*) AS count FROM questions
                  WHERE tenant_id = :tenant AND bank_id = :bank AND deleted_at IS NULL
                  GROUP BY COALESCE(difficulty, 'unspecified') ORDER BY key",
                 ['tenant' => $tenantId, 'bank' => $bankId],
-                'difficulty',
             ),
         ];
     }
@@ -416,19 +414,17 @@ final class DbalQuestionRepository implements QuestionRepository
             'totalQuestions'  => (int) $totals['total'],
             'activeQuestions' => (int) $totals['active'],
             'totalBanks'      => $banks,
-            'byType'          => $this->groupCounts(
+            'byType'          => $this->typeCounts(
                 "SELECT type AS key, COUNT(*) AS count FROM questions
                  WHERE tenant_id = :tenant AND deleted_at IS NULL
                  GROUP BY type ORDER BY type",
                 ['tenant' => $tenantId],
-                'type',
             ),
-            'byDifficulty'    => $this->groupCounts(
+            'byDifficulty'    => $this->difficultyCounts(
                 "SELECT COALESCE(difficulty, 'unspecified') AS key, COUNT(*) AS count FROM questions
                  WHERE tenant_id = :tenant AND deleted_at IS NULL
                  GROUP BY COALESCE(difficulty, 'unspecified') ORDER BY key",
                 ['tenant' => $tenantId],
-                'difficulty',
             ),
         ];
     }
@@ -445,16 +441,34 @@ final class DbalQuestionRepository implements QuestionRepository
     // --- internals --------------------------------------------------------
 
     /**
-     * Runs a `GROUP BY` count query and returns rows keyed under $keyName.
+     * Runs a `GROUP BY type` count query (columns `key`, `count`).
+     *
+     * One helper per shape rather than one keyed by a runtime name, so the
+     * statistics arrays carry the exact types their callers promise.
      *
      * @param array<string, mixed> $params
      *
-     * @return list<array<string, int|string>>
+     * @return list<array{type: string, count: int}>
      */
-    private function groupCounts(string $sql, array $params, string $keyName): array
+    private function typeCounts(string $sql, array $params): array
     {
         return array_map(
-            static fn (array $r): array => [$keyName => (string) $r['key'], 'count' => (int) $r['count']],
+            static fn (array $r): array => ['type' => (string) $r['key'], 'count' => (int) $r['count']],
+            $this->connection->fetchAllAssociative($sql, $params),
+        );
+    }
+
+    /**
+     * Runs a `GROUP BY difficulty` count query (columns `key`, `count`).
+     *
+     * @param array<string, mixed> $params
+     *
+     * @return list<array{difficulty: string, count: int}>
+     */
+    private function difficultyCounts(string $sql, array $params): array
+    {
+        return array_map(
+            static fn (array $r): array => ['difficulty' => (string) $r['key'], 'count' => (int) $r['count']],
             $this->connection->fetchAllAssociative($sql, $params),
         );
     }

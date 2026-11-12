@@ -215,7 +215,7 @@ final class ManageEmailTemplatesAction
         // default reads as an editable template, not one person's filled-in copy.
         return [
             'title' => $composed['title'],
-            'body'  => $this->richDefaults->body($type) ?? $composed['body'],
+            'body'  => $this->richDefaults->body($type),
         ];
     }
 

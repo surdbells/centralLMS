@@ -73,7 +73,7 @@ final class BillingService
     {
         $now = $this->clock->now();
         $existing = $this->subscriptions->findByTenant($tenantId);
-        $cycle = $cycle ?? $existing?->billingCycle ?? 'monthly';
+        $cycle = $cycle ?? $existing->billingCycle ?? 'monthly';
         $amount = $this->priceFor($plan, $cycle);
 
         $status = $existing !== null && $existing->isLive() ? $existing->status : 'active';
@@ -260,7 +260,7 @@ final class BillingService
     {
         $now = $this->clock->now();
         $plan = $sub->planId !== null ? $this->plans->find($sub->planId) : null;
-        $name = $plan?->name ?? 'Subscription';
+        $name = $plan->name ?? 'Subscription';
 
         return $this->invoices->create(new Invoice(
             id: null,
