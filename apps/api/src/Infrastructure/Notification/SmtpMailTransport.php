@@ -80,7 +80,7 @@ final readonly class SmtpMailTransport implements NotificationTransport
             ->to($address)
             ->subject($delivery->title)
             ->html($delivery->body)
-            ->text($this->plainText($delivery->body));
+            ->text(is_string($delivery->data['textBody'] ?? null) ? $delivery->data['textBody'] : $this->plainText($delivery->body));
 
         if ($sender['replyTo'] !== null) {
             $email->replyTo($sender['replyTo']);

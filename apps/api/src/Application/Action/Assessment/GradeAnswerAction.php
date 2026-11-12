@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Central\Api\Application\Action\Assessment;
 
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Notification\Notifier;
+use Central\Api\Domain\Assessment\AssessmentRepository;
+use Central\Api\Domain\Assessment\AttemptRepository;
 use Central\Api\Domain\Assessment\Question;
+use Central\Api\Domain\Assessment\QuestionRepository;
+use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\EntityNotFound;
@@ -24,6 +29,15 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class GradeAnswerAction extends AssessmentAction
 {
+    public function __construct(
+        AssessmentRepository $assessments,
+        QuestionRepository $questions,
+        AttemptRepository $attempts,
+        private readonly Notifier $notifier,
+    ) {
+        parent::__construct($assessments, $questions, $attempts);
+    }
+
     /**
      * @param array<string, string> $args
      */
@@ -91,6 +105,25 @@ final class GradeAnswerAction extends AssessmentAction
             $feedback,
             $this->userId($request),
         );
+
+        $graded = $result['attempt'];
+
+        // The last answer marked: the learner hears their result once, when
+        // the attempt is first totalled, not again on every later re-mark.
+        if ($result['remaining'] === 0 && $attempt->gradedAt === null && $graded->gradedAt !== null) {
+            $this->notifier->notifyOne(
+                $tenantId,
+                $graded->userId,
+                NotificationType::AssessmentGraded,
+                array_filter([
+                    'subjectTitle' => $assessment->title,
+                    'percentage'   => $graded->percentage === null ? null : round($graded->percentage),
+                    'passed'       => $graded->passed,
+                    'courseId'     => $assessment->courseId,
+                ], static fn (mixed $v): bool => $v !== null),
+                $graded->id,
+            );
+        }
 
         return Json::ok($response, [
             'attempt'   => $result['attempt']->toArray(),

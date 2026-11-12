@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, filter, map } from 'rxjs';
 import { ApiClient, Endpoints } from '../core/api';
 
 // ---------------------------------------------------------------------------
@@ -20,7 +20,10 @@ export interface Wording {
 export interface EmailTemplate {
   type: string;
   label: string;
+  /** True when the default wording is what is sent (no custom, or a paused one). */
   usesDefault: boolean;
+  /** True when the organisation has its own wording saved, paused or not. */
+  customised?: boolean;
   subject: string | null;
   body: string | null;
   enabled: boolean;
@@ -28,12 +31,55 @@ export interface EmailTemplate {
   default: Wording;
   /** Only on the single-template read: what this would actually send. */
   preview?: Wording;
+  /** Optional server hints; the screen has its own grouping and wording. */
+  group?: string | null;
+  description?: string | null;
+}
+
+/** The organisation's look, as the email layout will apply it (EmailBrandingResolver::summary). */
+export interface EmailBranding {
+  organisation?: string | null;
+  /** The absolute, public logo address emails use; null when there is none an inbox can load. */
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  textOnPrimary?: string | null;
+  siteUrl?: string | null;
+  /** A logo is set somewhere (email logo, branding logo or profile logo). */
+  logoConfigured?: boolean;
+  /** That logo is one an inbox can fetch. */
+  logoIsPublic?: boolean;
+}
+
+export interface BrandingUploadResult {
+  asset: string;
+  setting: string;
+  url: string;
+  isPublic: boolean;
+}
+
+export interface EmailTestResult {
+  sentTo: string;
+  subject: string;
 }
 
 export interface EmailTemplateList {
   templates: EmailTemplate[];
   /** What a template may refer to, so the editor can offer them. */
   placeholders: string[];
+  /** The branding the layout uses, when the API reports it. */
+  branding?: EmailBranding | null;
+}
+
+/** Unsaved wording sent for a live preview. Empty means "use the default". */
+export interface EmailPreviewInput {
+  title: string;
+  body: string;
+}
+
+/** A fully rendered, branded email: what an inbox would show. */
+export interface EmailPreview {
+  subject: string;
+  html: string;
 }
 
 export interface EmailTemplateInput {
@@ -76,5 +122,40 @@ export class EmailTemplatesService {
   /** Removes the override, so the platform wording applies again. */
   reset(type: string): Observable<void> {
     return this.api.delete<void>(Endpoints.emailTemplates.delete(type)).pipe(map(() => undefined));
+  }
+
+  /**
+   * Renders wording that has not been saved yet, inside the organisation's
+   * branded layout (logo, colour, footer), exactly as it would be mailed.
+   */
+  preview(type: string, input: EmailPreviewInput): Observable<EmailPreview> {
+    return this.api
+      .post<Partial<EmailPreview> & Partial<Wording>>(Endpoints.emailTemplates.preview(type), input)
+      .pipe(
+        // Tolerate either shape: {subject, html} or the older {title, body}.
+        map((r) => ({
+          subject: r.subject ?? r.title ?? '',
+          html: r.html ?? r.body ?? '',
+        })),
+      );
+  }
+
+  /** Sends the (unsaved) wording, branded, to the signed-in admin's inbox. */
+  sendTest(type: string, input: { subject: string; body: string }): Observable<EmailTestResult> {
+    return this.api.post<EmailTestResult>(Endpoints.emailTemplates.test(type), input);
+  }
+
+  /**
+   * Uploads a PNG/JPEG/GIF logo to a public address inboxes can load, and
+   * sets the matching Branding setting to it. Emits once, when done.
+   */
+  uploadLogo(asset: 'logo' | 'email-logo', file: File): Observable<BrandingUploadResult> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    return this.api.upload<BrandingUploadResult>(Endpoints.settings.brandingUpload(asset), form).pipe(
+      filter((e) => e.state === 'done' && !!e.result),
+      map((e) => e.result as BrandingUploadResult),
+    );
   }
 }

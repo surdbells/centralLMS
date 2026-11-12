@@ -10,28 +10,95 @@
       <p>{{ 'library.manage_subtitle' | translate }}</p>
     </div>
     <div class="ui-page-header__actions">
-      <button type="button" class="btn btn-primary" (click)="openUpload()">
-        <i class="bi bi-upload me-1"></i> {{ 'library.share_a_file' | translate }}
+      <button type="button" class="btn btn-outline-secondary" (click)="showCategories.set(true)">
+        <i class="bi bi-folder2-open me-1"></i> {{ 'library.categories' | translate }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="browse()">
+        <i class="bi bi-upload me-1"></i> {{ 'library.upload_files' | translate }}
       </button>
     </div>
   </header>
 
+  <input #fileInput type="file" class="d-none" multiple [accept]="accept" (change)="onFilesChosen($event)"
+         [attr.aria-label]="'library.upload_files' | translate" tabindex="-1" />
+
+  <!-- Drop zone -->
+  <div class="lib-drop" [class.is-over]="zoneDragging()" [class.is-busy]="batchView().busy"
+       (dragenter)="zoneDragging.set(true)" (dragleave)="$event.target === $event.currentTarget && zoneDragging.set(false)">
+    <span class="lib-drop__icon" aria-hidden="true"><i class="bi bi-cloud-arrow-up"></i></span>
+    <div class="lib-drop__text">
+      <strong>{{ 'library.drop_title' | translate }}</strong>
+      <span>{{ 'library.drop_hint' | translate }}</span>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm lib-drop__btn" (click)="browse()">
+      <i class="bi bi-folder2-open me-1"></i> {{ 'library.browse_files' | translate }}
+    </button>
+  </div>
+
   <div class="ui-toolbar">
+    <div class="ui-filters" role="group" [attr.aria-label]="'library.filter_by_category' | translate">
+      @if (categoriesLoading() && categories().length === 0) {
+        <span class="lib-filter-skel"></span><span class="lib-filter-skel"></span><span class="lib-filter-skel"></span>
+      } @else {
+        <button type="button" class="ui-filter" [class.is-active]="categoryFilter() === null"
+                [attr.aria-pressed]="categoryFilter() === null" (click)="setCategoryFilter(null)">
+          {{ 'library.all' | translate }}
+          @if (!categoriesError()) { <span class="ui-filter__count">{{ totalCount() }}</span> }
+        </button>
+        @for (c of categories(); track c.id) {
+          <button type="button" class="ui-filter" [class.is-active]="categoryFilter() === c.id"
+                  [attr.aria-pressed]="categoryFilter() === c.id" (click)="setCategoryFilter(c.id)">
+            <i class="bi bi-folder2" aria-hidden="true"></i> {{ c.name }}
+            <span class="ui-filter__count">{{ c.itemCount }}</span>
+          </button>
+        }
+        @if (categories().length > 0 || categoryFilter() === 'none') {
+          <button type="button" class="ui-filter" [class.is-active]="categoryFilter() === 'none'"
+                  [attr.aria-pressed]="categoryFilter() === 'none'" (click)="setCategoryFilter('none')">
+            {{ 'library.uncategorised' | translate }}
+            <span class="ui-filter__count">{{ uncategorisedCount() }}</span>
+          </button>
+        }
+        @if (categoriesError()) {
+          <button type="button" class="btn btn-link btn-sm" (click)="loadCategories()">
+            <i class="bi bi-arrow-clockwise me-1"></i>{{ 'library.categories_load_error' | translate }}
+          </button>
+        }
+      }
+    </div>
     <label class="ui-search">
       <i class="bi bi-search"></i>
       <input type="search" placeholder="{{ 'library.search_placeholder' | translate }}" [(ngModel)]="search"
-             (keyup.enter)="load()" (ngModelChange)="search === '' && load()" />
+             (keyup.enter)="load()" (ngModelChange)="onSearchChange()" />
     </label>
   </div>
 
   @if (loading()) {
-    <app-skeleton variant="table" [rows]="6" [cols]="5"></app-skeleton>
+    <app-skeleton variant="table" [rows]="6" [cols]="6"></app-skeleton>
+  } @else if (loadError()) {
+    <div class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <h3>{{ 'library.load_error' | translate }}</h3>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">{{ 'library.try_again' | translate }}</button>
+    </div>
+  } @else if (items().length === 0 && filtered) {
+    <div class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-funnel"></i></span>
+      <h3>{{ (search.trim() ? 'library.no_matches_title' : 'library.category_empty_title') | translate }}</h3>
+      <p>{{ (search.trim() ? 'library.no_matches_text' : 'library.category_empty_manage_text') | translate }}</p>
+      <div class="d-flex gap-2 justify-content-center flex-wrap">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearFilters()">{{ 'library.show_everything' | translate }}</button>
+        @if (!search.trim()) {
+          <button type="button" class="btn btn-primary btn-sm" (click)="browse()"><i class="bi bi-upload me-1"></i> {{ 'library.upload_files' | translate }}</button>
+        }
+      </div>
+    </div>
   } @else if (items().length === 0) {
     <div class="ui-state">
       <span class="ui-state__icon"><i class="bi bi-collection"></i></span>
       <h3>{{ 'library.manage_empty_title' | translate }}</h3>
       <p>{{ 'library.manage_empty_text' | translate }}</p>
-      <button type="button" class="btn btn-primary btn-sm" (click)="openUpload()"><i class="bi bi-upload me-1"></i> {{ 'library.share_a_file' | translate }}</button>
+      <button type="button" class="btn btn-primary btn-sm" (click)="browse()"><i class="bi bi-upload me-1"></i> {{ 'library.upload_files' | translate }}</button>
     </div>
   } @else {
     <section class="ui-section ui-section--flush">
@@ -40,6 +107,7 @@
           <thead>
             <tr>
               <th>{{ 'library.col_file' | translate }}</th>
+              <th>{{ 'library.col_category' | translate }}</th>
               <th>{{ 'library.col_type' | translate }}</th>
               <th>{{ 'library.col_shared_with' | translate }}</th>
               <th>{{ 'library.col_size' | translate }}</th>
@@ -54,7 +122,7 @@
                     <span class="lib-ic" [class]="kindClass(item.kind)"><i class="bi" [class]="icon(item.kind)"></i></span>
                     <div>
                       <div class="fw-medium">{{ item.title }}</div>
-                      @if (statusLabel(item); as s) {
+                      @if (conversionLabel(item); as s) {
                         <small [class.text-warning-emphasis]="item.conversionStatus !== 'failed'"
                                [class.text-danger]="item.conversionStatus === 'failed'">
                           <i class="bi bi-hourglass-split me-1"></i>{{ s }}
@@ -65,7 +133,17 @@
                     </div>
                   </div>
                 </td>
-                <td><span class="lib-badge" [class]="kindClass(item.kind)">{{ item.kind }}</span></td>
+                <td>
+                  @if (item.categoryName) {
+                    <button type="button" class="ui-pill ui-pill--brand lib-cat-pill" (click)="setCategoryFilter(item.categoryId)"
+                            [title]="'library.filter_to_category' | translate:{ name: item.categoryName }">
+                      <i class="bi bi-folder2" aria-hidden="true"></i>{{ item.categoryName }}
+                    </button>
+                  } @else {
+                    <span class="ui-pill ui-pill--neutral">{{ 'library.uncategorised' | translate }}</span>
+                  }
+                </td>
+                <td><span class="lib-badge" [class]="kindClass(item.kind)">{{ kindLabel(item.kind) | translate }}</span></td>
                 <td>{{ item.audience.label }}</td>
                 <td class="text-muted">{{ size(item.fileSize) }}</td>
                 <td class="text-end text-nowrap">
@@ -90,63 +168,238 @@
   </div>
 </main>
 
-<!-- Upload / edit dialog -->
-@if (showForm()) {
-  <div class="lib-overlay" (click)="closeForm()">
-    <div class="lib-dialog" (click)="$event.stopPropagation()">
+<!-- Full-page drop overlay -->
+@if (pageDragging() && !showForm()) {
+  <div class="lib-page-drop" aria-hidden="true">
+    <div class="lib-page-drop__card">
+      <i class="bi bi-cloud-arrow-up"></i>
+      @if (batchView().busy) {
+        <strong>{{ 'library.wait_for_uploads' | translate }}</strong>
+      } @else {
+        <strong>{{ 'library.drop_anywhere' | translate }}</strong>
+        <span>{{ 'library.drop_anywhere_hint' | translate }}</span>
+      }
+    </div>
+  </div>
+}
+
+<!-- Batch upload -->
+@if (batchOpen()) {
+  @let b = batchView();
+  <div class="lib-overlay" (click)="closeBatch()">
+    <div class="lib-dialog lib-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="lib-batch-title" (click)="$event.stopPropagation()">
       <div class="lib-dialog-head">
-        <h5 class="mb-0">{{ (editing ? 'library.edit_title' : 'library.share_a_file') | translate }}</h5>
-        <button class="btn-close" [disabled]="saving()" (click)="closeForm()"></button>
+        <div>
+          <h5 class="mb-0" id="lib-batch-title">{{ 'library.batch_title' | translate }}</h5>
+          <small class="text-muted">
+            {{ 'library.batch_count' | translate:{ count: b.total } }}
+            @if (b.started) { · {{ 'library.batch_progress' | translate:{ done: b.done, total: b.total } }} }
+          </small>
+        </div>
+        <button type="button" class="btn-close" [disabled]="b.busy" [attr.aria-label]="'common.close' | translate" (click)="closeBatch()"></button>
       </div>
+
       <div class="lib-dialog-body">
-        @if (!editing) {
-          <label class="form-label required">{{ 'library.col_file' | translate }}</label>
-          <input type="file" class="form-control mb-1" (change)="onFile($event)"
-                 accept="video/*,audio/*,image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv" />
-          <div class="form-text mb-3">{{ 'library.file_hint' | translate }}</div>
+        @if (rejected().length) {
+          <div class="lib-rejected" role="alert">
+            <div class="lib-rejected__head">
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>{{ 'library.rejected_title' | translate:{ count: rejected().length } }}</strong>
+              <button type="button" class="btn btn-link btn-sm ms-auto p-0" (click)="dismissRejected()">{{ 'library.dismiss' | translate }}</button>
+            </div>
+            <ul>
+              @for (r of rejected(); track $index) {
+                <li><span class="lib-rejected__name">{{ r.name }}</span> — {{ r.reasonKey | translate:r.params }}</li>
+              }
+            </ul>
+          </div>
         }
 
-        <label class="form-label required">{{ 'library.field_title' | translate }}</label>
-        <input type="text" class="form-control mb-3" [(ngModel)]="form.title" placeholder="{{ 'library.title_placeholder' | translate }}" />
+        @if (b.total === 0) {
+          <div class="ui-state lib-batch-empty">
+            <span class="ui-state__icon"><i class="bi bi-files"></i></span>
+            <h3>{{ 'library.batch_empty_title' | translate }}</h3>
+            <p>{{ 'library.file_hint' | translate }}</p>
+            <button type="button" class="btn btn-primary btn-sm" (click)="browse()"><i class="bi bi-folder2-open me-1"></i> {{ 'library.browse_files' | translate }}</button>
+          </div>
+        } @else {
+          <ul class="lib-queue">
+            @for (e of b.entries; track e.key) {
+              <li class="lib-queue__row" [class]="'is-' + e.status">
+                <span class="lib-ic" [class]="kindClass(e.kind)" aria-hidden="true"><i class="bi" [class]="icon(e.kind)"></i></span>
+                <div class="lib-queue__main">
+                  @if (e.status === 'queued') {
+                    <label class="visually-hidden" [for]="'lib-q-title-' + $index">{{ 'library.field_title' | translate }}</label>
+                    <input [id]="'lib-q-title-' + $index" type="text" class="form-control form-control-sm" maxlength="255"
+                           [class.is-invalid]="!e.title.trim()" [(ngModel)]="e.title" (ngModelChange)="queueTick.set(queueTick() + 1)"
+                           [placeholder]="'library.title_placeholder' | translate" />
+                  } @else {
+                    <div class="lib-queue__title" [title]="e.title">{{ e.title }}</div>
+                  }
+                  <div class="lib-queue__meta">
+                    <span class="text-truncate" [title]="e.file.name">{{ e.file.name }}</span>
+                    <span>· {{ size(e.file.size) }}</span>
+                    @if (e.status === 'queued' && !e.showDescription) {
+                      <button type="button" class="btn btn-link btn-sm p-0 lib-queue__desc-link" (click)="e.showDescription = true">
+                        + {{ 'library.add_description' | translate }}
+                      </button>
+                    }
+                  </div>
+                  @if (e.status === 'queued' && e.showDescription) {
+                    <textarea class="form-control form-control-sm mt-1" rows="2" [(ngModel)]="e.description"
+                              [attr.aria-label]="'common.description' | translate"
+                              [placeholder]="'library.optional_placeholder' | translate"></textarea>
+                  }
+                  @if (e.status === 'uploading' || e.status === 'done') {
+                    <div class="ui-progress lib-queue__progress">
+                      <div class="ui-bar" role="progressbar" [attr.aria-valuenow]="e.progress" aria-valuemin="0" aria-valuemax="100">
+                        <span [style.width.%]="e.progress"></span>
+                      </div>
+                      <span class="ui-pct">{{ e.progress }}%</span>
+                    </div>
+                  }
+                  @if (e.status === 'failed' && e.error) {
+                    <div class="lib-queue__error"><i class="bi bi-x-circle me-1"></i>{{ e.error }}</div>
+                  }
+                  @if (e.status === 'cancelled' && e.maybeSaved) {
+                    <div class="form-text"><i class="bi bi-info-circle me-1"></i>{{ 'library.upload_maybe_saved' | translate }}</div>
+                  }
+                </div>
+                <div class="lib-queue__side">
+                  <span class="ui-pill"
+                        [class.ui-pill--neutral]="e.status === 'queued' || e.status === 'cancelled'"
+                        [class.ui-pill--info]="e.status === 'uploading'"
+                        [class.ui-pill--success]="e.status === 'done'"
+                        [class.ui-pill--danger]="e.status === 'failed'">
+                    @if (e.status === 'uploading') { <span class="spinner-border spinner-border-sm lib-spin"></span> }
+                    @if (e.status === 'done') { <i class="bi bi-check-lg"></i> }
+                    {{ statusLabel(e.status) | translate }}
+                  </span>
+                  @if (e.status !== 'uploading' && e.status !== 'done') {
+                    <button type="button" class="lib-x" (click)="removeEntry(e)"
+                            [title]="'library.remove_from_batch' | translate" [attr.aria-label]="'library.remove_from_batch' | translate">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
 
-        <label class="form-label">{{ 'common.description' | translate }}</label>
-        <textarea class="form-control mb-3" rows="2" [(ngModel)]="form.description" placeholder="{{ 'library.optional_placeholder' | translate }}"></textarea>
+          @if (!b.busy) {
+            <button type="button" class="btn btn-link btn-sm px-0 mt-2" (click)="browse()">
+              <i class="bi bi-plus-lg me-1"></i>{{ 'library.add_more_files' | translate }}
+            </button>
+          }
 
-        <label class="form-label required">{{ 'library.share_with' | translate }}</label>
-        <select class="form-select mb-2" [(ngModel)]="form.targetType" (ngModelChange)="onTargetTypeChange()">
-          @for (t of targetTypes; track t.value) { <option [value]="t.value">{{ t.label | translate }}</option> }
-        </select>
-
-        @if (form.targetType !== 'all') {
-          @if (options().length === 0) {
-            <div class="alert alert-warning py-2 px-3 small mb-0">
-              {{ 'library.no_options_defined' | translate:{ type: form.targetType } }}
-            </div>
-          } @else {
-            <div class="lib-picklist">
-              @for (o of options(); track o.id) {
-                <label class="lib-pick">
-                  <input type="checkbox" [checked]="form.targetIds.includes(o.id)" (change)="toggleId(o.id)" />
-                  <span>{{ o.name }}</span>
-                </label>
-              }
+          @if ((b.queued > 0 || b.retryable > 0) && !b.busy) {
+            <div class="lib-batch-settings">
+              <div class="lib-batch-settings__col">
+                <label class="form-label" for="lib-batch-category">{{ 'library.category' | translate }}</label>
+                <select id="lib-batch-category" class="form-select" [(ngModel)]="batch.categoryId">
+                  <option value="">{{ 'library.uncategorised' | translate }}</option>
+                  @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+                </select>
+                <div class="form-text">
+                  {{ 'library.batch_category_hint' | translate }}
+                  <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="showCategories.set(true)">{{ 'library.manage_categories' | translate }}</button>
+                </div>
+              </div>
+              <div class="lib-batch-settings__col">
+                <app-library-audience-picker selectId="lib-batch-audience" [options]="audienceOptions()"
+                                             [(targetType)]="batch.targetType" [(targetIds)]="batch.targetIds">
+                </app-library-audience-picker>
+              </div>
             </div>
           }
         }
       </div>
+
       <div class="lib-dialog-foot">
-        @if (saving() && !editing) {
-          <div class="progress flex-grow-1 me-3" style="height: 6px">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" [style.width.%]="progress()"></div>
+        @if (b.started) {
+          <div class="ui-progress flex-grow-1 me-2">
+            <div class="ui-bar"><span [style.width.%]="b.overall"></span></div>
+            <span class="ui-pct">{{ b.overall }}%</span>
           </div>
+        } @else {
+          <div class="flex-grow-1"></div>
         }
-        <button class="btn btn-outline-secondary" [disabled]="saving()" (click)="closeForm()">{{ 'common.cancel' | translate }}</button>
-        <button class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
-          {{ (saving() ? 'library.saving' : (editing ? 'common.save' : 'library.share')) | translate }}
+        @if (b.busy) {
+          <button type="button" class="btn btn-outline-danger" (click)="cancelRemaining()">
+            <i class="bi bi-stop-circle me-1"></i>{{ 'library.cancel_remaining' | translate }}
+          </button>
+        } @else {
+          @if (b.retryable > 0) {
+            <button type="button" class="btn btn-outline-secondary" [disabled]="!canRetry()" (click)="retryFailed()">
+              <i class="bi bi-arrow-repeat me-1"></i>{{ 'library.retry_failed' | translate:{ count: b.retryable } }}
+            </button>
+          }
+          <button type="button" class="btn btn-outline-secondary" (click)="closeBatch()">
+            {{ (b.started ? 'library.done' : 'common.cancel') | translate }}
+          </button>
+          @if (b.queued > 0) {
+            <button type="button" class="btn btn-primary" [disabled]="!canStartBatch()" (click)="startBatch()">
+              <i class="bi bi-upload me-1"></i>
+              {{ (b.queued === 1 ? 'library.upload_one' : 'library.upload_all') | translate:{ count: b.queued } }}
+            </button>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Edit dialog -->
+@if (showForm() && editing) {
+  <div class="lib-overlay" (click)="closeForm()">
+    <div class="lib-dialog" role="dialog" aria-modal="true" aria-labelledby="lib-edit-title" (click)="$event.stopPropagation()">
+      <div class="lib-dialog-head">
+        <h5 class="mb-0" id="lib-edit-title">{{ 'library.edit_title' | translate }}</h5>
+        <button type="button" class="btn-close" [disabled]="saving()" [attr.aria-label]="'common.close' | translate" (click)="closeForm()"></button>
+      </div>
+      <div class="lib-dialog-body">
+        <label class="form-label required" for="lib-edit-title-input">{{ 'library.field_title' | translate }}</label>
+        <input id="lib-edit-title-input" type="text" class="form-control mb-3" maxlength="255" [(ngModel)]="form.title"
+               placeholder="{{ 'library.title_placeholder' | translate }}" />
+
+        <label class="form-label" for="lib-edit-desc">{{ 'common.description' | translate }}</label>
+        <textarea id="lib-edit-desc" class="form-control mb-3" rows="2" [(ngModel)]="form.description"
+                  placeholder="{{ 'library.optional_placeholder' | translate }}"></textarea>
+
+        <label class="form-label" for="lib-edit-category">{{ 'library.category' | translate }}</label>
+        <select id="lib-edit-category" class="form-select mb-3" [(ngModel)]="form.categoryId">
+          <option value="">{{ 'library.uncategorised' | translate }}</option>
+          @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+        </select>
+
+        <app-library-audience-picker selectId="lib-edit-audience" [options]="audienceOptions()"
+                                     [(targetType)]="form.targetType" [(targetIds)]="form.targetIds">
+        </app-library-audience-picker>
+      </div>
+      <div class="lib-dialog-foot">
+        <button type="button" class="btn btn-outline-secondary" [disabled]="saving()" (click)="closeForm()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn btn-primary" [disabled]="!canSave() || saving()" (click)="save()">
+          {{ (saving() ? 'library.saving' : 'common.save') | translate }}
         </button>
       </div>
     </div>
   </div>
+}
+
+<!-- Categories side panel -->
+@if (showCategories()) {
+  <div class="lib-drawer-backdrop" (click)="showCategories.set(false)"></div>
+  <aside class="lib-drawer" role="dialog" aria-modal="true" aria-labelledby="lib-cat-title" (keydown.escape)="showCategories.set(false)">
+    <app-library-categories
+      [categories]="categories()"
+      [uncategorisedCount]="uncategorisedCount()"
+      [loading]="categoriesLoading()"
+      [error]="categoriesError()"
+      (changed)="onCategoriesChanged()"
+      (retry)="loadCategories()"
+      (closed)="showCategories.set(false)">
+    </app-library-categories>
+  </aside>
 }
 
 <!-- Preview overlay -->

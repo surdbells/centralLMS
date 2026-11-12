@@ -6,8 +6,12 @@ namespace Central\Api\Application\Action\Settings;
 
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Notification\EmailBrandingResolver;
+use Central\Api\Application\Notification\EmailComposer;
+use Central\Api\Application\Notification\EmailSender;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\AccessDenied;
+use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Notification\EmailTemplate;
@@ -16,10 +20,12 @@ use Central\Api\Domain\Notification\EmailTemplateRenderer;
 use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationChannel;
 use Central\Api\Domain\Notification\NotificationComposer;
+use Central\Api\Domain\Notification\NotificationPriority;
 use Central\Api\Domain\Notification\NotificationType;
-use Central\Api\Domain\Tenant\TenantRepository;
+use Central\Api\Domain\Notification\PendingDelivery;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Ramsey\Uuid\Uuid;
 
 /**
  * What an organisation's own mail says.
@@ -28,6 +34,11 @@ use Psr\Http\Message\ServerRequestInterface;
  * GET    /v1/email-templates/{type}   one, with a preview
  * PUT    /v1/email-templates/{type}   write your own
  * DELETE /v1/email-templates/{type}   go back to the default
+ * POST   /v1/email-templates/{type}/preview  render unsaved wording, branded
+ * POST   /v1/email-templates/{type}/test     send the (unsaved) wording to yourself
+ *
+ * Every preview is the real email: the same composer the mail worker uses,
+ * with this organisation's logo, colour and name, around example facts.
  *
  * The default wording lives in {@see NotificationComposer} — one set of
  * English sentences for the whole platform. Fine as a default; wrong as the
@@ -45,8 +56,10 @@ final class ManageEmailTemplatesAction
         private readonly EmailTemplateRepository $templates,
         private readonly NotificationComposer $composer,
         private readonly EmailTemplateRenderer $renderer,
-        private readonly TenantRepository $tenants,
         private readonly EmailTemplateDefaults $richDefaults,
+        private readonly EmailComposer $emails,
+        private readonly EmailBrandingResolver $branding,
+        private readonly EmailSender $sender,
     ) {
     }
 
@@ -63,9 +76,16 @@ final class ManageEmailTemplatesAction
             $all[] = [
                 'type'      => $type->value,
                 'label'     => $type->label(),
+                // Section of the list, and when it is sent, in one line.
+                'group'       => $type->emailGroup(),
+                'description' => $type->emailDescription(),
                 // What it says today, so the list reads as the mail somebody
                 // would actually receive rather than a list of empty slots.
                 'usesDefault' => $template === null || !$template->overrides(),
+                // Whether the organisation has its own wording saved at all,
+                // paused or not. usesDefault says what is sent; this says
+                // whether there is anything to reset.
+                'customised'  => $this->isCustomised($template),
                 'subject'   => $template?->subject,
                 'body'      => $template?->body,
                 'enabled'   => $template === null ? true : $template->enabled,
@@ -79,6 +99,9 @@ final class ManageEmailTemplatesAction
             // The list a template may refer to. Sent with the templates so the
             // editor can offer them rather than the author guessing.
             'placeholders' => EmailTemplateRenderer::PLACEHOLDERS,
+            // The look every email carries, for the strip above the list.
+            'branding'     => $this->branding->summary($tenantId),
+            'groups'       => ['account', 'enrolment', 'certificates', 'sessions', 'announcements'],
         ]);
     }
 
@@ -99,13 +122,17 @@ final class ManageEmailTemplatesAction
         return Json::ok($response, [
             'type'         => $type->value,
             'label'        => $type->label(),
+            'group'        => $type->emailGroup(),
+            'description'  => $type->emailDescription(),
             'usesDefault'  => $template === null || !$template->overrides(),
+            'customised'   => $this->isCustomised($template),
             'subject'      => $template?->subject,
             'body'         => $template?->body,
             'enabled'      => $template === null ? true : $template->enabled,
             'default'      => $this->defaultWording($type),
             'preview'      => $this->preview($tenantId, $type, $template),
             'placeholders' => EmailTemplateRenderer::PLACEHOLDERS,
+            'branding'     => $this->branding->summary($tenantId),
         ]);
     }
 
@@ -124,26 +151,10 @@ final class ManageEmailTemplatesAction
         $subject = $this->wording($body, 'subject');
         $content = $this->wording($body, 'body');
 
-        $violations = [];
-
         // Caught here rather than in somebody's inbox. An unknown placeholder
         // renders as nothing, so without this a typo means a sentence with a
         // hole in it going out to the whole organisation.
-        foreach (['subject' => $subject, 'body' => $content] as $field => $text) {
-            if ($text === null) {
-                continue;
-            }
-
-            $unknown = $this->renderer->unknownPlaceholders($text);
-
-            if ($unknown !== []) {
-                $violations[$field] = sprintf(
-                    'This does not recognise %s. Use one of: %s.',
-                    implode(', ', array_map(static fn (string $n): string => '{{' . $n . '}}', $unknown)),
-                    implode(', ', EmailTemplateRenderer::PLACEHOLDERS),
-                );
-            }
-        }
+        $violations = $this->placeholderProblems($subject, $content);
 
         if ($violations !== []) {
             throw ValidationFailed::fromArray($violations);
@@ -161,9 +172,97 @@ final class ManageEmailTemplatesAction
 
         return Json::ok($response, [
             ...$saved->toArray(),
+            'usesDefault' => !$saved->overrides(),
+            'customised'  => $this->isCustomised($saved),
             'default' => $this->defaultWording($type),
             'preview' => $this->preview($tenantId, $type, $saved),
         ]);
+    }
+
+    /**
+     * The branded email for wording that has not been saved yet — what the
+     * editor shows as somebody types. Body {subject?, body?}; either left out
+     * or empty means the default. Unknown placeholders are reported, not
+     * refused, so the preview keeps working mid-edit.
+     *
+     * @param array<string, string> $args
+     */
+    public function previewDraft(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->tenantId($request);
+        $type     = $this->type($args);
+        $draft    = $this->draft($tenantId, $type, $this->body($request));
+        $email    = $this->emails->compose($tenantId, $type, $this->example($tenantId), $draft);
+
+        return Json::ok($response, [
+            'subject'  => $email['subject'],
+            'html'     => $email['html'],
+            'text'     => $email['text'],
+            'problems' => (object) $this->placeholderProblems($draft->subject, $draft->body),
+        ]);
+    }
+
+    /**
+     * Sends the email — the draft in the body, or what is saved — to the
+     * person asking, with example facts, so they can see it in their own
+     * inbox before anyone else does.
+     *
+     * @param array<string, string> $args
+     */
+    public function test(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args,
+    ): ResponseInterface {
+        $tenantId = $this->tenantId($request);
+        $type     = $this->type($args);
+        $caller   = AuthenticationMiddleware::require($request);
+        $body     = $this->body($request);
+
+        $template = array_key_exists('subject', $body) || array_key_exists('body', $body)
+            ? $this->draft($tenantId, $type, $body)
+            : $this->templates->find($tenantId, $type);
+
+        $problems = $template === null ? [] : $this->placeholderProblems($template->subject, $template->body);
+
+        if ($problems !== []) {
+            throw ValidationFailed::fromArray($problems);
+        }
+
+        if (!$this->sender->isConfigured()) {
+            throw new ConflictingState('Outgoing email is not set up on this server.', 'email_not_configured');
+        }
+
+        $email = $this->emails->compose($tenantId, $type, $this->example($tenantId), $template);
+
+        $result = $this->sender->send(new PendingDelivery(
+            deliveryId: Uuid::uuid4()->toString(),
+            tenantId: $tenantId,
+            notificationId: Uuid::uuid4()->toString(),
+            userId: $caller->id,
+            channel: NotificationChannel::Email,
+            address: $caller->email,
+            type: $type,
+            title: '[Test] ' . $email['subject'],
+            body: $email['html'],
+            // Already composed and branded: sent as it is.
+            data: ['emailLayout' => EmailComposer::PREBUILT, 'textBody' => $email['text']],
+            priority: NotificationPriority::Normal,
+            attempts: 0,
+            maxAttempts: 1,
+        ));
+
+        if (!$result->sent) {
+            throw new ConflictingState(
+                'The test email could not be sent: ' . ($result->error ?? 'unknown error'),
+                'email_failed',
+            );
+        }
+
+        return Json::ok($response, ['sentTo' => $caller->email, 'subject' => $email['subject']]);
     }
 
     /**
@@ -180,6 +279,11 @@ final class ManageEmailTemplatesAction
     }
 
     // --- internals --------------------------------------------------------
+
+    private function isCustomised(?EmailTemplate $template): bool
+    {
+        return $template !== null && ($template->subject !== null || $template->body !== null);
+    }
 
     /**
      * The types that actually go out by email.
@@ -220,23 +324,72 @@ final class ManageEmailTemplatesAction
     }
 
     /**
-     * What this template would send, with the same example facts.
-     */
-    /**
-     * @return array{title: string, body: string}
+     * What this template would send, with the same example facts: the whole
+     * branded email, exactly as the mail worker would compose it.
+     *
+     * `title`/`body` are kept for older screens; `subject`/`html`/`text` are
+     * the same email under clearer names.
+     *
+     * @return array{title: string, body: string, subject: string, html: string, text: string}
      */
     private function preview(
         string $tenantId,
         NotificationType $type,
         ?EmailTemplate $template,
     ): array {
-        return $this->renderer->render(
-            $template,
-            $this->defaultWording($type),
-            $this->example(),
-            $this->tenants->nameOf($tenantId),
-            'Ada Lovelace',
+        $email = $this->emails->compose($tenantId, $type, $this->example($tenantId), $template);
+
+        return [
+            'title'   => $email['subject'],
+            'body'    => $email['html'],
+            'subject' => $email['subject'],
+            'html'    => $email['html'],
+            'text'    => $email['text'],
+        ];
+    }
+
+    /**
+     * Unsaved wording, as a template the composer can render.
+     *
+     * @param array<string, mixed> $body
+     */
+    private function draft(string $tenantId, NotificationType $type, array $body): EmailTemplate
+    {
+        return new EmailTemplate(
+            id: '',
+            tenantId: $tenantId,
+            type: $type,
+            subject: $this->wording($body, 'subject') ?? $this->wording($body, 'title'),
+            body: $this->wording($body, 'body'),
         );
+    }
+
+    /**
+     * Placeholders the wording uses that do not exist, by field.
+     *
+     * @return array<string, string>
+     */
+    private function placeholderProblems(?string $subject, ?string $content): array
+    {
+        $violations = [];
+
+        foreach (['subject' => $subject, 'body' => $content] as $field => $text) {
+            if ($text === null) {
+                continue;
+            }
+
+            $unknown = $this->renderer->unknownPlaceholders($text);
+
+            if ($unknown !== []) {
+                $violations[$field] = sprintf(
+                    'This does not recognise %s. Use one of: %s.',
+                    implode(', ', array_map(static fn (string $n): string => '{{' . $n . '}}', $unknown)),
+                    implode(', ', EmailTemplateRenderer::PLACEHOLDERS),
+                );
+            }
+        }
+
+        return $violations;
     }
 
     /**
@@ -247,21 +400,30 @@ final class ManageEmailTemplatesAction
      *
      * @return array<string, mixed>
      */
-    private function example(): array
+    private function example(?string $tenantId = null): array
     {
+        $site = $this->branding->webUrl();
+
         return [
-            'subjectTitle'      => 'Fire Safety',
-            'title'             => 'Fire Safety',
-            'body'              => 'An example announcement.',
+            'recipientName'     => 'Ada Lovelace',
+            'subjectTitle'      => 'Fire Safety Essentials',
+            'title'             => 'Office closed on Friday',
+            'body'              => "The office will be closed on Friday for maintenance.\n"
+                . 'All live sessions that day will run online as normal.',
             'dueDate'           => '30 September 2026',
-            'startsAt'          => '2026-09-30T09:00:00+00:00',
+            'startsAt'          => 'Wed 30 Sep 2026, 09:00 WAT',
             'offsetMinutes'     => 60,
-            'organisation'      => 'your organisation',
-            'certificateNumber' => 'ACME-2026-00042',
+            'organisation'      => $tenantId === null
+                ? 'your organisation'
+                : $this->branding->forTenant($tenantId)->organisation,
+            'certificateNumber' => 'CERT-2026-00042',
             'percentage'        => 88,
-            'reason'            => 'the room is unavailable',
-            'link'              => 'https://example.com/set-your-password',
-            'expiresIn'         => 'one hour',
+            'passed'            => true,
+            'reason'            => 'the trainer is unavailable',
+            'actorName'         => 'Grace Hopper',
+            'snippet'           => 'Great question — the answer is in module 3.',
+            'link'              => ($site !== '' ? $site : 'https://example.com') . '/home',
+            'expiresIn'         => '24 hours',
         ];
     }
 

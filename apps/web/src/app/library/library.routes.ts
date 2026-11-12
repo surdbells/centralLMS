@@ -1,4 +1,13 @@
-import { Routes } from '@angular/router';
+import { CanDeactivateFn, Routes } from '@angular/router';
+
+/** A page that may have work in flight it wants to confirm before leaving. */
+interface LeaveAware {
+  canLeave?: () => boolean | Promise<boolean>;
+}
+
+/** Asks before leaving the manage page while uploads are still running. */
+const confirmLeaveWhileUploading: CanDeactivateFn<LeaveAware> = (component) =>
+  component?.canLeave ? component.canLeave() : true;
 
 /**
  * The digital library — two screens on one module.
@@ -18,6 +27,7 @@ export const libraryRoutes: Routes = [
     path: 'admin/library',
     loadComponent: () =>
       import('./components/library-manage/library-manage.component').then((m) => m.LibraryManageComponent),
+    canDeactivate: [confirmLeaveWhileUploading],
     title: 'Digital Library',
   },
 ];

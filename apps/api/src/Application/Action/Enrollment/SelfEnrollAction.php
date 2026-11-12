@@ -9,6 +9,7 @@ use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Enrollment\AssignmentRequest;
 use Central\Api\Domain\Exception\ConflictingState;
 use Central\Api\Domain\Exception\EntityNotFound;
+use Central\Api\Domain\Notification\NotificationType;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -78,12 +79,23 @@ final class SelfEnrollAction extends EnrollmentAction
             }
         }
 
-        $this->enrollments->assign(
+        $outcome = $this->enrollments->assign(
             $tenantId,
             $courseId,
             AssignmentRequest::selfEnrolment($userId),
             // No assigning administrator: they did this themselves.
             null,
+        );
+
+        // A confirmation, the same enrolment email an assigned learner gets:
+        // they should have the course and its link in their inbox either way.
+        // Only for a fresh enrolment, not a reinstatement.
+        $this->notifier->notify(
+            $tenantId,
+            $outcome['enrolled'],
+            NotificationType::EnrollmentAssigned,
+            ['subjectTitle' => $course->title, 'courseId' => $course->id, 'selfEnrolled' => true],
+            $course->id,
         );
 
         $enrollment = $this->enrollments->findForUserAndCourse($tenantId, $userId, $courseId)

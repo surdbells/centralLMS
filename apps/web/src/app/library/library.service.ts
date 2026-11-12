@@ -39,6 +39,9 @@ export interface LibraryItem {
   /** Whether it can be viewed right now (a document is not, until converted). */
   viewable: boolean;
   audience: LibraryAudience;
+  /** The category it is filed under; null when uncategorised. */
+  categoryId: string | null;
+  categoryName: string | null;
   uploadedBy: string | null;
   uploaderName: string | null;
   createdAt: string | null;
@@ -63,7 +66,34 @@ export interface LibraryAudienceInput {
 export interface LibraryUploadInput extends LibraryAudienceInput {
   title: string;
   description?: string;
+  /** The category to file it under; null (or absent) for uncategorised. */
+  categoryId?: string | null;
 }
+
+/** A shelf the library is organised into. */
+export interface LibraryCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  /** Items in it — for a learner, only the ones shared with them. */
+  itemCount: number;
+}
+
+/** The categories, plus how many items sit in none of them. */
+export interface LibraryCategoryList {
+  categories: LibraryCategory[];
+  uncategorisedCount: number;
+}
+
+export interface LibraryCategoryInput {
+  name?: string;
+  description?: string | null;
+  sortOrder?: number;
+}
+
+/** A category filter: a category id, `'none'` for uncategorised, or null for everything. */
+export type LibraryCategoryFilter = string | null;
 
 // ---------------------------------------------------------------------------
 // Service
@@ -82,13 +112,55 @@ export class LibraryService {
   private readonly api = inject(ApiClient);
 
   /** The library as it is shared with the current user. */
-  list(search?: string, page = 1, perPage = 60): Observable<Paged<LibraryItem>> {
-    return this.api.getPaged<LibraryItem>(Endpoints.library.list, { search, page, perPage });
+  list(search?: string, categoryId: LibraryCategoryFilter = null, page = 1, perPage = 60): Observable<Paged<LibraryItem>> {
+    return this.api.getPaged<LibraryItem>(Endpoints.library.list, {
+      search,
+      categoryId: categoryId ?? undefined,
+      page,
+      perPage,
+    });
   }
 
   /** The whole shelf, for management. */
-  listManage(search?: string, page = 1, perPage = 60): Observable<Paged<LibraryItem>> {
-    return this.api.getPaged<LibraryItem>(Endpoints.library.manageList, { search, page, perPage });
+  listManage(search?: string, categoryId: LibraryCategoryFilter = null, page = 1, perPage = 200): Observable<Paged<LibraryItem>> {
+    return this.api.getPaged<LibraryItem>(Endpoints.library.manageList, {
+      search,
+      categoryId: categoryId ?? undefined,
+      page,
+      perPage,
+    });
+  }
+
+  // --- categories ---------------------------------------------------------
+
+  /**
+   * The categories with their item counts. By default the counts cover only
+   * what the caller can see (matching the browse list); `scope: 'all'` — the
+   * manage page — counts the whole shelf for a library manager.
+   */
+  categories(scope?: 'all'): Observable<LibraryCategoryList> {
+    return this.api.getPaged<LibraryCategory>(Endpoints.library.categories, scope ? { scope } : undefined).pipe(
+      map((paged) => {
+        const meta = paged.meta as unknown as Record<string, unknown> | undefined;
+        const raw = Number(meta?.['uncategorisedCount'] ?? 0);
+        return {
+          categories: paged.items,
+          uncategorisedCount: Number.isFinite(raw) ? raw : 0,
+        };
+      }),
+    );
+  }
+
+  createCategory(input: LibraryCategoryInput): Observable<LibraryCategory> {
+    return this.api.post<LibraryCategory>(Endpoints.library.categories, input);
+  }
+
+  updateCategory(id: string, input: LibraryCategoryInput): Observable<LibraryCategory> {
+    return this.api.put<LibraryCategory>(Endpoints.library.category(id), input);
+  }
+
+  deleteCategory(id: string): Observable<void> {
+    return this.api.delete<void>(Endpoints.library.category(id));
   }
 
   upload(file: File, input: LibraryUploadInput): Observable<UploadProgress<LibraryItem>> {
@@ -97,6 +169,9 @@ export class LibraryService {
     form.append('title', input.title);
     if (input.description) {
       form.append('description', input.description);
+    }
+    if (input.categoryId) {
+      form.append('categoryId', input.categoryId);
     }
     form.append('targetType', input.targetType);
     if (input.targetType !== 'all') {
@@ -111,6 +186,7 @@ export class LibraryService {
       description: input.description ?? null,
       targetType: input.targetType,
       targetIds: input.targetType === 'all' ? [] : input.targetIds,
+      categoryId: input.categoryId ?? null,
     });
   }
 

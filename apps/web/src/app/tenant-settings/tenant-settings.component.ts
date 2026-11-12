@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
 import { AdmintopComponent } from '../partials/top/admintop/admintop.component';
-import { RichHtmlEditorComponent } from '../shared/rich-html-editor/rich-html-editor.component';
 import { TranslatePipe } from '../translate.pipe';
 import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
 import { I18nService } from '../i18n.service';
@@ -16,10 +15,8 @@ import {
   type SettingValue,
 } from '../services/settings.service';
 import { TenantService, type Tenant } from '../services/tenant.service';
-import {
-  EmailTemplatesService,
-  type EmailTemplate,
-} from '../services/email-templates.service';
+import { EmailTemplatesPanelComponent } from './email-templates-panel/email-templates-panel.component';
+import { EmailTemplatesService } from '../services/email-templates.service';
 import {
   SsoService,
   type SsoConnection,
@@ -58,18 +55,18 @@ export interface SettingsTab {
 @Component({
   selector: 'app-tenant-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, RichHtmlEditorComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, EmailTemplatesPanelComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './tenant-settings.component.html',
   styleUrls: ['./tenant-settings.component.scss'],
 })
 export class TenantSettingsComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(SettingsService);
   private readonly tenantService = inject(TenantService);
-  private readonly templatesService = inject(EmailTemplatesService);
   private readonly ssoService = inject(SsoService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
   private readonly dialog = inject(ConfirmDialogService);
+  private readonly emailTemplates = inject(EmailTemplatesService);
   private readonly destroy$ = new Subject<void>();
 
   loading = true;
@@ -97,13 +94,6 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
   /** What was loaded, so Save can send only what changed. */
   private loaded: Record<string, SettingValue> = {};
-
-  // --- email templates -----------------------------------------------------
-
-  templates: EmailTemplate[] = [];
-  placeholders: string[] = [];
-  editingTemplate: EmailTemplate | null = null;
-  templateForm = { subject: '', body: '', enabled: true };
 
   // --- single sign-on ------------------------------------------------------
 
@@ -154,11 +144,6 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       tenant: this.tenantService.show(),
       catalogue: this.settingsService.catalogue(),
       values: this.settingsService.show(),
-      // The one panel that can fail on its own without the screen being
-      // useless. Everything else is the screen.
-      templates: this.templatesService.list().pipe(
-        catchError(() => of({ templates: [], placeholders: [] })),
-      ),
       // Read-only on this screen; it must never stop the rest loading.
       sso: this.ssoService.connections().pipe(
         catchError(() => of([] as SsoConnection[])),
@@ -166,7 +151,7 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
     })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ({ tenant, catalogue, values, templates, sso }) => {
+        next: ({ tenant, catalogue, values, sso }) => {
           this.tenant = tenant;
           this.tenantForm = {
             name: tenant.name,
@@ -187,9 +172,6 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
           this.values = { ...values };
           this.loaded = { ...values };
-
-          this.templates = templates.templates;
-          this.placeholders = templates.placeholders;
 
           this.ssoConnections = sso;
           this.hydrateSsoForms();
@@ -260,21 +242,19 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
       icon: this.icons['sso'],
     });
 
-    if (this.templates.length > 0) {
-      tabs.push({
-        key: 'email',
-        label: this.i18n.t('tenant.tab_email'),
-        description: this.i18n.t('tenant.tab_email_desc'),
-        icon: this.icons['email'],
-      });
-    }
+    // Always shown: the panel loads its own list and has its own error state.
+    tabs.push({
+      key: 'email',
+      label: this.i18n.t('tenant.tab_email'),
+      description: this.i18n.t('tenant.tab_email_desc'),
+      icon: this.icons['email'],
+    });
 
     return tabs;
   }
 
   setActiveTab(key: string): void {
     this.activeTab = key;
-    this.editingTemplate = null;
     this.successMessage = '';
     this.errorMessage = '';
   }
@@ -431,93 +411,61 @@ export class TenantSettingsComponent implements OnInit, OnDestroy {
 
   // --- email templates -----------------------------------------------------
 
-  editTemplate(type: string): void {
-    this.clearMessages();
-
-    this.templatesService
-      .show(type)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (template) => {
-          this.editingTemplate = template;
-          this.templateForm = {
-            // Start from what would actually be sent: the organisation's own
-            // wording where it has set some, otherwise the platform default —
-            // so the editor opens on real content, never a blank page. Saving
-            // it as-is simply adopts the default wording as the org's own.
-            subject: template.subject ?? template.default?.title ?? '',
-            body: template.body ?? template.default?.body ?? '',
-            enabled: template.enabled,
-          };
-        },
-        error: (failure: ApiError) => this.fail(failure),
-      });
+  /** The logo the email header uses: the email logo, else the main one. */
+  get emailLogoUrl(): string {
+    return this.asString('email_header_logo_url').trim()
+      || this.asString('logo_url').trim()
+      || (this.tenant?.logoUrl ?? '');
   }
 
-  saveTemplate(): void {
-    const template = this.editingTemplate;
+  get hasBrandingTab(): boolean {
+    return this.tabs.some((t) => t.key === 'branding');
+  }
 
-    if (template === null) {
+  /** The logo settings an image can be uploaded for, and the asset each maps to. */
+  logoAsset(key: string): 'logo' | 'email-logo' | null {
+    return key === 'logo_url' ? 'logo' : key === 'email_header_logo_url' ? 'email-logo' : null;
+  }
+
+  /** Which logo is uploading, so only its button shows a spinner. */
+  uploadingLogo: string | null = null;
+
+  /**
+   * Uploads a logo to the API's public address (what inboxes can load) and
+   * puts it in the field. The server saves the setting itself, so the form
+   * treats the new address as already saved.
+   */
+  uploadLogo(key: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    const asset = this.logoAsset(key);
+
+    input.value = '';
+
+    if (!file || asset === null || this.uploadingLogo !== null) {
       return;
     }
 
-    this.saving = true;
-    this.clearMessages();
+    this.uploadingLogo = key;
+    this.successMessage = '';
+    this.errorMessage = '';
 
-    this.templatesService
-      .save(template.type, {
-        subject: this.templateForm.subject,
-        body: this.templateForm.body,
-        enabled: this.templateForm.enabled,
-      })
+    this.emailTemplates
+      .uploadLogo(asset, file)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (saved) => {
-          this.editingTemplate = { ...template, ...saved };
-          this.templates = this.templates.map(
-            (t) => (t.type === saved.type ? { ...t, ...saved } : t),
-          );
-          this.saving = false;
+        next: (result) => {
+          this.values[key] = result.url;
+          this.loaded[key] = result.url;
+          this.uploadingLogo = null;
           this.successMessage = this.i18n.t('tenant.saved');
         },
-        error: (failure: ApiError) => this.fail(failure),
-      });
-  }
-
-  async resetTemplate(): Promise<void> {
-    const template = this.editingTemplate;
-
-    if (template === null || !(await this.dialog.confirm(this.i18n.t('tenant.confirm_back_standard'), { type: 'danger' }))) {
-      return;
-    }
-
-    this.saving = true;
-
-    this.templatesService
-      .reset(template.type)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.saving = false;
-          this.successMessage = this.i18n.t('tenant.back_standard_done');
-          this.editTemplate(template.type);
-          this.templates = this.templates.map(
-            (t) => (t.type === template.type
-              ? { ...t, usesDefault: true, subject: null, body: null }
-              : t),
-          );
+        error: (failure: ApiError) => {
+          this.uploadingLogo = null;
+          const first = failure?.violations ? Object.values(failure.violations).flat()[0] : undefined;
+          this.errorMessage = first ?? failure?.message ?? this.i18n.t('tenant.email_error');
         },
-        error: (failure: ApiError) => this.fail(failure),
       });
-  }
-
-  closeTemplate(): void {
-    this.editingTemplate = null;
-  }
-
-  /** Drops a placeholder into the body, so nobody has to remember the spelling. */
-  insertPlaceholder(name: string): void {
-    this.templateForm.body = `${this.templateForm.body}{{${name}}}`;
   }
 
   // --- shared --------------------------------------------------------------

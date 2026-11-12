@@ -54,10 +54,13 @@ use Central\Api\Infrastructure\Persistence\DbalAssessmentRepository;
 use Central\Api\Infrastructure\Persistence\DbalAttemptRepository;
 use Central\Api\Application\Notification\NotificationDispatcher;
 use Central\Api\Application\Notification\Notifier;
+use Central\Api\Application\Notification\EmailBrandingResolver;
+use Central\Api\Application\Notification\EmailComposer;
+use Central\Api\Application\Notification\EmailSender;
+use Central\Api\Infrastructure\Notification\BrandedEmailTransport;
 use Central\Api\Application\Notification\ReminderExpander;
 use Central\Api\Application\Notification\SessionNotifier;
 use Central\Api\Domain\Notification\NotificationChannel;
-use Central\Api\Domain\Notification\EmailTemplateRenderer;
 use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationRepository;
@@ -122,7 +125,9 @@ use Central\Api\Application\Library\ConvertDocumentToPdfHandler;
 use Central\Api\Application\Media\ExtractScormPackage;
 use Central\Api\Application\Media\ExtractScormPackageHandler;
 use Central\Api\Domain\Library\DigitalLibraryRepository;
+use Central\Api\Domain\Library\LibraryCategoryRepository;
 use Central\Api\Infrastructure\Persistence\DbalDigitalLibraryRepository;
+use Central\Api\Infrastructure\Persistence\DbalLibraryCategoryRepository;
 use Central\Api\Infrastructure\Persistence\DbalEmailTemplateRepository;
 use Central\Api\Infrastructure\Persistence\DbalNotificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalTenantRepository;
@@ -546,6 +551,10 @@ return [
         static fn (ContainerInterface $c) => new DbalDigitalLibraryRepository($c->get(Connection::class)),
     ),
 
+    LibraryCategoryRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalLibraryCategoryRepository($c->get(Connection::class)),
+    ),
+
     CourseDiscussionRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalCourseDiscussionRepository($c->get(Connection::class)),
     ),
@@ -670,12 +679,24 @@ return [
     Notifier::class => factory(static fn (ContainerInterface $c) => new Notifier(
         $c->get(NotificationRepository::class),
         $c->get(NotificationComposer::class),
-        $c->get(EmailTemplateRepository::class),
-        $c->get(EmailTemplateRenderer::class),
-        $c->get(TenantRepository::class),
         $c->get(SettingsRepository::class),
         $c->get(Clock::class),
         $c->get(LoggerInterface::class),
+        (string) ($c->get('settings')['app']['web_url'] ?? ''),
+    )),
+
+    // Every email in the organisation's branding: logo, colour, name, footer.
+    EmailBrandingResolver::class => factory(static fn (ContainerInterface $c) => new EmailBrandingResolver(
+        $c->get(SettingsRepository::class),
+        $c->get(TenantRepository::class),
+        $c->get(LoggerInterface::class),
+        (string) ($c->get('settings')['app']['web_url'] ?? ''),
+        (string) ($c->get('settings')['app']['public_url'] ?? $c->get('settings')['app']['url']),
+        (string) $c->get('settings')['app']['name'],
+    )),
+
+    EmailSender::class => factory(static fn (ContainerInterface $c) => new EmailSender(
+        $c->get('notification.transports')[NotificationChannel::Email->value],
     )),
 
     EmailTemplateRepository::class => factory(
@@ -804,6 +825,14 @@ return [
             )
             : new LogTransport(NotificationChannel::Push, $logger);
 
+        // Every email goes out composed and branded (EmailComposer), whichever
+        // provider sends it — queued notifications and scheduled reports alike.
+        $transports[NotificationChannel::Email->value] = new BrandedEmailTransport(
+            $transports[NotificationChannel::Email->value],
+            $c->get(EmailComposer::class),
+            $logger,
+        );
+
         return $transports;
     }),
 
@@ -907,8 +936,16 @@ return [
     // Adding a third kind means adding an enroller here, not a second copy of
     // the rule, the sweep and the screen.
     'enrollment.subjects' => factory(static fn (ContainerInterface $c): array => [
-        new PathSubjectEnroller($c->get(Connection::class), $c->get(LearningPathRepository::class)),
-        new TrainingSubjectEnroller($c->get(Connection::class), $c->get(TrainingRepository::class)),
+        new PathSubjectEnroller(
+            $c->get(Connection::class),
+            $c->get(LearningPathRepository::class),
+            $c->get(Notifier::class),
+        ),
+        new TrainingSubjectEnroller(
+            $c->get(Connection::class),
+            $c->get(TrainingRepository::class),
+            $c->get(SessionNotifier::class),
+        ),
     ]),
 
     EnrollmentRuleRepository::class => factory(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Central\Api\Infrastructure\Enrollment;
 
+use Central\Api\Application\Notification\SessionNotifier;
 use Central\Api\Domain\Enrollment\EnrollmentSource;
 use Central\Api\Domain\Enrollment\RuleSubject;
 use Central\Api\Domain\Enrollment\SubjectEnroller;
@@ -26,6 +27,8 @@ final class TrainingSubjectEnroller implements SubjectEnroller
     public function __construct(
         private readonly Connection $connection,
         private readonly TrainingRepository $trainings,
+        /** Tells the people a rule gives a place; absent in tests. */
+        private readonly ?SessionNotifier $notifier = null,
     ) {
     }
 
@@ -62,6 +65,7 @@ final class TrainingSubjectEnroller implements SubjectEnroller
         ?\DateTimeImmutable $dueDate,
         bool $isMandatory,
         ?string $actorId,
+        bool $notify = true,
     ): int {
         $training = $this->trainings->find($tenantId, $subjectId);
 
@@ -79,6 +83,10 @@ final class TrainingSubjectEnroller implements SubjectEnroller
             $dueDate,
             $isMandatory,
         );
+
+        if ($notify) {
+            $this->notifier?->enrolledOnProgramme($tenantId, $training, $result['enrolled']);
+        }
 
         // People given a place. The waiting list is reported separately by the
         // programme's own screens; counting it here would tell an

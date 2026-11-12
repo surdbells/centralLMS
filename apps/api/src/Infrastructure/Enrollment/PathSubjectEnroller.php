@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Central\Api\Infrastructure\Enrollment;
 
+use Central\Api\Application\Notification\Notifier;
 use Central\Api\Domain\Enrollment\RuleSubject;
 use Central\Api\Domain\Enrollment\SubjectEnroller;
 use Central\Api\Domain\LearningPath\LearningPathRepository;
+use Central\Api\Domain\Notification\NotificationType;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 
@@ -22,6 +24,8 @@ final class PathSubjectEnroller implements SubjectEnroller
     public function __construct(
         private readonly Connection $connection,
         private readonly LearningPathRepository $paths,
+        /** Tells the people a rule enrols; absent in tests. */
+        private readonly ?Notifier $notifier = null,
     ) {
     }
 
@@ -55,8 +59,11 @@ final class PathSubjectEnroller implements SubjectEnroller
         ?\DateTimeImmutable $dueDate,
         bool $isMandatory,
         ?string $actorId,
+        bool $notify = true,
     ): int {
-        return $this->paths->enrol(
+        $before = $notify ? $this->enrolledAmong($tenantId, $subjectId, $userIds) : [];
+
+        $enrolled = $this->paths->enrol(
             $tenantId,
             $subjectId,
             $userIds,
@@ -66,6 +73,44 @@ final class PathSubjectEnroller implements SubjectEnroller
             $isMandatory,
             $ruleId,
         )['enrolled'];
+
+        if ($notify && $enrolled > 0 && $this->notifier !== null) {
+            // Only the people this run put on the path: everybody else was
+            // told when they joined.
+            $new = array_values(array_diff(
+                $this->enrolledAmong($tenantId, $subjectId, $userIds),
+                $before,
+            ));
+
+            $this->notifier->notify($tenantId, $new, NotificationType::EnrollmentAssigned, [
+                'subjectTitle' => (string) $this->titleOf($tenantId, $subjectId),
+                'dueDate'      => $dueDate?->format('j M Y'),
+                'pathId'       => $subjectId,
+            ]);
+        }
+
+        return $enrolled;
+    }
+
+    /**
+     * Which of these people are on the path now.
+     *
+     * @param  list<string> $userIds
+     * @return list<string>
+     */
+    private function enrolledAmong(string $tenantId, string $pathId, array $userIds): array
+    {
+        if ($userIds === [] || $this->notifier === null) {
+            return [];
+        }
+
+        return array_map('strval', $this->connection->fetchFirstColumn(
+            'SELECT user_id FROM learning_path_enrollments
+             WHERE tenant_id = :tenant AND path_id = :path
+               AND user_id IN (:ids) AND deleted_at IS NULL',
+            ['tenant' => $tenantId, 'path' => $pathId, 'ids' => $userIds],
+            ['ids' => ArrayParameterType::STRING],
+        ));
     }
 
     public function countEnrolled(string $tenantId, string $subjectId, array $userIds): int

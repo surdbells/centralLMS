@@ -16,6 +16,8 @@ use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Library\ConversionStatus;
 use Central\Api\Domain\Library\DigitalLibraryItem;
 use Central\Api\Domain\Library\DigitalLibraryRepository;
+use Central\Api\Domain\Library\LibraryCategoryFilter;
+use Central\Api\Domain\Library\LibraryCategoryRepository;
 use Central\Api\Domain\Media\MediaKind;
 use Central\Api\Domain\Media\UploadRequest;
 use Central\Api\Infrastructure\Storage\MediaStorage;
@@ -42,6 +44,7 @@ final class ManageLibraryAction
         private readonly DigitalLibraryRepository $library,
         private readonly MediaStorage $storage,
         private readonly MessageBusInterface $bus,
+        private readonly LibraryCategoryRepository $categories,
     ) {
     }
 
@@ -51,11 +54,13 @@ final class ManageLibraryAction
         $this->caller($request)->mustHave(Permission::LibraryManage);
 
         [$page, $perPage] = $this->paging($request);
+        $query = $request->getQueryParams();
         $result = $this->library->listAll(
             $this->tenantId($request),
-            $this->str($request->getQueryParams()['search'] ?? null),
+            $this->str($query['search'] ?? null),
             $page,
             $perPage,
+            LibraryCategoryFilter::fromQuery($query['categoryId'] ?? null),
         );
 
         return Json::page(
@@ -78,6 +83,8 @@ final class ManageLibraryAction
 
         $checked = $this->accept($upload, $body);
         [$targetType, $criteria] = $this->parseAudience($body);
+        // Checked before the bytes are stored, so a bad category stores nothing.
+        $categoryId = $this->category($tenantId, $body['categoryId'] ?? null);
 
         $key = $checked->storageKey($tenantId, bin2hex(random_bytes(16)));
         $stored = $this->storage->store($upload, $key);
@@ -104,6 +111,7 @@ final class ManageLibraryAction
             conversionStatus: $needsConversion ? ConversionStatus::Pending : ConversionStatus::NotRequired,
             sha256: $stored['sha256'],
             uploadedBy: $caller->id,
+            categoryId: $categoryId,
         ));
 
         if ($needsConversion && $item->id !== null) {
@@ -130,6 +138,18 @@ final class ManageLibraryAction
 
         [$targetType, $criteria] = $this->parseAudience($body);
 
+        // A body that does not mention the category leaves it where it is;
+        // one that sends it empty moves the item to uncategorised.
+        if (array_key_exists('categoryId', $body)) {
+            $categoryId = $this->category($tenantId, $body['categoryId']);
+        } else {
+            $current = $this->library->find($tenantId, $args['id']);
+            if ($current === null) {
+                throw new EntityNotFound('Library item', $args['id']);
+            }
+            $categoryId = $current->categoryId;
+        }
+
         $item = $this->library->updateDetails(
             $tenantId,
             $args['id'],
@@ -137,6 +157,7 @@ final class ManageLibraryAction
             $this->textOrNull($body['description'] ?? null),
             $targetType,
             $criteria,
+            $categoryId,
         );
 
         if ($item === null) {
@@ -171,6 +192,25 @@ final class ManageLibraryAction
     }
 
     // --- helpers --------------------------------------------------------------
+
+    /**
+     * The category an item is filed under, from the body: null (uncategorised)
+     * when it is empty, otherwise a category that must exist in this tenant —
+     * an unknown id, or another tenant's, is refused rather than ignored.
+     */
+    private function category(string $tenantId, mixed $value): ?string
+    {
+        $id = LibraryCategoryFilter::fromBody($value);
+        if ($id === null) {
+            return null;
+        }
+
+        if ($this->categories->find($tenantId, $id) === null) {
+            throw ValidationFailed::fromArray(['categoryId' => 'Choose a category from the list.']);
+        }
+
+        return $id;
+    }
 
     /**
      * Validates the upload and rejects what the library does not take. SCORM is

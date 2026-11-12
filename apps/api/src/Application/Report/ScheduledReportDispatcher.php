@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Central\Api\Application\Report;
 
 use Central\Api\Domain\Authz\AuthenticatedUser;
+use Central\Api\Application\Notification\EmailComposer;
 use Central\Api\Domain\Identity\UserRepository;
+use Central\Api\Domain\Notification\EmailLayout;
 use Central\Api\Domain\Notification\NotificationChannel;
 use Central\Api\Domain\Notification\NotificationPriority;
 use Central\Api\Domain\Notification\NotificationTransport;
@@ -210,6 +212,9 @@ final readonly class ScheduledReportDispatcher
                 title: sprintf('%s — %s', $report->name, $this->clock->now()->format('j M Y')),
                 body: $this->body($report, $result),
                 data: [
+                    // Content, not a notification: the email transport frames
+                    // it in the organisation's branded layout as it is.
+                    'emailLayout' => EmailComposer::LAYOUT_ONLY,
                     'attachments' => [[
                         'name'     => $filename,
                         'content'  => base64_encode($csv),
@@ -237,23 +242,36 @@ final readonly class ScheduledReportDispatcher
         return $delivered;
     }
 
+    /**
+     * The email's content: what is attached, the headline numbers, and why it
+     * arrived. HTML, because a plain-text body sent as HTML runs every line
+     * into one paragraph; the transport frames it in the branded layout.
+     */
     private function body(SavedReport $report, ReportResult $result): string
     {
-        $lines = [
-            sprintf('%s is attached.', $result->definition->name),
-            '',
-            sprintf('%d rows, as of %s.', count($result->rows), $this->clock->now()->format('j M Y H:i')),
+        $e = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8');
+
+        $facts = [
+            ['Report', $e($result->definition->name)],
+            ['Rows', $e(number_format(count($result->rows)))],
+            ['As of', $e($this->clock->now()->format('j M Y, H:i'))],
         ];
 
         foreach ($result->totals as $label => $value) {
             if (is_scalar($value)) {
-                $lines[] = sprintf('%s: %s', $label, (string) $value);
+                $facts[] = [$e((string) $label), $e((string) $value)];
             }
         }
 
-        $lines[] = '';
-        $lines[] = sprintf('You are receiving this because "%s" is scheduled to be sent to you.', $report->name);
-
-        return implode("\n", $lines);
+        return EmailLayout::heading($e($report->name))
+            . EmailLayout::paragraph(sprintf(
+                'Your scheduled report is ready. The full data is attached as a spreadsheet (<strong>%s</strong>).',
+                $e($this->csv->filename($result->definition, $this->clock->now())),
+            ))
+            . EmailLayout::facts($facts)
+            . EmailLayout::paragraph(sprintf(
+                'You are receiving this because “%s” is scheduled to be sent to you.',
+                $e($report->name),
+            ), true);
     }
 }

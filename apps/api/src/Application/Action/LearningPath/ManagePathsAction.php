@@ -6,6 +6,7 @@ namespace Central\Api\Application\Action\LearningPath;
 
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Notification\Notifier;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Catalog\CourseStatus;
 use Central\Api\Domain\Authz\Permission;
@@ -23,6 +24,7 @@ use Central\Api\Domain\LearningPath\PathItemKind;
 use Central\Api\Domain\LearningPath\PathPacing;
 use Central\Api\Domain\LearningPath\PathProgress;
 use Central\Api\Domain\LearningPath\PathSection;
+use Central\Api\Domain\Notification\NotificationType;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -62,8 +64,10 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 final class ManagePathsAction
 {
-    public function __construct(private readonly LearningPathRepository $paths)
-    {
+    public function __construct(
+        private readonly LearningPathRepository $paths,
+        private readonly Notifier $notifier,
+    ) {
     }
 
     // --- authoring --------------------------------------------------------
@@ -425,15 +429,41 @@ final class ManagePathsAction
             throw ValidationFailed::fromArray(['userIds' => 'Say who is being enrolled.']);
         }
 
+        $userIds = array_values(array_unique(array_map(strval(...), $given)));
+
+        // Who is not on the path yet, so only they are told about it.
+        $newcomers = array_values(array_filter(
+            $userIds,
+            fn (string $userId): bool => $this->paths->enrolmentFor($tenantId, $args['id'], $userId) === null,
+        ));
+
+        $due = $this->dateOrNull($body['dueDate'] ?? null);
+
         $result = $this->paths->enrol(
             $tenantId,
             $args['id'],
-            array_values(array_map(strval(...), $given)),
+            $userIds,
             'direct',
             $caller->id,
-            $this->dateOrNull($body['dueDate'] ?? null),
+            $due,
             filter_var($body['isMandatory'] ?? $path->isMandatory, FILTER_VALIDATE_BOOL),
         );
+
+        if ($result['enrolled'] > 0) {
+            $this->notifier->notify(
+                $tenantId,
+                array_values(array_filter(
+                    $newcomers,
+                    fn (string $userId): bool => $this->paths->enrolmentFor($tenantId, $args['id'], $userId) !== null,
+                )),
+                NotificationType::EnrollmentAssigned,
+                [
+                    'subjectTitle' => $path->title,
+                    'dueDate'      => $due?->format('j M Y'),
+                    'pathId'       => $path->id,
+                ],
+            );
+        }
 
         return Json::ok($response, $result);
     }
@@ -554,6 +584,13 @@ final class ManagePathsAction
 
         $enrollment = $this->paths->enrolmentFor($tenantId, $args['id'], $caller->id)
             ?? throw new ConflictingState('You could not be enrolled.', 'enrolment_failed');
+
+        // The same confirmation a learner gets for joining a course.
+        $this->notifier->notifyOne($tenantId, $caller->id, NotificationType::EnrollmentAssigned, [
+            'subjectTitle' => $path->title,
+            'pathId'       => $path->id,
+            'selfEnrolled' => true,
+        ]);
 
         return Json::created($response, $enrollment->toArray());
     }

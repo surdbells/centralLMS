@@ -150,6 +150,27 @@ final readonly class SessionNotifier
     }
 
     /**
+     * Tells people they have been given a place on a programme — assigned,
+     * by an enrolment rule, or by enrolling themselves. Only those given a
+     * place: somebody on the waiting list has not got one.
+     *
+     * @param list<string> $userIds the newly enrolled
+     */
+    public function enrolledOnProgramme(string $tenantId, LiveTraining $training, array $userIds): int
+    {
+        if ($userIds === []) {
+            return 0;
+        }
+
+        return $this->notifier->notify(
+            $tenantId,
+            $userIds,
+            NotificationType::SessionScheduled,
+            ['subjectTitle' => $training->title],
+        );
+    }
+
+    /**
      * The start time in the session's own timezone.
      *
      * A session in Lagos announced in UTC tells everybody the wrong hour, and

@@ -170,6 +170,9 @@ final class PasswordResetAction
         // created `invited`, which refuses sign-in.
         if ($found->purpose === PasswordTokenPurpose::Invitation) {
             $this->people->setStatus($found->tenantId, $found->userId, UserStatus::Active);
+
+            // The welcome: their account is ready, and here is the way in.
+            $this->notifier->notifyOne($found->tenantId, $found->userId, NotificationType::Welcome);
         }
 
         // Everything else that could set this password is now stale, and so is

@@ -79,6 +79,9 @@ final class TrainingEnrolmentAction extends TrainingAction
             $this->userId($request),
         );
 
+        // An email to each person given a place (not the waiting list).
+        $this->notifier->enrolledOnProgramme($tenantId, $training, $outcome['enrolled']);
+
         return Json::ok($response, [
             'trainingId' => $training->id,
             'enrolled'   => count($outcome['enrolled']),
@@ -156,6 +159,8 @@ final class TrainingEnrolmentAction extends TrainingAction
         if ($outcome['rejected'] !== []) {
             throw new ConflictingState('This programme is full.', 'training_full');
         }
+
+        $this->notifier->enrolledOnProgramme($tenantId, $training, $outcome['enrolled']);
 
         $enrolment = $this->trainings->findEnrolment($tenantId, $training->id, $userId)
             ?? throw new \RuntimeException('Enrolment could not be read back.');

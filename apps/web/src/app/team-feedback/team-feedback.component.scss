@@ -1,21 +1,181 @@
-// Look comes from the global UI kit. This route renders without the top bar,
-// so it keeps a little side inset of its own.
-:host { display: block; padding: 0 16px; }
+// Page chrome (header, KPIs, tabs, search, sections, pills, states) comes from
+// the global UI kit; this file only lays out the guide, toolbar and rows.
+// Colours are UI-kit tokens only, so dark mode follows the theme.
 
-.course-rows > li { display: block; padding: 12px 0; }
-.course-rows > li:first-child { padding-top: 0; }
+:host { display: block; }
 
-.cr-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.cr-title {
+.tf-page { min-width: 0; }
+
+.tf-kpis { margin-bottom: 20px; }
+
+/* --- how to rate --------------------------------------------------------- */
+.tf-guide .ui-section__head { margin-bottom: 0; }
+.tf-guide .ui-section__title { display: inline-flex; align-items: center; }
+.tf-guide__intro {
+  margin: 12px 0 14px;
+  max-width: 720px;
+  font-size: .875rem;
+  color: var(--ui-text-muted);
+}
+
+.tf-scale {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+
+  > li {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-card);
+    background: var(--ui-surface-2);
+  }
+}
+.tf-scale__num {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ui-radius-ctl);
+  background: var(--ui-accent-soft);
+  color: var(--brand-primary);
+  font-weight: 700;
+  font-size: .8125rem;
+}
+.tf-scale__stars { color: var(--ui-warning); font-size: .75rem; letter-spacing: 1px;
+  .bi-star { color: var(--ui-text-subtle); } }
+.tf-scale__text { font-size: .8125rem; font-weight: 600; color: var(--ui-text); line-height: 1.3; }
+
+@media (max-width: 991.98px) {
+  .tf-scale { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 575.98px) {
+  .tf-scale { grid-template-columns: 1fr;
+    > li { flex-direction: row; align-items: center; gap: 10px; } }
+}
+
+/* --- toolbar ------------------------------------------------------------- */
+.tf-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+
+  .ui-tabs { margin-bottom: 0; }
+}
+.tf-search { flex: 0 1 320px; min-width: 0; }
+
+@media (max-width: 575.98px) {
+  .tf-search { flex: 1 1 100%; }
+}
+
+/* --- person card --------------------------------------------------------- */
+.tf-person__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--ui-border);
+}
+.tf-person__titles { flex: 1 1 180px; min-width: 0; }
+.tf-person__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ui-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tf-person__sub {
+  margin: 2px 0 0;
+  font-size: .8125rem;
+  color: var(--ui-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tf-person__progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+.tf-bar { width: 140px; flex: none; height: 4px; }
+
+@media (max-width: 575.98px) {
+  .tf-person__progress { flex: 1 1 100%; align-items: stretch; }
+  .tf-person__progress .ui-pill { align-self: flex-start; }
+  .tf-bar { width: 100%; }
+}
+
+/* --- course rows --------------------------------------------------------- */
+.tf-rows > li.tf-row { display: block; padding: 12px 0; }
+.tf-rows > li.tf-row:first-child { padding-top: 0; }
+
+.tf-row__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+}
+.tf-row__course { display: flex; align-items: flex-start; gap: 10px; min-width: 0; flex: 1 1 240px; }
+.tf-row__icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ui-radius-ctl);
+  background: var(--ui-accent-soft);
+  color: var(--brand-primary);
+  font-size: .9rem;
+}
+.tf-row.is-rated .tf-row__icon {
+  background: rgba(var(--ui-success-rgb), .1);
+  color: var(--ui-success-text);
+}
+.tf-row__text { display: flex; flex-direction: column; min-width: 0; }
+.tf-row__title {
   font-size: .875rem;
   font-weight: 600;
   color: var(--ui-text);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  i { color: var(--brand-primary); }
+  overflow-wrap: anywhere;
 }
-.cr-rate { display: inline-flex; align-items: center; gap: 8px; }
-.cr-saved { color: var(--ui-success-text); }
-.cr-note { width: 100%; margin-top: 8px; }
+.tf-row__date { font-size: .75rem; color: var(--ui-text-subtle); }
+
+.tf-row__rate { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.tf-status { display: inline-flex; align-items: center; min-height: 20px; font-size: .75rem; font-weight: 600;
+  > span { display: inline-flex; align-items: center; gap: 5px; } }
+.tf-status__saving { color: var(--ui-text-muted); .spinner-border { width: .8rem; height: .8rem; border-width: .15em; } }
+.tf-status__saved { color: var(--ui-success-text); }
+.tf-status__error { color: var(--ui-danger-text); }
+.tf-retry { font-size: .75rem; font-weight: 600; color: var(--brand-primary); text-decoration: underline; }
+
+.tf-row__note {
+  margin-top: 8px;
+  padding-left: 40px;
+
+  .form-control { width: 100%; }
+}
+.tf-hint { display: block; margin-top: 4px; font-size: .75rem; color: var(--ui-warning-text); }
+
+@media (max-width: 575.98px) {
+  .tf-row__note { padding-left: 0; }
+}

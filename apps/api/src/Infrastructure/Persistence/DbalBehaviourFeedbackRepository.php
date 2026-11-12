@@ -16,21 +16,35 @@ final class DbalBehaviourFeedbackRepository implements BehaviourFeedbackReposito
 
     public function pendingFor(string $tenantId, string $managerId): array
     {
-        return $this->connection->fetchAllAssociative(
+        $rows = $this->connection->fetchAllAssociative(
             "SELECT u.id AS user_id,
                     TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS name,
+                    NULLIF(u.avatar_url, '') AS avatar_url,
+                    jt.name AS job_title,
+                    d.name AS department,
                     c.id AS course_id, c.title AS course_title,
                     e.completed_at,
                     bf.rating, bf.comments
              FROM users u
              JOIN enrollments e ON e.user_id = u.id AND e.tenant_id = u.tenant_id AND e.status = 'completed'
              JOIN courses c ON c.id = e.course_id
+             LEFT JOIN lookups jt ON jt.id = u.job_title_id
+             LEFT JOIN lookups d  ON d.id  = u.department_id
              LEFT JOIN behaviour_feedback bf
                     ON bf.user_id = u.id AND bf.course_id = c.id AND bf.manager_id = :manager
              WHERE u.tenant_id = :tenant AND u.manager_id = :manager AND u.deleted_at IS NULL
              ORDER BY name, e.completed_at DESC NULLS LAST",
             ['tenant' => $tenantId, 'manager' => $managerId],
         );
+
+        // Postgres returns TIMESTAMPTZ as "2026-11-01 10:22:33.123456+00", which
+        // some browsers (Safari) cannot parse; hand the client ISO 8601 instead.
+        return array_map(static function (array $r): array {
+            if (isset($r['completed_at']) && is_string($r['completed_at']) && $r['completed_at'] !== '') {
+                $r['completed_at'] = (new \DateTimeImmutable($r['completed_at']))->format(DATE_ATOM);
+            }
+            return $r;
+        }, $rows);
     }
 
     public function isReport(string $tenantId, string $managerId, string $userId): bool

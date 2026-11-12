@@ -1,0 +1,97 @@
+<div class="lc-head">
+  <div class="lc-head__icon" aria-hidden="true"><i class="bi bi-folder2-open"></i></div>
+  <div class="lc-head__titles">
+    <h2 id="lib-cat-title">{{ 'library.categories' | translate }}</h2>
+    <p>{{ 'library.categories_subtitle' | translate }}</p>
+  </div>
+  <button type="button" class="btn-close" [attr.aria-label]="'common.close' | translate" (click)="closed.emit()"></button>
+</div>
+
+<form class="lc-add" (ngSubmit)="add()">
+  <label class="visually-hidden" for="lib-cat-new">{{ 'library.category_new' | translate }}</label>
+  <input #addInput id="lib-cat-new" name="newName" type="text" class="form-control" maxlength="120"
+         [class.is-invalid]="addError()" [(ngModel)]="newName" (ngModelChange)="addError.set(null)"
+         [placeholder]="'library.category_new_placeholder' | translate" autocomplete="off" />
+  <button type="submit" class="btn btn-primary" [disabled]="adding() || !newName.trim()">
+    @if (adding()) { <span class="spinner-border spinner-border-sm"></span> } @else { <i class="bi bi-plus-lg"></i> }
+    <span class="ms-1">{{ 'library.add' | translate }}</span>
+  </button>
+</form>
+@if (addError()) { <div class="lc-error" role="alert">{{ addError() }}</div> }
+
+<div class="lc-body">
+  @if (loading() && categories().length === 0) {
+    <app-skeleton variant="lines" [rows]="5"></app-skeleton>
+  } @else if (error()) {
+    <div class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <h3>{{ 'library.categories_load_error' | translate }}</h3>
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="retry.emit()">{{ 'library.try_again' | translate }}</button>
+    </div>
+  } @else if (categories().length === 0) {
+    <div class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-folder-plus"></i></span>
+      <h3>{{ 'library.categories_empty_title' | translate }}</h3>
+      <p>{{ 'library.categories_empty_text' | translate }}</p>
+    </div>
+  } @else {
+    <ul class="lc-list">
+      @for (c of categories(); track c.id; let i = $index; let first = $first; let last = $last) {
+        <li class="lc-row" [class.is-busy]="busyId() === c.id">
+          @if (editingId() === c.id) {
+            <form class="lc-rename" (ngSubmit)="saveRename(c)">
+              <label class="visually-hidden" [for]="'lib-cat-rename-' + c.id">{{ 'library.category_rename' | translate }}</label>
+              <input [id]="'lib-cat-rename-' + c.id" name="editName" type="text" class="form-control form-control-sm"
+                     maxlength="120" [class.is-invalid]="renameError()" [(ngModel)]="editName"
+                     (keydown.escape)="cancelRename(); $event.stopPropagation()" autocomplete="off" />
+              <button type="submit" class="btn btn-sm btn-primary" [disabled]="busyId() === c.id"
+                      [title]="'common.save' | translate" [attr.aria-label]="'common.save' | translate">
+                <i class="bi bi-check-lg"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelRename()"
+                      [title]="'common.cancel' | translate" [attr.aria-label]="'common.cancel' | translate">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </form>
+            @if (renameError()) { <div class="lc-error lc-error--row" role="alert">{{ renameError() }}</div> }
+          } @else {
+            <i class="bi bi-folder2 lc-row__icon" aria-hidden="true"></i>
+            <button type="button" class="lc-row__name" (click)="startRename(c)" [title]="'library.category_rename' | translate">
+              {{ c.name }}
+            </button>
+            <span class="ui-pill ui-pill--neutral lc-row__count" [title]="'library.category_items' | translate:{ count: c.itemCount }">
+              {{ c.itemCount }}
+            </span>
+            <div class="lc-row__actions">
+              <button type="button" class="lc-icon" [disabled]="first || !!busyId()" (click)="move(i, -1)"
+                      [title]="'library.move_up' | translate" [attr.aria-label]="'library.move_up' | translate">
+                <i class="bi bi-arrow-up"></i>
+              </button>
+              <button type="button" class="lc-icon" [disabled]="last || !!busyId()" (click)="move(i, 1)"
+                      [title]="'library.move_down' | translate" [attr.aria-label]="'library.move_down' | translate">
+                <i class="bi bi-arrow-down"></i>
+              </button>
+              <button type="button" class="lc-icon" (click)="startRename(c)"
+                      [title]="'library.category_rename' | translate" [attr.aria-label]="'library.category_rename' | translate">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button type="button" class="lc-icon lc-icon--danger" [disabled]="busyId() === c.id" (click)="remove(c)"
+                      [title]="'common.delete' | translate" [attr.aria-label]="'common.delete' | translate">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (!error()) {
+    <div class="lc-uncat">
+      <i class="bi bi-inbox" aria-hidden="true"></i>
+      <span>{{ 'library.uncategorised' | translate }}</span>
+      <span class="ui-pill ui-pill--neutral">{{ uncategorisedCount() }}</span>
+    </div>
+    <p class="lc-hint">{{ 'library.categories_hint' | translate }}</p>
+  }
+</div>

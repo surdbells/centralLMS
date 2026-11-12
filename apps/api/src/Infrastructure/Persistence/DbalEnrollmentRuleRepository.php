@@ -247,6 +247,7 @@ final class DbalEnrollmentRuleRepository implements EnrollmentRuleRepository
             $due === null ? null : new \DateTimeImmutable($due),
             $rule->isMandatory,
             $rule->createdBy,
+            $rule->sendNotification,
         );
     }
 

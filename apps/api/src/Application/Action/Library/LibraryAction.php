@@ -12,6 +12,7 @@ use Central\Api\Domain\Exception\AccessDenied;
 use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Library\DigitalLibraryItem;
 use Central\Api\Domain\Library\DigitalLibraryRepository;
+use Central\Api\Domain\Library\LibraryCategoryFilter;
 use Central\Api\Infrastructure\Security\JwtTokenService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -40,12 +41,14 @@ final class LibraryAction
         $caller->mustHave(Permission::LibraryView);
 
         [$page, $perPage] = $this->paging($request);
+        $query = $request->getQueryParams();
         $result = $this->library->listVisibleTo(
             $this->tenantId($request),
             $caller->id,
-            $this->str($request->getQueryParams()['search'] ?? null),
+            $this->str($query['search'] ?? null),
             $page,
             $perPage,
+            LibraryCategoryFilter::fromQuery($query['categoryId'] ?? null),
         );
 
         return Json::page(

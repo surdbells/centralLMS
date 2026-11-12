@@ -18,12 +18,13 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
         i.original_filename, i.storage_key, i.file_size, i.mime_type, i.extension,
         i.page_count, i.duration_seconds, i.converted_pdf_key, i.conversion_status,
         i.target_type, i.target_criteria, i.sha256, i.metadata,
-        i.created_at, i.updated_at,
+        i.created_at, i.updated_at, i.category_id, lc.name AS category_name,
         NULLIF(btrim(COALESCE(u.first_name, \'\') || \' \' || COALESCE(u.last_name, \'\')), \'\') AS uploader_name';
 
     private const FROM = '
         FROM digital_library_items i
-        LEFT JOIN users u ON u.id = i.uploaded_by';
+        LEFT JOIN users u ON u.id = i.uploaded_by
+        LEFT JOIN library_categories lc ON lc.id = i.category_id AND lc.tenant_id = i.tenant_id';
 
     public function __construct(private readonly Connection $connection)
     {
@@ -36,11 +37,11 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
                  (tenant_id, uploaded_by, kind, title, description,
                   original_filename, storage_key, file_size, mime_type, extension,
                   page_count, duration_seconds, converted_pdf_key, conversion_status,
-                  target_type, target_criteria, sha256, metadata)
+                  target_type, target_criteria, sha256, metadata, category_id)
              VALUES (:tenant, :uploadedBy, :kind, :title, :description,
                      :originalFilename, :storageKey, :fileSize, :mimeType, :extension,
                      :pageCount, :duration, :convertedPdfKey, :conversionStatus,
-                     :targetType, :targetCriteria::jsonb, :sha256, :metadata::jsonb)
+                     :targetType, :targetCriteria::jsonb, :sha256, :metadata::jsonb, :categoryId)
              RETURNING id',
             $this->writableColumns($item),
         );
@@ -63,21 +64,34 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
         return $row === false ? null : $this->hydrate($row);
     }
 
-    public function listAll(string $tenantId, ?string $search, int $page, int $perPage): array
-    {
+    public function listAll(
+        string $tenantId,
+        ?string $search,
+        int $page,
+        int $perPage,
+        ?string $categoryId = null,
+    ): array {
         [$searchWhere, $params] = $this->search($search);
-        $params['tenant'] = $tenantId;
-        $where = 'i.tenant_id = :tenant AND i.deleted_at IS NULL' . $searchWhere;
+        [$categoryWhere, $categoryParams] = $this->category($categoryId);
+        $params = [...$params, ...$categoryParams, 'tenant' => $tenantId];
+        $where = 'i.tenant_id = :tenant AND i.deleted_at IS NULL' . $searchWhere . $categoryWhere;
 
         return $this->page($where, $params, $page, $perPage);
     }
 
-    public function listVisibleTo(string $tenantId, string $userId, ?string $search, int $page, int $perPage): array
-    {
+    public function listVisibleTo(
+        string $tenantId,
+        string $userId,
+        ?string $search,
+        int $page,
+        int $perPage,
+        ?string $categoryId = null,
+    ): array {
         [$searchWhere, $params] = $this->search($search);
-        $params['tenant'] = $tenantId;
-        $params['userId'] = $userId;
-        $where = 'i.tenant_id = :tenant AND i.deleted_at IS NULL AND ' . self::VISIBILITY . $searchWhere;
+        [$categoryWhere, $categoryParams] = $this->category($categoryId);
+        $params = [...$params, ...$categoryParams, 'tenant' => $tenantId, 'userId' => $userId];
+        $where = 'i.tenant_id = :tenant AND i.deleted_at IS NULL AND ' . self::VISIBILITY
+            . $searchWhere . $categoryWhere;
 
         return $this->page($where, $params, $page, $perPage);
     }
@@ -100,11 +114,13 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
         ?string $description,
         AudienceTarget $targetType,
         array $targetCriteria,
+        ?string $categoryId = null,
     ): ?DigitalLibraryItem {
         $changed = $this->connection->executeStatement(
             'UPDATE digital_library_items SET
                  title = :title, description = :description,
                  target_type = :targetType, target_criteria = :targetCriteria::jsonb,
+                 category_id = :categoryId,
                  updated_at = now()
              WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
             [
@@ -114,6 +130,7 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
                 'description'    => $description,
                 'targetType'     => $targetType->value,
                 'targetCriteria' => json_encode((object) $targetCriteria, JSON_THROW_ON_ERROR),
+                'categoryId'     => $categoryId,
             ],
         );
 
@@ -177,8 +194,11 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
      * than the `?` operator, which PDO reads as a positional placeholder.
      * `department_id::text` is NULL for an unplaced user, and jsonb_exists of a
      * NULL needle is false, so an unplaced user matches only `all`.
+     *
+     * Public so the category counts ({@see DbalLibraryCategoryRepository}) apply
+     * exactly the same rule; it expects the item aliased `i` and a `:userId`.
      */
-    private const VISIBILITY = "(
+    public const VISIBILITY = "(
         i.target_type = 'all'
         OR EXISTS (
             SELECT 1 FROM users usr
@@ -238,6 +258,24 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
     }
 
     /**
+     * The category filter: one category, uncategorised (`none`), or none at all.
+     *
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function category(?string $categoryId): array
+    {
+        if ($categoryId === null || $categoryId === '') {
+            return ['', []];
+        }
+
+        if ($categoryId === DigitalLibraryRepository::UNCATEGORISED) {
+            return [' AND i.category_id IS NULL', []];
+        }
+
+        return [' AND i.category_id = :categoryId', ['categoryId' => $categoryId]];
+    }
+
+    /**
      * @param array<string, mixed> $row
      */
     private function hydrate(array $row): DigitalLibraryItem
@@ -265,6 +303,8 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
             uploaderName: $row['uploader_name'] !== null ? (string) $row['uploader_name'] : null,
             createdAt: $this->time($row['created_at'] ?? null),
             updatedAt: $this->time($row['updated_at'] ?? null),
+            categoryId: isset($row['category_id']) ? (string) $row['category_id'] : null,
+            categoryName: isset($row['category_name']) ? (string) $row['category_name'] : null,
         );
     }
 
@@ -338,6 +378,7 @@ final class DbalDigitalLibraryRepository implements DigitalLibraryRepository
             'targetCriteria'   => json_encode((object) $item->targetCriteria, JSON_THROW_ON_ERROR),
             'sha256'           => $item->sha256,
             'metadata'         => json_encode((object) $item->metadata, JSON_THROW_ON_ERROR),
+            'categoryId'       => $item->categoryId,
         ];
     }
 }

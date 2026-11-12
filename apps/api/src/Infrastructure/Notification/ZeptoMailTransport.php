@@ -106,7 +106,9 @@ final readonly class ZeptoMailTransport implements NotificationTransport
             // The body is already the rendered, branded HTML email; send it as
             // the HTML part with a plain-text alternative, rather than escaping
             // and re-wrapping it (which showed the raw markup as text).
-            'textbody' => $this->plainText($delivery->body),
+            'textbody' => is_string($delivery->data['textBody'] ?? null)
+                ? $delivery->data['textBody']
+                : $this->plainText($delivery->body),
             'htmlbody' => $delivery->body,
         ];
 

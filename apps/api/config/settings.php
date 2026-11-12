@@ -20,6 +20,11 @@ return [
         'env'      => Env::get('APP_ENV', 'prod'),
         'debug'    => Env::bool('APP_DEBUG', false),
         'url'      => rtrim((string) Env::get('APP_URL', 'http://localhost:8080'), '/'),
+        // The public address of this API as an inbox sees it (behind a proxy
+        // it differs from APP_URL); logos uploaded for email are served here.
+        'public_url' => rtrim((string) Env::get('PUBLIC_API_URL', (string) Env::get('APP_URL', 'http://localhost:8080')), '/'),
+        // The learner web app, where every email's links and footer point.
+        'web_url'  => rtrim((string) Env::get('APP_WEB_URL', ''), '/'),
         'timezone' => Env::get('APP_TIMEZONE', 'UTC'),
         'version'  => trim((string) @file_get_contents($root . '/VERSION')) ?: '0.1.0-dev',
     ],

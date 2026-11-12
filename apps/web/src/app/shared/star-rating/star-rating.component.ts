@@ -12,11 +12,14 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <span class="stars" [class.readonly]="readonly" role="img" [attr.aria-label]="label + ': ' + (value || 0) + ' / 5'">
+    <span class="stars" [class.readonly]="readonly" [attr.role]="readonly ? 'img' : 'group'"
+          [attr.aria-label]="label + ': ' + (value || 0) + ' / 5'">
       <button type="button" class="star" *ngFor="let n of slots"
               [class.filled]="n <= (hover || value)"
               [disabled]="readonly"
               [attr.aria-label]="n + ' / 5'"
+              [attr.aria-pressed]="readonly ? null : n === value"
+              [attr.aria-hidden]="readonly ? true : null"
               (mouseenter)="onHover(n)" (mouseleave)="onHover(0)" (click)="pick(n)">
         <i class="bi" [ngClass]="n <= (hover || value) ? 'bi-star-fill' : 'bi-star'"></i>
       </button>

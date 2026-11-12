@@ -48,6 +48,10 @@ final readonly class DigitalLibraryItem
         public ?string $uploaderName = null,
         public ?\DateTimeImmutable $createdAt = null,
         public ?\DateTimeImmutable $updatedAt = null,
+        // The shelf it is filed under; null is uncategorised. A label only —
+        // the audience above, not the category, decides who sees it.
+        public ?string $categoryId = null,
+        public ?string $categoryName = null,
     ) {
     }
 
@@ -135,6 +139,8 @@ final readonly class DigitalLibraryItem
                 'label'    => $this->audienceLabel(),
                 'criteria' => (object) $this->targetCriteria,
             ],
+            'categoryId'   => $this->categoryId,
+            'categoryName' => $this->categoryName,
             'uploadedBy'   => $this->uploadedBy,
             'uploaderName' => $this->uploaderName,
             'createdAt'    => $this->createdAt?->format(\DateTimeInterface::ATOM),

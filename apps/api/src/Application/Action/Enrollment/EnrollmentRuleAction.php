@@ -275,6 +275,10 @@ final class EnrollmentRuleAction
                 // each person a different date, so it is left off rather than
                 // stated wrongly for everybody.
                 'dueDate' => $rule->dueDate ?? '',
+                // A rule targets a learning path or a programme, never a
+                // course: say which, so the email's button does not point at
+                // the course player with a path or programme id.
+                $rule->subjectKind === RuleSubject::Training ? 'trainingId' : 'pathId' => $rule->subjectId,
             ],
             $rule->subjectId,
         );

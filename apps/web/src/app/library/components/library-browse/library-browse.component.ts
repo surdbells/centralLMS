@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HotToastService } from '@ngneat/hot-toast';
+import { Subscription } from 'rxjs';
 import { TopComponent } from '../../../partials/top/top.component';
 import { LibraryViewerComponent } from '../library-viewer/library-viewer.component';
-import { LibraryService, type LibraryItem, type LibraryKind } from '../../library.service';
+import { LibraryService, type LibraryCategory, type LibraryItem, type LibraryKind } from '../../library.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -23,32 +24,93 @@ import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
   templateUrl: './library-browse.component.html',
   styleUrl: './library-browse.component.scss',
 })
-export class LibraryBrowseComponent implements OnInit {
+export class LibraryBrowseComponent implements OnInit, OnDestroy {
   private readonly library = inject(LibraryService);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
 
   readonly loading = signal(true);
+  readonly loadError = signal(false);
   readonly items = signal<LibraryItem[]>([]);
   readonly selected = signal<LibraryItem | null>(null);
   search = '';
+  private listSub?: Subscription;
+
+  // --- categories ---
+  readonly categoriesLoading = signal(true);
+  readonly allCategories = signal<LibraryCategory[]>([]);
+  readonly uncategorisedCount = signal(0);
+  /** null = everything, 'none' = uncategorised, otherwise a category id. */
+  readonly categoryFilter = signal<string | null>(null);
+  /** Only shelves with something on them for this learner. */
+  readonly categories = computed(() => this.allCategories().filter((c) => c.itemCount > 0));
+  readonly totalCount = computed(
+    () => this.categories().reduce((sum, c) => sum + c.itemCount, 0) + this.uncategorisedCount(),
+  );
+  /** Chips are only worth showing once at least one category has files. */
+  readonly showChips = computed(() => this.categories().length > 0);
+  readonly activeCategoryName = computed(() => {
+    const id = this.categoryFilter();
+    return this.allCategories().find((c) => c.id === id)?.name ?? '';
+  });
 
   ngOnInit(): void {
     this.load();
+    this.loadCategories();
+  }
+
+  ngOnDestroy(): void {
+    this.listSub?.unsubscribe();
   }
 
   load(): void {
     this.loading.set(true);
-    this.library.list(this.search || undefined).subscribe({
+    this.loadError.set(false);
+    this.listSub?.unsubscribe();
+    this.listSub = this.library.list(this.search.trim() || undefined, this.categoryFilter()).subscribe({
       next: (paged) => {
         this.items.set(paged.items);
         this.loading.set(false);
       },
       error: () => {
         this.toast.error(this.i18n.t('library.load_error'));
+        this.loadError.set(true);
         this.loading.set(false);
       },
     });
+  }
+
+  private loadCategories(): void {
+    this.categoriesLoading.set(true);
+    this.library.categories().subscribe({
+      next: (list) => {
+        this.allCategories.set(list.categories);
+        this.uncategorisedCount.set(list.uncategorisedCount);
+        this.categoriesLoading.set(false);
+      },
+      // Without categories the library still works — just without the chips.
+      error: () => this.categoriesLoading.set(false),
+    });
+  }
+
+  setCategoryFilter(filter: string | null): void {
+    if (this.categoryFilter() === filter) {
+      return;
+    }
+    this.categoryFilter.set(filter);
+    this.load();
+  }
+
+  onSearchChange(): void {
+    if (this.search === '') {
+      this.load();
+    }
+  }
+
+  clearFilters(): void {
+    this.search = '';
+    this.categoryFilter.set(null);
+    this.load();
   }
 
   open(item: LibraryItem): void {

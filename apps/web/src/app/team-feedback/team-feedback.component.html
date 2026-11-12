@@ -1,41 +1,199 @@
-<div class="ui-page tf-wrap">
-  <header class="ui-page-header">
-    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
-    <div class="ui-page-header__titles">
-      <h1>{{ 'feedback.title' | translate }}</h1>
-      <p>{{ 'feedback.subtitle' | translate }}</p>
+<app-admintop *ngIf="isAdmin"></app-admintop>
+<app-top *ngIf="!isAdmin"></app-top>
+
+<main class="main">
+  <div class="ui-page tf-page">
+    <header class="ui-page-header">
+      <a [routerLink]="backLink" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+      </a>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'feedback.title' | translate }}</h1>
+        <p>{{ 'feedback.subtitle' | translate }}</p>
+      </div>
+    </header>
+
+    <!-- Loading -->
+    <ng-container *ngIf="loading">
+      <app-skeleton variant="kpis" [count]="4"></app-skeleton>
+      <section class="ui-section"><app-skeleton variant="list" [rows]="5"></app-skeleton></section>
+    </ng-container>
+
+    <!-- Failed -->
+    <div class="ui-state" *ngIf="!loading && failed" role="alert">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+      <h3>{{ 'feedback.failed' | translate }}</h3>
+      <p>{{ 'feedback.failed_body' | translate }}</p>
+      <button type="button" class="btn btn-primary btn-sm" (click)="load()">
+        <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>{{ 'common.retry' | translate }}
+      </button>
     </div>
-  </header>
 
-  <section class="ui-section" *ngIf="loading"><app-skeleton variant="list" [rows]="4"></app-skeleton></section>
-  <div class="ui-state" *ngIf="failed && !loading">
-    <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
-    <p>{{ 'feedback.failed' | translate }}</p>
-  </div>
-
-  <div class="ui-state" *ngIf="!loading && !failed && reports.length === 0">
-    <span class="ui-state__icon"><i class="bi bi-people"></i></span>
-    <p>{{ 'feedback.none' | translate }}</p>
-  </div>
-
-  <section class="ui-section report-card" *ngFor="let r of reports">
-    <div class="ui-section__head">
-      <h2 class="ui-section__title">{{ r.name }}</h2>
-    </div>
-    <ul class="ui-list course-rows">
-      <li *ngFor="let row of r.rows">
-        <div class="cr-main">
-          <span class="cr-title"><i class="bi bi-journal-check"></i> {{ row.course_title }}</span>
-          <span class="cr-rate">
-            <app-star-rating [value]="row.rating || 0"
-                             [label]="'feedback.behaviour_change' | translate"
-                             (rate)="rate(row, $event)"></app-star-rating>
-            <span class="cr-saved" *ngIf="saved === key(row)"><i class="bi bi-check-circle-fill"></i></span>
-          </span>
+    <ng-container *ngIf="!loading && !failed">
+      <!-- KPIs -->
+      <div class="ui-kpi-grid ui-kpi-grid--4 tf-kpis">
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-people" aria-hidden="true"></i>{{ 'feedback.kpi_people' | translate }}</span>
+          <span class="ui-kpi__value ui-num">{{ peopleCount }}</span>
         </div>
-        <input type="text" class="form-control form-control-sm cr-note" [(ngModel)]="row.comments" (blur)="saveComment(row)"
-               [placeholder]="'feedback.note_placeholder' | translate">
-      </li>
-    </ul>
-  </section>
-</div>
+        <div class="ui-kpi ui-kpi--warning">
+          <span class="ui-kpi__label"><i class="bi bi-hourglass-split" aria-hidden="true"></i>{{ 'feedback.kpi_pending' | translate }}</span>
+          <span class="ui-kpi__value ui-num">{{ pendingCount }}</span>
+        </div>
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-check2-circle" aria-hidden="true"></i>{{ 'feedback.kpi_rated' | translate }}</span>
+          <span class="ui-kpi__value ui-num">{{ ratedCount }}</span>
+        </div>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-star" aria-hidden="true"></i>{{ 'feedback.kpi_average' | translate }}</span>
+          <span class="ui-kpi__value ui-num">{{ averageLabel }}<small *ngIf="averageLabel !== '—'">/5</small></span>
+        </div>
+      </div>
+
+      <!-- How to rate -->
+      <section class="ui-section tf-guide">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>{{ 'feedback.guide_title' | translate }}</h2>
+          </div>
+          <div class="ui-section__actions">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    (click)="toggleGuide()"
+                    [attr.aria-expanded]="!guideCollapsed" aria-controls="tf-guide-body">
+              {{ (guideCollapsed ? 'feedback.guide_show' : 'feedback.guide_hide') | translate }}
+              <i class="bi ms-1" [class.bi-chevron-down]="guideCollapsed" [class.bi-chevron-up]="!guideCollapsed" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div id="tf-guide-body" *ngIf="!guideCollapsed">
+          <p class="tf-guide__intro">{{ 'feedback.guide_intro' | translate }}</p>
+          <ol class="tf-scale">
+            <li *ngFor="let n of scale">
+              <span class="tf-scale__num" aria-hidden="true">{{ n }}</span>
+              <span class="tf-scale__stars" aria-hidden="true">
+                <i class="bi" *ngFor="let s of scale" [class.bi-star-fill]="s <= n" [class.bi-star]="s > n"></i>
+              </span>
+              <span class="tf-scale__text">
+                <span class="visually-hidden">{{ n }} / 5: </span>{{ ('feedback.scale_' + n) | translate }}
+              </span>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Empty: no completed training at all -->
+      <div class="ui-state" *ngIf="groups.length === 0">
+        <span class="ui-state__icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+        <h3>{{ 'feedback.none' | translate }}</h3>
+        <p>{{ 'feedback.none_body' | translate }}</p>
+        <a *ngIf="canTeamReport" class="btn btn-outline-secondary btn-sm" routerLink="/admin/reports/manager">
+          <i class="bi bi-bar-chart me-1" aria-hidden="true"></i>{{ 'feedback.open_team_report' | translate }}
+        </a>
+      </div>
+
+      <ng-container *ngIf="groups.length > 0">
+        <!-- Filters -->
+        <div class="tf-toolbar">
+          <div class="ui-tabs" role="tablist" [attr.aria-label]="'feedback.title' | translate">
+            <button type="button" role="tab" class="ui-tab" [class.is-active]="filter === 'all'"
+                    [attr.aria-selected]="filter === 'all'" (click)="setFilter('all')">
+              {{ 'common.all' | translate }} <span class="ui-tab__count">{{ totalCount }}</span>
+            </button>
+            <button type="button" role="tab" class="ui-tab" [class.is-active]="filter === 'pending'"
+                    [attr.aria-selected]="filter === 'pending'" (click)="setFilter('pending')">
+              {{ 'feedback.tab_pending' | translate }} <span class="ui-tab__count">{{ pendingCount }}</span>
+            </button>
+            <button type="button" role="tab" class="ui-tab" [class.is-active]="filter === 'rated'"
+                    [attr.aria-selected]="filter === 'rated'" (click)="setFilter('rated')">
+              {{ 'feedback.tab_rated' | translate }} <span class="ui-tab__count">{{ ratedCount }}</span>
+            </button>
+          </div>
+          <label class="ui-search tf-search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" [(ngModel)]="query" (ngModelChange)="onQuery()"
+                   [placeholder]="'feedback.search_placeholder' | translate"
+                   [attr.aria-label]="'feedback.search_placeholder' | translate">
+          </label>
+        </div>
+
+        <!-- No matches -->
+        <div class="ui-state" *ngIf="visible.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-funnel" aria-hidden="true"></i></span>
+          <h3>{{ 'feedback.no_matches' | translate }}</h3>
+          <p>{{ 'feedback.no_matches_body' | translate }}</p>
+          <button type="button" class="btn btn-outline-secondary btn-sm" *ngIf="hasFilters" (click)="clearFilters()">
+            <i class="bi bi-x-lg me-1" aria-hidden="true"></i>{{ 'learning.clear_filters' | translate }}
+          </button>
+        </div>
+
+        <!-- One card per direct report -->
+        <section class="ui-section tf-person" *ngFor="let v of visible; trackBy: trackGroup">
+          <div class="tf-person__head">
+            <app-avatar class="tf-person__avatar" [src]="v.group.avatar" [name]="v.group.name" [size]="44"></app-avatar>
+            <div class="tf-person__titles">
+              <h2 class="tf-person__name">{{ v.group.name }}</h2>
+              <p class="tf-person__sub">{{ v.group.subtitle || ('feedback.direct_report' | translate) }}</p>
+            </div>
+            <div class="tf-person__progress">
+              <span class="ui-pill"
+                    [class.ui-pill--success]="ratedIn(v.group) === v.group.items.length"
+                    [class.ui-pill--warning]="ratedIn(v.group) < v.group.items.length">
+                <span class="ui-pill__dot"></span>{{ 'feedback.rated_of' | translate: { rated: ratedIn(v.group), total: v.group.items.length } }}
+              </span>
+              <span class="ui-bar tf-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+                    [attr.aria-valuenow]="ratedPct(v.group)"
+                    [attr.aria-label]="'feedback.rated_of' | translate: { rated: ratedIn(v.group), total: v.group.items.length }">
+                <span [style.width.%]="ratedPct(v.group)"></span>
+              </span>
+            </div>
+          </div>
+
+          <ul class="ui-list tf-rows">
+            <li *ngFor="let item of v.items; trackBy: trackItem" class="tf-row" [class.is-rated]="!!item.persistedRating">
+              <div class="tf-row__main">
+                <div class="tf-row__course">
+                  <span class="tf-row__icon" aria-hidden="true"><i class="bi bi-journal-check"></i></span>
+                  <div class="tf-row__text">
+                    <span class="tf-row__title">{{ item.row.course_title }}</span>
+                    <span class="tf-row__date" *ngIf="item.row.completed_at">
+                      {{ 'learning.completed_on' | translate: { date: (item.row.completed_at | date: 'mediumDate') } }}
+                    </span>
+                  </div>
+                </div>
+                <div class="tf-row__rate">
+                  <app-star-rating [value]="item.row.rating || 0"
+                                   [label]="('feedback.behaviour_change' | translate) + ' — ' + item.row.course_title"
+                                   (rate)="rate(item, $event)"></app-star-rating>
+                  <span class="tf-status" aria-live="polite">
+                    <span class="tf-status__saving" *ngIf="item.state === 'saving'">
+                      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>{{ 'feedback.saving' | translate }}
+                    </span>
+                    <span class="tf-status__saved" *ngIf="item.state === 'saved'">
+                      <i class="bi bi-check-circle-fill" aria-hidden="true"></i>{{ 'feedback.saved' | translate }}
+                    </span>
+                    <span class="tf-status__error" *ngIf="item.state === 'error'">
+                      <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>{{ 'feedback.save_error' | translate }}
+                      <button type="button" class="btn btn-link btn-sm p-0 tf-retry" (click)="retry(item)">{{ 'common.retry' | translate }}</button>
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <div class="tf-row__note">
+                <input type="text" class="form-control form-control-sm" maxlength="1000"
+                       [(ngModel)]="item.row.comments"
+                       (ngModelChange)="noteChanged(item)"
+                       (blur)="noteBlur(item)"
+                       [attr.aria-label]="('feedback.note_label' | translate) + ' — ' + item.row.course_title"
+                       [placeholder]="'feedback.note_placeholder' | translate">
+                <small class="tf-hint" *ngIf="item.needsRating && !item.row.rating">
+                  <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'feedback.rate_first' | translate }}
+                </small>
+              </div>
+            </li>
+          </ul>
+        </section>
+      </ng-container>
+    </ng-container>
+  </div>
+</main>

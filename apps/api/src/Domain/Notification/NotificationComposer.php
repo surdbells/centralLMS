@@ -55,7 +55,7 @@ final readonly class NotificationComposer
             ],
 
             NotificationType::EnrollmentAssigned => [
-                'title' => 'You have been assigned ' . $subject,
+                'title' => ($this->bool($data, 'selfEnrolled') ? 'You are enrolled on ' : 'You have been assigned ') . $subject,
                 'body'  => $this->withDueDate($data, sprintf('%s has been added to your learning.', $subject)),
             ],
 

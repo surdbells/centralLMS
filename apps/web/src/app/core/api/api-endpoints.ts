@@ -545,6 +545,9 @@ export const Endpoints = {
     upload: '/library/manage',
     update: (id: string) => `/library/manage/${id}`,
     delete: (id: string) => `/library/manage/${id}`,
+    // Categories — listed for anyone who can see the library, managed by admins.
+    categories: '/library/categories',
+    category: (id: string) => `/library/categories/${id}`,
   },
 
   // --- notes ------------------------------------------------------------
@@ -859,6 +862,10 @@ export const Endpoints = {
     show: (type: string) => `/email-templates/${type}`,
     save: (type: string) => `/email-templates/${type}`,
     delete: (type: string) => `/email-templates/${type}`,
+    /** Render unsaved wording inside the organisation's branded layout. */
+    preview: (type: string) => `/email-templates/${type}/preview`,
+    /** Send the (unsaved) wording to the signed-in admin. */
+    test: (type: string) => `/email-templates/${type}/test`,
   },
 
   settings: {
@@ -869,6 +876,8 @@ export const Endpoints = {
     reset: (category: string) => `/settings/${category}/reset`,
     /** Branding and the password rules, before anybody has signed in. */
     public: '/settings/public',
+    /** Upload a logo to a public, inbox-fetchable address (multipart `file`). */
+    brandingUpload: (asset: 'logo' | 'email-logo') => `/settings/branding/${asset}`,
   },
 } as const;
 

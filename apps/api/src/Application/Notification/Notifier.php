@@ -7,15 +7,12 @@ namespace Central\Api\Application\Notification;
 use Central\Api\Domain\Notification\ChannelRouter;
 use Central\Api\Domain\Notification\Notification;
 use Central\Api\Domain\Notification\NotificationChannel;
-use Central\Api\Domain\Notification\EmailTemplateRenderer;
-use Central\Api\Domain\Notification\EmailTemplateRepository;
 use Central\Api\Domain\Notification\NotificationComposer;
 use Central\Api\Domain\Notification\NotificationDelivery;
 use Central\Api\Domain\Notification\NotificationRepository;
 use Central\Api\Domain\Notification\NotificationType;
 use Central\Api\Domain\Settings\SettingKey;
 use Central\Api\Domain\Settings\SettingsRepository;
-use Central\Api\Domain\Tenant\TenantRepository;
 use Central\Api\Support\Clock;
 use Psr\Log\LoggerInterface;
 
@@ -38,12 +35,11 @@ final readonly class Notifier
     public function __construct(
         private NotificationRepository $repository,
         private NotificationComposer $composer,
-        private EmailTemplateRepository $templates,
-        private EmailTemplateRenderer $renderer,
-        private TenantRepository $tenants,
         private SettingsRepository $settings,
         private Clock $clock,
         private LoggerInterface $logger,
+        /** The learner web app, for the link an email button opens. */
+        private string $webUrl = '',
     ) {
     }
 
@@ -104,13 +100,12 @@ final readonly class Notifier
 
         $router = new ChannelRouter($this->tenantChannels($tenantId, $type));
 
-        // The organisation's own wording for this kind of message, where
-        // it has written any. Read once for the batch rather than once
-        // per recipient: assigning a course to two hundred people should
-        // not be two hundred lookups of the same row.
-        $template = $this->templates->find($tenantId, $type);
-        $default  = $this->composer->compose($type, $data);
-        $organisation = $template === null ? null : $this->tenants->nameOf($tenantId);
+        // Where the email's button goes, when the caller did not say.
+        $link = $this->linkFor($type, $data, $subjectId);
+
+        if ($link !== null) {
+            $data['link'] = $link;
+        }
 
         foreach ($userIds as $userId) {
             $recipient = $recipients[$userId] ?? null;
@@ -127,22 +122,20 @@ final readonly class Notifier
             }
 
             try {
+                // The stored wording is the plain sentence, for every channel:
+                // the bell, SMS and push show it as text. Email is composed
+                // from it at send time — the organisation's template, its
+                // branding — by EmailComposer, so markup never reaches the
+                // bell and a branding change reaches mail already queued.
+                // The name rides along so the email can greet them by it.
                 $notification = Notification::raise(
                     $tenantId,
                     $userId,
                     $type,
-                    $data,
+                    [...$data, 'recipientName' => $recipient->name],
                     $this->composer,
                     $now,
                     $subjectId,
-                    null,
-                    $this->renderer->render(
-                        $template,
-                        $default,
-                        $data,
-                        $organisation,
-                        $recipient->name,
-                    ),
                 );
 
                 $deliveries = array_map(
@@ -184,6 +177,47 @@ final readonly class Notifier
         ?string $subjectId = null,
     ): bool {
         return $this->notify($tenantId, [$userId], $type, $data, $subjectId) === 1;
+    }
+
+    /**
+     * Where a notification's email button should take somebody, when the
+     * caller has not said: the course in the player, the certificates page,
+     * the live sessions, or the dashboard. Null when the caller already gave a
+     * link, or there is no web address configured to build one from.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function linkFor(NotificationType $type, array $data, ?string $subjectId): ?string
+    {
+        if (is_string($data['link'] ?? null) && trim($data['link']) !== '') {
+            return null;
+        }
+
+        $base = rtrim($this->webUrl, '/');
+
+        if ($base === '') {
+            return null;
+        }
+
+        $hasPath     = is_string($data['pathId'] ?? null) && $data['pathId'] !== '';
+        $hasTraining = is_string($data['trainingId'] ?? null) && $data['trainingId'] !== '';
+
+        // A 'course'-typed notification about a learning path or a programme
+        // carries pathId/trainingId; its subjectId is then not a course id.
+        $courseId = is_string($data['courseId'] ?? null) && $data['courseId'] !== ''
+            ? $data['courseId']
+            : ($type->subjectType() === 'course' && !$hasPath && !$hasTraining ? $subjectId : null);
+
+        return match (true) {
+            $courseId !== null && $courseId !== '' => $base . '/player/' . rawurlencode($courseId),
+            $hasTraining => $base . '/live-training',
+            $hasPath => $base . '/learning',
+            $type->subjectType() === 'certificate' => $base . '/certificates',
+            $type->subjectType() === 'training_session' => $base . '/live-training',
+            $type->subjectType() === 'assessment',
+            $type->subjectType() === 'course' => $base . '/learning',
+            default => $base . '/home',
+        };
     }
 
     /**

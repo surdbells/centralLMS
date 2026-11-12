@@ -11,15 +11,60 @@
     </header>
 
     <div class="ui-toolbar">
+      <div class="ui-filters" role="group" [attr.aria-label]="'library.filter_by_category' | translate">
+        @if (categoriesLoading()) {
+          <span class="lib-filter-skel"></span><span class="lib-filter-skel"></span><span class="lib-filter-skel"></span>
+        } @else if (showChips()) {
+          <button type="button" class="ui-filter" [class.is-active]="categoryFilter() === null"
+                  [attr.aria-pressed]="categoryFilter() === null" (click)="setCategoryFilter(null)">
+            {{ 'library.all' | translate }} <span class="ui-filter__count">{{ totalCount() }}</span>
+          </button>
+          @for (c of categories(); track c.id) {
+            <button type="button" class="ui-filter" [class.is-active]="categoryFilter() === c.id"
+                    [attr.aria-pressed]="categoryFilter() === c.id" (click)="setCategoryFilter(c.id)">
+              <i class="bi bi-folder2" aria-hidden="true"></i> {{ c.name }}
+              <span class="ui-filter__count">{{ c.itemCount }}</span>
+            </button>
+          }
+          @if (uncategorisedCount() > 0) {
+            <button type="button" class="ui-filter" [class.is-active]="categoryFilter() === 'none'"
+                    [attr.aria-pressed]="categoryFilter() === 'none'" (click)="setCategoryFilter('none')">
+              {{ 'library.uncategorised' | translate }}
+              <span class="ui-filter__count">{{ uncategorisedCount() }}</span>
+            </button>
+          }
+        }
+      </div>
       <label class="ui-search">
         <i class="bi bi-search"></i>
         <input type="search" placeholder="{{ 'library.search_placeholder' | translate }}"
-               [(ngModel)]="search" (keyup.enter)="load()" (ngModelChange)="search === '' && load()" />
+               [(ngModel)]="search" (keyup.enter)="load()" (ngModelChange)="onSearchChange()" />
       </label>
     </div>
 
     @if (loading()) {
       <app-skeleton variant="cards" [count]="8"></app-skeleton>
+    } @else if (loadError()) {
+      <div class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+        <h3>{{ 'library.load_error' | translate }}</h3>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">{{ 'library.try_again' | translate }}</button>
+      </div>
+    } @else if (items().length === 0 && (search.trim() || categoryFilter() !== null)) {
+      <div class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-funnel"></i></span>
+        @if (search.trim()) {
+          <h3>{{ 'library.no_matches_title' | translate }}</h3>
+          <p>{{ 'library.no_matches_text' | translate }}</p>
+        } @else if (categoryFilter() === 'none') {
+          <h3>{{ 'library.uncategorised_empty_title' | translate }}</h3>
+          <p>{{ 'library.category_empty_text' | translate }}</p>
+        } @else {
+          <h3>{{ 'library.category_empty_named' | translate:{ name: activeCategoryName() } }}</h3>
+          <p>{{ 'library.category_empty_text' | translate }}</p>
+        }
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearFilters()">{{ 'library.show_everything' | translate }}</button>
+      </div>
     } @else if (items().length === 0) {
       <div class="ui-state">
         <span class="ui-state__icon"><i class="bi bi-collection"></i></span>
@@ -37,6 +82,11 @@
               }
             </div>
             <div class="lib-body">
+              @if (item.categoryName) {
+                <span class="ui-pill ui-pill--brand lib-cat" [title]="item.categoryName">
+                  <i class="bi bi-folder2" aria-hidden="true"></i>{{ item.categoryName }}
+                </span>
+              }
               <div class="lib-title" [title]="item.title">{{ item.title }}</div>
               @if (item.description) { <div class="lib-desc">{{ item.description }}</div> }
               <div class="lib-meta">

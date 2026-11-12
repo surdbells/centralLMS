@@ -96,6 +96,8 @@ export class TopComponent implements OnInit, OnDestroy {
     is_content: false,
     is_instructor: false,
     is_learner: false,
+    /** Offered Team Feedback: line managers (competency.line) or report viewers (the manager dashboard's gate). */
+    is_manager: false,
   };
 
   /** The template writes `IS_CURRENT` before crossing into administration. */
@@ -130,6 +132,7 @@ export class TopComponent implements OnInit, OnDestroy {
       is_content: can('course.manage'),
       is_instructor: can('progress.manage'),
       is_learner: can('enrollment.self'),
+      is_manager: can('competency.line') || can('report.view'),
     };
 
     this.profiles

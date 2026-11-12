@@ -25,6 +25,7 @@ use Central\Api\Application\Action\Competency\CompetencyTemplateAction;
 use Central\Api\Application\Action\Competency\JobProfileAction;
 use Central\Api\Application\Action\Auth\SsoAction;
 use Central\Api\Application\Action\Settings\ManageEmailTemplatesAction;
+use Central\Api\Application\Action\Settings\BrandingAssetAction;
 use Central\Api\Application\Action\Settings\ManageSsoAction;
 use Central\Api\Application\Action\Settings\TenantProfileAction;
 use Central\Api\Application\Action\Auth\LogoutAction;
@@ -128,6 +129,7 @@ use Central\Api\Application\Action\Skill\ManageSkillsAction;
 use Central\Api\Application\Action\Media\StreamMediaAction;
 use Central\Api\Application\Action\Media\ScormContentAction;
 use Central\Api\Application\Action\Library\LibraryAction;
+use Central\Api\Application\Action\Library\LibraryCategoryAction;
 use Central\Api\Application\Action\Library\ManageLibraryAction;
 use Central\Api\Application\Action\Library\StreamLibraryAction;
 use Central\Api\Application\Action\Saas\OperatorTenantAction;
@@ -204,6 +206,13 @@ return static function (App $app): void {
         // narrow: it returns those two things and nothing else.
         $v1->get('/settings/public', [TenantSettingsAction::class, 'publicSettings'])
             ->setName('settings.public');
+
+        // An organisation's uploaded logo, for the header of its emails: an
+        // inbox fetches images with no session. Serves only branding images.
+        $v1->get(
+            '/public/branding/{tenantId:' . $uuid . '}/{asset:logo|email-logo}',
+            [BrandingAssetAction::class, 'show'],
+        )->setName('branding.asset');
 
         // Certificate verification, also under /v1 so the signed-in app can
         // reach it: its client prefixes every path with /v1, so a bare
@@ -395,6 +404,10 @@ return static function (App $app): void {
                     ->setName('email-templates.save');
                 $t->delete('/{type:[a-z_]+}', [ManageEmailTemplatesAction::class, 'delete'])
                     ->setName('email-templates.delete');
+                $t->post('/{type:[a-z_]+}/preview', [ManageEmailTemplatesAction::class, 'previewDraft'])
+                    ->setName('email-templates.preview');
+                $t->post('/{type:[a-z_]+}/test', [ManageEmailTemplatesAction::class, 'test'])
+                    ->setName('email-templates.test');
             });
 
             $secure->get('/sso', [ManageSsoAction::class, 'list'])->setName('sso.list');
@@ -1161,6 +1174,9 @@ return static function (App $app): void {
                     ->setName('settings.history');
                 $s->post('/{category}/reset', [TenantSettingsAction::class, 'reset'])
                     ->setName('settings.reset');
+                // Upload a logo to a public address emails can load.
+                $s->post('/branding/{asset:logo|email-logo}', [BrandingAssetAction::class, 'upload'])
+                    ->setName('settings.branding.upload');
             });
 
             // --- notes ----------------------------------------------------
@@ -1231,6 +1247,17 @@ return static function (App $app): void {
             // manage the whole shelf (`/library/manage`). The bytes come from
             // the ticket-authed `/{id}/file` registered outside this group.
             $secure->group('/library', function (RouteCollectorProxy $l) use ($uuid): void {
+                // Categories — listed for anyone who can open the library,
+                // managed with library.manage. Before `/{id}` routes.
+                $l->get('/categories', [LibraryCategoryAction::class, 'list'])
+                    ->setName('library.categories.list');
+                $l->post('/categories', [LibraryCategoryAction::class, 'create'])
+                    ->setName('library.categories.create');
+                $l->put('/categories/{id:' . $uuid . '}', [LibraryCategoryAction::class, 'update'])
+                    ->setName('library.categories.update');
+                $l->delete('/categories/{id:' . $uuid . '}', [LibraryCategoryAction::class, 'delete'])
+                    ->setName('library.categories.delete');
+
                 // Management — before `/{id}` so `manage` is not read as an id.
                 $l->get('/manage', [ManageLibraryAction::class, 'list'])
                     ->setName('library.manage.list');

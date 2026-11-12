@@ -5,6 +5,10 @@ import { ApiClient, Endpoints } from '../core/api';
 export interface TeamFeedbackRow {
   user_id: string;
   name: string;
+  /** Base-relative, auth-protected avatar path (/users/{id}/avatar?v=…), or null. */
+  avatar_url?: string | null;
+  job_title?: string | null;
+  department?: string | null;
   course_id: string;
   course_title: string;
   completed_at: string | null;

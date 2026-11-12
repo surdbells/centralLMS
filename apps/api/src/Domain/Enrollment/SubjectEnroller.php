@@ -54,6 +54,8 @@ interface SubjectEnroller
         ?\DateTimeImmutable $dueDate,
         bool $isMandatory,
         ?string $actorId,
+        // The rule's own "send notification" setting.
+        bool $notify = true,
     ): int;
 
     /**

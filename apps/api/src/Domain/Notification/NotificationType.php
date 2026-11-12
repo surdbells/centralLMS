@@ -80,15 +80,17 @@ enum NotificationType: string
             self::SessionScheduled,
             self::CertificateIssued,
             self::CertificateRevoked,
-            self::Announcement => [
+            self::Announcement,
+            // Milestones in somebody's learning: a record worth keeping in
+            // their inbox, and the organisation wants every transactional
+            // email to reach them, branded.
+            self::Welcome,
+            self::CourseCompleted,
+            self::AssessmentGraded => [
                 NotificationChannel::InApp,
                 NotificationChannel::Email,
             ],
 
-            // Pleasant to see on the bell; an email about it is noise.
-            self::Welcome,
-            self::CourseCompleted,
-            self::AssessmentGraded,
             // Forum chatter belongs on the bell, not in an inbox: a reply or a
             // mention is worth seeing next time you look, not worth an email
             // each time somebody answers.
@@ -225,7 +227,7 @@ enum NotificationType: string
             self::Welcome            => 'Welcome',
             self::Invitation         => 'Invitation',
             self::PasswordReset      => 'Password reset',
-            self::EnrollmentAssigned => 'Assigned a course',
+            self::EnrollmentAssigned => 'Course enrolment',
             self::EnrollmentDueSoon  => 'Course due soon',
             self::EnrollmentOverdue  => 'Course overdue',
             self::CourseCompleted    => 'Course completed',
@@ -239,6 +241,62 @@ enum NotificationType: string
             self::ForumReply         => 'Forum reply',
             self::ForumMention       => 'Forum mention',
             self::Announcement       => 'Announcement',
+        };
+    }
+
+    /**
+     * Which section of Settings > Email templates it is listed under.
+     * Keys the web app translates (`tenant.email_group.<key>`).
+     */
+    public function emailGroup(): string
+    {
+        return match ($this) {
+            self::Welcome,
+            self::Invitation,
+            self::PasswordReset      => 'account',
+
+            self::EnrollmentAssigned,
+            self::EnrollmentDueSoon,
+            self::EnrollmentOverdue,
+            self::CourseCompleted,
+            self::AssessmentGraded   => 'enrolment',
+
+            self::CertificateIssued,
+            self::CertificateRevoked => 'certificates',
+
+            self::SessionScheduled,
+            self::SessionReminder,
+            self::SessionRescheduled,
+            self::SessionCancelled   => 'sessions',
+
+            self::ForumReply,
+            self::ForumMention,
+            self::Announcement       => 'announcements',
+        };
+    }
+
+    /** When it is sent, in one line, for the template list. */
+    public function emailDescription(): string
+    {
+        return match ($this) {
+            self::Welcome            => 'Sent when somebody\'s account becomes active.',
+            self::Invitation         => 'Sent when an administrator adds a person, with the link to set a password.',
+            self::PasswordReset      => 'Sent when somebody asks to reset their password.',
+            self::EnrollmentAssigned => 'Sent when somebody is enrolled on a course or learning path — by an '
+                . 'administrator, by an enrolment rule, or by enrolling themselves.',
+            self::EnrollmentDueSoon  => 'Sent as a reminder before a course\'s due date.',
+            self::EnrollmentOverdue  => 'Sent when a course has passed its due date.',
+            self::CourseCompleted    => 'Sent when somebody completes a course.',
+            self::AssessmentGraded   => 'Sent when an assessment attempt has been marked.',
+            self::CertificateIssued  => 'Sent when a certificate is issued.',
+            self::CertificateRevoked => 'Sent when a certificate is withdrawn.',
+            self::SessionScheduled   => 'Sent when somebody is booked on a live session or programme.',
+            self::SessionReminder    => 'Sent before a live session starts.',
+            self::SessionRescheduled => 'Sent when a live session moves to a new time.',
+            self::SessionCancelled   => 'Sent when a live session is cancelled.',
+            self::ForumReply         => 'Sent when somebody replies to a forum post.',
+            self::ForumMention       => 'Sent when somebody is mentioned in a forum post.',
+            self::Announcement       => 'Sent when an administrator sends an announcement.',
         };
     }
 

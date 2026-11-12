@@ -41,8 +41,8 @@ final class ChannelRouterTest extends TestCase
     #[Test]
     public function a_quiet_type_goes_only_to_the_bell(): void
     {
-        // Completing a course is worth a badge, not an email.
-        $decisions = $this->route(NotificationType::CourseCompleted, $this->recipient());
+        // Forum chatter is worth seeing next time, not an email each time.
+        $decisions = $this->route(NotificationType::ForumReply, $this->recipient());
 
         self::assertSame(['in_app'], $this->channels($decisions));
     }

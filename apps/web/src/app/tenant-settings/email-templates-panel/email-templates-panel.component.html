@@ -1,0 +1,255 @@
+<section class="ui-section etp">
+  <div class="ui-section__head">
+    <div>
+      <h2 class="ui-section__title">{{ 'tenant.email_templates' | translate }}</h2>
+      <p class="ui-section__subtitle">{{ 'tenant.email_templates_intro' | translate }}</p>
+    </div>
+    <div class="ui-section__actions" *ngIf="state === 'ready' && !editing">
+      <span class="ui-pill ui-pill--brand">
+        <span class="ui-pill__dot"></span>
+        {{ 'tenant.email_customised_count' | translate: { count: customisedCount, total: templates.length } }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="alert alert-success alert-dismissible" *ngIf="successMessage">
+    <i class="bi bi-check-circle me-2"></i>{{ successMessage }}
+    <button type="button" class="btn-close" [attr.aria-label]="'common.close' | translate" (click)="successMessage = ''"></button>
+  </div>
+  <div class="alert alert-danger alert-dismissible" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ errorMessage }}
+    <button type="button" class="btn-close" [attr.aria-label]="'common.close' | translate" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- The branded layout every email is wrapped in -->
+  <div class="etp-brand" *ngIf="state !== 'error'">
+    <div class="etp-brand__preview" [style.background]="brandPrimary">
+      <img *ngIf="brandLogo; else nameMark" [src]="brandLogo" [alt]="brandName" class="etp-brand__logo">
+      <ng-template #nameMark><span class="etp-brand__name">{{ brandName || ('tenant.organisation' | translate) }}</span></ng-template>
+    </div>
+    <div class="etp-brand__text">
+      <strong>{{ 'tenant.email_branding' | translate }}</strong>
+      <p>{{ 'tenant.email_layout_note' | translate }}</p>
+      <div class="etp-brand__facts">
+        <span class="etp-swatch" [style.background]="brandPrimary"></span>
+        <code>{{ brandPrimary }}</code>
+        <span class="etp-dot" aria-hidden="true">&middot;</span>
+        <span>{{ brandName }}</span>
+      </div>
+      <p class="etp-brand__warn" *ngIf="logoProblem">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        {{ (logoProblem === 'missing' ? 'tenant.email_logo_missing' : 'tenant.logo_not_public') | translate }}
+      </p>
+      <!-- The in-place fix: an uploaded logo is served from a public address. -->
+      <label class="btn btn-sm btn-outline-primary mt-1 mb-0" *ngIf="logoProblem && canEditBranding"
+             [class.disabled]="uploadingLogo">
+        <span *ngIf="uploadingLogo" class="spinner-border spinner-border-sm me-1"></span>
+        <i *ngIf="!uploadingLogo" class="bi bi-upload me-1"></i>{{ 'tenant.upload_logo' | translate }}
+        <input type="file" accept="image/png,image/jpeg,image/gif" hidden
+               [disabled]="uploadingLogo" (change)="uploadLogo($event)">
+      </label>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary etp-brand__action"
+            *ngIf="canEditBranding" (click)="goToBranding()">
+      <i class="bi bi-palette me-1"></i>{{ 'tenant.edit_branding' | translate }}
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="state === 'loading'">
+    <app-skeleton variant="list" [rows]="6"></app-skeleton>
+  </div>
+
+  <!-- Could not load -->
+  <div class="ui-state" *ngIf="state === 'error'">
+    <div class="ui-state__icon"><i class="bi bi-envelope-exclamation"></i></div>
+    <h3>{{ 'tenant.email_load_failed' | translate }}</h3>
+    <p>{{ loadError || ('tenant.email_load_failed_desc' | translate) }}</p>
+    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="load()">
+      <i class="bi bi-arrow-clockwise me-1"></i>{{ 'tenant.email_retry' | translate }}
+    </button>
+  </div>
+
+  <!-- Nothing to edit -->
+  <div class="ui-state" *ngIf="state === 'ready' && templates.length === 0">
+    <div class="ui-state__icon"><i class="bi bi-envelope"></i></div>
+    <h3>{{ 'tenant.email_none' | translate }}</h3>
+    <p>{{ 'tenant.email_none_desc' | translate }}</p>
+  </div>
+
+  <!-- ============ The list, grouped ============ -->
+  <ng-container *ngIf="state === 'ready' && !editing">
+    <div class="etp-group" *ngFor="let g of groups">
+      <h3 class="etp-group__title">
+        <i class="bi" [ngClass]="g.icon"></i>{{ ('tenant.email_group.' + g.key) | translate }}
+      </h3>
+      <div class="etp-list">
+        <button type="button" class="etp-row" *ngFor="let t of g.items" (click)="open(t)">
+          <span class="etp-row__icon"><i class="bi" [ngClass]="iconOf(t)"></i></span>
+          <span class="etp-row__text">
+            <span class="etp-row__name">{{ nameOf(t) }}</span>
+            <span class="etp-row__desc">{{ descriptionOf(t) }}</span>
+          </span>
+          <span class="ui-pill"
+                [class.ui-pill--brand]="isCustomised(t)"
+                [class.ui-pill--neutral]="!isCustomised(t)">
+            <span class="ui-pill__dot"></span>
+            {{ (!isCustomised(t) ? 'tenant.email_default' : 'tenant.email_customised') | translate }}
+          </span>
+          <span class="ui-pill ui-pill--warning" *ngIf="isCustomised(t) && !t.enabled">
+            {{ 'tenant.email_paused' | translate }}
+          </span>
+          <i class="bi bi-chevron-right etp-row__chevron" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ============ The editor ============ -->
+  <div class="etp-editor" *ngIf="editing">
+    <div class="etp-editor__head">
+      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="close()">
+        <i class="bi bi-arrow-left me-1"></i>{{ 'tenant.all_templates' | translate }}
+      </button>
+      <div class="etp-editor__title">
+        <span class="etp-row__icon"><i class="bi" [ngClass]="iconOf(editing)"></i></span>
+        <div>
+          <h3>{{ nameOf(editing) }}</h3>
+          <p>{{ descriptionOf(editing) }}</p>
+        </div>
+      </div>
+      <span class="ui-pill"
+            [class.ui-pill--brand]="isCustomised(editing)"
+            [class.ui-pill--neutral]="!isCustomised(editing)">
+        <span class="ui-pill__dot"></span>
+        {{ (!isCustomised(editing) ? 'tenant.email_default' : 'tenant.email_customised') | translate }}
+      </span>
+    </div>
+
+    <div *ngIf="editorLoading" class="etp-grid">
+      <app-skeleton variant="form" [rows]="4"></app-skeleton>
+      <app-skeleton variant="block" height="420px"></app-skeleton>
+    </div>
+
+    <div class="etp-grid" *ngIf="!editorLoading">
+      <!-- Wording -->
+      <div class="etp-form">
+        <div class="form-group">
+          <label class="form-label" for="etpSubject">{{ 'tenant.subject' | translate }}</label>
+          <input #subjectInput class="form-control" id="etpSubject" type="text"
+                 [(ngModel)]="form.subject" (ngModelChange)="changed()"
+                 (focus)="focusField('subject')"
+                 [placeholder]="editing.default.title">
+          <small class="text-muted">{{ 'tenant.email_subject_help' | translate }}</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">{{ 'tenant.body' | translate }}</label>
+          <div (focusin)="focusField('body')">
+            <app-rich-html-editor #bodyEditor [(ngModel)]="form.body" (ngModelChange)="changed()"
+                                  [minHeight]="260"
+                                  [placeholder]="'tenant.email_body_placeholder' | translate"></app-rich-html-editor>
+          </div>
+          <small class="text-muted">
+            {{ 'tenant.body_help_before' | translate }}
+            <i class="bi bi-code-slash"></i> {{ 'tenant.body_help_after' | translate }}
+          </small>
+        </div>
+
+        <div class="form-group" *ngIf="placeholders.length > 0">
+          <label class="form-label">{{ 'tenant.email_insert_placeholder' | translate }}</label>
+          <small class="text-muted d-block mb-2">{{ 'tenant.email_insert_help' | translate }}</small>
+
+          <div class="etp-chips-label" *ngIf="contentPlaceholders.length > 0">{{ 'tenant.email_placeholders_message' | translate }}</div>
+          <div class="etp-chips">
+            <button type="button" class="etp-chip" *ngFor="let p of contentPlaceholders"
+                    (mousedown)="$event.preventDefault()" (click)="insertPlaceholder(p)"
+                    [title]="placeholderLabel(p)">{{ token(p) }}</button>
+          </div>
+
+          <ng-container *ngIf="brandPlaceholders.length > 0">
+            <div class="etp-chips-label">{{ 'tenant.email_placeholders_brand' | translate }}</div>
+            <div class="etp-chips">
+              <button type="button" class="etp-chip etp-chip--brand" *ngFor="let p of brandPlaceholders"
+                      (mousedown)="$event.preventDefault()" (click)="insertPlaceholder(p)"
+                      [title]="placeholderLabel(p)">{{ token(p) }}</button>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="form-check-item">
+          <input class="form-check-input" type="checkbox" id="etpEnabled"
+                 [(ngModel)]="form.enabled" (ngModelChange)="changed()">
+          <label class="form-check-label" for="etpEnabled">{{ 'tenant.use_this_wording' | translate }}</label>
+        </div>
+
+        <div class="etp-note">
+          <i class="bi bi-info-circle"></i>
+          <span>
+            {{ 'tenant.email_layout_auto' | translate }}
+            <button type="button" class="etp-link" *ngIf="canEditBranding" (click)="goToBranding()">{{ 'tenant.edit_branding' | translate }}</button>
+          </span>
+        </div>
+
+        <div class="etp-footer">
+          <button type="button" class="btn btn-outline-danger" (click)="reset()"
+                  [disabled]="saving || !isCustomised(editing)">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'tenant.email_reset_default' | translate }}
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="sendTest()" [disabled]="saving || testing">
+            <span *ngIf="testing" class="spinner-border spinner-border-sm me-1"></span>
+            <i *ngIf="!testing" class="bi bi-send me-1"></i>{{ 'tenant.send_test' | translate }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving || !dirty">
+            <span *ngIf="!saving">{{ 'common.save' | translate }}</span>
+            <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live, branded preview -->
+      <div class="etp-preview">
+        <div class="etp-preview__bar">
+          <span class="etp-preview__label">
+            <i class="bi bi-eye me-1"></i>{{ 'tenant.live_preview' | translate }}
+            <span class="spinner-border spinner-border-sm ms-2" *ngIf="previewLoading" role="status"></span>
+          </span>
+          <div class="etp-toggle" role="group" [attr.aria-label]="'tenant.email_preview_width' | translate">
+            <button type="button" [class.is-active]="previewWidth === 'desktop'"
+                    [attr.aria-pressed]="previewWidth === 'desktop'"
+                    (click)="setPreviewWidth('desktop')" [title]="'tenant.email_preview_desktop' | translate">
+              <i class="bi bi-display"></i>
+            </button>
+            <button type="button" [class.is-active]="previewWidth === 'mobile'"
+                    [attr.aria-pressed]="previewWidth === 'mobile'"
+                    (click)="setPreviewWidth('mobile')" [title]="'tenant.email_preview_mobile' | translate">
+              <i class="bi bi-phone"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="etp-inbox">
+          <div class="etp-inbox__meta">
+            <span class="etp-inbox__from">{{ brandName }}</span>
+            <span class="etp-inbox__subject">{{ previewSubject || editing.default.title }}</span>
+          </div>
+          <div class="etp-stage" [class.etp-stage--mobile]="previewWidth === 'mobile'">
+            <iframe *ngIf="previewHtml; else previewSkeleton" class="etp-frame" sandbox=""
+                    [srcdoc]="previewHtml" [title]="'tenant.live_preview' | translate"></iframe>
+            <ng-template #previewSkeleton>
+              <app-skeleton variant="block" height="460px"></app-skeleton>
+            </ng-template>
+          </div>
+        </div>
+
+        <small class="text-muted etp-preview__hint" *ngIf="previewFailed">
+          <i class="bi bi-info-circle me-1"></i>{{ 'tenant.email_preview_offline' | translate }}
+        </small>
+        <small class="text-muted etp-preview__hint" *ngIf="!previewFailed">
+          {{ 'tenant.email_preview_hint' | translate }}
+        </small>
+      </div>
+    </div>
+  </div>
+</section>
