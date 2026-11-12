@@ -1,0 +1,58 @@
+// course-player/styles/_tokens.scss
+//
+// The player's design tokens, as CSS custom properties built on the app-wide
+// `--ui-*` layer (styles.scss) and the tenant's brand colour. Every fallback
+// matches that layer's default, so the player renders correctly even where a
+// page loads before (or without) the global tokens.
+//
+// These used to be SCSS variables hard-coding a purple accent — so every
+// tenant's player was purple whatever their brand. The accent is now ALWAYS
+// the brand colour.
+//
+// Custom properties inherit through the DOM, so the forum mounted inside the
+// player would see the player's; each component still declares them on its own
+// :host so it renders the same on the standalone Discussions page.
+
+@mixin cp-tokens {
+  --cp-accent: var(--brand-primary, #303234);
+  --cp-accent-rgb: var(--brand-primary-rgb, 48, 50, 52);
+  --cp-on-accent: var(--brand-primary-contrast, #fff);
+
+  --cp-canvas: var(--ui-canvas, #f4f5f4);
+  --cp-surface: var(--ui-surface, #fff);
+  --cp-surface-2: var(--ui-surface-2, #f7f8f7);
+  --cp-line: var(--ui-border, #e7e9e7);
+  --cp-line-strong: var(--ui-border-strong, #d9ddd9);
+  --cp-ink: var(--ui-text, #1b1f1c);
+  --cp-muted: var(--ui-text-muted, #6a716b);
+  --cp-subtle: var(--ui-text-subtle, #8d948e);
+
+  --cp-r-panel: var(--ui-radius-panel, 16px);
+  --cp-r-card: var(--ui-radius-card, 12px);
+  --cp-r-ctl: var(--ui-radius-ctl, 8px);
+  --cp-ctl-h: var(--ui-ctl-h, 36px);
+  --cp-shadow-xs: var(--ui-shadow-xs, 0 1px 2px rgba(16, 24, 18, .04));
+  --cp-shadow-pop: 0 12px 32px rgba(16, 24, 18, .12), 0 0 0 1px var(--cp-line);
+
+  // Status tones: rendered as soft pills (≈10% tint, ≈28% border, darker text).
+  --cp-success-rgb: 46, 125, 79;
+  --cp-success-ink: #24653f;
+  --cp-warning-rgb: 178, 94, 9;
+  --cp-warning-ink: #8f4a06;
+  --cp-danger-rgb: 192, 53, 43;
+  --cp-danger-ink: #9e2a22;
+  --cp-info-rgb: 37, 99, 168;
+  --cp-info-ink: #1d4f87;
+  --cp-neutral-rgb: 75, 82, 76;
+  --cp-neutral-ink: #3b413c;
+
+  --cp-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --cp-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+// A soft status pill in one of the tones above: `@include cp-tone(success)`.
+@mixin cp-tone($tone) {
+  background: rgba(var(--cp-#{$tone}-rgb), .10);
+  border-color: rgba(var(--cp-#{$tone}-rgb), .28);
+  color: var(--cp-#{$tone}-ink);
+}

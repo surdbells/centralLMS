@@ -1,156 +1,216 @@
 <!-- course-player/components/course-player/course-player.component.html -->
 
 <div class="cp-page">
-  <!-- Loading -->
-  <div *ngIf="loading" class="cp-state">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+  <!-- Loading: a skeleton of the shell, so nothing jumps when the course lands. -->
+  <div *ngIf="loading" class="cp-skeleton" aria-busy="true">
+    <span class="visually-hidden">{{ 'course_player.loading_course' | translate }}</span>
+    <div class="cp-sk-topbar"><span class="cp-sk w-30"></span><span class="cp-sk w-12 ms-auto"></span></div>
+    <div class="cp-sk-body">
+      <div class="cp-sk-side">
+        <span class="cp-sk h-lg w-70"></span>
+        <span class="cp-sk h-card"></span>
+        <span class="cp-sk w-90" *ngFor="let r of [1,2,3,4,5,6,7]"></span>
+      </div>
+      <div class="cp-sk-stage">
+        <span class="cp-sk cp-sk-media"></span>
+        <div class="cp-sk-below">
+          <span class="cp-sk w-20"></span>
+          <span class="cp-sk h-lg w-50"></span>
+          <span class="cp-sk w-70"></span>
+        </div>
+      </div>
     </div>
-    <p class="mt-3 text-muted">{{ 'course_player.loading_course' | translate }}</p>
   </div>
 
   <!-- Error -->
   <div *ngIf="error" class="cp-state">
-    <div class="alert alert-danger d-inline-flex align-items-center">
-      <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
-    </div>
-    <div><button class="btn btn-primary mt-3" routerLink="/learning">{{ 'course_player.back_to_courses' | translate }}</button></div>
+    <div class="cp-state-icon"><i class="bi bi-exclamation-triangle"></i></div>
+    <p class="cp-state-text">{{ error }}</p>
+    <button class="btn cp-btn-primary" routerLink="/learning">{{ 'course_player.back_to_courses' | translate }}</button>
   </div>
 
   <!-- Player -->
   <div class="cp-shell" *ngIf="!loading && !error && courseData">
     <!-- Top bar -->
     <header class="cp-topbar">
-      <button class="cp-back" (click)="router.navigate(['/learning'])">
-        <i class="bi bi-arrow-left"></i><span>{{ 'common.back' | translate }}</span>
+      <button type="button" class="cp-iconbtn" (click)="router.navigate(['/learning'])"
+              [attr.aria-label]="'common.back' | translate" [title]="'common.back' | translate">
+        <i class="bi bi-arrow-left"></i>
       </button>
-      <button class="cp-collapse-toggle" (click)="toggleSidebar()"
-              [attr.aria-pressed]="sidebarCollapsed"
+      <button type="button" class="cp-iconbtn" (click)="toggleSidebar()"
+              [attr.aria-pressed]="!sidebarCollapsed"
+              [attr.aria-label]="(sidebarCollapsed ? 'course_player.show_course_content' : 'course_player.hide_course_content') | translate"
               [title]="(sidebarCollapsed ? 'course_player.show_course_content' : 'course_player.hide_course_content') | translate">
-        <i class="bi" [class.bi-layout-sidebar]="sidebarCollapsed"
-           [class.bi-layout-sidebar-inset]="!sidebarCollapsed"></i>
-        <span>{{ (sidebarCollapsed ? 'course_player.show_contents' : 'course_player.hide_contents') | translate }}</span>
+        <i class="bi bi-layout-sidebar"></i>
       </button>
-      <button class="cp-close" (click)="router.navigate(['/learning'])" [attr.aria-label]="'common.close' | translate">
-        <i class="bi bi-x-lg"></i>
-      </button>
+
+      <div class="cp-topbar-title">
+        <span class="cp-topbar-course">{{ courseData.course.title }}</span>
+        <span class="cp-topbar-crumb" *ngIf="currentLesson && !showQuizView">
+          <span *ngIf="currentModule">{{ currentModule.title }}</span>
+          <i class="bi bi-dot" *ngIf="currentModule"></i>
+          <span class="cp-topbar-crumb-lesson">{{ currentLesson.title }}</span>
+        </span>
+        <span class="cp-topbar-crumb" *ngIf="showQuizView && currentAssessment">
+          <span class="cp-topbar-crumb-lesson">{{ currentAssessment.title }}</span>
+        </span>
+      </div>
+
+      <div class="cp-topbar-right">
+        <div class="cp-progress-chip" [attr.aria-label]="'course_player.course_progress' | translate"
+             [title]="'course_player.course_progress' | translate">
+          <svg viewBox="0 0 36 36" class="cp-ring" aria-hidden="true">
+            <circle cx="18" cy="18" r="15" class="cp-ring-track"></circle>
+            <circle cx="18" cy="18" r="15" class="cp-ring-fill"
+                    [attr.stroke-dasharray]="ringCircumference"
+                    [attr.stroke-dashoffset]="ringOffset"></circle>
+          </svg>
+          <span class="cp-progress-chip-value">{{ getProgressPercentage() }}%</span>
+        </div>
+        <div class="cp-topnav">
+          <button type="button" class="cp-iconbtn" [disabled]="!hasPreviousLesson() || showQuizView" (click)="previousLesson()"
+                  [attr.aria-label]="'course_player.previous_lesson' | translate" [title]="'course_player.previous_lesson' | translate">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button type="button" class="cp-iconbtn" [disabled]="!hasNextLesson() || showQuizView" (click)="nextLesson()"
+                  [attr.aria-label]="'course_player.next_lesson' | translate" [title]="'course_player.next_lesson' | translate">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
     </header>
 
-    <div class="cp-body" [class.sidebar-collapsed]="sidebarCollapsed">
-      <!-- ============ LEFT: COURSE CONTENT ============ -->
-      <aside class="cp-sidebar">
-        <div class="cp-sidebar-head">
-          <h2 class="cp-title">{{ 'course_player.course_content' | translate }}</h2>
-          <p class="cp-subtitle">{{ courseData.course.title }}</p>
-        </div>
-
-        <!-- Progress card -->
-        <div class="cp-progress-card">
-          <div class="cp-progress-top">
-            <span class="cp-progress-label">{{ 'course_player.your_progress' | translate }}</span>
-            <span class="cp-progress-count">
-              {{ 'course_player.lessons_completed' | translate:{ completed: padded(courseData.stats.completed_lessons), total: padded(courseData.stats.total_lessons) } }}
-            </span>
-          </div>
-          <div class="cp-progress-track">
-            <div class="cp-progress-fill" [style.width.%]="getProgressPercentage()"></div>
-          </div>
-          <div class="cp-progress-bottom">
-            <span>{{ 'course_player.percent_completed' | translate:{ percent: padded(getProgressPercentage()) } }}</span>
-            <span class="cp-keep-going">{{ 'course_player.keep_going' | translate }}</span>
-          </div>
-        </div>
-
-        <!-- Path / Learners / Discuss -->
-        <nav class="cp-tabs">
-          <button class="cp-tab" [class.active]="sidebarTab === 'path'" (click)="selectSidebarTab('path')">{{ 'course_player.tab_path' | translate }}</button>
-          <button class="cp-tab" [class.active]="sidebarTab === 'learners'" (click)="selectSidebarTab('learners')">{{ 'course_player.tab_learners' | translate }}</button>
-          <button class="cp-tab" [class.active]="sidebarTab === 'discuss'" (click)="selectSidebarTab('discuss')">{{ 'course_player.tab_discuss' | translate }}</button>
-        </nav>
-
-        <div class="cp-sidebar-scroll">
-          <!-- PATH -->
-          <div *ngIf="sidebarTab === 'path'" class="cp-modules">
-            <div class="cp-module" *ngFor="let module of courseData.modules; let i = index"
-                 [class.open]="isModuleOpen(module, i)">
-              <button class="cp-module-head" type="button" (click)="toggleModule(module.module_id)">
-                <i class="bi cp-caret" [class.bi-chevron-up]="isModuleOpen(module, i)"
-                   [class.bi-chevron-down]="!isModuleOpen(module, i)"></i>
-                <span class="cp-module-title">{{ padded(module.sort_order || i + 1) }} {{ module.title }}</span>
-                <i class="bi bi-three-dots-vertical cp-module-more"></i>
+    <div class="cp-body" [class.sidebar-collapsed]="sidebarCollapsed" [class.outline-open]="outlineOpen">
+      <!-- ============ LEFT: COURSE OUTLINE ============ -->
+      <aside class="cp-sidebar" [attr.aria-label]="'course_player.course_content' | translate">
+        <div class="cp-sidebar-inner">
+          <div class="cp-sidebar-head">
+            <div class="cp-sidebar-head-row">
+              <h2 class="cp-title">{{ 'course_player.course_content' | translate }}</h2>
+              <button type="button" class="cp-iconbtn cp-drawer-close" (click)="outlineOpen = false"
+                      [attr.aria-label]="'common.close' | translate">
+                <i class="bi bi-x-lg"></i>
               </button>
+            </div>
 
-              <div class="cp-lessons" *ngIf="isModuleOpen(module, i)">
-                <button *ngFor="let lesson of module.lessons"
-                        class="cp-lesson"
-                        type="button"
-                        [class.active]="currentLesson?.lesson_id === lesson.lesson_id && !showQuizView"
-                        [class.done]="lesson.status === 'completed'"
-                        (click)="selectLesson(lesson)">
-                  <span class="cp-lesson-icon">
-                    <i class="bi" [class]="pathLessonIcon(lesson)"></i>
-                  </span>
-                  <span class="cp-lesson-text">
-                    <span class="cp-lesson-title">{{ lesson.title }}</span>
-                    <span class="cp-lesson-meta">
-                      <i class="bi bi-clock" *ngIf="lesson.content_type === 'video' || lesson.content_type === 'audio'"></i>
-                      {{ lessonMeta(lesson) }}
+            <!-- Progress -->
+            <div class="cp-progress-card">
+              <div class="cp-progress-top">
+                <span class="cp-progress-value">{{ getProgressPercentage() }}<small>%</small></span>
+                <span class="cp-progress-count">
+                  {{ 'course_player.lessons_completed' | translate:{ completed: courseData.stats.completed_lessons, total: courseData.stats.total_lessons } }}
+                </span>
+              </div>
+              <div class="cp-progress-track">
+                <div class="cp-progress-fill" [style.width.%]="getProgressPercentage()"></div>
+              </div>
+              <span class="cp-progress-msg">{{ progressMessageKey | translate }}</span>
+            </div>
+
+            <!-- Path / Learners -->
+            <nav class="cp-tabs" role="tablist">
+              <button type="button" role="tab" class="cp-tab" [class.active]="sidebarTab === 'path'"
+                      [attr.aria-selected]="sidebarTab === 'path'" (click)="selectSidebarTab('path')">
+                <i class="bi bi-signpost-2"></i>{{ 'course_player.tab_path' | translate }}
+              </button>
+              <button type="button" role="tab" class="cp-tab" [class.active]="sidebarTab === 'learners'"
+                      [attr.aria-selected]="sidebarTab === 'learners'" (click)="selectSidebarTab('learners')">
+                <i class="bi bi-people"></i>{{ 'course_player.tab_learners' | translate }}
+              </button>
+            </nav>
+          </div>
+
+          <div class="cp-sidebar-scroll">
+            <!-- PATH -->
+            <div *ngIf="sidebarTab === 'path'" class="cp-modules">
+              <div class="cp-module" *ngFor="let module of courseData.modules; let i = index"
+                   [class.open]="isModuleOpen(module, i)">
+                <button class="cp-module-head" type="button" (click)="toggleModule(module.module_id)"
+                        [attr.aria-expanded]="isModuleOpen(module, i)">
+                  <span class="cp-module-num">{{ padded(module.sort_order || i + 1) }}</span>
+                  <span class="cp-module-text">
+                    <span class="cp-module-title">{{ module.title }}</span>
+                    <span class="cp-module-meta">
+                      <span class="cp-module-count">{{ moduleDone(module) }}/{{ module.lessons.length }}</span>
+                      <span class="cp-module-bar"><span [style.width.%]="modulePercent(module)"></span></span>
                     </span>
                   </span>
-                  <span class="cp-scorm-tag" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
-                  <i class="bi bi-check-circle-fill cp-lesson-check" *ngIf="lesson.status === 'completed'"></i>
+                  <i class="bi cp-caret" [class.bi-chevron-up]="isModuleOpen(module, i)"
+                     [class.bi-chevron-down]="!isModuleOpen(module, i)"></i>
                 </button>
 
-                <!-- Assessments -->
-                <button *ngFor="let assessment of module.assessments"
-                        class="cp-lesson"
-                        type="button"
-                        [class.active]="currentAssessment?.assessment_id === assessment.assessment_id && showQuizView"
-                        [class.done]="assessment.has_passed"
-                        (click)="selectAssessment(assessment)">
-                  <span class="cp-lesson-icon">
-                    <i class="bi" [class]="pathAssessmentIcon(assessment)"></i>
-                  </span>
-                  <span class="cp-lesson-text">
-                    <span class="cp-lesson-title">{{ assessment.title }}</span>
-                    <span class="cp-lesson-meta">{{ assessmentMeta(assessment) }}</span>
-                  </span>
-                  <i class="bi bi-check-circle-fill cp-lesson-check" *ngIf="assessment.has_passed"></i>
-                </button>
+                <div class="cp-lessons" *ngIf="isModuleOpen(module, i)">
+                  <button *ngFor="let lesson of module.lessons"
+                          class="cp-lesson"
+                          type="button"
+                          [class.active]="currentLesson?.lesson_id === lesson.lesson_id && !showQuizView"
+                          [class.done]="lesson.status === 'completed'"
+                          [attr.aria-current]="currentLesson?.lesson_id === lesson.lesson_id && !showQuizView ? 'step' : null"
+                          (click)="selectLesson(lesson)">
+                    <span class="cp-lesson-icon">
+                      <i class="bi" [class]="pathLessonIcon(lesson)"></i>
+                    </span>
+                    <span class="cp-lesson-text">
+                      <span class="cp-lesson-title">{{ lesson.title }}</span>
+                      <span class="cp-lesson-meta">
+                        <span>{{ lessonMeta(lesson) }}</span>
+                        <span class="cp-scorm-tag" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
+                      </span>
+                    </span>
+                    <span class="cp-status-mark" [ngClass]="'is-' + lesson.status"
+                          [title]="statusKey(lesson.status) | translate">
+                      <i class="bi bi-check-lg" *ngIf="lesson.status === 'completed'"></i>
+                    </span>
+                  </button>
+
+                  <!-- Assessments -->
+                  <button *ngFor="let assessment of module.assessments"
+                          class="cp-lesson"
+                          type="button"
+                          [class.active]="currentAssessment?.assessment_id === assessment.assessment_id && showQuizView"
+                          [class.done]="assessment.has_passed"
+                          (click)="selectAssessment(assessment)">
+                    <span class="cp-lesson-icon">
+                      <i class="bi" [class]="pathAssessmentIcon(assessment)"></i>
+                    </span>
+                    <span class="cp-lesson-text">
+                      <span class="cp-lesson-title">{{ assessment.title }}</span>
+                      <span class="cp-lesson-meta">{{ assessmentMeta(assessment) }}</span>
+                    </span>
+                    <span class="cp-status-mark"
+                          [class.is-completed]="assessment.has_passed"
+                          [class.is-in_progress]="!assessment.has_passed && assessment.attempts_used > 0">
+                      <i class="bi bi-check-lg" *ngIf="assessment.has_passed"></i>
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- LEARNERS -->
+            <div *ngIf="sidebarTab === 'learners'" class="cp-learners">
+              <div class="cp-empty" *ngIf="classmatesLoaded && classmates.length === 0">
+                <i class="bi bi-people"></i>
+                <p>{{ 'course_player.no_learners' | translate }}</p>
+              </div>
+              <div class="cp-learner" *ngFor="let mate of classmates">
+                <span class="cp-avatar">
+                  <img *ngIf="mate.avatarUrl" [src]="mate.avatarUrl" [alt]="mate.name">
+                  <span *ngIf="!mate.avatarUrl">{{ (mate.name || '?').charAt(0) }}</span>
+                </span>
+                <span class="cp-learner-text">
+                  <span class="cp-learner-name">{{ mate.name }}</span>
+                  <span class="cp-learner-progress">{{ 'course_player.percent_complete' | translate:{ percent: mate.progress } }}</span>
+                </span>
+                <span class="cp-learner-bar"><span [style.width.%]="mate.progress"></span></span>
               </div>
             </div>
           </div>
-
-          <!-- LEARNERS -->
-          <div *ngIf="sidebarTab === 'learners'" class="cp-learners">
-            <div class="cp-empty" *ngIf="classmatesLoaded && classmates.length === 0">
-              <i class="bi bi-people"></i>
-              <p>{{ 'course_player.no_learners' | translate }}</p>
-            </div>
-            <div class="cp-learner" *ngFor="let mate of classmates">
-              <span class="cp-avatar">
-                <img *ngIf="mate.avatarUrl" [src]="mate.avatarUrl" [alt]="mate.name">
-                <span *ngIf="!mate.avatarUrl">{{ (mate.name || '?').charAt(0) }}</span>
-              </span>
-              <span class="cp-learner-text">
-                <span class="cp-learner-name">{{ mate.name }}</span>
-                <span class="cp-learner-progress">{{ 'course_player.percent_complete' | translate:{ percent: mate.progress } }}</span>
-              </span>
-              <span class="cp-learner-bar"><span [style.width.%]="mate.progress"></span></span>
-            </div>
-          </div>
-
-          <!-- DISCUSS — mounted once, then hidden (not destroyed) on other tabs
-               so an in-progress post, reply, edit or filter survives a switch. -->
-          <div *ngIf="discussMounted" class="cp-discuss-wrap" [class.d-none]="sidebarTab !== 'discuss'">
-            <a class="cp-discuss-popout" [routerLink]="['/player', courseId, 'discussions']">
-              <i class="bi bi-arrows-fullscreen"></i>{{ 'course_player.open_full_page' | translate }}
-            </a>
-            <app-course-discussion [courseId]="courseId"
-                                   [currentLessonId]="currentLesson?.lesson_id ?? null"></app-course-discussion>
-          </div>
         </div>
       </aside>
+
+      <!-- Narrow screens: a scrim behind the outline drawer. -->
+      <div class="cp-scrim" (click)="outlineOpen = false" aria-hidden="true"></div>
 
       <!-- ============ RIGHT: STAGE ============ -->
       <main class="cp-stage">
@@ -164,93 +224,118 @@
           </app-quiz>
         </div>
 
-        <!-- Video -->
-        <div class="cp-video" *ngIf="!showQuizView && currentLesson?.content_type === 'video' && currentLesson">
-          <video #videoPlayer
-                 class="cp-video-el"
-                 [src]="currentLesson.content_url"
-                 (click)="togglePlay()"
-                 (loadedmetadata)="onVideoLoaded(videoPlayer)"
-                 (timeupdate)="onTimeUpdate(videoPlayer.currentTime)"
-                 (play)="onVideoPlay()"
-                 (pause)="onVideoPause()"
-                 (ended)="onVideoComplete()">
-          </video>
+        <!-- Theatre: media edge to edge on a dark ground -->
+        <section class="cp-theater" *ngIf="hasTheater && currentLesson">
+          <!-- Video -->
+          <div #videoWrap class="cp-video" *ngIf="currentLesson.content_type === 'video'"
+               [class.idle]="controlsIdle" [class.paused]="!isPlaying" [class.is-fullscreen]="isFullscreen"
+               (mousemove)="onVideoActivity()" (touchstart)="onVideoActivity()">
+            <video #videoPlayer
+                   class="cp-video-el"
+                   playsinline
+                   [src]="currentLesson.content_url"
+                   (click)="togglePlay()"
+                   (dblclick)="toggleFullscreen()"
+                   (loadedmetadata)="onVideoLoaded(videoPlayer)"
+                   (timeupdate)="onTimeUpdate(videoPlayer.currentTime)"
+                   (play)="onVideoPlay()"
+                   (pause)="onVideoPause()"
+                   (ended)="onVideoComplete()">
+            </video>
 
-          <div class="cp-controls">
-            <input type="range" class="cp-scrubber" [value]="currentTime" [max]="duration || 0" min="0"
-                   (input)="videoElement && (videoElement.currentTime = $any($event.target).value)">
-            <div class="cp-controls-row">
-              <div class="cp-controls-left">
-                <button class="cp-cbtn" (click)="restart()" [title]="'course_player.restart' | translate"><i class="bi bi-skip-start-fill"></i></button>
-                <div class="cp-volume">
-                  <button class="cp-cbtn" (click)="setVolume(volume > 0 ? 0 : 1)" [title]="'course_player.mute' | translate">
-                    <i class="bi" [class.bi-volume-up-fill]="volume > 0.5"
-                       [class.bi-volume-down-fill]="volume > 0 && volume <= 0.5"
-                       [class.bi-volume-mute-fill]="volume === 0"></i>
+            <button type="button" class="cp-bigplay" *ngIf="!isPlaying" (click)="togglePlay()"
+                    [attr.aria-label]="'course_player.play' | translate">
+              <i class="bi bi-play-fill"></i>
+            </button>
+
+            <div class="cp-controls">
+              <input type="range" class="cp-scrubber" [value]="currentTime" [max]="duration || 0" min="0" step="0.1"
+                     [attr.aria-label]="'course_player.seek' | translate"
+                     [style.background]="'linear-gradient(to right, var(--cp-accent) ' + playedPercent + '%, rgba(255,255,255,.28) ' + playedPercent + '%)'"
+                     (input)="scrubTo($any($event.target).value)">
+              <div class="cp-controls-row">
+                <div class="cp-controls-left">
+                  <button type="button" class="cp-cbtn cp-play" (click)="togglePlay()"
+                          [attr.aria-label]="(isPlaying ? 'course_player.pause' : 'course_player.play') | translate"
+                          [title]="(isPlaying ? 'course_player.pause' : 'course_player.play') | translate">
+                    <i class="bi" [class.bi-play-fill]="!isPlaying" [class.bi-pause-fill]="isPlaying"></i>
                   </button>
-                  <input type="range" class="cp-volume-slider" min="0" max="1" step="0.05"
-                         [value]="volume" (input)="setVolume($any($event.target).value)">
-                </div>
-                <span class="cp-time">{{ formatTime(currentTime) }}<span class="cp-time-sep">/</span>{{ formatTime(duration) }}</span>
-              </div>
-
-              <div class="cp-controls-center">
-                <button class="cp-cbtn cp-seek" (click)="seek(-10)" [title]="'course_player.back_10s' | translate">
-                  <i class="bi bi-arrow-counterclockwise"></i><span>10</span>
-                </button>
-                <button class="cp-cbtn cp-play" (click)="togglePlay()" [title]="(isPlaying ? 'course_player.pause' : 'course_player.play') | translate">
-                  <i class="bi" [class.bi-play-fill]="!isPlaying" [class.bi-pause-fill]="isPlaying"></i>
-                </button>
-                <button class="cp-cbtn cp-seek" (click)="seek(10)" [title]="'course_player.forward_10s' | translate">
-                  <i class="bi bi-arrow-clockwise"></i><span>10</span>
-                </button>
-              </div>
-
-              <div class="cp-controls-right">
-                <div class="cp-settings">
-                  <button class="cp-cbtn" (click)="settingsOpen = !settingsOpen" [title]="'nav.settings' | translate"><i class="bi bi-gear-fill"></i></button>
-                  <div class="cp-settings-menu" *ngIf="settingsOpen">
-                    <span class="cp-settings-label">{{ 'course_player.playback_speed' | translate }}</span>
-                    <button *ngFor="let r of [0.5, 0.75, 1, 1.25, 1.5, 2]"
-                            class="cp-speed" [class.active]="playbackRate === r"
-                            (click)="setPlaybackRate(r); settingsOpen = false">{{ r }}x</button>
+                  <button type="button" class="cp-cbtn cp-seek" (click)="seek(-10)" [title]="'course_player.back_10s' | translate"
+                          [attr.aria-label]="'course_player.back_10s' | translate">
+                    <i class="bi bi-arrow-counterclockwise"></i><span>10</span>
+                  </button>
+                  <button type="button" class="cp-cbtn cp-seek" (click)="seek(10)" [title]="'course_player.forward_10s' | translate"
+                          [attr.aria-label]="'course_player.forward_10s' | translate">
+                    <i class="bi bi-arrow-clockwise"></i><span>10</span>
+                  </button>
+                  <div class="cp-volume">
+                    <button type="button" class="cp-cbtn" (click)="setVolume(volume > 0 ? 0 : 1)"
+                            [title]="'course_player.mute' | translate" [attr.aria-label]="'course_player.mute' | translate">
+                      <i class="bi" [class.bi-volume-up-fill]="volume > 0.5"
+                         [class.bi-volume-down-fill]="volume > 0 && volume <= 0.5"
+                         [class.bi-volume-mute-fill]="volume === 0"></i>
+                    </button>
+                    <input type="range" class="cp-volume-slider" min="0" max="1" step="0.05"
+                           [attr.aria-label]="'course_player.volume' | translate"
+                           [value]="volume" (input)="setVolume($any($event.target).value)">
                   </div>
+                  <span class="cp-time">{{ formatTime(currentTime) }}<span class="cp-time-sep">/</span>{{ formatTime(duration) }}</span>
                 </div>
-                <button class="cp-cbtn" (click)="videoElement?.requestFullscreen()" [title]="'course_player.fullscreen' | translate"><i class="bi bi-fullscreen"></i></button>
+
+                <div class="cp-controls-right">
+                  <button type="button" class="cp-cbtn" (click)="restart()" [title]="'course_player.restart' | translate"
+                          [attr.aria-label]="'course_player.restart' | translate">
+                    <i class="bi bi-skip-start-fill"></i>
+                  </button>
+                  <div class="cp-settings">
+                    <button type="button" class="cp-speed-btn" (click)="settingsOpen = !settingsOpen"
+                            [attr.aria-expanded]="settingsOpen"
+                            [title]="'course_player.playback_speed' | translate">{{ playbackRate }}x</button>
+                    <div class="cp-settings-menu" *ngIf="settingsOpen">
+                      <span class="cp-settings-label">{{ 'course_player.playback_speed' | translate }}</span>
+                      <button type="button" *ngFor="let r of playbackRates"
+                              class="cp-speed" [class.active]="playbackRate === r"
+                              (click)="setPlaybackRate(r); settingsOpen = false">
+                        {{ r }}x<i class="bi bi-check2" *ngIf="playbackRate === r"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button type="button" class="cp-cbtn" (click)="toggleFullscreen()" [title]="'course_player.fullscreen' | translate"
+                          [attr.aria-label]="'course_player.fullscreen' | translate">
+                    <i class="bi" [class.bi-fullscreen]="!isFullscreen" [class.bi-fullscreen-exit]="isFullscreen"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- PDF -->
-        <div class="cp-doc" *ngIf="!showQuizView && currentLesson?.content_type === 'pdf' && currentLesson">
-          <iframe [src]="getSafeUrl(currentLesson.content_url)" class="cp-doc-frame" [title]="'course_player.document' | translate"></iframe>
-        </div>
+          <!-- PDF -->
+          <iframe *ngIf="currentLesson.content_type === 'pdf'" [src]="getSafeUrl(currentLesson.content_url)"
+                  class="cp-doc-frame" [title]="'course_player.document' | translate"></iframe>
 
-        <!-- HTML -->
-        <div class="cp-doc" *ngIf="!showQuizView && currentLesson?.content_type === 'html' && currentLesson">
-          <iframe [src]="getSafeUrl(currentLesson.content_url)" class="cp-doc-frame" [title]="'course_player.content' | translate"></iframe>
-        </div>
+          <!-- HTML -->
+          <iframe *ngIf="currentLesson.content_type === 'html'" [src]="getSafeUrl(currentLesson.content_url)"
+                  class="cp-doc-frame" [title]="'course_player.content' | translate"></iframe>
 
-        <!-- Audio -->
-        <div class="cp-audio" *ngIf="!showQuizView && currentLesson?.content_type === 'audio' && currentLesson">
-          <div class="cp-audio-art"><i class="bi bi-music-note-beamed"></i></div>
-          <h4 class="cp-audio-title">{{ currentLesson.title }}</h4>
-          <audio #audioPlayer controls [src]="currentLesson.content_url"
-                 (loadedmetadata)="onMediaLoaded(audioPlayer)"
-                 (timeupdate)="onTimeUpdate(audioPlayer.currentTime)"
-                 (ended)="onAudioComplete()"></audio>
-        </div>
+          <!-- Audio -->
+          <div class="cp-audio" *ngIf="currentLesson.content_type === 'audio'">
+            <div class="cp-audio-art"><i class="bi bi-music-note-beamed"></i></div>
+            <h4 class="cp-audio-title">{{ currentLesson.title }}</h4>
+            <audio #audioPlayer controls [src]="currentLesson.content_url"
+                   (loadedmetadata)="onMediaLoaded(audioPlayer)"
+                   (timeupdate)="onTimeUpdate(audioPlayer.currentTime)"
+                   (ended)="onAudioComplete()"></audio>
+          </div>
 
-        <!-- SCORM -->
-        <div class="cp-doc" *ngIf="!showQuizView && currentLesson?.content_type === 'scorm' && currentLesson && scormReady && currentScormUrl">
-          <iframe [src]="currentScormUrl" class="cp-doc-frame" id="scorm-frame" allow="autoplay; fullscreen" title="SCORM"></iframe>
-        </div>
-        <div class="cp-stage-state" *ngIf="!showQuizView && currentLesson?.content_type === 'scorm' && (!scormReady || !currentScormUrl)">
-          <div class="spinner-border text-primary mb-3" role="status"></div>
-          <p class="text-muted">{{ 'course_player.initialising_content' | translate }}</p>
-        </div>
+          <!-- SCORM -->
+          <iframe #scormFrame *ngIf="currentLesson.content_type === 'scorm' && scormReady && currentScormUrl"
+                  [src]="currentScormUrl" class="cp-doc-frame" id="scorm-frame"
+                  allow="autoplay; fullscreen" title="SCORM"></iframe>
+          <div class="cp-theater-state" *ngIf="currentLesson.content_type === 'scorm' && (!scormReady || !currentScormUrl)">
+            <div class="cp-spinner" role="status"></div>
+            <p>{{ 'course_player.initialising_content' | translate }}</p>
+          </div>
+        </section>
 
         <!-- Nothing selected -->
         <div class="cp-stage-state" *ngIf="!currentLesson && !showQuizView">
@@ -258,109 +343,176 @@
           <p>{{ 'course_player.select_lesson_hint' | translate }}</p>
         </div>
 
-        <!-- Complete / navigate bar -->
-        <div class="cp-actionbar" *ngIf="!showQuizView && currentLesson">
-          <button class="btn cp-btn-ghost" [disabled]="!hasPreviousLesson()" (click)="previousLesson()">
-            <i class="bi bi-chevron-left me-1"></i>{{ 'common.previous' | translate }}
-          </button>
-          <span class="cp-actionbar-hint" *ngIf="currentLesson.status !== 'completed' && currentLesson.content_type === 'video'">
-            <i class="bi bi-info-circle me-1"></i>{{ 'course_player.auto_completes_hint' | translate }}
-          </span>
-          <div class="cp-actionbar-right">
-            <button class="btn cp-btn-primary" *ngIf="currentLesson.status !== 'completed' && currentLesson.content_type !== 'scorm'"
-                    (click)="markLessonComplete()">
-              <i class="bi bi-check-circle me-1"></i>{{ 'course_player.mark_complete' | translate }}
+        <!-- ============ BELOW THE MEDIA: a readable column ============
+             [hidden] rather than *ngIf for the quiz, so a mounted forum (and a
+             draft in it) survives a detour through an assessment. -->
+        <div class="cp-below" [hidden]="showQuizView">
+          <!-- Lesson header -->
+          <header class="cp-lesson-header" *ngIf="currentLesson">
+            <span class="cp-eyebrow" *ngIf="currentModule">
+              {{ currentModule.title }}
+              <ng-container *ngIf="lessonPosition as pos">
+                <i class="bi bi-dot"></i>{{ 'course_player.lesson_of' | translate:pos }}
+              </ng-container>
+            </span>
+            <h1 class="cp-lesson-heading">{{ currentLesson.title }}</h1>
+            <div class="cp-lesson-facts">
+              <span class="cp-fact">
+                <i class="bi" [ngClass]="pathLessonIcon(currentLesson)"></i>{{ lessonMeta(currentLesson) }}
+              </span>
+              <span class="cp-chip" [ngClass]="'tone-' + currentLesson.status">
+                <i class="bi" [ngClass]="currentLesson.status === 'completed' ? 'bi-check-circle-fill' : (currentLesson.status === 'in_progress' ? 'bi-circle-half' : 'bi-circle')"></i>
+                {{ statusKey(currentLesson.status) | translate }}
+              </span>
+            </div>
+            <p class="cp-lesson-desc" *ngIf="currentLesson.description">{{ currentLesson.description }}</p>
+          </header>
+
+          <!-- Navigate / complete -->
+          <nav class="cp-actionbar" *ngIf="currentLesson">
+            <button type="button" class="cp-navcard prev" [disabled]="!hasPreviousLesson()" (click)="previousLesson()">
+              <i class="bi bi-arrow-left"></i>
+              <span class="cp-navcard-text">
+                <span class="cp-navcard-label">{{ 'course_player.previous_lesson' | translate }}</span>
+                <span class="cp-navcard-title" *ngIf="previousLessonRef as prev">{{ prev.title }}</span>
+              </span>
             </button>
-            <button class="btn cp-btn-primary" *ngIf="currentLesson.status === 'completed'"
-                    [disabled]="!hasNextLesson()" (click)="nextLesson()">
-              {{ 'common.next' | translate }}<i class="bi bi-chevron-right ms-1"></i>
+
+            <div class="cp-actionbar-center">
+              <button type="button" class="btn cp-btn-primary"
+                      *ngIf="currentLesson.status !== 'completed' && currentLesson.content_type !== 'scorm'"
+                      (click)="markLessonComplete()">
+                <i class="bi bi-check2-circle"></i>{{ 'course_player.mark_complete' | translate }}
+              </button>
+              <span class="cp-actionbar-hint" *ngIf="currentLesson.status !== 'completed' && currentLesson.content_type === 'video'">
+                <i class="bi bi-info-circle"></i>{{ 'course_player.auto_completes_hint' | translate }}
+              </span>
+              <span class="cp-chip tone-completed" *ngIf="currentLesson.status === 'completed'">
+                <i class="bi bi-check-circle-fill"></i>{{ 'course_player.status_completed' | translate }}
+              </span>
+            </div>
+
+            <button type="button" class="cp-navcard next" [disabled]="!hasNextLesson() && !isAllLessonsCompleted()" (click)="nextLesson()">
+              <span class="cp-navcard-text">
+                <span class="cp-navcard-label">{{ 'course_player.next_lesson' | translate }}</span>
+                <span class="cp-navcard-title" *ngIf="nextLessonRef as next">{{ next.title }}</span>
+              </span>
+              <i class="bi bi-arrow-right"></i>
             </button>
-          </div>
-        </div>
+          </nav>
 
-        <!-- Bottom tabs: Transcript / Notes / Resources -->
-        <div class="cp-belowtabs" *ngIf="!showQuizView">
-          <button class="cp-pill" [class.active]="activeTab === 'transcript'" (click)="activeTab = 'transcript'">{{ 'course_player.transcript' | translate }}</button>
-          <button class="cp-pill" [class.active]="activeTab === 'notes'" (click)="activeTab = 'notes'">
-            {{ 'course_player.notes' | translate }}<span class="cp-pill-count" *ngIf="notes.length">{{ notes.length }}</span>
-          </button>
-          <button class="cp-pill" [class.active]="activeTab === 'resources'" (click)="activeTab = 'resources'">{{ 'course_player.resources' | translate }}</button>
-        </div>
+          <!-- Tabs: Transcript · Notes · Resources · Discussion -->
+          <nav class="cp-belowtabs" role="tablist">
+            <button type="button" role="tab" class="cp-btab" [class.active]="activeTab === 'transcript'"
+                    [attr.aria-selected]="activeTab === 'transcript'" (click)="selectBelowTab('transcript')">
+              <i class="bi bi-card-text"></i>{{ 'course_player.transcript' | translate }}
+            </button>
+            <button type="button" role="tab" class="cp-btab" [class.active]="activeTab === 'notes'"
+                    [attr.aria-selected]="activeTab === 'notes'" (click)="selectBelowTab('notes')">
+              <i class="bi bi-journal-text"></i>{{ 'course_player.notes' | translate }}
+              <span class="cp-btab-count" *ngIf="notes.length">{{ notes.length }}</span>
+            </button>
+            <button type="button" role="tab" class="cp-btab" [class.active]="activeTab === 'resources'"
+                    [attr.aria-selected]="activeTab === 'resources'" (click)="selectBelowTab('resources')">
+              <i class="bi bi-folder2-open"></i>{{ 'course_player.resources' | translate }}
+              <span class="cp-btab-count" *ngIf="resourceCount">{{ resourceCount }}</span>
+            </button>
+            <button type="button" role="tab" class="cp-btab" [class.active]="activeTab === 'discussion'"
+                    [attr.aria-selected]="activeTab === 'discussion'" (click)="selectBelowTab('discussion')">
+              <i class="bi bi-chat-square-text"></i>{{ 'course_player.discussion' | translate }}
+              <span class="cp-btab-count" *ngIf="discussionCount">{{ discussionCount }}</span>
+            </button>
+          </nav>
 
-        <div class="cp-panel" *ngIf="!showQuizView">
-          <!-- Transcript -->
-          <div *ngIf="activeTab === 'transcript'">
-            <h3 class="cp-panel-title">{{ 'course_player.transcript' | translate }}</h3>
-            <p class="cp-transcript" *ngIf="transcript">{{ transcript }}</p>
-            <div class="cp-empty" *ngIf="!transcript">
-              <i class="bi bi-card-text"></i>
-              <p>{{ 'course_player.no_transcript' | translate }}</p>
-            </div>
-          </div>
-
-          <!-- Notes -->
-          <div *ngIf="activeTab === 'notes'">
-            <h3 class="cp-panel-title">{{ 'course_player.notes' | translate }}</h3>
-            <div class="cp-note-compose">
-              <textarea class="cp-textarea" rows="2" placeholder="{{ 'course_player.note_placeholder' | translate }}"
-                        [(ngModel)]="newNote" (keydown.ctrl.enter)="saveNoteFromPanel()"></textarea>
-              <div class="cp-note-compose-foot">
-                <span class="cp-note-ts"><i class="bi bi-clock me-1"></i>{{ formatTime(currentTime) }}</span>
-                <button class="btn cp-btn-primary btn-sm" [disabled]="!newNote.trim()" (click)="saveNoteFromPanel()">
-                  <i class="bi bi-plus-lg me-1"></i>{{ 'course_player.add_note' | translate }}
-                </button>
-              </div>
-            </div>
-            <div class="cp-notes">
-              <div class="cp-note" *ngFor="let note of notes">
-                <button class="cp-note-time" *ngIf="note.video_timestamp" (click)="goToBookmark(note.video_timestamp)">
-                  <i class="bi bi-play-circle me-1"></i>{{ formatTime(note.video_timestamp) }}
-                </button>
-                <p class="cp-note-body">{{ note.content }}</p>
-                <span class="cp-note-date">{{ note.created_at | date:'short' }}</span>
-              </div>
-              <div class="cp-empty" *ngIf="notes.length === 0">
-                <i class="bi bi-journal-text"></i>
-                <p>{{ 'course_player.no_notes' | translate }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Resources -->
-          <div *ngIf="activeTab === 'resources'">
-            <h3 class="cp-panel-title">{{ 'course_player.download_resources' | translate }}</h3>
-
-            <!-- Files attached to the course, any type -->
-            <div class="cp-res-grid" *ngIf="courseResources.length">
-              <div class="cp-res" *ngFor="let res of courseResources">
-                <span class="cp-res-badge badge-doc">{{ res.kind | uppercase }}</span>
-                <span class="cp-res-text">
-                  <span class="cp-res-title">{{ res.title }}</span>
-                  <span class="cp-res-meta">{{ res.originalFilename }}</span>
-                </span>
-                <button class="cp-res-act" (click)="downloadCourseResource(res)" [title]="'common.download' | translate">
-                  <i class="bi bi-download"></i>
-                </button>
+          <div class="cp-panel">
+            <!-- Transcript -->
+            <div *ngIf="activeTab === 'transcript'" class="cp-panel-pane">
+              <p class="cp-transcript" *ngIf="transcript">{{ transcript }}</p>
+              <div class="cp-empty" *ngIf="!transcript">
+                <i class="bi bi-card-text"></i>
+                <p>{{ 'course_player.no_transcript' | translate }}</p>
               </div>
             </div>
 
-            <!-- Lesson files, surfaced as resources -->
-            <div class="cp-res-grid" *ngIf="resources.length">
-              <div class="cp-res" *ngFor="let res of resources">
-                <span class="cp-res-badge" [class]="resourceBadge(res.type).cls">{{ resourceBadge(res.type).label }}</span>
-                <span class="cp-res-text">
-                  <span class="cp-res-title">{{ res.title }}</span>
-                  <span class="cp-res-meta">{{ res.module }}</span>
-                </span>
-                <button class="cp-res-act" (click)="downloadResource(res.url)" [title]="'common.download' | translate">
-                  <i class="bi bi-download"></i>
-                </button>
+            <!-- Notes -->
+            <div *ngIf="activeTab === 'notes'" class="cp-panel-pane">
+              <div class="cp-note-compose">
+                <textarea class="cp-textarea" rows="3" placeholder="{{ 'course_player.note_placeholder' | translate }}"
+                          [(ngModel)]="newNote" (keydown.control.enter)="saveNoteFromPanel()"></textarea>
+                <div class="cp-note-compose-foot">
+                  <span class="cp-note-ts"><i class="bi bi-clock"></i>{{ formatTime(currentTime) }}</span>
+                  <button type="button" class="btn cp-btn-primary btn-sm" [disabled]="!newNote.trim()" (click)="saveNoteFromPanel()">
+                    <i class="bi bi-plus-lg"></i>{{ 'course_player.add_note' | translate }}
+                  </button>
+                </div>
+              </div>
+              <div class="cp-notes">
+                <div class="cp-note" *ngFor="let note of notes">
+                  <div class="cp-note-head">
+                    <button type="button" class="cp-note-time" *ngIf="note.video_timestamp" (click)="goToBookmark(note.video_timestamp)">
+                      <i class="bi bi-play-fill"></i>{{ formatTime(note.video_timestamp) }}
+                    </button>
+                    <span class="cp-note-date">{{ note.created_at | date:'medium' }}</span>
+                  </div>
+                  <p class="cp-note-body">{{ note.content }}</p>
+                </div>
+                <div class="cp-empty" *ngIf="notes.length === 0">
+                  <i class="bi bi-journal-text"></i>
+                  <p>{{ 'course_player.no_notes' | translate }}</p>
+                </div>
               </div>
             </div>
 
-            <div class="cp-empty" *ngIf="resources.length === 0 && courseResources.length === 0">
-              <i class="bi bi-folder2-open"></i>
-              <p>{{ 'course_player.no_resources' | translate }}</p>
+            <!-- Resources -->
+            <div *ngIf="activeTab === 'resources'" class="cp-panel-pane">
+              <!-- Files attached to the course, any type -->
+              <div class="cp-res-grid" *ngIf="courseResources.length">
+                <div class="cp-res" *ngFor="let res of courseResources">
+                  <span class="cp-res-badge badge-doc">{{ res.kind | uppercase }}</span>
+                  <span class="cp-res-text">
+                    <span class="cp-res-title">{{ res.title }}</span>
+                    <span class="cp-res-meta">{{ res.originalFilename }}</span>
+                  </span>
+                  <button type="button" class="cp-res-act" (click)="downloadCourseResource(res)"
+                          [title]="'common.download' | translate" [attr.aria-label]="'common.download' | translate">
+                    <i class="bi bi-download"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Lesson files, surfaced as resources -->
+              <div class="cp-res-grid" *ngIf="resources.length">
+                <div class="cp-res" *ngFor="let res of resources">
+                  <span class="cp-res-badge" [class]="resourceBadge(res.type).cls">{{ resourceBadge(res.type).label }}</span>
+                  <span class="cp-res-text">
+                    <span class="cp-res-title">{{ res.title }}</span>
+                    <span class="cp-res-meta">{{ res.module }}</span>
+                  </span>
+                  <button type="button" class="cp-res-act" (click)="downloadResource(res.url)"
+                          [title]="'common.download' | translate" [attr.aria-label]="'common.download' | translate">
+                    <i class="bi bi-download"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="cp-empty" *ngIf="resources.length === 0 && courseResources.length === 0">
+                <i class="bi bi-folder2-open"></i>
+                <p>{{ 'course_player.no_resources' | translate }}</p>
+              </div>
+            </div>
+
+            <!-- Discussion — mounted once, then hidden (not destroyed) on other
+                 tabs so an in-progress post, reply, edit or filter survives. -->
+            <div *ngIf="discussMounted" class="cp-discuss-wrap cp-panel-pane" [class.cp-hide]="activeTab !== 'discussion'">
+              <div class="cp-discuss-bar">
+                <p class="cp-discuss-sub">{{ 'course_player.discussion_subtitle' | translate }}</p>
+                <a class="cp-discuss-popout" [routerLink]="['/player', courseId, 'discussions']">
+                  <i class="bi bi-box-arrow-up-right"></i>{{ 'course_player.open_full_page' | translate }}
+                </a>
+              </div>
+              <app-course-discussion [courseId]="courseId"
+                                     [currentLessonId]="currentLesson?.lesson_id ?? null"
+                                     (countChange)="onDiscussionCount($event)"></app-course-discussion>
             </div>
           </div>
         </div>
@@ -369,60 +521,49 @@
   </div>
 
   <!-- Completion Modal -->
-  <div class="modal fade" [class.show]="showCompletionModal" [style.display]="showCompletionModal ? 'block' : 'none'">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body text-center py-5">
-          <div class="completion-icon mb-4"><i class="bi bi-trophy-fill text-warning fs-1"></i></div>
-          <h3>{{ 'course_player.congratulations' | translate }}</h3>
-          <p class="text-muted">{{ 'course_player.course_complete_message' | translate }}</p>
-          <div class="completion-stats my-4">
-            <div class="stat">
-              <span class="stat-value">{{ courseData?.stats?.total_lessons || 0 }}</span>
-              <span class="stat-label">{{ 'course_player.lessons' | translate }}</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value">{{ courseData?.enrollment?.time_spent_minutes || 0 }}m</span>
-              <span class="stat-label">{{ 'course_player.time_spent' | translate }}</span>
-            </div>
-          </div>
-          <button class="btn cp-btn-primary btn-lg" (click)="completeCourse()">
-            <i class="bi bi-check-circle me-2"></i>{{ 'course_player.complete_course' | translate }}
-          </button>
+  <div class="cp-modal" *ngIf="showCompletionModal" role="dialog" aria-modal="true">
+    <div class="cp-modal-card text-center">
+      <div class="completion-icon"><i class="bi bi-trophy-fill"></i></div>
+      <h3 class="cp-modal-title">{{ 'course_player.congratulations' | translate }}</h3>
+      <p class="cp-modal-text">{{ 'course_player.course_complete_message' | translate }}</p>
+      <div class="completion-stats">
+        <div class="stat">
+          <span class="stat-value">{{ courseData?.stats?.total_lessons || 0 }}</span>
+          <span class="stat-label">{{ 'course_player.lessons' | translate }}</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">{{ courseData?.enrollment?.time_spent_minutes || 0 }}m</span>
+          <span class="stat-label">{{ 'course_player.time_spent' | translate }}</span>
         </div>
       </div>
+      <button type="button" class="btn cp-btn-primary btn-lg" (click)="completeCourse()">
+        <i class="bi bi-check-circle"></i>{{ 'course_player.complete_course' | translate }}
+      </button>
     </div>
   </div>
-  <div class="modal-backdrop fade show" *ngIf="showCompletionModal"></div>
 
   <!-- Rating Modal -->
-  <div class="modal fade" [class.show]="showRatingModal" [style.display]="showRatingModal ? 'block' : 'none'">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ 'course_player.rate_course' | translate }}</h5>
-          <button type="button" class="btn-close" (click)="skipRating()"></button>
-        </div>
-        <div class="modal-body">
-          <p class="text-muted">{{ 'course_player.rate_prompt' | translate }}</p>
-          <div class="rating-stars text-center my-4">
-            <button *ngFor="let star of [1,2,3,4,5]" class="btn btn-link p-1" (click)="setRating(star)">
-              <i class="bi fs-2" [class.bi-star-fill]="star <= userRating" [class.bi-star]="star > userRating"
-                 [class.text-warning]="star <= userRating"></i>
-            </button>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">{{ 'course_player.write_review' | translate }}</label>
-            <textarea class="form-control" rows="3" placeholder="{{ 'course_player.review_placeholder' | translate }}"
-                      [(ngModel)]="userReview"></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="skipRating()">{{ 'course_player.skip' | translate }}</button>
-          <button type="button" class="btn cp-btn-primary" [disabled]="userRating === 0" (click)="submitRating()">{{ 'course_player.submit_rating' | translate }}</button>
-        </div>
+  <div class="cp-modal" *ngIf="showRatingModal" role="dialog" aria-modal="true">
+    <div class="cp-modal-card">
+      <div class="cp-modal-head">
+        <h5 class="cp-modal-title">{{ 'course_player.rate_course' | translate }}</h5>
+        <button type="button" class="cp-iconbtn" (click)="skipRating()" [attr.aria-label]="'common.close' | translate">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <p class="cp-modal-text">{{ 'course_player.rate_prompt' | translate }}</p>
+      <div class="rating-stars">
+        <button type="button" *ngFor="let star of [1,2,3,4,5]" class="cp-star" [class.on]="star <= userRating" (click)="setRating(star)">
+          <i class="bi" [class.bi-star-fill]="star <= userRating" [class.bi-star]="star > userRating"></i>
+        </button>
+      </div>
+      <label class="cp-field-label">{{ 'course_player.write_review' | translate }}</label>
+      <textarea class="cp-textarea" rows="3" placeholder="{{ 'course_player.review_placeholder' | translate }}"
+                [(ngModel)]="userReview"></textarea>
+      <div class="cp-modal-foot">
+        <button type="button" class="btn cp-btn-ghost" (click)="skipRating()">{{ 'course_player.skip' | translate }}</button>
+        <button type="button" class="btn cp-btn-primary" [disabled]="userRating === 0" (click)="submitRating()">{{ 'course_player.submit_rating' | translate }}</button>
       </div>
     </div>
   </div>
-  <div class="modal-backdrop fade show" *ngIf="showRatingModal"></div>
 </div>

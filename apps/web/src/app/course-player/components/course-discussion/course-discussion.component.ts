@@ -1,6 +1,6 @@
 // course-player/components/course-discussion/course-discussion.component.ts
 
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -22,8 +22,9 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
  * pinning and locking, rich-text posts, @mentions, moderation and search.
  *
  * It takes only a course id and (optionally) the lesson being viewed, so the
- * same forum renders inside the course player's Discuss tab and on the
- * standalone Discussions page — one implementation, two homes.
+ * same forum renders inside the course player's Discussion tab (under the
+ * content) and on the standalone Discussions page — one implementation, two
+ * homes.
  */
 @Component({
   selector: 'app-course-discussion',
@@ -38,6 +39,9 @@ export class CourseDiscussionComponent implements OnInit, OnDestroy {
   /** The lesson in view, if any — lets a new post be tagged to it and the
    *  "this lesson" filter work. Null on the standalone page. */
   @Input() currentLessonId: string | null = null;
+  /** The number of threads, each time the forum (re)loads — the player shows
+   *  it on its Discussion tab. */
+  @Output() countChange = new EventEmitter<number>();
 
   private destroy$ = new Subject<void>();
 
@@ -79,9 +83,18 @@ export class CourseDiscussionComponent implements OnInit, OnDestroy {
     this.playerService.getDiscussion(this.courseId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (posts) => { this.discussion = posts; this.discussionLoaded = true; },
+        next: (posts) => {
+          this.discussion = posts;
+          this.discussionLoaded = true;
+          this.countChange.emit(posts.length);
+        },
         error: () => { this.discussion = []; this.discussionLoaded = true; },
       });
+  }
+
+  /** Initial for an avatar with no picture. */
+  initial(name: string | null | undefined): string {
+    return (name || '?').trim().charAt(0).toUpperCase() || '?';
   }
 
   submitDiscussionPost(): void {

@@ -4,7 +4,9 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, Subject, Subscription, forkJoin, interval, of } from 'rxjs';
 import { map, switchMap, takeUntil, tap } from 'rxjs/operators';
 import { ApiClient, Endpoints } from '../../core/api';
+import { SessionStore } from '../../core/auth/session.store';
 import { MediaService } from '../../services/media.service';
+import { scormSnapshot, toScormState, type ScormState, type ScormStateUpdate } from './scorm-adapter.service';
 
 // ---------------------------------------------------------------------------
 // What the player works with
@@ -86,6 +88,12 @@ export interface Lesson {
   score: number;
   last_position: number;
   attempts: number;
+  /**
+   * The SCORM runtime state saved for this lesson (location, suspend data,
+   * status…) — what the wrapper is seeded with so a package resumes. Null for
+   * non-SCORM lessons and for a package never opened.
+   */
+  scorm_state: ScormState | null;
 }
 
 export interface Assessment {
@@ -279,12 +287,11 @@ export interface ResumePosition {
  *     increment sent with progress, which is one fewer thing to leak when a
  *     browser is closed mid-lesson — the legacy's open sessions were never
  *     closed by anything.
- *  4. **Bookmarks, ratings and SCORM runtime data have no server.** No table
- *     for any of them survived the migration, and the endpoints they called
- *     are gone. Rather than fail silently — which is what a request to a
- *     retired host does — each says so. The SCORM *outcome* (status, score)
- *     is real and is recorded as lesson progress, which is the part that
- *     decides whether somebody has completed the course.
+ *  4. **Bookmarks and ratings have no server.** No table for either survived
+ *     the migration. Rather than fail silently — which is what a request to a
+ *     retired host does — each says so. SCORM runtime state does: the outcome
+ *     (status, score) is lesson progress, and the resume state (location,
+ *     suspend data) rides on the same progress write as `scorm`.
  */
 @Injectable({
   providedIn: 'root',
@@ -292,6 +299,7 @@ export interface ResumePosition {
 export class CoursePlayerService {
   private readonly api = inject(ApiClient);
   private readonly media = inject(MediaService);
+  private readonly session = inject(SessionStore);
 
   // State
   private courseDataSubject = new BehaviorSubject<CoursePlayerData | null>(null);
@@ -416,8 +424,43 @@ export class CoursePlayerService {
       currentLesson.lesson_id,
       currentLesson.progress,
       seconds,
-      this.currentVideoPosition,
+      this.positionFor(currentLesson),
     );
+  }
+
+  /**
+   * The playback position to report, or undefined to leave the stored one.
+   *
+   * A SCORM package keeps its own place (its location and suspend data); the
+   * player's video position means nothing for it, and sending the stale one
+   * every thirty seconds overwrote `last_position_seconds` with it.
+   */
+  private positionFor(lesson: Lesson): number | undefined {
+    return lesson.content_type === 'scorm' ? undefined : this.currentVideoPosition;
+  }
+
+  /**
+   * Reports owed time while the page is going away (tab closed, reload,
+   * navigation off the app). A normal request is cancelled by the unload; a
+   * `keepalive` fetch is allowed to finish. Safe to call more than once — the
+   * seconds it sends are marked as reported.
+   */
+  flushOnUnload(): void {
+    const courseData = this.courseDataSubject.getValue();
+    const currentLesson = this.currentLessonSubject.getValue();
+    const seconds = this.elapsedSeconds();
+
+    if (courseData === null || currentLesson === null || seconds <= 0) {
+      return;
+    }
+
+    this.reportedSeconds += seconds;
+
+    this.sendKeepalive(courseData.course.course_id, currentLesson.lesson_id, progressBody(
+      currentLesson.progress,
+      seconds,
+      this.positionFor(currentLesson),
+    ));
   }
 
   /**
@@ -432,16 +475,15 @@ export class CoursePlayerService {
     lessonId: string,
     progress: number,
     secondsSpent: number,
-    positionSeconds: number,
+    positionSeconds: number | undefined,
     score?: number,
+    scorm?: ScormStateUpdate,
   ): Observable<ProgressUpdate> {
     return this.api
-      .put<ProgressPayload>(Endpoints.me.recordProgress(courseId, lessonId), {
-        progressPercentage: progress,
-        secondsSpent,
-        positionSeconds,
-        score,
-      })
+      .put<ProgressPayload>(
+        Endpoints.me.recordProgress(courseId, lessonId),
+        progressBody(progress, secondsSpent, positionSeconds, score, scorm),
+      )
       .pipe(
         map(toProgressUpdate),
         tap((update) => this.applyProgress(update)),
@@ -465,6 +507,24 @@ export class CoursePlayerService {
     this.currentVideoPosition = lesson.last_position || 0;
 
     this.currentLessonSubject.next(lesson);
+
+    // Opening a lesson is activity in its own right. Without this ping the
+    // first write came from the 30-second heartbeat, so somebody who opened a
+    // course and looked around for less than that — or whose heartbeat was
+    // cancelled by closing the tab — stayed "not started". The server treats
+    // any lesson-progress row as started, so a zero-second ping is enough to
+    // flip the enrolment to in progress and record this as the last lesson.
+    const courseData = this.courseDataSubject.getValue();
+
+    if (courseData !== null) {
+      this.trackProgress(
+        courseData.course.course_id,
+        lesson.lesson_id,
+        lesson.progress,
+        0,
+        this.positionFor(lesson),
+      ).subscribe({ error: () => undefined });
+    }
   }
 
   completeLesson(
@@ -775,32 +835,59 @@ export class CoursePlayerService {
   /**
    * The part of a SCORM package's runtime that outlives the tab.
    *
-   * Only the outcome. The full CMI model — every `cmi.interactions.n.id`, every
-   * suspend blob — had a legacy endpoint and no table on this side, and
-   * inventing one to hold data nothing reads would be storage for its own
-   * sake. What decides whether somebody has completed a course is the lesson
-   * status and the score, and those are lesson progress like any other.
+   * The outcome (a percentage from the status, and the score) plus the resume
+   * state — location, suspend data, status, exit, total time — which the
+   * wrapper is seeded with next time so the package picks up where it was.
+   * Interactions and objectives are not kept: nothing reads them back.
+   *
+   * The location is NOT a playback position. It used to be coerced into
+   * `positionSeconds`, so "slide_5" became NaN, then 0, and the stored
+   * position was clobbered with it.
+   *
+   * `keepalive` sends it with a fetch that survives the page unloading; the
+   * observable then completes at once.
    */
   saveScormData(
     courseId: string,
     lessonId: string,
     scormData: Record<string, unknown>,
+    options: { keepalive?: boolean } = {},
   ): Observable<void> {
-    const score = Number(
-      scormData['cmi.score.raw'] ?? scormData['cmi.core.score.raw'] ?? NaN,
-    );
+    const snapshot = scormSnapshot(scormData);
+    const lesson = this.findLesson(lessonId);
 
-    const location = Number(
-      scormData['cmi.location'] ?? scormData['cmi.core.lesson_location'] ?? 0,
-    );
+    // Never report less than is already known: a package reopened after it
+    // was finished can still say "incomplete" in a commit.
+    const progress = lesson?.status === 'completed'
+      ? 100
+      : Math.max(snapshot.progress, Math.min(99, lesson?.progress ?? 0));
+
+    // Kept locally too, so reopening the lesson in this visit seeds from what
+    // was just saved rather than from what the course loaded with.
+    // Merged the way the server merges: an over-limit field the snapshot left
+    // out keeps its last good value rather than being blanked.
+    if (lesson) {
+      lesson.scorm_state = { ...(lesson.scorm_state ?? toScormState({})!), ...snapshot.state };
+    }
+
+    if (options.keepalive) {
+      this.sendKeepalive(
+        courseId,
+        lessonId,
+        progressBody(progress, 0, undefined, snapshot.score, snapshot.state),
+      );
+
+      return of(undefined);
+    }
 
     return this.trackProgress(
       courseId,
       lessonId,
-      progressFromScorm(scormData),
+      progress,
       0,
-      Number.isFinite(location) ? location : 0,
-      Number.isFinite(score) ? score : undefined,
+      undefined,
+      snapshot.score,
+      snapshot.state,
     ).pipe(map(() => undefined));
   }
 
@@ -816,7 +903,7 @@ export class CoursePlayerService {
       // "incomplete", "browsed", "failed" — real outcomes, and none of them
       // finish the lesson. Recording them as completion is how a SCORM course
       // reports everybody as trained.
-      return this.trackProgress(courseId, lessonId, 50, 0, 0, score).pipe(map(() => undefined));
+      return this.trackProgress(courseId, lessonId, 50, 0, undefined, score).pipe(map(() => undefined));
     }
 
     return this.completeLesson(courseId, lessonId, 0, score).pipe(map(() => undefined));
@@ -866,6 +953,58 @@ export class CoursePlayerService {
   // ==========================================
   // HELPERS
   // ==========================================
+
+  /** A lesson of the loaded course by id, wherever it sits in the outline. */
+  findLesson(lessonId: string): Lesson | null {
+    const courseData = this.courseDataSubject.getValue();
+
+    for (const module of courseData?.modules ?? []) {
+      const lesson = module.lessons.find((l) => l.lesson_id === lessonId);
+      if (lesson) {
+        return lesson;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * A progress write that outlives the page.
+   *
+   * HttpClient's XHR is cancelled when the document unloads, which is exactly
+   * when the last SCORM commit and the last stretch of time arrive. A
+   * `keepalive` fetch is let through. It carries the bearer token itself
+   * because it does not pass through the interceptors. Browsers cap keepalive
+   * bodies at 64 KB in flight; a large suspend blob can exceed that, in which
+   * case it falls back to an ordinary request — the best that can be done.
+   */
+  private sendKeepalive(courseId: string, lessonId: string, body: Record<string, unknown>): void {
+    const token = this.session.session()?.token;
+    const path = Endpoints.me.recordProgress(courseId, lessonId);
+    const json = JSON.stringify(body);
+
+    // Leave headroom under the 64 KB keepalive quota for headers and any
+    // other keepalive request already in flight.
+    if (json.length > 60000) {
+      this.api.put(path, body).subscribe({ error: () => undefined });
+      return;
+    }
+
+    try {
+      void fetch(this.api.urlFor(path), {
+        method: 'PUT',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: json,
+      }).catch(() => undefined);
+    } catch {
+      this.api.put(path, body).subscribe({ error: () => undefined });
+    }
+  }
 
   /** A URL a player can use for a lesson whose content is a library file. */
   resolveContent(reference: string | null): Observable<string | null> {
@@ -1062,6 +1201,7 @@ function toLesson(lesson: Record<string, any>, progress?: Record<string, any>): 
     score: Number(progress?.['score'] ?? 0),
     last_position: Number(progress?.['lastPositionSeconds'] ?? 0),
     attempts: Number(progress?.['attempts'] ?? 0),
+    scorm_state: toScormState(progress?.['scorm']),
   };
 }
 
@@ -1194,22 +1334,36 @@ function toProgressUpdate(payload: ProgressPayload): ProgressUpdate {
 }
 
 /**
- * How far through a SCORM lesson its runtime says somebody is.
+ * The body of a progress write.
  *
- * SCORM has no percentage, only a status, so this is the nearest honest
- * reading of one: started but unfinished counts as halfway, which is what the
- * course percentage needs in order to move at all.
+ * Optional fields are left out rather than sent as null: the server treats an
+ * absent `positionSeconds` as "leave the stored position alone" and an absent
+ * `scorm` as "leave the stored SCORM state alone", which is the point of
+ * omitting them.
  */
-function progressFromScorm(data: Record<string, unknown>): number {
-  const status = String(
-    data['cmi.completion_status'] ?? data['cmi.core.lesson_status'] ?? '',
-  ).toLowerCase();
+function progressBody(
+  progress: number,
+  secondsSpent: number,
+  positionSeconds?: number,
+  score?: number,
+  scorm?: ScormStateUpdate,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    progressPercentage: Math.max(0, Math.min(100, Math.round(progress || 0))),
+    secondsSpent: Math.max(0, Math.floor(secondsSpent || 0)),
+  };
 
-  if (['completed', 'passed'].includes(status)) {
-    return 100;
+  if (positionSeconds !== undefined && Number.isFinite(positionSeconds)) {
+    body['positionSeconds'] = Math.max(0, Math.floor(positionSeconds));
+  }
+  if (score !== undefined && Number.isFinite(score)) {
+    body['score'] = score;
+  }
+  if (scorm !== undefined) {
+    body['scorm'] = scorm;
   }
 
-  return status === 'not attempted' || status === '' ? 0 : 50;
+  return body;
 }
 
 function notAvailable(what: string): Observable<never> {

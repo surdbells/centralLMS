@@ -1,12 +1,12 @@
 // course-player/components/course-player/course-player.component.ts
 
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { finalize, takeUntil } from 'rxjs/operators';
 import {
   CoursePlayerService,
   CoursePlayerData,
@@ -17,7 +17,7 @@ import {
   QuizResult,
   Classmate
 } from '../../services/course-player.service';
-import { ScormAdapterService } from '../../services/scorm-adapter.service';
+import { ScormAdapterService, scormSnapshot, toScormState } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
 import { CourseDiscussionComponent } from '../course-discussion/course-discussion.component';
 import {
@@ -27,6 +27,11 @@ import {
 import {HotToastService} from '@ngneat/hot-toast';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+
+export type BelowTab = 'transcript' | 'notes' | 'resources' | 'discussion';
+
+/** Below this width the outline becomes a drawer and the stage comes first. */
+const NARROW_QUERY = '(max-width: 1100px)';
 
 @Component({
   selector: 'app-course-player',
@@ -45,14 +50,16 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   error: string | null = null;
 
   // UI State
+  /** Desktop: the outline column is folded away and the stage takes the width. */
   sidebarCollapsed = false;
-  activeTab: 'transcript' | 'notes' | 'resources' = 'transcript';
+  /** Narrow screens: the outline is an off-canvas drawer, closed by default. */
+  outlineOpen = false;
+  activeTab: BelowTab = 'transcript';
   /** Files attached to the course (any type), shown in the Resources tab. */
   courseResources: CourseResource[] = [];
-  sidebarTab: 'path' | 'learners' | 'discuss' = 'path';
+  sidebarTab: 'path' | 'learners' = 'path';
   showCompletionModal = false;
   showRatingModal = false;
-  showNoteModal = false;
   scormReady = false;
   currentScormUrl: SafeResourceUrl | null = null;
 
@@ -65,13 +72,15 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   newNote = '';
   noteTimestamp = 0;
 
-  // Learners (the Discuss tab is the standalone CourseDiscussionComponent).
+  // Learners (the Discussion tab is the standalone CourseDiscussionComponent).
   courseId = '';
   classmates: Classmate[] = [];
   classmatesLoaded = false;
-  /** Set once the Discuss tab is first opened; the forum then stays mounted
+  /** Set once the Discussion tab is first opened; the forum then stays mounted
    *  (hidden on other tabs) so a half-written post or filter survives a switch. */
   discussMounted = false;
+  /** Thread count reported by the forum once it has loaded; null until then. */
+  discussionCount: number | null = null;
 
   // Video tracking
   settingsOpen = false;
@@ -82,6 +91,26 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   duration = 0;
   volume = 1;
   playbackRate = 1;
+  readonly playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  /** Controls fade out while playing and the pointer is still. */
+  controlsIdle = false;
+  isFullscreen = false;
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // SCORM runtime routing
+  /** The lesson the SCORM iframe currently on screen was opened for. */
+  private scormFrameLessonId: string | null = null;
+  /** Origin the wrapper is served from (the API's), for checking messages. */
+  private scormOrigin: string | null = null;
+  /** The latest CMI map each package reported, by lesson. */
+  private scormLatest = new Map<string, Record<string, unknown>>();
+  /** Lessons whose latest CMI map has not been saved yet. */
+  private scormDirty = new Set<string>();
+  /** SCORM lessons whose completion write is in flight (no double write/toast). */
+  private scormCompleting = new Set<string>();
+
+  @ViewChild('scormFrame') private scormFrame?: ElementRef<HTMLIFrameElement>;
+  @ViewChild('videoWrap') private videoWrap?: ElementRef<HTMLElement>;
 
   // Rating
   userRating = 0;
@@ -120,6 +149,14 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     return this.playerService.getNextLesson() !== null;
   }
 
+  get previousLessonRef(): Lesson | null {
+    return this.playerService.getPreviousLesson();
+  }
+
+  get nextLessonRef(): Lesson | null {
+    return this.playerService.getNextLesson();
+  }
+
   // Media loaded handler for both video and audio
   onMediaLoaded(media: HTMLMediaElement): void {
     this.duration = media.duration;
@@ -145,44 +182,52 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Subscribe to service observables
+    // Course data re-emits after every progress write (the header percentage
+    // moves). Notes are not reloaded here: they follow the lesson, below, and
+    // reloading the whole course's notes on each heartbeat replaced the
+    // lesson's list with everyone else's.
     this.playerService.courseData$
       .pipe(takeUntil(this.destroy$))
       .subscribe(data => {
         this.courseData = data;
-        if (data) {
-          this.loadNotes();
-        }
       });
 
     this.playerService.currentLesson$
       .pipe(takeUntil(this.destroy$))
       .subscribe(lesson => {
+        const changed = lesson?.lesson_id !== this.currentLesson?.lesson_id;
         this.currentLesson = lesson;
-        if (lesson) {
+        if (lesson && changed) {
           this.loadLessonNotes(lesson.lesson_id);
         }
       });
   }
 
   ngOnDestroy(): void {
+    // In-app navigation: ordinary requests complete, so the last SCORM state
+    // goes the normal way. The wrapper's own pagehide commit arrives after
+    // this listener is gone, which is why the latest map is kept here.
+    this.flushAllScorm(false);
+    this.clearIdleTimer();
+
     this.destroy$.next();
     this.destroy$.complete();
-
-    // Terminate SCORM session if active
-    this.scormAdapter.terminate();
 
     this.playerService.endSession().subscribe();
     this.playerService.cleanup();
   }
 
-  // Handle browser close/navigate away
-  @HostListener('window:beforeunload', ['$event'])
-  beforeUnload(event: Event): void {
-    // Terminate SCORM session if active
-    this.scormAdapter.terminate();
-
-    this.playerService.endSession().subscribe();
+  /**
+   * The page is going away — tab closed, reload, a link off the app. Requests
+   * made now are cancelled with the document, so what is owed (SCORM state,
+   * unreported time) goes out as `keepalive` fetches. Both events can fire for
+   * one unload; each flush marks what it sent, so the second sends nothing.
+   */
+  @HostListener('window:beforeunload')
+  @HostListener('window:pagehide')
+  flushForUnload(): void {
+    this.flushAllScorm(true);
+    this.playerService.flushOnUnload();
   }
 
   // ==========================================
@@ -248,6 +293,13 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // ==========================================
 
   selectLesson(lesson: Lesson): void {
+    // Save the package being left before its iframe goes. Its own final
+    // commit may still arrive, and is routed by the lessonId it carries.
+    const leaving = this.currentLesson;
+    if (leaving?.content_type === 'scorm' && leaving.lesson_id !== lesson.lesson_id) {
+      this.flushScorm(leaving.lesson_id, false);
+    }
+
     // Close quiz view if open
     this.showQuizView = false;
     this.currentAssessment = null;
@@ -255,16 +307,23 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     // Reset SCORM state
     this.scormReady = false;
     this.currentScormUrl = null;
+    this.scormFrameLessonId = null;
 
-    // Terminate existing SCORM session if any
-    if (this.currentLesson?.content_type === 'scorm') {
-      this.scormAdapter.terminate();
-    }
+    // Reset playback state; the new media reports its own on load.
+    this.isPlaying = false;
+    this.currentTime = 0;
+    this.duration = 0;
+    this.controlsIdle = false;
 
     this.playerService.selectLesson(lesson);
-    // Opening a lesson shows its transcript first; the settings menu closes.
-    this.activeTab = 'transcript';
+    // Opening a lesson shows its transcript first — unless the learner is in
+    // the forum: Next (or a lesson click) must not throw them out of a
+    // half-written post. The forum's "this lesson" filter follows the input.
+    if (this.activeTab !== 'discussion') {
+      this.activeTab = 'transcript';
+    }
     this.settingsOpen = false;
+    this.outlineOpen = false;
 
     // Track content interaction based on type
     if (lesson.content_type === 'scorm' && this.courseData) {
@@ -280,24 +339,18 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   private initializeScorm(lesson: Lesson): void {
     if (!this.courseData) return;
 
-    console.log('[CoursePlayer] Initializing SCORM for lesson:', lesson.lesson_id);
-
-    // Initialize SCORM adapter for tracking
-    this.scormAdapter.initialize(this.courseData.course.course_id, lesson.lesson_id);
-
-    // Asynchronous now: the content needs a ticket before an iframe can
-    // fetch it. `scormReady` flips when the URL arrives rather than after an
-    // arbitrary hundred milliseconds.
+    // Asynchronous: the content needs a ticket before an iframe can fetch
+    // it. `scormReady` flips when the URL arrives. The wrapper then asks for
+    // its seed (`scorm_wrapper_ready`) before launching the package.
     this.buildScormUrl(lesson);
   }
+
   /**
    * The package's own entry point, with a ticket that lets it be read.
    *
-   * It used to be a URL to `${legacy}/user/scorm-wrapper` carrying the
-   * enrolment, the lesson, the user id and the user's name in the query
-   * string — a PHP page on a host that is being retired. The runtime the
-   * wrapper provided is `ScormAdapterService`, which is here and needs no
-   * page of its own; what remains is pointing an iframe at the content.
+   * The URL is the API's SCORM wrapper page, which carries the runtime the
+   * package talks to and relays every call here by postMessage. Its origin is
+   * remembered so messages can be checked against it.
    */
   private buildScormUrl(lesson: Lesson): void {
     this.currentScormUrl = null;
@@ -311,6 +364,21 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (url) => {
+          // A slow ticket for a lesson already left must not open its package
+          // over the lesson now on screen.
+          if (this.currentLesson?.lesson_id !== lesson.lesson_id) {
+            return;
+          }
+
+          if (url !== null) {
+            try {
+              this.scormOrigin = new URL(url, window.location.href).origin;
+            } catch {
+              this.scormOrigin = null;
+            }
+          }
+
+          this.scormFrameLessonId = url === null ? null : lesson.lesson_id;
           this.currentScormUrl = url === null
             ? null
             : this.sanitizer.bypassSecurityTrustResourceUrl(url);
@@ -321,100 +389,217 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Handle postMessage events from SCORM wrapper iframe
+  /**
+   * Messages from the SCORM wrapper iframe.
+   *
+   * Every message names the lesson it is about (`lessonId`, echoed from the
+   * seed), and is saved against THAT lesson — never blindly against whatever
+   * is on screen now. A package's last commit routinely lands after the
+   * learner has clicked Next, and used to be written onto the next lesson.
+   */
   @HostListener('window:message', ['$event'])
   onScormMessage(event: MessageEvent): void {
     const data = event.data;
-    console.log('[SCORM] SCORM message:', data);
-    if (!data || !data.type) return;
+    if (!data || typeof data !== 'object' || typeof data.type !== 'string' || !data.type.startsWith('scorm_')) {
+      return;
+    }
+    const source = this.scormSourceOf(event);
+    if (source === null) {
+      return;
+    }
 
-    console.log('[CoursePlayer] Received SCORM message:', data.type, data);
+    if (data.type === 'scorm_wrapper_ready') {
+      this.seedScormWrapper(event);
+      return;
+    }
+
+    const lessonId = this.scormLessonOf(data, source);
+    if (lessonId === null || !this.courseData) {
+      return;
+    }
+
+    const cmi = data.cmiData && typeof data.cmiData === 'object'
+      ? (data.cmiData as Record<string, unknown>)
+      : null;
+    if (cmi !== null) {
+      this.scormLatest.set(lessonId, cmi);
+      this.scormDirty.add(lessonId);
+    }
+
+    const status = String(data.status ?? '').toLowerCase();
+    const passed = status === 'completed' || status === 'passed';
 
     switch (data.type) {
-      case 'scorm_wrapper_ready':
-        console.log('[CoursePlayer] SCORM wrapper is ready');
-        break;
-
       case 'scorm_initialize':
-        console.log('[CoursePlayer] SCORM content initialized');
+        // Nothing to save yet; the map is kept so a flush has the baseline.
+        this.scormDirty.delete(lessonId);
         break;
 
       case 'scorm_commit':
-        // Save SCORM data to server (includes cmi data with scores, status, etc.)
-        if (this.courseData && this.currentLesson) {
-          const lessonId = data.lessonId || this.currentLesson.lesson_id;
-
-          this.playerService.saveScormData(
-            this.courseData.course.course_id,
-            lessonId,
-            data.cmiData ?? this.scormAdapter.getData(),
-          ).subscribe({
-            next: () => console.log('[CoursePlayer] SCORM data saved'),
-            error: (err) => console.error('[CoursePlayer] Failed to save SCORM data:', err)
-          });
-        }
+        this.flushScorm(lessonId, false);
         break;
 
       case 'scorm_status_change':
-        console.log('[CoursePlayer] SCORM status changed:', data.status);
-        // Only mark complete when SCORM reports passed/completed
-        if (data.status === 'completed' || data.status === 'passed') {
-          this.completeScormLesson(data.status, data.score);
+        // Recorded, not advanced: a package marks itself complete on its last
+        // slide and then shows a results screen, which a jump to the next
+        // lesson would cut off. The learner moves on with Next.
+        if (passed) {
+          this.flushScorm(lessonId, false);
+          this.completeScormLesson(lessonId, status, this.scormScore(lessonId), false);
         }
         break;
 
       case 'scorm_finish':
-        console.log('[CoursePlayer] SCORM finished with status:', data.status, 'score:', data.score);
-        // Final completion - save all data and mark lesson complete if passed
-        if (this.courseData && this.currentLesson) {
-          // Save final SCORM data
-          this.playerService.saveScormData(
-            this.courseData.course.course_id,
-            this.currentLesson.lesson_id,
-            data.cmiData || {},
-          ).subscribe();
-
-          // Mark complete only if passed or completed
-          if (data.status === 'completed' || data.status === 'passed') {
-            this.completeScormLesson(data.status, data.score);
-          }
+        this.flushScorm(lessonId, false);
+        if (passed) {
+          this.completeScormLesson(lessonId, status, this.scormScore(lessonId), true);
         }
         break;
+
+      // 'scorm_state' is record-only: the map above is kept current so an
+      // unload/destroy flush carries the latest bookmark; nothing is saved yet.
     }
   }
 
-  // Complete SCORM lesson with score
-  private completeScormLesson(status: string, score?: number): void {
-    if (!this.courseData || !this.currentLesson) return;
-    if (this.currentLesson.status === 'completed') return; // Already completed
+  /**
+   * Only the wrapper page may talk to this handler. The frame on screen is
+   * matched by identity; a wrapper that has just been torn down (its pagehide
+   * commit arrives after the iframe is gone) is matched by the origin packages
+   * are served from — the API's — and must still name one of this course's
+   * SCORM lessons (see scormLessonOf) before anything is saved.
+   */
+  private scormSourceOf(event: MessageEvent): 'frame' | 'origin' | null {
+    const frameWindow = this.scormFrame?.nativeElement.contentWindow ?? null;
 
-    console.log('[CoursePlayer] Completing SCORM lesson:', this.currentLesson.lesson_id, 'status:', status, 'score:', score);
+    if (frameWindow !== null && event.source === frameWindow) {
+      return 'frame';
+    }
 
-    // Call specific SCORM completion endpoint
-    this.playerService.completeScormLesson(
-      this.courseData.course.course_id,
-      this.currentLesson.lesson_id,
-      status,
-      score,
-    ).subscribe({
-      next: () => {
-        console.log('[CoursePlayer] SCORM lesson marked complete');
-        this.success_notification(this.i18n.t('course_player.toast_lesson_completed'));
-        // Refresh course data to update UI
-        this.loadCourse(this.courseData!.course.course_id);
+    return this.scormOrigin !== null && event.origin === this.scormOrigin ? 'origin' : null;
+  }
 
-        // Auto-advance to next lesson
-        setTimeout(() => {
-          const next = this.playerService.getNextLesson();
-          if (next) {
-            this.selectLesson(next);
-          } else if (this.isAllLessonsCompleted()) {
-            this.showCompletionModal = true;
-          }
-        }, 1000);
-      },
-      error: (err) => console.error('[CoursePlayer] Failed to complete SCORM lesson:', err)
-    });
+  /**
+   * The SCORM lesson a message is about, or null if it is not one of ours.
+   * Only the frame on screen may fall back to "the lesson it was opened for";
+   * anything else must say which lesson it means, or it could be a torn-down
+   * package's commit landing on the lesson that replaced it.
+   */
+  private scormLessonOf(data: { lessonId?: unknown }, source: 'frame' | 'origin'): string | null {
+    const named = typeof data.lessonId === 'string' && data.lessonId !== '' ? data.lessonId : null;
+    const id = named ?? (source === 'frame' ? this.scormFrameLessonId : null);
+
+    if (id === null) {
+      return null;
+    }
+
+    return this.playerService.findLesson(id)?.content_type === 'scorm' ? id : null;
+  }
+
+  /**
+   * Answers the wrapper's `scorm_wrapper_ready` with the learner's saved state,
+   * which it loads into its CMI map BEFORE launching the package — the only
+   * moment a package reads `cmi.core.entry` / `cmi.suspend_data` to resume.
+   * An unsaved map from earlier in this visit wins over the loaded one.
+   */
+  private seedScormWrapper(event: MessageEvent): void {
+    const frameWindow = this.scormFrame?.nativeElement.contentWindow ?? null;
+    const lessonId = this.scormFrameLessonId;
+
+    if (lessonId === null || event.source === null || (frameWindow !== null && event.source !== frameWindow)) {
+      return;
+    }
+
+    const pending = this.scormLatest.get(lessonId);
+    const stored = this.playerService.findLesson(lessonId)?.scorm_state ?? null;
+    // An unsaved map wins, merged over the stored state so a field the
+    // snapshot dropped (over the API's limit) keeps its last good value.
+    const saved = pending
+      ? { ...(stored ?? toScormState({})!), ...scormSnapshot(pending).state }
+      : stored;
+
+    const targetOrigin = event.origin && event.origin !== 'null' ? event.origin : '*';
+
+    (event.source as Window).postMessage(
+      { type: 'scorm_seed', lessonId, state: this.scormAdapter.seed(saved) },
+      targetOrigin,
+    );
+  }
+
+  /** Saves a package's latest unsaved CMI map, if it has one. */
+  private flushScorm(lessonId: string, keepalive: boolean): void {
+    const cmi = this.scormLatest.get(lessonId);
+    const courseId = this.courseData?.course.course_id ?? this.courseId;
+
+    if (!cmi || !this.scormDirty.has(lessonId) || !courseId) {
+      return;
+    }
+
+    this.scormDirty.delete(lessonId);
+
+    this.playerService
+      .saveScormData(courseId, lessonId, cmi, { keepalive })
+      .subscribe({
+        // Not on screen: commits come every few seconds while somebody works
+        // through a package, and a toast per failure would bury the lesson.
+        // Marked dirty again so the next commit or flush retries it.
+        error: () => this.scormDirty.add(lessonId),
+      });
+  }
+
+  private flushAllScorm(keepalive: boolean): void {
+    for (const lessonId of [...this.scormDirty]) {
+      this.flushScorm(lessonId, keepalive);
+    }
+  }
+
+  /**
+   * Marks a SCORM lesson complete with its score.
+   *
+   * It used to reload the whole course afterwards, which re-ran the lesson
+   * auto-select and rebuilt the package's iframe mid-results-screen. The
+   * completion write already updates the outline and the header in place.
+   */
+  private completeScormLesson(lessonId: string, status: string, score: number | undefined, advance: boolean): void {
+    if (!this.courseData) return;
+    const lesson = this.playerService.findLesson(lessonId);
+    if (!lesson) return;
+
+    // Already recorded — typically by the status change on the last slide —
+    // or being recorded right now: no second write or toast, but a finish
+    // (the package closing itself) must still move the learner on.
+    if (lesson.status === 'completed' || this.scormCompleting.has(lessonId)) {
+      if (advance) this.advanceAfterScorm(lessonId);
+      return;
+    }
+
+    this.scormCompleting.add(lessonId);
+    this.playerService.completeScormLesson(this.courseData.course.course_id, lessonId, status, score)
+      .pipe(finalize(() => this.scormCompleting.delete(lessonId)))
+      .subscribe({
+        next: () => {
+          this.success_notification(this.i18n.t('course_player.toast_lesson_completed'));
+          if (advance) this.advanceAfterScorm(lessonId);
+          else if (this.isAllLessonsCompleted()) this.showCompletionModal = true;
+        },
+        error: () => undefined,
+      });
+  }
+
+  /** Moves on after a package closed itself — only if the learner is still on it. */
+  private advanceAfterScorm(lessonId: string): void {
+    if (this.currentLesson?.lesson_id !== lessonId) return;
+    setTimeout(() => {
+      if (this.currentLesson?.lesson_id !== lessonId) return;
+      const next = this.playerService.getNextLesson();
+      if (next) this.selectLesson(next);
+      else if (this.isAllLessonsCompleted()) this.showCompletionModal = true;
+    }, 1000);
+  }
+
+  /** The package's score as the API takes it (0–100), from its latest CMI map. */
+  private scormScore(lessonId: string): number | undefined {
+    const cmi = this.scormLatest.get(lessonId);
+    return cmi ? scormSnapshot(cmi).score : undefined;
   }
 
   nextLesson(): void {
@@ -512,6 +697,8 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   onVideoLoaded(video: HTMLVideoElement): void {
     this.videoElement = video;
     this.duration = video.duration;
+    video.playbackRate = this.playbackRate;
+    video.volume = this.volume;
 
     // Resume from last position
     if (this.currentLesson && this.currentLesson.last_position > 0) {
@@ -523,11 +710,23 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.currentTime = time;
     this.playerService.updateVideoPosition(Math.floor(time));
 
+    const lesson = this.currentLesson;
+    if (!lesson || lesson.status === 'completed' || !(this.duration > 0)) {
+      return;
+    }
+
+    // How far through the media this is becomes the lesson's progress, so the
+    // heartbeat carries a real percentage instead of the 0 it loaded with.
+    // Capped at 99: finishing is a separate, explicit write.
+    if (lesson.content_type === 'video' || lesson.content_type === 'audio') {
+      const pct = Math.min(99, Math.floor((time / this.duration) * 100));
+      if (pct > (lesson.progress || 0)) {
+        lesson.progress = pct;
+      }
+    }
+
     // Auto-complete at 90% for videos (not SCORM)
-    if (this.currentLesson?.content_type === 'video' &&
-      this.duration > 0 &&
-      (time / this.duration) >= 0.9 &&
-      this.currentLesson.status !== 'completed') {
+    if (lesson.content_type === 'video' && (time / this.duration) >= 0.9) {
       this.onVideoComplete();
     }
   }
@@ -535,11 +734,14 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // Content Interaction Tracking
   onVideoPlay(): void {
     this.isPlaying = true;
+    this.onVideoActivity();
     this.trackContentInteraction('video_play', Math.floor(this.currentTime));
   }
 
   onVideoPause(): void {
     this.isPlaying = false;
+    this.controlsIdle = false;
+    this.clearIdleTimer();
     this.trackContentInteraction('video_pause', Math.floor(this.currentTime));
   }
 
@@ -582,17 +784,29 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   togglePlay(): void {
     if (!this.videoElement) return;
 
-    if (this.isPlaying) {
-      this.videoElement.pause();
+    // The element's play/pause events set `isPlaying`; flipping it here as
+    // well went wrong whenever play() was refused (autoplay policy).
+    if (this.videoElement.paused) {
+      void this.videoElement.play().catch(() => undefined);
     } else {
-      this.videoElement.play();
+      this.videoElement.pause();
     }
-    this.isPlaying = !this.isPlaying;
   }
 
   seek(seconds: number): void {
     if (!this.videoElement) return;
     this.videoElement.currentTime = Math.max(0, Math.min(this.duration, this.videoElement.currentTime + seconds));
+    this.onVideoActivity();
+  }
+
+  scrubTo(value: string | number): void {
+    if (!this.videoElement) return;
+    this.videoElement.currentTime = Number(value) || 0;
+  }
+
+  /** How much of the scrubber is filled, 0–100. */
+  get playedPercent(): number {
+    return this.duration > 0 ? Math.min(100, (this.currentTime / this.duration) * 100) : 0;
   }
 
   setPlaybackRate(rate: number): void {
@@ -601,10 +815,61 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.playbackRate = rate;
   }
 
-  setVolume(vol: number): void {
-    if (!this.videoElement) return;
-    this.videoElement.volume = vol;
-    this.volume = vol;
+  setVolume(vol: number | string): void {
+    const value = Math.max(0, Math.min(1, Number(vol)));
+    this.volume = value;
+    if (this.videoElement) {
+      this.videoElement.volume = value;
+    }
+  }
+
+  /**
+   * Fullscreen on the player frame, not the bare <video>: the native
+   * element's fullscreen drops these controls for the browser's own.
+   */
+  toggleFullscreen(): void {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => undefined);
+      return;
+    }
+
+    const wrap = this.videoWrap?.nativeElement;
+    if (document.fullscreenEnabled && wrap?.requestFullscreen) {
+      void wrap.requestFullscreen().catch(() => undefined);
+      return;
+    }
+
+    // iPhone Safari has no element Fullscreen API; only the <video> itself can
+    // enter its native player (needed now that the element is playsinline).
+    const video = this.videoElement as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+    if (document.fullscreenEnabled && video?.requestFullscreen) {
+      void video.requestFullscreen().catch(() => undefined);
+    } else {
+      video?.webkitEnterFullscreen?.();
+    }
+  }
+
+  @HostListener('document:fullscreenchange')
+  onFullscreenChange(): void {
+    this.isFullscreen = document.fullscreenElement !== null;
+  }
+
+  /** Pointer or key activity over the video: show the controls, then fade them. */
+  onVideoActivity(): void {
+    this.controlsIdle = false;
+    this.clearIdleTimer();
+    this.idleTimer = setTimeout(() => {
+      if (this.isPlaying && !this.settingsOpen) {
+        this.controlsIdle = true;
+      }
+    }, 2600);
+  }
+
+  private clearIdleTimer(): void {
+    if (this.idleTimer !== null) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
   }
 
   // ==========================================
@@ -621,7 +886,8 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   addBookmark(): void {
     if (!this.courseData || !this.currentLesson) return;
 
-    this.openNoteModal();
+    this.noteTimestamp = Math.floor(this.currentTime);
+    this.selectBelowTab('notes');
   }
 
   goToBookmark(position: number): void {
@@ -647,42 +913,6 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
 
     this.playerService.getNotes(lessonId).subscribe({
       next: (notes) => this.notes = notes,
-    });
-  }
-
-  openNoteModal(): void {
-    this.noteTimestamp = Math.floor(this.currentTime);
-    this.newNote = '';
-    this.showNoteModal = true;
-
-    // Pause video when opening note modal
-    if (this.videoElement && this.isPlaying) {
-      this.videoElement.pause();
-    }
-  }
-
-  closeNoteModal(): void {
-    this.showNoteModal = false;
-    this.newNote = '';
-  }
-
-  saveNote(): void {
-    if (!this.courseData || !this.currentLesson || !this.newNote.trim()) return;
-
-    this.playerService.saveNote(
-      this.currentLesson.lesson_id,
-      this.newNote.trim(),
-      this.noteTimestamp,
-      this.currentLesson.title,
-    ).subscribe({
-      next: () => {
-        this.newNote = '';
-        this.showNoteModal = false;
-        this.loadLessonNotes(this.currentLesson!.lesson_id);
-
-        // Switch to notes tab to show new note
-        this.activeTab = 'notes';
-      }
     });
   }
 
@@ -732,18 +962,84 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // UI HELPERS
   // ==========================================
 
+  /**
+   * One button, two behaviours: on a wide screen it folds the outline column
+   * away; on a narrow one — where the stage comes first — it opens the
+   * outline as a drawer over the page.
+   */
   toggleSidebar(): void {
-    this.sidebarCollapsed = !this.sidebarCollapsed;
+    if (this.isNarrow()) {
+      this.outlineOpen = !this.outlineOpen;
+    } else {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+    }
+  }
+
+  private isNarrow(): boolean {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia(NARROW_QUERY).matches;
   }
 
   formatTime(seconds: number): string {
-    return this.playerService.formatDuration(Math.floor(seconds));
+    return this.playerService.formatDuration(Math.floor(seconds || 0));
   }
 
   /** Two-digit padding, as the design shows: "01", "00 of 16". */
   padded(value: number): string {
     const n = Math.max(0, Math.round(value || 0));
     return n < 10 ? '0' + n : String(n);
+  }
+
+  /** The module holding the lesson on screen — the lesson header's eyebrow. */
+  get currentModule(): Module | null {
+    const lesson = this.currentLesson;
+    if (!lesson || !this.courseData) return null;
+    return this.courseData.modules.find(m => m.module_id === lesson.module_id) ?? null;
+  }
+
+  /** "Lesson 3 of 12" — where the current lesson sits in the whole course. */
+  get lessonPosition(): { current: number; total: number } | null {
+    const lesson = this.currentLesson;
+    if (!lesson || !this.courseData) return null;
+    const all = this.courseData.modules.flatMap(m => m.lessons);
+    const index = all.findIndex(l => l.lesson_id === lesson.lesson_id);
+    return index === -1 ? null : { current: index + 1, total: all.length };
+  }
+
+  /** Completed lessons in a module, counted from the outline so it never drifts. */
+  moduleDone(module: Module): number {
+    return module.lessons.filter(l => l.status === 'completed').length;
+  }
+
+  modulePercent(module: Module): number {
+    return module.lessons.length ? Math.round((this.moduleDone(module) / module.lessons.length) * 100) : 0;
+  }
+
+  /** The i18n key for a lesson's status chip. */
+  statusKey(status: Lesson['status'] | undefined): string {
+    return 'course_player.status_' + (status ?? 'not_started');
+  }
+
+  /** The circumference of the top bar's progress ring (r = 15). */
+  readonly ringCircumference = 2 * Math.PI * 15;
+
+  get ringOffset(): number {
+    return this.ringCircumference * (1 - Math.min(100, this.getProgressPercentage()) / 100);
+  }
+
+  /** The message under the progress bar, by how far along the learner is. */
+  get progressMessageKey(): string {
+    const p = this.getProgressPercentage();
+    if (p >= 100) return 'course_player.progress_done';
+    if (p <= 0) return 'course_player.progress_start';
+    return 'course_player.keep_going';
+  }
+
+  /** Whether the stage shows a dark theatre for this lesson's media. */
+  get hasTheater(): boolean {
+    const type = this.currentLesson?.content_type;
+    return !this.showQuizView && !!type && ['video', 'audio', 'pdf', 'html', 'scorm'].includes(type);
   }
 
   // ==========================================
@@ -773,21 +1069,16 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // SIDEBAR TABS: PATH / LEARNERS / DISCUSS
+  // SIDEBAR TABS: PATH / LEARNERS
   // ==========================================
 
-  selectSidebarTab(tab: 'path' | 'learners' | 'discuss'): void {
+  selectSidebarTab(tab: 'path' | 'learners'): void {
     this.sidebarTab = tab;
 
     // Loaded lazily and once: opening the player should not fetch the
-    // classmates nobody may look at. The Discuss tab is its own component
-    // (app-course-discussion), which loads its thread when it mounts.
+    // classmates nobody may look at.
     if (tab === 'learners' && !this.classmatesLoaded) {
       this.loadClassmates();
-    }
-    // Lazily mount the forum the first time it is opened, then keep it alive.
-    if (tab === 'discuss') {
-      this.discussMounted = true;
     }
   }
 
@@ -799,6 +1090,25 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
         next: (people) => { this.classmates = people; this.classmatesLoaded = true; },
         error: () => { this.classmates = []; this.classmatesLoaded = true; },
       });
+  }
+
+  // ==========================================
+  // BELOW-CONTENT TABS: TRANSCRIPT / NOTES / RESOURCES / DISCUSSION
+  // ==========================================
+
+  selectBelowTab(tab: BelowTab): void {
+    this.activeTab = tab;
+
+    // The forum mounts the first time its tab is opened (it loads its thread
+    // on mount, and most visits never look), then stays mounted — hidden, not
+    // destroyed — so a draft, reply or filter survives switching tabs.
+    if (tab === 'discussion') {
+      this.discussMounted = true;
+    }
+  }
+
+  onDiscussionCount(count: number): void {
+    this.discussionCount = count;
   }
 
   // ==========================================
@@ -842,6 +1152,10 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     }
 
     return out;
+  }
+
+  get resourceCount(): number {
+    return this.resources.length + this.courseResources.length;
   }
 
   /** The three-letter badge and its colour class for a resource file type. */
@@ -926,28 +1240,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   }
 
   getProgressPercentage(): number {
-    return this.courseData?.enrollment.progress_percentage || 0;
-  }
-
-  getLessonIcon(contentType: string): string {
-    const icons: Record<string, string> = {
-      'video': 'bi-play-circle',
-      'audio': 'bi-music-note',
-      'pdf': 'bi-file-pdf',
-      'scorm': 'bi-box',
-      'html': 'bi-code-slash',
-      'quiz': 'bi-question-circle'
-    };
-    return icons[contentType] || 'bi-file-text';
-  }
-
-  getStatusIcon(status: string): string {
-    const icons: Record<string, string> = {
-      'completed': 'bi-check-circle-fill text-success',
-      'in_progress': 'bi-circle-half text-warning',
-      'not_started': 'bi-circle text-muted'
-    };
-    return icons[status] || 'bi-circle';
+    return Math.round(this.courseData?.enrollment.progress_percentage || 0);
   }
 
   // ==========================================
@@ -955,15 +1248,16 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
   // ==========================================
 
   selectAssessment(assessment: Assessment): void {
-    // Close any current lesson
+    // Save the package being left, then close any current lesson.
+    if (this.currentLesson?.content_type === 'scorm') {
+      this.flushScorm(this.currentLesson.lesson_id, false);
+    }
     this.currentLesson = null;
 
-    // Terminate SCORM if active
-    if (this.scormReady) {
-      this.scormAdapter.terminate();
-      this.scormReady = false;
-      this.currentScormUrl = null;
-    }
+    this.scormReady = false;
+    this.currentScormUrl = null;
+    this.scormFrameLessonId = null;
+    this.outlineOpen = false;
 
     this.currentAssessment = assessment;
     this.showQuizView = true;
@@ -1014,47 +1308,59 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.closeQuizView();
   }
 
-  getAssessmentIcon(type: string): string {
-    const icons: Record<string, string> = {
-      'quiz': 'bi-patch-question',
-      'exam': 'bi-file-earmark-text',
-      'assignment': 'bi-journal-text'
-    };
-    return icons[type] || 'bi-question-circle';
-  }
-
-  getAssessmentStatusIcon(assessment: Assessment): string {
-    if (assessment.has_passed) {
-      return 'bi-check-circle-fill text-success';
-    }
-    if (assessment.attempts_used > 0) {
-      return 'bi-circle-half text-warning';
-    }
-    return 'bi-circle text-muted';
-  }
-
-  getAssessmentBadgeClass(type: string): string {
-    const classes: Record<string, string> = {
-      'quiz': 'bg-primary-subtle text-primary',
-      'exam': 'bg-danger-subtle text-danger',
-      'assignment': 'bg-info-subtle text-info'
-    };
-    return classes[type] || 'bg-secondary-subtle text-secondary';
-  }
-
   // ==========================================
   // KEYBOARD SHORTCUTS
   // ==========================================
 
   @HostListener('document:keydown', ['$event'])
   handleKeyboard(event: KeyboardEvent): void {
-    // Ignore if typing in input
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+    // Never while somebody is typing — an input, a textarea, a select, or a
+    // contenteditable surface such as the forum's rich-text editor, which now
+    // sits directly under the video. Space there used to toggle playback and
+    // swallow the space; m/f/b/n fired too. Chords belong to the browser.
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) {
+      return;
+    }
+    if (isTypingTarget(event.target)) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      this.outlineOpen = false;
+      this.settingsOpen = false;
+      return;
+    }
+
+    if (event.key === 'b' || event.key === 'n') {
+      // The note modal is gone; both shortcuts open the Notes tab at the
+      // current timestamp, which is where a note is now written.
+      this.noteTimestamp = Math.floor(this.currentTime);
+      this.selectBelowTab('notes');
+      return;
+    }
+
+    // A lesson-navigation button keeps focus after a click (Chrome/Edge), so a
+    // later Space would click it again — skipping a second lesson, or
+    // rebuilding a SCORM package mid-session. Space never re-fires those.
+    const navTarget = event.key === ' '
+      && event.target instanceof Element
+      && event.target.closest('.cp-iconbtn, .cp-navcard, .cp-lesson') !== null;
+
+    // The rest drive the video, and only when there is one on screen —
+    // otherwise Space and the arrows keep scrolling the page.
+    if (this.showQuizView || this.currentLesson?.content_type !== 'video' || !this.videoElement) {
+      if (navTarget) event.preventDefault();
       return;
     }
 
     switch (event.key) {
       case ' ':
+        // Space works natively only on the video's own controls (same effect
+        // as ours); anywhere else — including a focused nav button — it plays.
+        if (!navTarget && event.target instanceof Element
+            && event.target.closest('.cp-video button, .cp-video [role="button"], .cp-video a')) {
+          return;
+        }
         event.preventDefault();
         this.togglePlay();
         break;
@@ -1076,14 +1382,7 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
         this.setVolume(this.volume > 0 ? 0 : 1);
         break;
       case 'f':
-        this.videoElement?.requestFullscreen();
-        break;
-      case 'b':
-      case 'n':
-        // The note modal is gone; both shortcuts open the Notes tab at the
-        // current timestamp, which is where a note is now written.
-        this.noteTimestamp = Math.floor(this.currentTime);
-        this.activeTab = 'notes';
+        this.toggleFullscreen();
         break;
     }
   }
@@ -1095,3 +1394,18 @@ export class CoursePlayerComponent implements OnInit, OnDestroy {
     this.toast.success(message);
   }
 }
+
+/** Whether a key event comes from somewhere the learner is typing. */
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+    return true;
+  }
+  if (target instanceof HTMLElement && target.isContentEditable) {
+    return true;
+  }
+  return target.closest('[contenteditable=""], [contenteditable="true"], [role="textbox"]') !== null;
+}
+

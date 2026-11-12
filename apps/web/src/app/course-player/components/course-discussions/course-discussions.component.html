@@ -1,17 +1,32 @@
 <div class="cd-page">
-  <div class="cd-shell">
+  <!-- The same slim bar as the player, so moving between the two feels like
+       one place rather than a page change. -->
+  <header class="cd-topbar">
+    <a class="cd-iconbtn" [routerLink]="['/player', courseId]"
+       [attr.aria-label]="'course_player.back_to_course' | translate" [title]="'course_player.back_to_course' | translate">
+      <i class="bi bi-arrow-left"></i>
+    </a>
+    <span class="cd-topbar-title">{{ courseTitle || ('course_player.course_discussion' | translate) }}</span>
+    <a class="cd-btn" [routerLink]="['/player', courseId]">
+      <i class="bi bi-play-circle"></i><span>{{ 'course_player.back_to_course' | translate }}</span>
+    </a>
+  </header>
+
+  <main class="cd-main">
     <header class="cd-header">
-      <a class="cd-back" [routerLink]="['/player', courseId]">
-        <i class="bi bi-arrow-left"></i>{{ 'course_player.back_to_course' | translate }}
-      </a>
+      <span class="cd-header-icon"><i class="bi bi-chat-square-text"></i></span>
       <div class="cd-heading">
-        <span class="cd-eyebrow"><i class="bi bi-chat-square-text"></i>{{ 'course_player.tab_discuss' | translate }}</span>
-        <h1 class="cd-title">{{ courseTitle || ('course_player.course_discussion' | translate) }}</h1>
+        <h1 class="cd-title">{{ 'course_player.discussion' | translate }}</h1>
+        <p class="cd-subtitle">
+          <span *ngIf="courseTitle">{{ courseTitle }}</span>
+          <span *ngIf="courseTitle" class="cd-dot">·</span>
+          {{ 'course_player.discussion_subtitle' | translate }}
+        </p>
       </div>
     </header>
 
     <section class="cd-body">
       <app-course-discussion *ngIf="courseId" [courseId]="courseId"></app-course-discussion>
     </section>
-  </div>
+  </main>
 </div>
