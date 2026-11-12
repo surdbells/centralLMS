@@ -12,8 +12,9 @@ use Psr\Http\Message\ServerRequestInterface;
 /**
  * GET /v1/me/enrollments
  *
- * The learner's own courses. Overdue work first, then whatever they touched
- * most recently — the home screen should open on what is late.
+ * The learner's own courses. Overdue work first, then in progress, not
+ * started and completed, most recently touched first within each; the home
+ * screen should open on what is late. `?search=` narrows by course title.
  *
  * Scoped to the caller by construction: there is no user id in the path, so
  * there is nothing to tamper with.
@@ -32,6 +33,9 @@ final class MyEnrollmentsAction extends EnrollmentAction
             $listing['page'],
             $listing['perPage'],
             $listing['status'],
+            // Parsed by listing() all along but never passed on, so the
+            // learner's search box silently returned everything.
+            $listing['search'],
         );
 
         return Json::page(

@@ -28,7 +28,15 @@ use Psr\Http\Message\ServerRequestInterface;
  *
  * Body: `{"progressPercentage": 0-100}` or `{"completed": true}`, optionally
  * with `secondsSpent` (an increment, not a total), `positionSeconds` for
- * video resume, and `score`.
+ * video resume, and `score`. Leaving `positionSeconds` out leaves the stored
+ * position alone, which is what a SCORM lesson's heartbeat should do.
+ *
+ * A SCORM lesson may also send `scorm`: `{location, suspendData, lessonStatus,
+ * exit, totalTime}`, all optional strings. It is stored as the lesson's
+ * current runtime state and handed back by the course progress read, so the
+ * player can seed the package and it resumes where the learner left it. A
+ * report carrying only `scorm` (the wrapper's pagehide flush) is accepted
+ * as a 0% report, which can never lower a percentage already recorded.
  *
  * Writing the lesson row and recalculating the enrolment happen in one
  * transaction, so the course percentage can never be seen disagreeing with the

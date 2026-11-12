@@ -15,7 +15,8 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
 {
     private const COLUMNS = 'id, tenant_id, enrollment_id, user_id, lesson_id, status,
                              progress_percentage, score, time_spent_seconds,
-                             last_position_seconds, completed_at, last_activity_at, created_at';
+                             last_position_seconds, completed_at, last_activity_at, created_at,
+                             scorm_state';
 
     /**
      * What "done" is measured against.
@@ -106,13 +107,15 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                     "INSERT INTO lesson_progress
                          (tenant_id, enrollment_id, user_id, lesson_id, status,
                           progress_percentage, score, time_spent_seconds,
-                          last_position_seconds, completed_at, last_activity_at)
+                          last_position_seconds, completed_at, last_activity_at,
+                          scorm_state)
                      VALUES
                          (:tenant, :enrollment, :user, :lesson, :status,
                           :percentage, :score, :seconds,
                           COALESCE(:position, 0),
                           CASE WHEN :status2 = 'completed' THEN NOW() END,
-                          NOW())
+                          NOW(),
+                          CAST(:scorm AS jsonb))
                      ON CONFLICT (enrollment_id, lesson_id) DO UPDATE SET
                          -- Progress never goes backwards: a player reporting
                          -- 30% after the learner reached 80% is reporting a
@@ -124,8 +127,19 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                          status = CASE
                              WHEN GREATEST(lesson_progress.progress_percentage,
                                            EXCLUDED.progress_percentage) >= 100 THEN 'completed'
+                             -- Opened is started. Time on the lesson, a
+                             -- playback position or a SCORM commit all mean the
+                             -- learner has been in it, whatever the percentage
+                             -- says; and a lesson once started stays started.
                              WHEN GREATEST(lesson_progress.progress_percentage,
-                                           EXCLUDED.progress_percentage) > 0 THEN 'in_progress'
+                                           EXCLUDED.progress_percentage) > 0
+                                  OR EXCLUDED.status <> 'not_started'
+                                  OR lesson_progress.status <> 'not_started'
+                                  OR lesson_progress.time_spent_seconds
+                                     + EXCLUDED.time_spent_seconds > 0
+                                  OR lesson_progress.last_position_seconds > 0
+                                  OR lesson_progress.scorm_state IS NOT NULL
+                                 THEN 'in_progress'
                              ELSE 'not_started'
                          END,
                          completed_at = CASE
@@ -150,6 +164,17 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                              WHEN :positionGiven THEN EXCLUDED.last_position_seconds
                              ELSE lesson_progress.last_position_seconds
                          END,
+                         -- SCORM state is current state too, but merged key
+                         -- by key: the keys this report carries win, the ones
+                         -- it leaves out are kept, so a commit that only
+                         -- mentions a status cannot wipe the suspend data that
+                         -- resumes the package. No state in the report, no
+                         -- change.
+                         scorm_state = CASE
+                             WHEN EXCLUDED.scorm_state IS NULL THEN lesson_progress.scorm_state
+                             ELSE COALESCE(lesson_progress.scorm_state, '{}'::jsonb)
+                                  || EXCLUDED.scorm_state
+                         END,
                          last_activity_at = NOW(),
                          updated_at = NOW()",
                     [
@@ -164,6 +189,7 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                         'seconds'       => $report['secondsToAdd'],
                         'position'      => $report['position'],
                         'positionGiven' => $report['position'] !== null ? 'true' : 'false',
+                        'scorm'         => $this->encodeScorm($report['scorm'] ?? null),
                     ],
                 );
 
@@ -198,11 +224,14 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                      status = CASE
                          WHEN e.status = 'dropped' THEN 'dropped'
                          WHEN calc.percentage >= 100 THEN 'completed'
-                         WHEN calc.percentage > 0 THEN 'in_progress'
+                         -- Same rule as recalculateWithin: a course with any
+                         -- lesson row has been opened, so a lesson being added
+                         -- or switched off cannot push it back to not started.
+                         WHEN calc.percentage > 0 OR calc.touched THEN 'in_progress'
                          ELSE 'not_started'
                      END,
                      started_at = CASE
-                         WHEN calc.percentage > 0 THEN COALESCE(e.started_at, NOW())
+                         WHEN calc.percentage > 0 OR calc.touched THEN COALESCE(e.started_at, NOW())
                          ELSE e.started_at
                      END,
                      completed_at = CASE
@@ -218,7 +247,10 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                             COALESCE((
                                 SELECT SUM(lp.time_spent_seconds)
                                 FROM lesson_progress lp WHERE lp.enrollment_id = e2.id
-                            ), 0) AS seconds
+                            ), 0) AS seconds,
+                            EXISTS (
+                                SELECT 1 FROM lesson_progress lp WHERE lp.enrollment_id = e2.id
+                            ) AS touched
                      FROM enrollments e2
                      WHERE e2.course_id = :course AND e2.tenant_id = :tenant AND e2.deleted_at IS NULL
                  ) AS calc
@@ -269,11 +301,17 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                          -- taken off; only an assignment does that.
                          WHEN e.status = 'dropped' THEN 'dropped'
                          WHEN sub.percentage >= 100 THEN 'completed'
-                         WHEN sub.percentage > 0 THEN 'in_progress'
+                         -- Any lesson row at all means the learner opened the
+                         -- course. Percentage only counts COMPLETED mandatory
+                         -- lessons, so judging a start by it alone left
+                         -- someone halfway through their first video marked
+                         -- not started. record() always writes the lesson row
+                         -- before calling this, so the first heartbeat flips it.
+                         WHEN sub.percentage > 0 OR sub.touched THEN 'in_progress'
                          ELSE 'not_started'
                      END,
                      started_at = CASE
-                         WHEN sub.percentage > 0 THEN COALESCE(e.started_at, NOW())
+                         WHEN sub.percentage > 0 OR sub.touched THEN COALESCE(e.started_at, NOW())
                          ELSE e.started_at
                      END,
                      completed_at = CASE
@@ -290,7 +328,10 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
                             COALESCE((
                                 SELECT SUM(lp.time_spent_seconds)
                                 FROM lesson_progress lp WHERE lp.enrollment_id = e2.id
-                            ), 0) AS seconds
+                            ), 0) AS seconds,
+                            EXISTS (
+                                SELECT 1 FROM lesson_progress lp WHERE lp.enrollment_id = e2.id
+                            ) AS touched
                      FROM enrollments e2
                      WHERE e2.id = :id
                  ) AS sub
@@ -356,7 +397,59 @@ final class DbalLessonProgressRepository implements LessonProgressRepository
             completedAt: $this->date($row['completed_at'] ?? null),
             lastActivityAt: $this->date($row['last_activity_at'] ?? null),
             createdAt: $this->date($row['created_at'] ?? null),
+            scorm: $this->decodeScorm($row['scorm_state'] ?? null),
         );
+    }
+
+    /**
+     * The report's SCORM keys as a JSON object for the jsonb column, or null
+     * to leave the stored state alone.
+     *
+     * @param array<string, string>|null $scorm
+     */
+    private function encodeScorm(?array $scorm): ?string
+    {
+        if ($scorm === null || $scorm === []) {
+            return null;
+        }
+
+        return json_encode($scorm, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * The stored SCORM state with every key present.
+     *
+     * Rows are merged key by key, so one may hold only some of the keys; the
+     * wrapper seeds from all five, and '' is what an unset CMI value reads as
+     * anyway.
+     *
+     * @return array{location: string, suspendData: string, lessonStatus: string, exit: string, totalTime: string}|null
+     */
+    private function decodeScorm(mixed $value): ?array
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($value, true, 8, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $text = static fn (string $key): string => is_scalar($decoded[$key] ?? null) ? (string) $decoded[$key] : '';
+
+        return [
+            'location'     => $text('location'),
+            'suspendData'  => $text('suspendData'),
+            'lessonStatus' => $text('lessonStatus'),
+            'exit'         => $text('exit'),
+            'totalTime'    => $text('totalTime'),
+        ];
     }
 
     private function date(mixed $value): ?\DateTimeImmutable

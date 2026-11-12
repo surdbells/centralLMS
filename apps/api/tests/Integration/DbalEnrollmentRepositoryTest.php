@@ -383,7 +383,81 @@ final class DbalEnrollmentRepositoryTest extends TestCase
         $enrollment = $this->record($a->id, 90.0);
 
         self::assertSame(0.0, $enrollment->progressPercentage);
-        self::assertSame(EnrollmentStatus::NotStarted, $enrollment->status);
+        // ...but the course has been opened, so it is in progress, not "not
+        // started": percentage and status answer different questions.
+        self::assertSame(EnrollmentStatus::InProgress, $enrollment->status);
+        self::assertNotNull($enrollment->startedAt);
+    }
+
+    #[Test]
+    public function a_heartbeat_at_zero_percent_starts_the_course(): void
+    {
+        // The video heartbeat reports time but rarely a percentage. Before the
+        // opened-is-started rule this left a learner halfway through their
+        // first video marked "not started" on every dashboard.
+        $this->assign([$this->learner]);
+        $a = $this->lesson('A');
+
+        $enrollment = $this->record($a->id, 0.0, seconds: 30);
+
+        self::assertSame(0.0, $enrollment->progressPercentage);
+        self::assertSame(EnrollmentStatus::InProgress, $enrollment->status);
+        self::assertNotNull($enrollment->startedAt);
+        self::assertSame(
+            ProgressStatus::InProgress,
+            $this->progress->find($this->tenantA, $enrollment->id, $a->id)?->status,
+        );
+    }
+
+    #[Test]
+    public function a_dropped_learner_stays_dropped_after_a_heartbeat(): void
+    {
+        $this->assign([$this->learner]);
+        $a = $this->lesson('A');
+        $enrollment = $this->enrollment();
+
+        $this->enrollments->unenroll($this->tenantA, $this->course->id, [$this->learner], $this->admin);
+
+        $this->progress->record(
+            $this->tenantA,
+            $enrollment,
+            $a->id,
+            LessonProgress::reportFromInput(['progressPercentage' => 0, 'secondsSpent' => 30]),
+        );
+
+        self::assertSame(EnrollmentStatus::Dropped, $this->enrollment()->status);
+    }
+
+    #[Test]
+    public function scorm_state_is_stored_merged_and_read_back(): void
+    {
+        $this->assign([$this->learner]);
+        $a = $this->lesson('A');
+
+        $this->progress->record($this->tenantA, $this->enrollment(), $a->id, LessonProgress::reportFromInput([
+            'progressPercentage' => 50,
+            'positionSeconds'    => 12,
+            'scorm'              => ['location' => 'slide_5', 'suspendData' => 'abc', 'lessonStatus' => 'incomplete'],
+        ]));
+
+        // A later report with only a status keeps the suspend data, and one
+        // without positionSeconds keeps the position.
+        $this->progress->record($this->tenantA, $this->enrollment(), $a->id, LessonProgress::reportFromInput([
+            'progressPercentage' => 50,
+            'scorm'              => ['lessonStatus' => 'completed'],
+        ]));
+
+        $progress = $this->progress->find($this->tenantA, $this->enrollment()->id, $a->id);
+
+        self::assertNotNull($progress);
+        self::assertSame(12, $progress->lastPositionSeconds);
+        self::assertSame([
+            'location'     => 'slide_5',
+            'suspendData'  => 'abc',
+            'lessonStatus' => 'completed',
+            'exit'         => '',
+            'totalTime'    => '',
+        ], $progress->scorm);
     }
 
     #[Test]

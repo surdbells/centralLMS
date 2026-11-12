@@ -29,6 +29,8 @@ interface EnrollmentRepository
     /**
      * What this learner is on.
      *
+     * `$search` narrows by course title; blank means everything.
+     *
      * @return array{items: list<Enrollment>, total: int}
      */
     public function forUser(
@@ -37,6 +39,7 @@ interface EnrollmentRepository
         int $page,
         int $perPage,
         ?EnrollmentStatus $status = null,
+        ?string $search = null,
     ): array;
 
     public function find(string $tenantId, string $id): ?Enrollment;

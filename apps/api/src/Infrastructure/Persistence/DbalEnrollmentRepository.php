@@ -81,6 +81,7 @@ final class DbalEnrollmentRepository implements EnrollmentRepository
         int $page,
         int $perPage,
         ?EnrollmentStatus $status = null,
+        ?string $search = null,
     ): array {
         $where = 'e.tenant_id = :tenant AND e.user_id = :user AND e.deleted_at IS NULL';
         $params = ['tenant' => $tenantId, 'user' => $userId];
@@ -96,8 +97,20 @@ final class DbalEnrollmentRepository implements EnrollmentRepository
             $where .= " AND e.status <> 'dropped'";
         }
 
-        // Overdue work first, then whatever they touched most recently: the
-        // learner's home screen should open on what is late.
+        // Narrows by course title only; it never hides anything a blank search
+        // would show. The courses join is in JOINS, which page() also uses for
+        // the count, so the total stays consistent with the rows.
+        if ($search !== null && trim($search) !== '') {
+            $where .= ' AND c.title ILIKE :search';
+            $params['search'] = '%' . trim($search) . '%';
+        }
+
+        // Overdue work first, then what they are in the middle of, then what
+        // they have yet to start, then what is done: the learner's home screen
+        // should open on what is late and what is half-finished. Within each,
+        // most recent activity first, and enrolment date last so courses never
+        // opened (no activity at all) keep a stable order instead of falling
+        // to the end arbitrarily.
         return $this->page(
             $where,
             $params,
@@ -105,8 +118,16 @@ final class DbalEnrollmentRepository implements EnrollmentRepository
             $perPage,
             "(e.due_date IS NOT NULL AND e.due_date < CURRENT_DATE
               AND e.status IN ('not_started','in_progress')) DESC,
+             CASE e.status
+                 WHEN 'in_progress' THEN 0
+                 WHEN 'not_started' THEN 1
+                 WHEN 'completed' THEN 2
+                 ELSE 3
+             END,
              e.due_date ASC NULLS LAST,
-             e.last_activity_at DESC NULLS LAST",
+             e.last_activity_at DESC NULLS LAST,
+             e.enrolled_at DESC,
+             e.id ASC",
         );
     }
 
@@ -223,8 +244,25 @@ final class DbalEnrollmentRepository implements EnrollmentRepository
                                  -- Back to where their progress says they are,
                                  -- not to the beginning.
                                  WHEN progress_percentage >= 100 THEN 'completed'
-                                 WHEN progress_percentage > 0 THEN 'in_progress'
+                                 -- Opened counts as started, the same rule the
+                                 -- progress recalculation applies: any lesson
+                                 -- row means they have been in the course.
+                                 WHEN progress_percentage > 0
+                                      OR EXISTS (SELECT 1 FROM lesson_progress lp
+                                                 WHERE lp.enrollment_id = enrollments.id)
+                                     THEN 'in_progress'
                                  ELSE 'not_started'
+                             END,
+                             -- In progress requires a start date (the
+                             -- enrollments_started_consistent check), and rows
+                             -- touched before the opened-is-started rule may
+                             -- never have been given one.
+                             started_at = CASE
+                                 WHEN progress_percentage > 0
+                                      OR EXISTS (SELECT 1 FROM lesson_progress lp
+                                                 WHERE lp.enrollment_id = enrollments.id)
+                                     THEN COALESCE(started_at, NOW())
+                                 ELSE started_at
                              END,
                              completed_at = CASE
                                  WHEN progress_percentage >= 100 THEN COALESCE(completed_at, NOW())

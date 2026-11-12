@@ -27,11 +27,14 @@ interface LessonProgressRepository
      *
      * Progress never goes backwards: a player that reports 30% after the
      * learner already reached 80% is reporting a re-watch, not a regression.
-     * Time and position do move, because those are current facts.
+     * Time and position do move, because those are current facts, and so does
+     * the SCORM state: the keys a report carries overwrite the stored ones,
+     * the keys it leaves out are kept. A report without a position leaves the
+     * stored position alone.
      *
      * @param array{
      *     percentage: float, status: ProgressStatus, score: ?float,
-     *     secondsToAdd: int, position: ?int
+     *     secondsToAdd: int, position: ?int, scorm: ?array<string, string>
      * } $report
      *
      * @return array{progress: LessonProgress, enrollment: Enrollment}
