@@ -2,7 +2,7 @@
 
 import { Injectable, inject } from '@angular/core';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { ApiClient, Endpoints } from '../../../core/api';
 import { DashboardsService } from '../../../services/dashboards.service';
 import {
@@ -253,14 +253,24 @@ export class MyLearningService {
    * person on it — and they are merged here, the same way the player does it.
    */
   getCourseDetails(courseId: string): Observable<CourseDetails> {
+    // A catalogue course (opened from Browse or a recommendation) may not be
+    // one this person is enrolled in. Ask the enrolment list first and only
+    // fetch progress for an enrolled course: relying on the progress call's
+    // 404 does not work in production, where the web server in front of the
+    // API swaps error pages and drops the CORS headers, so the browser
+    // reports the 404 as "could not reach the server".
+    const mine$ = this.enrollments.mine().pipe(
+      map((rows) => rows.some((r) => r.courseId === courseId)),
+      switchMap((enrolled) => enrolled
+        ? this.api.get<MyProgressPayload>(Endpoints.me.course(courseId)).pipe(
+            catchError((err: { status?: number }) => err?.status === 404 ? of(null) : throwError(() => err)),
+          )
+        : of(null)),
+    );
+
     return forkJoin({
       outline: this.api.get<OutlinePayload>(Endpoints.courses.outline(courseId)),
-      // A 404 here means "not enrolled", not "no such course": a catalogue
-      // course (opened from Browse or a recommendation) still has an outline
-      // worth reading, so it is shown without progress rather than failing.
-      mine: this.api.get<MyProgressPayload>(Endpoints.me.course(courseId)).pipe(
-        catchError((err: { status?: number }) => err?.status === 404 ? of(null) : throwError(() => err)),
-      ),
+      mine: mine$,
     }).pipe(map(({ outline, mine }) => toCourseDetails(outline, mine)));
   }
 
