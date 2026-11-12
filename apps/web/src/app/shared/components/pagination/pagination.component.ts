@@ -96,49 +96,89 @@ import { TranslatePipe } from '../../../translate.pipe';
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.875rem;
-      color: #6c757d;
+      font-size: 0.8125rem;
+      color: var(--ui-text-muted, #6a716b);
     }
     .page-size select {
       width: auto;
     }
 
     .page-info {
-      font-size: 0.875rem;
-      color: #6c757d;
+      font-size: 0.8125rem;
+      color: var(--ui-text-muted, #6a716b);
+      font-variant-numeric: tabular-nums;
     }
 
     .page-nav {
       display: flex;
     }
 
+    /*
+      Separated 36px squares, radius 8, hairline edge; the current page takes
+      the tenant brand colour (it was a hard-coded Bootstrap blue that ignored
+      the organisation's colour). The list carries .pagination-sm for its font
+      size, but the buttons are sized to the shared 36px control height so they
+      line up with the selects and buttons beside them.
+    */
     .pagination {
       gap: 0.25rem;
     }
     .page-link {
-      min-width: 36px;
-      text-align: center;
-      border-radius: 0.25rem !important;
-      color: #495057;
-      border-color: #dee2e6;
+      min-width: var(--ui-ctl-h, 36px);
+      height: var(--ui-ctl-h, 36px);
+      padding: 0 0.625rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 0 !important;
+      border-radius: var(--ui-radius-ctl, 8px) !important;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--ui-text, #1b1f1c);
+      background-color: var(--ui-surface, #fff);
+      border: 1px solid var(--ui-border-strong, #d9ddd9);
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     .page-link:hover {
-      background-color: #e9ecef;
+      background-color: var(--ui-surface-2, #f7f8f7);
+      border-color: #c9cec9;
+      color: var(--ui-text, #1b1f1c);
+    }
+    .page-link:focus-visible {
+      box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb, 48, 50, 52), 0.18);
     }
     .page-item.active .page-link {
-      background-color: #0d6efd;
-      border-color: #0d6efd;
+      background-color: var(--brand-primary, #303234);
+      border-color: var(--brand-primary, #303234);
+      color: var(--brand-primary-contrast, #fff);
     }
     .page-item.disabled .page-link {
-      color: #adb5bd;
+      color: var(--ui-text-subtle, #8d948e);
+      background-color: var(--ui-surface, #fff);
+      border-color: var(--ui-border, #e7e9e7);
+    }
+    /* The ellipsis is a gap, not a control. */
+    .page-item.disabled span.page-link {
+      border-color: transparent;
+      background: transparent;
+      min-width: 24px;
+      padding: 0;
+    }
+
+    /* Keep the page-size select and jump box at the same control height. */
+    .page-size select,
+    .page-jump input {
+      min-height: var(--ui-ctl-h, 36px);
+      font-size: 0.8125rem;
     }
 
     .page-jump {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.875rem;
-      color: #6c757d;
+      font-size: 0.8125rem;
+      color: var(--ui-text-muted, #6a716b);
     }
     .page-jump input {
       width: 60px;

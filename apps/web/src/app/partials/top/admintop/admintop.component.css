@@ -22,23 +22,27 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.875rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  color: #333;
+  /* The neutral hairline button used across the app, instead of a grey
+     gradient that only this control had. */
+  background: var(--ui-surface, #fff);
+  border: 1px solid var(--ui-border-strong, #d9ddd9);
+  border-radius: var(--ui-radius-ctl, 8px);
+  box-shadow: var(--ui-shadow-xs, 0 1px 2px rgba(16, 24, 18, .04));
+  color: var(--ui-text, #1b1f1c);
   font-weight: 500;
   font-size: 0.875rem;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-modules:hover {
-  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-  border-color: #ced4da;
-  color: #000;
+  background: var(--ui-surface-2, #f7f8f7);
+  border-color: #c9cec9;
+  color: var(--ui-text, #1b1f1c);
 }
 
+/* Focus ring in the tenant's brand colour (was a fixed gold). */
 .btn-modules:focus {
-  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb, 48, 50, 52), 0.18);
 }
 
 .btn-modules .modules-label {
@@ -52,7 +56,7 @@
 .dropdown-menu-modules {
   width: min(920px, calc(100vw - 2rem));
   padding: 0.5rem 0.75rem 0.75rem;
-  border: none;
+  border: 1px solid var(--ui-border, #e7e9e7);
   border-radius: 12px;
   margin-top: 0.5rem !important;
 }
@@ -71,7 +75,8 @@
 
 .dropdown-menu-modules .dropdown-header {
   padding: 0.75rem 0.5rem 0.25rem;
-  color: #6c757d;
+  color: var(--ui-text-subtle, #8d948e);
+  font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -95,7 +100,7 @@
 }
 
 .dropdown-menu-modules .dropdown-item:hover {
-  background: rgba(var(--brand-primary-rgb, 201, 162, 39), 0.1);
+  background: rgba(var(--brand-primary-rgb, 48, 50, 52), 0.06);
 }
 
 /* One column below the widest breakpoints so it never overflows. */
@@ -170,22 +175,31 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.5rem 0.75rem;
-  color: #555;
+  color: var(--ui-text-muted, #6a716b);
   text-decoration: none;
   border-radius: 10px;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   min-width: 70px;
   text-align: center;
 }
 
 .centered-nav .nav-link:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: #333;
+  background: rgba(0, 0, 0, 0.035);
+  color: var(--ui-text, #1b1f1c);
 }
 
+/* Active item: a white pill with a hairline edge and the icon in the brand
+   colour (it used to be a fixed gold tint whatever the tenant's colour).
+   The edge is an inset box-shadow, not a border, so the active link is exactly
+   the same size as the others and nothing in the bar shifts. */
 .centered-nav .nav-link.active {
-  background: rgba(201, 162, 39, 0.15);
-  color: #303234;
+  background: var(--ui-surface, #fff);
+  color: var(--ui-text, #1b1f1c);
+  box-shadow: inset 0 0 0 1px var(--ui-border-strong, #d9ddd9), var(--ui-shadow-xs, 0 1px 2px rgba(16, 24, 18, .04));
+}
+
+.centered-nav .nav-link.active .nav-icon {
+  color: var(--brand-primary, #303234);
 }
 
 .centered-nav .nav-icon {
@@ -236,7 +250,7 @@
   line-height: 18px;
   text-align: center;
   color: #fff;
-  background: #dc3545;
+  background: var(--ui-danger, #c0352b);
   border-radius: 10px;
 }
 
@@ -244,14 +258,15 @@
 .dropdown-notifications {
   width: 360px;
   max-width: calc(100vw - 2rem);
-  border: none;
+  border: 1px solid var(--ui-border, #e7e9e7);
   border-radius: 12px;
   padding: 0;
   overflow: hidden;
 }
 
 .dropdown-header-notifications {
-  background: #f8f9fa;
+  background: var(--ui-surface-2, #f7f8f7);
+  border-bottom: 1px solid var(--ui-border, #e7e9e7);
 }
 
 .notifications-list {
@@ -259,14 +274,15 @@
   overflow-y: auto;
 }
 
+/* Unread rows carry a faint wash of the tenant brand (was a fixed gold). */
 .notification-unread {
-  background: rgba(201, 162, 39, 0.05);
+  background: rgba(var(--brand-primary-rgb, 48, 50, 52), 0.05);
 }
 
 .notification-indicator {
   width: 8px;
   height: 8px;
-  background: #303234;
+  background: var(--brand-primary, #303234);
   border-radius: 50%;
   flex-shrink: 0;
   margin-top: 6px;
@@ -285,7 +301,7 @@
 
 .btn-user:hover {
   background: rgba(0, 0, 0, 0.04);
-  border-color: #e9ecef;
+  border-color: var(--ui-border, #e7e9e7);
 }
 
 .btn-user::after {
@@ -315,7 +331,7 @@
 .user-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
+  color: var(--ui-text, #1b1f1c);
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -324,7 +340,7 @@
 
 .user-dropdown .dropdown-menu {
   min-width: 220px;
-  border: none;
+  border: 1px solid var(--ui-border, #e7e9e7);
   border-radius: 12px;
   padding: 0.5rem 0;
 }
@@ -390,8 +406,8 @@
     left: 0;
     right: 0;
     background: #fff;
-    border-bottom: 1px solid #e9ecef;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--ui-border, #e7e9e7);
+    box-shadow: 0 8px 24px rgba(16, 24, 18, 0.08);
     padding: 1rem;
     z-index: 1000;
   }
@@ -438,8 +454,8 @@
     left: 0;
     right: 0;
     background: #fff;
-    border-bottom: 1px solid #e9ecef;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--ui-border, #e7e9e7);
+    box-shadow: 0 8px 24px rgba(16, 24, 18, 0.08);
     padding: 1rem;
     z-index: 1000;
   }
@@ -522,8 +538,8 @@
     left: 0;
     right: 0;
     background: #fff;
-    border-bottom: 1px solid #e9ecef;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--ui-border, #e7e9e7);
+    box-shadow: 0 8px 24px rgba(16, 24, 18, 0.08);
     padding: 0.75rem;
     z-index: 1000;
     max-height: calc(100vh - 60px);

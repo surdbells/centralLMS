@@ -112,8 +112,8 @@ function onDay(value: string | null): string {
           </div>
         </div>
         <div class="d-flex gap-2">
-          <a [routerLink]="['/admin/users', user.id, 'edit']" class="btn btn-sm btn-secondary text-white"><i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}</a>
-          <button class="btn btn-sm" [class]="user.status === 'active' ? 'btn-secondary text-white' : 'btn-success'"
+          <a [routerLink]="['/admin/users', user.id, 'edit']" class="btn btn-sm btn-secondary"><i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}</a>
+          <button class="btn btn-sm" [class]="user.status === 'active' ? 'btn-secondary' : 'btn-success'"
                   (click)="toggleStatus()">
             <i class="bi" [class]="user.status === 'active' ? 'bi-pause-circle' : 'bi-check-circle'"></i>
             {{ user.status === 'active' ? ('admin.users.suspend' | translate) : ('admin.users.activate' | translate) }}

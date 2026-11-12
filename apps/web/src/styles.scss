@@ -1,7 +1,15 @@
 /* You can add global styles to this file, and also import other style files */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css');
-@import url('https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css');
+/*
+  Font and icon imports. Three remote imports used to sit here and none of them
+  earned their place:
+  - Space Grotesk was never referenced by any stylesheet; the app's type is
+    Inter, loaded in index.html.
+  - bootstrap-icons is already linked from index.html, so a second copy here only
+    downloaded the same icon font twice.
+  - animate.css was imported twice, once from a CDN and once from node_modules
+    (both 4.1.1). The local copy below is the one kept, so it ships in the
+    bundle rather than depending on a third-party host.
+*/
 @import '../node_modules/ckeditor5/dist/ckeditor5-editor.css';
 @import '../node_modules/ckeditor5/dist/ckeditor5-content.css';
 @import '../node_modules/animate.css/animate.min.css';
@@ -21,8 +29,11 @@
     display: none !important;
   }
 }
+/* The required-field marker reads as "attention", so it takes the danger tone
+   rather than the old hard-coded green, which clashed with any tenant whose
+   brand colour was not green. */
 .form-label.required:after {
-  color: #0E630E;
+  color: var(--ui-danger, #c0352b);
   content: "*";
   margin-left: .25rem;
 }
@@ -42,13 +53,16 @@
   color: var(--brand-primary, #0E630E);
 }
 
+/* Empty states sit on white panels now, so a hairline frames them the way the
+   rest of the surfaces are framed; the old 25px drop shadow made them float. */
 .empty-state {
   max-width: 520px;
   text-align: center;
   margin: 0 auto;
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  background: var(--ui-surface, #fff);
+  border: 1px solid var(--ui-border, #e7e9e7);
+  border-radius: var(--ui-radius-panel, 16px);
+  box-shadow: none;
   padding: 2.5rem;
 }
 .empty-state img {
@@ -59,31 +73,25 @@
   font-weight: 600;
 }
 .empty-state p {
-  color: #6c757d;
+  color: var(--ui-text-muted, #6a716b);
 }
 .btn-note {
   border-radius: 30px;
   padding: 0.6rem 1.5rem;
   font-weight: 500;
 }
-.table > :not(caption) > tr > td {
-  padding: 5px 1.4rem;
-}
 .container-fluid {
   max-width: 1600px;
 }
 /*
-  The header now reserves its own space — see `.navbar-offset` in the two
-  navigation components. This rule put the offset on `<main>`, so whether a
-  screen cleared the fixed bar depended on whether its content happened to
-  be wrapped in one; around thirty were not, and sat underneath it.
-
-  The course player is the one screen with a `<main>` and no header, and it
-  keeps the gap it has always had.
+  The header reserves its own space — see `.navbar-offset` in the two
+  navigation components. A rule here used to add an 87px top margin to every
+  `<main>` inside the course player, a leftover from when the player rendered
+  the site header. The player no longer has a header, and its only `<main>` is
+  the content stage inside its own shell, so the margin opened an 87px hole
+  above the video and kept the player from going edge to edge. The player owns
+  its layout entirely now.
 */
-app-course-player main {
-  margin-top: 87px;
-}
 
 
 
@@ -91,37 +99,198 @@ app-course-player main {
    Organisation branding
    --------------------------------------------------------------------------
    BrandingService writes --brand-primary / --brand-secondary / --brand-accent
-   (and their -rgb triplets) onto :root the moment a signed-in tenant's colours
-   arrive. These defaults keep the app looking right before that, and the rules
-   below route Bootstrap's primary — buttons, links, badges, nav, focus rings —
-   through the brand colour, so a saved colour is seen everywhere at once
-   rather than nowhere.
+   (and their -rgb triplets) onto <html> the moment a signed-in tenant's colours
+   arrive, and scripts/set-env.mjs can bake a per-client BRAND_PRIMARY into
+   index.html as `<style>:root{…}</style>`.
+
+   The defaults below sit in `:where(:root)`, which has zero specificity. That
+   matters: Angular injects this stylesheet *after* the build-time `<style>`
+   block, so a plain `:root` default here (same specificity, later in the
+   document) silently beat the client's colour and white-labelled builds
+   painted the charcoal default until BrandingService ran. At zero specificity
+   both the build-time block and the inline <html> style always win, and these
+   values only apply when nobody has said otherwise.
    ========================================================================== */
-:root {
+:where(:root) {
   --brand-primary: #303234;
   --brand-primary-rgb: 48, 50, 52;
   --brand-secondary: #6c757d;
   --brand-secondary-rgb: 108, 117, 125;
   --brand-accent: #2149e8;
   --brand-accent-rgb: 33, 73, 232;
+  /* Text that sits on a brand fill. CSS cannot compute contrast, so this is
+     white by default; BrandingService can set it per tenant for light brands. */
+  --brand-primary-contrast: #fff;
+}
 
+:root {
   /* Bootstrap reads these for anything still driven by the framework var. */
   --bs-primary: var(--brand-primary);
   --bs-primary-rgb: var(--brand-primary-rgb);
   --bs-link-color: var(--brand-primary);
   --bs-link-color-rgb: var(--brand-primary-rgb);
   --bs-link-hover-color: var(--brand-primary);
+
+  /* ------------------------------------------------------------------------
+     UI tokens — the app's own design layer.
+     Neutrals, radii and elevation are fixed; the accent is *always* the
+     tenant's brand colour, so no screen ever hard-codes one. Component styles
+     reference these with fallbacks (`var(--ui-border, #e7e9e7)`) so they keep
+     working in isolation.
+     ------------------------------------------------------------------------ */
+  --ui-canvas: #f4f5f4;
+  --ui-surface: #fff;
+  --ui-surface-2: #f7f8f7;
+  --ui-border: #e7e9e7;
+  --ui-border-strong: #d9ddd9;
+  --ui-text: #1b1f1c;
+  --ui-text-muted: #6a716b;
+  --ui-text-subtle: #8d948e;
+  --ui-accent: var(--brand-primary);
+  --ui-accent-rgb: var(--brand-primary-rgb);
+  --ui-accent-soft: rgba(var(--brand-primary-rgb), .08);
+  --ui-radius-panel: 16px;
+  --ui-radius-card: 12px;
+  --ui-radius-ctl: 8px;
+  --ui-radius-pill: 999px;
+  --ui-ctl-h: 36px;
+  --ui-row-h: 56px;
+  --ui-shadow-xs: 0 1px 2px rgba(16, 24, 18, .04);
+  --ui-shadow-pop: 0 8px 24px rgba(16, 24, 18, .08), 0 0 0 1px var(--ui-border);
+
+  /* Status tones. Each has a base (borders, icons), an -rgb triplet (soft
+     tinted backgrounds) and a darker -text for legible pill labels. */
+  --ui-success: #2e7d4f;
+  --ui-success-rgb: 46, 125, 79;
+  --ui-success-text: #23643e;
+  --ui-warning: #b25e09;
+  --ui-warning-rgb: 178, 94, 9;
+  --ui-warning-text: #8f4b07;
+  --ui-danger: #c0352b;
+  --ui-danger-rgb: 192, 53, 43;
+  --ui-danger-text: #a12c24;
+  --ui-info: #2563a8;
+  --ui-info-rgb: 37, 99, 168;
+  --ui-info-text: #1d518c;
+  --ui-neutral: #4b524c;
+  --ui-neutral-rgb: 75, 82, 76;
+  --ui-neutral-text: #3c423d;
+
+  /* ------------------------------------------------------------------------
+     Re-point the vendored theme's Bootstrap tokens at the UI layer.
+     The theme ships heavy black shadows and filled controls; these make every
+     framework-driven surface use the same hairlines, radii and soft elevation.
+     --bs-body-bg stays white on purpose: cards, tables, dropdowns and modals
+     read it as their surface. Only <body> itself takes the grey canvas.
+     ------------------------------------------------------------------------ */
+  --bs-body-color: var(--ui-text);
+  --bs-border-color: var(--ui-border);
+  --bs-border-color-translucent: var(--ui-border);
+  --bs-secondary-color: var(--ui-text-muted);
+  --bs-tertiary-bg: var(--ui-surface-2);
+  --bs-border-radius: 8px;
+  --bs-border-radius-sm: 6px;
+  --bs-border-radius-lg: 12px;
+  --bs-border-radius-xl: 16px;
+  --bs-box-shadow-sm: var(--ui-shadow-xs);
+  --bs-box-shadow: 0 4px 16px rgba(16, 24, 18, .06);
+  --bs-box-shadow-lg: 0 12px 32px rgba(16, 24, 18, .10);
+  --bs-focus-ring-color: rgba(var(--brand-primary-rgb), .18);
+  --bs-headings-letter-spacing: -0.01em;
+
+  /* The theme's secondary and warning tokens are broken: the hex is black but
+     the -rgb triplet is amber, so `.btn-secondary` rendered black with an amber
+     press state while `.bg-secondary` badges rendered amber. Give both tones a
+     consistent value across every variant Bootstrap derives from them. */
+  --bs-secondary: #6a716b;
+  --bs-secondary-rgb: 106, 113, 107;
+  --bs-secondary-bg-subtle: #f1f2f1;
+  --bs-secondary-border-subtle: #d9ddd9;
+  --bs-secondary-text-emphasis: #3c423d;
+  --bs-warning: #f59e0b;
+  --bs-warning-rgb: 245, 158, 11;
+  --bs-warning-bg-subtle: #fef5e7;
+  --bs-warning-border-subtle: #fcd9a0;
+  --bs-warning-text-emphasis: #8f4b07;
+  --bs-yellow: #f59e0b;
+
+  /* Taiga components (inputs, dialogs, buttons) default to Manrope, which sat
+     beside Bootstrap's Inter on the same screens. One typeface everywhere. */
+  --tui-font-text: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --tui-font-heading: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* The grey canvas the white panels sit on. Body only — see --bs-body-bg above. */
+body {
+  background-color: var(--ui-canvas);
+}
+
+@media print {
+  body {
+    background-color: #fff;
+  }
+}
+
+/* Headings: a touch heavier and tighter, like the reference. Colour is left
+   alone on purpose — the theme's headings inherit their colour, and dark hero
+   banners rely on that to show white titles. */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Buttons
+   --------------------------------------------------------------------------
+   The theme's 45px buttons (0.75rem vertical padding) towered over everything
+   else in a toolbar. Controls are now one height — 36px — set by padding
+   rather than min-height, so a button whose component overrides its padding
+   never ends up with its label pinned to the top of a taller box.
+   (21px line + 2 × 6.5px padding + 2px border = 36px.)
+   ========================================================================== */
+.btn {
+  --bs-btn-padding-y: .40625rem;
+  --bs-btn-padding-x: .875rem;
+  --bs-btn-font-weight: 500;
+  --bs-btn-border-radius: var(--ui-radius-ctl);
+  --bs-btn-focus-box-shadow: 0 0 0 3px rgba(var(--bs-btn-focus-shadow-rgb, var(--brand-primary-rgb)), .22);
+}
+
+/* Small and large sizes are restated after `.btn` because the rule above has
+   the same specificity and comes later than the theme's size classes. */
+.btn-sm,
+.btn-group-sm > .btn {
+  --bs-btn-padding-y: .3125rem;
+  --bs-btn-padding-x: .625rem;
+  --bs-btn-font-size: .8125rem;
+  --bs-btn-line-height: 1.125rem;
+  --bs-btn-border-radius: 6px;
+}
+
+.btn-lg,
+.btn-group-lg > .btn {
+  --bs-btn-padding-y: .5625rem;
+  --bs-btn-padding-x: 1.25rem;
+  --bs-btn-font-size: 1rem;
+  --bs-btn-border-radius: 10px;
 }
 
 .btn-primary {
+  --bs-btn-color: var(--brand-primary-contrast, #fff);
   --bs-btn-bg: var(--brand-primary);
   --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-color: var(--brand-primary-contrast, #fff);
   --bs-btn-hover-bg: rgba(var(--brand-primary-rgb), 0.88);
   --bs-btn-hover-border-color: rgba(var(--brand-primary-rgb), 0.88);
+  --bs-btn-active-color: var(--brand-primary-contrast, #fff);
   --bs-btn-active-bg: rgba(var(--brand-primary-rgb), 0.94);
   --bs-btn-active-border-color: rgba(var(--brand-primary-rgb), 0.94);
   --bs-btn-disabled-bg: rgba(var(--brand-primary-rgb), 0.55);
   --bs-btn-disabled-border-color: rgba(var(--brand-primary-rgb), 0.55);
+  --bs-btn-focus-shadow-rgb: var(--brand-primary-rgb);
+  /* A faint top highlight and contact shadow give the filled button some body
+     without a gradient. */
+  --bs-btn-box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 1px 2px rgba(16, 24, 18, .08);
 }
 
 .btn-outline-primary {
@@ -131,25 +300,123 @@ app-course-player main {
   --bs-btn-hover-border-color: var(--brand-primary);
   --bs-btn-active-bg: var(--brand-primary);
   --bs-btn-active-border-color: var(--brand-primary);
+  --bs-btn-focus-shadow-rgb: var(--brand-primary-rgb);
 }
 
-/* The vendored Bootstrap is a dark-themed build: it ships
-   `.btn-outline-secondary` as WHITE text with a black/transparent fill, which is
-   invisible on the app's light cards until hover gives it a background (the SSO
-   "Sign in with Microsoft" button and several admin buttons). Route it through
-   the brand's neutral — the same way `.btn-outline-primary` is routed through
-   the brand colour above — so these buttons are legible at rest everywhere. */
-.btn-outline-secondary {
-  --bs-btn-color: var(--brand-secondary, #6c757d);
-  --bs-btn-border-color: var(--brand-secondary, #6c757d);
+/* The neutral button — white, hairline border, dark label (the reference's
+   "Export" look).
+   The vendored Bootstrap is a dark-themed build: it ships `.btn-secondary` as a
+   black fill with an amber press state, `.btn-outline-secondary` as WHITE text
+   on a transparent fill (invisible on light cards until hover — the SSO "Sign in
+   with Microsoft" button and several admin buttons), and `.btn-light` with white
+   hover text on a pale fill. All three are the app's "secondary action", so they
+   share one neutral treatment that is legible at rest everywhere. */
+.btn-secondary,
+.btn-outline-secondary,
+.btn-light {
+  --bs-btn-color: var(--ui-text);
+  --bs-btn-bg: var(--ui-surface);
+  --bs-btn-border-color: var(--ui-border-strong);
+  --bs-btn-hover-color: var(--ui-text);
+  --bs-btn-hover-bg: var(--ui-surface-2);
+  --bs-btn-hover-border-color: #c9cec9;
+  --bs-btn-active-color: var(--ui-text);
+  --bs-btn-active-bg: #eef0ee;
+  --bs-btn-active-border-color: #c9cec9;
+  --bs-btn-disabled-color: var(--ui-text-subtle);
+  --bs-btn-disabled-bg: var(--ui-surface);
+  --bs-btn-disabled-border-color: var(--ui-border);
+  --bs-btn-focus-shadow-rgb: var(--brand-primary-rgb);
+  --bs-btn-box-shadow: var(--ui-shadow-xs);
+}
+
+/* The auth and landing CTAs reuse .btn-secondary with the brand-fill class and
+   a white label; keep them brand-filled in every state (0,2,0 beats the neutral
+   rule above), or their .text-white label would sit on a white button. */
+.btn.abayti_secondary_background {
+  --bs-btn-color: var(--brand-primary-contrast, #fff);
+  --bs-btn-bg: var(--brand-primary);
+  --bs-btn-border-color: var(--brand-primary);
+  --bs-btn-hover-color: var(--brand-primary-contrast, #fff);
+  --bs-btn-hover-bg: rgba(var(--brand-primary-rgb), .88);
+  --bs-btn-hover-border-color: rgba(var(--brand-primary-rgb), .88);
+  --bs-btn-active-color: var(--brand-primary-contrast, #fff);
+  --bs-btn-active-bg: rgba(var(--brand-primary-rgb), .94);
+  --bs-btn-active-border-color: rgba(var(--brand-primary-rgb), .94);
+  --bs-btn-disabled-bg: rgba(var(--brand-primary-rgb), .55);
+  --bs-btn-disabled-border-color: rgba(var(--brand-primary-rgb), .55);
+}
+
+/* Safety net: a neutral button that still forces .text-white elsewhere gets a
+   readable label rather than vanishing. */
+.btn-secondary.text-white:not(.abayti_secondary_background),
+.btn-light.text-white,
+.btn-outline-secondary.text-white { color: var(--ui-text) !important; }
+
+/* Success was bright #39c645 with black text; the success tone with a white
+   label reads as a confident action and passes contrast. */
+.btn-success {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--ui-success);
+  --bs-btn-border-color: var(--ui-success);
   --bs-btn-hover-color: #fff;
-  --bs-btn-hover-bg: var(--brand-secondary, #6c757d);
-  --bs-btn-hover-border-color: var(--brand-secondary, #6c757d);
+  --bs-btn-hover-bg: var(--ui-success-text);
+  --bs-btn-hover-border-color: var(--ui-success-text);
   --bs-btn-active-color: #fff;
-  --bs-btn-active-bg: var(--brand-secondary, #6c757d);
-  --bs-btn-active-border-color: var(--brand-secondary, #6c757d);
-  --bs-btn-disabled-color: var(--brand-secondary, #6c757d);
-  --bs-btn-disabled-border-color: var(--brand-secondary, #6c757d);
+  --bs-btn-active-bg: var(--ui-success-text);
+  --bs-btn-active-border-color: var(--ui-success-text);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--ui-success);
+  --bs-btn-disabled-border-color: var(--ui-success);
+  --bs-btn-focus-shadow-rgb: var(--ui-success-rgb);
+}
+
+/* Warning had the same black/amber bug as secondary. */
+.btn-warning {
+  --bs-btn-color: #1b1f1c;
+  --bs-btn-bg: #f59e0b;
+  --bs-btn-border-color: #f59e0b;
+  --bs-btn-hover-color: #1b1f1c;
+  --bs-btn-hover-bg: #e8920a;
+  --bs-btn-hover-border-color: #e8920a;
+  --bs-btn-active-color: #1b1f1c;
+  --bs-btn-active-bg: #d98708;
+  --bs-btn-active-border-color: #d98708;
+  --bs-btn-disabled-color: #1b1f1c;
+  --bs-btn-disabled-bg: #f59e0b;
+  --bs-btn-disabled-border-color: #f59e0b;
+  --bs-btn-focus-shadow-rgb: 245, 158, 11;
+}
+
+.btn-outline-warning {
+  --bs-btn-color: var(--ui-warning);
+  --bs-btn-border-color: rgba(var(--ui-warning-rgb), .45);
+  --bs-btn-hover-color: #1b1f1c;
+  --bs-btn-hover-bg: #f59e0b;
+  --bs-btn-hover-border-color: #f59e0b;
+  --bs-btn-active-color: #1b1f1c;
+  --bs-btn-active-bg: #f59e0b;
+  --bs-btn-active-border-color: #f59e0b;
+  --bs-btn-disabled-color: var(--ui-warning);
+  --bs-btn-disabled-border-color: rgba(var(--ui-warning-rgb), .45);
+  --bs-btn-focus-shadow-rgb: var(--ui-warning-rgb);
+}
+
+/* Ghost: no chrome until hovered — row actions, toolbar icons. Components that
+   style their own `.btn-ghost` still win through encapsulation. */
+.btn-ghost {
+  --bs-btn-color: var(--ui-text-muted);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: transparent;
+  --bs-btn-hover-color: var(--ui-text);
+  --bs-btn-hover-bg: rgba(16, 24, 18, .05);
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-color: var(--ui-text);
+  --bs-btn-active-bg: rgba(16, 24, 18, .08);
+  --bs-btn-active-border-color: transparent;
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: transparent;
+  --bs-btn-focus-shadow-rgb: var(--brand-primary-rgb);
 }
 
 .text-primary { color: var(--brand-primary) !important; }
@@ -161,11 +428,8 @@ app-course-player main {
 .link-primary { color: var(--brand-primary) !important; }
 .btn-link { color: var(--brand-primary); }
 
-.badge.bg-primary,
-.badge.text-bg-primary { background-color: var(--brand-primary) !important; }
-
 .text-bg-primary {
-  color: #fff !important;
+  color: var(--brand-primary-contrast, #fff) !important;
   background-color: var(--brand-primary) !important;
 }
 
@@ -177,6 +441,118 @@ app-course-player main {
 .progress-bar { background-color: var(--brand-primary); }
 .spinner-border.text-primary,
 .spinner-border-sm.text-primary { color: var(--brand-primary) !important; }
+
+/* ==========================================================================
+   Inputs
+   --------------------------------------------------------------------------
+   The theme draws inputs as borderless grey fills, which vanish on the new
+   white panels. Controls are white with a hairline instead, and share the 36px
+   control height with buttons so a search box and a button line up in a
+   toolbar. `background-color` (not the shorthand) keeps the select chevron,
+   which the theme paints as a background-image.
+   ========================================================================== */
+.form-control,
+.form-select {
+  background-color: var(--ui-surface);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-ctl);
+  min-height: var(--ui-ctl-h);
+  color: var(--ui-text);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.form-control {
+  padding: .40625rem .75rem;
+}
+
+.form-select {
+  padding: .40625rem 2.25rem .40625rem .75rem;
+  background-position: right .75rem center;
+}
+
+.form-control::placeholder {
+  color: var(--ui-text-subtle);
+  opacity: 1;
+}
+
+.form-control:hover:not(:focus):not(:disabled):not(.is-invalid):not(.is-valid),
+.form-select:hover:not(:focus):not(:disabled):not(.is-invalid):not(.is-valid) {
+  border-color: #c9cec9;
+}
+
+.form-control:disabled,
+.form-select:disabled,
+.form-control[readonly] {
+  background-color: var(--ui-surface-2);
+}
+
+/* Readonly plaintext keeps its look — it is text, not a control. */
+.form-control-plaintext {
+  min-height: 0;
+}
+
+.form-control-sm,
+.form-select-sm {
+  min-height: 30px;
+  font-size: .8125rem;
+  line-height: 1.125rem;
+  border-radius: 6px;
+}
+
+.form-control-sm {
+  padding: .3125rem .625rem;
+}
+
+.form-select-sm {
+  padding: .3125rem 2rem .3125rem .625rem;
+  background-position: right .625rem center;
+}
+
+/* Large controls and the file-input button are restated because the padding
+   above has the same specificity as the theme's size classes and comes later.
+   The file button's negative margins must mirror the control's padding or it
+   pokes out of the field. */
+.form-control-lg,
+.form-select-lg {
+  min-height: 44px;
+  font-size: 1rem;
+  border-radius: 10px;
+}
+
+.form-control-lg {
+  padding: .5625rem 1rem;
+}
+
+.form-select-lg {
+  padding: .5625rem 2.5rem .5625rem 1rem;
+  background-position: right 1rem center;
+}
+
+.form-control::file-selector-button {
+  padding: .40625rem .75rem;
+  margin: -.40625rem -.75rem;
+  margin-inline-end: .75rem;
+}
+
+.form-control-sm::file-selector-button {
+  padding: .3125rem .625rem;
+  margin: -.3125rem -.625rem;
+  margin-inline-end: .625rem;
+}
+
+.form-control-lg::file-selector-button {
+  padding: .5625rem 1rem;
+  margin: -.5625rem -1rem;
+  margin-inline-end: 1rem;
+}
+
+.input-group-text {
+  background-color: var(--ui-surface-2);
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-ctl);
+  color: var(--ui-text-muted);
+  padding: .40625rem .75rem;
+}
 
 /* Inputs and checks pick up the brand on focus. */
 .form-control:focus,
@@ -195,6 +571,391 @@ app-course-player main {
   box-shadow: 0 0 0 0.2rem rgba(var(--brand-primary-rgb), 0.2);
 }
 
+/* Opt-in search field: a leading magnifier inside the input.
+   <div class="ui-search"><i class="bi bi-search"></i><input class="form-control"></div> */
+.ui-search {
+  position: relative;
+}
+
+.ui-search > i,
+.ui-search > .bi,
+.ui-search > tui-icon,
+.ui-search > .ui-search__icon {
+  position: absolute;
+  left: .75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ui-text-subtle);
+  font-size: 1rem;
+  line-height: 1;
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ui-search > .form-control {
+  padding-left: 2.25rem;
+}
+
+/* ==========================================================================
+   Tables
+   --------------------------------------------------------------------------
+   Replaces the old `td { padding: 5px 1.4rem }`, which crushed rows to ~31px.
+   Light grey header, 56px rows, hairline dividers and tabular figures so
+   columns of numbers line up. `.table-sm` keeps its compact density.
+   ========================================================================== */
+.table {
+  --bs-table-bg: var(--ui-surface);
+  --bs-table-color: var(--ui-text);
+  --bs-table-border-color: var(--ui-border);
+  --bs-table-hover-bg: #fafbfa;
+  --bs-table-striped-bg: #fafbfa;
+  font-variant-numeric: tabular-nums;
+}
+
+.table > thead:not(.table-dark):not(.table-primary) > tr > th {
+  background-color: var(--ui-surface-2);
+  color: var(--ui-text-muted);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .01em;
+  padding: .625rem 1rem;
+  border-color: var(--ui-border);
+  border-bottom: 1px solid var(--ui-border);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.table > tbody > tr > td,
+.table > tbody > tr > th {
+  padding: .75rem 1rem;
+  vertical-align: middle;
+  border-color: var(--ui-border);
+}
+
+.table:not(.table-sm) > tbody > tr > td {
+  height: var(--ui-row-h);
+}
+
+.table > tbody > tr:last-child > td,
+.table > tbody > tr:last-child > th {
+  border-bottom-width: 0;
+}
+
+.table-sm > thead > tr > th,
+.table-sm > tbody > tr > td,
+.table-sm > tbody > tr > th {
+  padding: .375rem .75rem;
+}
+
+/* Opt-in framed table: <div class="table-responsive ui-table-card"><table class="table">.
+   Clipping to the radius needs a non-visible overflow; `auto` keeps the
+   horizontal scroll a responsive wrapper exists for. */
+.ui-table-card {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  overflow: hidden;
+}
+
+.ui-table-card.table-responsive {
+  overflow: auto;
+}
+
+.ui-table-card .table {
+  margin-bottom: 0;
+}
+
+/* DataTables (non-Bootstrap renderer) — same pagination look as `.pagination`. */
+div.dt-container .dt-paging .dt-paging-button {
+  border-radius: var(--ui-radius-ctl) !important;
+  min-width: 36px;
+  padding: .375rem .75rem !important;
+  border: 1px solid transparent !important;
+  color: var(--ui-text) !important;
+  background: transparent !important;
+}
+
+div.dt-container .dt-paging .dt-paging-button:hover:not(.current):not(.disabled) {
+  background: var(--ui-surface-2) !important;
+  border-color: var(--ui-border-strong) !important;
+}
+
+div.dt-container .dt-paging .dt-paging-button.current,
+div.dt-container .dt-paging .dt-paging-button.current:hover {
+  background: var(--brand-primary) !important;
+  border-color: var(--brand-primary) !important;
+  color: var(--brand-primary-contrast, #fff) !important;
+}
+
+div.dt-container .dt-paging .dt-paging-button.disabled {
+  color: var(--ui-text-subtle) !important;
+}
+
+div.dt-container .dt-input {
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-ctl);
+  background-color: var(--ui-surface);
+  min-height: var(--ui-ctl-h);
+}
+
+/* ==========================================================================
+   Badges — soft tinted pills
+   --------------------------------------------------------------------------
+   Status labels become a ~10% tint of their tone with a ~28% hairline and a
+   darker label, instead of saturated blocks with white text.
+   Counter badges keep solid fills: anything absolutely positioned (the bell
+   count), a circle, or a badge inside a button / nav link / page link, where a
+   pale pill would disappear against the filled parent. Those exclusions sit in
+   :where() so they add no specificity — the tone rule then outranks the
+   `.text-white` / `.text-dark` utilities that badges often carry, which are
+   !important too.
+   ========================================================================== */
+.badge {
+  --bs-badge-font-weight: 500;
+  --bs-badge-font-size: .75rem;
+  --bs-badge-padding-y: .3125rem;
+  --bs-badge-padding-x: .625rem;
+  --bs-badge-border-radius: var(--ui-radius-pill);
+  border: 1px solid transparent;
+  line-height: 1;
+  top: 0;
+}
+
+/* Badges laid over a dark hero band or a photo thumbnail (.path-badges) keep
+   their solid fills — a 10% tint with a dark label is invisible there. Any other
+   overlay badge can opt out the same way with `.badge-solid`.
+
+   tone token  →  the Bootstrap colour classes that map to it. Written out as
+   strings so no (deprecated) global Sass list/string functions are needed. */
+$ui-badge-tones: (
+  success: '.bg-success, .text-bg-success, .bg-success-subtle',
+  danger: '.bg-danger, .text-bg-danger, .bg-danger-subtle',
+  warning: '.bg-warning, .text-bg-warning, .bg-warning-subtle',
+  info: '.bg-info, .text-bg-info, .bg-info-subtle',
+  neutral: '.bg-secondary, .text-bg-secondary, .bg-secondary-subtle, .bg-dark, .text-bg-dark, .bg-dark-subtle, .bg-light, .text-bg-light, .bg-light-subtle, .bg-black',
+);
+
+@each $tone, $selectors in $ui-badge-tones {
+  .badge:where(:not(.position-absolute, .rounded-circle, .btn *, .nav-link *, .page-link *, .path-badges *, .badge-solid)):is(#{$selectors}) {
+    background-color: rgba(var(--ui-#{$tone}-rgb), .10) !important;
+    color: var(--ui-#{$tone}-text) !important;
+    border-color: rgba(var(--ui-#{$tone}-rgb), .28);
+  }
+}
+
+/* Primary follows the tenant brand. The label is darkened where the browser
+   can mix colours, so a light brand colour still reads on its own tint. */
+.badge:where(:not(.position-absolute, .rounded-circle, .btn *, .nav-link *, .page-link *, .path-badges *, .badge-solid)):is(.bg-primary, .text-bg-primary, .bg-primary-subtle) {
+  background-color: rgba(var(--brand-primary-rgb), .10) !important;
+  color: var(--brand-primary) !important;
+  border-color: rgba(var(--brand-primary-rgb), .28);
+}
+
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  .badge:where(:not(.position-absolute, .rounded-circle, .btn *, .nav-link *, .page-link *, .path-badges *, .badge-solid)):is(.bg-primary, .text-bg-primary, .bg-primary-subtle) {
+    color: color-mix(in srgb, var(--brand-primary) 82%, #000) !important;
+  }
+}
+
+/* Counter badges (the excluded ones above) still get the solid brand fill from
+   the `.bg-primary` / `.text-bg-primary` rules earlier in this file, so the old
+   `.badge.bg-primary { background: brand }` override is gone — at equal
+   specificity it would have turned every soft primary pill solid again. */
+
+/* Optional leading status dot: <span class="badge bg-success badge-dot">Active</span> */
+.badge-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+}
+
+.badge-dot::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Pagination
+   --------------------------------------------------------------------------
+   The theme's active page was a black square. Pages are now separated 36px
+   squares with radius 8 and the active one in the brand colour.
+   ========================================================================== */
+.pagination {
+  --bs-pagination-padding-y: .375rem;
+  --bs-pagination-padding-x: .75rem;
+  --bs-pagination-font-size: .8125rem;
+  --bs-pagination-color: var(--ui-text);
+  --bs-pagination-bg: var(--ui-surface);
+  --bs-pagination-border-color: var(--ui-border-strong);
+  --bs-pagination-border-radius: var(--ui-radius-ctl);
+  --bs-pagination-hover-color: var(--ui-text);
+  --bs-pagination-hover-bg: var(--ui-surface-2);
+  --bs-pagination-hover-border-color: var(--ui-border-strong);
+  --bs-pagination-focus-color: var(--ui-text);
+  --bs-pagination-focus-bg: var(--ui-surface-2);
+  --bs-pagination-focus-box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .18);
+  --bs-pagination-active-color: var(--brand-primary-contrast, #fff);
+  --bs-pagination-active-bg: var(--brand-primary);
+  --bs-pagination-active-border-color: var(--brand-primary);
+  --bs-pagination-disabled-color: var(--ui-text-subtle);
+  --bs-pagination-disabled-bg: var(--ui-surface);
+  --bs-pagination-disabled-border-color: var(--ui-border);
+  gap: .25rem;
+}
+
+/* Restated after `.pagination` for the same reason as the button sizes. */
+.pagination-sm {
+  --bs-pagination-padding-x: .5rem;
+  --bs-pagination-font-size: .75rem;
+  --bs-pagination-border-radius: 6px;
+}
+
+.pagination .page-link {
+  border-radius: var(--bs-pagination-border-radius) !important;
+  margin-left: 0 !important;
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-sm .page-link {
+  min-width: 30px;
+  height: 30px;
+}
+
+.pagination-lg .page-link {
+  min-width: 44px;
+  height: 44px;
+}
+
+/* ==========================================================================
+   Cards, dropdowns, modals, tabs
+   ========================================================================== */
+.card {
+  --bs-card-border-color: var(--ui-border);
+  --bs-card-border-radius: var(--ui-radius-card);
+  --bs-card-inner-border-radius: calc(var(--ui-radius-card) - 1px);
+  --bs-card-box-shadow: none;
+  --bs-card-cap-bg: transparent;
+  --bs-card-spacer-y: 1.25rem;
+  --bs-card-spacer-x: 1.25rem;
+  --bs-card-cap-padding-x: 1.25rem;
+}
+
+/* The many "borderless card with a small shadow" blocks (dashboards, stat
+   cards) get a hairline instead, so every card on a page has the same edge. */
+.card.border-0.shadow-sm {
+  box-shadow: 0 0 0 1px var(--ui-border), var(--ui-shadow-xs) !important;
+}
+
+.dropdown-menu {
+  --bs-dropdown-border-color: var(--ui-border);
+  --bs-dropdown-border-radius: 10px;
+  --bs-dropdown-box-shadow: 0 8px 24px rgba(16, 24, 18, .08);
+  --bs-dropdown-item-padding-y: .5rem;
+  --bs-dropdown-item-padding-x: .75rem;
+  --bs-dropdown-link-color: var(--ui-text);
+  --bs-dropdown-link-hover-color: var(--ui-text);
+  --bs-dropdown-link-hover-bg: var(--ui-surface-2);
+  --bs-dropdown-link-active-color: var(--ui-text);
+  --bs-dropdown-link-active-bg: rgba(var(--brand-primary-rgb), .08);
+  --bs-dropdown-header-color: var(--ui-text-subtle);
+  --bs-dropdown-divider-bg: var(--ui-border);
+}
+
+/* Items are inset rounded rows inside the menu's 4px padding. */
+.dropdown-menu .dropdown-item {
+  border-radius: 6px;
+}
+
+.modal {
+  --bs-modal-border-color: var(--ui-border);
+  --bs-modal-border-radius: var(--ui-radius-panel);
+  --bs-modal-inner-border-radius: calc(var(--ui-radius-panel) - 1px);
+  --bs-modal-header-border-color: var(--ui-border);
+  --bs-modal-footer-border-color: var(--ui-border);
+}
+
+/* Underlined tabs. The theme's boxed tabs are kept structurally (same 1px
+   transparent border, same -1px overlap) so nothing shifts; only the active
+   tab's box is swapped for a 2px brand underline. Weight stays constant
+   between states so labels don't jitter when switching. */
+.nav-tabs {
+  --bs-nav-tabs-border-color: var(--ui-border);
+  --bs-nav-tabs-link-hover-border-color: transparent;
+  --bs-nav-tabs-link-active-color: var(--ui-text);
+  --bs-nav-tabs-link-active-bg: transparent;
+  --bs-nav-tabs-link-active-border-color: transparent;
+}
+
+.nav-tabs .nav-link {
+  color: var(--ui-text-muted);
+  font-weight: 500;
+  border-radius: 0;
+  background: transparent;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  color: var(--ui-text);
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: var(--ui-text);
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--brand-primary);
+}
+
+/* Opt-in segmented control: a grey track with a white active pill.
+   <div class="nav nav-segmented"><button class="nav-link active">…</button>…</div> */
+.nav-segmented {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: var(--ui-surface-2);
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+}
+
+.nav-segmented .nav-link,
+.nav-segmented > button {
+  border: 0;
+  border-radius: 7px;
+  margin: 0;
+  padding: .3125rem .75rem;
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--ui-text-muted);
+  background: transparent;
+  transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.nav-segmented .nav-link:hover,
+.nav-segmented > button:hover {
+  color: var(--ui-text);
+}
+
+.nav-segmented .nav-link.active,
+.nav-segmented > button.active,
+.nav-segmented > .active {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  box-shadow: 0 0 0 1px var(--ui-border-strong), var(--ui-shadow-xs);
+}
+
 /* Modals run 30% wider than Bootstrap's defaults, so forms and tables inside
    them have room to breathe. Applies to the Bootstrap modal sizes and to the
    custom `.overlay-panel` dialogs the newer modules use. */
@@ -205,26 +966,253 @@ app-course-player main {
 
 /* Shared page-header back button — a consistent boxed chevron, brand-aware,
    used so the Reports, Competency and other module headers line the back
-   control up beside the title the way the Courses screen does. */
+   control up beside the title the way the Courses screen does. Sized to the
+   36px control height so it sits level with toolbar buttons. */
 .page-back {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: var(--bs-body-bg, #fff);
-  border: 2px solid var(--bs-border-color, #e5e7eb);
+  width: var(--ui-ctl-h, 36px);
+  height: var(--ui-ctl-h, 36px);
+  border-radius: var(--ui-radius-ctl, 8px);
+  background: var(--ui-surface, #fff);
+  border: 1px solid var(--ui-border-strong, #d9ddd9);
+  box-shadow: var(--ui-shadow-xs);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--bs-secondary-color, #6b7280);
+  color: var(--ui-text-muted, #6a716b);
   flex-shrink: 0;
   transition: all 0.15s ease;
 
   &:hover {
-    border-color: var(--brand-primary, #6d5ef6);
-    color: var(--brand-primary, #6d5ef6);
-    background: var(--bs-tertiary-bg, #f8f9fa);
+    border-color: rgba(var(--brand-primary-rgb), .45);
+    color: var(--brand-primary);
+    background: var(--ui-surface-2, #f7f8f7);
   }
+}
+
+/* ==========================================================================
+   Opt-in page building blocks
+   ========================================================================== */
+
+/* White content panel on the grey canvas. */
+.app-panel {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-panel:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 575.98px) {
+  .app-panel {
+    padding: 1rem;
+    border-radius: var(--ui-radius-card);
+  }
+}
+
+/* Page header: dark icon tile, title, small grey subtitle, optional crumbs
+   above and actions on the right.
+
+   <div class="ui-page-header">
+     <nav class="ui-page-header__crumbs"><a>Admin</a><span>Courses</span></nav>
+     <div class="ui-page-header__icon"><tui-icon icon="@tui.book"/></div>
+     <h1 class="ui-page-header__title">Courses</h1>
+     <p class="ui-page-header__subtitle">Manage the catalogue</p>
+     <div class="ui-page-header__actions">…buttons…</div>
+   </div>
+
+   Laid out on fixed grid lines so the parts can be direct children or the
+   title + subtitle can share a wrapper div — both place correctly. Spacing is
+   on the parts rather than a column gap, so a header without an icon has no
+   phantom indent. */
+.ui-page-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.ui-page-header__crumbs {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .375rem;
+  margin: 0 0 .625rem;
+  padding: 0;
+  list-style: none;
+  font-size: .75rem;
+  color: var(--ui-text-muted);
+}
+
+.ui-page-header__crumbs > * + *::before {
+  content: '\203A';
+  margin-right: .375rem;
+  color: var(--ui-text-subtle);
+}
+
+.ui-page-header__crumbs > :last-child {
+  color: var(--ui-text);
+}
+
+.ui-page-header__crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.ui-page-header__crumbs a:hover {
+  color: var(--ui-text);
+}
+
+.ui-page-header__icon {
+  grid-column: 1;
+  grid-row: 2 / span 2;
+  width: 40px;
+  height: 40px;
+  margin-right: .875rem;
+  border-radius: 10px;
+  background: var(--ui-text);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.ui-page-header__icon tui-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.25rem;
+}
+
+.ui-page-header__title {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+  color: var(--ui-text);
+}
+
+.ui-page-header__subtitle {
+  grid-column: 2;
+  grid-row: 3;
+  margin: .125rem 0 0;
+  font-size: .8125rem;
+  line-height: 1.4;
+  color: var(--ui-text-muted);
+}
+
+/* A plain wrapper around title + subtitle takes the whole text column. */
+.ui-page-header > :not([class*="ui-page-header__"]) {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  min-width: 0;
+}
+
+.ui-page-header__actions {
+  grid-column: 3;
+  grid-row: 2 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-left: 1rem;
+}
+
+@media (max-width: 575.98px) {
+  .ui-page-header__actions {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-content: flex-start;
+    margin: .875rem 0 0;
+  }
+}
+
+/* KPI card: label, big tabular number, optional delta pill and sparkline.
+   <div class="ui-kpi">
+     <div class="ui-kpi__label">Active learners</div>
+     <div class="ui-kpi__value">1,284</div>
+     <span class="ui-kpi__delta ui-kpi__delta--up">+12%</span>
+     <div class="ui-kpi__spark">…apexcharts sparkline…</div>
+   </div> */
+.ui-kpi {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  min-width: 0;
+  height: 100%;
+}
+
+.ui-kpi__label {
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  font-size: .8125rem;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+}
+
+.ui-kpi__value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--ui-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-kpi__delta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .1875rem .5rem;
+  border-radius: var(--ui-radius-pill);
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  background: rgba(var(--ui-neutral-rgb), .08);
+  color: var(--ui-neutral-text);
+  border: 1px solid rgba(var(--ui-neutral-rgb), .2);
+}
+
+.ui-kpi__delta--up {
+  background: rgba(var(--ui-success-rgb), .10);
+  color: var(--ui-success-text);
+  border-color: rgba(var(--ui-success-rgb), .28);
+}
+
+.ui-kpi__delta--down {
+  background: rgba(var(--ui-danger-rgb), .10);
+  color: var(--ui-danger-text);
+  border-color: rgba(var(--ui-danger-rgb), .28);
+}
+
+.ui-kpi__spark {
+  height: 32px;
+  margin-top: auto;
+  color: var(--brand-primary);
+}
+
+/* ApexCharts writes the series colour as an attribute; CSS wins over it so the
+   sparkline always follows the tenant brand. */
+.ui-kpi__spark .apexcharts-series path {
+  stroke: var(--brand-primary);
 }
 
 /* ---------------------------------------------------------------------------
@@ -273,4 +1261,48 @@ app-course-player main {
   padding-right: 0;
   margin-left: 0;
   margin-right: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Content panel
+ *
+ * The standard page wrapper — `<main class="main">` straight after the top
+ * bar — becomes a white rounded panel on the grey canvas. Its outer edge lines
+ * up with the header's content box: `width` is used rather than max-width or
+ * side margins because the alignment rule above already pins those with
+ * !important, and `min()` caps the panel at the same 1600px box less the
+ * header's own inset (px-3, then px-lg-4). The panel's inner padding is the
+ * alignment rule's existing side padding.
+ *
+ * Opt out with `.app-panel--none`. Also left alone:
+ * - a <main> that paints its own background inline (the learner home);
+ * - the My Learning page, whose dark full-bleed hero styles itself;
+ * - the course player, which has no top bar and so never matches.
+ * Browsers without :has() drop this rule entirely, which simply leaves the
+ * old unpanelled layout.
+ * ------------------------------------------------------------------------- */
+:is(app-top, app-admintop) ~ main.main:not(.app-panel--none):not([style*="background"]):not(:has(app-my-learning)) {
+  --bs-main-padding-top: 1.25rem;
+  --bs-main-padding-bottom: 1.5rem;
+  width: min(calc(100% - 2rem), calc(1600px - 2rem));
+  margin-top: .75rem;
+  margin-bottom: 2rem;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel);
+}
+
+@media (min-width: 992px) {
+  :is(app-top, app-admintop) ~ main.main:not(.app-panel--none):not([style*="background"]):not(:has(app-my-learning)) {
+    width: min(calc(100% - 3rem), calc(1600px - 3rem));
+  }
+}
+
+@media (max-width: 575.98px) {
+  :is(app-top, app-admintop) ~ main.main:not(.app-panel--none):not([style*="background"]):not(:has(app-my-learning)) {
+    width: calc(100% - 1rem);
+    margin-top: .5rem;
+    margin-bottom: 1rem;
+    border-radius: var(--ui-radius-card);
+  }
 }

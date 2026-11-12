@@ -19,26 +19,64 @@ type BadgeType = 'status' | 'difficulty' | 'priority' | 'grade' | 'proctoring' |
       {{ displayValue }}
     </span>
   `,
+  /*
+    Colour comes from the global soft-pill badge rules in styles.scss: each
+    bg-{tone} class renders as a ~10% tint of the status tone (--ui-success,
+    --ui-danger, …) with a hairline and a darker label, and bg-primary follows the
+    tenant brand. This component only adds its size/shape variants, the outline
+    variant, and the extra categorical colours (purple/teal/orange/cyan) that
+    Bootstrap has no utility for — without these, those question-type badges
+    rendered as white text on no background at all.
+  */
   styles: [`
     .badge {
       display: inline-flex;
       align-items: center;
       font-weight: 500;
-      padding: 0.35em 0.65em;
+      /* Square-ish by default so the pill input still means something; the
+         global badge style is a full pill. */
+      border-radius: 6px;
     }
-    .badge-sm { font-size: 0.75em; padding: 0.25em 0.5em; }
-    .badge-lg { font-size: 1em; padding: 0.5em 0.85em; }
-    .badge-pill { border-radius: 50rem; }
-    .badge-outline {
+    .badge-sm { font-size: 0.6875rem; padding: 0.1875rem 0.5rem; }
+    .badge-lg { font-size: 0.875rem; padding: 0.375rem 0.75rem; }
+    .badge-pill { border-radius: var(--ui-radius-pill, 999px); }
+
+    /* Categorical tones (question types). Same soft-pill recipe as the
+       status tones: tint, hairline, darker label. */
+    .badge.bg-purple {
+      background-color: rgba(111, 66, 193, 0.10) !important;
+      color: #5a34a0 !important;
+      border-color: rgba(111, 66, 193, 0.28);
+    }
+    .badge.bg-teal {
+      background-color: rgba(15, 128, 110, 0.10) !important;
+      color: #0d6b5c !important;
+      border-color: rgba(15, 128, 110, 0.28);
+    }
+    .badge.bg-orange {
+      background-color: rgba(214, 98, 18, 0.10) !important;
+      color: #a54a0c !important;
+      border-color: rgba(214, 98, 18, 0.28);
+    }
+    .badge.bg-cyan {
+      background-color: rgba(8, 128, 160, 0.10) !important;
+      color: #076a85 !important;
+      border-color: rgba(8, 128, 160, 0.28);
+    }
+
+    /* Outline: no fill, a tone-coloured hairline and label. !important because
+       both the bg-* utilities and the global soft-pill rule are !important. */
+    .badge.badge-outline {
       background: transparent !important;
       border: 1px solid currentColor;
     }
-    .badge-outline.bg-success { color: #198754; }
-    .badge-outline.bg-danger { color: #dc3545; }
-    .badge-outline.bg-warning { color: #ffc107; }
-    .badge-outline.bg-info { color: #0dcaf0; }
-    .badge-outline.bg-primary { color: #0d6efd; }
-    .badge-outline.bg-secondary { color: #6c757d; }
+    .badge.badge-outline.bg-success { color: var(--ui-success-text, #23643e) !important; border-color: rgba(var(--ui-success-rgb, 46, 125, 79), 0.45); }
+    .badge.badge-outline.bg-danger { color: var(--ui-danger-text, #a12c24) !important; border-color: rgba(var(--ui-danger-rgb, 192, 53, 43), 0.45); }
+    .badge.badge-outline.bg-warning { color: var(--ui-warning-text, #8f4b07) !important; border-color: rgba(var(--ui-warning-rgb, 178, 94, 9), 0.45); }
+    .badge.badge-outline.bg-info { color: var(--ui-info-text, #1d518c) !important; border-color: rgba(var(--ui-info-rgb, 37, 99, 168), 0.45); }
+    .badge.badge-outline.bg-primary { color: var(--brand-primary, #303234) !important; border-color: rgba(var(--brand-primary-rgb, 48, 50, 52), 0.45); }
+    .badge.badge-outline.bg-secondary,
+    .badge.badge-outline.bg-dark { color: var(--ui-neutral-text, #3c423d) !important; border-color: rgba(var(--ui-neutral-rgb, 75, 82, 76), 0.35); }
   `]
 })
 export class StatusBadgeComponent {
