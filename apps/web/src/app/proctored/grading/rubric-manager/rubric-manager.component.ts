@@ -60,127 +60,137 @@ interface RubricPreview extends RubricListItem {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="rubric-manager-container">
+    <main class="main">
+    <div class="ui-page rubric-manager-container">
       <!-- Header -->
-      <div class="page-header">
-        <div class="header-left">
-          <h1 class="page-title">
-            <tui-icon icon="@tui.list"></tui-icon>
-            Rubric Manager
-          </h1>
-          <p class="page-subtitle">Create and manage grading rubrics</p>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-list-check"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Rubric Manager</h1>
+          <p>Create and manage grading rubrics</p>
         </div>
-        <div class="header-actions">
+        <div class="ui-page-header__actions">
           <button class="btn btn-primary" (click)="createRubric()">
             <tui-icon icon="@tui.plus"></tui-icon> New Rubric
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-value">{{ rubrics.length }}</span>
-          <span class="stat-label">Total Rubrics</span>
+      <div class="ui-kpi-grid ui-kpi-grid--4 stats-row">
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-list-check"></i> Total Rubrics</span>
+          <span class="ui-kpi__value">{{ rubrics.length }}</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-value">{{ getCountByType('analytic') }}</span>
-          <span class="stat-label">Analytic</span>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-grid-3x3"></i> Analytic</span>
+          <span class="ui-kpi__value">{{ getCountByType('analytic') }}</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-value">{{ getCountByType('holistic') }}</span>
-          <span class="stat-label">Holistic</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-circle"></i> Holistic</span>
+          <span class="ui-kpi__value">{{ getCountByType('holistic') }}</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-value">{{ getCountByType('checklist') }}</span>
-          <span class="stat-label">Checklist</span>
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-check2-square"></i> Checklist</span>
+          <span class="ui-kpi__value">{{ getCountByType('checklist') }}</span>
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="filters-bar">
-        <div class="search-box">
-          <tui-icon icon="@tui.search"></tui-icon>
-          <input type="text" class="form-control" placeholder="Search rubrics..."
-                 [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
-        </div>
-        <select class="form-select form-select-sm" [(ngModel)]="filterType" (change)="applyFilters()">
-          <option value="">All Types</option>
-          <option value="analytic">Analytic</option>
-          <option value="holistic">Holistic</option>
-          <option value="checklist">Checklist</option>
-        </select>
-        <select class="form-select form-select-sm" [(ngModel)]="filterStatus" (change)="applyFilters()">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select class="form-select form-select-sm" [(ngModel)]="sortBy" (change)="applyFilters()">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="name">Name A-Z</option>
-          <option value="most_used">Most Used</option>
-        </select>
-      </div>
-
-      <!-- Rubric Grid -->
-      <div class="rubric-grid" *ngIf="!loading && filteredRubrics.length > 0">
-        <div class="rubric-card" *ngFor="let r of filteredRubrics">
-          <div class="rubric-card-header">
-            <span class="rubric-type-badge" [ngClass]="'type-' + r.rubric_type">
-              <tui-icon [icon]="getRubricTypeIcon(r.rubric_type)"></tui-icon>
-              {{ r.rubric_type | titlecase }}
-            </span>
-            <span class="rubric-status" [ngClass]="'status-' + r.status">{{ r.status }}</span>
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">Rubrics</h2>
+            <p class="ui-section__subtitle">{{ filteredRubrics.length }} of {{ rubrics.length }}</p>
           </div>
+        </div>
 
-          <div class="rubric-card-body" (click)="previewRubric(r)">
-            <h5 class="rubric-name">{{ r.name }}</h5>
-            <p class="rubric-desc" *ngIf="r.description">{{ truncate(r.description, 100) }}</p>
-            <div class="rubric-meta">
-              <span><tui-icon icon="@tui.layers"></tui-icon> {{ r.criteria_count }} criteria</span>
-              <span><tui-icon icon="@tui.star"></tui-icon> {{ r.total_points }} pts</span>
-              <span><tui-icon icon="@tui.activity"></tui-icon> Used {{ r.usage_count }}x</span>
+        <!-- Filters -->
+        <div class="ui-toolbar filters-bar">
+          <div class="ui-search search-box">
+            <i class="bi bi-search"></i>
+            <input type="search" placeholder="Search rubrics..."
+                   [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
+          </div>
+          <div class="ui-filters">
+            <select class="form-select" [(ngModel)]="filterType" (change)="applyFilters()">
+              <option value="">All Types</option>
+              <option value="analytic">Analytic</option>
+              <option value="holistic">Holistic</option>
+              <option value="checklist">Checklist</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name">Name A-Z</option>
+              <option value="most_used">Most Used</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Rubric Grid -->
+        <div class="ui-grid rubric-grid" *ngIf="!loading && filteredRubrics.length > 0">
+          <article class="ui-card rubric-card" *ngFor="let r of filteredRubrics">
+            <div class="rubric-card-header">
+              <span class="ui-pill rubric-type-badge" [ngClass]="'type-' + r.rubric_type">
+                <tui-icon [icon]="getRubricTypeIcon(r.rubric_type)"></tui-icon>
+                {{ r.rubric_type | titlecase }}
+              </span>
+              <span class="ui-pill rubric-status" [ngClass]="'status-' + r.status"><span class="ui-pill__dot"></span>{{ r.status }}</span>
             </div>
-          </div>
 
-          <div class="rubric-card-footer">
-            <span class="rubric-author">{{ r.created_by_name }}</span>
-            <div class="rubric-actions">
-              <button class="btn btn-sm btn-primary" (click)="editRubric(r)" title="Edit">
-                <tui-icon icon="@tui.edit"></tui-icon>
-              </button>
-              <button class="btn btn-sm btn-secondary" (click)="cloneRubric(r)" title="Clone">
-                <tui-icon icon="@tui.copy"></tui-icon>
-              </button>
-              <button class="btn btn-sm btn-secondary" (click)="previewRubric(r)" title="Preview">
-                <tui-icon icon="@tui.eye"></tui-icon>
-              </button>
-              <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(r)" title="Delete"
-                      [disabled]="r.usage_count > 0">
-                <tui-icon icon="@tui.trash-2"></tui-icon>
-              </button>
+            <div class="ui-card__body rubric-card-body" (click)="previewRubric(r)">
+              <h3 class="ui-card__title rubric-name">{{ r.name }}</h3>
+              <p class="rubric-desc" *ngIf="r.description">{{ truncate(r.description, 100) }}</p>
+              <div class="ui-card__meta rubric-meta">
+                <span><tui-icon icon="@tui.layers"></tui-icon> {{ r.criteria_count }} criteria</span>
+                <span><tui-icon icon="@tui.star"></tui-icon> {{ r.total_points }} pts</span>
+                <span><tui-icon icon="@tui.activity"></tui-icon> Used {{ r.usage_count }}x</span>
+              </div>
             </div>
-          </div>
+
+            <div class="ui-card__footer rubric-card-footer">
+              <span class="rubric-author">{{ r.created_by_name }}</span>
+              <div class="rubric-actions">
+                <button class="btn btn-sm btn-primary" (click)="editRubric(r)" title="Edit">
+                  <tui-icon icon="@tui.edit"></tui-icon>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="cloneRubric(r)" title="Clone">
+                  <tui-icon icon="@tui.copy"></tui-icon>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="previewRubric(r)" title="Preview">
+                  <tui-icon icon="@tui.eye"></tui-icon>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(r)" title="Delete"
+                        [disabled]="r.usage_count > 0">
+                  <tui-icon icon="@tui.trash-2"></tui-icon>
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
-      </div>
 
-      <!-- Empty State -->
-      <div class="empty-state" *ngIf="!loading && filteredRubrics.length === 0">
-        <tui-icon icon="@tui.list"></tui-icon>
-        <h4>{{ hasActiveFilters() ? 'No Matching Rubrics' : 'No Rubrics Yet' }}</h4>
-        <p class="text-muted">{{ hasActiveFilters() ? 'Try adjusting your filters' : 'Create your first rubric to get started' }}</p>
-        <button class="btn btn-primary" *ngIf="!hasActiveFilters()" (click)="createRubric()">
-          <tui-icon icon="@tui.plus"></tui-icon> Create Rubric
-        </button>
-      </div>
+        <!-- Empty State -->
+        <div class="ui-state empty-state" *ngIf="!loading && filteredRubrics.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-list-check"></i></span>
+          <h3>{{ hasActiveFilters() ? 'No Matching Rubrics' : 'No Rubrics Yet' }}</h3>
+          <p>{{ hasActiveFilters() ? 'Try adjusting your filters' : 'Create your first rubric to get started' }}</p>
+          <button class="btn btn-primary" *ngIf="!hasActiveFilters()" (click)="createRubric()">
+            <tui-icon icon="@tui.plus"></tui-icon> Create Rubric
+          </button>
+        </div>
 
-      <!-- Loading -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading rubrics...</p>
-      </div>
+        <!-- Loading -->
+        <div class="loading-state" *ngIf="loading">
+          <div class="spinner-border text-primary"></div>
+          <p>Loading rubrics...</p>
+        </div>
+      </section>
 
       <!-- ==========================================
            PREVIEW MODAL
@@ -190,21 +200,21 @@ interface RubricPreview extends RubricListItem {
           <div class="modal-header">
             <h5 class="modal-title">
               <tui-icon icon="@tui.eye"></tui-icon> {{ previewData.name }}
-              <span class="badge ms-2" [ngClass]="'type-' + previewData.rubric_type">{{ previewData.rubric_type }}</span>
+              <span class="ui-pill ms-2" [ngClass]="'type-' + previewData.rubric_type">{{ previewData.rubric_type }}</span>
             </h5>
             <button class="btn-close" (click)="showPreviewModal = false"></button>
           </div>
           <div class="modal-body">
-            <p *ngIf="previewData.description" class="text-muted mb-3">{{ previewData.description }}</p>
+            <p *ngIf="previewData.description" class="ui-muted mb-3">{{ previewData.description }}</p>
 
             <!-- Analytic Rubric Table -->
-            <div class="rubric-preview-table" *ngIf="previewData.rubric_type === 'analytic' && previewData.criteria?.length">
+            <div class="ui-table-wrap rubric-preview-table" *ngIf="previewData.rubric_type === 'analytic' && previewData.criteria?.length">
               <table class="table table-bordered table-sm">
                 <thead>
                   <tr>
                     <th class="criteria-col">Criteria</th>
                     <th *ngFor="let lvl of getUniqueLevels()" class="level-col text-center">
-                      {{ lvl.label }}<br><small class="text-muted">{{ lvl.points }} pts</small>
+                      {{ lvl.label }}<br><small class="ui-muted">{{ lvl.points }} pts</small>
                     </th>
                   </tr>
                 </thead>
@@ -212,8 +222,8 @@ interface RubricPreview extends RubricListItem {
                   <tr *ngFor="let c of previewData.criteria">
                     <td>
                       <strong>{{ c.title }}</strong>
-                      <div class="small text-muted" *ngIf="c.description">{{ c.description }}</div>
-                      <div class="small text-primary">{{ c.max_points }} pts ({{ c.weight }}%)</div>
+                      <div class="small ui-muted" *ngIf="c.description">{{ c.description }}</div>
+                      <div class="small accent-text">{{ c.max_points }} pts ({{ c.weight }}%)</div>
                     </td>
                     <td *ngFor="let lvl of c.levels" class="small">
                       {{ lvl.description || '-' }}
@@ -228,13 +238,13 @@ interface RubricPreview extends RubricListItem {
               <div class="preview-criterion" *ngFor="let c of previewData.criteria">
                 <div class="d-flex justify-content-between mb-1">
                   <strong>{{ c.title }}</strong>
-                  <span class="text-primary fw-bold">{{ c.max_points }} pts</span>
+                  <span class="accent-text fw-bold">{{ c.max_points }} pts</span>
                 </div>
-                <p class="text-muted small mb-2" *ngIf="c.description">{{ c.description }}</p>
+                <p class="ui-muted small mb-2" *ngIf="c.description">{{ c.description }}</p>
                 <div class="preview-levels">
                   <div class="preview-level" *ngFor="let lvl of c.levels">
                     <span class="level-badge">{{ lvl.label }} ({{ lvl.points }}pts)</span>
-                    <span class="text-muted small ms-2" *ngIf="lvl.description">{{ lvl.description }}</span>
+                    <span class="ui-muted small ms-2" *ngIf="lvl.description">{{ lvl.description }}</span>
                   </div>
                 </div>
               </div>
@@ -242,11 +252,11 @@ interface RubricPreview extends RubricListItem {
 
             <div class="rubric-preview-total">
               <strong>Total Points:</strong>
-              <span class="fw-bold text-primary ms-1">{{ previewData.total_points }}</span>
+              <span class="fw-bold accent-text ms-1">{{ previewData.total_points }}</span>
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showPreviewModal = false">Close</button>
+            <button class="btn btn-outline-secondary" (click)="showPreviewModal = false">Close</button>
             <button class="btn btn-primary" (click)="editRubric(previewData); showPreviewModal = false">
               <tui-icon icon="@tui.edit"></tui-icon> Edit
             </button>
@@ -263,10 +273,10 @@ interface RubricPreview extends RubricListItem {
           </div>
           <div class="modal-body">
             <p>Are you sure you want to delete <strong>{{ deleteTarget?.name }}</strong>?</p>
-            <p class="text-muted small">This action cannot be undone.</p>
+            <p class="ui-muted small">This action cannot be undone.</p>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showDeleteModal = false">Cancel</button>
+            <button class="btn btn-outline-secondary" (click)="showDeleteModal = false">Cancel</button>
             <button class="btn btn-danger" (click)="executeDelete()">
               <tui-icon icon="@tui.trash-2"></tui-icon> Delete
             </button>
@@ -274,71 +284,58 @@ interface RubricPreview extends RubricListItem {
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .rubric-manager-container { padding: 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.875rem; margin: 0.25rem 0 0; }
+    /* Page chrome (header, KPIs, section, toolbar, cards, pills) comes from the global UI kit. */
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .ui-toolbar { margin-bottom: 16px; }
+    .ui-search { flex: 1 1 260px; }
+    .accent-text { color: var(--brand-primary); }
 
-    .stats-row { display: flex; gap: 1rem; margin-bottom: 1.25rem; }
-    .stat-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.75rem 1.25rem; text-align: center; flex: 1; }
-    .stat-value { display: block; font-size: 1.5rem; font-weight: 700; color: #212529; }
-    .stat-label { font-size: 0.75rem; color: #6c757d; }
-
-    .filters-bar { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
-    .search-box { position: relative; flex: 1; min-width: 200px; }
-    .search-box tui-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #adb5bd; font-size: 0.875rem; }
-    .search-box input { padding-left: 2rem; font-size: 0.875rem; }
-    .form-select { width: auto; min-width: 130px; }
-
-    .rubric-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
-    .rubric-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; display: flex; flex-direction: column; transition: all 0.2s; }
-    .rubric-card:hover { border-color: #adb5bd; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .rubric-card-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid #e9ecef; }
-    .rubric-type-badge { display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 500; }
-    .type-analytic { color: #0d6efd; }
-    .type-holistic { color: #6f42c1; }
-    .type-checklist { color: #198754; }
-    .rubric-status { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 1rem; text-transform: capitalize; }
-    .status-active { background: #d4edda; color: #155724; }
-    .status-draft { background: #fff3cd; color: #856404; }
-    .status-archived { background: #e2e3e5; color: #6c757d; }
-    .rubric-card-body { padding: 1rem; flex: 1; cursor: pointer; }
-    .rubric-name { font-size: 1rem; font-weight: 600; margin: 0 0 0.375rem; }
-    .rubric-desc { font-size: 0.8125rem; color: #6c757d; margin-bottom: 0.5rem; }
-    .rubric-meta { display: flex; gap: 1rem; font-size: 0.75rem; color: #6c757d; }
+    .rubric-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+    .rubric-card { display: flex; flex-direction: column; }
+    .rubric-card-header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: 12px 16px 0; }
+    .rubric-type-badge { text-transform: capitalize; }
+    .type-analytic { background: rgba(var(--brand-primary-rgb), .1); border-color: rgba(var(--brand-primary-rgb), .28); color: var(--brand-primary); }
+    .type-holistic { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .type-checklist { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .rubric-status { text-transform: capitalize; }
+    .status-active { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .status-draft { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .status-archived { background: rgba(var(--ui-neutral-rgb), .1); border-color: rgba(var(--ui-neutral-rgb), .28); color: var(--ui-neutral-text); }
+    .rubric-card-body { flex: 1; cursor: pointer; }
+    .rubric-name { margin: 0; }
+    .rubric-desc { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); margin: 0; }
+    .rubric-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.75rem; }
     .rubric-meta span { display: flex; align-items: center; gap: 0.25rem; }
-    .rubric-card-footer { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 1rem;
-      border-top: 1px solid #e9ecef; background: #f8f9fa; border-radius: 0 0 0.5rem 0.5rem; }
-    .rubric-author { font-size: 0.75rem; color: #6c757d; }
+    .rubric-card-footer { justify-content: space-between; }
+    .rubric-author { font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); }
     .rubric-actions { display: flex; gap: 0.25rem; }
 
-    .empty-state { text-align: center; padding: 3rem; }
-    .empty-state tui-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 1rem; }
-    .empty-state h4 { font-weight: 600; margin-bottom: 0.5rem; }
-    .loading-state { text-align: center; padding: 3rem; }
+    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Modals */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1050;
       display: flex; align-items: center; justify-content: center; }
-    .modal-dialog { background: #fff; border-radius: 0.5rem; width: 95%; max-height: 90vh; display: flex; flex-direction: column; }
+    .modal-dialog { background: var(--ui-surface, #fff); border-radius: var(--ui-radius-card, 12px); width: 95%; max-height: 90vh; display: flex; flex-direction: column; }
     .modal-dialog.modal-lg { max-width: 900px; }
     .modal-dialog.modal-sm { max-width: 400px; }
-    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 1.125rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--ui-border, #e7e9e7); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 1.0625rem; font-weight: 650; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
     .modal-body { padding: 1.25rem; overflow-y: auto; flex: 1; }
-    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--ui-border, #e7e9e7); display: flex; justify-content: flex-end; gap: 0.5rem; }
 
     /* Preview */
     .rubric-preview-table { overflow-x: auto; }
+    .rubric-preview-table .table { margin: 0; }
     .criteria-col { min-width: 200px; }
     .level-col { min-width: 120px; }
-    .preview-criterion { padding: 0.75rem; border: 1px solid #e9ecef; border-radius: 0.375rem; margin-bottom: 0.75rem; }
+    .preview-criterion { padding: 0.75rem; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); margin-bottom: 0.75rem; }
     .preview-levels { display: flex; flex-direction: column; gap: 0.375rem; }
     .preview-level { display: flex; align-items: center; padding: 0.25rem 0; }
-    .level-badge { background: #e9ecef; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
-    .rubric-preview-total { background: #f8f9fa; padding: 0.75rem; border-radius: 0.375rem; margin-top: 1rem; text-align: right; }
+    .level-badge { background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; white-space: nowrap; }
+    .rubric-preview-total { background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); padding: 0.75rem; border-radius: var(--ui-radius-ctl, 8px); margin-top: 1rem; text-align: right; }
   `]
 })
 export class RubricManagerComponent implements OnInit, OnDestroy {

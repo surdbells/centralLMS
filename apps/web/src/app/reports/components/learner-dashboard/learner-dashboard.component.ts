@@ -15,109 +15,98 @@ import { I18nService } from '../../../i18n.service';
   template: `
     <app-top></app-top>
     <main class="main">
-      <div class="container-fluid py-4">
-        <!-- Back -->
-        <div class="row align-items-center mb-3">
-          <div (click)="goBack()" role="button" class="col-auto">
-            <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-              <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-            </div>
+      <div class="ui-page">
+        <header class="ui-page-header">
+          <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>{{ 'reports.my_learning_dashboard' | translate }}</h1>
+            <p>{{ 'report.subtitle' | translate }}</p>
           </div>
-          <div class="col">
-            <h4 class="fw-bold mb-0">{{ 'reports.my_learning_dashboard' | translate }}</h4>
-          </div>
-        </div>
+        </header>
 
         <!-- Loading -->
-        <div *ngIf="loading" class="text-center py-5">
+        <div *ngIf="loading" class="ui-state">
           <div class="spinner-border text-primary"></div>
-          <p class="text-muted mt-2 small">{{ 'reports.loading_dashboard' | translate }}</p>
+          <p class="mt-3">{{ 'reports.loading_dashboard' | translate }}</p>
         </div>
 
         <div *ngIf="!loading" class="learner-dashboard">
           <!-- KPI Row 1: Core stats -->
-          <div class="row g-3 mb-3">
-            <div *ngFor="let kpi of kpisRow1" class="col-6 col-md-3">
-              <div class="card border-0 shadow-sm h-100">
-                <div class="card-body py-3 text-center">
-                  <i [class]="kpi.icon + ' fs-4 d-block mb-1 text-' + kpi.color"></i>
-                  <h4 class="fw-bold mb-0">{{ kpi.value }}</h4>
-                  <p class="text-muted small mb-0">{{ kpi.label }}</p>
-                </div>
-              </div>
+          <div class="ui-kpi-grid ui-kpi-grid--4">
+            <div *ngFor="let kpi of kpisRow1" class="ui-kpi" [ngClass]="'ui-kpi--' + (kpi.color === 'primary' ? 'brand' : kpi.color === 'secondary' ? 'neutral' : kpi.color)">
+              <span class="ui-kpi__label"><i [class]="kpi.icon"></i> {{ kpi.label }}</span>
+              <span class="ui-kpi__value">{{ kpi.value }}</span>
             </div>
           </div>
 
           <!-- KPI Row 2: Performance stats -->
-          <div class="row g-3 mb-4">
-            <div *ngFor="let kpi of kpisRow2" class="col-6 col-md">
-              <div class="card border-0 shadow-sm h-100">
-                <div class="card-body py-3 text-center">
-                  <i [class]="kpi.icon + ' fs-5 d-block mb-1 text-' + kpi.color"></i>
-                  <h5 class="fw-bold mb-0">{{ kpi.value }}</h5>
-                  <p class="text-muted small mb-0">{{ kpi.label }}</p>
-                </div>
+          <div class="ld-insights">
+            <div class="ui-kpi-grid">
+              <div *ngFor="let kpi of kpisRow2" class="ui-kpi" [ngClass]="'ui-kpi--' + (kpi.color === 'primary' ? 'brand' : kpi.color === 'secondary' ? 'neutral' : kpi.color)">
+                <span class="ui-kpi__label"><i [class]="kpi.icon"></i> {{ kpi.label }}</span>
+                <span class="ui-kpi__value">{{ kpi.value }}</span>
               </div>
             </div>
           </div>
 
           <!-- Charts Row -->
-          <div class="row g-4 mb-4">
-            <div class="col-md-8">
-              <div *ngIf="progressChartData">
-                <app-report-chart [data]="progressChartData" chartType="line" [title]="'reports.my_performance_trend' | translate"
-                                  [allowTypeChange]="true" height="300px"></app-report-chart>
-              </div>
-              <div *ngIf="!progressChartData" class="card border-0 shadow-sm">
-                <div class="card-body text-center py-5 text-muted">
-                  <i class="bi bi-graph-up fs-1 d-block mb-2"></i>
+          <div class="ld-charts">
+            <div class="ld-min">
+              <app-report-chart *ngIf="progressChartData" [data]="progressChartData" chartType="line" [title]="'reports.my_performance_trend' | translate"
+                                [allowTypeChange]="true" height="300px"></app-report-chart>
+              <section *ngIf="!progressChartData" class="ui-section">
+                <div class="ui-section__head">
+                  <div><h2 class="ui-section__title">{{ 'reports.my_performance_trend' | translate }}</h2></div>
+                </div>
+                <div class="ui-state">
+                  <span class="ui-state__icon"><i class="bi bi-graph-up"></i></span>
                   <p>{{ 'reports.complete_courses_trend' | translate }}</p>
                 </div>
-              </div>
+              </section>
             </div>
-            <div class="col-md-4">
-              <div *ngIf="statusChartData">
-                <app-report-chart [data]="statusChartData" chartType="doughnut" [title]="'reports.course_status' | translate"
-                                  [allowTypeChange]="false" height="300px"></app-report-chart>
-              </div>
+            <div class="ld-min" *ngIf="statusChartData">
+              <app-report-chart [data]="statusChartData" chartType="doughnut" [title]="'reports.course_status' | translate"
+                                [allowTypeChange]="false" height="300px"></app-report-chart>
             </div>
           </div>
 
           <!-- Tabs -->
-          <ul class="nav nav-tabs mb-3">
-            <li class="nav-item" *ngFor="let tab of tabs">
-              <a class="nav-link" [class.active]="activeTab === tab.key" role="button"
-                 (click)="switchTab(tab.key)">
-                <i class="bi me-1" [class]="tab.icon"></i>{{ tab.label }}
-                <span class="badge rounded-pill ms-1" [class]="tab.badge" *ngIf="tab.count !== null">{{ tab.count }}</span>
-              </a>
-            </li>
-          </ul>
+          <nav class="ui-tabs" role="tablist">
+            <button type="button" role="tab" class="ui-tab" *ngFor="let tab of tabs"
+                    [class.is-active]="activeTab === tab.key" [attr.aria-selected]="activeTab === tab.key"
+                    (click)="switchTab(tab.key)">
+              <i class="bi" [ngClass]="tab.icon"></i> {{ tab.label }}
+              <span class="ui-tab__count" *ngIf="tab.count !== null">{{ tab.count }}</span>
+            </button>
+          </nav>
 
           <!-- Enrolled Courses Tab -->
           <div *ngIf="activeTab === 'courses'">
-            <div *ngIf="loadingCourses" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-            <div class="card border-0 shadow-sm" *ngIf="!loadingCourses">
+            <div *ngIf="loadingCourses" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <section class="ui-section ui-section--flush" *ngIf="!loadingCourses">
               <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                  <thead class="table-light">
+                <table class="table table-hover mb-0">
+                  <thead>
                   <tr>
-                    <th class="px-3">{{ 'reports.course' | translate }}</th>
+                    <th class="ps-4">{{ 'reports.course' | translate }}</th>
                     <th>{{ 'reports.category' | translate }}</th>
                     <th>{{ 'common.status' | translate }}</th>
                     <th>{{ 'reports.progress' | translate }}</th>
                     <th>{{ 'reports.score' | translate }}</th>
                     <th>{{ 'report.time_spent' | translate }}</th>
-                    <th>{{ 'report.due_date' | translate }}</th>
+                    <th class="pe-4">{{ 'report.due_date' | translate }}</th>
                   </tr>
                   </thead>
                   <tbody>
                   <tr *ngFor="let c of courses" [class.table-danger-subtle]="c.is_overdue">
-                    <td class="px-3">
+                    <td class="ps-4">
                       <div class="fw-medium">{{ c.title }}</div>
-                      <small class="text-muted" *ngIf="c.is_mandatory"><i class="bi bi-asterisk text-danger me-1"></i>{{ 'report.mandatory' | translate }}</small>
+                      <small class="ui-muted" *ngIf="c.is_mandatory"><i class="bi bi-asterisk text-danger me-1"></i>{{ 'report.mandatory' | translate }}</small>
                     </td>
-                    <td><small class="text-muted">{{ c.category || '-' }}</small></td>
+                    <td><small class="ui-muted">{{ c.category || '-' }}</small></td>
                     <td><span class="badge" [class]="getStatusBadge(c.status)">{{ formatStatus(c.status) }}</span></td>
                     <td>
                       <div class="d-flex align-items-center gap-2">
@@ -125,136 +114,136 @@ import { I18nService } from '../../../i18n.service';
                           <div class="progress-bar" [class]="getProgressBarClass(c.progress_percentage)"
                                [style.width.%]="c.progress_percentage || 0"></div>
                         </div>
-                        <small class="text-muted">{{ c.progress_percentage || 0 }}%</small>
+                        <small class="ui-muted">{{ c.progress_percentage || 0 }}%</small>
                       </div>
                     </td>
                     <td>
                       <span *ngIf="c.final_score !== null && c.status === 'completed'">{{ c.final_score }}%</span>
-                      <span *ngIf="c.final_score === null || c.status !== 'completed'" class="text-muted">-</span>
+                      <span *ngIf="c.final_score === null || c.status !== 'completed'" class="ui-muted">-</span>
                     </td>
-                    <td><small class="text-muted">{{ c.time_formatted || '-' }}</small></td>
-                    <td>
-                      <small [class]="c.is_overdue ? 'text-danger fw-semibold' : 'text-muted'">
+                    <td><small class="ui-muted">{{ c.time_formatted || '-' }}</small></td>
+                    <td class="pe-4">
+                      <small [class]="c.is_overdue ? 'text-danger fw-semibold' : 'ui-muted'">
                         {{ c.due_date || '-' }}
                         <i class="bi bi-exclamation-triangle-fill ms-1" *ngIf="c.is_overdue"></i>
                       </small>
                     </td>
                   </tr>
                   <tr *ngIf="!courses.length">
-                    <td colspan="7" class="text-center py-4 text-muted">{{ 'report.no_courses_enrolled' | translate }}</td>
+                    <td colspan="7" class="ld-empty">{{ 'report.no_courses_enrolled' | translate }}</td>
                   </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
 
           <!-- Assessments Tab -->
           <div *ngIf="activeTab === 'assessments'">
-            <div *ngIf="loadingAssessments" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-            <div class="card border-0 shadow-sm" *ngIf="!loadingAssessments">
+            <div *ngIf="loadingAssessments" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <section class="ui-section ui-section--flush" *ngIf="!loadingAssessments">
               <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                  <thead class="table-light">
-                  <tr><th class="px-3">{{ 'reports.assessment' | translate }}</th><th>{{ 'reports.course' | translate }}</th><th>{{ 'reports.score' | translate }}</th><th>{{ 'reports.result' | translate }}</th><th>{{ 'reports.attempts' | translate }}</th><th>{{ 'reports.date' | translate }}</th></tr>
+                <table class="table table-hover mb-0">
+                  <thead>
+                  <tr><th class="ps-4">{{ 'reports.assessment' | translate }}</th><th>{{ 'reports.course' | translate }}</th><th>{{ 'reports.score' | translate }}</th><th>{{ 'reports.result' | translate }}</th><th>{{ 'reports.attempts' | translate }}</th><th class="pe-4">{{ 'reports.date' | translate }}</th></tr>
                   </thead>
                   <tbody>
                   <tr *ngFor="let a of assessments">
-                    <td class="px-3 fw-medium">{{ a.title || a.assessment_title }}</td>
-                    <td><small class="text-muted">{{ a.course_title || '-' }}</small></td>
+                    <td class="ps-4 fw-medium">{{ a.title || a.assessment_title }}</td>
+                    <td><small class="ui-muted">{{ a.course_title || '-' }}</small></td>
                     <td>
                         <span class="fw-semibold" [class]="a.score >= (a.pass_mark || 70) ? 'text-success' : 'text-danger'">
                           {{ a.score !== null ? a.score + '%' : '-' }}
                         </span>
                     </td>
                     <td>
-                        <span class="badge" [class]="a.passed ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
-                          {{ (a.passed ? 'report.passed' : a.score !== null ? 'report.failed' : 'common.pending') | translate }}
+                        <span class="ui-pill" [ngClass]="a.passed ? 'ui-pill--success' : a.score !== null ? 'ui-pill--danger' : 'ui-pill--warning'">
+                          <span class="ui-pill__dot"></span>{{ (a.passed ? 'report.passed' : a.score !== null ? 'report.failed' : 'common.pending') | translate }}
                         </span>
                     </td>
-                    <td><small class="text-muted">{{ a.attempt_number || a.attempts || '-' }}</small></td>
-                    <td><small class="text-muted">{{ a.completed_at || a.submitted_at || '-' }}</small></td>
+                    <td><small class="ui-muted">{{ a.attempt_number || a.attempts || '-' }}</small></td>
+                    <td class="pe-4"><small class="ui-muted">{{ a.completed_at || a.submitted_at || '-' }}</small></td>
                   </tr>
                   <tr *ngIf="!assessments.length">
-                    <td colspan="6" class="text-center py-4 text-muted">{{ 'reports.no_assessment_results' | translate }}</td>
+                    <td colspan="6" class="ld-empty">{{ 'reports.no_assessment_results' | translate }}</td>
                   </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
 
           <!-- Achievements Tab -->
           <div *ngIf="activeTab === 'achievements'">
-            <div *ngIf="loadingAchievements" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <div *ngIf="loadingAchievements" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
             <div *ngIf="!loadingAchievements">
-              <div class="row g-4">
+              <div class="ui-row">
                 <!-- Certificates -->
-                <div class="col-12">
-                  <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white fw-semibold"><i class="bi bi-award me-2 text-warning"></i>{{ 'reports.certificates_count' | translate:{ count: certificates.length } }}</div>
-                    <div class="list-group list-group-flush">
-                      <div *ngFor="let cert of certificates" class="list-group-item d-flex justify-content-between align-items-center py-2">
-                        <div>
-                          <div class="small fw-medium">{{ cert.title || cert.course_title }}</div>
-                          <small class="text-muted">{{ cert.issue_date || cert.completed_at }}</small>
-                        </div>
-                        <span class="badge bg-warning-subtle text-warning" *ngIf="cert.certificate_number">{{ cert.certificate_number }}</span>
-                      </div>
-                      <div *ngIf="!certificates.length" class="list-group-item text-center text-muted py-3 small">{{ 'report.no_certificates' | translate }}</div>
-                    </div>
+                <section class="ui-section">
+                  <div class="ui-section__head">
+                    <div><h2 class="ui-section__title"><i class="bi bi-award me-2 text-warning"></i>{{ 'reports.certificates_count' | translate:{ count: certificates.length } }}</h2></div>
                   </div>
-                </div>
+                  <ul class="ui-list">
+                    <li *ngFor="let cert of certificates" class="justify-content-between">
+                      <div class="ld-min">
+                        <div class="small fw-medium">{{ cert.title || cert.course_title }}</div>
+                        <small class="ui-muted">{{ cert.issue_date || cert.completed_at }}</small>
+                      </div>
+                      <span class="ui-pill ui-pill--warning" *ngIf="cert.certificate_number">{{ cert.certificate_number }}</span>
+                    </li>
+                  </ul>
+                  <p *ngIf="!certificates.length" class="ui-muted small text-center mb-0 py-2">{{ 'report.no_certificates' | translate }}</p>
+                </section>
 
                 <!-- Badges -->
-                <div class="col-12">
-                  <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white fw-semibold"><i class="bi bi-star me-2 text-info"></i>{{ 'reports.badges_count' | translate:{ count: badges.length } }}</div>
-                    <div class="list-group list-group-flush">
-                      <div *ngFor="let b of badges" class="list-group-item d-flex justify-content-between align-items-center py-2">
-                        <div>
-                          <div class="small fw-medium">{{ b.name || b.badge_name }}</div>
-                          <small class="text-muted">{{ b.description || '' }}</small>
-                        </div>
-                        <small class="text-muted">{{ b.earned_at || b.achieved_at }}</small>
-                      </div>
-                      <div *ngIf="!badges.length" class="list-group-item text-center text-muted py-3 small">{{ 'reports.no_badges' | translate }}</div>
-                    </div>
+                <section class="ui-section">
+                  <div class="ui-section__head">
+                    <div><h2 class="ui-section__title"><i class="bi bi-star me-2 text-info"></i>{{ 'reports.badges_count' | translate:{ count: badges.length } }}</h2></div>
                   </div>
-                </div>
+                  <ul class="ui-list">
+                    <li *ngFor="let b of badges" class="justify-content-between">
+                      <div class="ld-min">
+                        <div class="small fw-medium">{{ b.name || b.badge_name }}</div>
+                        <small class="ui-muted">{{ b.description || '' }}</small>
+                      </div>
+                      <small class="ui-muted">{{ b.earned_at || b.achieved_at }}</small>
+                    </li>
+                  </ul>
+                  <p *ngIf="!badges.length" class="ui-muted small text-center mb-0 py-2">{{ 'reports.no_badges' | translate }}</p>
+                </section>
               </div>
 
               <!-- Timeline -->
-              <div class="card border-0 shadow-sm mt-4" *ngIf="timeline.length">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-clock-history me-2"></i>{{ 'reports.achievements_timeline' | translate }}</div>
-                <div class="card-body p-0">
-                  <div class="list-group list-group-flush" style="max-height:300px; overflow-y:auto">
-                    <div *ngFor="let t of timeline" class="list-group-item py-2 d-flex align-items-center gap-3">
-                      <i class="bi fs-5" [class]="getTimelineIcon(t.type)"></i>
-                      <div class="flex-grow-1">
-                        <div class="small fw-medium">{{ t.name }}</div>
-                        <small class="text-muted">{{ formatTimelineType(t.type) }}</small>
-                      </div>
-                      <small class="text-muted">{{ t.achieved_at }}</small>
-                    </div>
-                  </div>
+              <section class="ui-section" *ngIf="timeline.length">
+                <div class="ui-section__head">
+                  <div><h2 class="ui-section__title"><i class="bi bi-clock-history me-2"></i>{{ 'reports.achievements_timeline' | translate }}</h2></div>
                 </div>
-              </div>
+                <ul class="ui-list" style="max-height:300px; overflow-y:auto">
+                  <li *ngFor="let t of timeline">
+                    <i class="bi fs-5" [class]="getTimelineIcon(t.type)"></i>
+                    <div class="flex-grow-1 ld-min">
+                      <div class="small fw-medium">{{ t.name }}</div>
+                      <small class="ui-muted">{{ formatTimelineType(t.type) }}</small>
+                    </div>
+                    <small class="ui-muted">{{ t.achieved_at }}</small>
+                  </li>
+                </ul>
+              </section>
             </div>
           </div>
 
           <!-- Compliance Tab -->
           <div *ngIf="activeTab === 'compliance'">
-            <div *ngIf="loadingCompliance" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-            <div class="card border-0 shadow-sm" *ngIf="!loadingCompliance">
+            <div *ngIf="loadingCompliance" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <section class="ui-section ui-section--flush" *ngIf="!loadingCompliance">
               <div class="table-responsive">
-                <table class="table table-hover table-sm mb-0">
-                  <thead class="table-light">
-                  <tr><th class="px-3">{{ 'reports.mandatory_course' | translate }}</th><th>{{ 'common.status' | translate }}</th><th>{{ 'reports.progress' | translate }}</th><th>{{ 'report.due_date' | translate }}</th><th>{{ 'report.completed' | translate }}</th></tr>
+                <table class="table table-hover mb-0">
+                  <thead>
+                  <tr><th class="ps-4">{{ 'reports.mandatory_course' | translate }}</th><th>{{ 'common.status' | translate }}</th><th>{{ 'reports.progress' | translate }}</th><th>{{ 'report.due_date' | translate }}</th><th class="pe-4">{{ 'report.completed' | translate }}</th></tr>
                   </thead>
                   <tbody>
                   <tr *ngFor="let c of complianceCourses" [class.table-danger-subtle]="c.is_overdue">
-                    <td class="px-3 fw-medium">{{ c.title }}</td>
+                    <td class="ps-4 fw-medium">{{ c.title }}</td>
                     <td><span class="badge" [class]="getStatusBadge(c.status)">{{ formatStatus(c.status) }}</span></td>
                     <td>
                       <div class="progress" style="height:6px; width:70px">
@@ -263,27 +252,34 @@ import { I18nService } from '../../../i18n.service';
                       </div>
                     </td>
                     <td>
-                      <small [class]="c.is_overdue ? 'text-danger fw-semibold' : 'text-muted'">
+                      <small [class]="c.is_overdue ? 'text-danger fw-semibold' : 'ui-muted'">
                         {{ c.due_date || '-' }}
                       </small>
                     </td>
-                    <td><small class="text-muted">{{ c.completed_at || '-' }}</small></td>
+                    <td class="pe-4"><small class="ui-muted">{{ c.completed_at || '-' }}</small></td>
                   </tr>
                   <tr *ngIf="!complianceCourses.length">
-                    <td colspan="5" class="text-center py-4 text-muted">{{ 'reports.no_mandatory' | translate }}</td>
+                    <td colspan="5" class="ld-empty">{{ 'reports.no_mandatory' | translate }}</td>
                   </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </div>
     </main>
   `,
   styles: [`
-    .nav-link { cursor: pointer; }
-    .table-danger-subtle { background-color: rgba(220, 53, 69, 0.05); }
+    .ld-insights { margin-bottom: 8px; }
+    .ld-insights .ui-kpi__value { font-size: 1.25rem; }
+    .ld-charts { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; margin-bottom: 4px; }
+    .ld-charts:has(> .ld-min:only-child) { grid-template-columns: minmax(0, 1fr); }
+    @media (max-width: 991.98px) { .ld-charts { grid-template-columns: minmax(0, 1fr); } }
+    .ld-min { min-width: 0; }
+    .ld-empty { text-align: center; padding: 32px 16px !important; color: var(--ui-text-muted); }
+    .table-danger-subtle { background-color: rgba(var(--ui-danger-rgb, 220, 53, 69), 0.05); }
+    .ui-tabs { margin-bottom: 16px; }
   `]
 })
 export class LearnerDashboardComponent implements OnInit {

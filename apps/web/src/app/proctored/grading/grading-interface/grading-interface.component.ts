@@ -121,29 +121,30 @@ interface QuickFeedback {
   template: `
     <app-admintop></app-admintop>
 
+    <main class="main">
+    <div class="ui-page">
     <div class="grading-interface" *ngIf="!loading && details">
       <!-- ==========================================
-           TOP BAR
+           PAGE HEADER
            ========================================== -->
-      <div class="grading-topbar">
-        <button class="btn btn-sm btn-secondary" (click)="goBack()">
-          <tui-icon icon="@tui.arrow-left"></tui-icon> Back to Queue
+      <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back to Queue" title="Back to Queue">
+          <i class="bi bi-chevron-left"></i>
         </button>
-        <div class="topbar-info">
-          <span class="badge bg-secondary">{{ details.assessment_title }}</span>
-          <span class="badge bg-light text-dark">
-            {{ details.learner_name }} · Attempt #{{ details.attempt_number }}
-          </span>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-pencil-square"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ details.assessment_title || 'Grade Answer' }}</h1>
+          <p>{{ details.learner_name }} · Attempt #{{ details.attempt_number }}</p>
         </div>
-        <div class="topbar-actions">
-          <button class="btn btn-sm btn-secondary" (click)="navigateItem('prev')" [disabled]="!hasPrevItem">
+        <div class="ui-page-header__actions">
+          <button class="btn btn-sm btn-outline-secondary" (click)="navigateItem('prev')" [disabled]="!hasPrevItem">
             <tui-icon icon="@tui.chevron-left"></tui-icon> Previous
           </button>
-          <button class="btn btn-sm btn-secondary" (click)="navigateItem('next')" [disabled]="!hasNextItem">
+          <button class="btn btn-sm btn-outline-secondary" (click)="navigateItem('next')" [disabled]="!hasNextItem">
             Next <tui-icon icon="@tui.chevron-right"></tui-icon>
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- ==========================================
            MAIN LAYOUT (2-column)
@@ -152,19 +153,19 @@ interface QuickFeedback {
         <!-- LEFT: Question & Answer -->
         <div class="grading-left">
           <!-- Question Card -->
-          <div class="grade-card question-card">
-            <div class="card-header">
-              <h5>
+          <section class="ui-section question-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">
                 <tui-icon icon="@tui.help-circle"></tui-icon> Question
-                <span class="badge badge-qtype ms-2">{{ formatQuestionType(details.question_type) }}</span>
-              </h5>
-              <span class="points-badge">{{ details.max_points }} pts</span>
+                <span class="ui-pill ui-pill--neutral">{{ formatQuestionType(details.question_type) }}</span>
+              </h2>
+              <span class="ui-pill ui-pill--brand">{{ details.max_points }} pts</span>
             </div>
-            <div class="card-body">
+            <div class="section-body">
               <div class="question-text" [innerHTML]="details.question_text"></div>
               <img *ngIf="details.question_image" [src]="details.question_image" class="question-image" alt="Question image">
               <div class="question-context" *ngIf="details.question_context.correct_answer || details.question_context.explanation">
-                <button class="btn btn-sm btn-outline-info" (click)="showContext = !showContext">
+                <button class="btn btn-sm btn-outline-secondary" (click)="showContext = !showContext">
                   <tui-icon icon="@tui.info"></tui-icon>
                   {{ showContext ? 'Hide' : 'Show' }} Answer Key / Explanation
                 </button>
@@ -184,15 +185,15 @@ interface QuickFeedback {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Answer Card -->
-          <div class="grade-card answer-card">
-            <div class="card-header">
-              <h5><tui-icon icon="@tui.message-square"></tui-icon> Learner's Answer</h5>
-              <span class="text-muted small">Submitted {{ formatDatetime(details.submitted_at) }}</span>
+          <section class="ui-section answer-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.message-square"></tui-icon> Learner's Answer</h2>
+              <span class="ui-muted small">Submitted {{ formatDatetime(details.submitted_at) }}</span>
             </div>
-            <div class="card-body">
+            <div class="section-body">
               <!-- Essay -->
               <div *ngIf="details.question_type === 'essay'" class="answer-essay" [innerHTML]="details.answer_text"></div>
 
@@ -214,14 +215,14 @@ interface QuickFeedback {
                 <div class="file-item" *ngFor="let url of details.file_urls">
                   <tui-icon icon="@tui.file"></tui-icon>
                   <a [href]="url" target="_blank">{{ getFileName(url) }}</a>
-                  <button class="btn btn-sm btn-primary ms-2" (click)="previewFile(url)">
+                  <button class="btn btn-sm btn-outline-secondary ms-2" (click)="previewFile(url)">
                     <tui-icon icon="@tui.eye"></tui-icon>
                   </button>
                 </div>
               </div>
 
               <!-- Matching -->
-              <div *ngIf="details.question_type === 'matching'" class="answer-matching">
+              <div *ngIf="details.question_type === 'matching'" class="answer-matching ui-table-wrap">
                 <table class="table table-sm">
                   <thead><tr><th>Item</th><th>Matched To</th></tr></thead>
                   <tbody>
@@ -245,14 +246,14 @@ interface QuickFeedback {
                 <pre>{{ details.answer_text || (details.answer_data | json) }}</pre>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Feedback Comments -->
-          <div class="grade-card feedback-card">
-            <div class="card-header">
-              <h5><tui-icon icon="@tui.message-circle"></tui-icon> Feedback</h5>
+          <section class="ui-section feedback-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.message-circle"></tui-icon> Feedback</h2>
             </div>
-            <div class="card-body">
+            <div class="section-body">
               <!-- Existing Comments -->
               <div class="comment-list" *ngIf="details.existing_comments.length > 0">
                 <div class="comment-item" *ngFor="let c of details.existing_comments"
@@ -269,22 +270,22 @@ interface QuickFeedback {
               </div>
 
               <!-- Feedback for the learner, saved together with the grade -->
-              <div class="add-comment">
+              <div class="add-comment" [class.has-list]="details.existing_comments.length > 0">
                 <textarea class="form-control" rows="3" placeholder="Feedback for the learner (saved with the grade)..."
                           [(ngModel)]="newComment.text"></textarea>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
         <!-- RIGHT: Grading Panel -->
         <div class="grading-right">
           <!-- Score Entry -->
-          <div class="grade-card score-card">
-            <div class="card-header">
-              <h5><tui-icon icon="@tui.award"></tui-icon> Score</h5>
+          <section class="ui-section score-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.award"></tui-icon> Score</h2>
             </div>
-            <div class="card-body">
+            <div class="section-body">
               <!-- Simple Point Grading -->
               <div class="simple-grading" *ngIf="!details.has_rubric || gradingMode === 'simple'">
                 <div class="score-input-group">
@@ -297,20 +298,20 @@ interface QuickFeedback {
                   {{ getScorePercentage() | number:'1.0-0' }}%
                 </div>
                 <div class="score-quick-btns">
-                  <button class="btn btn-sm btn-success" (click)="setScore(details.max_points)">Full</button>
-                  <button class="btn btn-sm btn-outline-warning" (click)="setScore(details.max_points * 0.75)">75%</button>
-                  <button class="btn btn-sm btn-secondary" (click)="setScore(details.max_points * 0.5)">50%</button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="setScore(0)">Zero</button>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="setScore(details.max_points)">Full</button>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="setScore(details.max_points * 0.75)">75%</button>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="setScore(details.max_points * 0.5)">50%</button>
+                  <button class="btn btn-sm btn-outline-secondary" (click)="setScore(0)">Zero</button>
                 </div>
               </div>
 
               <!-- Rubric Mode Toggle -->
-              <div class="grading-mode-toggle" *ngIf="details.has_rubric">
-                <button class="btn btn-sm" [ngClass]="gradingMode === 'rubric' ? 'btn-primary' : 'btn-secondary'"
+              <div class="ui-filters grading-mode-toggle" *ngIf="details.has_rubric">
+                <button class="ui-filter" [class.is-active]="gradingMode === 'rubric'"
                         (click)="gradingMode = 'rubric'">
                   <tui-icon icon="@tui.list"></tui-icon> Rubric
                 </button>
-                <button class="btn btn-sm" [ngClass]="gradingMode === 'simple' ? 'btn-primary' : 'btn-secondary'"
+                <button class="ui-filter" [class.is-active]="gradingMode === 'simple'"
                         (click)="gradingMode = 'simple'">
                   <tui-icon icon="@tui.hash"></tui-icon> Simple
                 </button>
@@ -320,7 +321,7 @@ interface QuickFeedback {
               <div class="rubric-grading" *ngIf="details.has_rubric && gradingMode === 'rubric' && details.rubric">
                 <div class="rubric-header">
                   <h6>{{ details.rubric.name }}</h6>
-                  <span class="badge bg-secondary">{{ details.rubric.rubric_type }}</span>
+                  <span class="ui-pill ui-pill--neutral">{{ details.rubric.rubric_type }}</span>
                 </div>
                 <div class="criterion-list">
                   <div class="criterion-item" *ngFor="let c of details.rubric.criteria; let ci = index">
@@ -350,17 +351,17 @@ interface QuickFeedback {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Grade Adjustment -->
-          <div class="grade-card adjustment-card">
-            <div class="card-header">
-              <h5><tui-icon icon="@tui.sliders"></tui-icon> Adjustments</h5>
-              <button class="btn btn-sm btn-secondary" (click)="showAdjustment = !showAdjustment">
+          <section class="ui-section adjustment-card">
+            <div class="ui-section__head" [class.is-collapsed]="!showAdjustment">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.sliders"></tui-icon> Adjustments</h2>
+              <button class="btn btn-sm btn-outline-secondary" (click)="showAdjustment = !showAdjustment">
                 <tui-icon [icon]="showAdjustment ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
               </button>
             </div>
-            <div class="card-body" *ngIf="showAdjustment">
+            <div class="section-body" *ngIf="showAdjustment">
               <div class="adjustment-form">
                 <select class="form-select form-select-sm" [(ngModel)]="adjustment.type">
                   <option value="">No Adjustment</option>
@@ -374,17 +375,17 @@ interface QuickFeedback {
                        [(ngModel)]="adjustment.reason" placeholder="Reason for adjustment">
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Grading History -->
-          <div class="grade-card history-card" *ngIf="details.grading_history.length > 0">
-            <div class="card-header">
-              <h5><tui-icon icon="@tui.clock"></tui-icon> History</h5>
-              <button class="btn btn-sm btn-secondary" (click)="showHistory = !showHistory">
+          <section class="ui-section history-card" *ngIf="details.grading_history.length > 0">
+            <div class="ui-section__head" [class.is-collapsed]="!showHistory">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.clock"></tui-icon> History</h2>
+              <button class="btn btn-sm btn-outline-secondary" (click)="showHistory = !showHistory">
                 <tui-icon [icon]="showHistory ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
               </button>
             </div>
-            <div class="card-body" *ngIf="showHistory">
+            <div class="section-body" *ngIf="showHistory">
               <div class="history-list">
                 <div class="history-item" *ngFor="let h of details.grading_history">
                   <div class="history-action">{{ formatHistoryAction(h.action) }}</div>
@@ -397,17 +398,17 @@ interface QuickFeedback {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Submit Actions -->
           <div class="grading-submit">
-            <button class="btn btn-lg btn-success w-100" (click)="submitGrade()" [disabled]="saving">
+            <button class="btn btn-primary w-100" (click)="submitGrade()" [disabled]="saving">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
               <tui-icon icon="@tui.check" *ngIf="!saving"></tui-icon>
               {{ details.existing_grade ? 'Update Grade' : 'Submit Grade' }}
             </button>
             <div class="submit-secondary">
-              <button class="btn btn-primary btn-sm" (click)="submitAndNext()" [disabled]="saving || !hasNextItem">
+              <button class="btn btn-outline-secondary btn-sm" (click)="submitAndNext()" [disabled]="saving || !hasNextItem">
                 Submit & Next <tui-icon icon="@tui.chevron-right"></tui-icon>
               </button>
             </div>
@@ -417,146 +418,130 @@ interface QuickFeedback {
     </div>
 
     <!-- Loading -->
-    <div class="loading-state" *ngIf="loading">
+    <div class="ui-state loading-state" *ngIf="loading">
       <div class="spinner-border text-primary"></div>
       <p>Loading grading details...</p>
     </div>
+    </div>
+    </main>
   `,
   styles: [`
-    .grading-interface { display: flex; flex-direction: column; height: 100vh; }
-
-    /* Top Bar */
-    .grading-topbar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 0.75rem 1.25rem; background: #fff; border-bottom: 1px solid #dee2e6;
-    }
-    .topbar-info { display: flex; gap: 0.5rem; }
-    .topbar-actions { display: flex; gap: 0.25rem; }
+    /* Page chrome (header, sections, pills, buttons) comes from the global UI kit. */
+    .ui-section__title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ui-section__title tui-icon { font-size: 1rem; color: var(--ui-text-subtle, #8d948e); }
+    .ui-section__head.is-collapsed { margin-bottom: 0; }
+    .ui-section__head { align-items: center; }
 
     /* Layout */
-    .grading-layout { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; padding: 1.25rem; flex: 1; overflow: auto; }
-
-    /* Cards */
-    .grade-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; margin-bottom: 1rem; }
-    .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 0.75rem 1rem; border-bottom: 1px solid #e9ecef; background: #f8f9fa;
-    }
-    .card-header h5 { margin: 0; font-size: 0.9375rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-    .card-body { padding: 1rem; }
-    .points-badge { background: #0d6efd; color: #fff; padding: 0.25rem 0.625rem; border-radius: 1rem; font-size: 0.8125rem; font-weight: 600; }
+    .grading-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
 
     /* Question */
     .question-text { font-size: 0.9375rem; line-height: 1.6; margin-bottom: 0.75rem; }
-    .question-image { max-width: 100%; border-radius: 0.375rem; margin: 0.75rem 0; }
-    .context-content { background: #e8f4f8; border-radius: 0.375rem; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.8125rem; }
+    .question-image { max-width: 100%; border-radius: var(--ui-radius-ctl, 8px); margin: 0.75rem 0; }
+    .context-content {
+      background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7);
+      border-radius: var(--ui-radius-ctl, 8px); padding: 0.75rem; margin-top: 0.5rem; font-size: 0.8125rem;
+    }
     .context-item { margin-bottom: 0.5rem; }
     .context-item:last-child { margin-bottom: 0; }
 
     /* Answer */
     .answer-essay { line-height: 1.7; font-size: 0.9375rem; white-space: pre-wrap; }
-    .answer-short pre { background: #f8f9fa; padding: 0.75rem; border-radius: 0.375rem; margin: 0; white-space: pre-wrap; font-size: 0.875rem; }
+    .answer-short pre, .answer-generic pre {
+      background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7);
+      padding: 0.75rem; border-radius: var(--ui-radius-ctl, 8px); margin: 0; white-space: pre-wrap; font-size: 0.875rem;
+    }
     .blank-item { display: flex; gap: 0.5rem; margin-bottom: 0.375rem; }
-    .blank-label { font-weight: 600; font-size: 0.8125rem; color: #6c757d; min-width: 60px; }
-    .blank-value { background: #fff3cd; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
-    .file-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid #e9ecef; }
+    .blank-label { font-weight: 600; font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); min-width: 60px; }
+    .blank-value { background: rgba(var(--brand-primary-rgb), .08); padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
+    .file-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--ui-border, #e7e9e7); }
     .file-item:last-child { border-bottom: none; }
 
     /* Comments */
     .comment-list { margin-bottom: 1rem; }
-    .comment-item { padding: 0.625rem; border: 1px solid #e9ecef; border-radius: 0.375rem; margin-bottom: 0.5rem; border-left: 3px solid #6c757d; }
-    .comment-general { border-left-color: #6c757d; }
-    .comment-inline { border-left-color: #0d6efd; }
-    .comment-correction { border-left-color: #dc3545; }
-    .comment-praise { border-left-color: #28a745; }
-    .comment-suggestion { border-left-color: #ffc107; }
-    .comment-highlight { border-left-color: #17a2b8; }
+    .comment-item {
+      padding: 0.625rem 0.75rem; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px);
+      margin-bottom: 0.5rem; border-left: 3px solid var(--ui-neutral, #4b524c);
+    }
+    .comment-general { border-left-color: var(--ui-neutral, #4b524c); }
+    .comment-inline { border-left-color: var(--brand-primary); }
+    .comment-correction { border-left-color: var(--ui-danger, #c0352b); }
+    .comment-praise { border-left-color: var(--ui-success, #2e7d4f); }
+    .comment-suggestion { border-left-color: var(--ui-warning, #b25e09); }
+    .comment-highlight { border-left-color: var(--ui-info, #2563a8); }
     .comment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.375rem; }
     .comment-type-badge { font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem; font-weight: 500; }
-    .type-general { color: #6c757d; }
-    .type-correction { color: #dc3545; }
-    .type-praise { color: #28a745; }
-    .type-suggestion { color: #ffc107; }
-    .type-highlight { color: #17a2b8; }
-    .type-inline { color: #0d6efd; }
-    .comment-meta { font-size: 0.6875rem; color: #adb5bd; }
+    .type-general { color: var(--ui-neutral-text, #3c423d); }
+    .type-correction { color: var(--ui-danger-text, #a12c24); }
+    .type-praise { color: var(--ui-success-text, #23643e); }
+    .type-suggestion { color: var(--ui-warning-text, #8f4b07); }
+    .type-highlight { color: var(--ui-info-text, #1d518c); }
+    .type-inline { color: var(--brand-primary); }
+    .comment-meta { font-size: 0.6875rem; color: var(--ui-text-subtle, #8d948e); }
     .comment-body { font-size: 0.8125rem; line-height: 1.5; }
 
     /* Add Comment */
-    .add-comment { border-top: 1px solid #e9ecef; padding-top: 0.75rem; }
-    .comment-type-select { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
-    .comment-type-select .btn { font-size: 0.75rem; padding: 0.2rem 0.5rem; }
-    .comment-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; position: relative; }
-    .quick-feedback-dropdown {
-      position: absolute; bottom: 100%; right: 0; width: 300px; background: #fff;
-      border: 1px solid #dee2e6; border-radius: 0.375rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      max-height: 200px; overflow-y: auto; margin-bottom: 0.25rem; z-index: 10;
-    }
-    .qf-item { padding: 0.5rem 0.75rem; cursor: pointer; border-bottom: 1px solid #e9ecef; font-size: 0.8125rem; }
-    .qf-item:hover { background: #f8f9fa; }
-    .qf-item strong { display: block; font-size: 0.75rem; }
-    .qf-item span { color: #6c757d; font-size: 0.75rem; }
+    .add-comment.has-list { border-top: 1px solid var(--ui-border, #e7e9e7); padding-top: 0.75rem; }
 
     /* Score */
     .score-input-group { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .score-input { width: 100px; font-size: 1.5rem; font-weight: 700; text-align: center; }
-    .score-divider { font-size: 1.5rem; color: #6c757d; }
-    .score-max { font-size: 1.5rem; font-weight: 600; color: #6c757d; }
-    .score-percentage { text-align: center; font-size: 0.875rem; color: #6c757d; margin-bottom: 0.75rem; }
-    .score-quick-btns { display: flex; gap: 0.375rem; justify-content: center; }
+    .score-input { width: 100px; height: 48px; font-size: 1.5rem; font-weight: 700; text-align: center; }
+    .score-divider { font-size: 1.5rem; color: var(--ui-text-subtle, #8d948e); }
+    .score-max { font-size: 1.5rem; font-weight: 600; color: var(--ui-text-muted, #6a716b); }
+    .score-percentage { text-align: center; font-size: 0.875rem; color: var(--ui-text-muted, #6a716b); margin-bottom: 0.75rem; }
+    .score-quick-btns { display: flex; gap: 0.375rem; justify-content: center; flex-wrap: wrap; }
 
     /* Grading Mode Toggle */
-    .grading-mode-toggle { display: flex; gap: 0.375rem; margin-bottom: 0.75rem; }
+    .grading-mode-toggle { margin-bottom: 0.75rem; }
 
     /* Rubric */
     .rubric-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .rubric-header h6 { margin: 0; font-weight: 600; }
-    .criterion-item { margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e9ecef; }
+    .rubric-header h6 { margin: 0; font-weight: 600; font-size: .875rem; }
+    .criterion-item { margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--ui-border, #e7e9e7); }
     .criterion-item:last-child { border-bottom: none; }
-    .criterion-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+    .criterion-header { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: 0.25rem; }
     .criterion-title { font-weight: 600; font-size: 0.875rem; }
-    .criterion-weight { font-size: 0.6875rem; color: #6c757d; }
-    .criterion-points { font-size: 0.8125rem; font-weight: 600; color: #0d6efd; }
-    .criterion-desc { font-size: 0.75rem; color: #6c757d; margin: 0.125rem 0 0.5rem; }
+    .criterion-weight { font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); }
+    .criterion-points { font-size: 0.8125rem; font-weight: 600; color: var(--brand-primary); }
+    .criterion-desc { font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); margin: 0.125rem 0 0.5rem; }
     .level-options { display: flex; flex-direction: column; gap: 0.375rem; }
     .level-btn {
       display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; padding: 0.5rem 0.75rem;
-      border: 1px solid #dee2e6; border-radius: 0.375rem; background: #fff; cursor: pointer;
-      text-align: left; transition: all 0.2s;
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); background: var(--ui-surface, #fff); cursor: pointer;
+      text-align: left; transition: border-color .15s ease, background .15s ease;
     }
-    .level-btn:hover { border-color: #0d6efd; background: #f8f9fa; }
-    .level-btn.selected { border-color: #0d6efd; background: #e8f0fe; }
+    .level-btn:hover { border-color: rgba(var(--brand-primary-rgb), .45); background: var(--ui-surface-2, #f7f8f7); }
+    .level-btn.selected { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); }
     .level-label { font-weight: 500; font-size: 0.8125rem; }
-    .level-points { font-size: 0.75rem; color: #0d6efd; font-weight: 600; margin-left: auto; }
-    .level-desc { width: 100%; font-size: 0.6875rem; color: #6c757d; }
+    .level-points { font-size: 0.75rem; color: var(--brand-primary); font-weight: 600; margin-left: auto; }
+    .level-desc { width: 100%; font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); }
     .rubric-total {
       display: flex; justify-content: space-between; align-items: center;
-      background: #f8f9fa; padding: 0.75rem; border-radius: 0.375rem; margin-top: 0.5rem;
+      background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7);
+      padding: 0.75rem; border-radius: var(--ui-radius-ctl, 8px); margin-top: 0.5rem;
     }
-    .rubric-total-score { font-size: 1.125rem; font-weight: 700; color: #0d6efd; }
+    .rubric-total-score { font-size: 1.125rem; font-weight: 700; color: var(--brand-primary); }
 
     /* Adjustment */
     .adjustment-form { display: flex; flex-direction: column; gap: 0.375rem; }
 
     /* History */
     .history-list { max-height: 200px; overflow-y: auto; }
-    .history-item { padding: 0.5rem 0; border-bottom: 1px solid #e9ecef; font-size: 0.8125rem; }
+    .history-item { padding: 0.5rem 0; border-bottom: 1px solid var(--ui-border, #e7e9e7); font-size: 0.8125rem; }
     .history-item:last-child { border-bottom: none; }
     .history-action { font-weight: 500; }
     .history-detail { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; margin: 0.125rem 0; }
-    .old-val { color: #dc3545; text-decoration: line-through; }
-    .new-val { color: #28a745; }
-    .history-meta { font-size: 0.6875rem; color: #adb5bd; }
+    .old-val { color: var(--ui-danger-text, #a12c24); text-decoration: line-through; }
+    .new-val { color: var(--ui-success-text, #23643e); }
+    .history-meta { font-size: 0.6875rem; color: var(--ui-text-subtle, #8d948e); }
 
     /* Submit */
-    .grading-submit { position: sticky; bottom: 0; background: #fff; padding: 0.75rem 0 0; }
+    .grading-submit { position: sticky; bottom: 0; background: var(--ui-surface, #fff); padding: 0.75rem 0; }
     .submit-secondary { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
     .submit-secondary .btn { flex: 1; }
 
     /* Loading */
-    .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 50vh; }
-
-    .badge-qtype { font-size: 0.6875rem; }
+    .loading-state { min-height: 40vh; justify-content: center; }
 
     /* Responsive */
     @media (max-width: 992px) {

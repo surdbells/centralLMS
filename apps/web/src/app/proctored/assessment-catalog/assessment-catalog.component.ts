@@ -43,269 +43,234 @@ interface Category { id: string; name: string; count: number; }
   template: `
     <app-top></app-top>
     <main class="main">
-      <div class="container-fluid py-4">
-            <div class="catalog-container">
-      <!-- Hero Banner -->
-      <div class="catalog-hero">
-        <div class="hero-content">
+    <div class="ui-page catalog-container">
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-ui-checks-grid"></i></div>
+        <div class="ui-page-header__titles">
           <h1>Assessment Catalog</h1>
           <p>Browse assessments, quizzes, and exams to test your knowledge</p>
-          <div class="hero-search">
-            <tui-icon icon="@tui.search" style="font-size:20px;color:#94a3b8"></tui-icon>
-            <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="search$.next($event)"
-                   placeholder="Search assessments..." class="hero-input" />
-          </div>
         </div>
-      </div>
+      </header>
 
       <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice" style="margin-bottom:16px">
-        <tui-icon icon="@tui.info"></tui-icon>
+        <i class="bi bi-info-circle"></i>
         <span>{{ notice }}</span>
       </div>
 
-      <!-- Quick Filters -->
-      <div class="filter-bar">
-        <div class="filter-tabs">
-          <button class="ftab" [class.active]="activeTab==='all'" (click)="setTab('all')">All</button>
-          <button class="ftab" [class.active]="activeTab==='mandatory'" (click)="setTab('mandatory')">
-            <tui-icon icon="@tui.alert-circle" style="font-size:14px"></tui-icon> Mandatory
-          </button>
-          <button class="ftab" [class.active]="activeTab==='in_progress'" (click)="setTab('in_progress')">In Progress</button>
-          <button class="ftab" [class.active]="activeTab==='completed'" (click)="setTab('completed')">Completed</button>
-        </div>
-        <div class="filter-controls">
-          <select class="fc" [(ngModel)]="filterCategory" (change)="applyFilters()">
-            <option value="">All Categories</option>
-            <option *ngFor="let c of categories" [value]="c.id">{{ c.name }} ({{ c.count }})</option>
-          </select>
-          <select class="fc" [(ngModel)]="filterType" (change)="applyFilters()">
-            <option value="">All Types</option>
-            <option value="quiz">Quiz</option><option value="exam">Exam</option>
-            <option value="assignment">Assignment</option><option value="survey">Survey</option>
-          </select>
-          <select class="fc" [(ngModel)]="filterDifficulty" (change)="applyFilters()">
-            <option value="">Any Difficulty</option>
-            <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
-          </select>
-          <div class="view-toggle">
-            <button class="vt" [class.active]="viewMode==='grid'" (click)="viewMode='grid'"><tui-icon icon="@tui.grid" style="font-size:16px"></tui-icon></button>
-            <button class="vt" [class.active]="viewMode==='list'" (click)="viewMode='list'"><tui-icon icon="@tui.list" style="font-size:16px"></tui-icon></button>
-          </div>
-        </div>
-      </div>
-
       <!-- Mandatory Due Soon -->
-      <div class="mandatory-section" *ngIf="mandatoryDueSoon.length > 0 && activeTab==='all'">
-        <h2><tui-icon icon="@tui.alert-triangle" style="font-size:20px;color:#f59e0b"></tui-icon> Due Soon</h2>
-        <div class="mandatory-cards">
-          <div *ngFor="let a of mandatoryDueSoon" class="mandatory-card" (click)="openAssessment(a)">
+      <section class="ui-section mandatory-section" *ngIf="mandatoryDueSoon.length > 0 && activeTab==='all'">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-exclamation-triangle due-icon"></i> Due Soon</h2>
+            <p class="ui-section__subtitle">Mandatory assessments due within a week</p></div>
+        </div>
+        <ul class="ui-list mandatory-cards">
+          <li *ngFor="let a of mandatoryDueSoon" class="mandatory-card" (click)="openAssessment(a)">
             <div class="mc-left">
-              <span class="type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
+              <span class="ui-pill ui-pill--brand type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
               <h4>{{ a.title }}</h4>
-              <span class="mc-due">Due {{ formatDate(a.due_date) }}</span>
+              <span class="ui-pill ui-pill--warning mc-due"><i class="bi bi-calendar-event"></i> Due {{ formatDate(a.due_date) }}</span>
             </div>
             <div class="mc-right">
-              <span class="mc-status" [attr.data-status]="a.enrollment_status">{{ statusLabel(a.enrollment_status) }}</span>
-              <button class="btn btn-primary btn-sm">{{ a.enrollment_status==='in_progress' ? 'Continue' : 'Start' }}</button>
+              <span class="ui-pill status-pill" *ngIf="statusLabel(a.enrollment_status)" [attr.data-status]="a.enrollment_status"><span class="ui-pill__dot"></span>{{ statusLabel(a.enrollment_status) }}</span>
+              <button type="button" class="btn btn-primary btn-sm">{{ a.enrollment_status==='in_progress' ? 'Continue' : 'Start' }}</button>
             </div>
-          </div>
-        </div>
-      </div>
+          </li>
+        </ul>
+      </section>
 
-      <!-- Loading -->
-      <div class="loading" *ngIf="loading"><div class="spinner"></div></div>
-
-      <!-- Grid View -->
-      <div class="catalog-grid" *ngIf="!loading && viewMode==='grid'">
-        <div *ngFor="let a of filteredAssessments" class="assess-card" (click)="openAssessment(a)">
-          <div class="ac-thumb" [style.backgroundImage]="a.thumbnail_url ? 'url('+a.thumbnail_url+')' : ''">
-            <span class="ac-type" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
-            <span class="ac-proctored" *ngIf="a.proctoring_level!=='none'">
-              <tui-icon icon="@tui.shield" style="font-size:12px"></tui-icon> Proctored
-            </span>
-          </div>
-          <div class="ac-body">
-            <div class="ac-category">{{ a.category_name }}</div>
-            <h3 class="ac-title">{{ a.title }}</h3>
-            <p class="ac-desc">{{ truncate(a.description, 80) }}</p>
-            <div class="ac-meta">
-              <span><tui-icon icon="@tui.help-circle" style="font-size:13px"></tui-icon> {{ a.total_questions }}q</span>
-              <span><tui-icon icon="@tui.clock" style="font-size:13px"></tui-icon> {{ a.time_limit_minutes || a.estimated_duration_minutes }}m</span>
-              <span *ngIf="a.avg_rating"><tui-icon icon="@tui.star" style="font-size:13px;color:#f59e0b"></tui-icon> {{ a.avg_rating | number:'1.1-1' }}</span>
-            </div>
-            <div class="ac-tags" *ngIf="a.tags?.length">
-              <span *ngFor="let t of a.tags.slice(0,3)" class="tag-chip">{{ t }}</span>
-            </div>
-            <div class="ac-difficulty">
-              <span class="diff-dot" [attr.data-diff]="a.difficulty"></span> {{ a.difficulty }}
-            </div>
-          </div>
-          <div class="ac-footer">
-            <div class="ac-status" *ngIf="a.enrollment_status!=='not_enrolled'" [attr.data-status]="a.enrollment_status">
-              {{ statusLabel(a.enrollment_status) }}
-              <span *ngIf="a.best_score!==null"> · {{ a.best_score }}%</span>
-            </div>
-            <div class="ac-prereqs" *ngIf="hasUnmetPrerequisites(a)">
-              <tui-icon icon="@tui.lock" style="font-size:12px"></tui-icon>
-              Prerequisites required
-            </div>
-            <button
-              class="btn btn-primary btn-sm ac-btn"
-              [disabled]="!arePrerequisitesMet(a)">
-              {{ getActionLabel(a) }}
+      <section class="ui-section">
+        <!-- Quick Filters -->
+        <div class="ui-toolbar">
+          <div class="ui-filters">
+            <button type="button" class="ui-filter" [class.is-active]="activeTab==='all'" (click)="setTab('all')">All</button>
+            <button type="button" class="ui-filter" [class.is-active]="activeTab==='mandatory'" (click)="setTab('mandatory')">
+              <i class="bi bi-exclamation-circle"></i> Mandatory
             </button>
-
+            <button type="button" class="ui-filter" [class.is-active]="activeTab==='in_progress'" (click)="setTab('in_progress')">In Progress</button>
+            <button type="button" class="ui-filter" [class.is-active]="activeTab==='completed'" (click)="setTab('completed')">Completed</button>
+          </div>
+          <label class="ui-search">
+            <i class="bi bi-search"></i>
+            <input type="search" [(ngModel)]="searchQuery" (ngModelChange)="search$.next($event)"
+                   placeholder="Search assessments..." aria-label="Search assessments" />
+          </label>
+        </div>
+        <div class="ui-toolbar filter-controls">
+          <div class="ui-filters">
+            <select class="form-select" [(ngModel)]="filterCategory" (change)="applyFilters()" aria-label="Category">
+              <option value="">All Categories</option>
+              <option *ngFor="let c of categories" [value]="c.id">{{ c.name }} ({{ c.count }})</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filterType" (change)="applyFilters()" aria-label="Type">
+              <option value="">All Types</option>
+              <option value="quiz">Quiz</option><option value="exam">Exam</option>
+              <option value="assignment">Assignment</option><option value="survey">Survey</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filterDifficulty" (change)="applyFilters()" aria-label="Difficulty">
+              <option value="">Any Difficulty</option>
+              <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <div class="view-toggle" role="group" aria-label="View">
+            <button type="button" class="vt" [class.active]="viewMode==='grid'" (click)="viewMode='grid'" aria-label="Grid view"><i class="bi bi-grid"></i></button>
+            <button type="button" class="vt" [class.active]="viewMode==='list'" (click)="viewMode='list'" aria-label="List view"><i class="bi bi-list-ul"></i></button>
           </div>
         </div>
-      </div>
 
-      <!-- List View -->
-      <div class="catalog-list" *ngIf="!loading && viewMode==='list'">
-        <div *ngFor="let a of filteredAssessments" class="list-item" (click)="openAssessment(a)">
-          <div class="li-type"><span class="type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span></div>
-          <div class="li-info">
-            <h4>{{ a.title }}</h4>
-            <span class="li-cat">{{ a.category_name }}</span>
-          </div>
-          <div class="li-meta">
-            <span>{{ a.total_questions }}q · {{ a.time_limit_minutes || a.estimated_duration_minutes }}m</span>
-            <span class="diff-dot" [attr.data-diff]="a.difficulty"></span>
-          </div>
-          <div class="li-proctoring" *ngIf="a.proctoring_level!=='none'">
-            <tui-icon icon="@tui.shield" style="font-size:14px;color:#6366f1"></tui-icon>
-          </div>
-          <div class="li-status" *ngIf="a.enrollment_status!=='not_enrolled'" [attr.data-status]="a.enrollment_status">
-            {{ statusLabel(a.enrollment_status) }}
-          </div>
-          <button class="btn btn-primary btn-sm">{{ getActionLabel(a) }}</button>
+        <!-- Loading -->
+        <div class="loading" *ngIf="loading"><div class="spinner-border text-secondary" role="status"></div></div>
+
+        <!-- Grid View -->
+        <div class="ui-grid catalog-grid" *ngIf="!loading && viewMode==='grid'">
+          <article *ngFor="let a of filteredAssessments" class="ui-card assess-card" (click)="openAssessment(a)">
+            <div class="ui-card__media ac-thumb" [style.backgroundImage]="a.thumbnail_url ? 'url('+a.thumbnail_url+')' : ''">
+              <span class="ui-pill ac-type" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
+              <span class="ui-pill ac-proctored" *ngIf="a.proctoring_level!=='none'">
+                <i class="bi bi-shield-check"></i> Proctored
+              </span>
+              <i class="bi bi-ui-checks thumb-glyph" *ngIf="!a.thumbnail_url" aria-hidden="true"></i>
+            </div>
+            <div class="ui-card__body ac-body">
+              <div class="ac-category" *ngIf="a.category_name">{{ a.category_name }}</div>
+              <h3 class="ui-card__title ac-title">{{ a.title }}</h3>
+              <p class="ac-desc" *ngIf="a.description">{{ truncate(a.description, 80) }}</p>
+              <div class="ui-card__meta ac-meta">
+                <span><i class="bi bi-question-circle"></i> {{ a.total_questions }}q</span>
+                <span><i class="bi bi-clock"></i> {{ a.time_limit_minutes || a.estimated_duration_minutes }}m</span>
+                <span *ngIf="a.avg_rating"><i class="bi bi-star-fill rating-star"></i> {{ a.avg_rating | number:'1.1-1' }}</span>
+                <span class="ac-difficulty"><span class="diff-dot" [attr.data-diff]="a.difficulty"></span> {{ a.difficulty }}</span>
+              </div>
+              <div class="ac-tags" *ngIf="a.tags?.length">
+                <span *ngFor="let t of a.tags.slice(0,3)" class="ui-pill ui-pill--neutral">{{ t }}</span>
+              </div>
+            </div>
+            <div class="ui-card__footer ac-footer">
+              <span class="ui-pill status-pill" *ngIf="a.enrollment_status!=='not_enrolled'" [attr.data-status]="a.enrollment_status">
+                <span class="ui-pill__dot"></span>{{ statusLabel(a.enrollment_status) }}<span *ngIf="a.best_score!==null"> · {{ a.best_score }}%</span>
+              </span>
+              <div class="ac-prereqs" *ngIf="hasUnmetPrerequisites(a)">
+                <i class="bi bi-lock"></i>
+                Prerequisites required
+              </div>
+              <button type="button"
+                class="btn btn-primary btn-sm ac-btn"
+                [disabled]="!arePrerequisitesMet(a)">
+                {{ getActionLabel(a) }}
+              </button>
+            </div>
+          </article>
         </div>
-      </div>
 
-      <!-- Empty State -->
-      <div class="empty-state" *ngIf="!loading && filteredAssessments.length===0">
-        <tui-icon icon="@tui.search" style="font-size:48px;color:#94a3b8"></tui-icon>
-        <h3>No assessments found</h3>
-        <p>Try adjusting your filters or search query.</p>
-        <button class="btn btn-outline" (click)="clearFilters()">Clear Filters</button>
-      </div>
+        <!-- List View -->
+        <ul class="ui-list catalog-list" *ngIf="!loading && viewMode==='list'">
+          <li *ngFor="let a of filteredAssessments" class="list-item" (click)="openAssessment(a)">
+            <div class="li-type"><span class="ui-pill ui-pill--brand type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span></div>
+            <div class="li-info">
+              <h4>{{ a.title }}</h4>
+              <span class="li-cat">{{ a.category_name }}</span>
+            </div>
+            <div class="li-meta">
+              <span>{{ a.total_questions }}q · {{ a.time_limit_minutes || a.estimated_duration_minutes }}m</span>
+              <span class="diff-dot" [attr.data-diff]="a.difficulty" [title]="a.difficulty"></span>
+            </div>
+            <div class="li-proctoring" *ngIf="a.proctoring_level!=='none'" title="Proctored">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <span class="ui-pill status-pill" *ngIf="a.enrollment_status!=='not_enrolled'" [attr.data-status]="a.enrollment_status">
+              <span class="ui-pill__dot"></span>{{ statusLabel(a.enrollment_status) }}
+            </span>
+            <button type="button" class="btn btn-primary btn-sm">{{ getActionLabel(a) }}</button>
+          </li>
+        </ul>
 
-      <!-- Pagination -->
-      <div class="pagination" *ngIf="!loading && totalPages > 1">
-        <button class="pg-btn" (click)="goToPage(currentPage-1)" [disabled]="currentPage===1">
-          <tui-icon icon="@tui.chevron-left" style="font-size:16px"></tui-icon></button>
-        <span class="pg-info">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="pg-btn" (click)="goToPage(currentPage+1)" [disabled]="currentPage===totalPages">
-          <tui-icon icon="@tui.chevron-right" style="font-size:16px"></tui-icon></button>
-      </div>
+        <!-- Empty State -->
+        <div class="ui-state" *ngIf="!loading && filteredAssessments.length===0">
+          <span class="ui-state__icon"><i class="bi bi-search"></i></span>
+          <h3>No assessments found</h3>
+          <p>Try adjusting your filters or search query.</p>
+          <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">Clear Filters</button>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pager" *ngIf="!loading && totalPages > 1">
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="goToPage(currentPage-1)" [disabled]="currentPage===1" aria-label="Previous page">
+            <i class="bi bi-chevron-left"></i></button>
+          <span class="pg-info">{{ currentPage }} / {{ totalPages }}</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="goToPage(currentPage+1)" [disabled]="currentPage===totalPages" aria-label="Next page">
+            <i class="bi bi-chevron-right"></i></button>
+        </div>
+      </section>
     </div>
-      </div>
     </main>
   `,
   styles: [`
     :host { display: block; }
-    .catalog-container { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0 auto;}
-    .catalog-hero { background: linear-gradient(135deg, #303234, #696969); border-radius: 20px; padding: 40px 32px; margin: 0 -24px 24px; }
-    .hero-content { max-width: 600px; }
-    .hero-content h1 { font-size: 28px; font-weight: 800; color: #fff; margin: 0 0 8px; }
-    .hero-content p { color: rgba(255,255,255,0.8); margin: 0 0 20px; font-size: 15px; }
-    .hero-search { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px 16px; }
-    .hero-input { flex: 1; background: none; border: none; outline: none; font-size: 16px; color: #fff; }
-    .hero-input::placeholder { color: rgba(255,255,255,0.5); }
 
-    .filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-    .filter-tabs { display: flex; gap: 4px; }
-    .ftab { padding: 7px 14px; border-radius: 8px; border: none; background: #f1f5f9; color: #64748b; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
-    .ftab:hover { background: #e2e8f0; } .ftab.active { background: #6366f1; color: #fff; }
-    .filter-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .fc { padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; background: #fff; }
-    .view-toggle { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
-    .vt { padding: 6px 10px; border: none; background: #fff; cursor: pointer; color: #64748b; }
-    .vt.active { background: #6366f1; color: #fff; }
+    .due-icon { color: var(--ui-warning); margin-right: 4px; }
+    .type-badge, .ac-type { text-transform: uppercase; letter-spacing: .03em; font-size: .6875rem; height: 22px; }
 
-    .mandatory-section { margin-bottom: 24px; }
-    .mandatory-section h2 { font-size: 16px; font-weight: 600; color: #0f172a; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
-    .mandatory-cards { display: flex; flex-direction: column; gap: 8px; }
-    .mandatory-card { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; cursor: pointer; }
-    .mandatory-card:hover { background: #fef3c7; }
-    .mc-left { display: flex; align-items: center; gap: 12px; }
-    .mc-left h4 { margin: 0; font-size: 14px; color: #0f172a; }
-    .mc-due { font-size: 12px; color: #92400e; }
-    .mc-right { display: flex; align-items: center; gap: 12px; }
-    .mc-status { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    /* Status pills: tone by enrolment status. */
+    .status-pill[data-status="enrolled"] { background: rgba(var(--brand-primary-rgb), .1); border-color: rgba(var(--brand-primary-rgb), .28); color: var(--brand-primary); }
+    .status-pill[data-status="in_progress"] { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .status-pill[data-status="completed"],
+    .status-pill[data-status="passed"] { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .status-pill[data-status="failed"] { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
 
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; }
-    .btn-primary { background: #6366f1; color: #fff; } .btn-primary:hover { background: #4f46e5; } .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
-    .btn-sm { padding: 5px 12px; font-size: 13px; }
+    /* Due soon */
+    .mandatory-card { justify-content: space-between; cursor: pointer; }
+    .mandatory-card:hover h4 { color: var(--brand-primary); }
+    .mc-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
+    .mc-left h4 { margin: 0; font-size: .875rem; font-weight: 600; color: var(--ui-text); transition: color .15s ease; }
+    .mc-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+    /* Toolbar */
+    .filter-controls { margin-bottom: 16px; }
+    .view-toggle { display: inline-flex; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl); overflow: hidden; height: var(--ui-ctl-h); }
+    .vt { width: 38px; border: 0; background: var(--ui-surface); cursor: pointer; color: var(--ui-text-muted); }
+    .vt + .vt { border-left: 1px solid var(--ui-border); }
+    .vt:hover { color: var(--ui-text); }
+    .vt.active { background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); }
 
     .loading { display: flex; justify-content: center; padding: 60px 0; }
-    .spinner { width: 36px; height: 36px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-    .assess-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; }
-    .assess-card:hover { border-color: #a5b4fc; box-shadow: 0 4px 16px rgba(99,102,241,0.1); transform: translateY(-2px); }
-    .ac-thumb { height: 120px; background: linear-gradient(135deg, #eef2ff, #f5f3ff); position: relative; display: flex; align-items: flex-start; justify-content: space-between; padding: 10px; background-size: cover; background-position: center; }
-    .ac-type { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-    .ac-type[data-type="quiz"] { background: #dbeafe; color: #1e40af; }
-    .ac-type[data-type="exam"] { background: #fef2f2; color: #991b1b; }
-    .ac-type[data-type="assignment"] { background: #d1fae5; color: #065f46; }
-    .ac-type[data-type="survey"] { background: #fef3c7; color: #92400e; }
-    .type-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-    .type-badge[data-type="quiz"] { background: #dbeafe; color: #1e40af; }
-    .type-badge[data-type="exam"] { background: #fef2f2; color: #991b1b; }
-    .type-badge[data-type="assignment"] { background: #d1fae5; color: #065f46; }
-    .type-badge[data-type="survey"] { background: #fef3c7; color: #92400e; }
-    .ac-proctored { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(99,102,241,0.15); color: #4f46e5; display: flex; align-items: center; gap: 3px; }
-    .ac-body { padding: 14px 16px 0; flex: 1; }
-    .ac-category { font-size: 11px; font-weight: 600; color: #6366f1; text-transform: uppercase; margin-bottom: 4px; }
-    .ac-title { font-size: 16px; font-weight: 600; color: #0f172a; margin: 0 0 6px; line-height: 1.3; }
-    .ac-desc { font-size: 13px; color: #64748b; margin: 0 0 10px; line-height: 1.4; }
-    .ac-meta { display: flex; gap: 12px; font-size: 12px; color: #64748b; margin-bottom: 8px; }
-    .ac-meta span { display: flex; align-items: center; gap: 3px; }
-    .ac-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
-    .tag-chip { padding: 2px 8px; border-radius: 20px; font-size: 11px; background: #f1f5f9; color: #475569; }
-    .ac-difficulty { font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 6px; text-transform: capitalize; margin-bottom: 8px; }
-    .diff-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .diff-dot[data-diff="beginner"] { background: #22c55e; }
-    .diff-dot[data-diff="intermediate"] { background: #f59e0b; }
-    .diff-dot[data-diff="advanced"] { background: #ef4444; }
-    .ac-footer { padding: 12px 16px; border-top: 1px solid #f1f5f9; display: flex; align-items: center; gap: 8px; }
-    .ac-status { font-size: 12px; font-weight: 600; flex: 1; }
-    .ac-status[data-status="enrolled"] { color: #6366f1; }
-    .ac-status[data-status="in_progress"] { color: #f59e0b; }
-    .ac-status[data-status="completed"],
-    .ac-status[data-status="passed"] { color: #22c55e; }
-    .ac-status[data-status="failed"] { color: #ef4444; }
-    .ac-prereqs { font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+    /* Grid cards */
+    .assess-card { cursor: pointer; }
+    .ac-thumb { aspect-ratio: auto; height: 120px; display: flex; align-items: flex-start; justify-content: space-between; padding: 10px; background-size: cover; background-position: center; }
+    .ac-thumb .ui-pill { position: relative; z-index: 1; background: var(--ui-surface); }
+    .ac-type { color: var(--brand-primary); border-color: rgba(var(--brand-primary-rgb), .28); }
+    .ac-proctored { color: var(--ui-text-muted); }
+    .thumb-glyph { position: absolute; right: 16px; bottom: 10px; font-size: 2.5rem; color: rgba(var(--brand-primary-rgb), .22); }
+    .ac-body { gap: 6px; }
+    .ac-category { font-size: .6875rem; font-weight: 600; color: var(--brand-primary); text-transform: uppercase; letter-spacing: .04em; }
+    .ac-desc { font-size: .8125rem; color: var(--ui-text-muted); margin: 0; line-height: 1.45; }
+    .ac-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: .75rem; }
+    .ac-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .rating-star { color: var(--ui-warning); }
+    .ac-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .ac-difficulty { text-transform: capitalize; }
+    .diff-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; background: var(--ui-text-subtle); }
+    .diff-dot[data-diff="beginner"] { background: var(--ui-success); }
+    .diff-dot[data-diff="intermediate"] { background: var(--ui-warning); }
+    .diff-dot[data-diff="advanced"] { background: var(--ui-danger); }
+    .ac-footer { justify-content: flex-start; flex-wrap: wrap; }
+    .ac-prereqs { font-size: .6875rem; color: var(--ui-text-subtle); display: flex; align-items: center; gap: 4px; }
     .ac-btn { margin-left: auto; }
 
-    .catalog-list { display: flex; flex-direction: column; gap: 8px; }
-    .list-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
-    .list-item:hover { border-color: #a5b4fc; }
+    /* List rows */
+    .list-item { cursor: pointer; gap: 14px; }
+    .list-item:hover h4 { color: var(--brand-primary); }
     .li-info { flex: 1; min-width: 0; }
-    .li-info h4 { margin: 0; font-size: 14px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .li-cat { font-size: 12px; color: #64748b; }
-    .li-meta { font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
-    .li-status { font-size: 12px; font-weight: 600; }
-    .li-status[data-status="in_progress"] { color: #f59e0b; }
-    .li-status[data-status="completed"], .li-status[data-status="passed"] { color: #22c55e; }
-    .li-status[data-status="failed"] { color: #ef4444; }
+    .li-info h4 { margin: 0; font-size: .875rem; font-weight: 600; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s ease; }
+    .li-cat { font-size: .75rem; color: var(--ui-text-muted); }
+    .li-meta { font-size: .75rem; color: var(--ui-text-subtle); display: flex; align-items: center; gap: 6px; }
+    .li-proctoring { color: var(--brand-primary); }
 
-    .empty-state { text-align: center; padding: 60px 20px; }
-    .empty-state h3 { margin: 16px 0 8px; color: #0f172a; }
-    .empty-state p { color: #64748b; margin-bottom: 16px; }
+    .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 24px; }
+    .pg-info { font-size: .8125rem; color: var(--ui-text-muted); font-variant-numeric: tabular-nums; }
 
-    .pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 28px; }
-    .pg-btn { padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; }
-    .pg-btn:hover:not(:disabled) { border-color: #6366f1; }
-    .pg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .pg-info { font-size: 14px; color: #64748b; }
-
-    @media (max-width: 768px) {
-      .catalog-hero { padding: 24px 20px; }
-      .filter-bar { flex-direction: column; align-items: stretch; }
-      .catalog-grid { grid-template-columns: 1fr; }
+    @media (max-width: 767.98px) {
+      .list-item { flex-wrap: wrap; }
+      .mandatory-card { flex-wrap: wrap; }
     }
   `]
 })

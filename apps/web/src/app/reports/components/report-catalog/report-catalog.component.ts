@@ -13,88 +13,99 @@ import {TranslatePipe} from '../../../translate.pipe';
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-        <div class="container-fluid">
-        <div class="report-catalog">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 class="fw-bold mb-1">{{ 'reports.catalog_title' | translate }}</h4>
-          <p class="text-muted mb-0 small">{{ 'reports.catalog_subtitle' | translate:{ reports: filteredReports.length, categories: categories.length } }}</p>
-        </div>
-        <div class="d-flex gap-2">
-          <div class="input-group" style="width: 280px">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="{{ 'reports.search_reports' | translate }}" [(ngModel)]="searchTerm" (input)="applyFilters()">
+    <main class="main">
+      <div class="ui-page report-catalog">
+        <header class="ui-page-header">
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-grid-3x3-gap"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>{{ 'reports.catalog_title' | translate }}</h1>
+            <p>{{ 'reports.catalog_subtitle' | translate:{ reports: filteredReports.length, categories: categories.length } }}</p>
           </div>
-          <div class="btn-group">
-            <button class="btn btn-secondary" [class.active]="viewMode==='grid'" (click)="viewMode='grid'"><i class="bi bi-grid-3x3-gap"></i></button>
-            <button class="btn btn-secondary" [class.active]="viewMode==='list'" (click)="viewMode='list'"><i class="bi bi-list-ul"></i></button>
+        </header>
+
+        <section class="ui-section">
+          <div class="ui-toolbar">
+            <!-- Category chips -->
+            <div class="ui-filters">
+              <button type="button" class="ui-filter" [class.is-active]="activeCategory===''" (click)="filterCategory('')">
+                {{ 'common.all' | translate }} <span class="ui-filter__count">{{ allReports.length }}</span>
+              </button>
+              <button type="button" *ngFor="let cat of categories" class="ui-filter"
+                      [class.is-active]="activeCategory===cat.key" (click)="filterCategory(cat.key)">
+                <i [class]="cat.icon"></i>{{ cat.name }}
+                <span class="ui-filter__count">{{ cat.count }}</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+          <div class="ui-toolbar">
+            <label class="ui-search">
+              <i class="bi bi-search"></i>
+              <input type="text" placeholder="{{ 'reports.search_reports' | translate }}" [(ngModel)]="searchTerm" (input)="applyFilters()">
+            </label>
+            <div class="rc-view" role="group">
+              <button type="button" class="ui-filter" [class.is-active]="viewMode==='grid'" (click)="viewMode='grid'"><i class="bi bi-grid-3x3-gap"></i></button>
+              <button type="button" class="ui-filter" [class.is-active]="viewMode==='list'" (click)="viewMode='list'"><i class="bi bi-list-ul"></i></button>
+            </div>
+          </div>
 
-      <!-- Category Pills -->
-      <div class="d-flex flex-wrap gap-2 mb-4">
-        <button class="btn btn-sm" [class]="activeCategory===''?'btn-primary':'btn-primary'" (click)="filterCategory('')">
-          {{ 'common.all' | translate }} <span class="badge bg-white text-primary ms-1">{{ allReports.length }}</span>
-        </button>
-        <button *ngFor="let cat of categories" class="btn btn-sm"
-                [class]="activeCategory===cat.key?'btn-primary':'btn-primary'" (click)="filterCategory(cat.key)">
-          <i [class]="cat.icon+' me-1'"></i>{{ cat.name }}
-          <span class="badge bg-white text-primary ms-1">{{ cat.count }}</span>
-        </button>
-      </div>
-
-      <!-- Grid View -->
-      <div class="row g-3" *ngIf="viewMode==='grid'">
-        <div *ngFor="let r of filteredReports" class="col-sm-6 col-md-4 col-lg-3">
-          <div class="card border-0 shadow-sm h-100" [routerLink]="['/admin/reports', r.key]" style="cursor:pointer;transition:transform .15s">
-            <div class="card-body">
-              <div class="d-flex justify-content-between mb-2">
-                <span class="badge bg-primary-subtle text-primary small">{{ getCategoryName(r.category) }}</span>
-                <i class="bi bi-box-arrow-up-right text-muted small"></i>
+          <!-- Grid View -->
+          <div class="ui-grid rc-grid" *ngIf="viewMode==='grid' && filteredReports.length">
+            <div *ngFor="let r of filteredReports" class="ui-card rc-card" [routerLink]="['/admin/reports', r.key]">
+              <div class="ui-card__body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="ui-pill ui-pill--brand">{{ getCategoryName(r.category) }}</span>
+                  <i class="bi bi-box-arrow-up-right ui-subtle small"></i>
+                </div>
+                <h3 class="ui-card__title">{{ r.name }}</h3>
+                <p class="ui-card__meta rc-clamp mb-0">{{ r.description }}</p>
+                <div class="d-flex gap-1 flex-wrap">
+                  <span *ngFor="let a of r.audience" class="ui-pill ui-pill--neutral rc-tag">{{ a }}</span>
+                  <span *ngIf="r.exportable" class="ui-pill ui-pill--success rc-tag">
+                    <i class="bi bi-download"></i>
+                  </span>
+                </div>
               </div>
-              <h6 class="fw-semibold mb-1">{{ r.name }}</h6>
-              <p class="text-muted small mb-2" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ r.description }}</p>
-              <div class="d-flex gap-1 flex-wrap">
-                <span *ngFor="let a of r.audience" class="badge bg-light text-muted" style="font-size:.65rem">{{ a }}</span>
-                <span *ngIf="r.exportable" class="badge bg-success-subtle text-success" style="font-size:.65rem">
-                  <i class="bi bi-download"></i>
+            </div>
+          </div>
+
+          <!-- List View -->
+          <ul class="ui-list rc-list" *ngIf="viewMode==='list' && filteredReports.length">
+            <li *ngFor="let r of filteredReports">
+              <a class="rc-row" [routerLink]="['/admin/reports', r.key]">
+                <span class="ui-pill ui-pill--brand rc-row__cat">{{ getCategoryName(r.category) }}</span>
+                <span class="rc-row__main">
+                  <strong>{{ r.name }}</strong>
+                  <span class="ui-muted small d-block">{{ r.description }}</span>
                 </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                <span class="d-flex gap-1 flex-wrap">
+                  <span *ngFor="let a of r.audience" class="ui-pill ui-pill--neutral rc-tag">{{ a }}</span>
+                </span>
+              </a>
+            </li>
+          </ul>
 
-      <!-- List View -->
-      <div class="list-group" *ngIf="viewMode==='list'">
-        <a *ngFor="let r of filteredReports" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-           [routerLink]="['/admin/reports', r.key]">
-          <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-primary-subtle text-primary" style="min-width:90px">{{ getCategoryName(r.category) }}</span>
-            <div>
-              <strong>{{ r.name }}</strong>
-              <p class="text-muted small mb-0">{{ r.description }}</p>
-            </div>
+          <!-- Empty -->
+          <div *ngIf="!filteredReports.length" class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-search"></i></span>
+            <p>{{ 'reports.no_reports_match' | translate }}</p>
           </div>
-          <div class="d-flex gap-1">
-            <span *ngFor="let a of r.audience" class="badge bg-light text-muted small">{{ a }}</span>
-          </div>
-        </a>
-      </div>
-
-      <!-- Empty -->
-      <div *ngIf="!filteredReports.length" class="text-center py-5 text-muted">
-        <i class="bi bi-search fs-1 d-block mb-2"></i>
-        <p>{{ 'reports.no_reports_match' | translate }}</p>
-      </div>
-    </div>
+        </section>
       </div>
     </main>
   `,
   styles: [`
-    .card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important; }
+    .rc-view { display: inline-flex; gap: 6px; margin-left: auto; }
+    .rc-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .rc-card { cursor: pointer; }
+    .rc-card .ui-card__body { gap: 8px; padding: 14px 16px; }
+    .rc-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .rc-tag { font-size: .6875rem; padding-top: 1px; padding-bottom: 1px; }
+    .rc-list > li { padding: 0; }
+    .rc-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 4px; color: inherit; text-decoration: none; }
+    .rc-row:hover strong { color: var(--brand-primary); }
+    .rc-row__cat { min-width: 110px; justify-content: center; flex-shrink: 0; }
+    .rc-row__main { flex: 1; min-width: 0; }
+    @media (max-width: 575.98px) { .rc-row { flex-wrap: wrap; } }
   `]
 })
 export class ReportCatalogComponent implements OnInit {

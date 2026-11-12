@@ -13,67 +13,69 @@ import {I18nService} from '../../../i18n.service';
   imports: [CommonModule, RouterLink, ReportChartComponent, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid">
-    <div class="manager-dashboard">
-      <h4 class="fw-bold mb-4"><i class="bi bi-people me-2"></i>{{ 'reports.manager_dashboard' | translate }}</h4>
+    <main class="main">
+      <div class="ui-page manager-dashboard">
+        <header class="ui-page-header">
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>{{ 'reports.manager_dashboard' | translate }}</h1>
+            <p>{{ 'reports.manager_subtitle' | translate }}</p>
+          </div>
+        </header>
 
-      <!-- KPIs -->
-      <div class="row g-3 mb-4">
-        <div *ngFor="let k of kpis" class="col-sm-6 col-md-3">
-          <div class="card border-0 shadow-sm text-center">
-            <div class="card-body py-3">
-              <h4 class="fw-bold mb-0" [class]="'text-'+k.color">{{ k.value }}</h4>
-              <p class="text-muted small mb-0">{{ k.label }}</p>
-            </div>
+        <!-- KPIs -->
+        <div class="ui-kpi-grid ui-kpi-grid--4" *ngIf="kpis.length">
+          <div *ngFor="let k of kpis" class="ui-kpi" [ngClass]="'ui-kpi--' + (k.color === 'primary' ? 'brand' : k.color)">
+            <span class="ui-kpi__label">{{ k.label }}</span>
+            <span class="ui-kpi__value">{{ k.value }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- Action Required -->
-      <div class="card border-0 shadow-sm mb-4" *ngIf="actionItems.length">
-        <div class="card-header bg-danger-subtle d-flex justify-content-between align-items-center">
-          <h6 class="mb-0 text-danger fw-semibold"><i class="bi bi-exclamation-circle me-2"></i>{{ 'reports.action_required' | translate }}</h6>
-          <span class="badge bg-danger">{{ actionItems.length }}</span>
-        </div>
-        <div class="list-group list-group-flush">
-          <div *ngFor="let item of actionItems.slice(0,5)" class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong>{{ item.learner_name }}</strong>
-              <span class="text-muted mx-1">-</span>
-              <span>{{ item.course_name || item.title }}</span>
-            </div>
-            <span class="badge bg-danger-subtle text-danger">{{ 'reports.days_overdue' | translate:{ count: item.days_overdue } }}</span>
+        <!-- Action Required -->
+        <section class="ui-section" *ngIf="actionItems.length">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title"><i class="bi bi-exclamation-circle me-2 text-danger"></i>{{ 'reports.action_required' | translate }}</h2></div>
+            <div class="ui-section__actions"><span class="ui-pill ui-pill--danger">{{ actionItems.length }}</span></div>
           </div>
-        </div>
-      </div>
+          <ul class="ui-list">
+            <li *ngFor="let item of actionItems.slice(0,5)" class="justify-content-between">
+              <div class="min-w-0">
+                <strong>{{ item.learner_name }}</strong>
+                <span class="ui-muted mx-1">-</span>
+                <span>{{ item.course_name || item.title }}</span>
+              </div>
+              <span class="ui-pill ui-pill--danger"><span class="ui-pill__dot"></span>{{ 'reports.days_overdue' | translate:{ count: item.days_overdue } }}</span>
+            </li>
+          </ul>
+        </section>
 
-      <!-- Team Chart -->
-      <div class="mb-4" *ngIf="teamData">
-        <app-report-chart [data]="teamData" chartType="bar" [title]="'reports.team_compliance' | translate" [allowTypeChange]="true"></app-report-chart>
-      </div>
+        <!-- Team Chart -->
+        <section class="ui-section" *ngIf="teamData">
+          <app-report-chart [data]="teamData" chartType="bar" [title]="'reports.team_compliance' | translate" [allowTypeChange]="true"></app-report-chart>
+        </section>
 
-      <!-- Team Table -->
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white"><h6 class="mb-0 fw-semibold">{{ 'reports.team_members' | translate }}</h6></div>
-        <div class="table-responsive">
-          <table class="table table-hover table-sm mb-0">
-            <thead class="table-light">
-              <tr><th class="px-3">{{ 'common.name' | translate }}</th><th>{{ 'report.enrolled' | translate }}</th><th>{{ 'report.completed' | translate }}</th><th>{{ 'reports.overdue' | translate }}</th><th>{{ 'common.status' | translate }}</th></tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let m of teamMembers">
-                <td class="px-3 fw-medium">{{ m.learner_name }}</td>
-                <td>{{ m.total_enrolled }}</td>
-                <td>{{ m.completed }}</td>
-                <td><span [class]="m.overdue>0?'text-danger fw-bold':'text-muted'">{{ m.overdue }}</span></td>
-                <td><span class="badge" [class]="m.status_badge==='danger'?'bg-danger-subtle text-danger':m.status_badge==='warning'?'bg-warning-subtle text-warning':'bg-success-subtle text-success'">{{ m.status }}</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+        <!-- Team Table -->
+        <section class="ui-section ui-section--flush">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">{{ 'reports.team_members' | translate }}</h2></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr><th class="ps-4">{{ 'common.name' | translate }}</th><th>{{ 'report.enrolled' | translate }}</th><th>{{ 'report.completed' | translate }}</th><th>{{ 'reports.overdue' | translate }}</th><th class="pe-4">{{ 'common.status' | translate }}</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of teamMembers">
+                  <td class="ps-4 fw-medium">{{ m.learner_name }}</td>
+                  <td>{{ m.total_enrolled }}</td>
+                  <td>{{ m.completed }}</td>
+                  <td><span [class]="m.overdue>0?'text-danger fw-bold':'ui-muted'">{{ m.overdue }}</span></td>
+                  <td class="pe-4"><span class="ui-pill" [ngClass]="m.status_badge==='danger'?'ui-pill--danger':m.status_badge==='warning'?'ui-pill--warning':'ui-pill--success'"><span class="ui-pill__dot"></span>{{ m.status }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
   `

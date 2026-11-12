@@ -1,72 +1,67 @@
-.lib-main {
-  padding-top: 1.5rem;
-  padding-bottom: 3rem;
-}
+// Page chrome comes from the global UI kit (header, search, cards, empty state).
+
+.lib-spinner { color: var(--brand-primary); }
 
 .lib-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  gap: 16px;
 }
 
 .lib-card {
-  display: flex;
-  flex-direction: column;
   text-align: left;
-  border: 1px solid var(--bs-border-color, #e5e7eb);
-  border-radius: 0.75rem;
-  background: var(--bs-body-bg, #fff);
-  overflow: hidden;
   padding: 0;
+  overflow: hidden;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
-  }
+  font: inherit;
 }
 
+// File-kind tints: soft surfaces, the kind hue only on the icon.
 .lib-thumb {
   position: relative;
-  height: 120px;
+  height: 112px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  background: rgba(var(--brand-primary-rgb), .06);
+  color: var(--brand-primary);
+  border-bottom: 1px solid var(--ui-border);
 
-  i {
-    font-size: 2.75rem;
-  }
+  i { font-size: 2.25rem; }
 
-  &.k-video { background: linear-gradient(135deg, #6366f1, #4338ca); }
-  &.k-audio { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
-  &.k-pdf { background: linear-gradient(135deg, #ef4444, #b91c1c); }
-  &.k-doc { background: linear-gradient(135deg, #2563eb, #1e40af); }
-  &.k-image { background: linear-gradient(135deg, #10b981, #047857); }
+  &.k-video { background: rgba(99, 102, 241, .08); color: #4f46e5; }
+  &.k-audio { background: rgba(14, 165, 233, .08); color: #0369a1; }
+  &.k-pdf   { background: rgba(var(--ui-danger-rgb), .08); color: var(--ui-danger-text); }
+  &.k-doc   { background: rgba(var(--ui-info-rgb), .08); color: var(--ui-info-text); }
+  &.k-image { background: rgba(var(--ui-success-rgb), .08); color: var(--ui-success-text); }
 }
 
 .lib-pending {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(0, 0, 0, 0.45);
+  top: .5rem;
+  right: .5rem;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  color: var(--ui-text-muted);
   border-radius: 50%;
   width: 26px;
   height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+
+  i { font-size: .8rem; }
 }
 
 .lib-body {
-  padding: 0.75rem 0.85rem 0.9rem;
+  padding: 12px 14px 14px;
 }
 
 .lib-title {
+  font-size: .875rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.3;
+  color: var(--ui-text);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -74,9 +69,9 @@
 }
 
 .lib-desc {
-  color: var(--bs-secondary-color, #6b7280);
-  font-size: 0.8rem;
-  margin-top: 0.2rem;
+  color: var(--ui-text-muted);
+  font-size: .8rem;
+  margin-top: .2rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -86,33 +81,28 @@
 .lib-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.6rem;
-  font-size: 0.75rem;
+  gap: .5rem;
+  margin-top: .6rem;
+  font-size: .75rem;
 }
 
+// Soft pill per file kind
 .lib-badge {
+  display: inline-flex;
+  align-items: center;
   border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  color: #fff;
-  font-weight: 500;
+  padding: 1px 9px;
+  border: 1px solid rgba(var(--ui-neutral-rgb), .28);
+  background: rgba(var(--ui-neutral-rgb), .1);
+  color: var(--ui-neutral-text);
+  font-size: .72rem;
+  font-weight: 600;
 
-  &.k-video { background: #4f46e5; }
-  &.k-audio { background: #0284c7; }
-  &.k-pdf { background: #dc2626; }
-  &.k-doc { background: #2563eb; }
-  &.k-image { background: #059669; }
-}
-
-.empty-panel {
-  background: var(--bs-tertiary-bg, #f9fafb);
-  border: 1px dashed var(--bs-border-color, #e5e7eb);
-  border-radius: 0.75rem;
-
-  .empty-icon {
-    font-size: 2.5rem;
-    color: var(--bs-secondary-color, #9ca3af);
-  }
+  &.k-video { background: rgba(99, 102, 241, .1); border-color: rgba(99, 102, 241, .28); color: #4338ca; }
+  &.k-audio { background: rgba(14, 165, 233, .1); border-color: rgba(14, 165, 233, .28); color: #0369a1; }
+  &.k-pdf   { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+  &.k-doc   { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+  &.k-image { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
 }
 
 // --- viewer overlay ---

@@ -1,39 +1,38 @@
 <!-- messaging/messaging.component.html -->
-<!-- admin-live-training.component.html -->
 <app-top></app-top>
-<main style="margin-top: 62px !important;" class="main px-lg-6">
-  <div class="container-fluid">
+<main class="main">
+  <div class="ui-page messaging-page">
+    <header class="ui-page-header">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-chat-dots"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'nav.messages' | translate }}</h1>
+        <p>{{ 'messaging.page_subtitle' | translate }}</p>
+      </div>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-outline-secondary announcements-btn" (click)="openBroadcasts()" [title]="'messaging.announcements' | translate">
+          <i class="bi bi-megaphone me-1"></i>{{ 'messaging.announcements' | translate }}
+          <span class="ui-filter__count announcements-count" *ngIf="unreadCounts.unread_broadcasts > 0">{{ unreadCounts.unread_broadcasts }}</span>
+        </button>
+        <button type="button" class="btn btn-primary" (click)="openNewConversation()" [title]="'messaging.new_message' | translate">
+          <i class="bi bi-pencil-square me-1"></i>{{ 'messaging.new_message' | translate }}
+        </button>
+      </div>
+    </header>
 <div class="messaging-container" [class.mobile]="isMobile">
   <!-- Sidebar - Conversation List -->
   <aside class="conversations-sidebar" [class.hidden]="isMobile && !showConversationList">
-    <!-- Header -->
-    <div class="sidebar-header">
-      <h2 class="sidebar-title">
-        <i class="bi bi-chat-dots me-2"></i>{{ 'nav.messages' | translate }}
-      </h2>
-      <div class="header-actions">
-        <button class="btn btn-icon" (click)="openBroadcasts()" [class.has-badge]="unreadCounts.unread_broadcasts > 0" [title]="'messaging.announcements' | translate">
-          <i class="bi bi-megaphone"></i>
-          <span class="badge" *ngIf="unreadCounts.unread_broadcasts > 0">{{ unreadCounts.unread_broadcasts }}</span>
-        </button>
-        <button class="btn btn-icon" (click)="openNewConversation()" [title]="'messaging.new_message' | translate">
-          <i class="bi bi-pencil-square"></i>
-        </button>
-      </div>
-    </div>
-
     <!-- Search & Filter -->
     <div class="sidebar-search">
-      <div class="search-input-wrapper">
+      <label class="ui-search">
         <i class="bi bi-search"></i>
-        <input type="text" class="form-control" placeholder="{{ 'messaging.search_conversations' | translate }}"
+        <input type="text" placeholder="{{ 'messaging.search_conversations' | translate }}"
                [(ngModel)]="conversationSearch" (ngModelChange)="onConversationSearchChange()">
-      </div>
-      <div class="filter-tabs">
-        <button class="filter-tab" [class.active]="conversationFilter === 'all'" (click)="conversationFilter = 'all'; onConversationFilterChange()">{{ 'common.all' | translate }}</button>
-        <button class="filter-tab" [class.active]="conversationFilter === 'direct'" (click)="conversationFilter = 'direct'; onConversationFilterChange()">{{ 'messaging.filter_direct' | translate }}</button>
-        <button class="filter-tab" [class.active]="conversationFilter === 'group'" (click)="conversationFilter = 'group'; onConversationFilterChange()">{{ 'messaging.filter_groups' | translate }}</button>
-        <button class="filter-tab" [class.active]="conversationFilter === 'channel'" (click)="conversationFilter = 'channel'; onConversationFilterChange()">{{ 'messaging.filter_channels' | translate }}</button>
+      </label>
+      <div class="ui-filters filter-tabs">
+        <button type="button" class="ui-filter" [class.active]="conversationFilter === 'all'" (click)="conversationFilter = 'all'; onConversationFilterChange()">{{ 'common.all' | translate }}</button>
+        <button type="button" class="ui-filter" [class.active]="conversationFilter === 'direct'" (click)="conversationFilter = 'direct'; onConversationFilterChange()">{{ 'messaging.filter_direct' | translate }}</button>
+        <button type="button" class="ui-filter" [class.active]="conversationFilter === 'group'" (click)="conversationFilter = 'group'; onConversationFilterChange()">{{ 'messaging.filter_groups' | translate }}</button>
+        <button type="button" class="ui-filter" [class.active]="conversationFilter === 'channel'" (click)="conversationFilter = 'channel'; onConversationFilterChange()">{{ 'messaging.filter_channels' | translate }}</button>
       </div>
     </div>
 
@@ -44,8 +43,8 @@
         <span>{{ 'common.loading' | translate }}</span>
       </div>
 
-      <div *ngIf="!loading && filteredConversations.length === 0" class="empty-state">
-        <i class="bi bi-chat-left-text"></i>
+      <div *ngIf="!loading && filteredConversations.length === 0" class="ui-state empty-state">
+        <span class="ui-state__icon"><i class="bi bi-chat-left-text"></i></span>
         <p>{{ 'messaging.no_conversations' | translate }}</p>
         <button class="btn btn-primary btn-sm" (click)="openNewConversation()">{{ 'messaging.start_conversation' | translate }}</button>
       </div>
@@ -98,11 +97,11 @@
   </aside>
 
   <!-- Main Chat Area -->
-  <main style="margin-top: 0" class="chat-main" [class.hidden]="isMobile && showConversationList">
+  <section class="chat-main" [class.hidden]="isMobile && showConversationList">
     <!-- No Conversation Selected -->
     <div class="no-conversation" *ngIf="!activeConversation">
-      <div class="no-conversation-content">
-        <i class="bi bi-chat-square-text"></i>
+      <div class="ui-state no-conversation-content">
+        <span class="ui-state__icon"><i class="bi bi-chat-square-text"></i></span>
         <h3>{{ 'messaging.welcome' | translate }}</h3>
         <p>{{ 'messaging.welcome_desc' | translate }}</p>
         <button class="btn btn-primary" (click)="openNewConversation()">
@@ -288,7 +287,7 @@
 
         <!-- Empty State -->
         <div class="empty-messages" *ngIf="!loadingMessages && messages.length === 0">
-          <i class="bi bi-chat-left-text"></i>
+          <span class="ui-state__icon"><i class="bi bi-chat-left-text"></i></span>
           <p>{{ 'messaging.no_messages_start' | translate }}</p>
         </div>
       </div>
@@ -365,7 +364,7 @@
         </div>
       </div>
     </ng-container>
-  </main>
+  </section>
 
   <!-- Participants Panel -->
   <aside class="participants-panel" *ngIf="showParticipants && activeConversation">
@@ -527,7 +526,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeNewConversation()">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeNewConversation()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" (click)="createConversation()" [disabled]="selectedUsers.length === 0">
         {{ (newConversationType === 'direct' ? 'messaging.start_chat' : 'common.create') | translate }}
       </button>
@@ -562,7 +561,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeForwardModal()">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeForwardModal()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" (click)="forwardMessage()" [disabled]="forwardTargets.length === 0">
         {{ 'messaging.forward_to' | translate }} {{ forwardTargets.length }} {{ (forwardTargets.length > 1 ? 'messaging.chats' : 'messaging.chat') | translate }}
       </button>
@@ -635,7 +634,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeConversationSettings()">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeConversationSettings()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" (click)="saveConversationSettings()" [disabled]="savingConversation">
         <span *ngIf="savingConversation" class="spinner-border spinner-border-sm me-2"></span>
         {{ 'common.save_changes' | translate }}
@@ -687,7 +686,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeAddParticipantsModal()">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeAddParticipantsModal()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" (click)="addSelectedParticipants()" [disabled]="selectedNewParticipants.length === 0 || addingParticipants">
         <span *ngIf="addingParticipants" class="spinner-border spinner-border-sm me-2"></span>
         {{ 'messaging.add' | translate }} {{ selectedNewParticipants.length }} {{ (selectedNewParticipants.length > 1 ? 'messaging.members_word' : 'messaging.member_word') | translate }}
@@ -725,7 +724,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeParticipantRoleModal()">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeParticipantRoleModal()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" (click)="saveParticipantRole()">{{ 'common.save' | translate }}</button>
     </div>
   </div>
@@ -859,7 +858,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="closeBlockUserModal()">{{ 'common.cancel' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeBlockUserModal()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-danger" (click)="confirmBlockUser()" [disabled]="blockingUser">
         <span *ngIf="blockingUser" class="spinner-border spinner-border-sm me-2"></span>
         {{ 'messaging.block_user' | translate }}
@@ -911,7 +910,7 @@
       <span class="acknowledged-badge text-success" *ngIf="selectedBroadcast.is_acknowledged">
         <i class="bi bi-check-circle-fill me-1"></i>{{ 'messaging.acknowledged' | translate }}
       </span>
-      <button class="btn btn-secondary" (click)="closeBroadcastDetailModal()">{{ 'common.close' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeBroadcastDetailModal()">{{ 'common.close' | translate }}</button>
     </div>
   </div>
 </div>
@@ -991,7 +990,7 @@
       <button class="btn btn-primary" (click)="viewReadReceipts(selectedMessageDetail!)" *ngIf="selectedMessageDetail">
         <i class="bi bi-check2-all me-1"></i>{{ 'messaging.view_read_receipts' | translate }}
       </button>
-      <button class="btn btn-secondary" (click)="closeMessageDetailModal()">{{ 'common.close' | translate }}</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="closeMessageDetailModal()">{{ 'common.close' | translate }}</button>
     </div>
   </div>
 </div>

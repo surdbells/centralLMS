@@ -7,6 +7,7 @@ import {Router} from '@angular/router';
 import {CrudService} from '../../services/crud.service';
 import {HotToastService} from '@ngneat/hot-toast';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
+import {TranslatePipe} from '../../translate.pipe';
 
 @Component({
   selector: 'app-admin-skills-page',
@@ -17,6 +18,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
     TuiIcon,
     AdminSkillsComponent,
     AdmintopComponent,
+    TranslatePipe,
   ],
   templateUrl: './admin-skills-page.component.html',
   styleUrl: './admin-skills-page.component.css'

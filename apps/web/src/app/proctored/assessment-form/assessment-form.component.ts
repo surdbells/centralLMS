@@ -118,61 +118,64 @@ interface GradingScale { scale_id: string; name: string; }
   template: `
     <app-admintop></app-admintop>
 
-    <div class="assessment-form-container">
+    <main class="main">
+    <div class="ui-page assessment-form-container">
       <!-- Header -->
-      <div class="form-header">
-        <div class="header-left">
-          <button class="btn btn-sm btn-secondary" (click)="goBack()">
-            <tui-icon icon="@tui.arrow-left"></tui-icon>
-          </button>
-          <div>
-            <h1 class="form-title">{{ isEdit ? 'Edit Assessment' : 'New Assessment' }}</h1>
-            <div class="form-breadcrumb" *ngIf="isEdit">
-              <span class="type-badge" [ngClass]="'type-' + form.assessment_type">{{ form.assessment_type }}</span>
-              <span class="status-badge" [ngClass]="'status-' + form.status">{{ form.status }}</span>
-              <span class="text-muted small" *ngIf="form.assessment_id">#{{ form.assessment_id }}</span>
-            </div>
+      <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-pencil-square"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ isEdit ? 'Edit Assessment' : 'New Assessment' }}</h1>
+          <div class="form-breadcrumb" *ngIf="isEdit">
+            <span class="ui-pill type-badge" [ngClass]="'type-' + form.assessment_type">{{ form.assessment_type }}</span>
+            <span class="ui-pill status-badge" [ngClass]="'status-' + form.status"><span class="ui-pill__dot"></span>{{ form.status }}</span>
+            <span class="ui-muted small" *ngIf="form.assessment_id">#{{ form.assessment_id }}</span>
           </div>
+          <p *ngIf="!isEdit">Set up the details, questions and rules for a new assessment</p>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary btn-sm" (click)="saveDraft()" [disabled]="saving">
-            <tui-icon icon="@tui.save"></tui-icon> Save Draft
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-outline-secondary" (click)="saveDraft()" [disabled]="saving">
+            <i class="bi bi-floppy"></i> Save Draft
           </button>
-          <button class="btn btn-primary btn-sm" (click)="saveAndPublish()" [disabled]="saving" *ngIf="form.status !== 'published'">
-            <tui-icon icon="@tui.send"></tui-icon> Publish
+          <button type="button" class="btn btn-primary" (click)="saveAndPublish()" [disabled]="saving" *ngIf="form.status !== 'published'">
+            <i class="bi bi-send"></i> Publish
           </button>
-          <button class="btn btn-primary btn-sm" (click)="save()" [disabled]="saving" *ngIf="form.status === 'published'">
+          <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving" *ngIf="form.status === 'published'">
             <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span> Save Changes
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Tab Navigation -->
-      <div class="tab-nav">
-        <button class="tab-btn" [class.active]="activeTab === 'details'" (click)="activeTab = 'details'">
-          <tui-icon icon="@tui.file-text"></tui-icon> Details
+      <nav class="ui-tabs" role="tablist">
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'details'" (click)="activeTab = 'details'">
+          <i class="bi bi-file-earmark-text"></i> Details
         </button>
-        <button class="tab-btn" [class.active]="activeTab === 'questions'" (click)="activeTab = 'questions'">
-          <tui-icon icon="@tui.list-ordered"></tui-icon> Sections & Questions
-          <span class="tab-count" *ngIf="totalQuestionCount > 0">{{ totalQuestionCount }}</span>
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'questions'" (click)="activeTab = 'questions'">
+          <i class="bi bi-list-ol"></i> Sections & Questions
+          <span class="ui-tab__count" *ngIf="totalQuestionCount > 0">{{ totalQuestionCount }}</span>
         </button>
-        <button class="tab-btn" [class.active]="activeTab === 'settings'" (click)="activeTab = 'settings'">
-          <tui-icon icon="@tui.settings"></tui-icon> Settings
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'settings'" (click)="activeTab = 'settings'">
+          <i class="bi bi-gear"></i> Settings
         </button>
-        <button class="tab-btn" [class.active]="activeTab === 'assignments'" (click)="activeTab = 'assignments'"
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'assignments'" (click)="activeTab = 'assignments'"
                 *ngIf="isEdit">
-          <tui-icon icon="@tui.users"></tui-icon> Assignments
-          <span class="tab-count" *ngIf="assignments.length > 0">{{ assignments.length }}</span>
+          <i class="bi bi-people"></i> Assignments
+          <span class="ui-tab__count" *ngIf="assignments.length > 0">{{ assignments.length }}</span>
         </button>
-      </div>
+      </nav>
 
       <!-- ==========================================
            TAB 1: DETAILS
            ========================================== -->
       <div class="tab-content" *ngIf="activeTab === 'details'">
         <!-- Assessment Type Selector -->
-        <div class="type-selector" *ngIf="!isEdit">
-          <label class="section-label">Assessment Type</label>
+        <section class="ui-section type-selector" *ngIf="!isEdit">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Assessment Type</h2><p class="ui-section__subtitle">Choose what kind of assessment this is</p></div>
+          </div>
           <div class="type-cards">
             <div class="type-card" *ngFor="let t of assessmentTypes" [class.selected]="form.assessment_type === t.value"
                  (click)="form.assessment_type = t.value">
@@ -181,11 +184,14 @@ interface GradingScale { scale_id: string; name: string; }
               <p>{{ t.description }}</p>
             </div>
           </div>
-        </div>
+        </section>
 
         <div class="form-grid">
           <!-- Left Column -->
-          <div class="form-col">
+          <section class="ui-section form-col">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title">Details</h2><p class="ui-section__subtitle">What learners see before and after they sit it</p></div>
+            </div>
             <div class="form-group">
               <label>Title <span class="required">*</span></label>
               <input type="text" class="form-control" [(ngModel)]="form.title" placeholder="Enter assessment title" maxlength="255">
@@ -210,10 +216,13 @@ interface GradingScale { scale_id: string; name: string; }
                 <input type="text" class="form-control" [(ngModel)]="form.completion_message" placeholder="Shown after submission">
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Right Column -->
-          <div class="form-col sidebar-col">
+          <section class="ui-section form-col sidebar-col">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title">Organisation</h2><p class="ui-section__subtitle">Category and links</p></div>
+            </div>
             <div class="form-group">
               <label>Category</label>
               <select class="form-select" [(ngModel)]="form.category_id">
@@ -243,28 +252,31 @@ interface GradingScale { scale_id: string; name: string; }
                 <option value="closed">Closed</option>
               </select>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
       <!-- ==========================================
            TAB 2: SECTIONS & QUESTIONS
            ========================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'questions'">
-        <div class="section-toolbar">
-          <div class="section-info">
-            <span>{{ sections.length }} Section{{ sections.length !== 1 ? 's' : '' }}</span>
-            <span class="sep">·</span>
-            <span>{{ totalQuestionCount }} Questions</span>
-            <span class="sep">·</span>
-            <span>{{ totalPoints }} Points</span>
+      <section class="ui-section tab-content" *ngIf="activeTab === 'questions'">
+        <div class="ui-section__head section-toolbar">
+          <div>
+            <h2 class="ui-section__title">Sections & Questions</h2>
+            <p class="ui-section__subtitle section-info">
+              <span>{{ sections.length }} Section{{ sections.length !== 1 ? 's' : '' }}</span>
+              <span class="sep">·</span>
+              <span>{{ totalQuestionCount }} Questions</span>
+              <span class="sep">·</span>
+              <span>{{ totalPoints }} Points</span>
+            </p>
           </div>
-          <div class="section-actions">
-            <button class="btn btn-sm btn-primary" (click)="addSection()">
-              <tui-icon icon="@tui.plus"></tui-icon> Add Section
+          <div class="ui-section__actions section-actions">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="addSection()">
+              <i class="bi bi-plus-lg"></i> Add Section
             </button>
-            <button class="btn btn-sm btn-primary" (click)="showQuestionPicker = true" *ngIf="sections.length > 0">
-              <tui-icon icon="@tui.plus-circle"></tui-icon> Add Questions
+            <button type="button" class="btn btn-sm btn-primary" (click)="showQuestionPicker = true" *ngIf="sections.length > 0">
+              <i class="bi bi-plus-circle"></i> Add Questions
             </button>
           </div>
         </div>
@@ -347,15 +359,15 @@ interface GradingScale { scale_id: string; name: string; }
           </div>
         </div>
 
-        <div class="empty-sections" *ngIf="sections.length === 0">
-          <tui-icon icon="@tui.layers"></tui-icon>
-          <h5>No sections yet</h5>
-          <p class="text-muted">Create a section to start adding questions</p>
-          <button class="btn btn-primary" (click)="addSection()">
-            <tui-icon icon="@tui.plus"></tui-icon> Add First Section
+        <div class="ui-state" *ngIf="sections.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-layers"></i></span>
+          <h3>No sections yet</h3>
+          <p>Create a section to start adding questions</p>
+          <button type="button" class="btn btn-primary" (click)="addSection()">
+            <i class="bi bi-plus-lg"></i> Add First Section
           </button>
         </div>
-      </div>
+      </section>
 
       <!-- ==========================================
            TAB 3: SETTINGS
@@ -363,7 +375,7 @@ interface GradingScale { scale_id: string; name: string; }
       <div class="tab-content" *ngIf="activeTab === 'settings'">
         <div class="settings-grid">
           <!-- Time & Attempts -->
-          <div class="settings-section">
+          <div class="ui-section settings-section">
             <h3 class="settings-title"><tui-icon icon="@tui.clock"></tui-icon> Time & Attempts</h3>
             <div class="form-group">
               <label>Time Limit (minutes)</label>
@@ -382,7 +394,7 @@ interface GradingScale { scale_id: string; name: string; }
           </div>
 
           <!-- Scoring -->
-          <div class="settings-section">
+          <div class="ui-section settings-section">
             <h3 class="settings-title"><tui-icon icon="@tui.award"></tui-icon> Scoring</h3>
             <div class="form-group">
               <label>Passing Score</label>
@@ -403,7 +415,7 @@ interface GradingScale { scale_id: string; name: string; }
             </div>
             <div class="toggle-row">
               <label>Negative Marking</label>
-              <input type="checkbox" [(ngModel)]="form.negative_marking">
+              <input type="checkbox" class="form-check-input" [(ngModel)]="form.negative_marking">
             </div>
             <div class="form-group" *ngIf="form.negative_marking">
               <label>Penalty Percentage</label>
@@ -411,12 +423,12 @@ interface GradingScale { scale_id: string; name: string; }
             </div>
             <div class="toggle-row">
               <label>Partial Credit</label>
-              <input type="checkbox" [(ngModel)]="form.partial_credit">
+              <input type="checkbox" class="form-check-input" [(ngModel)]="form.partial_credit">
             </div>
           </div>
 
           <!-- Display -->
-          <div class="settings-section">
+          <div class="ui-section settings-section">
             <h3 class="settings-title"><tui-icon icon="@tui.monitor"></tui-icon> Display</h3>
             <div class="form-group">
               <label>Questions Per Page</label>
@@ -435,19 +447,19 @@ interface GradingScale { scale_id: string; name: string; }
                 <option value="section">Section-by-section</option>
               </select>
             </div>
-            <div class="toggle-row"><label>Shuffle Questions</label><input type="checkbox" [(ngModel)]="form.shuffle_questions"></div>
-            <div class="toggle-row"><label>Shuffle Options</label><input type="checkbox" [(ngModel)]="form.shuffle_options"></div>
-            <div class="toggle-row"><label>Show Question Numbers</label><input type="checkbox" [(ngModel)]="form.show_question_numbers"></div>
-            <div class="toggle-row"><label>Show Progress Bar</label><input type="checkbox" [(ngModel)]="form.show_progress_bar"></div>
+            <div class="toggle-row"><label>Shuffle Questions</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.shuffle_questions"></div>
+            <div class="toggle-row"><label>Shuffle Options</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.shuffle_options"></div>
+            <div class="toggle-row"><label>Show Question Numbers</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_question_numbers"></div>
+            <div class="toggle-row"><label>Show Progress Bar</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_progress_bar"></div>
           </div>
 
           <!-- Results -->
-          <div class="settings-section">
+          <div class="ui-section settings-section">
             <h3 class="settings-title"><tui-icon icon="@tui.check-circle"></tui-icon> Results Display</h3>
-            <div class="toggle-row"><label>Show Results</label><input type="checkbox" [(ngModel)]="form.show_results"></div>
-            <div class="toggle-row" *ngIf="form.show_results"><label>Show Correct Answers</label><input type="checkbox" [(ngModel)]="form.show_correct_answers"></div>
-            <div class="toggle-row" *ngIf="form.show_results"><label>Show Explanations</label><input type="checkbox" [(ngModel)]="form.show_explanations"></div>
-            <div class="toggle-row"><label>Show Score</label><input type="checkbox" [(ngModel)]="form.show_score"></div>
+            <div class="toggle-row"><label>Show Results</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_results"></div>
+            <div class="toggle-row" *ngIf="form.show_results"><label>Show Correct Answers</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_correct_answers"></div>
+            <div class="toggle-row" *ngIf="form.show_results"><label>Show Explanations</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_explanations"></div>
+            <div class="toggle-row"><label>Show Score</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_score"></div>
             <div class="form-group">
               <label>Results Release</label>
               <select class="form-select" [(ngModel)]="form.results_release_type">
@@ -464,7 +476,7 @@ interface GradingScale { scale_id: string; name: string; }
           </div>
 
           <!-- Proctoring -->
-          <div class="settings-section">
+          <div class="ui-section settings-section">
             <h3 class="settings-title"><tui-icon icon="@tui.shield"></tui-icon> Proctoring</h3>
             <div class="proctor-options">
               <div class="proctor-option" *ngFor="let p of proctoringLevels" [class.selected]="form.proctoring_level === p.value"
@@ -482,7 +494,7 @@ interface GradingScale { scale_id: string; name: string; }
           </div>
 
           <!-- Availability -->
-          <div class="settings-section">
+          <div class="ui-section settings-section">
             <h3 class="settings-title"><tui-icon icon="@tui.calendar"></tui-icon> Availability</h3>
             <div class="form-group">
               <label>Start Date & Time</label>
@@ -500,49 +512,52 @@ interface GradingScale { scale_id: string; name: string; }
       <!-- ==========================================
            TAB 4: ASSIGNMENTS
            ========================================== -->
-      <div class="tab-content" *ngIf="activeTab === 'assignments' && isEdit">
-        <div class="assign-toolbar">
-          <h3><tui-icon icon="@tui.users"></tui-icon> Learner Assignments ({{ assignments.length }})</h3>
-          <div class="assign-actions">
-            <select class="form-select form-select-sm" [(ngModel)]="newAssignment.assignment_type">
+      <section class="ui-section tab-content" *ngIf="activeTab === 'assignments' && isEdit">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">Learner Assignments ({{ assignments.length }})</h2>
+            <p class="ui-section__subtitle">Assign learners, departments, teams or branches</p></div>
+        </div>
+        <div class="ui-toolbar assign-toolbar">
+          <div class="ui-filters assign-actions">
+            <select class="form-select" [(ngModel)]="newAssignment.assignment_type" aria-label="Assign to">
               <option value="user">Individual User</option>
               <option value="department">Department</option>
               <option value="team">Team</option>
               <option value="branch">Branch</option>
               <option value="all">All Users</option>
             </select>
-            <select class="form-select form-select-sm" [(ngModel)]="newAssignment.target_id"
+            <select class="form-select" [(ngModel)]="newAssignment.target_id" aria-label="Target"
                     *ngIf="newAssignment.assignment_type !== 'all'">
               <option value="">Select...</option>
               <option *ngFor="let t of getAssignTargets()" [value]="t.id">{{ t.name }}</option>
             </select>
-            <input type="date" class="form-control form-control-sm" [(ngModel)]="newAssignment.due_date"
-                   placeholder="Due date (optional)">
-            <button class="btn btn-sm btn-primary" (click)="addAssignment()" [disabled]="!canAddAssignment">
-              <tui-icon icon="@tui.plus"></tui-icon> Assign
+            <input type="date" class="form-control" [(ngModel)]="newAssignment.due_date"
+                   placeholder="Due date (optional)" aria-label="Due date (optional)">
+            <button type="button" class="btn btn-primary" (click)="addAssignment()" [disabled]="!canAddAssignment">
+              <i class="bi bi-plus-lg"></i> Assign
             </button>
           </div>
         </div>
 
-        <div class="assignments-list" *ngIf="assignments.length > 0">
-          <div class="assign-row" *ngFor="let a of assignments">
+        <ul class="ui-list assignments-list" *ngIf="assignments.length > 0">
+          <li class="assign-row" *ngFor="let a of assignments">
             <div class="assign-info">
-              <span class="assign-type-badge" [ngClass]="'atype-' + a.assignment_type">{{ a.assignment_type }}</span>
+              <span class="ui-pill assign-type-badge" [ngClass]="'atype-' + a.assignment_type">{{ a.assignment_type }}</span>
               <span class="assign-name">{{ a.target_name }}</span>
             </div>
             <span class="assign-due" *ngIf="a.due_date">Due: {{ formatDate(a.due_date) }}</span>
             <span class="assign-date">{{ formatDate(a.created_at) }}</span>
-            <button class="btn btn-sm btn-ghost text-danger" (click)="removeAssignment(a)">
-              <tui-icon icon="@tui.x"></tui-icon>
+            <button type="button" class="btn-ghost text-danger" (click)="removeAssignment(a)" aria-label="Remove">
+              <i class="bi bi-x-lg"></i>
             </button>
-          </div>
+          </li>
+        </ul>
+        <div class="ui-state" *ngIf="assignments.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-person-plus"></i></span>
+          <h3>No assignments yet</h3>
+          <p>Assign learners, departments, or teams to this assessment</p>
         </div>
-        <div class="empty-sections" *ngIf="assignments.length === 0">
-          <tui-icon icon="@tui.user-plus"></tui-icon>
-          <h5>No assignments yet</h5>
-          <p class="text-muted">Assign learners, departments, or teams to this assessment</p>
-        </div>
-      </div>
+      </section>
 
       <!-- Question Picker Modal -->
       <div class="modal-overlay" *ngIf="showQuestionPicker" (click)="showQuestionPicker = false">
@@ -590,161 +605,148 @@ interface GradingScale { scale_id: string; name: string; }
           </div>
           <div class="modal-footer">
             <span class="text-muted small">{{ pickedCount }} selected</span>
-            <button class="btn btn-secondary" (click)="showQuestionPicker = false">Cancel</button>
-            <button class="btn btn-primary" (click)="addPickedQuestions()" [disabled]="pickedCount === 0">
+            <button type="button" class="btn btn-outline-secondary" (click)="showQuestionPicker = false">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="addPickedQuestions()" [disabled]="pickedCount === 0">
               Add {{ pickedCount }} Question{{ pickedCount !== 1 ? 's' : '' }}
             </button>
           </div>
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .assessment-form-container { padding: 1.5rem; max-width: 1200px; }
-    .form-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
-    .header-left { display: flex; align-items: flex-start; gap: 0.5rem; }
-    .form-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
-    .form-breadcrumb { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.125rem; }
-    .header-actions { display: flex; gap: 0.5rem; }
+    :host { display: block; }
 
-    /* Tabs */
-    .tab-nav { display: flex; gap: 0.125rem; border-bottom: 2px solid #e9ecef; margin-bottom: 1.25rem; }
-    .tab-btn { padding: 0.625rem 1rem; border: none; background: none; cursor: pointer; font-size: 0.8125rem;
-      font-weight: 500; color: #6c757d; display: flex; align-items: center; gap: 0.375rem; border-bottom: 2px solid transparent;
-      margin-bottom: -2px; transition: all 0.2s; }
-    .tab-btn:hover { color: #212529; }
-    .tab-btn.active { color: #0d6efd; border-bottom-color: #0d6efd; }
-    .tab-count { background: #e7f1ff; color: #0d6efd; font-size: 0.625rem; padding: 0.0625rem 0.375rem; border-radius: 1rem; }
+    .form-breadcrumb { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 
     /* Type Selector */
-    .section-label { font-weight: 600; margin-bottom: 0.5rem; display: block; font-size: 0.875rem; }
-    .type-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
-    .type-card { border: 2px solid #e9ecef; border-radius: 0.5rem; padding: 1rem; cursor: pointer; text-align: center; transition: all 0.2s; }
-    .type-card:hover { border-color: #86b7fe; }
-    .type-card.selected { border-color: #0d6efd; background: #f0f6ff; }
-    .type-card h4 { font-size: 0.875rem; margin: 0.375rem 0 0.25rem; }
-    .type-card p { font-size: 0.6875rem; color: #6c757d; margin: 0; }
+    .type-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .type-card { border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); padding: 16px; cursor: pointer; text-align: center;
+      background: var(--ui-surface); transition: border-color .15s ease, box-shadow .15s ease; }
+    .type-card:hover { border-color: var(--ui-border-strong); }
+    .type-card.selected { border-color: rgba(var(--brand-primary-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .1); }
+    .type-card tui-icon { color: var(--ui-text-muted); }
+    .type-card.selected tui-icon { color: var(--brand-primary); }
+    .type-card h4 { font-size: .875rem; font-weight: 600; margin: 6px 0 4px; color: var(--ui-text); }
+    .type-card p { font-size: .75rem; color: var(--ui-text-muted); margin: 0; }
 
     /* Form Layout */
-    .form-grid { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; }
-    .form-group { margin-bottom: 0.875rem; }
-    .form-group label { font-size: 0.8125rem; font-weight: 500; margin-bottom: 0.25rem; display: block; }
-    .required { color: #dc3545; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .sidebar-col { background: #f8f9fa; padding: 1rem; border-radius: 0.5rem; height: fit-content; }
+    .form-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+    .form-grid > .ui-section { margin-bottom: 0; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { font-size: .8125rem; font-weight: 550; margin-bottom: 4px; display: block; color: var(--ui-text); }
+    .required { color: var(--ui-danger); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-    /* Badges */
-    .type-badge { font-size: 0.625rem; padding: 0.125rem 0.5rem; border-radius: 1rem; font-weight: 600; text-transform: uppercase; }
-    .type-quiz { background: #cfe2ff; color: #084298; }
-    .type-exam { background: #f8d7da; color: #842029; }
-    .type-practice { background: #d1e7dd; color: #0f5132; }
-    .type-survey { background: #fff3cd; color: #664d03; }
-    .status-badge { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 500; text-transform: capitalize; }
-    .status-draft { background: #e2e3e5; color: #495057; }
-    .status-published { background: #d1e7dd; color: #0f5132; }
-    .status-closed { background: #f8d7da; color: #842029; }
+    /* Badges: soft tones */
+    .type-badge, .status-badge, .assign-type-badge { height: 22px; font-size: .6875rem; }
+    .type-badge, .assign-type-badge { text-transform: uppercase; letter-spacing: .03em; }
+    .status-badge { text-transform: capitalize; }
+    .type-quiz, .atype-user { background: rgba(var(--brand-primary-rgb), .1); border-color: rgba(var(--brand-primary-rgb), .28); color: var(--brand-primary); }
+    .type-exam, .status-closed, .atype-branch { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .type-practice, .status-published, .atype-department { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .type-survey, .atype-team { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .status-draft, .atype-all { background: rgba(var(--ui-neutral-rgb), .08); border-color: rgba(var(--ui-neutral-rgb), .22); color: var(--ui-neutral-text); }
 
     /* Section Manager */
-    .section-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .section-info { font-size: 0.8125rem; color: #6c757d; }
-    .section-info .sep { margin: 0 0.375rem; }
-    .section-actions { display: flex; gap: 0.5rem; }
-    .section-block { border: 1px solid #e9ecef; border-radius: 0.5rem; margin-bottom: 0.75rem; overflow: hidden; }
-    .section-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.75rem; background: #f8f9fa;
-      cursor: pointer; border-bottom: 1px solid #f0f0f0; }
-    .section-drag { color: #adb5bd; cursor: grab; }
-    .section-title-area { flex: 1; }
-    .section-title-area h4 { font-size: 0.875rem; font-weight: 600; margin: 0; }
-    .section-count { font-size: 0.6875rem; color: #6c757d; }
+    .section-info .sep { margin: 0 6px; }
+    .section-block { border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); margin-bottom: 12px; overflow: hidden; }
+    .section-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--ui-surface-2);
+      cursor: pointer; border-bottom: 1px solid var(--ui-border); }
+    .section-drag { color: var(--ui-text-subtle); cursor: grab; }
+    .section-title-area { flex: 1; min-width: 0; }
+    .section-title-area h4 { font-size: .875rem; font-weight: 600; margin: 0; color: var(--ui-text); }
+    .section-count { font-size: .75rem; color: var(--ui-text-muted); }
     .section-edit-area { flex: 1; }
-    .section-header-actions { display: flex; align-items: center; gap: 0.125rem; }
-    .collapse-icon { color: #6c757d; margin-left: 0.25rem; }
-    .section-body { padding: 0.5rem; }
+    .section-header-actions { display: flex; align-items: center; gap: 2px; }
+    .collapse-icon { color: var(--ui-text-muted); margin-left: 4px; }
+    .section-body { padding: 8px; }
 
     /* Questions */
-    .question-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.5rem; border-radius: 0.375rem;
-      border: 1px solid #f0f0f0; margin-bottom: 0.25rem; font-size: 0.8125rem; }
-    .question-row:hover { background: #f8f9fa; }
-    .q-num { font-weight: 600; color: #6c757d; min-width: 24px; text-align: center; font-size: 0.75rem; }
-    .q-type-icon { color: #6c757d; }
-    .q-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .q-points { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: #6c757d; }
-    .points-input { width: 48px; padding: 0.125rem 0.25rem; border: 1px solid #dee2e6; border-radius: 0.25rem;
-      font-size: 0.75rem; text-align: center; }
-    .q-actions { display: flex; align-items: center; gap: 0.125rem; }
-    .move-select { width: 80px; font-size: 0.6875rem; padding: 0.125rem 0.25rem; }
-    .section-empty { text-align: center; padding: 1.5rem; color: #6c757d; }
-    .empty-sections { text-align: center; padding: 2.5rem; }
-    .empty-sections tui-icon { font-size: 2rem; color: #adb5bd; }
+    .question-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--ui-radius-ctl);
+      border: 1px solid var(--ui-border); margin-bottom: 4px; font-size: .8125rem; background: var(--ui-surface); }
+    .question-row:hover { border-color: var(--ui-border-strong); }
+    .q-num { font-weight: 600; color: var(--ui-text-muted); min-width: 24px; text-align: center; font-size: .75rem; }
+    .q-type-icon { color: var(--brand-primary); }
+    .q-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ui-text); }
+    .q-points { display: flex; align-items: center; gap: 4px; font-size: .75rem; color: var(--ui-text-muted); }
+    .points-input { width: 52px; height: 28px; padding: 0 4px; border: 1px solid var(--ui-border); border-radius: 6px;
+      font-size: .75rem; text-align: center; }
+    .points-input:focus { outline: none; border-color: rgba(var(--brand-primary-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .12); }
+    .q-actions { display: flex; align-items: center; gap: 2px; }
+    .move-select { width: 96px; height: 28px; min-height: 28px; font-size: .6875rem; padding: 0 22px 0 6px; }
+    .section-empty { text-align: center; padding: 24px; color: var(--ui-text-muted); font-size: .8125rem; }
 
     /* Settings */
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
-    .settings-section { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 1rem; }
-    .settings-title { font-size: 0.9375rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;
-      margin: 0 0 0.875rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f0f0f0; }
-    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0;
-      font-size: 0.8125rem; }
-    .input-group { display: flex; gap: 0; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+    .settings-grid > .ui-section { margin-bottom: 0; }
+    .settings-title { font-size: 1.0625rem; font-weight: 650; display: flex; align-items: center; gap: 8px; color: var(--ui-text);
+      margin: 0 0 16px; }
+    .settings-title tui-icon { color: var(--brand-primary); font-size: 1rem; }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0;
+      font-size: .8125rem; border-bottom: 1px solid var(--ui-border); }
+    .toggle-row:last-child { border-bottom: 0; }
+    .toggle-row label { margin: 0; color: var(--ui-text); }
+    .toggle-row .form-check-input { margin: 0; }
+    .input-group { display: flex; gap: 0; flex-wrap: nowrap; }
     .input-group .form-control { border-top-right-radius: 0; border-bottom-right-radius: 0; }
     .input-group .form-select { border-top-left-radius: 0; border-bottom-left-radius: 0; }
 
     /* Proctoring Options */
-    .proctor-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .proctor-option { border: 2px solid #e9ecef; border-radius: 0.375rem; padding: 0.75rem; cursor: pointer; transition: all 0.2s; }
-    .proctor-option:hover { border-color: #86b7fe; }
-    .proctor-option.selected { border-color: #0d6efd; background: #f0f6ff; }
-    .proctor-option-header { display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.25rem; }
-    .proctor-option p { font-size: 0.6875rem; color: #6c757d; margin: 0; }
-    .proctor-option ul { font-size: 0.625rem; color: #6c757d; margin: 0.25rem 0 0; padding-left: 1rem; }
+    .proctor-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .proctor-option { border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); padding: 12px; cursor: pointer;
+      transition: border-color .15s ease, box-shadow .15s ease; }
+    .proctor-option:hover { border-color: var(--ui-border-strong); }
+    .proctor-option.selected { border-color: rgba(var(--brand-primary-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .1); }
+    .proctor-option-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: .8125rem; }
+    .proctor-option.selected .proctor-option-header tui-icon { color: var(--brand-primary); }
+    .proctor-option p { font-size: .75rem; color: var(--ui-text-muted); margin: 0; }
+    .proctor-option ul { font-size: .6875rem; color: var(--ui-text-muted); margin: 4px 0 0; padding-left: 16px; }
 
     /* Assignments */
-    .assign-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
-    .assign-toolbar h3 { font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
-    .assign-actions { display: flex; gap: 0.375rem; align-items: center; flex-wrap: wrap; }
-    .assign-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border: 1px solid #e9ecef;
-      border-radius: 0.375rem; margin-bottom: 0.375rem; font-size: 0.8125rem; }
-    .assign-info { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
-    .assign-type-badge { font-size: 0.5625rem; padding: 0.0625rem 0.375rem; border-radius: 0.25rem; text-transform: uppercase; font-weight: 600; }
-    .atype-user { background: #cfe2ff; color: #084298; }
-    .atype-department { background: #d1e7dd; color: #0f5132; }
-    .atype-team { background: #fff3cd; color: #664d03; }
-    .atype-branch { background: #f8d7da; color: #842029; }
-    .atype-all { background: #e2e3e5; color: #495057; }
-    .assign-due, .assign-date { font-size: 0.75rem; color: #6c757d; }
+    .assign-toolbar { margin-bottom: 16px; }
+    .assign-row { font-size: .8125rem; }
+    .assign-info { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .assign-name { color: var(--ui-text); font-weight: 550; }
+    .assign-due, .assign-date { font-size: .75rem; color: var(--ui-text-muted); }
 
     /* Question Picker Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1050; display: flex;
+    .modal-overlay { position: fixed; inset: 0; background: rgba(16, 24, 18, .4); z-index: 1050; display: flex;
       align-items: center; justify-content: center; }
-    .modal-dialog { background: #fff; border-radius: 0.75rem; max-width: 800px; width: 95%; max-height: 85vh;
-      display: flex; flex-direction: column; }
+    .modal-dialog { background: var(--ui-surface); border-radius: var(--ui-radius-panel); max-width: 800px; width: 95%; max-height: 85vh;
+      display: flex; flex-direction: column; margin: 0; box-shadow: var(--ui-shadow-pop); }
     .modal-dialog.modal-lg { max-width: 800px; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem;
-      border-bottom: 1px solid #e9ecef; flex-shrink: 0; }
-    .modal-header h5 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1rem; }
-    .modal-body { padding: 1rem 1.25rem; overflow-y: auto; flex: 1; }
-    .modal-footer { display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem;
-      border-top: 1px solid #e9ecef; flex-shrink: 0; }
-    .picker-toolbar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+      border-bottom: 1px solid var(--ui-border); flex-shrink: 0; }
+    .modal-header h5 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; font-weight: 650; }
+    .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .modal-footer { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 12px 20px;
+      border-top: 1px solid var(--ui-border); flex-shrink: 0; }
+    .picker-toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
     .picker-list { max-height: 400px; overflow-y: auto; }
-    .picker-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-radius: 0.375rem;
-      cursor: pointer; font-size: 0.8125rem; border: 1px solid transparent; }
-    .picker-item:hover { background: #f8f9fa; }
-    .picker-item.picked { background: #e7f1ff; border-color: #b6d4fe; }
+    .picker-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: var(--ui-radius-ctl);
+      cursor: pointer; font-size: .8125rem; border: 1px solid transparent; }
+    .picker-item:hover { background: var(--ui-surface-2); }
+    .picker-item.picked { background: rgba(var(--brand-primary-rgb), .06); border-color: rgba(var(--brand-primary-rgb), .3); }
     .picker-item.already-added { opacity: 0.5; cursor: not-allowed; }
-    .picker-q-info { flex: 1; display: flex; align-items: center; gap: 0.375rem; overflow: hidden; }
+    .picker-q-info { flex: 1; display: flex; align-items: center; gap: 6px; overflow: hidden; }
     .picker-q-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .picker-q-type { color: #6c757d; flex-shrink: 0; }
-    .picker-q-diff { font-size: 0.6875rem; color: #6c757d; }
-    .picker-q-pts { font-size: 0.6875rem; font-weight: 500; }
+    .picker-q-type { color: var(--brand-primary); flex-shrink: 0; }
+    .picker-q-diff { font-size: .6875rem; color: var(--ui-text-muted); text-transform: capitalize; }
+    .picker-q-pts { font-size: .6875rem; font-weight: 550; }
 
-    .btn-ghost { background: none; border: none; color: #6c757d; cursor: pointer; padding: 0.25rem; border-radius: 0.25rem; }
-    .btn-ghost:hover { background: #f0f0f0; color: #212529; }
+    .btn-ghost { background: none; border: none; color: var(--ui-text-muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+    .btn-ghost:hover:not(:disabled) { background: var(--ui-surface-2); color: var(--ui-text); }
+    .btn-ghost:disabled { opacity: .35; }
 
-    @media (max-width: 768px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .settings-grid { grid-template-columns: 1fr; }
+    @media (max-width: 991.98px) {
+      .form-grid, .settings-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 767.98px) {
       .type-cards { grid-template-columns: repeat(2, 1fr); }
-      .proctor-options { grid-template-columns: 1fr; }
+      .proctor-options, .form-row { grid-template-columns: 1fr; }
+      .picker-toolbar { flex-wrap: wrap; }
     }
   `]
 })

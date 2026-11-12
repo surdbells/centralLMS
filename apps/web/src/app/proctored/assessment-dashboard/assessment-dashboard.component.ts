@@ -39,64 +39,71 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
   template: `
     <app-admintop></app-admintop>
 
-    <div class="admin-dash">
-      <div class="dash-header">
-        <div><h1>Assessment Dashboard</h1><p>Overview of assessment performance and activity</p></div>
-        <div class="header-actions">
-          <select class="fc" [(ngModel)]="dateRange" (change)="loadDashboard()">
+    <main class="main">
+    <div class="ui-page admin-dash">
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-speedometer2"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Assessment Dashboard</h1>
+          <p>Overview of assessment performance and activity</p>
+        </div>
+        <div class="ui-page-header__actions">
+          <select class="form-select range-select" [(ngModel)]="dateRange" (change)="loadDashboard()" aria-label="Date range">
             <option value="7d">Last 7 Days</option><option value="30d">Last 30 Days</option>
             <option value="90d">Last 90 Days</option><option value="1y">Last Year</option>
           </select>
-          <button class="btn btn-primary" (click)="router.navigate(['/admin/assessments/create'])">
-            <tui-icon icon="@tui.plus" style="font-size:16px"></tui-icon> New Assessment
+          <button type="button" class="btn btn-primary" (click)="router.navigate(['/admin/assessments/create'])">
+            <i class="bi bi-plus-lg"></i> New Assessment
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Stat Cards -->
-      <div class="stat-grid" *ngIf="stats">
-        <div class="scard" (click)="router.navigate(['/admin/assessments'])">
-          <div class="sc-top"><div class="sc-icon blue"><tui-icon icon="@tui.file-text" style="font-size:20px"></tui-icon></div>
-            <span class="sc-change" *ngIf="stats.attempts_change_percent" [class.up]="stats.attempts_change_percent>0" [class.down]="stats.attempts_change_percent<0">
-              <tui-icon [icon]="stats.attempts_change_percent>0?'@tui.trending-up':'@tui.trending-down'" style="font-size:14px"></tui-icon>
-              {{ stats.attempts_change_percent>0?'+':'' }}{{ stats.attempts_change_percent }}%
-            </span>
-          </div>
-          <span class="sc-val">{{ stats.total_assessments }}</span><span class="sc-lbl">Assessments</span>
-          <span class="sc-sub">{{ stats.published }} published · {{ stats.draft }} drafts</span>
+      <div class="ui-kpi-grid dash-kpis" *ngIf="stats">
+        <button type="button" class="ui-kpi ui-kpi--brand" (click)="router.navigate(['/admin/assessments'])">
+          <span class="ui-kpi__label"><i class="bi bi-file-earmark-text"></i> Assessments</span>
+          <span class="ui-kpi__value">{{ stats.total_assessments }}</span>
+          <span class="ui-kpi__sub">{{ stats.published }} published · {{ stats.draft }} drafts</span>
+          <span class="ui-kpi__sub" *ngIf="stats.attempts_change_percent"
+                [class.ui-kpi__sub--up]="stats.attempts_change_percent>0" [class.ui-kpi__sub--down]="stats.attempts_change_percent<0">
+            <i class="bi" [class.bi-graph-up-arrow]="stats.attempts_change_percent>0" [class.bi-graph-down-arrow]="stats.attempts_change_percent<0"></i>
+            {{ stats.attempts_change_percent>0?'+':'' }}{{ stats.attempts_change_percent }}%
+          </span>
+        </button>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-people"></i> Total Attempts</span>
+          <span class="ui-kpi__value">{{ stats.total_attempts | number }}</span>
+          <span class="ui-kpi__sub">{{ stats.attempts_this_month }} this month</span>
         </div>
-        <div class="scard">
-          <div class="sc-top"><div class="sc-icon green"><tui-icon icon="@tui.users" style="font-size:20px"></tui-icon></div></div>
-          <span class="sc-val">{{ stats.total_attempts | number }}</span><span class="sc-lbl">Total Attempts</span>
-          <span class="sc-sub">{{ stats.attempts_this_month }} this month</span>
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-percent"></i> Pass Rate</span>
+          <span class="ui-kpi__value">{{ stats.overall_pass_rate | number:'1.0-0' }}<small>%</small></span>
+          <span class="ui-kpi__sub">Avg score: {{ stats.avg_score | number:'1.0-0' }}%</span>
         </div>
-        <div class="scard">
-          <div class="sc-top"><div class="sc-icon purple"><tui-icon icon="@tui.percent" style="font-size:20px"></tui-icon></div></div>
-          <span class="sc-val">{{ stats.overall_pass_rate | number:'1.0-0' }}%</span><span class="sc-lbl">Pass Rate</span>
-          <span class="sc-sub">Avg score: {{ stats.avg_score | number:'1.0-0' }}%</span>
-        </div>
-        <div class="scard" (click)="router.navigate(['/admin/grading'])">
-          <div class="sc-top"><div class="sc-icon amber"><tui-icon icon="@tui.edit-3" style="font-size:20px"></tui-icon></div></div>
-          <span class="sc-val">{{ stats.pending_grading }}</span><span class="sc-lbl">Pending Grading</span>
-          <span class="sc-sub act" *ngIf="stats.pending_grading>0">Review now →</span>
-        </div>
-        <div class="scard" (click)="router.navigate(['/admin/proctoring/sessions'])">
-          <div class="sc-top"><div class="sc-icon red"><tui-icon icon="@tui.shield" style="font-size:20px"></tui-icon></div></div>
-          <span class="sc-val">{{ stats.flagged_sessions }}</span><span class="sc-lbl">Flagged Sessions</span>
-          <span class="sc-sub act" *ngIf="stats.flagged_sessions>0">Review now →</span>
-        </div>
-        <div class="scard">
-          <div class="sc-top"><div class="sc-icon teal"><tui-icon icon="@tui.award" style="font-size:20px"></tui-icon></div></div>
-          <span class="sc-val">{{ stats.total_certificates }}</span><span class="sc-lbl">Certificates Issued</span>
-          <span class="sc-sub">{{ stats.active_learners }} active learners</span>
+        <button type="button" class="ui-kpi ui-kpi--warning" (click)="router.navigate(['/admin/grading'])">
+          <span class="ui-kpi__label"><i class="bi bi-pencil-square"></i> Pending Grading</span>
+          <span class="ui-kpi__value">{{ stats.pending_grading }}</span>
+          <span class="ui-kpi__sub kpi-act" *ngIf="stats.pending_grading>0">Review now →</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" (click)="router.navigate(['/admin/proctoring/sessions'])">
+          <span class="ui-kpi__label"><i class="bi bi-shield-exclamation"></i> Flagged Sessions</span>
+          <span class="ui-kpi__value">{{ stats.flagged_sessions }}</span>
+          <span class="ui-kpi__sub kpi-act" *ngIf="stats.flagged_sessions>0">Review now →</span>
+        </button>
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-award"></i> Certificates Issued</span>
+          <span class="ui-kpi__value">{{ stats.total_certificates }}</span>
+          <span class="ui-kpi__sub">{{ stats.active_learners }} active learners</span>
         </div>
       </div>
 
-      <div class="two-col">
+      <div class="ui-row">
         <!-- Monthly Trend Chart -->
-        <div class="chart-card">
-          <h3>Monthly Trends</h3>
-          <div class="bar-chart" *ngIf="monthlyTrends.length">
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Monthly Trends</h2><p class="ui-section__subtitle">Attempts per month, with the pass rate</p></div>
+          </div>
+          <div class="bar-chart" *ngIf="monthlyTrends.length; else noTrends">
             <div *ngFor="let m of monthlyTrends" class="bar-group">
               <div class="bar-wrapper">
                 <div class="bar attempts" [style.height.%]="(m.attempts / maxAttempts) * 100" [title]="m.attempts + ' attempts'"></div>
@@ -107,16 +114,22 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
               </div>
             </div>
           </div>
-        </div>
+          <ng-template #noTrends>
+            <div class="ui-state ui-state--compact"><span class="ui-state__icon"><i class="bi bi-bar-chart"></i></span><p>No attempts in this period yet.</p></div>
+          </ng-template>
+        </section>
 
         <!-- Type Distribution -->
-        <div class="chart-card">
-          <h3>By Type</h3>
-          <div class="donut-chart" *ngIf="typeDistribution.length">
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">By Type</h2><p class="ui-section__subtitle">How your assessments split by kind</p></div>
+          </div>
+          <div class="donut-chart" *ngIf="typeDistribution.length; else noTypes">
             <div class="donut-visual">
               <svg viewBox="0 0 120 120" class="donut-svg">
+                <circle cx="60" cy="60" r="46" fill="none" class="donut-track" stroke-width="18"/>
                 <ng-container *ngFor="let seg of donutSegments; let i=index">
-                  <circle cx="60" cy="60" r="46" fill="none" [attr.stroke]="donutColors[i]" stroke-width="18"
+                  <circle cx="60" cy="60" r="46" fill="none" [style.stroke]="donutColors[i]" stroke-width="18"
                           [attr.stroke-dasharray]="seg.dash" [attr.stroke-dashoffset]="seg.offset"
                           transform="rotate(-90 60 60)"/>
                 </ng-container>
@@ -133,33 +146,43 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
               </div>
             </div>
           </div>
-        </div>
+          <ng-template #noTypes>
+            <div class="ui-state ui-state--compact"><span class="ui-state__icon"><i class="bi bi-pie-chart"></i></span><p>No assessments yet.</p></div>
+          </ng-template>
+        </section>
       </div>
 
-      <div class="two-col">
+      <div class="ui-row">
         <!-- Top Assessments -->
-        <div class="chart-card">
-          <h3>Top Assessments</h3>
-          <div class="top-table">
-            <div *ngFor="let a of topAssessments; let i=index" class="tt-row" (click)="router.navigate(['/admin/assessments', a.assessment_id])">
-              <span class="tt-rank">{{ i+1 }}</span>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Top Assessments</h2><p class="ui-section__subtitle">Most attempted</p></div>
+          </div>
+          <ul class="ui-list top-list">
+            <li *ngFor="let a of topAssessments; let i=index" class="tt-row" (click)="router.navigate(['/admin/assessments', a.assessment_id])">
+              <span class="ui-avatar tt-rank">{{ i+1 }}</span>
               <div class="tt-info">
                 <span class="tt-title">{{ a.title }}</span>
                 <span class="tt-type">{{ a.type }}</span>
               </div>
               <div class="tt-stats">
                 <span>{{ a.attempts }} attempts</span>
-                <span class="tt-pass">{{ a.pass_rate | number:'1.0-0' }}% pass</span>
+                <span class="ui-pill ui-pill--success"><span class="ui-pill__dot"></span>{{ a.pass_rate | number:'1.0-0' }}% pass</span>
               </div>
-            </div>
+            </li>
+          </ul>
+          <div class="ui-state ui-state--compact" *ngIf="!topAssessments.length">
+            <span class="ui-state__icon"><i class="bi bi-trophy"></i></span><p>No assessments yet.</p>
           </div>
-        </div>
+        </section>
 
         <!-- Recent Activity -->
-        <div class="chart-card">
-          <h3>Recent Activity</h3>
-          <div class="activity-feed">
-            <div *ngFor="let a of recentActivity" class="af-item">
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Recent Activity</h2><p class="ui-section__subtitle">Latest attempts, grading and publishing</p></div>
+          </div>
+          <ul class="ui-list activity-feed">
+            <li *ngFor="let a of recentActivity" class="af-item">
               <div class="af-icon" [attr.data-type]="a.type">
                 <tui-icon [icon]="getActivityIcon(a.type)" style="font-size:14px"></tui-icon>
               </div>
@@ -167,14 +190,19 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
                 <span class="af-msg">{{ a.message }}</span>
                 <span class="af-time">{{ timeAgo(a.timestamp) }}</span>
               </div>
-            </div>
+            </li>
+          </ul>
+          <div class="ui-state ui-state--compact" *ngIf="!recentActivity.length">
+            <span class="ui-state__icon"><i class="bi bi-activity"></i></span><p>No recent activity.</p>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Difficulty Breakdown -->
-      <div class="chart-card full-width" *ngIf="diffBreakdown.length">
-        <h3>Performance by Difficulty</h3>
+      <section class="ui-section" *ngIf="diffBreakdown.length">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">Performance by Difficulty</h2><p class="ui-section__subtitle">Question count, average score and pass rate per level</p></div>
+        </div>
         <div class="diff-grid">
           <div *ngFor="let d of diffBreakdown" class="diff-card" [attr.data-diff]="d.difficulty">
             <h4>{{ d.difficulty | titlecase }}</h4>
@@ -183,105 +211,83 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
               <div class="ds"><span class="ds-val">{{ d.avg_score | number:'1.0-0' }}%</span><span class="ds-lbl">Avg Score</span></div>
               <div class="ds"><span class="ds-val">{{ d.pass_rate | number:'1.0-0' }}%</span><span class="ds-lbl">Pass Rate</span></div>
             </div>
-            <div class="diff-bar"><div class="diff-fill" [style.width.%]="d.pass_rate"
-                 [style.background]="d.difficulty==='beginner'?'#22c55e':d.difficulty==='intermediate'?'#f59e0b':'#ef4444'"></div></div>
+            <div class="ui-bar diff-bar"><span [style.width.%]="d.pass_rate"
+                 [style.background]="d.difficulty==='beginner'?'var(--ui-success)':d.difficulty==='intermediate'?'var(--ui-warning)':'var(--ui-danger)'"></span></div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
+    </main>
   `,
   styles: [`
     :host { display: block; }
-    .admin-dash { max-width: 1200px; margin: 0 auto; padding: 24px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-    .dash-header h1 { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; }
-    .dash-header p { color: #64748b; margin: 4px 0 0; font-size: 14px; }
-    .header-actions { display: flex; gap: 10px; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; }
-    .btn-primary { background: #6366f1; color: #fff; } .btn-primary:hover { background: #4f46e5; }
-    .fc { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: #fff; }
 
-    .stat-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
-    .scard { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.15s; }
-    .scard:hover { border-color: #a5b4fc; box-shadow: 0 2px 8px rgba(99,102,241,0.08); }
-    .sc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .sc-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-    .sc-icon.blue { background: #eef2ff; color: #6366f1; }
-    .sc-icon.green { background: #f0fdf4; color: #22c55e; }
-    .sc-icon.purple { background: #f5f3ff; color: #8b5cf6; }
-    .sc-icon.amber { background: #fffbeb; color: #f59e0b; }
-    .sc-icon.red { background: #fef2f2; color: #ef4444; }
-    .sc-icon.teal { background: #f0fdfa; color: #14b8a6; }
-    .sc-change { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 2px; }
-    .sc-change.up { color: #22c55e; } .sc-change.down { color: #ef4444; }
-    .sc-val { display: block; font-size: 24px; font-weight: 700; color: #0f172a; }
-    .sc-lbl { display: block; font-size: 12px; color: #64748b; margin-bottom: 2px; }
-    .sc-sub { font-size: 11px; color: #94a3b8; }
-    .sc-sub.act { color: #6366f1; cursor: pointer; }
+    .range-select { width: auto; min-width: 150px; }
+    .dash-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 20px; }
+    .kpi-act { color: var(--brand-primary); font-weight: 600; }
 
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; }
-    .chart-card.full-width { margin-bottom: 20px; }
-    .chart-card h3 { font-size: 16px; font-weight: 600; color: #0f172a; margin: 0 0 16px; }
+    .ui-state--compact { padding: 28px 16px; }
+    .ui-state--compact p { margin: 10px 0 0; }
 
+    /* Monthly trend bars */
     .bar-chart { display: flex; gap: 8px; align-items: flex-end; height: 200px; }
-    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; min-width: 0; }
     .bar-wrapper { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; }
-    .bar.attempts { width: 32px; background: #6366f1; border-radius: 6px 6px 0 0; min-height: 4px; transition: height 0.5s; cursor: pointer; }
-    .bar.attempts:hover { background: #4f46e5; }
+    .bar.attempts { width: 100%; max-width: 32px; background: var(--brand-primary); border-radius: 6px 6px 0 0; min-height: 4px; transition: height 0.5s; cursor: pointer; opacity: .9; }
+    .bar.attempts:hover { opacity: 1; }
     .bar-meta { text-align: center; padding-top: 6px; }
-    .bar-label { display: block; font-size: 11px; color: #64748b; }
-    .bar-val { font-size: 11px; color: #22c55e; font-weight: 600; }
+    .bar-label { display: block; font-size: .6875rem; color: var(--ui-text-muted); }
+    .bar-val { font-size: .6875rem; color: var(--ui-success-text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
+    /* Type donut */
     .donut-chart { display: flex; align-items: center; gap: 24px; }
     .donut-visual { position: relative; width: 140px; height: 140px; flex-shrink: 0; }
     .donut-svg { width: 100%; height: 100%; }
+    .donut-track { stroke: var(--ui-surface-2); }
     .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .dc-val { font-size: 24px; font-weight: 800; color: #0f172a; }
-    .dc-lbl { font-size: 11px; color: #64748b; }
-    .donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-    .dl-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .dc-val { font-size: 1.5rem; font-weight: 700; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+    .dc-lbl { font-size: .6875rem; color: var(--ui-text-muted); }
+    .donut-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+    .dl-item { display: flex; align-items: center; gap: 8px; font-size: .8125rem; }
     .dl-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-    .dl-name { flex: 1; color: #334155; }
-    .dl-val { color: #64748b; font-size: 12px; }
+    .dl-name { flex: 1; color: var(--ui-text); }
+    .dl-val { color: var(--ui-text-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
 
-    .top-table { display: flex; flex-direction: column; gap: 6px; }
-    .tt-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; cursor: pointer; transition: all 0.15s; }
-    .tt-row:hover { background: #f8fafc; }
-    .tt-rank { width: 24px; height: 24px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #64748b; flex-shrink: 0; }
+    /* Top assessments */
+    .tt-row { cursor: pointer; }
+    .tt-row:hover .tt-title { color: var(--brand-primary); }
+    .tt-rank { width: 28px; height: 28px; font-size: .75rem; }
     .tt-info { flex: 1; min-width: 0; }
-    .tt-title { display: block; font-size: 14px; font-weight: 500; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tt-type { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
-    .tt-stats { text-align: right; font-size: 12px; color: #64748b; }
-    .tt-pass { display: block; color: #22c55e; font-weight: 600; }
+    .tt-title { display: block; font-size: .875rem; font-weight: 550; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s ease; }
+    .tt-type { font-size: .6875rem; color: var(--ui-text-subtle); text-transform: uppercase; letter-spacing: .03em; }
+    .tt-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: .75rem; color: var(--ui-text-muted); }
 
-    .activity-feed { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
-    .af-item { display: flex; align-items: flex-start; gap: 10px; }
-    .af-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .af-icon[data-type="attempt"] { background: #eef2ff; color: #6366f1; }
-    .af-icon[data-type="grading"] { background: #f0fdf4; color: #22c55e; }
-    .af-icon[data-type="violation"] { background: #fef2f2; color: #ef4444; }
-    .af-icon[data-type="certificate"] { background: #fffbeb; color: #f59e0b; }
-    .af-icon[data-type="publish"] { background: #f5f3ff; color: #8b5cf6; }
-    .af-content { flex: 1; }
-    .af-msg { font-size: 13px; color: #334155; display: block; }
-    .af-time { font-size: 11px; color: #94a3b8; }
+    /* Activity feed */
+    .activity-feed { max-height: 300px; overflow-y: auto; }
+    .activity-feed .af-item { align-items: flex-start; }
+    .af-icon { width: 30px; height: 30px; border-radius: var(--ui-radius-ctl); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); }
+    .af-icon[data-type="grading"] { background: rgba(var(--ui-success-rgb), .1); color: var(--ui-success); }
+    .af-icon[data-type="violation"] { background: rgba(var(--ui-danger-rgb), .1); color: var(--ui-danger); }
+    .af-icon[data-type="certificate"] { background: rgba(var(--ui-warning-rgb), .1); color: var(--ui-warning); }
+    .af-icon[data-type="publish"] { background: rgba(var(--ui-info-rgb), .1); color: var(--ui-info); }
+    .af-content { flex: 1; min-width: 0; }
+    .af-msg { font-size: .8125rem; color: var(--ui-text); display: block; }
+    .af-time { font-size: .6875rem; color: var(--ui-text-subtle); }
 
+    /* Difficulty */
     .diff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .diff-card { padding: 18px; border-radius: 10px; border: 1px solid #e2e8f0; }
-    .diff-card[data-diff="beginner"] { border-left: 4px solid #22c55e; }
-    .diff-card[data-diff="intermediate"] { border-left: 4px solid #f59e0b; }
-    .diff-card[data-diff="professional"] { border-left: 4px solid #ef4444; }
-    .diff-card h4 { margin: 0 0 12px; font-size: 15px; color: #0f172a; }
+    .diff-card { padding: 16px 18px; border-radius: var(--ui-radius-card); border: 1px solid var(--ui-border); background: var(--ui-surface); }
+    .diff-card[data-diff="beginner"] { border-left: 3px solid var(--ui-success); }
+    .diff-card[data-diff="intermediate"] { border-left: 3px solid var(--ui-warning); }
+    .diff-card[data-diff="professional"] { border-left: 3px solid var(--ui-danger); }
+    .diff-card h4 { margin: 0 0 12px; font-size: .9375rem; font-weight: 600; color: var(--ui-text); }
     .diff-stats { display: flex; gap: 16px; margin-bottom: 12px; }
-    .ds { text-align: center; }
-    .ds-val { display: block; font-size: 18px; font-weight: 700; color: #0f172a; }
-    .ds-lbl { font-size: 11px; color: #64748b; }
-    .diff-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-    .diff-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+    .ds { text-align: left; }
+    .ds-val { display: block; font-size: 1.125rem; font-weight: 700; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+    .ds-lbl { font-size: .6875rem; color: var(--ui-text-muted); }
 
-    @media (max-width: 1024px) { .stat-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 768px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } .two-col, .diff-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1199.98px) { .dash-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 767.98px) { .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .diff-grid { grid-template-columns: 1fr; } .donut-chart { flex-direction: column; align-items: flex-start; } }
   `]
 })
 export class AssessmentDashboardComponent implements OnInit, OnDestroy {
@@ -299,7 +305,7 @@ export class AssessmentDashboardComponent implements OnInit, OnDestroy {
   diffBreakdown: DifficultyBreakdown[] = [];
   dateRange = '30d';
 
-  donutColors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6'];
+  donutColors = ['var(--brand-primary)', 'var(--ui-success)', 'var(--ui-warning)', 'var(--ui-danger)', 'var(--ui-info)'];
   donutSegments: {dash: string; offset: string}[] = [];
 
   get maxAttempts(): number { return Math.max(...this.monthlyTrends.map(m => m.attempts), 1); }

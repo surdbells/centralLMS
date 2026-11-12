@@ -47,9 +47,10 @@ export class AnalyticsComponent implements OnInit {
 
   readonly stars = [5, 4, 3, 2, 1];
   readonly deviceColors: Record<string, string> = {
-    desktop: '#2f4b7c',
-    mobile: '#2149e8',
-    tablet: '#f0a500',
+    // Shades of the tenant brand colour, resolved by the browser.
+    desktop: 'var(--brand-primary)',
+    mobile: 'rgba(var(--brand-primary-rgb), .55)',
+    tablet: 'rgba(var(--brand-primary-rgb), .25)',
   };
 
   ngOnInit(): void {

@@ -73,315 +73,305 @@ interface GraderOption {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="grading-queue-container">
+    <main class="main">
+    <div class="ui-page grading-queue-container">
       <!-- ==========================================
            HEADER
            ========================================== -->
-      <div class="page-header">
-        <div class="header-left">
-          <h1 class="page-title">
-            <tui-icon icon="@tui.clipboard-check"></tui-icon>
-            Grading Queue
-          </h1>
-          <p class="page-subtitle">Review and grade pending submissions</p>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clipboard-check"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Grading Queue</h1>
+          <p>Review and grade pending submissions</p>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary btn-sm" (click)="loadQueue()">
+        <div class="ui-page-header__actions">
+          <button class="btn btn-outline-secondary btn-sm" (click)="loadQueue()">
             <tui-icon icon="@tui.refresh-cw"></tui-icon> Refresh
           </button>
           <button class="btn btn-primary btn-sm" (click)="autoAssign()" [disabled]="stats.total_pending === 0">
             <tui-icon icon="@tui.shuffle"></tui-icon> Auto-Assign
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- ==========================================
            STATS CARDS
            ========================================== -->
-      <div class="stats-row">
-        <div class="stat-card pending" (click)="filterByStatus('pending')">
-          <div class="stat-icon"><tui-icon icon="@tui.clock"></tui-icon></div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.total_pending }}</span>
-            <span class="stat-label">Pending</span>
-          </div>
-        </div>
-        <div class="stat-card in-progress" (click)="filterByStatus('in_progress')">
-          <div class="stat-icon"><tui-icon icon="@tui.edit-3"></tui-icon></div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.total_in_progress }}</span>
-            <span class="stat-label">In Progress</span>
-          </div>
-        </div>
-        <div class="stat-card graded" (click)="filterByStatus('graded')">
-          <div class="stat-icon"><tui-icon icon="@tui.check-circle"></tui-icon></div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.total_graded_today }}</span>
-            <span class="stat-label">Graded Today</span>
-          </div>
-        </div>
-        <div class="stat-card overdue" (click)="filterByStatus('overdue')">
-          <div class="stat-icon"><tui-icon icon="@tui.alert-triangle"></tui-icon></div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.total_overdue }}</span>
-            <span class="stat-label">Overdue</span>
-          </div>
-        </div>
-        <div class="stat-card assigned" (click)="filterByAssigned()">
-          <div class="stat-icon"><tui-icon icon="@tui.user-check"></tui-icon></div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.my_assigned }}</span>
-            <span class="stat-label">My Queue</span>
-          </div>
-        </div>
-        <div class="stat-card time">
-          <div class="stat-icon"><tui-icon icon="@tui.timer"></tui-icon></div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.avg_grading_time_minutes | number:'1.0-0' }}m</span>
-            <span class="stat-label">Avg Time</span>
-          </div>
+      <div class="ui-kpi-grid stats-row">
+        <button type="button" class="ui-kpi ui-kpi--warning" [class.is-active]="filters.status === 'pending'" (click)="filterByStatus('pending')">
+          <span class="ui-kpi__label"><i class="bi bi-clock"></i> Pending</span>
+          <span class="ui-kpi__value">{{ stats.total_pending }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--info" [class.is-active]="filters.status === 'in_progress'" (click)="filterByStatus('in_progress')">
+          <span class="ui-kpi__label"><i class="bi bi-pencil"></i> In Progress</span>
+          <span class="ui-kpi__value">{{ stats.total_in_progress }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--success" [class.is-active]="filters.status === 'graded'" (click)="filterByStatus('graded')">
+          <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> Graded Today</span>
+          <span class="ui-kpi__value">{{ stats.total_graded_today }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" [class.is-active]="filters.status === 'overdue'" (click)="filterByStatus('overdue')">
+          <span class="ui-kpi__label"><i class="bi bi-exclamation-triangle"></i> Overdue</span>
+          <span class="ui-kpi__value">{{ stats.total_overdue }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--brand" [class.is-active]="filters.assigned_to === 'me'" (click)="filterByAssigned()">
+          <span class="ui-kpi__label"><i class="bi bi-person-check"></i> My Queue</span>
+          <span class="ui-kpi__value">{{ stats.my_assigned }}</span>
+        </button>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-stopwatch"></i> Avg Time</span>
+          <span class="ui-kpi__value">{{ stats.avg_grading_time_minutes | number:'1.0-0' }}<small>m</small></span>
         </div>
       </div>
 
-      <!-- ==========================================
-           FILTERS & SEARCH
-           ========================================== -->
-      <div class="filters-bar">
-        <div class="search-box">
-          <tui-icon icon="@tui.search"></tui-icon>
-          <input type="text" class="form-control" placeholder="Search learner, assessment, question..."
-                 [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange($event)">
-          <button class="btn-clear" *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()">
-            <tui-icon icon="@tui.x"></tui-icon>
-          </button>
-        </div>
-
-        <div class="filter-group">
-          <select class="form-select form-select-sm" [(ngModel)]="filters.status" (change)="applyFilters()">
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="graded">Graded</option>
-            <option value="overdue">Overdue</option>
-          </select>
-
-          <select class="form-select form-select-sm" [(ngModel)]="filters.priority" (change)="applyFilters()">
-            <option value="">All Priority</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-
-          <select class="form-select form-select-sm" [(ngModel)]="filters.question_type" (change)="applyFilters()">
-            <option value="">All Question Types</option>
-            <option value="essay">Essay</option>
-            <option value="short_answer">Short Answer</option>
-            <option value="file_upload">File Upload</option>
-            <option value="fill_blank">Fill in Blank</option>
-          </select>
-
-          <select class="form-select form-select-sm" [(ngModel)]="filters.assessment_id" (change)="applyFilters()">
-            <option value="">All Assessments</option>
-            <option *ngFor="let a of assessmentOptions" [value]="a.id">{{ a.title }}</option>
-          </select>
-
-          <select class="form-select form-select-sm" [(ngModel)]="filters.assigned_to" (change)="applyFilters()">
-            <option value="">All Graders</option>
-            <option value="me">Assigned to Me</option>
-            <option value="unassigned">Unassigned</option>
-            <option *ngFor="let g of graderOptions" [value]="g.user_id">{{ g.full_name }}</option>
-          </select>
-        </div>
-
-        <div class="filter-actions">
-          <button class="btn btn-sm btn-secondary" (click)="resetFilters()" *ngIf="hasActiveFilters()">
-            <tui-icon icon="@tui.x"></tui-icon> Clear
-          </button>
-          <div class="bulk-actions" *ngIf="selectedItems.length > 0">
-            <span class="badge bg-primary me-2">{{ selectedItems.length }} selected</span>
+      <section class="ui-section ui-section--flush queue-section">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">Submissions</h2>
+            <p class="ui-section__subtitle">Answers waiting for a marker</p>
+          </div>
+          <div class="ui-section__actions bulk-actions" *ngIf="selectedItems.length > 0">
+            <span class="ui-pill ui-pill--brand">{{ selectedItems.length }} selected</span>
             <button class="btn btn-sm btn-primary" (click)="showBulkAssignModal = true">
               <tui-icon icon="@tui.user-plus"></tui-icon> Assign
             </button>
-            <button class="btn btn-sm btn-success" (click)="bulkMarkPriority('high')">
+            <button class="btn btn-sm btn-outline-secondary" (click)="bulkMarkPriority('high')">
               <tui-icon icon="@tui.arrow-up"></tui-icon> High Priority
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- ==========================================
-           QUEUE TABLE
-           ========================================== -->
-      <div class="queue-table-wrapper" *ngIf="!loading">
-        <table class="table table-hover" *ngIf="queueItems.length > 0">
-          <thead>
-            <tr>
-              <th class="col-check">
-                <input type="checkbox" class="form-check-input"
-                       [checked]="allSelected" (change)="toggleSelectAll()">
-              </th>
-              <th class="col-priority">Priority</th>
-              <th class="col-learner">Learner</th>
-              <th class="col-assessment">Assessment</th>
-              <th class="col-question">Question</th>
-              <th class="col-type">Type</th>
-              <th class="col-submitted">Submitted</th>
-              <th class="col-grader">Assigned To</th>
-              <th class="col-status">Status</th>
-              <th class="col-actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of queueItems; let i = index"
-                [class.selected]="isSelected(item.queue_id)"
-                [class.overdue]="isOverdue(item)"
-                [class.high-priority]="item.priority === 'high'">
-              <td class="col-check">
-                <input type="checkbox" class="form-check-input"
-                       [checked]="isSelected(item.queue_id)"
-                       (change)="toggleSelection(item.queue_id)">
-              </td>
-              <td class="col-priority">
-                <span class="priority-badge" [ngClass]="'priority-' + item.priority"
-                      (click)="cyclePriority(item)">
-                  <tui-icon [icon]="getPriorityIcon(item.priority)"></tui-icon>
-                </span>
-              </td>
-              <td class="col-learner">
-                <div class="learner-cell">
-                  <div class="avatar-sm" [style.background]="getAvatarColor(item.learner_name)">
-                    {{ item.learner_name.charAt(0).toUpperCase() }}
-                  </div>
-                  <div class="learner-info">
-                    <span class="learner-name">{{ item.learner_name }}</span>
-                    <span class="learner-meta">Attempt #{{ item.attempt_number }}</span>
-                  </div>
-                </div>
-              </td>
-              <td class="col-assessment">
-                <div class="assessment-cell">
-                  <span class="assessment-title">{{ item.assessment_title }}</span>
-                  <span class="badge badge-type" *ngIf="item.assessment_type" [ngClass]="'badge-' + item.assessment_type">
-                    {{ item.assessment_type }}
+        <!-- ==========================================
+             FILTERS & SEARCH
+             ========================================== -->
+        <div class="ui-toolbar filters-bar">
+          <div class="ui-search search-box">
+            <i class="bi bi-search"></i>
+            <input type="search" placeholder="Search learner, assessment, question..."
+                   [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange($event)">
+            <button type="button" class="btn-clear" *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" aria-label="Clear search">
+              <tui-icon icon="@tui.x"></tui-icon>
+            </button>
+          </div>
+
+          <div class="ui-filters filter-group">
+            <select class="form-select" [(ngModel)]="filters.status" (change)="applyFilters()">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="graded">Graded</option>
+              <option value="overdue">Overdue</option>
+            </select>
+
+            <select class="form-select" [(ngModel)]="filters.priority" (change)="applyFilters()">
+              <option value="">All Priority</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+
+            <select class="form-select" [(ngModel)]="filters.question_type" (change)="applyFilters()">
+              <option value="">All Question Types</option>
+              <option value="essay">Essay</option>
+              <option value="short_answer">Short Answer</option>
+              <option value="file_upload">File Upload</option>
+              <option value="fill_blank">Fill in Blank</option>
+            </select>
+
+            <select class="form-select" [(ngModel)]="filters.assessment_id" (change)="applyFilters()">
+              <option value="">All Assessments</option>
+              <option *ngFor="let a of assessmentOptions" [value]="a.id">{{ a.title }}</option>
+            </select>
+
+            <select class="form-select" [(ngModel)]="filters.assigned_to" (change)="applyFilters()">
+              <option value="">All Graders</option>
+              <option value="me">Assigned to Me</option>
+              <option value="unassigned">Unassigned</option>
+              <option *ngFor="let g of graderOptions" [value]="g.user_id">{{ g.full_name }}</option>
+            </select>
+
+            <button class="btn btn-sm btn-outline-secondary" (click)="resetFilters()" *ngIf="hasActiveFilters()">
+              <tui-icon icon="@tui.x"></tui-icon> Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             QUEUE TABLE
+             ========================================== -->
+        <div class="queue-table-wrapper" *ngIf="!loading">
+          <div class="table-responsive" *ngIf="queueItems.length > 0">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th class="col-check">
+                  <input type="checkbox" class="form-check-input"
+                         [checked]="allSelected" (change)="toggleSelectAll()">
+                </th>
+                <th class="col-priority">Priority</th>
+                <th class="col-learner">Learner</th>
+                <th class="col-assessment">Assessment</th>
+                <th class="col-question">Question</th>
+                <th class="col-type">Type</th>
+                <th class="col-submitted">Submitted</th>
+                <th class="col-grader">Assigned To</th>
+                <th class="col-status">Status</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of queueItems; let i = index"
+                  [class.selected]="isSelected(item.queue_id)"
+                  [class.overdue]="isOverdue(item)"
+                  [class.high-priority]="item.priority === 'high'">
+                <td class="col-check">
+                  <input type="checkbox" class="form-check-input"
+                         [checked]="isSelected(item.queue_id)"
+                         (change)="toggleSelection(item.queue_id)">
+                </td>
+                <td class="col-priority">
+                  <span class="priority-badge" [ngClass]="'priority-' + item.priority"
+                        (click)="cyclePriority(item)">
+                    <tui-icon [icon]="getPriorityIcon(item.priority)"></tui-icon>
                   </span>
-                </div>
-              </td>
-              <td class="col-question">
-                <div class="question-cell" [title]="item.question_text">
-                  {{ truncate(item.question_text, 60) }}
-                  <span class="section-label" *ngIf="item.section_title">{{ item.section_title }}</span>
-                </div>
-              </td>
-              <td class="col-type">
-                <span class="badge badge-qtype" *ngIf="item.question_type" [ngClass]="'badge-' + item.question_type">
-                  <tui-icon [icon]="getQuestionTypeIcon(item.question_type)"></tui-icon>
-                  {{ formatQuestionType(item.question_type) }}
-                </span>
-                <span class="text-muted" *ngIf="!item.question_type">-</span>
-              </td>
-              <td class="col-submitted">
-                <span class="submitted-time">{{ getTimeAgo(item.submitted_at) }}</span>
-                <span class="submitted-date text-muted">{{ formatDate(item.submitted_at) }}</span>
-              </td>
-              <td class="col-grader">
-                <div class="grader-cell" *ngIf="item.assigned_grader_name">
-                  <span class="grader-name">{{ item.assigned_grader_name }}</span>
-                </div>
-                <button class="btn btn-sm btn-secondary" *ngIf="!item.assigned_grader_id"
-                        (click)="assignToMe(item)">
-                  <tui-icon icon="@tui.user-plus"></tui-icon> Claim
-                </button>
-              </td>
-              <td class="col-status">
-                <span class="status-badge" [ngClass]="'status-' + item.status">
-                  {{ formatStatus(item.status) }}
-                </span>
-              </td>
-              <td class="col-actions">
-                <div class="action-btns">
-                  <button class="btn btn-sm btn-primary" (click)="openGrading(item)"
-                          title="Grade">
-                    <tui-icon icon="@tui.edit-3"></tui-icon>
-                  </button>
-                  <button class="btn btn-sm btn-secondary" (click)="previewAnswer(item)"
-                          title="Preview">
-                    <tui-icon icon="@tui.eye"></tui-icon>
-                  </button>
-                  <div class="dropdown d-inline-block">
-                    <button class="btn btn-sm btn-secondary" (click)="item._showMenu = !item._showMenu">
-                      <tui-icon icon="@tui.more-vertical"></tui-icon>
-                    </button>
-                    <div class="dropdown-menu" [class.show]="item._showMenu">
-                      <button class="dropdown-item" (click)="assignToGrader(item); item._showMenu = false">
-                        <tui-icon icon="@tui.user-plus"></tui-icon> Assign To...
-                      </button>
-                      <button class="dropdown-item" (click)="changePriority(item, 'high'); item._showMenu = false">
-                        <tui-icon icon="@tui.arrow-up"></tui-icon> Set High Priority
-                      </button>
-                      <button class="dropdown-item" (click)="changePriority(item, 'low'); item._showMenu = false">
-                        <tui-icon icon="@tui.arrow-down"></tui-icon> Set Low Priority
-                      </button>
-                      <div class="dropdown-divider"></div>
-                      <button class="dropdown-item text-danger" (click)="skipItem(item); item._showMenu = false">
-                        <tui-icon icon="@tui.skip-forward"></tui-icon> Skip
-                      </button>
+                </td>
+                <td class="col-learner">
+                  <div class="learner-cell">
+                    <div class="avatar-sm" [style.background]="getAvatarColor(item.learner_name)">
+                      {{ item.learner_name.charAt(0).toUpperCase() }}
+                    </div>
+                    <div class="learner-info">
+                      <span class="learner-name">{{ item.learner_name }}</span>
+                      <span class="learner-meta">Attempt #{{ item.attempt_number }}</span>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+                <td class="col-assessment">
+                  <div class="assessment-cell">
+                    <span class="assessment-title">{{ item.assessment_title }}</span>
+                    <span class="ui-pill badge-type" *ngIf="item.assessment_type" [ngClass]="'badge-' + item.assessment_type">
+                      {{ item.assessment_type }}
+                    </span>
+                  </div>
+                </td>
+                <td class="col-question">
+                  <div class="question-cell" [title]="item.question_text">
+                    {{ truncate(item.question_text, 60) }}
+                    <span class="section-label" *ngIf="item.section_title">{{ item.section_title }}</span>
+                  </div>
+                </td>
+                <td class="col-type">
+                  <span class="ui-pill ui-pill--neutral badge-qtype" *ngIf="item.question_type" [ngClass]="'badge-' + item.question_type">
+                    <tui-icon [icon]="getQuestionTypeIcon(item.question_type)"></tui-icon>
+                    {{ formatQuestionType(item.question_type) }}
+                  </span>
+                  <span class="ui-muted" *ngIf="!item.question_type">-</span>
+                </td>
+                <td class="col-submitted">
+                  <span class="submitted-time">{{ getTimeAgo(item.submitted_at) }}</span>
+                  <span class="submitted-date ui-muted">{{ formatDate(item.submitted_at) }}</span>
+                </td>
+                <td class="col-grader">
+                  <div class="grader-cell" *ngIf="item.assigned_grader_name">
+                    <span class="grader-name">{{ item.assigned_grader_name }}</span>
+                  </div>
+                  <button class="btn btn-sm btn-outline-secondary" *ngIf="!item.assigned_grader_id"
+                          (click)="assignToMe(item)">
+                    <tui-icon icon="@tui.user-plus"></tui-icon> Claim
+                  </button>
+                </td>
+                <td class="col-status">
+                  <span class="ui-pill status-badge" [ngClass]="'status-' + item.status">
+                    <span class="ui-pill__dot"></span>{{ formatStatus(item.status) }}
+                  </span>
+                </td>
+                <td class="col-actions">
+                  <div class="action-btns">
+                    <button class="btn btn-sm btn-primary" (click)="openGrading(item)"
+                            title="Grade">
+                      <tui-icon icon="@tui.edit-3"></tui-icon>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" (click)="previewAnswer(item)"
+                            title="Preview">
+                      <tui-icon icon="@tui.eye"></tui-icon>
+                    </button>
+                    <div class="dropdown d-inline-block">
+                      <button class="btn btn-sm btn-outline-secondary" (click)="item._showMenu = !item._showMenu">
+                        <tui-icon icon="@tui.more-vertical"></tui-icon>
+                      </button>
+                      <div class="dropdown-menu" [class.show]="item._showMenu">
+                        <button class="dropdown-item" (click)="assignToGrader(item); item._showMenu = false">
+                          <tui-icon icon="@tui.user-plus"></tui-icon> Assign To...
+                        </button>
+                        <button class="dropdown-item" (click)="changePriority(item, 'high'); item._showMenu = false">
+                          <tui-icon icon="@tui.arrow-up"></tui-icon> Set High Priority
+                        </button>
+                        <button class="dropdown-item" (click)="changePriority(item, 'low'); item._showMenu = false">
+                          <tui-icon icon="@tui.arrow-down"></tui-icon> Set Low Priority
+                        </button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item text-danger" (click)="skipItem(item); item._showMenu = false">
+                          <tui-icon icon="@tui.skip-forward"></tui-icon> Skip
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
 
-        <!-- Empty State -->
-        <div class="empty-state" *ngIf="queueItems.length === 0">
-          <tui-icon icon="@tui.inbox"></tui-icon>
-          <h4>{{ hasActiveFilters() ? 'No Matching Items' : 'Queue is Empty' }}</h4>
-          <p class="text-muted">{{ hasActiveFilters() ? 'Try adjusting your filters' : 'All submissions have been graded!' }}</p>
-          <button class="btn btn-primary" *ngIf="hasActiveFilters()" (click)="resetFilters()">
-            Clear Filters
-          </button>
+          <!-- Empty State -->
+          <div class="ui-state empty-state" *ngIf="queueItems.length === 0">
+            <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
+            <h3>{{ hasActiveFilters() ? 'No Matching Items' : 'Queue is Empty' }}</h3>
+            <p>{{ hasActiveFilters() ? 'Try adjusting your filters' : 'All submissions have been graded!' }}</p>
+            <button class="btn btn-primary" *ngIf="hasActiveFilters()" (click)="resetFilters()">
+              Clear Filters
+            </button>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-bar" *ngIf="totalPages > 1">
+            <div class="page-info">
+              Showing {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }} of {{ totalItems }}
+            </div>
+            <div class="page-controls">
+              <button class="btn btn-sm btn-outline-secondary" [disabled]="currentPage === 1" (click)="goToPage(1)">
+                <tui-icon icon="@tui.chevrons-left"></tui-icon>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
+                <tui-icon icon="@tui.chevron-left"></tui-icon>
+              </button>
+              <ng-container *ngFor="let p of getPageNumbers()">
+                <button class="btn btn-sm" [ngClass]="p === currentPage ? 'btn-primary' : 'btn-outline-secondary'"
+                        *ngIf="p !== '...'" (click)="goToPage(+p)">{{ p }}</button>
+                <span class="page-ellipsis" *ngIf="p === '...'">...</span>
+              </ng-container>
+              <button class="btn btn-sm btn-outline-secondary" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
+                <tui-icon icon="@tui.chevron-right"></tui-icon>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">
+                <tui-icon icon="@tui.chevrons-right"></tui-icon>
+              </button>
+            </div>
+            <div class="page-size">
+              <select class="form-select form-select-sm" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+                <option [value]="10">10</option>
+                <option [value]="25">25</option>
+                <option [value]="50">50</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <!-- Pagination -->
-        <div class="pagination-bar" *ngIf="totalPages > 1">
-          <div class="page-info">
-            Showing {{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, totalItems) }} of {{ totalItems }}
-          </div>
-          <div class="page-controls">
-            <button class="btn btn-sm btn-secondary" [disabled]="currentPage === 1" (click)="goToPage(1)">
-              <tui-icon icon="@tui.chevrons-left"></tui-icon>
-            </button>
-            <button class="btn btn-sm btn-secondary" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">
-              <tui-icon icon="@tui.chevron-left"></tui-icon>
-            </button>
-            <ng-container *ngFor="let p of getPageNumbers()">
-              <button class="btn btn-sm" [ngClass]="p === currentPage ? 'btn-primary' : 'btn-secondary'"
-                      *ngIf="p !== '...'" (click)="goToPage(+p)">{{ p }}</button>
-              <span class="page-ellipsis" *ngIf="p === '...'">...</span>
-            </ng-container>
-            <button class="btn btn-sm btn-secondary" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">
-              <tui-icon icon="@tui.chevron-right"></tui-icon>
-            </button>
-            <button class="btn btn-sm btn-secondary" [disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">
-              <tui-icon icon="@tui.chevrons-right"></tui-icon>
-            </button>
-          </div>
-          <div class="page-size">
-            <select class="form-select form-select-sm" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
-              <option [value]="10">10</option>
-              <option [value]="25">25</option>
-              <option [value]="50">50</option>
-            </select>
-          </div>
+        <!-- Loading State -->
+        <div class="loading-state" *ngIf="loading">
+          <div class="spinner-border text-primary"></div>
+          <p>Loading grading queue...</p>
         </div>
-      </div>
-
-      <!-- Loading State -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading grading queue...</p>
-      </div>
+      </section>
 
       <!-- ==========================================
            ANSWER PREVIEW MODAL
@@ -406,7 +396,7 @@ interface GraderOption {
               </div>
               <div class="meta-row">
                 <span class="meta-label">Question Type:</span>
-                <span class="badge badge-qtype" [ngClass]="'badge-' + previewItem.question_type">
+                <span class="ui-pill ui-pill--neutral badge-qtype" [ngClass]="'badge-' + previewItem.question_type">
                   {{ formatQuestionType(previewItem.question_type) }}
                 </span>
               </div>
@@ -431,13 +421,13 @@ interface GraderOption {
               </div>
             </div>
             <div class="preview-rubric" *ngIf="previewItem.has_rubric">
-              <div class="badge bg-info-subtle text-info">
+              <span class="ui-pill ui-pill--info">
                 <tui-icon icon="@tui.list"></tui-icon> Rubric: {{ previewItem.rubric_name }}
-              </div>
+              </span>
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showPreviewModal = false">Close</button>
+            <button class="btn btn-outline-secondary" (click)="showPreviewModal = false">Close</button>
             <button class="btn btn-primary" (click)="openGrading(previewItem!); showPreviewModal = false">
               <tui-icon icon="@tui.edit-3"></tui-icon> Grade Now
             </button>
@@ -473,7 +463,7 @@ interface GraderOption {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showBulkAssignModal = false">Cancel</button>
+            <button class="btn btn-outline-secondary" (click)="showBulkAssignModal = false">Cancel</button>
             <button class="btn btn-primary" (click)="executeBulkAssign()" [disabled]="!bulkAssignGraderId">
               <tui-icon icon="@tui.user-check"></tui-icon> Assign
             </button>
@@ -481,157 +471,119 @@ interface GraderOption {
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .grading-queue-container { padding: 1.5rem; }
-
-    /* Header */
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.875rem; margin: 0.25rem 0 0; }
-    .header-actions { display: flex; gap: 0.5rem; }
-
-    /* Stats */
-    .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-    .stat-card {
-      background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 1rem;
-      display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s;
-    }
-    .stat-card:hover { border-color: #6c757d; transform: translateY(-1px); }
-    .stat-icon { width: 40px; height: 40px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; }
-    .stat-card.pending .stat-icon { background: #fff3cd; color: #856404; }
-    .stat-card.in-progress .stat-icon { background: #cce5ff; color: #004085; }
-    .stat-card.graded .stat-icon { background: #d4edda; color: #155724; }
-    .stat-card.overdue .stat-icon { background: #f8d7da; color: #721c24; }
-    .stat-card.assigned .stat-icon { background: #e2d9f3; color: #563d7c; }
-    .stat-card.time .stat-icon { background: #d1ecf1; color: #0c5460; }
-    .stat-value { font-size: 1.25rem; font-weight: 700; display: block; }
-    .stat-label { font-size: 0.75rem; color: #6c757d; }
-
-    /* Filters */
-    .filters-bar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem;
-      background: #f8f9fa; padding: 0.75rem 1rem; border-radius: 0.5rem; }
-    .search-box { position: relative; flex: 1; min-width: 200px; }
-    .search-box tui-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #adb5bd; font-size: 0.875rem; }
-    .search-box input { padding-left: 2rem; font-size: 0.875rem; }
-    .btn-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; color: #6c757d; cursor: pointer; }
-    .filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .filter-group .form-select { width: auto; min-width: 140px; font-size: 0.8125rem; }
-    .filter-actions { display: flex; gap: 0.5rem; align-items: center; margin-left: auto; }
+    /* Page chrome (header, KPIs, section, toolbar, pills) comes from the global UI kit. */
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .ui-section__head { align-items: center; }
+    .ui-toolbar { margin-bottom: 16px; }
+    .ui-search { flex: 1 1 260px; }
+    .btn-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none;
+      color: var(--ui-text-muted, #6a716b); cursor: pointer; display: inline-flex; padding: 2px; z-index: 1; }
+    .search-box input { padding-right: 30px; }
 
     /* Table */
-    .queue-table-wrapper { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; overflow: hidden; }
-    .table { margin: 0; font-size: 0.875rem; }
-    .table thead th { background: #f8f9fa; border-bottom: 2px solid #dee2e6; font-weight: 600; font-size: 0.8125rem;
-      text-transform: uppercase; letter-spacing: 0.03em; color: #495057; white-space: nowrap; padding: 0.75rem; }
-    .table tbody td { padding: 0.75rem; vertical-align: middle; }
-    .table tbody tr:hover { background: #f8f9fa; }
-    .table tbody tr.selected { background: #e8f0fe; }
-    .table tbody tr.overdue { border-left: 3px solid #dc3545; }
-    .table tbody tr.high-priority { border-left: 3px solid #fd7e14; }
+    .queue-table-wrapper { border-top: 1px solid var(--ui-border, #e7e9e7); }
+    .table { margin: 0; }
+    .table thead th { white-space: nowrap; }
+    .table tbody td { vertical-align: middle; }
+    .table tbody tr.selected > td { background: rgba(var(--brand-primary-rgb), .06); }
+    .table tbody tr.overdue > td:first-child { box-shadow: inset 3px 0 0 var(--ui-danger, #c0352b); }
+    .table tbody tr.high-priority > td:first-child { box-shadow: inset 3px 0 0 var(--ui-warning, #b25e09); }
 
     /* Cells */
     .learner-cell { display: flex; align-items: center; gap: 0.5rem; }
     .avatar-sm { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
       color: #fff; font-size: 0.75rem; font-weight: 600; flex-shrink: 0; }
     .learner-name { font-weight: 500; display: block; font-size: 0.875rem; }
-    .learner-meta { font-size: 0.75rem; color: #6c757d; }
-    .assessment-cell { display: flex; flex-direction: column; gap: 0.25rem; }
+    .learner-meta { font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); }
+    .assessment-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
     .assessment-title { font-weight: 500; font-size: 0.875rem; }
-    .question-cell { font-size: 0.8125rem; max-width: 200px; }
-    .section-label { display: block; font-size: 0.6875rem; color: #6c757d; margin-top: 0.125rem; }
+    .question-cell { font-size: 0.8125rem; max-width: 220px; }
+    .section-label { display: block; font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); margin-top: 0.125rem; }
     .submitted-time { display: block; font-size: 0.8125rem; }
     .submitted-date { display: block; font-size: 0.6875rem; }
     .grader-name { font-size: 0.8125rem; font-weight: 500; }
 
     /* Badges */
     .priority-badge { cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; border-radius: 50%; transition: all 0.2s; }
-    .priority-high { background: #f8d7da; color: #dc3545; }
-    .priority-medium { background: #fff3cd; color: #856404; }
-    .priority-low { background: #d4edda; color: #28a745; }
-    .badge-type { font-size: 0.6875rem; text-transform: capitalize; }
-    .badge-exam { background: #dc354520; color: #dc3545; }
-    .badge-quiz { background: #0d6efd20; color: #0d6efd; }
-    .badge-practice { background: #19875420; color: #198754; }
-    .badge-survey { background: #6f42c120; color: #6f42c1; }
-    .badge-assignment { background: #fd7e1420; color: #fd7e14; }
-    .badge-qtype { font-size: 0.6875rem; display: inline-flex; align-items: center; gap: 0.25rem; }
-    .badge-essay { background: #6f42c120; color: #6f42c1; }
-    .badge-short_answer { background: #0d6efd20; color: #0d6efd; }
-    .badge-file_upload { background: #fd7e1420; color: #fd7e14; }
-    .badge-fill_blank { background: #0dcaf020; color: #0dcaf0; }
-    .status-badge { padding: 0.25rem 0.625rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 500; }
-    .status-pending { background: #fff3cd; color: #856404; }
-    .status-in_progress { background: #cce5ff; color: #004085; }
-    .status-graded { background: #d4edda; color: #155724; }
-    .status-overdue { background: #f8d7da; color: #721c24; }
+      width: 28px; height: 28px; border-radius: 50%; transition: background .15s ease; }
+    .priority-high { background: rgba(var(--ui-danger-rgb), .1); color: var(--ui-danger-text, #a12c24); }
+    .priority-medium { background: rgba(var(--ui-warning-rgb), .1); color: var(--ui-warning-text, #8f4b07); }
+    .priority-low { background: rgba(var(--ui-success-rgb), .1); color: var(--ui-success-text, #23643e); }
+    .badge-type { text-transform: capitalize; }
+    .badge-exam { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .badge-quiz { background: rgba(var(--brand-primary-rgb), .1); border-color: rgba(var(--brand-primary-rgb), .28); color: var(--brand-primary); }
+    .badge-practice { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .badge-survey { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .badge-assignment { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .badge-qtype { white-space: nowrap; }
+    .status-badge { white-space: nowrap; }
+    .status-pending { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .status-in_progress { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .status-graded { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .status-overdue { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
 
     /* Actions */
     .action-btns { display: flex; gap: 0.25rem; }
     .dropdown { position: relative; }
-    .dropdown-menu { position: absolute; right: 0; top: 100%; z-index: 1000; background: #fff; border: 1px solid #dee2e6;
-      border-radius: 0.375rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 180px; display: none; }
+    .dropdown-menu { position: absolute; right: 0; top: 100%; z-index: 1000; background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e7e9e7);
+      border-radius: var(--ui-radius-ctl, 8px); box-shadow: var(--ui-shadow-pop); min-width: 180px; display: none; }
     .dropdown-menu.show { display: block; }
     .dropdown-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border: none;
       background: none; width: 100%; text-align: left; font-size: 0.8125rem; cursor: pointer; }
-    .dropdown-item:hover { background: #f8f9fa; }
-    .dropdown-divider { height: 0; margin: 0.25rem 0; border-top: 1px solid #e9ecef; }
+    .dropdown-item:hover { background: var(--ui-surface-2, #f7f8f7); }
+    .dropdown-divider { height: 0; margin: 0.25rem 0; border-top: 1px solid var(--ui-border, #e7e9e7); }
 
     /* Pagination */
-    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;
-      border-top: 1px solid #e9ecef; }
-    .page-info { font-size: 0.8125rem; color: #6c757d; }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding: 12px 22px;
+      border-top: 1px solid var(--ui-border, #e7e9e7); }
+    .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
     .page-controls { display: flex; gap: 0.25rem; }
-    .page-ellipsis { padding: 0.25rem 0.5rem; color: #6c757d; }
-    .page-size .form-select { width: 70px; }
+    .page-ellipsis { padding: 0.25rem 0.5rem; color: var(--ui-text-muted, #6a716b); }
+    .page-size .form-select { width: 76px; }
 
     /* Empty & Loading */
-    .empty-state { text-align: center; padding: 3rem; }
-    .empty-state tui-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 1rem; }
-    .empty-state h4 { font-weight: 600; margin-bottom: 0.5rem; }
-    .loading-state { text-align: center; padding: 3rem; }
+    .empty-state { margin: 22px; }
+    .loading-state { text-align: center; padding: 3rem; border-top: 1px solid var(--ui-border, #e7e9e7); color: var(--ui-text-muted, #6a716b); }
 
     /* Modals */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);
       z-index: 1050; display: flex; align-items: center; justify-content: center; }
-    .modal-dialog { background: #fff; border-radius: 0.5rem; max-width: 700px; width: 95%; max-height: 90vh;
+    .modal-dialog { background: var(--ui-surface, #fff); border-radius: var(--ui-radius-card, 12px); max-width: 700px; width: 95%; max-height: 90vh;
       display: flex; flex-direction: column; }
     .modal-dialog.modal-lg { max-width: 800px; }
-    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #dee2e6; display: flex; align-items: center; justify-content: space-between; }
-    .modal-title { font-size: 1.125rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--ui-border, #e7e9e7); display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 1.0625rem; font-weight: 650; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
     .modal-body { padding: 1.25rem; overflow-y: auto; flex: 1; }
-    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--ui-border, #e7e9e7); display: flex; justify-content: flex-end; gap: 0.5rem; }
 
     /* Preview Modal */
-    .preview-meta { background: #f8f9fa; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem; }
-    .meta-row { display: flex; gap: 0.5rem; margin-bottom: 0.375rem; }
+    .preview-meta { background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); padding: 0.75rem; margin-bottom: 1rem; }
+    .meta-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.375rem; }
     .meta-row:last-child { margin-bottom: 0; }
-    .meta-label { font-weight: 600; font-size: 0.8125rem; min-width: 100px; color: #6c757d; }
+    .meta-label { font-weight: 600; font-size: 0.8125rem; min-width: 100px; color: var(--ui-text-muted, #6a716b); }
     .meta-value { font-size: 0.8125rem; }
     .preview-question, .preview-answer { margin-bottom: 1rem; }
-    .preview-question h6, .preview-answer h6 { font-weight: 600; font-size: 0.8125rem; text-transform: uppercase;
-      color: #6c757d; margin-bottom: 0.5rem; }
-    .question-content, .answer-content { background: #f8f9fa; border-radius: 0.375rem; padding: 1rem; font-size: 0.875rem; }
+    .preview-question h6, .preview-answer h6 { font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .03em;
+      color: var(--ui-text-muted, #6a716b); margin-bottom: 0.5rem; }
+    .question-content, .answer-content { background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); padding: 1rem; font-size: 0.875rem; }
     .essay-answer { white-space: pre-wrap; line-height: 1.6; }
     .file-answer { display: flex; align-items: center; gap: 0.5rem; }
 
     /* Bulk Assign */
-    .grader-option { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border: 1px solid #e9ecef;
-      border-radius: 0.375rem; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s; }
-    .grader-option:hover { background: #f8f9fa; }
-    .grader-option.selected { border-color: #0d6efd; background: #e8f0fe; }
+    .grader-option { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--ui-border, #e7e9e7);
+      border-radius: var(--ui-radius-ctl, 8px); margin-bottom: 0.5rem; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+    .grader-option:hover { background: var(--ui-surface-2, #f7f8f7); }
+    .grader-option.selected { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); }
     .grader-details { flex: 1; }
     .grader-details .grader-name { display: block; font-weight: 500; }
-    .grader-details .grader-meta { display: block; font-size: 0.75rem; color: #6c757d; }
+    .grader-details .grader-meta { display: block; font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Responsive */
-    @media (max-width: 1200px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 768px) {
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
-      .filters-bar { flex-direction: column; }
-      .filter-group { width: 100%; }
-      .filter-group .form-select { min-width: 0; flex: 1; }
+      .ui-filters .form-select { min-width: 0; flex: 1 1 140px; }
     }
   `]
 })

@@ -20,19 +20,18 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
   imports: [CommonModule, AdmintopComponent],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid py-4">
-        <div class="row align-items-center mb-4">
-          <div (click)="goBack()" role="button" class="col-auto">
-            <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-              <i class="bi bi-chevron-left fs-5"></i>
-            </div>
+    <main class="main">
+      <div class="ui-page">
+        <header class="ui-page-header">
+          <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-credit-card"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>Billing &amp; Subscription</h1>
+            <p>Your plan, your invoices, and what your organisation is using.</p>
           </div>
-          <div class="col">
-            <h1 class="fs-4 mb-0">Billing &amp; Subscription</h1>
-            <small class="text-muted">Your plan, your invoices, and what your organisation is using.</small>
-          </div>
-        </div>
+        </header>
 
         @if (payBanner(); as pb) {
           <div class="alert d-flex align-items-center gap-2" [class.alert-success]="pb.ok" [class.alert-warning]="!pb.ok">
@@ -43,134 +42,167 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
         }
 
         @if (loading()) {
-          <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+          <div class="ui-state">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+          </div>
         } @else if (error()) {
-          <div class="alert alert-danger d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill"></i> Could not load your billing.
-            <button class="btn btn-sm btn-outline-danger ms-auto" (click)="load()">Retry</button>
+          <div class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+            <h3>Could not load your billing.</h3>
+            <button class="btn btn-sm btn-outline-secondary" (click)="load()">
+              <i class="bi bi-arrow-clockwise me-1"></i>Retry
+            </button>
           </div>
         } @else {
-          <div class="row g-4">
+          <div class="ui-row billing-row">
             <!-- Subscription -->
-            <div class="col-lg-7">
-              <div class="card h-100">
-                <div class="card-header bg-transparent fw-semibold">Your plan</div>
-                <div class="card-body">
-                  @if (sub(); as s) {
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                      <div>
-                        <div class="fs-4 fw-bold">{{ s.planName || 'Custom plan' }}</div>
-                        <span class="badge {{ subBadge(s.status) }}">{{ label(s.status) }}</span>
-                        @if (s.cancelAtPeriodEnd) { <span class="badge bg-warning text-dark ms-1">Ends at period</span> }
-                      </div>
-                      <div class="text-end">
-                        <div class="fs-4 fw-bold">{{ s.amount > 0 ? money(s.amount, s.currency) : 'Free' }}</div>
-                        <div class="text-muted small">per {{ s.billingCycle === 'yearly' ? 'year' : 'month' }}</div>
-                      </div>
-                    </div>
-                    <dl class="row mb-0 small">
-                      @if (s.status === 'trialing' && s.trialEndsAt) {
-                        <dt class="col-5 text-muted fw-normal">Trial ends</dt>
-                        <dd class="col-7 fw-semibold">{{ s.trialEndsAt | date:'d MMM y' }} ({{ daysLeft(s.trialEndsAt) }})</dd>
-                      }
-                      <dt class="col-5 text-muted fw-normal">Current period</dt>
-                      <dd class="col-7">{{ s.currentPeriodStart | date:'d MMM y' }} – {{ s.currentPeriodEnd | date:'d MMM y' }}</dd>
-                      @if (s.status === 'active' && !s.cancelAtPeriodEnd && s.currentPeriodEnd) {
-                        <dt class="col-5 text-muted fw-normal">Renews</dt>
-                        <dd class="col-7">{{ s.currentPeriodEnd | date:'d MMM y' }}</dd>
-                      }
-                      <dt class="col-5 text-muted fw-normal">Since</dt>
-                      <dd class="col-7">{{ s.startedAt | date:'d MMM y' }}</dd>
-                    </dl>
-                    <div class="alert alert-light border mt-3 mb-0 small d-flex gap-2">
-                      <i class="bi bi-info-circle"></i>
-                      <span>To change your plan, contact your account manager. Outstanding invoices can be paid below.</span>
-                    </div>
-                  } @else {
-                    <div class="text-center text-muted py-4">
-                      <i class="bi bi-credit-card fs-2 d-block mb-2 opacity-50"></i>
-                      You’re not on a plan yet. Contact us to get started.
-                    </div>
-                  }
-                </div>
+            <section class="ui-section">
+              <div class="ui-section__head">
+                <div><h2 class="ui-section__title">Your plan</h2></div>
               </div>
-            </div>
+              @if (sub(); as s) {
+                <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                  <div>
+                    <div class="billing-figure">{{ s.planName || 'Custom plan' }}</div>
+                    <div class="d-flex flex-wrap gap-1 mt-1">
+                      <span class="ui-pill"
+                            [class.ui-pill--success]="s.status === 'active'"
+                            [class.ui-pill--info]="s.status === 'trialing'"
+                            [class.ui-pill--warning]="s.status === 'past_due'"
+                            [class.ui-pill--neutral]="s.status !== 'active' && s.status !== 'trialing' && s.status !== 'past_due'">
+                        <span class="ui-pill__dot"></span>{{ label(s.status) }}
+                      </span>
+                      @if (s.cancelAtPeriodEnd) { <span class="ui-pill ui-pill--warning"><span class="ui-pill__dot"></span>Ends at period</span> }
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <div class="billing-figure">{{ s.amount > 0 ? money(s.amount, s.currency) : 'Free' }}</div>
+                    <div class="ui-muted small">per {{ s.billingCycle === 'yearly' ? 'year' : 'month' }}</div>
+                  </div>
+                </div>
+                <dl class="row mb-0 small billing-dl">
+                  @if (s.status === 'trialing' && s.trialEndsAt) {
+                    <dt class="col-5 ui-muted fw-normal">Trial ends</dt>
+                    <dd class="col-7 fw-semibold">{{ s.trialEndsAt | date:'d MMM y' }} ({{ daysLeft(s.trialEndsAt) }})</dd>
+                  }
+                  <dt class="col-5 ui-muted fw-normal">Current period</dt>
+                  <dd class="col-7">{{ s.currentPeriodStart | date:'d MMM y' }} – {{ s.currentPeriodEnd | date:'d MMM y' }}</dd>
+                  @if (s.status === 'active' && !s.cancelAtPeriodEnd && s.currentPeriodEnd) {
+                    <dt class="col-5 ui-muted fw-normal">Renews</dt>
+                    <dd class="col-7">{{ s.currentPeriodEnd | date:'d MMM y' }}</dd>
+                  }
+                  <dt class="col-5 ui-muted fw-normal">Since</dt>
+                  <dd class="col-7">{{ s.startedAt | date:'d MMM y' }}</dd>
+                </dl>
+                <div class="billing-note">
+                  <i class="bi bi-info-circle"></i>
+                  <span>To change your plan, contact your account manager. Outstanding invoices can be paid below.</span>
+                </div>
+              } @else {
+                <div class="ui-state">
+                  <span class="ui-state__icon"><i class="bi bi-credit-card"></i></span>
+                  <p>You’re not on a plan yet. Contact us to get started.</p>
+                </div>
+              }
+            </section>
 
             <!-- Usage -->
-            <div class="col-lg-5">
-              <div class="card h-100">
-                <div class="card-header bg-transparent fw-semibold">Usage</div>
-                <div class="card-body">
-                  @if (tenant(); as t) {
-                    <div class="mb-3">
-                      <div class="d-flex justify-content-between small mb-1">
-                        <span class="text-muted">People</span>
-                        <span class="fw-semibold">{{ t.usage.users | number }} / {{ t.limits.users === null ? '∞' : (t.limits.users | number) }}</span>
-                      </div>
-                      <div class="progress" style="height:6px"><div class="progress-bar" [style.width.%]="pct(t.usage.users, t.limits.users)"></div></div>
-                    </div>
-                    <div class="mb-3">
-                      <div class="d-flex justify-content-between small mb-1">
-                        <span class="text-muted">Storage</span>
-                        <span class="fw-semibold">{{ storage(t.usage.storageMb) }} / {{ t.limits.storage === null ? '∞' : storage(t.limits.storage) }}</span>
-                      </div>
-                      <div class="progress" style="height:6px"><div class="progress-bar bg-info" [style.width.%]="pct(t.usage.storageMb, t.limits.storage)"></div></div>
-                    </div>
-                    <div class="d-flex justify-content-between small">
-                      <span class="text-muted">Courses</span>
-                      <span class="fw-semibold">{{ t.usage.courses | number }}</span>
-                    </div>
-                  } @else {
-                    <div class="text-muted small">Usage is unavailable.</div>
-                  }
-                </div>
+            <section class="ui-section">
+              <div class="ui-section__head">
+                <div><h2 class="ui-section__title">Usage</h2></div>
               </div>
-            </div>
-
-            <!-- Invoices -->
-            <div class="col-12">
-              <div class="card">
-                <div class="card-header bg-transparent fw-semibold">Invoices</div>
-                <div class="card-body p-0">
-                  @if (invoices().length === 0) {
-                    <div class="text-center text-muted py-4"><i class="bi bi-receipt fs-4 d-block mb-2 opacity-50"></i> No invoices yet.</div>
-                  } @else {
-                    <div class="table-responsive">
-                      <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                          <tr><th>Invoice</th><th>Description</th><th class="text-end">Amount</th><th>Status</th><th>Issued</th><th>Due</th><th></th></tr>
-                        </thead>
-                        <tbody>
-                          @for (inv of invoices(); track inv.id) {
-                            <tr>
-                              <td class="font-monospace small">{{ inv.number }}</td>
-                              <td class="small text-muted">{{ inv.description || '—' }}</td>
-                              <td class="text-end fw-semibold">{{ money(inv.amountDue, inv.currency) }}</td>
-                              <td><span class="badge {{ invBadge(inv.status) }}">{{ inv.status }}</span></td>
-                              <td class="small">{{ inv.issuedAt | date:'d MMM y' }}</td>
-                              <td class="small">{{ inv.status === 'paid' ? (inv.paidAt | date:'d MMM y') : (inv.dueAt | date:'d MMM y') }}</td>
-                              <td class="text-end">
-                                @if (inv.status === 'open' || inv.status === 'draft') {
-                                  <button class="btn btn-sm btn-success" [disabled]="paying() !== null" (click)="payInvoice(inv)">
-                                    @if (paying() === inv.id) { <span class="spinner-border spinner-border-sm"></span> }
-                                    @else { <i class="bi bi-credit-card me-1"></i>Pay now }
-                                  </button>
-                                }
-                              </td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  }
+              @if (tenant(); as t) {
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="ui-muted">People</span>
+                    <span class="fw-semibold">{{ t.usage.users | number }} / {{ t.limits.users === null ? '∞' : (t.limits.users | number) }}</span>
+                  </div>
+                  <div class="ui-progress"><div class="ui-bar"><span [style.width.%]="pct(t.usage.users, t.limits.users)"></span></div></div>
                 </div>
-              </div>
-            </div>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="ui-muted">Storage</span>
+                    <span class="fw-semibold">{{ storage(t.usage.storageMb) }} / {{ t.limits.storage === null ? '∞' : storage(t.limits.storage) }}</span>
+                  </div>
+                  <div class="ui-progress"><div class="ui-bar"><span [style.width.%]="pct(t.usage.storageMb, t.limits.storage)"></span></div></div>
+                </div>
+                <div class="d-flex justify-content-between small">
+                  <span class="ui-muted">Courses</span>
+                  <span class="fw-semibold">{{ t.usage.courses | number }}</span>
+                </div>
+              } @else {
+                <div class="ui-muted small">Usage is unavailable.</div>
+              }
+            </section>
           </div>
+
+          <!-- Invoices -->
+          <section class="ui-section ui-section--flush">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title">Invoices</h2></div>
+            </div>
+            @if (invoices().length === 0) {
+              <div class="billing-empty">
+                <div class="ui-state">
+                  <span class="ui-state__icon"><i class="bi bi-receipt"></i></span>
+                  <p>No invoices yet.</p>
+                </div>
+              </div>
+            } @else {
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead>
+                    <tr><th>Invoice</th><th>Description</th><th class="text-end">Amount</th><th>Status</th><th>Issued</th><th>Due</th><th></th></tr>
+                  </thead>
+                  <tbody>
+                    @for (inv of invoices(); track inv.id) {
+                      <tr>
+                        <td class="font-monospace small">{{ inv.number }}</td>
+                        <td class="small ui-muted">{{ inv.description || '—' }}</td>
+                        <td class="text-end fw-semibold">{{ money(inv.amountDue, inv.currency) }}</td>
+                        <td>
+                          <span class="ui-pill"
+                                [class.ui-pill--success]="inv.status === 'paid'"
+                                [class.ui-pill--warning]="inv.status === 'open'"
+                                [class.ui-pill--danger]="inv.status === 'uncollectible'"
+                                [class.ui-pill--neutral]="inv.status !== 'paid' && inv.status !== 'open' && inv.status !== 'uncollectible'">
+                            <span class="ui-pill__dot"></span>{{ inv.status }}
+                          </span>
+                        </td>
+                        <td class="small">{{ inv.issuedAt | date:'d MMM y' }}</td>
+                        <td class="small">{{ inv.status === 'paid' ? (inv.paidAt | date:'d MMM y') : (inv.dueAt | date:'d MMM y') }}</td>
+                        <td class="text-end">
+                          @if (inv.status === 'open' || inv.status === 'draft') {
+                            <button class="btn btn-sm btn-primary" [disabled]="paying() !== null" (click)="payInvoice(inv)">
+                              @if (paying() === inv.id) { <span class="spinner-border spinner-border-sm"></span> }
+                              @else { <i class="bi bi-credit-card me-1"></i>Pay now }
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </section>
         }
       </div>
     </main>
   `,
+  styles: [`
+    .billing-row { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+    @media (max-width: 991.98px) { .billing-row { grid-template-columns: minmax(0, 1fr); } }
+    .billing-figure { font-size: 1.25rem; font-weight: 700; letter-spacing: -.01em; color: var(--ui-text); }
+    .billing-dl dt, .billing-dl dd { margin-bottom: 6px; }
+    .billing-note {
+      display: flex; gap: 8px; margin-top: 16px; padding: 10px 12px;
+      border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl);
+      background: var(--ui-surface-2); font-size: .8125rem; color: var(--ui-text-muted);
+    }
+    .billing-empty { padding: 0 22px 22px; }
+    .ui-pill { text-transform: capitalize; }
+  `],
 })
 export class BillingComponent implements OnInit {
   private readonly billing = inject(BillingService);

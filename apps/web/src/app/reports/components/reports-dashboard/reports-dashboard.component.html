@@ -1,110 +1,102 @@
 <app-admintop></app-admintop>
 
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <div class="reports-dashboard pt-4">
-      <!-- Header -->
-      <div class="d-flex justify-content-between align-items-start mb-4 gap-3 flex-wrap">
-        <div class="d-flex align-items-start gap-3">
-          <div (click)="goBack()" role="button" class="page-back">
-            <tui-icon icon="@tui.chevron-left"></tui-icon>
-          </div>
-          <div>
-            <h4 class="fw-bold mb-1">{{ 'reports.dashboard_title' | translate }}</h4>
-            <p class="text-muted mb-0 small">{{ 'reports.dashboard_subtitle' | translate:{ count: totalReports } }}</p>
-          </div>
-        </div>
-        <div class="d-flex gap-2">
-          <a routerLink="/admin/reports/catalog" class="btn btn-primary">
-            <i class="bi bi-grid-3x3-gap me-1"></i>{{ 'reports.browse_catalog' | translate }}
-          </a>
-          <a routerLink="/admin/reports/custom" class="btn btn-primary">
-            <i class="bi bi-tools me-1"></i>{{ 'reports.custom_builder' | translate }}
-          </a>
-          <a routerLink="/admin/reports/scheduled" class="btn btn-secondary">
-            <i class="bi bi-clock-history me-1"></i>{{ 'reports.scheduled' | translate }}
-          </a>
-        </div>
+<main class="main">
+  <div class="ui-page reports-dashboard">
+    <!-- Header -->
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-bar-chart-line"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'reports.dashboard_title' | translate }}</h1>
+        <p>{{ 'reports.dashboard_subtitle' | translate:{ count: totalReports } }}</p>
       </div>
+      <div class="ui-page-header__actions">
+        <a routerLink="/admin/reports/scheduled" class="btn btn-outline-secondary">
+          <i class="bi bi-clock-history me-1"></i>{{ 'reports.scheduled' | translate }}
+        </a>
+        <a routerLink="/admin/reports/custom" class="btn btn-outline-secondary">
+          <i class="bi bi-tools me-1"></i>{{ 'reports.custom_builder' | translate }}
+        </a>
+        <a routerLink="/admin/reports/catalog" class="btn btn-primary">
+          <i class="bi bi-grid-3x3-gap me-1"></i>{{ 'reports.browse_catalog' | translate }}
+        </a>
+      </div>
+    </header>
 
-      <!-- KPI Cards -->
-      <div class="row g-3 mb-4">
-        <div *ngFor="let kpi of kpis" class="col-sm-6 col-md-4 col-lg-2">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body text-center py-3">
-              <div class="mb-2">
-                <i [class]="kpi.icon + ' fs-4 text-' + kpi.color"></i>
-              </div>
-              <h5 class="fw-bold mb-0">{{ kpi.value }}</h5>
-              <p class="text-muted small mb-0">{{ kpi.label }}</p>
-              <small *ngIf="kpi.change !== undefined" [class]="kpi.trend === 'up' ? 'text-success' : kpi.trend === 'down' ? 'text-danger' : 'text-muted'">
-                <i class="bi" [class.bi-arrow-up]="kpi.trend==='up'" [class.bi-arrow-down]="kpi.trend==='down'"></i>
-                {{ kpi.change }}%
-              </small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Category Grid -->
-      <h5 class="fw-semibold mb-3">{{ 'reports.categories_heading' | translate }}</h5>
-      <div class="row g-3 mb-4">
-        <div *ngFor="let cat of categories" class="col-sm-6 col-md-4 col-lg-3">
-          <a [routerLink]="['/admin/reports/catalog']" [queryParams]="{category: cat.key}"
-             class="card border-0 shadow-sm h-100 text-decoration-none cat-card" style="transition:transform .15s">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="rounded-3 p-2 bg-primary-subtle">
-                <i [class]="cat.icon + ' fs-4 text-primary'"></i>
-              </div>
-              <div>
-                <h6 class="fw-semibold mb-0 text-black">{{ cat.name }}</h6>
-                <span class="small text-muted">{{ cat.count }} {{ (cat.count !== 1 ? 'reports.reports_word' : 'reports.report_word') | translate }}</span>
-              </div>
-            </div>
-          </a>
-        </div>
-      </div>
-
-      <!-- Quick Access: Popular Reports -->
-      <h5 class="fw-semibold mb-3">{{ 'reports.quick_access' | translate }}</h5>
-      <div class="row g-3 mb-4">
-        <div *ngFor="let r of quickAccess" class="col-sm-6 col-md-4 col-lg-3">
-          <a [routerLink]="['/admin/reports', r.key]" class="card border-0 shadow-sm h-100 text-decoration-none" style="transition:transform .15s">
-            <div class="card-body py-3">
-              <div class="d-flex justify-content-between">
-                <span class="badge bg-primary-subtle text-primary small mb-2">{{ r.catName }}</span>
-                <i class="bi bi-arrow-right text-muted"></i>
-              </div>
-              <h6 class="fw-semibold mb-1 text-black">{{ r.name }}</h6>
-              <p class="text-muted small mb-0" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ r.description }}</p>
-            </div>
-          </a>
-        </div>
-      </div>
-
-      <!-- Saved Reports -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-semibold mb-0">{{ 'reports.saved_reports' | translate }}</h5>
-        <a routerLink="/admin/reports/saved" class="btn btn-sm btn-primary">{{ 'common.view_all' | translate }}</a>
-      </div>
-      <div class="row g-3" *ngIf="savedReports.length">
-        <div *ngFor="let s of savedReports.slice(0, 4)" class="col-sm-6 col-md-3">
-          <a [routerLink]="['/admin/reports', s.report_key]" [queryParams]="s.filters"
-             class="card border-0 shadow-sm text-decoration-none">
-            <div class="card-body py-3">
-              <h6 class="fw-semibold text-black mb-1">{{ s.name }}</h6>
-              <p class="text-muted small mb-0">{{ s.created_at | date:'mediumDate' }}</p>
-            </div>
-          </a>
-        </div>
-      </div>
-      <div *ngIf="!savedReports.length" class="text-center py-4 text-muted">
-        <i class="bi bi-bookmark fs-3 d-block mb-2"></i>
-        <p class="small">{{ 'reports.no_saved_hint' | translate }}</p>
+    <!-- KPI Cards -->
+    <div class="ui-kpi-grid" *ngIf="kpis.length">
+      <div *ngFor="let kpi of kpis" class="ui-kpi" [ngClass]="'ui-kpi--' + (kpi.color === 'primary' ? 'brand' : kpi.color)">
+        <span class="ui-kpi__label"><i [class]="kpi.icon"></i> {{ kpi.label }}</span>
+        <span class="ui-kpi__value">{{ kpi.value }}</span>
+        <span *ngIf="kpi.change !== undefined" class="ui-kpi__sub"
+              [class.ui-kpi__sub--up]="kpi.trend === 'up'" [class.ui-kpi__sub--down]="kpi.trend === 'down'">
+          <i class="bi" [class.bi-arrow-up]="kpi.trend==='up'" [class.bi-arrow-down]="kpi.trend==='down'"></i>
+          {{ kpi.change }}%
+        </span>
       </div>
     </div>
+
+    <!-- Category Grid -->
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title">{{ 'reports.categories_heading' | translate }}</h2></div>
+      </div>
+      <div class="ui-grid rd-grid">
+        <a *ngFor="let cat of categories" [routerLink]="['/admin/reports/catalog']" [queryParams]="{category: cat.key}"
+           class="ui-card rd-link">
+          <div class="ui-card__body rd-cat">
+            <span class="rd-cat__icon"><i [class]="cat.icon"></i></span>
+            <div class="rd-min">
+              <h3 class="ui-card__title">{{ cat.name }}</h3>
+              <span class="ui-card__meta">{{ cat.count }} {{ (cat.count !== 1 ? 'reports.reports_word' : 'reports.report_word') | translate }}</span>
+            </div>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Quick Access: Popular Reports -->
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title">{{ 'reports.quick_access' | translate }}</h2></div>
+      </div>
+      <div class="ui-grid rd-grid">
+        <a *ngFor="let r of quickAccess" [routerLink]="['/admin/reports', r.key]" class="ui-card rd-link">
+          <div class="ui-card__body">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="ui-pill ui-pill--brand rd-cap">{{ r.catName }}</span>
+              <i class="bi bi-arrow-right ui-subtle"></i>
+            </div>
+            <h3 class="ui-card__title">{{ r.name }}</h3>
+            <p class="ui-card__meta rd-clamp mb-0">{{ r.description }}</p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Saved Reports -->
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title">{{ 'reports.saved_reports' | translate }}</h2></div>
+        <div class="ui-section__actions">
+          <a routerLink="/admin/reports/saved" class="btn btn-sm btn-outline-secondary">{{ 'common.view_all' | translate }}</a>
+        </div>
+      </div>
+      <div class="ui-grid rd-grid" *ngIf="savedReports.length">
+        <a *ngFor="let s of savedReports.slice(0, 4)" [routerLink]="['/admin/reports', s.report_key]" [queryParams]="s.filters"
+           class="ui-card rd-link">
+          <div class="ui-card__body">
+            <h3 class="ui-card__title">{{ s.name }}</h3>
+            <span class="ui-card__meta">{{ s.created_at | date:'mediumDate' }}</span>
+          </div>
+        </a>
+      </div>
+      <div *ngIf="!savedReports.length" class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-bookmark"></i></span>
+        <p>{{ 'reports.no_saved_hint' | translate }}</p>
+      </div>
+    </section>
   </div>
 </main>
-
-
-

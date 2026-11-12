@@ -64,20 +64,20 @@ interface RubricFormData {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="rubric-form-container">
+    <main class="main">
+    <div class="ui-page rubric-form-container">
       <!-- Header -->
-      <div class="form-header">
-        <div class="header-left">
-          <button class="btn btn-sm btn-secondary me-2" (click)="goBack()">
-            <tui-icon icon="@tui.arrow-left"></tui-icon>
-          </button>
-          <div>
-            <h1 class="page-title">{{ isEditMode ? 'Edit Rubric' : 'Create Rubric' }}</h1>
-            <p class="page-subtitle">{{ isEditMode ? 'Update rubric criteria and levels' : 'Define grading criteria for assessments' }}</p>
-          </div>
+      <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back" title="Back">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-ui-checks-grid"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ isEditMode ? 'Edit Rubric' : 'Create Rubric' }}</h1>
+          <p>{{ isEditMode ? 'Update rubric criteria and levels' : 'Define grading criteria for assessments' }}</p>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary" (click)="saveDraft()" [disabled]="saving">
+        <div class="ui-page-header__actions">
+          <button class="btn btn-outline-secondary" (click)="saveDraft()" [disabled]="saving">
             <tui-icon icon="@tui.save"></tui-icon> Save Draft
           </button>
           <button class="btn btn-primary" (click)="saveRubric()" [disabled]="saving || !isValid()">
@@ -86,15 +86,15 @@ interface RubricFormData {
             {{ isEditMode ? 'Update' : 'Create' }} Rubric
           </button>
         </div>
-      </div>
+      </header>
 
       <div class="form-layout" *ngIf="!loading">
         <!-- LEFT: Rubric Details -->
         <div class="form-left">
           <!-- Basic Info -->
-          <div class="form-card">
-            <div class="card-header"><h5>Basic Information</h5></div>
-            <div class="card-body">
+          <div class="ui-section form-card">
+            <div class="ui-section__head"><h2 class="ui-section__title">Basic Information</h2></div>
+            <div class="section-body">
               <div class="mb-3">
                 <label class="form-label">Rubric Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" [(ngModel)]="form.name"
@@ -130,14 +130,14 @@ interface RubricFormData {
           </div>
 
           <!-- Criteria -->
-          <div class="form-card">
-            <div class="card-header">
-              <h5>Criteria ({{ form.criteria.length }})</h5>
+          <div class="ui-section form-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">Criteria ({{ form.criteria.length }})</h2>
               <button class="btn btn-sm btn-primary" (click)="addCriterion()">
                 <tui-icon icon="@tui.plus"></tui-icon> Add Criterion
               </button>
             </div>
-            <div class="card-body">
+            <div class="section-body">
               <div class="criteria-list" *ngIf="form.criteria.length > 0">
                 <div class="criterion-card" *ngFor="let c of form.criteria; let ci = index"
                      [class.collapsed]="c._collapsed">
@@ -149,20 +149,20 @@ interface RubricFormData {
                     <span class="criterion-number">{{ ci + 1 }}</span>
                     <span class="criterion-title-display">{{ c.title || 'Untitled Criterion' }}</span>
                     <div class="criterion-badges">
-                      <span class="badge bg-primary-subtle text-primary">{{ c.max_points }} pts</span>
-                      <span class="badge bg-secondary-subtle text-secondary" *ngIf="c.weight">{{ c.weight }}%</span>
-                      <span class="badge bg-info-subtle text-info">{{ c.levels.length }} levels</span>
+                      <span class="ui-pill ui-pill--brand">{{ c.max_points }} pts</span>
+                      <span class="ui-pill ui-pill--neutral" *ngIf="c.weight">{{ c.weight }}%</span>
+                      <span class="ui-pill ui-pill--info">{{ c.levels.length }} levels</span>
                     </div>
                     <div class="criterion-actions" (click)="$event.stopPropagation()">
-                      <button class="btn btn-sm btn-secondary" (click)="moveCriterion(ci, -1)"
+                      <button class="btn btn-sm btn-outline-secondary" (click)="moveCriterion(ci, -1)"
                               [disabled]="ci === 0" title="Move Up">
                         <tui-icon icon="@tui.arrow-up"></tui-icon>
                       </button>
-                      <button class="btn btn-sm btn-secondary" (click)="moveCriterion(ci, 1)"
+                      <button class="btn btn-sm btn-outline-secondary" (click)="moveCriterion(ci, 1)"
                               [disabled]="ci === form.criteria.length - 1" title="Move Down">
                         <tui-icon icon="@tui.arrow-down"></tui-icon>
                       </button>
-                      <button class="btn btn-sm btn-secondary" (click)="duplicateCriterion(ci)" title="Duplicate">
+                      <button class="btn btn-sm btn-outline-secondary" (click)="duplicateCriterion(ci)" title="Duplicate">
                         <tui-icon icon="@tui.copy"></tui-icon>
                       </button>
                       <button class="btn btn-sm btn-outline-danger" (click)="removeCriterion(ci)" title="Remove">
@@ -209,13 +209,13 @@ interface RubricFormData {
                       <!-- Quick Level Templates -->
                       <div class="level-templates" *ngIf="c.levels.length === 0">
                         <span class="text-muted small me-2">Quick add:</span>
-                        <button class="btn btn-sm btn-secondary" (click)="applyLevelTemplate(c, '4-point')">
+                        <button class="btn btn-sm btn-outline-secondary" (click)="applyLevelTemplate(c, '4-point')">
                           4-Point Scale
                         </button>
-                        <button class="btn btn-sm btn-secondary" (click)="applyLevelTemplate(c, '3-point')">
+                        <button class="btn btn-sm btn-outline-secondary" (click)="applyLevelTemplate(c, '3-point')">
                           3-Point Scale
                         </button>
-                        <button class="btn btn-sm btn-secondary" (click)="applyLevelTemplate(c, 'pass-fail')">
+                        <button class="btn btn-sm btn-outline-secondary" (click)="applyLevelTemplate(c, 'pass-fail')">
                           Pass/Fail
                         </button>
                       </div>
@@ -243,8 +243,8 @@ interface RubricFormData {
               </div>
 
               <!-- Empty Criteria -->
-              <div class="empty-criteria" *ngIf="form.criteria.length === 0">
-                <tui-icon icon="@tui.layers"></tui-icon>
+              <div class="ui-state empty-criteria" *ngIf="form.criteria.length === 0">
+                <span class="ui-state__icon"><i class="bi bi-layers"></i></span>
                 <p>No criteria added yet</p>
                 <button class="btn btn-primary btn-sm" (click)="addCriterion()">
                   <tui-icon icon="@tui.plus"></tui-icon> Add First Criterion
@@ -257,9 +257,9 @@ interface RubricFormData {
         <!-- RIGHT: Summary / Preview -->
         <div class="form-right">
           <!-- Summary Card -->
-          <div class="form-card summary-card">
-            <div class="card-header"><h5>Summary</h5></div>
-            <div class="card-body">
+          <div class="ui-section form-card summary-card">
+            <div class="ui-section__head"><h2 class="ui-section__title">Summary</h2></div>
+            <div class="section-body">
               <div class="summary-item">
                 <span class="summary-label">Type</span>
                 <span class="summary-value">{{ form.rubric_type | titlecase }}</span>
@@ -270,7 +270,7 @@ interface RubricFormData {
               </div>
               <div class="summary-item">
                 <span class="summary-label">Total Points</span>
-                <span class="summary-value fw-bold text-primary">{{ getTotalPoints() }}</span>
+                <span class="summary-value fw-bold summary-accent">{{ getTotalPoints() }}</span>
               </div>
               <div class="summary-item">
                 <span class="summary-label">Total Weight</span>
@@ -291,9 +291,9 @@ interface RubricFormData {
           </div>
 
           <!-- Validation -->
-          <div class="form-card validation-card" *ngIf="getValidationErrors().length > 0">
-            <div class="card-header"><h5><tui-icon icon="@tui.alert-triangle"></tui-icon> Issues</h5></div>
-            <div class="card-body">
+          <div class="ui-section form-card validation-card" *ngIf="getValidationErrors().length > 0">
+            <div class="ui-section__head"><h2 class="ui-section__title"><tui-icon icon="@tui.alert-triangle"></tui-icon> Issues</h2></div>
+            <div class="section-body">
               <ul class="validation-list">
                 <li *ngFor="let err of getValidationErrors()">{{ err }}</li>
               </ul>
@@ -301,16 +301,16 @@ interface RubricFormData {
           </div>
 
           <!-- Quick Actions -->
-          <div class="form-card">
-            <div class="card-header"><h5>Quick Actions</h5></div>
-            <div class="card-body">
-              <button class="btn btn-sm btn-secondary w-100 mb-2" (click)="distributeWeightsEvenly()">
+          <div class="ui-section form-card">
+            <div class="ui-section__head"><h2 class="ui-section__title">Quick Actions</h2></div>
+            <div class="section-body">
+              <button class="btn btn-sm btn-outline-secondary w-100 mb-2" (click)="distributeWeightsEvenly()">
                 <tui-icon icon="@tui.percent"></tui-icon> Distribute Weights Evenly
               </button>
-              <button class="btn btn-sm btn-secondary w-100 mb-2" (click)="collapseAll()">
+              <button class="btn btn-sm btn-outline-secondary w-100 mb-2" (click)="collapseAll()">
                 <tui-icon icon="@tui.minimize-2"></tui-icon> Collapse All Criteria
               </button>
-              <button class="btn btn-sm btn-secondary w-100" (click)="expandAll()">
+              <button class="btn btn-sm btn-outline-secondary w-100" (click)="expandAll()">
                 <tui-icon icon="@tui.maximize-2"></tui-icon> Expand All Criteria
               </button>
             </div>
@@ -324,84 +324,79 @@ interface RubricFormData {
         <p>Loading rubric...</p>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .rubric-form-container { padding: 1.5rem; }
-    .form-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .header-left { display: flex; align-items: center; gap: 0; }
-    .page-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
-    .page-subtitle { font-size: 0.8125rem; color: #6c757d; margin: 0; }
-    .header-actions { display: flex; gap: 0.5rem; }
+    /* Page chrome (header, sections, pills, states) comes from the global UI kit. */
+    .ui-section__head { align-items: center; }
+    .ui-section__title { display: flex; align-items: center; gap: 8px; }
 
-    .form-layout { display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem; }
-    .form-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; margin-bottom: 1rem; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;
-      border-bottom: 1px solid #e9ecef; background: #f8f9fa; border-radius: 0.5rem 0.5rem 0 0; }
-    .card-header h5 { margin: 0; font-size: 0.9375rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-    .card-body { padding: 1rem; }
+    .form-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
 
     /* Rubric Type Selector */
     .rubric-type-selector { display: flex; flex-direction: column; gap: 0.5rem; }
     .type-option {
       display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; padding: 0.625rem 0.75rem;
-      border: 1px solid #dee2e6; border-radius: 0.375rem; background: #fff; cursor: pointer;
-      text-align: left; transition: all 0.2s; width: 100%;
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); background: var(--ui-surface, #fff); cursor: pointer;
+      text-align: left; transition: border-color .15s ease, background .15s ease; width: 100%;
     }
-    .type-option:hover { border-color: #0d6efd; background: #f8f9fa; }
-    .type-option.selected { border-color: #0d6efd; background: #e8f0fe; }
+    .type-option:hover { border-color: rgba(var(--brand-primary-rgb), .45); background: var(--ui-surface-2, #f7f8f7); }
+    .type-option.selected { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); }
+    .type-option.selected tui-icon { color: var(--brand-primary); }
     .type-label { font-weight: 500; font-size: 0.875rem; }
-    .type-desc { width: 100%; font-size: 0.6875rem; color: #6c757d; margin-left: 1.5rem; }
+    .type-desc { width: 100%; font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); margin-left: 1.5rem; }
 
     /* Criteria */
-    .criterion-card { border: 1px solid #dee2e6; border-radius: 0.5rem; margin-bottom: 0.75rem; }
+    .criterion-card { border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-card, 12px); margin-bottom: 0.75rem; overflow: hidden; }
     .criterion-header {
       display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 0.75rem;
-      background: #f8f9fa; border-radius: 0.5rem 0.5rem 0 0; cursor: pointer;
+      background: var(--ui-surface-2, #f7f8f7); cursor: pointer; flex-wrap: wrap;
     }
-    .criterion-card.collapsed .criterion-header { border-radius: 0.5rem; }
-    .criterion-drag { color: #adb5bd; cursor: grab; }
-    .criterion-number { background: #6c757d; color: #fff; width: 22px; height: 22px; border-radius: 50%;
+    .criterion-drag { color: var(--ui-text-subtle, #8d948e); cursor: grab; }
+    .criterion-number { background: rgba(var(--brand-primary-rgb), .12); color: var(--brand-primary); width: 22px; height: 22px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 600; flex-shrink: 0; }
-    .criterion-title-display { font-weight: 500; font-size: 0.875rem; flex: 1; }
-    .criterion-badges { display: flex; gap: 0.25rem; }
-    .criterion-badges .badge { font-size: 0.6875rem; }
+    .criterion-title-display { font-weight: 500; font-size: 0.875rem; flex: 1; min-width: 120px; }
+    .criterion-badges { display: flex; gap: 0.25rem; flex-wrap: wrap; }
     .criterion-actions { display: flex; gap: 0.125rem; }
     .criterion-actions .btn { padding: 0.125rem 0.375rem; }
-    .collapse-icon { color: #6c757d; flex-shrink: 0; }
-    .criterion-body { padding: 1rem; border-top: 1px solid #e9ecef; }
+    .collapse-icon { color: var(--ui-text-muted, #6a716b); flex-shrink: 0; }
+    .criterion-body { padding: 1rem; border-top: 1px solid var(--ui-border, #e7e9e7); }
 
     /* Levels */
-    .levels-section { background: #f8f9fa; border-radius: 0.375rem; padding: 0.75rem; }
+    .levels-section { background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); padding: 0.75rem; }
     .levels-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
     .levels-header h6 { margin: 0; font-size: 0.8125rem; font-weight: 600; }
     .level-templates { display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap; }
     .level-item { margin-bottom: 0.5rem; }
     .level-row { display: flex; gap: 0.375rem; align-items: center; margin-bottom: 0.25rem; }
-    .level-order { width: 20px; text-align: center; font-size: 0.75rem; color: #6c757d; font-weight: 600; flex-shrink: 0; }
+    .level-order { width: 20px; text-align: center; font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); font-weight: 600; flex-shrink: 0; }
     .level-pts { width: 80px !important; flex-shrink: 0; }
-    .level-desc-input { margin-left: 20px; font-size: 0.8125rem; }
+    .level-desc-input { margin-left: 20px; font-size: 0.8125rem; width: calc(100% - 20px); }
 
     /* Empty */
-    .empty-criteria { text-align: center; padding: 2rem; }
-    .empty-criteria tui-icon { font-size: 2rem; color: #adb5bd; margin-bottom: 0.5rem; }
+    .empty-criteria { padding: 2rem 1rem; }
+    .empty-criteria p { margin: 10px 0 14px; }
 
     /* Summary */
     .summary-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;
-      border-bottom: 1px solid #e9ecef; font-size: 0.8125rem; }
-    .summary-item:last-child { border-bottom: none; }
-    .summary-label { color: #6c757d; }
+      border-bottom: 1px solid var(--ui-border, #e7e9e7); font-size: 0.8125rem; }
+    .summary-item:first-child { padding-top: 0; }
+    .summary-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .summary-label { color: var(--ui-text-muted, #6a716b); }
     .summary-value { font-weight: 500; display: flex; align-items: center; }
+    .summary-accent { color: var(--brand-primary); }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.375rem; }
-    .dot-active { background: #28a745; }
-    .dot-draft { background: #ffc107; }
-    .dot-archived { background: #6c757d; }
+    .dot-active { background: var(--ui-success, #2e7d4f); }
+    .dot-draft { background: var(--ui-warning, #b25e09); }
+    .dot-archived { background: var(--ui-neutral, #4b524c); }
 
     /* Validation */
-    .validation-card .card-header { background: #fff3cd; }
+    .validation-card { border-color: rgba(var(--ui-warning-rgb), .35); background: rgba(var(--ui-warning-rgb), .05); }
+    .validation-card .ui-section__title { color: var(--ui-warning-text, #8f4b07); }
     .validation-list { margin: 0; padding-left: 1.25rem; }
-    .validation-list li { font-size: 0.8125rem; color: #856404; margin-bottom: 0.25rem; }
+    .validation-list li { font-size: 0.8125rem; color: var(--ui-warning-text, #8f4b07); margin-bottom: 0.25rem; }
 
-    .loading-state { text-align: center; padding: 3rem; }
+    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     @media (max-width: 992px) {
       .form-layout { grid-template-columns: 1fr; }

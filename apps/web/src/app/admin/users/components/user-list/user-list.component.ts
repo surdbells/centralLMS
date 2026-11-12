@@ -98,10 +98,25 @@ export interface UserFilters {
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   templateUrl: './user-list.component.html',
   styles: [`
-    .avatar-circle { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; font-size:14px; flex-shrink:0; }
-    .sortable { cursor:pointer; user-select:none; }
-    .sortable:hover { color: var(--bs-primary); }
+    .users-table-section > .ui-toolbar { padding: 16px 22px 0; }
+    .bulk-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin: 0 22px 12px; padding: 8px 12px;
+      border: 1px solid rgba(var(--brand-primary-rgb), .25); border-radius: var(--ui-radius-ctl);
+      background: rgba(var(--brand-primary-rgb), .05); }
+    .table-responsive { border-top: 1px solid var(--ui-border); }
+    .table-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; padding: 10px 22px;
+      border-top: 1px solid var(--ui-border); }
+    .user-link { display:flex; align-items:center; gap:10px; text-decoration:none; color: var(--ui-text); min-width:0; }
+    .user-link:hover .user-name { color: var(--brand-primary); }
+    .user-name { font-weight:600; font-size:.875rem; }
+    .min-w-0 { min-width:0; }
+    .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
+    .sortable:hover { color: var(--brand-primary); }
     .cursor-pointer { cursor:pointer; }
+    @media (max-width: 575.98px) {
+      .users-table-section > .ui-toolbar { padding: 14px 16px 0; }
+      .bulk-bar { margin: 0 16px 12px; }
+      .table-foot { padding: 10px 16px; }
+    }
   `],
 })
 export class UserListComponent implements OnInit, OnDestroy {

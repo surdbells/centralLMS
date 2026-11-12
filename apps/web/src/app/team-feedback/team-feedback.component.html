@@ -1,20 +1,28 @@
-<div class="tf-wrap">
-  <header class="tf-head">
-    <h1>{{ 'feedback.title' | translate }}</h1>
-    <p>{{ 'feedback.subtitle' | translate }}</p>
+<div class="ui-page tf-wrap">
+  <header class="ui-page-header">
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ 'feedback.title' | translate }}</h1>
+      <p>{{ 'feedback.subtitle' | translate }}</p>
+    </div>
   </header>
 
-  <div class="tf-state" *ngIf="loading"><div class="spinner-border text-primary"></div></div>
-  <div class="tf-state error" *ngIf="failed && !loading">{{ 'feedback.failed' | translate }}</div>
+  <div class="tf-state" *ngIf="loading"><div class="spinner-border tf-spinner"></div></div>
+  <div class="ui-state" *ngIf="failed && !loading">
+    <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+    <p>{{ 'feedback.failed' | translate }}</p>
+  </div>
 
-  <div class="tf-empty" *ngIf="!loading && !failed && reports.length === 0">
-    <i class="bi bi-people"></i>
+  <div class="ui-state" *ngIf="!loading && !failed && reports.length === 0">
+    <span class="ui-state__icon"><i class="bi bi-people"></i></span>
     <p>{{ 'feedback.none' | translate }}</p>
   </div>
 
-  <section class="report-card" *ngFor="let r of reports">
-    <h2>{{ r.name }}</h2>
-    <ul class="course-rows">
+  <section class="ui-section report-card" *ngFor="let r of reports">
+    <div class="ui-section__head">
+      <h2 class="ui-section__title">{{ r.name }}</h2>
+    </div>
+    <ul class="ui-list course-rows">
       <li *ngFor="let row of r.rows">
         <div class="cr-main">
           <span class="cr-title"><i class="bi bi-journal-check"></i> {{ row.course_title }}</span>
@@ -25,7 +33,7 @@
             <span class="cr-saved" *ngIf="saved === key(row)"><i class="bi bi-check-circle-fill"></i></span>
           </span>
         </div>
-        <input type="text" class="cr-note" [(ngModel)]="row.comments" (blur)="saveComment(row)"
+        <input type="text" class="form-control form-control-sm cr-note" [(ngModel)]="row.comments" (blur)="saveComment(row)"
                [placeholder]="'feedback.note_placeholder' | translate">
       </li>
     </ul>

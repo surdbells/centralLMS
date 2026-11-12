@@ -57,143 +57,151 @@ interface ViolationType {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="violation-viewer-container">
+    <main class="main">
+    <div class="ui-page violation-viewer-container">
       <!-- Header -->
-      <div class="page-header" *ngIf="!sessionMode">
-        <div class="header-left">
-          <h1 class="page-title">
-            <tui-icon icon="@tui.alert-triangle"></tui-icon>
-            Violation Viewer
-          </h1>
-          <p class="page-subtitle">Analyze proctoring violations across all sessions</p>
+      <header class="ui-page-header" *ngIf="!sessionMode">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-exclamation-triangle"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Violation Viewer</h1>
+          <p>Analyze proctoring violations across all sessions</p>
         </div>
-      </div>
+      </header>
 
       <!-- Stats Row -->
-      <div class="stats-row" *ngIf="!sessionMode">
-        <div class="stat-card" (click)="filterSeverity = ''; applyFilters()" [class.active]="!filterSeverity">
-          <span class="stat-value">{{ violationStats.total }}</span>
-          <span class="stat-label">Total</span>
-        </div>
-        <div class="stat-card sev-low" (click)="filterSeverity = 'low'; applyFilters()" [class.active]="filterSeverity === 'low'">
-          <span class="stat-value">{{ violationStats.by_severity.low }}</span>
-          <span class="stat-label">Low</span>
-        </div>
-        <div class="stat-card sev-med" (click)="filterSeverity = 'medium'; applyFilters()" [class.active]="filterSeverity === 'medium'">
-          <span class="stat-value">{{ violationStats.by_severity.medium }}</span>
-          <span class="stat-label">Medium</span>
-        </div>
-        <div class="stat-card sev-high" (click)="filterSeverity = 'high'; applyFilters()" [class.active]="filterSeverity === 'high'">
-          <span class="stat-value">{{ violationStats.by_severity.high }}</span>
-          <span class="stat-label">High</span>
-        </div>
-        <div class="stat-card sev-crit" (click)="filterSeverity = 'critical'; applyFilters()" [class.active]="filterSeverity === 'critical'">
-          <span class="stat-value">{{ violationStats.by_severity.critical }}</span>
-          <span class="stat-label">Critical</span>
-        </div>
-      </div>
-
-      <!-- Top Violation Types -->
-      <div class="type-chips" *ngIf="!sessionMode && violationStats.by_type.length > 0">
-        <span class="type-chip" *ngFor="let t of violationStats.by_type.slice(0, 8)"
-              [class.active]="filterType === t.type"
-              (click)="filterType = filterType === t.type ? '' : t.type; applyFilters()">
-          <tui-icon [icon]="getViolationIcon(t.type)"></tui-icon>
-          {{ formatType(t.type) }} ({{ t.count }})
-        </span>
-      </div>
-
-      <!-- Filters -->
-      <div class="filters-bar">
-        <div class="search-box">
-          <tui-icon icon="@tui.search"></tui-icon>
-          <input type="text" class="form-control" placeholder="Search violations..."
-                 [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
-        </div>
-        <select class="form-select form-select-sm" [(ngModel)]="filterDismissed" (change)="applyFilters()">
-          <option value="">All</option>
-          <option value="active">Active</option>
-          <option value="dismissed">Dismissed</option>
-        </select>
-        <select class="form-select form-select-sm" [(ngModel)]="sortBy" (change)="applyFilters()">
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="severity">Severity</option>
-        </select>
-      </div>
-
-      <!-- Bulk Actions -->
-      <div class="bulk-bar" *ngIf="selectedIds.length > 0">
-        <span class="text-muted small">{{ selectedIds.length }} selected</span>
-        <button class="btn btn-sm btn-secondary" (click)="bulkDismiss()">
-          <tui-icon icon="@tui.x-circle"></tui-icon> Dismiss Selected
+      <div class="ui-kpi-grid ui-kpi-grid--5 stats-row" *ngIf="!sessionMode">
+        <button type="button" class="ui-kpi ui-kpi--brand" (click)="filterSeverity = ''; applyFilters()" [class.is-active]="!filterSeverity">
+          <span class="ui-kpi__label"><i class="bi bi-list-ul"></i> Total</span>
+          <span class="ui-kpi__value">{{ violationStats.total }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--info" (click)="filterSeverity = 'low'; applyFilters()" [class.is-active]="filterSeverity === 'low'">
+          <span class="ui-kpi__label"><i class="bi bi-info-circle"></i> Low</span>
+          <span class="ui-kpi__value">{{ violationStats.by_severity.low }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--warning" (click)="filterSeverity = 'medium'; applyFilters()" [class.is-active]="filterSeverity === 'medium'">
+          <span class="ui-kpi__label"><i class="bi bi-exclamation-circle"></i> Medium</span>
+          <span class="ui-kpi__value">{{ violationStats.by_severity.medium }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" (click)="filterSeverity = 'high'; applyFilters()" [class.is-active]="filterSeverity === 'high'">
+          <span class="ui-kpi__label"><i class="bi bi-exclamation-triangle"></i> High</span>
+          <span class="ui-kpi__value">{{ violationStats.by_severity.high }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" (click)="filterSeverity = 'critical'; applyFilters()" [class.is-active]="filterSeverity === 'critical'">
+          <span class="ui-kpi__label"><i class="bi bi-x-octagon"></i> Critical</span>
+          <span class="ui-kpi__value">{{ violationStats.by_severity.critical }}</span>
         </button>
       </div>
 
-      <!-- Violations List -->
-      <div class="violations-list" *ngIf="!loading && filteredViolations.length > 0">
-        <div class="violation-card" *ngFor="let v of paginatedViolations"
-             [ngClass]="'border-' + v.severity" [class.dismissed]="v.dismissed">
-          <div class="violation-select">
-            <input type="checkbox" [checked]="selectedIds.includes(v.violation_id)"
-                   (change)="toggleSelect(v.violation_id)">
+      <section class="ui-section violations-section">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">Violations</h2>
+            <p class="ui-section__subtitle">{{ filteredViolations.length }} violations</p>
           </div>
-          <div class="violation-severity-icon" [ngClass]="'sev-icon-' + v.severity">
-            <tui-icon [icon]="getViolationIcon(v.violation_type)"></tui-icon>
-          </div>
-          <div class="violation-body">
-            <div class="violation-header-row">
-              <span class="violation-type-label">{{ formatType(v.violation_type) }}</span>
-              <span class="severity-pill" [ngClass]="'pill-' + v.severity">{{ v.severity }}</span>
-              <span class="dismissed-pill" *ngIf="v.dismissed">Dismissed</span>
-            </div>
-            <p class="violation-description" *ngIf="v.description">{{ v.description }}</p>
-            <div class="violation-meta">
-              <span *ngIf="!sessionMode"><tui-icon icon="@tui.user"></tui-icon> {{ v.learner_name }}</span>
-              <span *ngIf="!sessionMode"><tui-icon icon="@tui.file-text"></tui-icon> {{ truncate(v.assessment_title, 25) }}</span>
-              <span><tui-icon icon="@tui.clock"></tui-icon> {{ formatDateTime(v.created_at) }}</span>
-            </div>
-            <!-- Dismiss info -->
-            <div class="dismiss-info" *ngIf="v.dismissed">
-              Dismissed by {{ v.dismissed_by_name }} - {{ v.dismiss_reason }}
-            </div>
-          </div>
-          <div class="violation-actions">
-            <button class="btn btn-sm btn-primary" *ngIf="v.evidence_url"
-                    (click)="viewEvidence(v)" title="View Evidence">
-              <tui-icon icon="@tui.image"></tui-icon>
-            </button>
-            <button class="btn btn-sm btn-secondary" *ngIf="!v.dismissed"
-                    (click)="openDismissModal(v)" title="Dismiss">
-              <tui-icon icon="@tui.x-circle"></tui-icon>
+          <div class="ui-section__actions bulk-bar" *ngIf="selectedIds.length > 0">
+            <span class="ui-pill ui-pill--brand">{{ selectedIds.length }} selected</span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="bulkDismiss()">
+              <tui-icon icon="@tui.x-circle"></tui-icon> Dismiss Selected
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Pagination -->
-      <div class="pagination-bar" *ngIf="filteredViolations.length > pageSize">
-        <span class="text-muted small">{{ filteredViolations.length }} violations</span>
-        <div class="pagination-controls">
-          <button class="btn btn-sm btn-secondary" (click)="page = page - 1" [disabled]="page <= 1">
-            <tui-icon icon="@tui.chevron-left"></tui-icon>
-          </button>
-          <span class="page-info">{{ page }} / {{ totalPages }}</span>
-          <button class="btn btn-sm btn-secondary" (click)="page = page + 1" [disabled]="page >= totalPages">
-            <tui-icon icon="@tui.chevron-right"></tui-icon>
+        <!-- Top Violation Types -->
+        <div class="ui-filters type-chips" *ngIf="!sessionMode && violationStats.by_type.length > 0">
+          <button type="button" class="ui-filter type-chip" *ngFor="let t of violationStats.by_type.slice(0, 8)"
+                [class.is-active]="filterType === t.type"
+                (click)="filterType = filterType === t.type ? '' : t.type; applyFilters()">
+            <tui-icon [icon]="getViolationIcon(t.type)"></tui-icon>
+            {{ formatType(t.type) }} <span class="ui-filter__count">{{ t.count }}</span>
           </button>
         </div>
-      </div>
 
-      <!-- Empty / Loading -->
-      <div class="empty-state" *ngIf="!loading && filteredViolations.length === 0">
-        <tui-icon icon="@tui.check-circle"></tui-icon>
-        <h5>{{ hasFilters() ? 'No Matching Violations' : 'No Violations Recorded' }}</h5>
-      </div>
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading violations...</p>
-      </div>
+        <!-- Filters -->
+        <div class="ui-toolbar filters-bar">
+          <div class="ui-search search-box">
+            <i class="bi bi-search"></i>
+            <input type="search" placeholder="Search violations..."
+                   [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
+          </div>
+          <div class="ui-filters">
+            <select class="form-select" [(ngModel)]="filterDismissed" (change)="applyFilters()">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+            <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="severity">Severity</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Violations List -->
+        <div class="violations-list" *ngIf="!loading && filteredViolations.length > 0">
+          <div class="violation-card" *ngFor="let v of paginatedViolations"
+               [ngClass]="'border-' + v.severity" [class.dismissed]="v.dismissed">
+            <div class="violation-select">
+              <input type="checkbox" class="form-check-input" [checked]="selectedIds.includes(v.violation_id)"
+                     (change)="toggleSelect(v.violation_id)">
+            </div>
+            <div class="violation-severity-icon" [ngClass]="'sev-icon-' + v.severity">
+              <tui-icon [icon]="getViolationIcon(v.violation_type)"></tui-icon>
+            </div>
+            <div class="violation-body">
+              <div class="violation-header-row">
+                <span class="violation-type-label">{{ formatType(v.violation_type) }}</span>
+                <span class="ui-pill severity-pill" [ngClass]="'pill-' + v.severity">{{ v.severity }}</span>
+                <span class="ui-pill ui-pill--neutral dismissed-pill" *ngIf="v.dismissed">Dismissed</span>
+              </div>
+              <p class="violation-description" *ngIf="v.description">{{ v.description }}</p>
+              <div class="violation-meta">
+                <span *ngIf="!sessionMode"><tui-icon icon="@tui.user"></tui-icon> {{ v.learner_name }}</span>
+                <span *ngIf="!sessionMode"><tui-icon icon="@tui.file-text"></tui-icon> {{ truncate(v.assessment_title, 25) }}</span>
+                <span><tui-icon icon="@tui.clock"></tui-icon> {{ formatDateTime(v.created_at) }}</span>
+              </div>
+              <!-- Dismiss info -->
+              <div class="dismiss-info" *ngIf="v.dismissed">
+                Dismissed by {{ v.dismissed_by_name }} - {{ v.dismiss_reason }}
+              </div>
+            </div>
+            <div class="violation-actions">
+              <button class="btn btn-sm btn-primary" *ngIf="v.evidence_url"
+                      (click)="viewEvidence(v)" title="View Evidence">
+                <tui-icon icon="@tui.image"></tui-icon>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary" *ngIf="!v.dismissed"
+                      (click)="openDismissModal(v)" title="Dismiss">
+                <tui-icon icon="@tui.x-circle"></tui-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-bar" *ngIf="filteredViolations.length > pageSize">
+          <span class="ui-muted small">{{ filteredViolations.length }} violations</span>
+          <div class="pagination-controls">
+            <button class="btn btn-sm btn-outline-secondary" (click)="page = page - 1" [disabled]="page <= 1">
+              <tui-icon icon="@tui.chevron-left"></tui-icon>
+            </button>
+            <span class="page-info">{{ page }} / {{ totalPages }}</span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="page = page + 1" [disabled]="page >= totalPages">
+              <tui-icon icon="@tui.chevron-right"></tui-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty / Loading -->
+        <div class="ui-state empty-state" *ngIf="!loading && filteredViolations.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-check-circle"></i></span>
+          <h3>{{ hasFilters() ? 'No Matching Violations' : 'No Violations Recorded' }}</h3>
+        </div>
+        <div class="loading-state" *ngIf="loading">
+          <div class="spinner-border text-primary"></div>
+          <p>Loading violations...</p>
+        </div>
+      </section>
 
       <!-- ==========================================
            EVIDENCE MODAL
@@ -213,7 +221,7 @@ interface ViolationType {
                    controls class="evidence-video"></video>
             <div class="evidence-details mt-3">
               <p><strong>Type:</strong> {{ formatType(evidenceTarget.violation_type) }}</p>
-              <p><strong>Severity:</strong> <span [ngClass]="'pill-' + evidenceTarget.severity" class="severity-pill">{{ evidenceTarget.severity }}</span></p>
+              <p><strong>Severity:</strong> <span [ngClass]="'pill-' + evidenceTarget.severity" class="ui-pill severity-pill">{{ evidenceTarget.severity }}</span></p>
               <p><strong>Time:</strong> {{ formatDateTime(evidenceTarget.created_at) }}</p>
               <p *ngIf="evidenceTarget.description"><strong>Description:</strong> {{ evidenceTarget.description }}</p>
             </div>
@@ -248,99 +256,71 @@ interface ViolationType {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary btn-sm" (click)="showDismissModal = false">Cancel</button>
+            <button class="btn btn-outline-secondary btn-sm" (click)="showDismissModal = false">Cancel</button>
             <button class="btn btn-primary btn-sm" (click)="executeDismiss()">Dismiss</button>
           </div>
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .violation-viewer-container { padding: 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.875rem; margin: 0.25rem 0 0; }
-
-    .stats-row { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .stat-card { background: #fff; border: 2px solid #e9ecef; border-radius: 0.5rem; padding: 0.625rem 1rem;
-      text-align: center; flex: 1; min-width: 80px; cursor: pointer; transition: all 0.2s; }
-    .stat-card:hover { border-color: #6c757d; }
-    .stat-card.active { background: #e8f0fe; border-color: #0d6efd; }
-    .stat-value { display: block; font-size: 1.25rem; font-weight: 700; }
-    .stat-label { font-size: 0.6875rem; color: #6c757d; }
-    .sev-low .stat-value { color: #ffc107; }
-    .sev-med .stat-value { color: #fd7e14; }
-    .sev-high .stat-value { color: #dc3545; }
-    .sev-crit .stat-value { color: #6f42c1; }
-
-    .type-chips { display: flex; gap: 0.375rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .type-chip {
-      display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.625rem; font-size: 0.75rem;
-      border: 1px solid #dee2e6; border-radius: 2rem; cursor: pointer; background: #fff; transition: all 0.2s;
-    }
-    .type-chip:hover { border-color: #6c757d; }
-    .type-chip.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
-
-    .filters-bar { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
-    .search-box { position: relative; flex: 1; min-width: 200px; }
-    .search-box tui-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #adb5bd; }
-    .search-box input { padding-left: 2rem; font-size: 0.875rem; }
-    .form-select { width: auto; min-width: 120px; }
-
-    .bulk-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: #e8f0fe;
-      border-radius: 0.375rem; margin-bottom: 0.75rem; }
+    /* Page chrome (header, KPIs, section, toolbar, pills, states) comes from the global UI kit. */
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .ui-section__head { align-items: center; }
+    .ui-toolbar { margin-bottom: 16px; }
+    .ui-search { flex: 1 1 260px; }
+    .type-chips { margin-bottom: 14px; }
 
     /* Violation Cards */
     .violations-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .violation-card {
       display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 1rem;
-      background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; border-left: 4px solid;
+      background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); border-left: 3px solid;
     }
     .violation-card.dismissed { opacity: 0.6; }
-    .border-low { border-left-color: #ffc107; }
-    .border-medium { border-left-color: #fd7e14; }
-    .border-high { border-left-color: #dc3545; }
-    .border-critical { border-left-color: #6f42c1; }
+    .border-low { border-left-color: var(--ui-info, #2563a8); }
+    .border-medium { border-left-color: var(--ui-warning, #b25e09); }
+    .border-high { border-left-color: var(--ui-danger, #c0352b); }
+    .border-critical { border-left-color: var(--ui-danger-text, #a12c24); }
     .violation-select { padding-top: 0.25rem; }
     .violation-severity-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
       justify-content: center; flex-shrink: 0; }
-    .sev-icon-low { background: #fff3cd; color: #856404; }
-    .sev-icon-medium { background: #ffe0b2; color: #e65100; }
-    .sev-icon-high { background: #f8d7da; color: #842029; }
-    .sev-icon-critical { background: #e8daef; color: #4a235a; }
-    .violation-body { flex: 1; }
-    .violation-header-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+    .sev-icon-low { background: rgba(var(--ui-info-rgb), .1); color: var(--ui-info-text, #1d518c); }
+    .sev-icon-medium { background: rgba(var(--ui-warning-rgb), .1); color: var(--ui-warning-text, #8f4b07); }
+    .sev-icon-high { background: rgba(var(--ui-danger-rgb), .1); color: var(--ui-danger-text, #a12c24); }
+    .sev-icon-critical { background: rgba(var(--ui-danger-rgb), .18); color: var(--ui-danger-text, #a12c24); }
+    .violation-body { flex: 1; min-width: 0; }
+    .violation-header-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap; }
     .violation-type-label { font-weight: 600; font-size: 0.875rem; }
-    .severity-pill { font-size: 0.625rem; padding: 0.0625rem 0.375rem; border-radius: 1rem; text-transform: capitalize; font-weight: 500; }
-    .pill-low { background: #fff3cd; color: #856404; }
-    .pill-medium { background: #ffe0b2; color: #e65100; }
-    .pill-high { background: #f8d7da; color: #842029; }
-    .pill-critical { background: #e8daef; color: #4a235a; }
-    .dismissed-pill { font-size: 0.625rem; padding: 0.0625rem 0.375rem; border-radius: 1rem; background: #e2e3e5; color: #6c757d; }
-    .violation-description { font-size: 0.8125rem; color: #495057; margin: 0.25rem 0; }
-    .violation-meta { display: flex; gap: 0.75rem; font-size: 0.6875rem; color: #adb5bd; }
+    .severity-pill { text-transform: capitalize; }
+    .pill-low { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .pill-medium { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .pill-high { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .pill-critical { background: rgba(var(--ui-danger-rgb), .16); border-color: rgba(var(--ui-danger-rgb), .4); color: var(--ui-danger-text); }
+    .violation-description { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); margin: 0.25rem 0; }
+    .violation-meta { display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--ui-text-subtle, #8d948e); }
     .violation-meta span { display: flex; align-items: center; gap: 0.25rem; }
-    .dismiss-info { font-size: 0.6875rem; color: #6c757d; font-style: italic; margin-top: 0.25rem; }
+    .dismiss-info { font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); font-style: italic; margin-top: 0.25rem; }
     .violation-actions { display: flex; gap: 0.25rem; flex-shrink: 0; }
 
-    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0; margin-top: 16px; border-top: 1px solid var(--ui-border, #e7e9e7); }
     .pagination-controls { display: flex; align-items: center; gap: 0.5rem; }
-    .page-info { font-size: 0.8125rem; color: #6c757d; }
+    .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
 
-    .empty-state, .loading-state { text-align: center; padding: 2rem; }
-    .empty-state tui-icon { font-size: 2rem; color: #adb5bd; margin-bottom: 0.5rem; }
+    .loading-state { text-align: center; padding: 2rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Modals */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1050;
       display: flex; align-items: center; justify-content: center; }
-    .modal-dialog { background: #fff; border-radius: 0.5rem; max-width: 600px; width: 95%; }
+    .modal-dialog { background: var(--ui-surface, #fff); border-radius: var(--ui-radius-card, 12px); max-width: 600px; width: 95%; }
     .modal-dialog.modal-sm { max-width: 400px; }
-    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--ui-border, #e7e9e7); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 1rem; font-weight: 650; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
     .modal-body { padding: 1.25rem; }
-    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 0.5rem; }
-    .evidence-image { max-width: 100%; max-height: 400px; border-radius: 0.375rem; border: 1px solid #dee2e6; }
-    .evidence-video { max-width: 100%; border-radius: 0.375rem; }
+    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid var(--ui-border, #e7e9e7); display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .evidence-image { max-width: 100%; max-height: 400px; border-radius: var(--ui-radius-ctl, 8px); border: 1px solid var(--ui-border, #e7e9e7); }
+    .evidence-video { max-width: 100%; border-radius: var(--ui-radius-ctl, 8px); }
   `]
 })
 export class ViolationViewerComponent implements OnInit, OnDestroy {

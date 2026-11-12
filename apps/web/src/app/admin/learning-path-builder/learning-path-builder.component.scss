@@ -1,17 +1,15 @@
 // learning-path-builder/learning-path-builder.component.scss
 
-// Variables
-$primary-color: #6366f1;
-$primary-light: #e0e7ff;
-$success-color: #22c55e;
-$warning-color: #f59e0b;
-$danger-color: #ef4444;
-$text-color: #1f2937;
-$text-muted: #6b7280;
-$border-color: #e5e7eb;
-$bg-light: #f9fafb;
-$card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-$card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
+// Page chrome (header, KPIs, buttons, pills) comes from the global UI kit in
+// styles.scss. Colours below map onto the kit's tokens and the tenant brand.
+$primary-color: var(--brand-primary);
+$primary-light: rgba(var(--brand-primary-rgb), .08);
+$danger-color: var(--ui-danger, #c0352b);
+$text-color: var(--ui-text);
+$text-muted: var(--ui-text-muted);
+$border-color: var(--ui-border);
+$bg-light: var(--ui-surface-2);
+$card-shadow-hover: 0 6px 20px rgba(16, 24, 18, .06);
 
 // Loading Container
 .loading-container {
@@ -25,11 +23,8 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 .learning-path-builder {
   display: grid;
   grid-template-columns: 1fr 320px;
-  grid-template-rows: 1fr auto;
-  gap: 24px;
-  padding: 24px;
-  min-height: calc(100vh - 120px);
-  background-color: $bg-light;
+  gap: 20px;
+  align-items: start;
 }
 
 // Main Content Area
@@ -39,56 +34,22 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   gap: 20px;
 }
 
-// Stats Bar
-.stats-bar {
-  display: flex;
-  gap: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: $card-shadow;
-  overflow: hidden;
-
-  .stat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px 20px;
-    border-right: 1px solid $border-color;
-
-    &:last-child {
-      border-right: none;
-    }
-
-    .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: $text-color;
-      line-height: 1;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: $text-muted;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 4px;
-    }
-  }
-}
-
 // Content Section
 .content-section {
-  background: white;
-  border-radius: 12px;
-  box-shadow: $card-shadow;
+  background: var(--ui-surface);
+  border: 1px solid $border-color;
+  border-radius: var(--ui-radius-panel);
   overflow: hidden;
 
   &.section-block {
-    border: 2px solid transparent;
+    margin-bottom: 16px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
 
     &:hover {
-      border-color: rgba($primary-color, 0.2);
+      border-color: rgba(var(--brand-primary-rgb), .35);
     }
   }
 }
@@ -99,7 +60,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid $border-color;
-  background: white;
+  background: var(--ui-surface);
 
   .section-title-group {
     display: flex;
@@ -171,7 +132,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   i.bi-plus-circle {
     font-size: 48px;
-    color: #d1d5db;
+    color: var(--ui-text-subtle);
     margin-bottom: 16px;
   }
 
@@ -206,7 +167,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: white;
+  background: var(--ui-surface);
   border: 1px solid $border-color;
   border-radius: 8px;
   margin-bottom: 8px;
@@ -214,7 +175,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   cursor: default;
 
   &:hover {
-    border-color: rgba($primary-color, 0.3);
+    border-color: rgba(var(--brand-primary-rgb), .35);
     box-shadow: $card-shadow-hover;
 
     .item-actions {
@@ -238,7 +199,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 .item-drag-handle {
   cursor: grab;
   padding: 4px;
-  color: #d1d5db;
+  color: var(--ui-text-subtle);
 
   &:hover {
     color: $text-muted;
@@ -265,18 +226,18 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   &.icon-course {
-    background: #dbeafe;
-    i { color: #3b82f6; }
+    background: rgba(var(--brand-primary-rgb), .1);
+    i { color: var(--brand-primary); }
   }
 
   &.icon-assessment {
-    background: #dcfce7;
-    i { color: #22c55e; }
+    background: rgba(var(--ui-success-rgb), .1);
+    i { color: var(--ui-success, #2e7d4f); }
   }
 
   &.icon-external_link {
-    background: #fef3c7;
-    i { color: #f59e0b; }
+    background: rgba(var(--ui-warning-rgb), .1);
+    i { color: var(--ui-warning, #b25e09); }
   }
 }
 
@@ -307,7 +268,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .separator {
-      color: #d1d5db;
+      color: var(--ui-text-subtle);
     }
   }
 }
@@ -349,7 +310,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   &.text-danger:hover {
-    background: #fef2f2;
+    background: rgba(var(--ui-danger-rgb), .08);
     color: $danger-color;
   }
 
@@ -366,14 +327,14 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-panel {
-  background: white;
-  border-radius: 12px;
-  box-shadow: $card-shadow;
+  background: var(--ui-surface);
+  border: 1px solid $border-color;
+  border-radius: var(--ui-radius-panel);
   padding: 20px;
 
   .panel-title {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 1.0625rem;
+    font-weight: 650;
     color: $text-color;
     margin-bottom: 8px;
   }
@@ -401,7 +362,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
       color: $text-muted;
 
       i {
-        color: #fbbf24;
+        color: var(--brand-primary);
         font-size: 14px;
         margin-top: 2px;
       }
@@ -424,8 +385,8 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 20px 12px;
-  background: white;
+  padding: 18px 12px;
+  background: var(--ui-surface);
   border: 1px solid $border-color;
   border-radius: 10px;
   cursor: pointer;
@@ -452,41 +413,12 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 }
 
-// Footer
-.builder-footer {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: $card-shadow;
-  position: sticky;
-  bottom: 16px;
-  margin-top: auto;
-
-  .footer-actions {
-    display: flex;
-    gap: 12px;
-  }
-
-  .btn-link {
-    color: $text-muted;
-    font-size: 20px;
-
-    &:hover {
-      color: $text-color;
-    }
-  }
-}
-
 // Modals
 .modal-dialog-centered {
   .modal-content {
     border: none;
-    border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border-radius: var(--ui-radius-panel, 14px);
+    box-shadow: 0 20px 50px rgba(16, 24, 18, 0.18);
   }
 
   .modal-header {
@@ -524,13 +456,13 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   input {
     padding-left: 42px;
-    border-radius: 10px;
+    border-radius: var(--ui-radius-ctl, 8px);
     border: 1px solid $border-color;
-    height: 44px;
+    height: 40px;
 
     &:focus {
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+      border-color: rgba(var(--brand-primary-rgb), .55);
+      box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .12);
     }
   }
 }
@@ -549,7 +481,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   align-items: center;
   gap: 14px;
   padding: 14px;
-  background: white;
+  background: var(--ui-surface);
   border: 1px solid $border-color;
   border-radius: 10px;
   cursor: pointer;
@@ -638,7 +570,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   align-items: center;
   gap: 14px;
   padding: 14px;
-  background: white;
+  background: var(--ui-surface);
   border: 1px solid $border-color;
   border-radius: 10px;
   cursor: pointer;
@@ -663,7 +595,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 44px;
     height: 44px;
     border-radius: 10px;
-    background: #dcfce7;
+    background: rgba(var(--ui-success-rgb), .1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -671,7 +603,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 
     i {
       font-size: 20px;
-      color: #22c55e;
+      color: var(--ui-success, #2e7d4f);
     }
   }
 
@@ -697,7 +629,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
       span:not(:last-child)::after {
         content: "•";
         margin-left: 8px;
-        color: #d1d5db;
+        color: var(--ui-text-subtle);
       }
     }
   }
@@ -717,7 +649,7 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   i {
     font-size: 48px;
-    color: #d1d5db;
+    color: var(--ui-text-subtle);
     margin-bottom: 16px;
   }
 
@@ -731,7 +663,6 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
 @media (max-width: 1024px) {
   .learning-path-builder {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
   }
 
   .builder-sidebar {
@@ -741,33 +672,11 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
     gap: 16px;
   }
 
-  .builder-footer {
-    position: static;
-  }
 }
 
 @media (max-width: 768px) {
   .learning-path-builder {
-    padding: 16px;
     gap: 16px;
-  }
-
-  .stats-bar {
-    flex-wrap: wrap;
-
-    .stat {
-      flex: 1 1 50%;
-      border-right: none;
-      border-bottom: 1px solid $border-color;
-
-      &:nth-child(3), &:nth-child(4) {
-        border-bottom: none;
-      }
-
-      &:nth-child(odd) {
-        border-right: 1px solid $border-color;
-      }
-    }
   }
 
   .quick-add-grid {
@@ -792,11 +701,3 @@ $card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-// Badge styles for subtlety
-.bg-primary-subtle {
-  background-color: #e0e7ff !important;
-}
-
-.text-primary {
-  color: $primary-color !important;
-}

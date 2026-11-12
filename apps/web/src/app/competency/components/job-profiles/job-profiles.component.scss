@@ -17,10 +17,14 @@
 }
 
 .profile-row {
-  border: 1px solid var(--bs-border-color, #e5e7eb);
-  border-radius: 0.75rem;
-  background: var(--bs-body-bg, #fff);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-surface);
   overflow: hidden;
+  font-size: .875rem;
+  transition: border-color .15s ease;
+
+  &:hover { border-color: var(--ui-border-strong); }
 }
 
 .profile-head {
@@ -31,7 +35,7 @@
   cursor: pointer;
 
   &:hover {
-    background: var(--bs-tertiary-bg, #f9fafb);
+    background: var(--ui-surface-2);
   }
 
   .chev {
@@ -55,8 +59,8 @@
   background: #64748b;
 
   &.k { background: #64748b; }
-  &.s { background: #2563eb; }
-  &.m { background: #7c3aed; }
+  &.s { background: rgba(var(--brand-primary-rgb), .65); }
+  &.m { background: var(--brand-primary); }
 }
 
 // --- requirement editor ---------------------------------------------------
@@ -102,17 +106,6 @@
       background: var(--brand-primary, #6d5ef6);
       border-color: var(--brand-primary, #6d5ef6);
     }
-  }
-}
-
-.empty-panel {
-  background: var(--bs-tertiary-bg, #f9fafb);
-  border: 1px dashed var(--bs-border-color, #e5e7eb);
-  border-radius: 0.75rem;
-
-  .empty-icon {
-    font-size: 2.5rem;
-    color: var(--bs-secondary-color, #9ca3af);
   }
 }
 

@@ -1,67 +1,80 @@
 <div class="lp-wrap">
-  <header class="lp-header">
-    <h1>{{ 'plan.my_title' | translate }}</h1>
-    <p>{{ 'plan.my_subtitle' | translate }}</p>
-  </header>
+  <div class="ui-section__head lp-header">
+    <div>
+      <h2 class="ui-section__title">{{ 'plan.my_title' | translate }}</h2>
+      <p class="ui-section__subtitle">{{ 'plan.my_subtitle' | translate }}</p>
+    </div>
+  </div>
 
   <div class="lp-state" *ngIf="loading">
-    <div class="spinner-border text-primary"></div>
+    <div class="spinner-border lp-spinner"></div>
   </div>
-  <div class="lp-state error" *ngIf="failed && !loading">{{ 'plan.failed' | translate }}</div>
+  <div class="ui-state" *ngIf="failed && !loading">
+    <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+    <p>{{ 'plan.failed' | translate }}</p>
+  </div>
 
-  <div class="lp-empty" *ngIf="!loading && !failed && years.length === 0">
-    <i class="bi bi-calendar2-week"></i>
+  <div class="ui-state" *ngIf="!loading && !failed && years.length === 0">
+    <span class="ui-state__icon"><i class="bi bi-calendar2-week"></i></span>
     <p>{{ 'plan.none_assigned' | translate }}</p>
   </div>
 
   <ng-container *ngIf="!loading && !failed && years.length">
-    <div class="year-tabs" role="tablist">
-      <button type="button" *ngFor="let y of years" role="tab"
-              [class.active]="activeYear === y" (click)="activeYear = y">
-        {{ y }} {{ 'plan.plan_word' | translate }}
-      </button>
+    <div class="ui-toolbar">
+      <div class="ui-filters year-tabs" role="tablist">
+        <button type="button" class="ui-filter" *ngFor="let y of years" role="tab"
+                [class.is-active]="activeYear === y" (click)="activeYear = y">
+          {{ y }} {{ 'plan.plan_word' | translate }}
+        </button>
+      </div>
     </div>
 
     <ng-container *ngIf="activeYear !== null">
-      <div class="year-progress" *ngIf="yearCompletion(activeYear) as yc">
-        <div class="yp-bar"><div class="yp-fill" [style.width.%]="yc.rate"></div></div>
-        <span class="yp-text">{{ yc.completed }} / {{ yc.total }} {{ 'plan.completed_of' | translate }} · {{ yc.rate }}%</span>
+      <div class="ui-progress year-progress" *ngIf="yearCompletion(activeYear) as yc">
+        <div class="ui-bar"><span [style.width.%]="yc.rate"></span></div>
+        <span class="ui-pct yp-text">{{ yc.completed }} / {{ yc.total }} {{ 'plan.completed_of' | translate }} · {{ yc.rate }}%</span>
       </div>
 
-      <section class="plan-card" *ngFor="let plan of plansForYear(activeYear)">
-        <div class="plan-head" *ngIf="plansForYear(activeYear).length > 1 || plan.description">
-          <h2>{{ plan.title }}</h2>
-          <p *ngIf="plan.description">{{ plan.description }}</p>
+      <section class="ui-section plan-card" *ngFor="let plan of plansForYear(activeYear)">
+        <div class="ui-section__head plan-head" *ngIf="plansForYear(activeYear).length > 1 || plan.description">
+          <div>
+            <h3 class="ui-section__title">{{ plan.title }}</h3>
+            <p class="ui-section__subtitle" *ngIf="plan.description">{{ plan.description }}</p>
+          </div>
         </div>
 
-        <ul class="item-list">
+        <ul class="ui-list item-list">
           <li class="plan-item" *ngFor="let item of plan.items" [attr.data-status]="item.status">
             <div class="item-main">
               <span class="item-title">
                 <i class="bi" [ngClass]="item.isCourse ? 'bi-journal-text' : 'bi-easel'"></i>
                 {{ item.title }}
-                <span class="mandatory" *ngIf="item.isMandatory">{{ 'plan.mandatory' | translate }}</span>
+                <span class="ui-pill ui-pill--warning mandatory" *ngIf="item.isMandatory">{{ 'plan.mandatory' | translate }}</span>
               </span>
-              <span class="status-badge" [attr.data-status]="item.status">
-                {{ statusKey(item.status) | translate }}
+              <span class="ui-pill status-badge" [attr.data-status]="item.status"
+                    [class.ui-pill--success]="item.status === 'completed'"
+                    [class.ui-pill--info]="item.status === 'in_progress'"
+                    [class.ui-pill--warning]="item.status === 'scheduled'"
+                    [class.ui-pill--neutral]="item.status === 'not_scheduled'">
+                <span class="ui-pill__dot"></span>{{ statusKey(item.status) | translate }}
               </span>
             </div>
 
             <div class="item-controls">
               <label class="sched" *ngIf="item.status !== 'completed' && item.status !== 'in_progress'">
                 {{ 'plan.target_date' | translate }}
-                <input type="date" [ngModel]="item.scheduledDate"
+                <input type="date" class="form-control form-control-sm" [ngModel]="item.scheduledDate"
                        (ngModelChange)="setSchedule(item, $event)">
               </label>
 
-              <button class="btn btn-sm btn-primary" *ngIf="item.isCourse" (click)="openCourse(item)">
+              <button type="button" class="btn btn-sm btn-primary" *ngIf="item.isCourse" (click)="openCourse(item)">
                 {{ (item.status === 'completed' ? 'plan.review' : item.status === 'in_progress' ? 'plan.continue' : 'plan.start') | translate }}
               </button>
 
               <ng-container *ngIf="!item.isCourse && item.status !== 'completed'">
-                <button class="btn btn-sm btn-outline-primary" *ngIf="item.status !== 'in_progress'"
+                <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="item.status !== 'in_progress'"
                         (click)="startIntervention(item)">{{ 'plan.mark_started' | translate }}</button>
-                <button class="btn btn-sm btn-success" (click)="markComplete(item)">{{ 'plan.mark_done' | translate }}</button>
+                <button type="button" class="btn btn-sm btn-primary" (click)="markComplete(item)">{{ 'plan.mark_done' | translate }}</button>
               </ng-container>
             </div>
           </li>

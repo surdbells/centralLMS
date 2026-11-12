@@ -68,427 +68,398 @@ interface Category {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="assessment-list-container">
+    <main class="main">
+    <div class="ui-page assessment-list-container">
       <!-- Header -->
-      <div class="page-header">
-        <div>
-          <h1 class="page-title"><tui-icon icon="@tui.clipboard-list"></tui-icon> Assessments</h1>
-          <p class="page-subtitle">Create and manage assessments for your learners</p>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clipboard-check"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Assessments</h1>
+          <p>Create and manage assessments for your learners</p>
         </div>
-        <button class="btn btn-primary" (click)="createNew()">
-          <tui-icon icon="@tui.plus"></tui-icon> New Assessment
-        </button>
-      </div>
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-primary" (click)="createNew()">
+            <i class="bi bi-plus-lg"></i> New Assessment
+          </button>
+        </div>
+      </header>
 
       <!-- Stats Cards -->
-      <div class="stats-row">
-        <div class="stat-card" (click)="filterByStatus('')" [class.active]="!filters.status">
-          <div class="stat-value">{{ stats.total }}</div>
-          <div class="stat-label">Total</div>
+      <div class="ui-kpi-grid stats-row">
+        <button type="button" class="ui-kpi ui-kpi--brand" (click)="filterByStatus('')" [class.is-active]="!filters.status">
+          <span class="ui-kpi__label"><i class="bi bi-collection"></i> Total</span>
+          <span class="ui-kpi__value">{{ stats.total }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--success" (click)="filterByStatus('published')" [class.is-active]="filters.status === 'published'">
+          <span class="ui-kpi__label"><i class="bi bi-broadcast"></i> Published</span>
+          <span class="ui-kpi__value">{{ stats.published }}</span>
+        </button>
+        <button type="button" class="ui-kpi" (click)="filterByStatus('draft')" [class.is-active]="filters.status === 'draft'">
+          <span class="ui-kpi__label"><i class="bi bi-pencil"></i> Draft</span>
+          <span class="ui-kpi__value">{{ stats.draft }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" (click)="filterByStatus('closed')" [class.is-active]="filters.status === 'closed'">
+          <span class="ui-kpi__label"><i class="bi bi-lock"></i> Closed</span>
+          <span class="ui-kpi__value">{{ stats.closed }}</span>
+        </button>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-people"></i> Total Attempts</span>
+          <span class="ui-kpi__value">{{ stats.total_attempts | number }}</span>
         </div>
-        <div class="stat-card stat-published" (click)="filterByStatus('published')" [class.active]="filters.status === 'published'">
-          <div class="stat-value">{{ stats.published }}</div>
-          <div class="stat-label">Published</div>
-        </div>
-        <div class="stat-card stat-draft" (click)="filterByStatus('draft')" [class.active]="filters.status === 'draft'">
-          <div class="stat-value">{{ stats.draft }}</div>
-          <div class="stat-label">Draft</div>
-        </div>
-        <div class="stat-card stat-closed" (click)="filterByStatus('closed')" [class.active]="filters.status === 'closed'">
-          <div class="stat-value">{{ stats.closed }}</div>
-          <div class="stat-label">Closed</div>
-        </div>
-        <div class="stat-card stat-attempts">
-          <div class="stat-value">{{ stats.total_attempts | number }}</div>
-          <div class="stat-label">Total Attempts</div>
-        </div>
-        <div class="stat-card stat-pass">
-          <div class="stat-value">{{ stats.avg_pass_rate }}%</div>
-          <div class="stat-label">Avg Pass Rate</div>
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-percent"></i> Avg Pass Rate</span>
+          <span class="ui-kpi__value">{{ stats.avg_pass_rate }}<small>%</small></span>
         </div>
       </div>
 
-      <!-- Toolbar -->
-      <div class="toolbar">
-        <div class="toolbar-left">
-          <div class="search-box">
-            <tui-icon icon="@tui.search"></tui-icon>
-            <input type="text" placeholder="Search assessments..." [(ngModel)]="filters.search"
-                   (ngModelChange)="onSearchChange($event)">
-            <button class="clear-btn" *ngIf="filters.search" (click)="filters.search = ''; loadAssessments()">
-              <tui-icon icon="@tui.x"></tui-icon>
+      <section class="ui-section">
+        <!-- Toolbar -->
+        <div class="ui-toolbar">
+          <div class="ui-filters">
+            <label class="ui-search search-box">
+              <i class="bi bi-search"></i>
+              <input type="search" placeholder="Search assessments..." aria-label="Search assessments" [(ngModel)]="filters.search"
+                     (ngModelChange)="onSearchChange($event)">
+              <button type="button" class="clear-btn" *ngIf="filters.search" (click)="filters.search = ''; loadAssessments()" aria-label="Clear search">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </label>
+            <select class="form-select" [(ngModel)]="filters.type" (change)="loadAssessments()" aria-label="Type">
+              <option value="">All Types</option>
+              <option value="quiz">Quiz</option>
+              <option value="exam">Exam</option>
+              <option value="practice">Practice</option>
+              <option value="survey">Survey</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filters.proctoring" (change)="loadAssessments()" aria-label="Proctoring">
+              <option value="">All Proctoring</option>
+              <option value="none">None</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="advanced">Advanced</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filters.category_id" (change)="loadAssessments()" aria-label="Category">
+              <option value="">All Categories</option>
+              <option *ngFor="let c of categories" [value]="c.category_id">{{ c.name }} ({{ c.assessment_count }})</option>
+            </select>
+          </div>
+          <div class="ui-filters">
+            <select class="form-select" [(ngModel)]="sortField" (change)="loadAssessments()" aria-label="Sort by">
+              <option value="updated_at">Last Updated</option>
+              <option value="created_at">Created</option>
+              <option value="title">Title</option>
+              <option value="total_attempts">Most Attempts</option>
+              <option value="pass_rate">Pass Rate</option>
+            </select>
+            <button type="button" class="btn btn-outline-secondary icon-btn" (click)="toggleSortDir()" [attr.aria-label]="sortDir === 'desc' ? 'Descending' : 'Ascending'">
+              <i class="bi" [class.bi-sort-down]="sortDir === 'desc'" [class.bi-sort-up]="sortDir !== 'desc'"></i>
+            </button>
+            <div class="view-toggle" role="group" aria-label="View">
+              <button type="button" class="vt" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" aria-label="Grid view">
+                <i class="bi bi-grid"></i>
+              </button>
+              <button type="button" class="vt" [class.active]="viewMode === 'table'" (click)="viewMode = 'table'" aria-label="Table view">
+                <i class="bi bi-list-ul"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="bulk-bar" *ngIf="selectedCount > 0">
+          <span class="ui-pill ui-pill--brand">{{ selectedCount }} selected</span>
+          <button type="button" class="btn btn-sm btn-primary" (click)="bulkAction('publish')">Publish</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="bulkAction('close')">Close</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="bulkAction('archive')">Archive</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" (click)="bulkAction('delete')">Delete</button>
+          <button type="button" class="btn btn-sm btn-link" (click)="clearSelection()">Cancel</button>
+        </div>
+
+        <!-- GRID VIEW -->
+        <div class="ui-grid assessment-grid" *ngIf="!loading && viewMode === 'grid' && assessments.length > 0">
+          <article class="ui-card assessment-card" *ngFor="let a of assessments" [class.selected-card]="a.is_selected">
+            <div class="card-header-bar">
+              <input type="checkbox" class="form-check-input" [(ngModel)]="a.is_selected" (click)="$event.stopPropagation()" aria-label="Select">
+              <span class="ui-pill type-badge" [ngClass]="'type-' + a.assessment_type">{{ a.assessment_type }}</span>
+              <span class="ui-pill status-badge ms-auto" [ngClass]="'status-' + a.status" [title]="a.status"><span class="ui-pill__dot"></span>{{ a.status }}</span>
+            </div>
+            <div class="ui-card__body card-body-content" (click)="editAssessment(a)">
+              <h3 class="ui-card__title">{{ a.title }}</h3>
+              <p class="card-desc" *ngIf="a.description">{{ a.description | slice:0:80 }}{{ a.description.length > 80 ? '...' : '' }}</p>
+              <div class="ui-card__meta card-meta">
+                <span><i class="bi bi-question-circle"></i> {{ a.total_questions }} Q</span>
+                <span><i class="bi bi-star"></i> {{ a.total_points }} pts</span>
+                <span *ngIf="a.time_limit_minutes"><i class="bi bi-clock"></i> {{ a.time_limit_minutes }}m</span>
+                <span *ngIf="a.proctoring_level !== 'none'" class="ui-pill proctor-chip" [ngClass]="'proctor-' + a.proctoring_level">
+                  <i class="bi bi-shield-check"></i> {{ a.proctoring_level }}
+                </span>
+              </div>
+              <div class="card-stats">
+                <div class="mini-stat">
+                  <span class="mini-val">{{ a.total_attempts }}</span>
+                  <span class="mini-lbl">Attempts</span>
+                </div>
+                <div class="mini-stat">
+                  <span class="mini-val">{{ a.total_completions }}</span>
+                  <span class="mini-lbl">Completed</span>
+                </div>
+                <div class="mini-stat">
+                  <span class="mini-val" [ngClass]="getPassRateClass(a.pass_rate)">{{ a.pass_rate }}%</span>
+                  <span class="mini-lbl">Pass Rate</span>
+                </div>
+                <div class="mini-stat">
+                  <span class="mini-val">{{ a.avg_score | number:'1.0-1' }}%</span>
+                  <span class="mini-lbl">Avg Score</span>
+                </div>
+              </div>
+            </div>
+            <div class="ui-card__footer card-footer-bar">
+              <span class="card-date">{{ formatDate(a.updated_at) }}</span>
+              <div class="card-actions">
+                <button type="button" class="btn-ghost" (click)="previewAssessment(a)" title="Preview" aria-label="Preview">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button type="button" class="btn-ghost" (click)="cloneAssessment(a)" title="Clone" aria-label="Clone">
+                  <i class="bi bi-copy"></i>
+                </button>
+                <button type="button" class="btn-ghost" (click)="manageQuestions(a)" title="Questions" aria-label="Questions">
+                  <i class="bi bi-list-ol"></i>
+                </button>
+                <button type="button" class="btn-ghost" (click)="viewResults(a)" title="Results" aria-label="Results">
+                  <i class="bi bi-bar-chart"></i>
+                </button>
+                <div class="dropdown-wrapper">
+                  <button type="button" class="btn-ghost" (click)="toggleMenu(a.assessment_id, $event)" aria-label="More actions">
+                    <i class="bi bi-three-dots-vertical"></i>
+                  </button>
+                  <div class="dropdown-menu-custom" *ngIf="openMenuId === a.assessment_id">
+                    <button type="button" (click)="editAssessment(a)"><i class="bi bi-pencil-square"></i> Edit</button>
+                    <button type="button" (click)="manageAssignments(a)"><i class="bi bi-people"></i> Assignments</button>
+                    <button type="button" *ngIf="a.status === 'draft'" (click)="publishAssessment(a)">
+                      <i class="bi bi-send"></i> Publish
+                    </button>
+                    <button type="button" *ngIf="a.status === 'published'" (click)="closeAssessment(a)">
+                      <i class="bi bi-lock"></i> Close
+                    </button>
+                    <hr>
+                    <button type="button" class="text-danger" (click)="deleteAssessment(a)">
+                      <i class="bi bi-trash3"></i> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- TABLE VIEW -->
+        <div class="ui-table-wrap" *ngIf="!loading && viewMode === 'table' && assessments.length > 0">
+          <table class="table align-middle">
+            <thead>
+              <tr>
+                <th width="30"><input type="checkbox" class="form-check-input" [checked]="allSelected" (change)="toggleSelectAll()" aria-label="Select all"></th>
+                <th>Assessment</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th class="text-center">Questions</th>
+                <th class="text-center">Attempts</th>
+                <th class="text-center">Pass Rate</th>
+                <th>Proctoring</th>
+                <th>Updated</th>
+                <th width="100">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let a of assessments" [class.table-active]="a.is_selected">
+                <td><input type="checkbox" class="form-check-input" [(ngModel)]="a.is_selected" aria-label="Select"></td>
+                <td>
+                  <a class="assess-link" (click)="editAssessment(a)">{{ a.title }}</a>
+                  <small class="ui-muted d-block" *ngIf="a.course_title">{{ a.course_title }}</small>
+                </td>
+                <td><span class="ui-pill type-badge sm" [ngClass]="'type-' + a.assessment_type">{{ a.assessment_type }}</span></td>
+                <td><span class="ui-pill status-badge" [ngClass]="'status-' + a.status"><span class="ui-pill__dot"></span>{{ a.status }}</span></td>
+                <td class="text-center">{{ a.total_questions }}</td>
+                <td class="text-center">{{ a.total_attempts }}</td>
+                <td class="text-center"><span [ngClass]="getPassRateClass(a.pass_rate)">{{ a.pass_rate }}%</span></td>
+                <td>
+                  <span class="ui-pill proctor-chip sm" [ngClass]="'proctor-' + a.proctoring_level" *ngIf="a.proctoring_level !== 'none'">
+                    {{ a.proctoring_level }}
+                  </span>
+                  <span class="ui-muted" *ngIf="a.proctoring_level === 'none'">-</span>
+                </td>
+                <td><small>{{ formatDate(a.updated_at) }}</small></td>
+                <td>
+                  <div class="table-actions">
+                    <button type="button" class="btn-ghost" (click)="editAssessment(a)" title="Edit" aria-label="Edit">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button type="button" class="btn-ghost" (click)="cloneAssessment(a)" title="Clone" aria-label="Clone">
+                      <i class="bi bi-copy"></i>
+                    </button>
+                    <button type="button" class="btn-ghost text-danger" (click)="deleteAssessment(a)" title="Delete" aria-label="Delete">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-bar" *ngIf="totalPages > 1">
+          <span class="ui-result-count mb-0">{{ totalItems }} assessments</span>
+          <div class="pagination-controls">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="page = 1; loadAssessments()" [disabled]="page <= 1" aria-label="First page">
+              <i class="bi bi-chevron-double-left"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="page = page - 1; loadAssessments()" [disabled]="page <= 1" aria-label="Previous page">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="page = page + 1; loadAssessments()" [disabled]="page >= totalPages" aria-label="Next page">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="page = totalPages; loadAssessments()" [disabled]="page >= totalPages" aria-label="Last page">
+              <i class="bi bi-chevron-double-right"></i>
             </button>
           </div>
-          <select class="form-select form-select-sm" [(ngModel)]="filters.type" (change)="loadAssessments()">
-            <option value="">All Types</option>
-            <option value="quiz">Quiz</option>
-            <option value="exam">Exam</option>
-            <option value="practice">Practice</option>
-            <option value="survey">Survey</option>
-          </select>
-          <select class="form-select form-select-sm" [(ngModel)]="filters.proctoring" (change)="loadAssessments()">
-            <option value="">All Proctoring</option>
-            <option value="none">None</option>
-            <option value="basic">Basic</option>
-            <option value="standard">Standard</option>
-            <option value="advanced">Advanced</option>
-          </select>
-          <select class="form-select form-select-sm" [(ngModel)]="filters.category_id" (change)="loadAssessments()">
-            <option value="">All Categories</option>
-            <option *ngFor="let c of categories" [value]="c.category_id">{{ c.name }} ({{ c.assessment_count }})</option>
-          </select>
         </div>
-        <div class="toolbar-right">
-          <select class="form-select form-select-sm" [(ngModel)]="sortField" (change)="loadAssessments()">
-            <option value="updated_at">Last Updated</option>
-            <option value="created_at">Created</option>
-            <option value="title">Title</option>
-            <option value="total_attempts">Most Attempts</option>
-            <option value="pass_rate">Pass Rate</option>
-          </select>
-          <button class="btn btn-sm btn-secondary" (click)="toggleSortDir()">
-            <tui-icon [icon]="sortDir === 'desc' ? '@tui.arrow-down' : '@tui.arrow-up'"></tui-icon>
+
+        <!-- Empty State -->
+        <div class="ui-state" *ngIf="!loading && assessments.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-clipboard"></i></span>
+          <h3>{{ hasActiveFilters ? 'No matching assessments' : 'No assessments yet' }}</h3>
+          <p>{{ hasActiveFilters ? 'Try adjusting your filters' : 'Create your first assessment to get started' }}</p>
+          <button type="button" class="btn btn-primary" *ngIf="!hasActiveFilters" (click)="createNew()">
+            <i class="bi bi-plus-lg"></i> Create Assessment
           </button>
-          <button class="btn btn-sm" [ngClass]="viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'"
-                  (click)="viewMode = 'grid'">
-            <tui-icon icon="@tui.grid"></tui-icon>
-          </button>
-          <button class="btn btn-sm" [ngClass]="viewMode === 'table' ? 'btn-primary' : 'btn-secondary'"
-                  (click)="viewMode = 'table'">
-            <tui-icon icon="@tui.list"></tui-icon>
-          </button>
+          <button type="button" class="btn btn-outline-secondary" *ngIf="hasActiveFilters" (click)="resetFilters()">Reset Filters</button>
         </div>
-      </div>
 
-      <!-- Bulk Actions -->
-      <div class="bulk-bar" *ngIf="selectedCount > 0">
-        <span>{{ selectedCount }} selected</span>
-        <button class="btn btn-sm btn-success" (click)="bulkAction('publish')">Publish</button>
-        <button class="btn btn-sm btn-outline-warning" (click)="bulkAction('close')">Close</button>
-        <button class="btn btn-sm btn-secondary" (click)="bulkAction('archive')">Archive</button>
-        <button class="btn btn-sm btn-outline-danger" (click)="bulkAction('delete')">Delete</button>
-        <button class="btn btn-sm btn-link" (click)="clearSelection()">Cancel</button>
-      </div>
-
-      <!-- GRID VIEW -->
-      <div class="assessment-grid" *ngIf="!loading && viewMode === 'grid' && assessments.length > 0">
-        <div class="assessment-card" *ngFor="let a of assessments" [class.selected-card]="a.is_selected">
-          <div class="card-header-bar">
-            <input type="checkbox" [(ngModel)]="a.is_selected" (click)="$event.stopPropagation()">
-            <span class="type-badge" [ngClass]="'type-' + a.assessment_type">{{ a.assessment_type }}</span>
-            <span class="status-dot" [ngClass]="'dot-' + a.status" [title]="a.status"></span>
-          </div>
-          <div class="card-body-content" (click)="editAssessment(a)">
-            <h3 class="card-title">{{ a.title }}</h3>
-            <p class="card-desc" *ngIf="a.description">{{ a.description | slice:0:80 }}{{ a.description.length > 80 ? '...' : '' }}</p>
-            <div class="card-meta">
-              <span><tui-icon icon="@tui.help-circle"></tui-icon> {{ a.total_questions }} Q</span>
-              <span><tui-icon icon="@tui.star"></tui-icon> {{ a.total_points }} pts</span>
-              <span *ngIf="a.time_limit_minutes"><tui-icon icon="@tui.clock"></tui-icon> {{ a.time_limit_minutes }}m</span>
-              <span *ngIf="a.proctoring_level !== 'none'" class="proctor-chip" [ngClass]="'proctor-' + a.proctoring_level">
-                <tui-icon icon="@tui.shield"></tui-icon> {{ a.proctoring_level }}
-              </span>
-            </div>
-            <div class="card-stats">
-              <div class="mini-stat">
-                <span class="mini-val">{{ a.total_attempts }}</span>
-                <span class="mini-lbl">Attempts</span>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-val">{{ a.total_completions }}</span>
-                <span class="mini-lbl">Completed</span>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-val" [ngClass]="getPassRateClass(a.pass_rate)">{{ a.pass_rate }}%</span>
-                <span class="mini-lbl">Pass Rate</span>
-              </div>
-              <div class="mini-stat">
-                <span class="mini-val">{{ a.avg_score | number:'1.0-1' }}%</span>
-                <span class="mini-lbl">Avg Score</span>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer-bar">
-            <span class="card-date">{{ formatDate(a.updated_at) }}</span>
-            <div class="card-actions">
-              <button class="btn btn-sm btn-ghost" (click)="previewAssessment(a)" title="Preview">
-                <tui-icon icon="@tui.eye"></tui-icon>
-              </button>
-              <button class="btn btn-sm btn-ghost" (click)="cloneAssessment(a)" title="Clone">
-                <tui-icon icon="@tui.copy"></tui-icon>
-              </button>
-              <button class="btn btn-sm btn-ghost" (click)="manageQuestions(a)" title="Questions">
-                <tui-icon icon="@tui.list-ordered"></tui-icon>
-              </button>
-              <button class="btn btn-sm btn-ghost" (click)="viewResults(a)" title="Results">
-                <tui-icon icon="@tui.bar-chart-2"></tui-icon>
-              </button>
-              <div class="dropdown-wrapper">
-                <button class="btn btn-sm btn-ghost" (click)="toggleMenu(a.assessment_id, $event)">
-                  <tui-icon icon="@tui.more-vertical"></tui-icon>
-                </button>
-                <div class="dropdown-menu-custom" *ngIf="openMenuId === a.assessment_id">
-                  <button (click)="editAssessment(a)"><tui-icon icon="@tui.edit-3"></tui-icon> Edit</button>
-                  <button (click)="manageAssignments(a)"><tui-icon icon="@tui.users"></tui-icon> Assignments</button>
-                  <button *ngIf="a.status === 'draft'" (click)="publishAssessment(a)">
-                    <tui-icon icon="@tui.send"></tui-icon> Publish
-                  </button>
-                  <button *ngIf="a.status === 'published'" (click)="closeAssessment(a)">
-                    <tui-icon icon="@tui.lock"></tui-icon> Close
-                  </button>
-                  <hr>
-                  <button class="text-danger" (click)="deleteAssessment(a)">
-                    <tui-icon icon="@tui.trash-2"></tui-icon> Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- Loading -->
+        <div class="loading-state" *ngIf="loading">
+          <div class="spinner-border text-secondary"></div>
+          <p class="ui-muted">Loading assessments...</p>
         </div>
-      </div>
-
-      <!-- TABLE VIEW -->
-      <div class="table-responsive" *ngIf="!loading && viewMode === 'table' && assessments.length > 0">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th width="30"><input type="checkbox" [checked]="allSelected" (change)="toggleSelectAll()"></th>
-              <th>Assessment</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th class="text-center">Questions</th>
-              <th class="text-center">Attempts</th>
-              <th class="text-center">Pass Rate</th>
-              <th>Proctoring</th>
-              <th>Updated</th>
-              <th width="100">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let a of assessments" [class.table-active]="a.is_selected">
-              <td><input type="checkbox" [(ngModel)]="a.is_selected"></td>
-              <td>
-                <a class="assess-link" (click)="editAssessment(a)">{{ a.title }}</a>
-                <small class="text-muted d-block" *ngIf="a.course_title">{{ a.course_title }}</small>
-              </td>
-              <td><span class="type-badge sm" [ngClass]="'type-' + a.assessment_type">{{ a.assessment_type }}</span></td>
-              <td><span class="status-badge" [ngClass]="'status-' + a.status">{{ a.status }}</span></td>
-              <td class="text-center">{{ a.total_questions }}</td>
-              <td class="text-center">{{ a.total_attempts }}</td>
-              <td class="text-center"><span [ngClass]="getPassRateClass(a.pass_rate)">{{ a.pass_rate }}%</span></td>
-              <td>
-                <span class="proctor-chip sm" [ngClass]="'proctor-' + a.proctoring_level" *ngIf="a.proctoring_level !== 'none'">
-                  {{ a.proctoring_level }}
-                </span>
-                <span class="text-muted" *ngIf="a.proctoring_level === 'none'">-</span>
-              </td>
-              <td><small>{{ formatDate(a.updated_at) }}</small></td>
-              <td>
-                <div class="table-actions">
-                  <button class="btn btn-sm btn-ghost" (click)="editAssessment(a)" title="Edit">
-                    <tui-icon icon="@tui.edit-3"></tui-icon>
-                  </button>
-                  <button class="btn btn-sm btn-ghost" (click)="cloneAssessment(a)" title="Clone">
-                    <tui-icon icon="@tui.copy"></tui-icon>
-                  </button>
-                  <button class="btn btn-sm btn-ghost text-danger" (click)="deleteAssessment(a)" title="Delete">
-                    <tui-icon icon="@tui.trash-2"></tui-icon>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Pagination -->
-      <div class="pagination-bar" *ngIf="totalPages > 1">
-        <span class="text-muted small">{{ totalItems }} assessments</span>
-        <div class="pagination-controls">
-          <button class="btn btn-sm btn-secondary" (click)="page = 1; loadAssessments()" [disabled]="page <= 1">
-            <tui-icon icon="@tui.chevrons-left"></tui-icon>
-          </button>
-          <button class="btn btn-sm btn-secondary" (click)="page = page - 1; loadAssessments()" [disabled]="page <= 1">
-            <tui-icon icon="@tui.chevron-left"></tui-icon>
-          </button>
-          <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
-          <button class="btn btn-sm btn-secondary" (click)="page = page + 1; loadAssessments()" [disabled]="page >= totalPages">
-            <tui-icon icon="@tui.chevron-right"></tui-icon>
-          </button>
-          <button class="btn btn-sm btn-secondary" (click)="page = totalPages; loadAssessments()" [disabled]="page >= totalPages">
-            <tui-icon icon="@tui.chevrons-right"></tui-icon>
-          </button>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <div class="empty-state" *ngIf="!loading && assessments.length === 0">
-        <tui-icon icon="@tui.clipboard"></tui-icon>
-        <h4>{{ hasActiveFilters ? 'No matching assessments' : 'No assessments yet' }}</h4>
-        <p class="text-muted">{{ hasActiveFilters ? 'Try adjusting your filters' : 'Create your first assessment to get started' }}</p>
-        <button class="btn btn-primary" *ngIf="!hasActiveFilters" (click)="createNew()">
-          <tui-icon icon="@tui.plus"></tui-icon> Create Assessment
-        </button>
-        <button class="btn btn-secondary" *ngIf="hasActiveFilters" (click)="resetFilters()">Reset Filters</button>
-      </div>
-
-      <!-- Loading -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading assessments...</p>
-      </div>
+      </section>
 
       <!-- Delete Confirm Modal -->
       <div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
         <div class="modal-dialog" (click)="$event.stopPropagation()">
           <div class="modal-header">
-            <h5><tui-icon icon="@tui.alert-triangle"></tui-icon> Confirm Delete</h5>
-            <button class="btn-close" (click)="showDeleteConfirm = false"></button>
+            <h5><i class="bi bi-exclamation-triangle text-danger"></i> Confirm Delete</h5>
+            <button type="button" class="btn-close" (click)="showDeleteConfirm = false" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <p>Are you sure you want to delete <strong>{{ deleteTarget?.title }}</strong>?</p>
-            <p class="text-muted small" *ngIf="deleteTarget?.total_attempts">
+            <p class="ui-muted small" *ngIf="deleteTarget?.total_attempts">
               This assessment has {{ deleteTarget?.total_attempts }} attempts. All data will be permanently lost.
             </p>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="showDeleteConfirm = false">Cancel</button>
-            <button class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+            <button type="button" class="btn btn-outline-secondary" (click)="showDeleteConfirm = false">Cancel</button>
+            <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
               <span class="spinner-border spinner-border-sm me-1" *ngIf="deleting"></span> Delete
             </button>
           </div>
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .assessment-list-container { padding: 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
-    .page-title { font-size: 1.375rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.8125rem; margin: 0.125rem 0 0; }
+    :host { display: block; }
 
-    /* Stats */
-    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
-    .stat-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.75rem 1rem;
-      cursor: pointer; transition: all 0.2s; text-align: center; }
-    .stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .stat-card.active { border-color: #0d6efd; background: #f0f6ff; }
-    .stat-value { font-size: 1.375rem; font-weight: 700; }
-    .stat-label { font-size: 0.6875rem; color: #6c757d; text-transform: uppercase; font-weight: 600; }
-    .stat-published .stat-value { color: #198754; }
-    .stat-draft .stat-value { color: #6c757d; }
-    .stat-closed .stat-value { color: #dc3545; }
-    .stat-attempts .stat-value { color: #0d6efd; }
-    .stat-pass .stat-value { color: #0d6efd; }
+    .stats-row { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 20px; }
+    @media (max-width: 1199.98px) { .stats-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 767.98px) { .stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
     /* Toolbar */
-    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem;
-      flex-wrap: wrap; }
-    .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .search-box { position: relative; display: flex; align-items: center; }
-    .search-box tui-icon { position: absolute; left: 0.5rem; font-size: 0.875rem; color: #adb5bd; }
-    .search-box input { padding: 0.375rem 2rem 0.375rem 1.75rem; border: 1px solid #dee2e6; border-radius: 0.375rem;
-      font-size: 0.8125rem; width: 220px; }
-    .search-box input:focus { outline: none; border-color: #86b7fe; }
-    .clear-btn { position: absolute; right: 0.375rem; background: none; border: none; color: #adb5bd; cursor: pointer; padding: 0; }
-    .form-select-sm { font-size: 0.8125rem; max-width: 150px; }
+    .ui-toolbar { margin-bottom: 16px; }
+    .search-box { flex-basis: 260px; }
+    .search-box > input { padding-right: 32px; }
+    .clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ui-text-subtle); cursor: pointer; padding: 2px; line-height: 1; font-size: .75rem; }
+    .clear-btn:hover { color: var(--ui-text); }
+    .icon-btn { width: var(--ui-ctl-h); height: var(--ui-ctl-h); padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .view-toggle { display: inline-flex; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl); overflow: hidden; height: var(--ui-ctl-h); }
+    .vt { width: 38px; border: 0; background: var(--ui-surface); cursor: pointer; color: var(--ui-text-muted); }
+    .vt + .vt { border-left: 1px solid var(--ui-border); }
+    .vt:hover { color: var(--ui-text); }
+    .vt.active { background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); }
 
     /* Bulk Bar */
-    .bulk-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #e7f1ff;
-      border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.8125rem; font-weight: 500; }
+    .bulk-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: rgba(var(--brand-primary-rgb), .05);
+      border: 1px solid rgba(var(--brand-primary-rgb), .2); border-radius: var(--ui-radius-card); margin-bottom: 16px; font-size: .8125rem; }
 
     /* Grid */
-    .assessment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-    .assessment-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.625rem; overflow: hidden;
-      transition: all 0.2s; }
-    .assessment-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .assessment-card.selected-card { border-color: #0d6efd; background: #fafcff; }
-    .card-header-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem;
-      background: #f8f9fa; border-bottom: 1px solid #f0f0f0; }
-    .card-body-content { padding: 0.75rem; cursor: pointer; }
-    .card-title { font-size: 0.9375rem; font-weight: 600; margin: 0 0 0.25rem; }
-    .card-desc { font-size: 0.75rem; color: #6c757d; margin: 0 0 0.5rem; line-height: 1.4; }
-    .card-meta { display: flex; gap: 0.625rem; flex-wrap: wrap; font-size: 0.6875rem; color: #6c757d; margin-bottom: 0.625rem; }
-    .card-meta span { display: flex; align-items: center; gap: 0.125rem; }
-    .card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; text-align: center;
-      background: #f8f9fa; margin: 0 -0.75rem -0.75rem; padding: 0.5rem 0.75rem; border-top: 1px solid #f0f0f0; }
+    .assessment-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .assessment-card { overflow: visible; }
+    .assessment-card.selected-card { border-color: rgba(var(--brand-primary-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .1); }
+    .card-header-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; }
+    .card-header-bar .form-check-input { margin: 0; }
+    .card-body-content { cursor: pointer; gap: 8px; }
+    .card-body-content:hover .ui-card__title { color: var(--brand-primary); }
+    .card-desc { font-size: .8125rem; color: var(--ui-text-muted); margin: 0; line-height: 1.45; }
+    .card-meta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: .75rem; }
+    .card-meta > span:not(.ui-pill) { display: inline-flex; align-items: center; gap: 4px; }
+    .card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center;
+      background: var(--ui-surface-2); border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl); padding: 8px; margin-top: 2px; }
     .mini-stat { display: flex; flex-direction: column; }
-    .mini-val { font-size: 0.875rem; font-weight: 600; }
-    .mini-lbl { font-size: 0.5625rem; color: #6c757d; text-transform: uppercase; }
-    .card-footer-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.375rem 0.75rem;
-      border-top: 1px solid #f0f0f0; }
-    .card-date { font-size: 0.6875rem; color: #adb5bd; }
-    .card-actions { display: flex; gap: 0.125rem; }
-    .btn-ghost { background: none; border: none; color: #6c757d; cursor: pointer; padding: 0.25rem; border-radius: 0.25rem; }
-    .btn-ghost:hover { background: #f0f0f0; color: #212529; }
+    .mini-val { font-size: .875rem; font-weight: 650; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+    .mini-lbl { font-size: .625rem; color: var(--ui-text-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .card-footer-bar { padding: 8px 12px 8px 16px; }
+    .card-date { font-size: .75rem; color: var(--ui-text-subtle); }
+    .card-actions { display: flex; gap: 2px; }
+    .btn-ghost { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--ui-text-muted); cursor: pointer; border-radius: var(--ui-radius-ctl); }
+    .btn-ghost:hover { background: var(--ui-surface-2); color: var(--ui-text); }
 
-    /* Badges */
-    .type-badge { font-size: 0.625rem; padding: 0.125rem 0.5rem; border-radius: 1rem; font-weight: 600; text-transform: uppercase; }
-    .type-badge.sm { font-size: 0.5625rem; }
-    .type-quiz { background: #cfe2ff; color: #084298; }
-    .type-exam { background: #f8d7da; color: #842029; }
-    .type-practice { background: #d1e7dd; color: #0f5132; }
-    .type-survey { background: #fff3cd; color: #664d03; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .dot-published { background: #198754; }
-    .dot-draft { background: #adb5bd; }
-    .dot-closed { background: #dc3545; }
-    .dot-archived { background: #6c757d; }
-    .status-badge { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 500; text-transform: capitalize; }
-    .status-published { background: #d1e7dd; color: #0f5132; }
-    .status-draft { background: #e2e3e5; color: #495057; }
-    .status-closed { background: #f8d7da; color: #842029; }
-    .status-archived { background: #e2e3e5; color: #6c757d; }
-    .proctor-chip { font-size: 0.625rem; padding: 0.0625rem 0.375rem; border-radius: 0.25rem; text-transform: capitalize; font-weight: 500;
-      display: inline-flex; align-items: center; gap: 0.125rem; }
-    .proctor-chip.sm { font-size: 0.5625rem; }
-    .proctor-basic { background: #cfe2ff; color: #084298; }
-    .proctor-standard { background: #fff3cd; color: #664d03; }
-    .proctor-advanced { background: #f8d7da; color: #842029; }
+    /* Badges: soft tones */
+    .type-badge, .status-badge, .proctor-chip { text-transform: capitalize; height: 22px; font-size: .6875rem; }
+    .type-badge { text-transform: uppercase; letter-spacing: .03em; }
+    .type-quiz, .proctor-basic { background: rgba(var(--brand-primary-rgb), .1); border-color: rgba(var(--brand-primary-rgb), .28); color: var(--brand-primary); }
+    .type-exam, .status-closed, .proctor-advanced { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .type-practice, .status-published { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .type-survey, .proctor-standard { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .status-draft, .status-archived { background: rgba(var(--ui-neutral-rgb), .08); border-color: rgba(var(--ui-neutral-rgb), .22); color: var(--ui-neutral-text); }
 
-    .pass-high { color: #198754; font-weight: 600; }
-    .pass-mid { color: #fd7e14; font-weight: 600; }
-    .pass-low { color: #dc3545; font-weight: 600; }
+    .pass-high { color: var(--ui-success-text); font-weight: 600; }
+    .pass-mid { color: var(--ui-warning-text); font-weight: 600; }
+    .pass-low { color: var(--ui-danger-text); font-weight: 600; }
 
     /* Table */
-    .table { font-size: 0.8125rem; }
-    .table th { font-size: 0.6875rem; text-transform: uppercase; color: #6c757d; font-weight: 600; white-space: nowrap; }
-    .assess-link { color: #0d6efd; cursor: pointer; text-decoration: none; font-weight: 500; }
-    .assess-link:hover { text-decoration: underline; }
-    .table-actions { display: flex; gap: 0.25rem; }
+    .table { font-size: .8125rem; }
+    .table th { white-space: nowrap; }
+    .assess-link { color: var(--ui-text); cursor: pointer; text-decoration: none; font-weight: 600; }
+    .assess-link:hover { color: var(--brand-primary); }
+    .table-actions { display: flex; gap: 2px; }
 
     /* Dropdown */
     .dropdown-wrapper { position: relative; }
-    .dropdown-menu-custom { position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid #e9ecef;
-      border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 20; min-width: 160px; padding: 0.25rem 0; }
-    .dropdown-menu-custom button { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.375rem 0.75rem;
-      border: none; background: none; font-size: 0.8125rem; cursor: pointer; text-align: left; }
-    .dropdown-menu-custom button:hover { background: #f8f9fa; }
-    .dropdown-menu-custom hr { margin: 0.25rem 0; border-color: #f0f0f0; }
+    .dropdown-menu-custom { position: absolute; right: 0; top: 100%; background: var(--ui-surface); border: 1px solid var(--ui-border);
+      border-radius: var(--ui-radius-card); box-shadow: var(--ui-shadow-pop); z-index: 20; min-width: 170px; padding: 4px; }
+    .dropdown-menu-custom button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px;
+      border: none; background: none; font-size: .8125rem; cursor: pointer; text-align: left; border-radius: 6px; color: var(--ui-text); }
+    .dropdown-menu-custom button.text-danger { color: var(--ui-danger-text) !important; }
+    .dropdown-menu-custom button:hover { background: var(--ui-surface-2); }
+    .dropdown-menu-custom hr { margin: 4px 0; border-color: var(--ui-border); opacity: 1; }
 
     /* Pagination */
-    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; margin-top: 0.5rem; }
-    .pagination-controls { display: flex; align-items: center; gap: 0.375rem; }
-    .page-info { font-size: 0.8125rem; color: #6c757d; min-width: 100px; text-align: center; }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--ui-border); }
+    .pagination-controls { display: flex; align-items: center; gap: 6px; }
+    .page-info { font-size: .8125rem; color: var(--ui-text-muted); min-width: 100px; text-align: center; font-variant-numeric: tabular-nums; }
 
-    .empty-state, .loading-state { text-align: center; padding: 3rem; }
-    .empty-state tui-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 0.75rem; }
+    .loading-state { text-align: center; padding: 3rem; }
 
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1050;
+    .modal-overlay { position: fixed; inset: 0; background: rgba(16, 24, 18, .4); z-index: 1050;
       display: flex; align-items: center; justify-content: center; }
-    .modal-dialog { background: #fff; border-radius: 0.75rem; max-width: 480px; width: 90%; }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem;
-      border-bottom: 1px solid #e9ecef; }
-    .modal-header h5 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1rem; }
-    .modal-body { padding: 1.25rem; }
-    .modal-footer { display: flex; justify-content: flex-end; gap: 0.5rem; padding: 0.75rem 1.25rem; border-top: 1px solid #e9ecef; }
-
-    @media (max-width: 768px) {
-      .assessment-grid { grid-template-columns: 1fr; }
-      .toolbar { flex-direction: column; }
-      .stats-row { grid-template-columns: repeat(3, 1fr); }
-    }
+    .modal-dialog { background: var(--ui-surface); border-radius: var(--ui-radius-panel); max-width: 480px; width: 90%; margin: 0; box-shadow: var(--ui-shadow-pop); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+      border-bottom: 1px solid var(--ui-border); }
+    .modal-header h5 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; font-weight: 650; }
+    .modal-body { padding: 20px; font-size: .875rem; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--ui-border); }
   `]
 })
 export class AssessmentListComponent implements OnInit, OnDestroy {

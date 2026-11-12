@@ -2,104 +2,67 @@
 
 <div class="learner-skills-container">
   <!-- Header -->
-  <div class="page-header mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <h1 class="h3 mb-1">{{ 'skills.my_skills' | translate }}</h1>
-        <p class="text-muted mb-0">{{ 'skills.subtitle' | translate }}</p>
-      </div>
-      <div class="d-flex gap-2">
-        <div class="btn-group" role="group">
-          <button type="button" class="btn btn-sm"
-                  [class.btn-primary]="viewMode === 'grid'"
-                  [class.btn-secondary]="viewMode !== 'grid'"
-                  (click)="viewMode = 'grid'">
-            <i class="bi bi-grid-3x3-gap"></i>
-          </button>
-          <button type="button" class="btn btn-sm"
-                  [class.btn-primary]="viewMode === 'list'"
-                  [class.btn-secondary]="viewMode !== 'list'"
-                  (click)="viewMode = 'list'">
-            <i class="bi bi-list"></i>
-          </button>
-        </div>
+  <header class="ui-page-header">
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-stars"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ 'skills.my_skills' | translate }}</h1>
+      <p>{{ 'skills.subtitle' | translate }}</p>
+    </div>
+    <div class="ui-page-header__actions">
+      <div class="ui-filters" role="group">
+        <button type="button" class="ui-filter"
+                [class.is-active]="viewMode === 'grid'"
+                (click)="viewMode = 'grid'">
+          <i class="bi bi-grid-3x3-gap"></i>
+        </button>
+        <button type="button" class="ui-filter"
+                [class.is-active]="viewMode === 'list'"
+                (click)="viewMode = 'list'">
+          <i class="bi bi-list"></i>
+        </button>
       </div>
     </div>
-  </div>
+  </header>
 
   <!-- Summary Cards -->
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-      <div class="stat-card stat-acquired">
-        <div class="stat-icon">
-          <i class="bi bi-star-fill"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ totalSkillsCount }}</div>
-          <div class="stat-label">{{ 'skills.skills_acquired' | translate }}</div>
-        </div>
-      </div>
+  <div class="ui-kpi-grid ui-kpi-grid--4">
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><i class="bi bi-star-fill"></i> {{ 'skills.skills_acquired' | translate }}</span>
+      <span class="ui-kpi__value">{{ totalSkillsCount }}</span>
     </div>
-    <div class="col-6 col-md-3">
-      <div class="stat-card stat-progress">
-        <div class="stat-icon">
-          <i class="bi bi-hourglass-split"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ inProgressCount }}</div>
-          <div class="stat-label">{{ 'skills.in_progress' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--info">
+      <span class="ui-kpi__label"><i class="bi bi-hourglass-split"></i> {{ 'skills.in_progress' | translate }}</span>
+      <span class="ui-kpi__value">{{ inProgressCount }}</span>
     </div>
-    <div class="col-6 col-md-3">
-      <div class="stat-card stat-expert">
-        <div class="stat-icon">
-          <i class="bi bi-trophy"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ expertSkillsCount }}</div>
-          <div class="stat-label">{{ 'skills.expert_level' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--success">
+      <span class="ui-kpi__label"><i class="bi bi-trophy"></i> {{ 'skills.expert_level' | translate }}</span>
+      <span class="ui-kpi__value">{{ expertSkillsCount }}</span>
     </div>
-    <div class="col-6 col-md-3">
-      <div class="stat-card stat-categories">
-        <div class="stat-icon">
-          <i class="bi bi-diagram-3"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ categoryCount }}</div>
-          <div class="stat-label">{{ 'skills.categories' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi">
+      <span class="ui-kpi__label"><i class="bi bi-diagram-3"></i> {{ 'skills.categories' | translate }}</span>
+      <span class="ui-kpi__value">{{ categoryCount }}</span>
     </div>
   </div>
 
   <!-- Tabs -->
-  <ul class="nav nav-pills skill-tabs mb-4">
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'acquired'" (click)="activeTab = 'acquired'">
-        <i class="bi bi-star-fill me-2"></i>{{ 'skills.acquired' | translate }}
-        <span class="badge bg-black text-white ms-2">{{ totalSkillsCount }}</span>
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'progress'" (click)="activeTab = 'progress'">
-        <i class="bi bi-hourglass-split me-2"></i>{{ 'skills.in_progress' | translate }}
-        <span class="badge bg-black text-white ms-2">{{ inProgressCount }}</span>
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'all'" (click)="activeTab = 'all'">
-        <i class="bi bi-collection me-2"></i>{{ 'skills.all_skills' | translate }}
-        <span class="badge bg-black text-white ms-2">{{ allSkills.length }}</span>
-      </button>
-    </li>
-  </ul>
+  <nav class="ui-tabs" role="tablist">
+    <button type="button" class="ui-tab" [class.is-active]="activeTab === 'acquired'" (click)="activeTab = 'acquired'">
+      <i class="bi bi-star-fill"></i> {{ 'skills.acquired' | translate }}
+      <span class="ui-tab__count">{{ totalSkillsCount }}</span>
+    </button>
+    <button type="button" class="ui-tab" [class.is-active]="activeTab === 'progress'" (click)="activeTab = 'progress'">
+      <i class="bi bi-hourglass-split"></i> {{ 'skills.in_progress' | translate }}
+      <span class="ui-tab__count">{{ inProgressCount }}</span>
+    </button>
+    <button type="button" class="ui-tab" [class.is-active]="activeTab === 'all'" (click)="activeTab = 'all'">
+      <i class="bi bi-collection"></i> {{ 'skills.all_skills' | translate }}
+      <span class="ui-tab__count">{{ allSkills.length }}</span>
+    </button>
+  </nav>
 
   <!-- Loading State -->
   <div *ngIf="loading" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status">
+    <div class="spinner-border skills-spinner" role="status">
       <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
     <p class="text-muted mt-3">{{ 'skills.loading_skills' | translate }}</p>
@@ -108,8 +71,8 @@
   <!-- ==================== ACQUIRED SKILLS TAB ==================== -->
   <div *ngIf="!loading && activeTab === 'acquired'">
     <!-- Filter -->
-    <div class="d-flex justify-content-end mb-3">
-      <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLevel">
+    <div class="ui-toolbar justify-content-end">
+      <select class="form-select" [(ngModel)]="selectedLevel">
         <option value="">{{ 'skills.all_levels' | translate }}</option>
         <option value="beginner">{{ 'skills.beginner' | translate }}</option>
         <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
@@ -119,12 +82,10 @@
     </div>
 
     <!-- Empty State -->
-    <div *ngIf="acquiredSkills.length === 0" class="empty-state">
-      <div class="empty-icon">
-        <i class="bi bi-star"></i>
-      </div>
-      <h5>{{ 'skills.empty_acquired_title' | translate }}</h5>
-      <p class="text-muted">{{ 'skills.empty_acquired_text' | translate }}</p>
+    <div *ngIf="acquiredSkills.length === 0" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-star"></i></span>
+      <h3>{{ 'skills.empty_acquired_title' | translate }}</h3>
+      <p>{{ 'skills.empty_acquired_text' | translate }}</p>
       <button class="btn btn-primary" routerLink="/learning">
         <i class="bi bi-book me-2"></i>{{ 'skills.browse_courses' | translate }}
       </button>
@@ -132,10 +93,10 @@
 
     <!-- Skills by Category -->
     <div *ngIf="acquiredSkills.length > 0">
-      <div class="category-section" *ngFor="let category of skillsByCategory; trackBy: trackByCategoryName">
-        <div class="category-header">
+      <section class="ui-section category-section" *ngFor="let category of skillsByCategory; trackBy: trackByCategoryName">
+        <div class="ui-section__head category-header">
           <div class="category-color" [style.background]="category.categoryColour"></div>
-          <h5 class="category-title mb-0">{{ category.categoryName }}</h5>
+          <h2 class="ui-section__title category-title">{{ category.categoryName }}</h2>
           <span class="skill-count">{{ 'skills.skill_count' | translate:{ count: category.skills.length } }}</span>
         </div>
 
@@ -149,7 +110,7 @@
                 </span>
               </div>
               <div class="skill-icon" [style.background]="skill.colour + '20'" [style.color]="skill.colour">
-                <i [class]="skill.icon || 'bi-star'"></i>
+                <i class="bi" [class]="skill.icon || 'bi-star'"></i>
               </div>
               <h6 class="skill-name">{{ skill.name }}</h6>
               <div class="skill-meta">
@@ -167,7 +128,7 @@
           <div class="skill-list-item" *ngFor="let skill of category.skills; trackBy: trackBySkillId"
                (click)="viewSkillCourses(skill)">
             <div class="skill-icon-sm" [style.background]="skill.colour + '20'" [style.color]="skill.colour">
-              <i [class]="skill.icon || 'bi-star'"></i>
+              <i class="bi" [class]="skill.icon || 'bi-star'"></i>
             </div>
             <div class="skill-info">
               <div class="skill-name">{{ skill.name }}</div>
@@ -181,19 +142,17 @@
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 
   <!-- ==================== IN PROGRESS TAB ==================== -->
   <div *ngIf="!loading && activeTab === 'progress'">
     <!-- Empty State -->
-    <div *ngIf="inProgressSkills.length === 0" class="empty-state">
-      <div class="empty-icon">
-        <i class="bi bi-hourglass"></i>
-      </div>
-      <h5>{{ 'skills.empty_progress_title' | translate }}</h5>
-      <p class="text-muted">{{ 'skills.empty_progress_text' | translate }}</p>
+    <div *ngIf="inProgressSkills.length === 0" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-hourglass"></i></span>
+      <h3>{{ 'skills.empty_progress_title' | translate }}</h3>
+      <p>{{ 'skills.empty_progress_text' | translate }}</p>
     </div>
 
     <!-- In Progress Skills -->
@@ -202,7 +161,7 @@
         <div class="skill-progress-card" (click)="viewSkillCourses(skill)">
           <div class="d-flex align-items-start gap-3 mb-3">
             <div class="skill-icon" [style.background]="skill.colour + '20'" [style.color]="skill.colour">
-              <i [class]="skill.icon || 'bi-star'"></i>
+              <i class="bi" [class]="skill.icon || 'bi-star'"></i>
             </div>
             <div class="flex-grow-1">
               <h6 class="mb-1">{{ skill.name }}</h6>
@@ -214,7 +173,7 @@
             <span class="text-muted small">{{ 'skills.progress' | translate }}</span>
             <span class="fw-medium">{{ skill.percentComplete }}%</span>
           </div>
-          <div class="progress mb-3" style="height: 6px;">
+          <div class="progress skill-bar mb-3">
             <div class="progress-bar" [ngClass]="getProgressBarClass(skill.percentComplete)"
                  [style.width.%]="skill.percentComplete"></div>
           </div>
@@ -231,8 +190,8 @@
   <!-- ==================== ALL SKILLS TAB ==================== -->
   <div *ngIf="!loading && activeTab === 'all'">
     <!-- Filter -->
-    <div class="d-flex justify-content-end mb-3">
-      <select class="form-select form-select-sm" style="width: auto;" [(ngModel)]="selectedLevel">
+    <div class="ui-toolbar justify-content-end">
+      <select class="form-select" [(ngModel)]="selectedLevel">
         <option value="">{{ 'skills.all_levels' | translate }}</option>
         <option value="beginner">{{ 'skills.beginner' | translate }}</option>
         <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
@@ -250,7 +209,7 @@
 
           <div class="d-flex align-items-start gap-3 mb-3">
             <div class="skill-icon" [style.background]="skill.colour + '20'" [style.color]="skill.colour">
-              <i [class]="skill.icon || 'bi-star'"></i>
+              <i class="bi" [class]="skill.icon || 'bi-star'"></i>
             </div>
             <div class="flex-grow-1">
               <h6 class="mb-1">{{ skill.name }}</h6>
@@ -265,7 +224,7 @@
             <span class="text-muted small">{{ skill.isHeld ? ('skills.completed' | translate) : ('skills.progress' | translate) }}</span>
             <span class="fw-medium">{{ skill.percentComplete }}%</span>
           </div>
-          <div class="progress mb-3" style="height: 6px;">
+          <div class="progress skill-bar mb-3">
             <div class="progress-bar" [ngClass]="skill.isHeld ? 'bg-success' : getProgressBarClass(skill.percentComplete)"
                  [style.width.%]="skill.percentComplete"></div>
           </div>
@@ -283,12 +242,10 @@
       </div>
     </div>
 
-    <div *ngIf="allSkills.length === 0" class="empty-state">
-      <div class="empty-icon">
-        <i class="bi bi-collection"></i>
-      </div>
-      <h5>{{ 'skills.empty_all_title' | translate }}</h5>
-      <p class="text-muted">{{ 'skills.empty_all_text' | translate }}</p>
+    <div *ngIf="allSkills.length === 0" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-collection"></i></span>
+      <h3>{{ 'skills.empty_all_title' | translate }}</h3>
+      <p>{{ 'skills.empty_all_text' | translate }}</p>
     </div>
   </div>
 </div>
@@ -303,7 +260,7 @@
           <div class="skill-icon-modal"
                [style.background]="(selectedSkill?.colour || '#303234') + '20'"
                [style.color]="selectedSkill?.colour || '#303234'">
-            <i [class]="selectedSkill?.icon || 'bi-star'"></i>
+            <i class="bi" [class]="selectedSkill?.icon || 'bi-star'"></i>
           </div>
           <div>
             <h5 class="modal-title mb-0">{{ selectedSkill?.name }}</h5>

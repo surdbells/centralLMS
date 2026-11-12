@@ -84,18 +84,18 @@ import { I18nService } from '../../../i18n.service';
     .cs { position: relative; }
     .cs-input { cursor: text; }
     .cs-menu {
-      position: absolute; z-index: 20; top: calc(100% + 2px); left: 0; right: 0;
-      margin: 0; padding: .25rem 0; list-style: none;
+      position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
+      margin: 0; padding: 4px; list-style: none;
       max-height: 260px; overflow-y: auto;
-      background: #fff; border: 1px solid #d7dce1; border-radius: .5rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+      background: var(--ui-surface, #fff); border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card);
+      box-shadow: var(--ui-shadow-pop);
     }
-    .cs-opt { padding: .4rem .75rem; cursor: pointer; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cs-opt:hover { background: #eef4fb; }
-    .cs-selected { font-weight: 600; color: #1f5f8b; }
-    .cs-all { color: #566; border-bottom: 1px solid #eee; }
-    .cs-add { color: #1f7a4d; border-top: 1px solid #eee; }
-    .cs-empty { padding: .4rem .75rem; color: #98a2ad; font-size: .85rem; }
+    .cs-opt { padding: 6px 10px; border-radius: var(--ui-radius-ctl); cursor: pointer; font-size: .875rem; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cs-opt:hover { background: var(--ui-surface-2); }
+    .cs-selected { font-weight: 600; color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); }
+    .cs-all { color: var(--ui-text-muted); }
+    .cs-add { color: var(--brand-primary); }
+    .cs-empty { padding: 6px 10px; color: var(--ui-text-subtle); font-size: .8125rem; }
   `],
 })
 export class CycleSelectComponent implements ControlValueAccessor {

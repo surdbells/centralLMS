@@ -92,17 +92,16 @@ interface SystemCheckResult {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="session-review-container">
+    <main class="main">
+    <div class="ui-page session-review-container">
       <!-- Header -->
-      <div class="page-header">
-        <div class="header-left">
-          <h1 class="page-title">
-            <tui-icon icon="@tui.eye"></tui-icon>
-            Proctoring Session Review
-          </h1>
-          <p class="page-subtitle">Review and manage proctored assessment sessions</p>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-eye"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Proctoring Session Review</h1>
+          <p>Review and manage proctored assessment sessions</p>
         </div>
-      </div>
+      </header>
 
       <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice">
         <tui-icon icon="@tui.info"></tui-icon>
@@ -111,170 +110,183 @@ interface SystemCheckResult {
       </div>
 
       <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-card" (click)="filterStatus = ''; applyFilters()" [class.active]="!filterStatus">
-          <span class="stat-value">{{ stats.total }}</span>
-          <span class="stat-label">Total Sessions</span>
-        </div>
-        <div class="stat-card warning" (click)="filterStatus = 'pending_review'; applyFilters()"
-             [class.active]="filterStatus === 'pending_review'">
-          <span class="stat-value">{{ stats.pending_review }}</span>
-          <span class="stat-label">Pending Review</span>
-        </div>
-        <div class="stat-card danger" (click)="filterStatus = 'flagged'; applyFilters()"
-             [class.active]="filterStatus === 'flagged'">
-          <span class="stat-value">{{ stats.flagged }}</span>
-          <span class="stat-label">Flagged</span>
-        </div>
-        <div class="stat-card success" (click)="filterStatus = 'cleared'; applyFilters()"
-             [class.active]="filterStatus === 'cleared'">
-          <span class="stat-value">{{ stats.cleared }}</span>
-          <span class="stat-label">Cleared</span>
-        </div>
-        <div class="stat-card" (click)="filterStatus = 'terminated'; applyFilters()"
-             [class.active]="filterStatus === 'terminated'">
-          <span class="stat-value">{{ stats.terminated }}</span>
-          <span class="stat-label">Terminated</span>
-        </div>
-        <div class="stat-card info">
-          <span class="stat-value">{{ stats.avg_trust_score }}%</span>
-          <span class="stat-label">Avg Trust Score</span>
+      <div class="ui-kpi-grid stats-row">
+        <button type="button" class="ui-kpi ui-kpi--brand" (click)="filterStatus = ''; applyFilters()" [class.is-active]="!filterStatus">
+          <span class="ui-kpi__label"><i class="bi bi-collection"></i> Total Sessions</span>
+          <span class="ui-kpi__value">{{ stats.total }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--warning" (click)="filterStatus = 'pending_review'; applyFilters()"
+             [class.is-active]="filterStatus === 'pending_review'">
+          <span class="ui-kpi__label"><i class="bi bi-hourglass-split"></i> Pending Review</span>
+          <span class="ui-kpi__value">{{ stats.pending_review }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" (click)="filterStatus = 'flagged'; applyFilters()"
+             [class.is-active]="filterStatus === 'flagged'">
+          <span class="ui-kpi__label"><i class="bi bi-flag"></i> Flagged</span>
+          <span class="ui-kpi__value">{{ stats.flagged }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--success" (click)="filterStatus = 'cleared'; applyFilters()"
+             [class.is-active]="filterStatus === 'cleared'">
+          <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> Cleared</span>
+          <span class="ui-kpi__value">{{ stats.cleared }}</span>
+        </button>
+        <button type="button" class="ui-kpi" (click)="filterStatus = 'terminated'; applyFilters()"
+             [class.is-active]="filterStatus === 'terminated'">
+          <span class="ui-kpi__label"><i class="bi bi-x-octagon"></i> Terminated</span>
+          <span class="ui-kpi__value">{{ stats.terminated }}</span>
+        </button>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-shield-check"></i> Avg Trust Score</span>
+          <span class="ui-kpi__value">{{ stats.avg_trust_score }}<small>%</small></span>
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="filters-bar">
-        <div class="search-box">
-          <tui-icon icon="@tui.search"></tui-icon>
-          <input type="text" class="form-control" placeholder="Search learner or assessment..."
-                 [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
-        </div>
-        <select class="form-select form-select-sm" [(ngModel)]="filterLevel" (change)="applyFilters()">
-          <option value="">All Levels</option>
-          <option value="basic">Basic</option>
-          <option value="standard">Standard</option>
-          <option value="advanced">Advanced</option>
-        </select>
-        <select class="form-select form-select-sm" [(ngModel)]="filterTrustRange" (change)="applyFilters()">
-          <option value="">All Trust Scores</option>
-          <option value="high">High (80-100%)</option>
-          <option value="medium">Medium (50-79%)</option>
-          <option value="low">Low (0-49%)</option>
-        </select>
-        <select class="form-select form-select-sm" [(ngModel)]="sortBy" (change)="applyFilters()">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="trust_asc">Trust: Low to High</option>
-          <option value="trust_desc">Trust: High to Low</option>
-          <option value="violations">Most Violations</option>
-        </select>
-      </div>
-
-      <!-- Sessions Table -->
-      <div class="sessions-table" *ngIf="!loading && filteredSessions.length > 0">
-        <table class="table table-hover table-sm">
-          <thead>
-            <tr>
-              <th>Learner</th>
-              <th>Assessment</th>
-              <th>Level</th>
-              <th>Trust Score</th>
-              <th>Violations</th>
-              <th>Status</th>
-              <th>Duration</th>
-              <th>Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let s of paginatedSessions" [class.flagged-row]="s.review_status === 'flagged'"
-                [class.terminated-row]="s.status === 'terminated'">
-              <td>
-                <div class="learner-cell">
-                  <div class="learner-avatar">{{ getInitials(s.learner_name) }}</div>
-                  <div>
-                    <div class="fw-500">{{ s.learner_name }}</div>
-                    <div class="text-muted small">{{ s.learner_email }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div class="fw-500">{{ truncate(s.assessment_title, 30) }}</div>
-                <div class="text-muted small">Attempt #{{ s.attempt_id }}</div>
-              </td>
-              <td>
-                <span class="level-tag" [ngClass]="'level-' + s.proctoring_level">
-                  {{ s.proctoring_level }}
-                </span>
-              </td>
-              <td>
-                <div class="trust-score-cell">
-                  <div class="trust-bar">
-                    <div class="trust-fill" [style.width.%]="s.trust_score"
-                         [ngClass]="getTrustClass(s.trust_score)"></div>
-                  </div>
-                  <span class="trust-value" [ngClass]="getTrustClass(s.trust_score)">{{ s.trust_score }}%</span>
-                </div>
-              </td>
-              <td>
-                <span class="violation-count" [class.has-violations]="s.violation_count > 0">
-                  {{ s.violation_count }}
-                </span>
-              </td>
-              <td>
-                <span class="status-badge" [ngClass]="'status-' + s.review_status">
-                  {{ getStatusLabel(s.review_status) }}
-                </span>
-              </td>
-              <td>{{ s.duration_minutes || 0 }}m</td>
-              <td>
-                <span class="text-muted small">{{ formatDate(s.started_at) }}</span>
-              </td>
-              <td>
-                <div class="action-btns">
-                  <button class="btn btn-sm btn-primary" (click)="openSessionDetail(s)" title="Review">
-                    <tui-icon icon="@tui.eye"></tui-icon>
-                  </button>
-                  <button class="btn btn-sm btn-success" (click)="clearSession(s)" title="Clear"
-                          *ngIf="s.review_status !== 'cleared'">
-                    <tui-icon icon="@tui.check"></tui-icon>
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="flagSession(s)" title="Flag"
-                          *ngIf="s.review_status !== 'flagged'">
-                    <tui-icon icon="@tui.flag"></tui-icon>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Pagination -->
-        <div class="pagination-bar">
-          <span class="text-muted small">{{ filteredSessions.length }} sessions</span>
-          <div class="pagination-controls">
-            <button class="btn btn-sm btn-secondary" (click)="page = page - 1" [disabled]="page <= 1">
-              <tui-icon icon="@tui.chevron-left"></tui-icon>
-            </button>
-            <span class="page-info">{{ page }} / {{ totalPages }}</span>
-            <button class="btn btn-sm btn-secondary" (click)="page = page + 1" [disabled]="page >= totalPages">
-              <tui-icon icon="@tui.chevron-right"></tui-icon>
-            </button>
+      <section class="ui-section ui-section--flush sessions-section">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">Sessions</h2>
+            <p class="ui-section__subtitle">{{ filteredSessions.length }} sessions</p>
           </div>
         </div>
-      </div>
 
-      <!-- Empty -->
-      <div class="empty-state" *ngIf="!loading && filteredSessions.length === 0">
-        <tui-icon icon="@tui.eye-off"></tui-icon>
-        <h4>No Sessions Found</h4>
-        <p class="text-muted">{{ searchTerm || filterStatus ? 'Try adjusting your filters' : 'No proctoring sessions recorded yet' }}</p>
-      </div>
+        <!-- Filters -->
+        <div class="ui-toolbar filters-bar">
+          <div class="ui-search search-box">
+            <i class="bi bi-search"></i>
+            <input type="search" placeholder="Search learner or assessment..."
+                   [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
+          </div>
+          <div class="ui-filters">
+            <select class="form-select" [(ngModel)]="filterLevel" (change)="applyFilters()">
+              <option value="">All Levels</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="advanced">Advanced</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filterTrustRange" (change)="applyFilters()">
+              <option value="">All Trust Scores</option>
+              <option value="high">High (80-100%)</option>
+              <option value="medium">Medium (50-79%)</option>
+              <option value="low">Low (0-49%)</option>
+            </select>
+            <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="trust_asc">Trust: Low to High</option>
+              <option value="trust_desc">Trust: High to Low</option>
+              <option value="violations">Most Violations</option>
+            </select>
+          </div>
+        </div>
 
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading sessions...</p>
-      </div>
+        <!-- Sessions Table -->
+        <div class="sessions-table" *ngIf="!loading && filteredSessions.length > 0">
+          <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Learner</th>
+                <th>Assessment</th>
+                <th>Level</th>
+                <th>Trust Score</th>
+                <th>Violations</th>
+                <th>Status</th>
+                <th>Duration</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of paginatedSessions" [class.flagged-row]="s.review_status === 'flagged'"
+                  [class.terminated-row]="s.status === 'terminated'">
+                <td>
+                  <div class="learner-cell">
+                    <div class="ui-avatar learner-avatar">{{ getInitials(s.learner_name) }}</div>
+                    <div>
+                      <div class="fw-500">{{ s.learner_name }}</div>
+                      <div class="ui-muted small">{{ s.learner_email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="fw-500">{{ truncate(s.assessment_title, 30) }}</div>
+                  <div class="ui-muted small">Attempt #{{ s.attempt_id }}</div>
+                </td>
+                <td>
+                  <span class="ui-pill level-tag" [ngClass]="'level-' + s.proctoring_level">
+                    {{ s.proctoring_level }}
+                  </span>
+                </td>
+                <td>
+                  <div class="trust-score-cell">
+                    <div class="trust-bar">
+                      <div class="trust-fill" [style.width.%]="s.trust_score"
+                           [ngClass]="getTrustClass(s.trust_score)"></div>
+                    </div>
+                    <span class="trust-value" [ngClass]="getTrustClass(s.trust_score)">{{ s.trust_score }}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="violation-count" [class.has-violations]="s.violation_count > 0">
+                    {{ s.violation_count }}
+                  </span>
+                </td>
+                <td>
+                  <span class="ui-pill status-badge" [ngClass]="'status-' + s.review_status">
+                    <span class="ui-pill__dot"></span>{{ getStatusLabel(s.review_status) }}
+                  </span>
+                </td>
+                <td>{{ s.duration_minutes || 0 }}m</td>
+                <td>
+                  <span class="ui-muted small">{{ formatDate(s.started_at) }}</span>
+                </td>
+                <td>
+                  <div class="action-btns">
+                    <button class="btn btn-sm btn-primary" (click)="openSessionDetail(s)" title="Review">
+                      <tui-icon icon="@tui.eye"></tui-icon>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" (click)="clearSession(s)" title="Clear"
+                            *ngIf="s.review_status !== 'cleared'">
+                      <tui-icon icon="@tui.check"></tui-icon>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" (click)="flagSession(s)" title="Flag"
+                            *ngIf="s.review_status !== 'flagged'">
+                      <tui-icon icon="@tui.flag"></tui-icon>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination-bar">
+            <span class="ui-muted small">{{ filteredSessions.length }} sessions</span>
+            <div class="pagination-controls">
+              <button class="btn btn-sm btn-outline-secondary" (click)="page = page - 1" [disabled]="page <= 1">
+                <tui-icon icon="@tui.chevron-left"></tui-icon>
+              </button>
+              <span class="page-info">{{ page }} / {{ totalPages }}</span>
+              <button class="btn btn-sm btn-outline-secondary" (click)="page = page + 1" [disabled]="page >= totalPages">
+                <tui-icon icon="@tui.chevron-right"></tui-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty -->
+        <div class="ui-state empty-state" *ngIf="!loading && filteredSessions.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-eye-slash"></i></span>
+          <h3>No Sessions Found</h3>
+          <p>{{ searchTerm || filterStatus ? 'Try adjusting your filters' : 'No proctoring sessions recorded yet' }}</p>
+        </div>
+
+        <div class="loading-state" *ngIf="loading">
+          <div class="spinner-border text-primary"></div>
+          <p>Loading sessions...</p>
+        </div>
+      </section>
 
       <!-- ==========================================
            SESSION DETAIL MODAL
@@ -287,7 +299,7 @@ interface SystemCheckResult {
               Session Review - {{ selectedSession.learner_name }}
             </h5>
             <div class="modal-header-actions">
-              <button class="btn btn-sm btn-success" (click)="clearSession(selectedSession)">
+              <button class="btn btn-sm btn-outline-success" (click)="clearSession(selectedSession)">
                 <tui-icon icon="@tui.check"></tui-icon> Clear
               </button>
               <button class="btn btn-sm btn-outline-danger" (click)="flagSession(selectedSession)">
@@ -305,7 +317,7 @@ interface SystemCheckResult {
               </div>
               <div class="info-item">
                 <span class="info-label">Level</span>
-                <span class="level-tag" [ngClass]="'level-' + selectedSession.proctoring_level">
+                <span class="ui-pill level-tag" [ngClass]="'level-' + selectedSession.proctoring_level">
                   {{ selectedSession.proctoring_level }}
                 </span>
               </div>
@@ -325,24 +337,24 @@ interface SystemCheckResult {
               </div>
               <div class="info-item">
                 <span class="info-label">Status</span>
-                <span class="status-badge" [ngClass]="'status-' + selectedSession.review_status">
+                <span class="ui-pill status-badge" [ngClass]="'status-' + selectedSession.review_status">
                   {{ getStatusLabel(selectedSession.review_status) }}
                 </span>
               </div>
             </div>
 
             <!-- Tabs -->
-            <div class="detail-tabs">
-              <button class="tab-btn" [class.active]="detailTab === 'violations'" (click)="detailTab = 'violations'">
+            <div class="ui-tabs detail-tabs">
+              <button class="ui-tab tab-btn" [class.is-active]="detailTab === 'violations'" (click)="detailTab = 'violations'">
                 <tui-icon icon="@tui.alert-triangle"></tui-icon> Violations ({{ sessionDetail?.violations?.length || 0 }})
               </button>
-              <button class="tab-btn" [class.active]="detailTab === 'timeline'" (click)="detailTab = 'timeline'">
+              <button class="ui-tab tab-btn" [class.is-active]="detailTab === 'timeline'" (click)="detailTab = 'timeline'">
                 <tui-icon icon="@tui.clock"></tui-icon> Timeline
               </button>
-              <button class="tab-btn" [class.active]="detailTab === 'system'" (click)="detailTab = 'system'">
+              <button class="ui-tab tab-btn" [class.is-active]="detailTab === 'system'" (click)="detailTab = 'system'">
                 <tui-icon icon="@tui.monitor"></tui-icon> System Info
               </button>
-              <button class="tab-btn" [class.active]="detailTab === 'snapshots'" (click)="detailTab = 'snapshots'">
+              <button class="ui-tab tab-btn" [class.is-active]="detailTab === 'snapshots'" (click)="detailTab = 'snapshots'">
                 <tui-icon icon="@tui.camera"></tui-icon> Snapshots ({{ selectedSession.snapshot_count }})
               </button>
             </div>
@@ -360,7 +372,7 @@ interface SystemCheckResult {
                     <div class="violation-desc">{{ v.description }}</div>
                     <div class="violation-time">{{ formatDateTime(v.created_at) }}</div>
                   </div>
-                  <span class="severity-badge" [ngClass]="'sev-' + v.severity">{{ v.severity }}</span>
+                  <span class="ui-pill severity-badge" [ngClass]="'sev-' + v.severity">{{ v.severity }}</span>
                 </div>
               </div>
               <div class="empty-tab" *ngIf="!sessionDetail?.violations?.length">
@@ -422,7 +434,7 @@ interface SystemCheckResult {
 
             <!-- Snapshots Tab -->
             <div class="tab-content" *ngIf="detailTab === 'snapshots'">
-              <p class="text-muted small mb-2">
+              <p class="ui-muted small mb-2">
                 View snapshots in the <a href="javascript:void(0)" (click)="openSnapshotGallery()">Snapshot Gallery</a>
               </p>
               <button class="btn btn-primary" (click)="openSnapshotGallery()">
@@ -443,141 +455,119 @@ interface SystemCheckResult {
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .session-review-container { padding: 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.875rem; margin: 0.25rem 0 0; }
-
-    .stats-row { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .stat-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.75rem 1rem;
-      text-align: center; flex: 1; min-width: 100px; cursor: pointer; transition: all 0.2s; }
-    .stat-card:hover { border-color: #6c757d; }
-    .stat-card.active { border-color: #0d6efd; background: #e8f0fe; }
-    .stat-card.warning .stat-value { color: #e67e22; }
-    .stat-card.danger .stat-value { color: #e74c3c; }
-    .stat-card.success .stat-value { color: #27ae60; }
-    .stat-card.info .stat-value { color: #0d6efd; }
-    .stat-value { display: block; font-size: 1.375rem; font-weight: 700; }
-    .stat-label { font-size: 0.6875rem; color: #6c757d; }
-
-    .filters-bar { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .search-box { position: relative; flex: 1; min-width: 200px; }
-    .search-box tui-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #adb5bd; }
-    .search-box input { padding-left: 2rem; font-size: 0.875rem; }
-    .form-select { width: auto; min-width: 130px; }
+    /* Page chrome (header, KPIs, section, toolbar, tabs, pills, states) comes from the global UI kit. */
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .ui-toolbar { margin-bottom: 16px; }
+    .ui-search { flex: 1 1 260px; }
 
     /* Table */
-    .sessions-table { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; overflow: hidden; }
+    .sessions-table { border-top: 1px solid var(--ui-border, #e7e9e7); }
     .sessions-table table { margin: 0; }
-    .sessions-table th { font-size: 0.75rem; font-weight: 600; color: #6c757d; text-transform: uppercase;
-      background: #f8f9fa; border-bottom: 2px solid #dee2e6; padding: 0.625rem 0.75rem; white-space: nowrap; }
-    .sessions-table td { padding: 0.625rem 0.75rem; vertical-align: middle; font-size: 0.8125rem; }
-    .flagged-row { background: #fff8e1 !important; }
-    .terminated-row { background: #fce4ec !important; }
+    .sessions-table th { white-space: nowrap; }
+    .sessions-table td { vertical-align: middle; }
+    .flagged-row > td { background: rgba(var(--ui-warning-rgb), .06) !important; }
+    .terminated-row > td { background: rgba(var(--ui-danger-rgb), .05) !important; }
     .fw-500 { font-weight: 500; }
 
     .learner-cell { display: flex; align-items: center; gap: 0.5rem; }
-    .learner-avatar { width: 32px; height: 32px; border-radius: 50%; background: #6c757d; color: #fff;
-      display: flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 600; flex-shrink: 0; }
-    .level-tag { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 0.25rem; text-transform: capitalize; font-weight: 500; }
-    .level-none { background: #e2e3e5; color: #6c757d; }
-    .level-basic { background: #cfe2ff; color: #084298; }
-    .level-standard { background: #fff3cd; color: #664d03; }
-    .level-advanced { background: #f8d7da; color: #842029; }
+    .learner-avatar { width: 32px; height: 32px; font-size: 0.6875rem; font-weight: 600; flex-shrink: 0; }
+    .level-tag { text-transform: capitalize; }
+    .level-none { background: rgba(var(--ui-neutral-rgb), .1); border-color: rgba(var(--ui-neutral-rgb), .28); color: var(--ui-neutral-text); }
+    .level-basic { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .level-standard { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .level-advanced { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
 
     .trust-score-cell { display: flex; align-items: center; gap: 0.5rem; }
-    .trust-bar { width: 60px; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden; }
-    .trust-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-    .trust-fill.trust-high { background: #28a745; }
-    .trust-fill.trust-medium { background: #ffc107; }
-    .trust-fill.trust-low { background: #dc3545; }
+    .trust-bar { width: 60px; height: 6px; background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); border-radius: 999px; overflow: hidden; }
+    .trust-fill { height: 100%; border-radius: 999px; transition: width 0.3s; }
+    .trust-fill.trust-high { background: var(--ui-success, #2e7d4f); }
+    .trust-fill.trust-medium { background: var(--ui-warning, #b25e09); }
+    .trust-fill.trust-low { background: var(--ui-danger, #c0352b); }
     .trust-value { font-size: 0.8125rem; font-weight: 600; }
-    .trust-high { color: #28a745; }
-    .trust-medium { color: #e67e22; }
-    .trust-low { color: #dc3545; }
+    .trust-high { color: var(--ui-success-text, #23643e); }
+    .trust-medium { color: var(--ui-warning-text, #8f4b07); }
+    .trust-low { color: var(--ui-danger-text, #a12c24); }
 
     .violation-count { font-weight: 600; }
-    .violation-count.has-violations { color: #dc3545; }
-    .status-badge { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 1rem; font-weight: 500; }
-    .status-pending_review { background: #fff3cd; color: #856404; }
-    .status-flagged { background: #f8d7da; color: #842029; }
-    .status-cleared { background: #d4edda; color: #155724; }
-    .status-terminated { background: #e2e3e5; color: #6c757d; }
-    .status-in_progress { background: #cce5ff; color: #004085; }
+    .violation-count.has-violations { color: var(--ui-danger-text, #a12c24); }
+    .status-badge { white-space: nowrap; }
+    .status-pending_review { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .status-flagged { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .status-cleared { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .status-terminated { background: rgba(var(--ui-neutral-rgb), .1); border-color: rgba(var(--ui-neutral-rgb), .28); color: var(--ui-neutral-text); }
+    .status-in_progress { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
     .action-btns { display: flex; gap: 0.25rem; }
 
-    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-top: 1px solid #e9ecef; }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 22px; border-top: 1px solid var(--ui-border, #e7e9e7); }
     .pagination-controls { display: flex; align-items: center; gap: 0.5rem; }
-    .page-info { font-size: 0.8125rem; color: #6c757d; }
+    .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
 
-    .empty-state, .loading-state { text-align: center; padding: 3rem; }
-    .empty-state tui-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 1rem; }
+    .empty-state { margin: 0 22px 22px; }
+    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); border-top: 1px solid var(--ui-border, #e7e9e7); }
 
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1050;
       display: flex; align-items: center; justify-content: center; }
-    .modal-dialog { background: #fff; border-radius: 0.5rem; width: 95%; max-height: 90vh; display: flex; flex-direction: column; }
+    .modal-dialog { background: var(--ui-surface, #fff); border-radius: var(--ui-radius-card, 12px); width: 95%; max-height: 90vh; display: flex; flex-direction: column; }
     .modal-dialog.modal-xl { max-width: 1100px; }
-    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
-    .modal-title { font-size: 1.125rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--ui-border, #e7e9e7); display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .modal-title { font-size: 1.0625rem; font-weight: 650; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
     .modal-header-actions { display: flex; align-items: center; gap: 0.375rem; }
     .modal-body { padding: 1.25rem; overflow-y: auto; flex: 1; }
 
-    .session-info-bar { display: flex; flex-wrap: wrap; gap: 1rem; padding: 0.75rem 1rem; background: #f8f9fa;
-      border-radius: 0.5rem; margin-bottom: 1rem; }
-    .info-item { display: flex; flex-direction: column; }
-    .info-label { font-size: 0.625rem; color: #6c757d; text-transform: uppercase; font-weight: 600; }
+    .session-info-bar { display: flex; flex-wrap: wrap; gap: 1.25rem; padding: 0.75rem 1rem; background: var(--ui-surface-2, #f7f8f7);
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-card, 12px); margin-bottom: 1rem; }
+    .info-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .info-label { font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
     .info-value { font-size: 0.875rem; font-weight: 500; }
 
     /* Tabs */
-    .detail-tabs { display: flex; gap: 0.25rem; border-bottom: 2px solid #e9ecef; margin-bottom: 1rem; }
-    .tab-btn { padding: 0.5rem 1rem; border: none; background: none; font-size: 0.8125rem; color: #6c757d;
-      cursor: pointer; display: flex; align-items: center; gap: 0.375rem; border-bottom: 2px solid transparent;
-      margin-bottom: -2px; }
-    .tab-btn.active { color: #0d6efd; border-bottom-color: #0d6efd; font-weight: 500; }
+    .detail-tabs { margin-bottom: 1rem; }
     .tab-content { min-height: 200px; }
-    .empty-tab { text-align: center; padding: 2rem; color: #6c757d; }
+    .empty-tab { text-align: center; padding: 2rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Violations */
     .violation-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .violation-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.625rem 0.75rem;
-      border: 1px solid #e9ecef; border-radius: 0.375rem; border-left: 3px solid; }
-    .severity-low { border-left-color: #ffc107; }
-    .severity-medium { border-left-color: #fd7e14; }
-    .severity-high { border-left-color: #dc3545; }
-    .severity-critical { border-left-color: #6f42c1; }
-    .violation-icon { width: 32px; height: 32px; border-radius: 50%; background: #f8f9fa; display: flex;
-      align-items: center; justify-content: center; flex-shrink: 0; color: #6c757d; }
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); border-left: 3px solid; }
+    .severity-low { border-left-color: var(--ui-info, #2563a8); }
+    .severity-medium { border-left-color: var(--ui-warning, #b25e09); }
+    .severity-high { border-left-color: var(--ui-danger, #c0352b); }
+    .severity-critical { border-left-color: var(--ui-danger-text, #a12c24); }
+    .violation-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--ui-surface-2, #f7f8f7); display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0; color: var(--ui-text-muted, #6a716b); }
+    .violation-info { flex: 1; min-width: 0; }
     .violation-type { font-weight: 600; font-size: 0.875rem; }
-    .violation-desc { font-size: 0.8125rem; color: #495057; }
-    .violation-time { font-size: 0.6875rem; color: #adb5bd; }
-    .severity-badge { font-size: 0.625rem; padding: 0.125rem 0.5rem; border-radius: 1rem; text-transform: capitalize;
-      font-weight: 500; white-space: nowrap; flex-shrink: 0; }
-    .sev-low { background: #fff3cd; color: #856404; }
-    .sev-medium { background: #ffe0b2; color: #e65100; }
-    .sev-high { background: #f8d7da; color: #842029; }
-    .sev-critical { background: #e8daef; color: #4a235a; }
+    .violation-desc { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
+    .violation-time { font-size: 0.6875rem; color: var(--ui-text-subtle, #8d948e); }
+    .severity-badge { text-transform: capitalize; white-space: nowrap; flex-shrink: 0; }
+    .sev-low { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .sev-medium { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .sev-high { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .sev-critical { background: rgba(var(--ui-danger-rgb), .16); border-color: rgba(var(--ui-danger-rgb), .4); color: var(--ui-danger-text); }
 
     /* Timeline */
-    .timeline { padding-left: 1rem; border-left: 2px solid #dee2e6; }
+    .timeline { padding-left: 1rem; border-left: 2px solid var(--ui-border, #e7e9e7); }
     .timeline-item { position: relative; padding: 0 0 1rem 1.5rem; }
     .timeline-dot { position: absolute; left: -1.6rem; top: 0.25rem; width: 10px; height: 10px; border-radius: 50%;
-      background: #dee2e6; border: 2px solid #fff; }
-    .event-violation .timeline-dot { background: #dc3545; }
-    .event-action .timeline-dot { background: #0d6efd; }
-    .event-system .timeline-dot { background: #6c757d; }
+      background: var(--ui-border-strong, #d9ddd9); border: 2px solid #fff; }
+    .event-violation .timeline-dot { background: var(--ui-danger, #c0352b); }
+    .event-action .timeline-dot { background: var(--brand-primary); }
+    .event-system .timeline-dot { background: var(--ui-neutral, #4b524c); }
     .timeline-event { font-weight: 500; font-size: 0.875rem; }
-    .timeline-desc { font-size: 0.8125rem; color: #495057; }
-    .timeline-time { font-size: 0.6875rem; color: #adb5bd; }
+    .timeline-desc { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
+    .timeline-time { font-size: 0.6875rem; color: var(--ui-text-subtle, #8d948e); }
 
     /* System Info */
     .system-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
-    .sys-item { padding: 0.75rem; background: #f8f9fa; border-radius: 0.375rem; }
-    .sys-label { display: block; font-size: 0.6875rem; color: #6c757d; text-transform: uppercase; font-weight: 600; }
+    .sys-item { padding: 0.75rem; background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); }
+    .sys-label { display: block; font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
     .sys-value { font-size: 0.875rem; font-weight: 500; }
 
+    .review-notes-section { padding-top: 1rem; border-top: 1px solid var(--ui-border, #e7e9e7); }
     .review-notes-section h6 { font-size: 0.875rem; font-weight: 600; display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.5rem; }
   `]
 })

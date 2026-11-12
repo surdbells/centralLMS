@@ -1,49 +1,43 @@
-.lib-main {
-  padding-top: 1.5rem;
-  padding-bottom: 3rem;
-}
+// Page chrome comes from the global UI kit (header, search, section, table, empty state).
+
+.lib-spinner { color: var(--brand-primary); }
 
 .lib-ic {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
   flex-shrink: 0;
+  background: rgba(var(--brand-primary-rgb), .1);
+  color: var(--brand-primary);
 
-  &.k-video { background: #4f46e5; }
-  &.k-audio { background: #0284c7; }
-  &.k-pdf { background: #dc2626; }
-  &.k-doc { background: #2563eb; }
-  &.k-image { background: #059669; }
+  &.k-video { background: rgba(99, 102, 241, .1); color: #4f46e5; }
+  &.k-audio { background: rgba(14, 165, 233, .1); color: #0369a1; }
+  &.k-pdf   { background: rgba(var(--ui-danger-rgb), .1); color: var(--ui-danger-text); }
+  &.k-doc   { background: rgba(var(--ui-info-rgb), .1); color: var(--ui-info-text); }
+  &.k-image { background: rgba(var(--ui-success-rgb), .1); color: var(--ui-success-text); }
 }
 
+// Soft pill per file kind
 .lib-badge {
+  display: inline-flex;
+  align-items: center;
   border-radius: 999px;
-  padding: 0.1rem 0.55rem;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 500;
+  padding: 1px 9px;
+  border: 1px solid rgba(var(--ui-neutral-rgb), .28);
+  background: rgba(var(--ui-neutral-rgb), .1);
+  color: var(--ui-neutral-text);
+  font-size: .72rem;
+  font-weight: 600;
   text-transform: capitalize;
 
-  &.k-video { background: #4f46e5; }
-  &.k-audio { background: #0284c7; }
-  &.k-pdf { background: #dc2626; }
-  &.k-doc { background: #2563eb; }
-  &.k-image { background: #059669; }
-}
-
-.empty-panel {
-  background: var(--bs-tertiary-bg, #f9fafb);
-  border: 1px dashed var(--bs-border-color, #e5e7eb);
-  border-radius: 0.75rem;
-
-  .empty-icon {
-    font-size: 2.5rem;
-    color: var(--bs-secondary-color, #9ca3af);
-  }
+  &.k-video { background: rgba(99, 102, 241, .1); border-color: rgba(99, 102, 241, .28); color: #4338ca; }
+  &.k-audio { background: rgba(14, 165, 233, .1); border-color: rgba(14, 165, 233, .28); color: #0369a1; }
+  &.k-pdf   { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+  &.k-doc   { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+  &.k-image { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
 }
 
 // --- dialog ---
@@ -131,3 +125,5 @@
   color: #fff;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+.ui-section--flush > .table-responsive:first-child { border-top: 0; }

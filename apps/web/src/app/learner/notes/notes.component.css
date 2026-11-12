@@ -1,0 +1,16 @@
+.notes-search {
+  flex: 1 1 320px;
+  max-width: 480px;
+}
+
+.notes-search .ui-search { flex: 1 1 auto; }
+
+.note-card { margin-bottom: 12px; }
+
+.note-pin { color: var(--brand-primary); font-size: .85em; }
+
+.note-content {
+  white-space: pre-wrap;
+  font-size: .875rem;
+  color: var(--ui-text);
+}

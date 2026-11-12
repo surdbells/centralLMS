@@ -122,29 +122,28 @@ interface AttemptTimeline {
   template: `
     <app-top></app-top>
 
+    <main class="main">
+    <div class="ui-page results-page">
     <!-- ==========================================
          LOADING STATE
          ========================================== -->
     <div class="loading-container" *ngIf="loading">
-      <div class="spinner-border text-primary" role="status">
+      <div class="spinner-border text-secondary" role="status">
         <span class="visually-hidden">Loading results...</span>
       </div>
-      <p class="mt-3 text-muted">Loading your results...</p>
+      <p class="mt-3 ui-muted">Loading your results...</p>
     </div>
 
     <!-- ==========================================
          ERROR STATE
          ========================================== -->
-    <div class="error-container" *ngIf="error && !loading">
-      <div class="alert alert-danger d-flex align-items-center">
-        <tui-icon icon="@tui.alert-triangle" class="me-2"></tui-icon>
-        <div>
-          <strong>Error:</strong> {{ error }}
-          <button class="btn btn-sm btn-outline-danger ms-3" (click)="loadResults()">
-            <tui-icon icon="@tui.refresh-cw" class="me-1"></tui-icon> Retry
-          </button>
-        </div>
-      </div>
+    <div class="ui-state error-container" *ngIf="error && !loading">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <h3>Error</h3>
+      <p>{{ error }}</p>
+      <button type="button" class="btn btn-outline-secondary" (click)="loadResults()">
+        <i class="bi bi-arrow-clockwise me-1"></i> Retry
+      </button>
     </div>
 
     <!-- ==========================================
@@ -152,137 +151,124 @@ interface AttemptTimeline {
          ========================================== -->
     <ng-container *ngIf="!loading && !error && result">
 
+      <nav aria-label="breadcrumb" class="results-crumbs">
+        <ol class="breadcrumb breadcrumb-sm mb-0">
+          <li class="breadcrumb-item">
+            <a href="javascript:void(0)" (click)="goToAssessments()">Assessments</a>
+          </li>
+          <li class="breadcrumb-item">
+            <a href="javascript:void(0)" (click)="goToHistory()">My History</a>
+          </li>
+          <li class="breadcrumb-item active">Results</li>
+        </ol>
+      </nav>
+
       <!-- Result Header -->
-      <div class="result-header" [class.passed]="result.passed" [class.failed]="!result.passed"
+      <header class="ui-page-header result-header" [class.passed]="result.passed" [class.failed]="!result.passed"
            [class.pending]="result.grading_status === 'pending'">
-        <div class="container-fluid p-0">
-          <div class="row align-items-center">
-            <div class="col-md-8">
-              <nav aria-label="breadcrumb" class="mb-2">
-                <ol class="breadcrumb breadcrumb-sm mb-0">
-                  <li class="breadcrumb-item">
-                    <a href="javascript:void(0)" (click)="goToAssessments()">Assessments</a>
-                  </li>
-                  <li class="breadcrumb-item">
-                    <a href="javascript:void(0)" (click)="goToHistory()">My History</a>
-                  </li>
-                  <li class="breadcrumb-item active">Results</li>
-                </ol>
-              </nav>
-              <h4 class="mb-1">{{ result.assessment_title }}</h4>
-              <div class="result-meta">
-                <span class="badge me-2" [ngClass]="getTypeBadgeClass(result.assessment_type)">
-                  {{ formatAssessmentType(result.assessment_type) }}
-                </span>
-                <span class="text-muted-light">
-                  <tui-icon icon="@tui.calendar" class="me-1"></tui-icon>
-                  {{ formatDate(result.completed_at) }}
-                </span>
-                <span class="text-muted-light ms-3">
-                  <tui-icon icon="@tui.clock" class="me-1"></tui-icon>
-                  {{ formatDuration(result.duration_seconds) }}
-                </span>
-                <span class="text-muted-light ms-3">
-                  Attempt {{ result.attempt_number }}<span *ngIf="result.max_attempts > 0"> of {{ result.max_attempts }}</span>
-                </span>
-              </div>
-            </div>
-            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-              <div class="score-display">
-                <div class="score-circle" [class.passed]="result.passed"
-                     [class.failed]="!result.passed"
-                     [class.pending]="result.grading_status === 'pending'">
-                  <span class="score-value" *ngIf="result.grading_status !== 'pending'">
-                    {{ result.percentage | number:'1.0-0' }}%
-                  </span>
-                  <span class="score-value" *ngIf="result.grading_status === 'pending'">
-                    <tui-icon icon="@tui.clock"></tui-icon>
-                  </span>
-                  <span class="score-label">
-                    {{ result.grading_status === 'pending' ? 'Pending' : result.grade }}
-                  </span>
-                </div>
-              </div>
-            </div>
+        <button type="button" class="ui-page-header__back" (click)="goToHistory()" aria-label="Back">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clipboard-check"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ result.assessment_title }}</h1>
+          <div class="result-meta">
+            <span class="badge" [ngClass]="getTypeBadgeClass(result.assessment_type)">
+              {{ formatAssessmentType(result.assessment_type) }}
+            </span>
+            <span class="text-muted-light">
+              <i class="bi bi-calendar3 me-1"></i>
+              {{ formatDate(result.completed_at) }}
+            </span>
+            <span class="text-muted-light">
+              <i class="bi bi-clock me-1"></i>
+              {{ formatDuration(result.duration_seconds) }}
+            </span>
+            <span class="text-muted-light">
+              Attempt {{ result.attempt_number }}<span *ngIf="result.max_attempts > 0"> of {{ result.max_attempts }}</span>
+            </span>
           </div>
         </div>
-      </div>
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-outline-secondary" *ngIf="result.certificate_id"
+                  (click)="viewCertificate()">
+            <i class="bi bi-award me-1"></i> View Certificate
+          </button>
+          <button type="button" class="btn btn-primary"
+                  *ngIf="!result.passed && result.remaining_attempts > 0"
+                  (click)="retakeAssessment()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Retake
+            ({{ result.remaining_attempts }} left)
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="printResults()">
+            <i class="bi bi-printer me-1"></i> Print
+          </button>
+        </div>
+      </header>
 
       <!-- Result Status Banner -->
-      <div class="status-banner" [ngClass]="getStatusBannerClass()">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div class="d-flex align-items-center">
-            <tui-icon [icon]="getStatusIcon()" class="me-2"></tui-icon>
-            <div>
-              <strong>{{ getStatusTitle() }}</strong>
-              <p class="mb-0 small" *ngIf="result.feedback_message">{{ result.feedback_message }}</p>
-              <p class="mb-0 small" *ngIf="result.grading_status === 'pending' && result.pending_manual_count > 0">
-                {{ result.pending_manual_count }} question(s) awaiting manual grading
-              </p>
-            </div>
-          </div>
-          <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-sm btn-outline-light" *ngIf="result.certificate_id"
-                    (click)="viewCertificate()">
-              <tui-icon icon="@tui.award" class="me-1"></tui-icon> View Certificate
-            </button>
-            <button class="btn btn-sm btn-outline-light"
-                    *ngIf="!result.passed && result.remaining_attempts > 0"
-                    (click)="retakeAssessment()">
-              <tui-icon icon="@tui.refresh-cw" class="me-1"></tui-icon> Retake
-              ({{ result.remaining_attempts }} left)
-            </button>
-            <button class="btn btn-sm btn-outline-light" (click)="printResults()">
-              <tui-icon icon="@tui.printer" class="me-1"></tui-icon> Print
-            </button>
+      <section class="ui-section status-banner" [ngClass]="getStatusBannerClass()">
+        <div class="score-display">
+          <div class="score-circle" [class.passed]="result.passed"
+               [class.failed]="!result.passed"
+               [class.pending]="result.grading_status === 'pending'">
+            <span class="score-value" *ngIf="result.grading_status !== 'pending'">
+              {{ result.percentage | number:'1.0-0' }}%
+            </span>
+            <span class="score-value" *ngIf="result.grading_status === 'pending'">
+              <i class="bi bi-hourglass-split"></i>
+            </span>
+            <span class="score-label">
+              {{ result.grading_status === 'pending' ? 'Pending' : result.grade }}
+            </span>
           </div>
         </div>
-      </div>
+        <div class="status-copy">
+          <span class="ui-pill status-pill">
+            <tui-icon [icon]="getStatusIcon()"></tui-icon>
+            {{ getStatusTitle() }}
+          </span>
+          <p class="mb-0" *ngIf="result.feedback_message">{{ result.feedback_message }}</p>
+          <p class="mb-0" *ngIf="result.grading_status === 'pending' && result.pending_manual_count > 0">
+            {{ result.pending_manual_count }} question(s) awaiting manual grading
+          </p>
+        </div>
+      </section>
 
       <!-- Points & Badges Earned -->
-      <div class="rewards-bar" *ngIf="result.points_earned > 0 || result.badges_earned?.length">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          <span class="reward-item" *ngIf="result.points_earned > 0">
-            <tui-icon icon="@tui.star" class="text-warning me-1"></tui-icon>
-            <strong>+{{ result.points_earned }}</strong> points earned
-          </span>
-          <span class="reward-item" *ngFor="let badge of result.badges_earned">
-            <tui-icon icon="@tui.award" class="text-info me-1"></tui-icon>
-            Badge: <strong>{{ badge.name }}</strong>
-          </span>
-        </div>
+      <div class="ui-insights rewards-bar" *ngIf="result.points_earned > 0 || result.badges_earned?.length">
+        <span class="ui-pill ui-pill--warning reward-item" *ngIf="result.points_earned > 0">
+          <i class="bi bi-star-fill"></i>
+          <strong>+{{ result.points_earned }}</strong> points earned
+        </span>
+        <span class="ui-pill ui-pill--brand reward-item" *ngFor="let badge of result.badges_earned">
+          <i class="bi bi-patch-check"></i>
+          Badge: <strong>{{ badge.name }}</strong>
+        </span>
       </div>
 
       <!-- Tab Navigation -->
-      <ul class="nav nav-tabs result-tabs mt-4">
-        <li class="nav-item">
-          <a class="nav-link" [class.active]="activeTab === 'summary'"
-             (click)="activeTab = 'summary'" href="javascript:void(0)">
-            <tui-icon icon="@tui.bar-chart-2" class="me-1"></tui-icon> Summary
-          </a>
-        </li>
-        <li class="nav-item" *ngIf="result.show_score_breakdown">
-          <a class="nav-link" [class.active]="activeTab === 'sections'"
-             (click)="activeTab = 'sections'" href="javascript:void(0)">
-            <tui-icon icon="@tui.layers" class="me-1"></tui-icon> Sections
-          </a>
-        </li>
-        <li class="nav-item" *ngIf="result.show_correct_answers">
-          <a class="nav-link" [class.active]="activeTab === 'review'"
-             (click)="activeTab = 'review'; loadQuestionResults()" href="javascript:void(0)">
-            <tui-icon icon="@tui.check-square" class="me-1"></tui-icon> Question Review
-            <span class="badge bg-secondary ms-1" *ngIf="questionResults.length">
-              {{ questionResults.length }}
-            </span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" [class.active]="activeTab === 'timeline'"
-             (click)="activeTab = 'timeline'; loadTimeline()" href="javascript:void(0)">
-            <tui-icon icon="@tui.activity" class="me-1"></tui-icon> Timeline
-          </a>
-        </li>
-      </ul>
+      <nav class="ui-tabs result-tabs" role="tablist">
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'summary'"
+           (click)="activeTab = 'summary'">
+          <i class="bi bi-bar-chart"></i> Summary
+        </button>
+        <button type="button" role="tab" class="ui-tab" *ngIf="result.show_score_breakdown" [class.is-active]="activeTab === 'sections'"
+           (click)="activeTab = 'sections'">
+          <i class="bi bi-layers"></i> Sections
+        </button>
+        <button type="button" role="tab" class="ui-tab" *ngIf="result.show_correct_answers" [class.is-active]="activeTab === 'review'"
+           (click)="activeTab = 'review'; loadQuestionResults()">
+          <i class="bi bi-check2-square"></i> Question Review
+          <span class="ui-tab__count" *ngIf="questionResults.length">
+            {{ questionResults.length }}
+          </span>
+        </button>
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'timeline'"
+           (click)="activeTab = 'timeline'; loadTimeline()">
+          <i class="bi bi-activity"></i> Timeline
+        </button>
+      </nav>
 
       <!-- ==========================================
            TAB: SUMMARY
@@ -290,130 +276,94 @@ interface AttemptTimeline {
       <div class="tab-content-area" *ngIf="activeTab === 'summary'">
 
         <!-- Score Overview Cards -->
-        <div class="row g-3 mb-4">
-          <div class="col-6 col-md-3">
-            <div class="stat-card">
-              <div class="stat-icon text-primary">
-                <tui-icon icon="@tui.target"></tui-icon>
-              </div>
-              <div class="stat-value">{{ result.total_score | number:'1.0-1' }}/{{ result.max_score | number:'1.0-1' }}</div>
-              <div class="stat-label">Score</div>
-            </div>
+        <div class="ui-kpi-grid ui-kpi-grid--4 summary-kpis">
+          <div class="ui-kpi ui-kpi--brand">
+            <span class="ui-kpi__label"><i class="bi bi-bullseye"></i> Score</span>
+            <span class="ui-kpi__value">{{ result.total_score | number:'1.0-1' }}<small>/{{ result.max_score | number:'1.0-1' }}</small></span>
           </div>
-          <div class="col-6 col-md-3">
-            <div class="stat-card">
-              <div class="stat-icon" [class.text-success]="result.passed" [class.text-danger]="!result.passed">
-                <tui-icon [icon]="result.passed ? '@tui.check-circle' : '@tui.x-circle'"></tui-icon>
-              </div>
-              <div class="stat-value">{{ result.percentage | number:'1.0-0' }}%</div>
-              <div class="stat-label">Percentage ({{ result.passing_score }}% to pass)</div>
-            </div>
+          <div class="ui-kpi" [class.ui-kpi--success]="result.passed" [class.ui-kpi--danger]="!result.passed">
+            <span class="ui-kpi__label"><i class="bi" [class.bi-check-circle]="result.passed" [class.bi-x-circle]="!result.passed"></i> Percentage</span>
+            <span class="ui-kpi__value">{{ result.percentage | number:'1.0-0' }}<small>%</small></span>
+            <span class="ui-kpi__sub">{{ result.passing_score }}% to pass</span>
           </div>
-          <div class="col-6 col-md-3">
-            <div class="stat-card">
-              <div class="stat-icon text-info">
-                <tui-icon icon="@tui.clock"></tui-icon>
-              </div>
-              <div class="stat-value">{{ formatDuration(result.duration_seconds) }}</div>
-              <div class="stat-label">Time Taken</div>
-            </div>
+          <div class="ui-kpi ui-kpi--info">
+            <span class="ui-kpi__label"><i class="bi bi-clock"></i> Time Taken</span>
+            <span class="ui-kpi__value">{{ formatDuration(result.duration_seconds) }}</span>
           </div>
-          <div class="col-6 col-md-3">
-            <div class="stat-card">
-              <div class="stat-icon text-warning">
-                <tui-icon icon="@tui.award"></tui-icon>
-              </div>
-              <div class="stat-value">{{ result.grade }}</div>
-              <div class="stat-label">Grade</div>
-            </div>
+          <div class="ui-kpi ui-kpi--warning">
+            <span class="ui-kpi__label"><i class="bi bi-award"></i> Grade</span>
+            <span class="ui-kpi__value">{{ result.grade }}</span>
           </div>
         </div>
 
+        <div class="ui-row">
         <!-- Score Breakdown -->
-        <div class="card mb-4" *ngIf="scoreBreakdown">
-          <div class="card-header">
-            <h6 class="mb-0">
-              <tui-icon icon="@tui.pie-chart" class="me-2"></tui-icon> Score Breakdown
-            </h6>
+        <section class="ui-section" *ngIf="scoreBreakdown">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Score Breakdown</h2><p class="ui-section__subtitle">Auto-graded, manually graded and pending questions</p></div>
           </div>
-          <div class="card-body">
-            <div class="row g-3">
+          <div class="breakdown-list">
               <!-- Auto-Graded -->
-              <div class="col-md-4">
                 <div class="breakdown-item">
                   <div class="breakdown-header">
                     <span class="breakdown-label">Auto-Graded</span>
                     <span class="breakdown-count">{{ scoreBreakdown.auto_graded_count }} questions</span>
                   </div>
-                  <div class="progress mb-2" style="height: 8px;">
-                    <div class="progress-bar bg-success" role="progressbar"
-                         [style.width.%]="getBreakdownPercentage(scoreBreakdown.auto_graded_score, scoreBreakdown.auto_graded_max)">
-                    </div>
+                  <div class="ui-bar tone-success" role="progressbar">
+                    <span [style.width.%]="getBreakdownPercentage(scoreBreakdown.auto_graded_score, scoreBreakdown.auto_graded_max)"></span>
                   </div>
                   <span class="breakdown-score">
                     {{ scoreBreakdown.auto_graded_score | number:'1.0-1' }} / {{ scoreBreakdown.auto_graded_max | number:'1.0-1' }}
                   </span>
                 </div>
-              </div>
 
               <!-- Manual-Graded -->
-              <div class="col-md-4" *ngIf="scoreBreakdown.manual_graded_count > 0">
-                <div class="breakdown-item">
+                <div class="breakdown-item" *ngIf="scoreBreakdown.manual_graded_count > 0">
                   <div class="breakdown-header">
                     <span class="breakdown-label">Manual-Graded</span>
                     <span class="breakdown-count">{{ scoreBreakdown.manual_graded_count }} questions</span>
                   </div>
-                  <div class="progress mb-2" style="height: 8px;">
-                    <div class="progress-bar bg-info" role="progressbar"
-                         [style.width.%]="getBreakdownPercentage(scoreBreakdown.manual_graded_score, scoreBreakdown.manual_graded_max)">
-                    </div>
+                  <div class="ui-bar tone-info" role="progressbar">
+                    <span [style.width.%]="getBreakdownPercentage(scoreBreakdown.manual_graded_score, scoreBreakdown.manual_graded_max)"></span>
                   </div>
                   <span class="breakdown-score">
                     {{ scoreBreakdown.manual_graded_score | number:'1.0-1' }} / {{ scoreBreakdown.manual_graded_max | number:'1.0-1' }}
                   </span>
                 </div>
-              </div>
 
               <!-- Pending -->
-              <div class="col-md-4" *ngIf="scoreBreakdown.pending_count > 0">
-                <div class="breakdown-item">
+                <div class="breakdown-item" *ngIf="scoreBreakdown.pending_count > 0">
                   <div class="breakdown-header">
                     <span class="breakdown-label">Pending Grading</span>
                     <span class="breakdown-count">{{ scoreBreakdown.pending_count }} questions</span>
                   </div>
-                  <div class="progress mb-2" style="height: 8px;">
-                    <div class="progress-bar bg-warning" role="progressbar" style="width: 100%"></div>
+                  <div class="ui-bar tone-warning" role="progressbar">
+                    <span style="width: 100%"></span>
                   </div>
-                  <span class="breakdown-score text-warning">
-                    <tui-icon icon="@tui.clock" class="me-1"></tui-icon> Awaiting review
+                  <span class="breakdown-score pending-note">
+                    <i class="bi bi-hourglass-split me-1"></i> Awaiting review
                   </span>
                 </div>
-              </div>
-            </div>
           </div>
-        </div>
+        </section>
 
         <!-- Question Summary Donut -->
-        <div class="card mb-4" *ngIf="scoreBreakdown">
-          <div class="card-header">
-            <h6 class="mb-0">
-              <tui-icon icon="@tui.check-square" class="me-2"></tui-icon> Answer Summary
-            </h6>
+        <section class="ui-section" *ngIf="scoreBreakdown">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Answer Summary</h2><p class="ui-section__subtitle">Correct, partial, incorrect and skipped</p></div>
           </div>
-          <div class="card-body">
-            <div class="row align-items-center">
-              <div class="col-md-6">
+            <div class="answer-summary-row">
                 <div class="answer-summary-visual">
                   <div class="summary-ring">
                     <svg viewBox="0 0 120 120" class="ring-svg">
-                      <circle cx="60" cy="60" r="52" fill="none" stroke="#e9ecef" stroke-width="12"/>
-                      <circle cx="60" cy="60" r="52" fill="none" stroke="#28a745" stroke-width="12"
+                      <circle cx="60" cy="60" r="52" fill="none" class="ring-track" stroke-width="12"/>
+                      <circle cx="60" cy="60" r="52" fill="none" class="ring-correct" stroke-width="12"
                               [attr.stroke-dasharray]="getCorrectDash()" stroke-dashoffset="0"
                               transform="rotate(-90 60 60)" stroke-linecap="round"/>
-                      <circle cx="60" cy="60" r="52" fill="none" stroke="#ffc107" stroke-width="12"
+                      <circle cx="60" cy="60" r="52" fill="none" class="ring-partial" stroke-width="12"
                               [attr.stroke-dasharray]="getPartialDash()" [attr.stroke-dashoffset]="getPartialOffset()"
                               transform="rotate(-90 60 60)" stroke-linecap="round"/>
-                      <circle cx="60" cy="60" r="52" fill="none" stroke="#dc3545" stroke-width="12"
+                      <circle cx="60" cy="60" r="52" fill="none" class="ring-incorrect" stroke-width="12"
                               [attr.stroke-dasharray]="getIncorrectDash()" [attr.stroke-dashoffset]="getIncorrectOffset()"
                               transform="rotate(-90 60 60)" stroke-linecap="round"/>
                     </svg>
@@ -423,8 +373,6 @@ interface AttemptTimeline {
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="col-md-6">
                 <div class="summary-legend">
                   <div class="legend-item" *ngFor="let item of getAnswerSummary()">
                     <span class="legend-dot" [style.background]="item.color"></span>
@@ -432,9 +380,8 @@ interface AttemptTimeline {
                     <span class="legend-value">{{ item.count }}</span>
                   </div>
                 </div>
-              </div>
             </div>
-          </div>
+        </section>
         </div>
       </div>
 
@@ -443,18 +390,17 @@ interface AttemptTimeline {
            ========================================== -->
       <div class="tab-content-area" *ngIf="activeTab === 'sections'">
         <div class="section-results" *ngIf="sectionResults.length; else noSections">
-          <div class="card mb-3" *ngFor="let section of sectionResults; let i = index">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start mb-3">
+          <section class="ui-section" *ngFor="let section of sectionResults; let i = index">
+              <div class="ui-section__head">
                 <div>
-                  <h6 class="mb-1">
+                  <h2 class="ui-section__title">
                     <span class="section-number">Section {{ section.section_order }}</span>
                     {{ section.section_title }}
-                  </h6>
-                  <small class="text-muted">
+                  </h2>
+                  <p class="ui-section__subtitle">
                     {{ section.total_questions }} questions
                     · {{ section.answered_count }} answered
-                  </small>
+                  </p>
                 </div>
                 <div class="text-end">
                   <div class="section-score" [class.text-success]="section.section_percentage >= 70"
@@ -462,30 +408,30 @@ interface AttemptTimeline {
                        [class.text-danger]="section.section_percentage < 50">
                     {{ section.section_percentage | number:'1.0-0' }}%
                   </div>
-                  <small class="text-muted">
+                  <small class="ui-muted">
                     {{ section.section_score | number:'1.0-1' }} / {{ section.section_max_score | number:'1.0-1' }}
                   </small>
                 </div>
               </div>
 
               <!-- Section Progress Bar -->
-              <div class="progress mb-3" style="height: 24px;">
-                <div class="progress-bar bg-success" role="progressbar"
+              <div class="progress section-progress mb-3">
+                <div class="progress-bar seg-correct" role="progressbar"
                      [style.width.%]="(section.correct_count / section.total_questions) * 100"
                      [attr.title]="section.correct_count + ' correct'">
                   <span *ngIf="section.correct_count > 0">{{ section.correct_count }} ✓</span>
                 </div>
-                <div class="progress-bar bg-warning" role="progressbar"
+                <div class="progress-bar seg-partial" role="progressbar"
                      [style.width.%]="(section.partial_count / section.total_questions) * 100"
                      [attr.title]="section.partial_count + ' partial'">
                   <span *ngIf="section.partial_count > 0">{{ section.partial_count }} ~</span>
                 </div>
-                <div class="progress-bar bg-danger" role="progressbar"
+                <div class="progress-bar seg-incorrect" role="progressbar"
                      [style.width.%]="(section.incorrect_count / section.total_questions) * 100"
                      [attr.title]="section.incorrect_count + ' incorrect'">
                   <span *ngIf="section.incorrect_count > 0">{{ section.incorrect_count }} ✗</span>
                 </div>
-                <div class="progress-bar bg-secondary" role="progressbar"
+                <div class="progress-bar seg-skipped" role="progressbar"
                      [style.width.%]="(section.skipped_count / section.total_questions) * 100"
                      [attr.title]="section.skipped_count + ' skipped'">
                   <span *ngIf="section.skipped_count > 0">{{ section.skipped_count }} -</span>
@@ -494,25 +440,24 @@ interface AttemptTimeline {
 
               <!-- Section Stats -->
               <div class="section-stats">
-                <span class="stat-pill bg-success-subtle text-success">
-                  <tui-icon icon="@tui.check" class="me-1"></tui-icon> {{ section.correct_count }} Correct
+                <span class="ui-pill ui-pill--success">
+                  <i class="bi bi-check2"></i> {{ section.correct_count }} Correct
                 </span>
-                <span class="stat-pill bg-warning-subtle text-warning" *ngIf="section.partial_count > 0">
-                  <tui-icon icon="@tui.minus" class="me-1"></tui-icon> {{ section.partial_count }} Partial
+                <span class="ui-pill ui-pill--warning" *ngIf="section.partial_count > 0">
+                  <i class="bi bi-dash"></i> {{ section.partial_count }} Partial
                 </span>
-                <span class="stat-pill bg-danger-subtle text-danger">
-                  <tui-icon icon="@tui.x" class="me-1"></tui-icon> {{ section.incorrect_count }} Incorrect
+                <span class="ui-pill ui-pill--danger">
+                  <i class="bi bi-x"></i> {{ section.incorrect_count }} Incorrect
                 </span>
-                <span class="stat-pill bg-secondary-subtle text-secondary" *ngIf="section.skipped_count > 0">
-                  <tui-icon icon="@tui.minus-circle" class="me-1"></tui-icon> {{ section.skipped_count }} Skipped
+                <span class="ui-pill ui-pill--neutral" *ngIf="section.skipped_count > 0">
+                  <i class="bi bi-dash-circle"></i> {{ section.skipped_count }} Skipped
                 </span>
               </div>
-            </div>
-          </div>
+          </section>
         </div>
         <ng-template #noSections>
-          <div class="empty-state">
-            <tui-icon icon="@tui.layers" class="empty-icon"></tui-icon>
+          <div class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-layers"></i></span>
             <p>No section breakdown available</p>
           </div>
         </ng-template>
@@ -521,40 +466,38 @@ interface AttemptTimeline {
       <!-- ==========================================
            TAB: QUESTION REVIEW
            ========================================== -->
-      <div class="tab-content-area" *ngIf="activeTab === 'review'">
+      <section class="ui-section tab-content-area" *ngIf="activeTab === 'review'">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">Question Review</h2><p class="ui-section__subtitle">Expand a question to see your answer</p></div>
+        </div>
 
         <!-- Filter Bar -->
-        <div class="review-filter-bar mb-3">
-          <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-sm" [class.btn-primary]="reviewFilter === 'all'"
-                    [class.btn-secondary]="reviewFilter !== 'all'"
+        <div class="ui-toolbar review-filter-bar">
+          <div class="ui-filters">
+            <button type="button" class="ui-filter" [class.is-active]="reviewFilter === 'all'"
                     (click)="reviewFilter = 'all'">
-              All ({{ questionResults.length }})
+              All <span class="ui-filter__count">{{ questionResults.length }}</span>
             </button>
-            <button class="btn btn-sm" [class.btn-success]="reviewFilter === 'correct'"
-                    [class.btn-secondary]="reviewFilter !== 'correct'"
+            <button type="button" class="ui-filter" [class.is-active]="reviewFilter === 'correct'"
                     (click)="reviewFilter = 'correct'">
-              <tui-icon icon="@tui.check" class="me-1"></tui-icon>
-              Correct ({{ getFilteredCount('correct') }})
+              <i class="bi bi-check2"></i>
+              Correct <span class="ui-filter__count">{{ getFilteredCount('correct') }}</span>
             </button>
-            <button class="btn btn-sm" [class.btn-warning]="reviewFilter === 'partial'"
-                    [class.btn-secondary]="reviewFilter !== 'partial'"
+            <button type="button" class="ui-filter" [class.is-active]="reviewFilter === 'partial'"
                     (click)="reviewFilter = 'partial'">
-              <tui-icon icon="@tui.minus" class="me-1"></tui-icon>
-              Partial ({{ getFilteredCount('partial') }})
+              <i class="bi bi-dash"></i>
+              Partial <span class="ui-filter__count">{{ getFilteredCount('partial') }}</span>
             </button>
-            <button class="btn btn-sm" [class.btn-danger]="reviewFilter === 'incorrect'"
-                    [class.btn-secondary]="reviewFilter !== 'incorrect'"
+            <button type="button" class="ui-filter" [class.is-active]="reviewFilter === 'incorrect'"
                     (click)="reviewFilter = 'incorrect'">
-              <tui-icon icon="@tui.x" class="me-1"></tui-icon>
-              Incorrect ({{ getFilteredCount('incorrect') }})
+              <i class="bi bi-x"></i>
+              Incorrect <span class="ui-filter__count">{{ getFilteredCount('incorrect') }}</span>
             </button>
-            <button class="btn btn-sm" [class.btn-info]="reviewFilter === 'flagged'"
-                    [class.btn-secondary]="reviewFilter !== 'flagged'"
+            <button type="button" class="ui-filter" [class.is-active]="reviewFilter === 'flagged'"
                     (click)="reviewFilter = 'flagged'"
                     *ngIf="getFlaggedCount() > 0">
-              <tui-icon icon="@tui.flag" class="me-1"></tui-icon>
-              Flagged ({{ getFlaggedCount() }})
+              <i class="bi bi-flag"></i>
+              Flagged <span class="ui-filter__count">{{ getFlaggedCount() }}</span>
             </button>
           </div>
         </div>
@@ -790,20 +733,23 @@ interface AttemptTimeline {
           </div>
 
           <!-- No Questions Match Filter -->
-          <div class="empty-state" *ngIf="getFilteredQuestions().length === 0 && questionResults.length > 0">
-            <tui-icon icon="@tui.filter" class="empty-icon"></tui-icon>
+          <div class="ui-state" *ngIf="getFilteredQuestions().length === 0 && questionResults.length > 0">
+            <span class="ui-state__icon"><i class="bi bi-funnel"></i></span>
             <p>No questions match the selected filter</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- ==========================================
            TAB: TIMELINE
            ========================================== -->
-      <div class="tab-content-area" *ngIf="activeTab === 'timeline'">
+      <section class="ui-section tab-content-area" *ngIf="activeTab === 'timeline'">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">Timeline</h2><p class="ui-section__subtitle">Everything that happened during the attempt</p></div>
+        </div>
         <div class="text-center py-4" *ngIf="loadingTimeline">
-          <div class="spinner-border spinner-border-sm text-primary"></div>
-          <span class="ms-2 text-muted">Loading timeline...</span>
+          <div class="spinner-border spinner-border-sm text-secondary"></div>
+          <span class="ms-2 ui-muted">Loading timeline...</span>
         </div>
 
         <div class="timeline-container" *ngIf="!loadingTimeline">
@@ -819,144 +765,109 @@ interface AttemptTimeline {
             </div>
           </div>
 
-          <div class="empty-state" *ngIf="timeline.length === 0">
-            <tui-icon icon="@tui.activity" class="empty-icon"></tui-icon>
+          <div class="ui-state" *ngIf="timeline.length === 0">
+            <span class="ui-state__icon"><i class="bi bi-activity"></i></span>
             <p>No timeline events available</p>
           </div>
         </div>
-      </div>
+      </section>
 
     </ng-container>
+    </div>
+    </main>
   `,
   styles: [`
     :host { display: block; }
 
     /* Loading & Error */
-    .loading-container, .error-container {
-      text-align: center;
-      padding: 3rem 1rem;
-    }
+    .loading-container { text-align: center; padding: 3rem 1rem; }
 
-    /* Result Header */
-    .result-header {
-      background: #f8f9fa;
-      border-radius: 0.5rem;
-      padding: 1.5rem;
-      margin-bottom: 0;
-      border-bottom: 3px solid #e9ecef;
-
-      &.passed { border-bottom-color: #28a745; }
-      &.failed { border-bottom-color: #dc3545; }
-      &.pending { border-bottom-color: #ffc107; }
-    }
-
-    .breadcrumb-sm { font-size: 0.8rem; }
-    .breadcrumb-sm a { color: #6c757d; text-decoration: none; &:hover { color: #495057; } }
+    /* Breadcrumb + header */
+    .results-crumbs { margin-bottom: 10px; }
+    .breadcrumb-sm { font-size: .8125rem; }
+    .breadcrumb-sm a { color: var(--ui-text-muted); text-decoration: none; }
+    .breadcrumb-sm a:hover { color: var(--brand-primary); }
 
     .result-meta {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 0.25rem;
-      font-size: 0.85rem;
+      gap: 6px 14px;
+      margin-top: 4px;
+      font-size: .8125rem;
     }
 
-    .text-muted-light { color: #6c757d; }
+    .text-muted-light { color: var(--ui-text-muted); }
+
+    /* Status banner: score ring + verdict, soft tone by outcome */
+    .status-banner { display: flex; align-items: center; gap: 20px; }
+    .status-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: .875rem; color: var(--ui-text-muted); min-width: 0; }
+    .status-pill { height: 28px; font-size: .8125rem; font-weight: 600; }
+    .status-banner.banner-passed { border-color: rgba(var(--ui-success-rgb), .3); background: rgba(var(--ui-success-rgb), .04); }
+    .status-banner.banner-passed .status-pill { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .status-banner.banner-failed { border-color: rgba(var(--ui-danger-rgb), .3); background: rgba(var(--ui-danger-rgb), .03); }
+    .status-banner.banner-failed .status-pill { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .status-banner.banner-pending { border-color: rgba(var(--ui-warning-rgb), .3); background: rgba(var(--ui-warning-rgb), .04); }
+    .status-banner.banner-pending .status-pill { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
 
     /* Score Circle */
-    .score-display { display: inline-block; }
+    .score-display { display: inline-block; flex-shrink: 0; }
 
     .score-circle {
-      width: 100px;
-      height: 100px;
+      width: 88px;
+      height: 88px;
       border-radius: 50%;
-      border: 4px solid #dc3545;
+      border: 4px solid var(--ui-danger);
       display: inline-flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #fff;
+      background: var(--ui-surface);
 
-      &.passed { border-color: #28a745; }
-      &.failed { border-color: #dc3545; }
-      &.pending { border-color: #ffc107; }
+      &.passed { border-color: var(--ui-success); }
+      &.failed { border-color: var(--ui-danger); }
+      &.pending { border-color: var(--ui-warning); }
 
-      .score-value { font-size: 1.5rem; font-weight: 700; color: #212529; line-height: 1; }
-      .score-label { font-size: 0.7rem; color: #6c757d; margin-top: 2px; }
+      .score-value { font-size: 1.375rem; font-weight: 700; color: var(--ui-text); line-height: 1; font-variant-numeric: tabular-nums; }
+      .score-label { font-size: .6875rem; color: var(--ui-text-muted); margin-top: 3px; }
     }
 
-    /* Status Banner */
-    .status-banner {
-      padding: 1rem 1.5rem;
-      border-radius: 0 0 0.5rem 0.5rem;
-      color: #fff;
-      margin-bottom: 1rem;
-
-      &.banner-passed { background: #28a745; }
-      &.banner-failed { background: #dc3545; }
-      &.banner-pending { background: #ffc107; color: #212529; }
-
-      .btn-outline-light { border-color: rgba(255,255,255,0.5); &:hover { background: rgba(255,255,255,0.15); } }
-    }
-
-    /* Rewards Bar */
-    .rewards-bar {
-      background: #fff8e6;
-      border: 1px solid #ffc107;
-      border-radius: 0.5rem;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .reward-item { font-size: 0.9rem; }
-
-    /* Tabs */
-    .result-tabs {
-      .nav-link {
-        color: #6c757d;
-        font-size: 0.9rem;
-        padding: 0.5rem 1rem;
-        &.active { color: #c9a227; border-color: #dee2e6 #dee2e6 #fff; font-weight: 600; }
-        &:hover:not(.active) { color: #495057; }
-      }
-    }
-
-    .tab-content-area { padding: 1.5rem 0; }
-
-    /* Stat Cards */
-    .stat-card {
-      background: #fff;
-      border: 1px solid #e9ecef;
-      border-radius: 0.5rem;
-      padding: 1.25rem;
-      text-align: center;
-
-      .stat-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
-      .stat-value { font-size: 1.25rem; font-weight: 700; color: #212529; }
-      .stat-label { font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem; }
-    }
+    /* Tabs / content */
+    .tab-content-area { margin-bottom: 20px; }
+    div.tab-content-area { margin-bottom: 0; }
+    .summary-kpis { margin-bottom: 20px; }
 
     /* Breakdown */
+    .breakdown-list { display: flex; flex-direction: column; gap: 12px; }
     .breakdown-item {
-      padding: 1rem;
-      background: #f8f9fa;
-      border-radius: 0.5rem;
+      padding: 14px 16px;
+      border: 1px solid var(--ui-border);
+      border-radius: var(--ui-radius-card);
 
-      .breakdown-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-      .breakdown-label { font-weight: 600; font-size: 0.9rem; }
-      .breakdown-count { font-size: 0.8rem; color: #6c757d; }
-      .breakdown-score { font-size: 0.9rem; font-weight: 600; }
+      .breakdown-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+      .breakdown-label { font-weight: 600; font-size: .875rem; color: var(--ui-text); }
+      .breakdown-count { font-size: .75rem; color: var(--ui-text-muted); }
+      .breakdown-score { display: block; margin-top: 8px; font-size: .8125rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+      .pending-note { color: var(--ui-warning-text); }
     }
+    .ui-bar.tone-success > span { background: var(--ui-success); }
+    .ui-bar.tone-info > span { background: var(--ui-info); }
+    .ui-bar.tone-warning > span { background: var(--ui-warning); }
 
     /* Answer Summary Ring */
-    .answer-summary-visual { display: flex; justify-content: center; padding: 1rem; }
+    .answer-summary-row { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .answer-summary-visual { display: flex; justify-content: center; }
 
     .summary-ring {
       position: relative;
-      width: 160px;
-      height: 160px;
+      width: 150px;
+      height: 150px;
 
       .ring-svg { width: 100%; height: 100%; }
+      .ring-track { stroke: var(--ui-surface-2); }
+      .ring-correct { stroke: var(--ui-success); }
+      .ring-partial { stroke: var(--ui-warning); }
+      .ring-incorrect { stroke: var(--ui-danger); }
 
       .ring-center {
         position: absolute;
@@ -965,73 +876,67 @@ interface AttemptTimeline {
         transform: translate(-50%, -50%);
         text-align: center;
 
-        .ring-value { display: block; font-size: 1.5rem; font-weight: 700; color: #212529; }
-        .ring-label { display: block; font-size: 0.75rem; color: #6c757d; }
+        .ring-value { display: block; font-size: 1.5rem; font-weight: 700; color: var(--ui-text); }
+        .ring-label { display: block; font-size: .75rem; color: var(--ui-text-muted); }
       }
     }
 
     .summary-legend {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      justify-content: center;
-      height: 100%;
+      gap: 10px;
+      flex: 1;
+      min-width: 160px;
 
       .legend-item {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 8px;
 
-        .legend-dot {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .legend-label { flex: 1; font-size: 0.9rem; color: #495057; }
-        .legend-value { font-weight: 600; font-size: 0.9rem; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+        .legend-label { flex: 1; font-size: .8125rem; color: var(--ui-text); }
+        .legend-value { font-weight: 600; font-size: .8125rem; font-variant-numeric: tabular-nums; }
       }
     }
 
     /* Section Results */
     .section-number {
       display: inline-block;
-      background: #e9ecef;
-      color: #495057;
-      font-size: 0.75rem;
-      padding: 0.1rem 0.5rem;
-      border-radius: 0.25rem;
-      margin-right: 0.5rem;
+      background: rgba(var(--brand-primary-rgb), .1);
+      color: var(--brand-primary);
+      font-size: .6875rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+      vertical-align: middle;
     }
 
-    .section-score { font-size: 1.5rem; font-weight: 700; }
+    .section-score { font-size: 1.375rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-    .section-stats { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .section-progress { height: 22px; border-radius: var(--ui-radius-ctl); background: var(--ui-surface-2); font-size: .6875rem; }
+    .section-progress .seg-correct { background: var(--ui-success); }
+    .section-progress .seg-partial { background: var(--ui-warning); }
+    .section-progress .seg-incorrect { background: var(--ui-danger); }
+    .section-progress .seg-skipped { background: var(--ui-text-subtle); }
 
-    .stat-pill {
-      display: inline-flex;
-      align-items: center;
-      font-size: 0.8rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 1rem;
-    }
+    .section-stats { display: flex; gap: 8px; flex-wrap: wrap; }
 
     /* Review Filter */
-    .review-filter-bar { padding: 0.5rem 0; }
+    .review-filter-bar { margin-bottom: 16px; }
 
     /* Question Review Items */
     .question-review-item {
-      border: 1px solid #e9ecef;
+      border: 1px solid var(--ui-border);
       border-radius: 0.5rem;
       margin-bottom: 0.75rem;
       overflow: hidden;
-      border-left: 4px solid #e9ecef;
+      border-left: 4px solid var(--ui-border);
 
-      &.correct { border-left-color: #28a745; }
-      &.partial { border-left-color: #ffc107; }
-      &.incorrect { border-left-color: #dc3545; }
-      &.pending { border-left-color: #17a2b8; }
+      &.correct { border-left-color: var(--ui-success); }
+      &.partial { border-left-color: var(--ui-warning); }
+      &.incorrect { border-left-color: var(--ui-danger); }
+      &.pending { border-left-color: var(--ui-info); }
     }
 
     .question-header {
@@ -1043,35 +948,35 @@ interface AttemptTimeline {
       background: #fff;
       transition: background 0.15s;
 
-      &:hover { background: #f8f9fa; }
+      &:hover { background: var(--ui-surface-2); }
 
       .question-number {
         font-weight: 700;
-        color: #495057;
+        color: var(--ui-text);
         min-width: 30px;
       }
 
       .question-type-badge {
         font-size: 0.7rem;
         padding: 0.15rem 0.5rem;
-        background: #e9ecef;
+        background: var(--ui-border);
         border-radius: 0.25rem;
-        color: #495057;
+        color: var(--ui-text);
       }
 
       .question-points { font-weight: 600; font-size: 0.9rem; }
       .question-time { font-size: 0.8rem; }
-      .expand-icon { color: #6c757d; }
+      .expand-icon { color: var(--ui-text-muted); }
     }
 
-    .question-detail { padding: 1rem; border-top: 1px solid #e9ecef; background: #fafbfc; }
+    .question-detail { padding: 1rem; border-top: 1px solid var(--ui-border); background: var(--ui-surface-2); }
 
     .question-text-area {
       margin-bottom: 1rem;
       padding: 1rem;
       background: #fff;
       border-radius: 0.5rem;
-      border: 1px solid #e9ecef;
+      border: 1px solid var(--ui-border);
       font-size: 0.95rem;
     }
 
@@ -1083,10 +988,10 @@ interface AttemptTimeline {
       .answer-section-title {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #495057;
+        color: var(--ui-text);
         margin-bottom: 0.5rem;
         padding-bottom: 0.25rem;
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--ui-border);
       }
     }
 
@@ -1101,9 +1006,9 @@ interface AttemptTimeline {
       font-size: 0.9rem;
       border: 1px solid transparent;
 
-      &.selected { background: #f8f9fa; border-color: #dee2e6; }
-      &.correct-option { background: #d4edda; border-color: #c3e6cb; }
-      &.wrong-option { background: #f8d7da; border-color: #f5c6cb; }
+      &.selected { background: var(--ui-surface-2); border-color: var(--ui-border); }
+      &.correct-option { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); }
+      &.wrong-option { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); }
 
       .option-marker { flex-shrink: 0; width: 20px; }
       .option-text { flex: 1; }
@@ -1114,7 +1019,7 @@ interface AttemptTimeline {
     .text-answer-display {
       padding: 0.75rem;
       background: #fff;
-      border: 1px solid #dee2e6;
+      border: 1px solid var(--ui-border);
       border-radius: 0.375rem;
       font-size: 0.9rem;
       margin-bottom: 0.5rem;
@@ -1124,19 +1029,19 @@ interface AttemptTimeline {
 
     .correct-answer-display {
       padding: 0.5rem 0.75rem;
-      background: #d4edda;
-      border: 1px solid #c3e6cb;
+      background: rgba(var(--ui-success-rgb), .1);
+      border: 1px solid rgba(var(--ui-success-rgb), .28);
       border-radius: 0.375rem;
       font-size: 0.85rem;
     }
 
     .grading-note {
       padding: 0.5rem 0.75rem;
-      background: #d1ecf1;
-      border: 1px solid #bee5eb;
+      background: rgba(var(--ui-info-rgb), .08);
+      border: 1px solid rgba(var(--ui-info-rgb), .25);
       border-radius: 0.375rem;
       font-size: 0.85rem;
-      color: #0c5460;
+      color: var(--ui-info-text);
     }
 
     /* Fill in Blank */
@@ -1147,9 +1052,9 @@ interface AttemptTimeline {
       padding: 0.25rem 0;
       font-size: 0.9rem;
 
-      .blank-number { font-weight: 600; color: #6c757d; min-width: 60px; }
+      .blank-number { font-weight: 600; color: var(--ui-text-muted); min-width: 60px; }
       .blank-user-answer { font-weight: 600; }
-      .blank-correct { font-size: 0.85rem; color: #28a745; }
+      .blank-correct { font-size: 0.85rem; color: var(--ui-success); }
     }
 
     /* Matching */
@@ -1161,15 +1066,15 @@ interface AttemptTimeline {
       border-radius: 0.375rem;
       margin-bottom: 0.25rem;
       font-size: 0.9rem;
-      border: 1px solid #e9ecef;
+      border: 1px solid var(--ui-border);
 
-      &.correct-match { background: #d4edda; border-color: #c3e6cb; }
-      &.wrong-match { background: #f8d7da; border-color: #f5c6cb; }
+      &.correct-match { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); }
+      &.wrong-match { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); }
 
       .match-left { font-weight: 600; min-width: 120px; }
       .match-arrow { flex-shrink: 0; }
       .match-right { flex: 1; }
-      .match-correct { font-size: 0.8rem; color: #28a745; }
+      .match-correct { font-size: 0.8rem; color: var(--ui-success); }
     }
 
     /* Ordering */
@@ -1181,12 +1086,12 @@ interface AttemptTimeline {
       border-radius: 0.375rem;
       margin-bottom: 0.25rem;
       font-size: 0.9rem;
-      border: 1px solid #e9ecef;
+      border: 1px solid var(--ui-border);
 
-      &.correct-order { background: #d4edda; border-color: #c3e6cb; }
-      &.wrong-order { background: #f8d7da; border-color: #f5c6cb; }
+      &.correct-order { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); }
+      &.wrong-order { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); }
 
-      .order-number { font-weight: 700; color: #495057; min-width: 24px; }
+      .order-number { font-weight: 700; color: var(--ui-text); min-width: 24px; }
       .order-text { flex: 1; }
     }
 
@@ -1195,12 +1100,12 @@ interface AttemptTimeline {
       display: flex;
       align-items: center;
       padding: 0.75rem;
-      background: #f8f9fa;
+      background: var(--ui-surface-2);
       border-radius: 0.375rem;
       font-size: 0.9rem;
       margin-bottom: 0.5rem;
 
-      a { color: #c9a227; text-decoration: none; &:hover { text-decoration: underline; } }
+      a { color: var(--brand-primary); text-decoration: none; &:hover { text-decoration: underline; } }
     }
 
     /* Explanation & Feedback */
@@ -1212,19 +1117,19 @@ interface AttemptTimeline {
     }
 
     .explanation-section {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
+      background: rgba(var(--ui-warning-rgb), .08);
+      border: 1px solid var(--ui-warning);
 
-      .explanation-title { color: #856404; font-size: 0.85rem; margin-bottom: 0.5rem; }
-      .explanation-content { color: #856404; }
+      .explanation-title { color: var(--ui-warning-text); font-size: 0.85rem; margin-bottom: 0.5rem; }
+      .explanation-content { color: var(--ui-warning-text); }
     }
 
     .feedback-section {
-      background: #d1ecf1;
-      border: 1px solid #bee5eb;
+      background: rgba(var(--ui-info-rgb), .08);
+      border: 1px solid rgba(var(--ui-info-rgb), .25);
 
-      .feedback-title { color: #0c5460; font-size: 0.85rem; margin-bottom: 0.5rem; }
-      .feedback-content { color: #0c5460; }
+      .feedback-title { color: var(--ui-info-text); font-size: 0.85rem; margin-bottom: 0.5rem; }
+      .feedback-content { color: var(--ui-info-text); }
     }
 
     /* Timeline */
@@ -1234,7 +1139,7 @@ interface AttemptTimeline {
       position: relative;
       padding-bottom: 1.25rem;
       padding-left: 1.5rem;
-      border-left: 2px solid #e9ecef;
+      border-left: 2px solid var(--ui-border);
 
       &:last-child { border-left-color: transparent; }
 
@@ -1245,25 +1150,25 @@ interface AttemptTimeline {
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: #6c757d;
+        background: var(--ui-text-muted);
         border: 2px solid #fff;
       }
 
-      &.timeline-start .timeline-dot { background: #28a745; }
-      &.timeline-answer .timeline-dot { background: #17a2b8; }
-      &.timeline-navigation .timeline-dot { background: #6c757d; }
-      &.timeline-violation .timeline-dot { background: #dc3545; }
-      &.timeline-submit .timeline-dot { background: #c9a227; }
+      &.timeline-start .timeline-dot { background: var(--ui-success); }
+      &.timeline-answer .timeline-dot { background: var(--ui-info); }
+      &.timeline-navigation .timeline-dot { background: var(--ui-text-muted); }
+      &.timeline-violation .timeline-dot { background: var(--ui-danger); }
+      &.timeline-submit .timeline-dot { background: var(--brand-primary); }
 
-      .timeline-time { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.25rem; }
-      .timeline-event { font-size: 0.9rem; color: #212529; }
+      .timeline-time { font-size: 0.75rem; color: var(--ui-text-muted); margin-bottom: 0.25rem; }
+      .timeline-event { font-size: 0.9rem; color: var(--ui-text); }
     }
 
     /* Empty State */
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
-      color: #6c757d;
+      color: var(--ui-text-muted);
 
       .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
       p { font-size: 1rem; margin-bottom: 0.5rem; }
@@ -1271,11 +1176,10 @@ interface AttemptTimeline {
 
     /* Responsive */
     @media (max-width: 768px) {
-      .result-header { padding: 1rem; }
-      .score-circle { width: 80px; height: 80px; .score-value { font-size: 1.2rem; } }
+      .score-circle { width: 72px; height: 72px; .score-value { font-size: 1.1rem; } }
+      .status-banner { gap: 14px; }
       .question-header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
       .match-pair { flex-wrap: wrap; }
-      .stat-card { padding: 0.75rem; .stat-value { font-size: 1rem; } }
     }
   `]
 })
@@ -1594,10 +1498,10 @@ export class AssessmentResultsComponent implements OnInit, OnDestroy {
   getAnswerSummary(): { label: string; count: number; color: string }[] {
     const c = this.getAnswerCounts();
     return [
-      { label: 'Correct', count: c.correct, color: '#28a745' },
-      { label: 'Partial Credit', count: c.partial, color: '#ffc107' },
-      { label: 'Incorrect', count: c.incorrect, color: '#dc3545' },
-      { label: 'Skipped', count: c.skipped, color: '#adb5bd' }
+      { label: 'Correct', count: c.correct, color: 'var(--ui-success)' },
+      { label: 'Partial Credit', count: c.partial, color: 'var(--ui-warning)' },
+      { label: 'Incorrect', count: c.incorrect, color: 'var(--ui-danger)' },
+      { label: 'Skipped', count: c.skipped, color: 'var(--ui-border-strong)' }
     ].filter(i => i.count > 0);
   }
 

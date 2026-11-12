@@ -1,8 +1,8 @@
 <!-- Toolbar: report picker + cycle + print -->
-<div class="cr-toolbar no-print">
-  <div class="cr-tabs">
+<div class="ui-toolbar cr-toolbar no-print">
+  <div class="ui-filters cr-tabs">
     @for (t of tabs; track t.key) {
-      <button type="button" class="cr-tab" [class.active]="active() === t.key" (click)="select(t.key)"
+      <button type="button" class="ui-filter cr-tab" [class.is-active]="active() === t.key" (click)="select(t.key)"
               [title]="t.blurb | translate">
         <tui-icon [icon]="t.icon"></tui-icon>
         <span>{{ t.label | translate }}</span>
@@ -35,7 +35,7 @@
 <!-- ================= READINESS ================= -->
 @if (active() === 'readiness' && !loading()) {
   @if (readiness(); as r) {
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+    <div class="ui-toolbar">
       <div class="text-muted small"
            [innerHTML]="'competency.reports.readiness_intro' | translate: { dimension: (dimensionLabel(r.dimension) | lowercase) }">
       </div>
@@ -49,13 +49,13 @@
     </div>
 
     @if (!r.groups.length) {
-      <div class="empty-panel text-center py-5">
-        <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
-        <h5 class="mt-3 mb-1">{{ 'competency.reports.nothing_finalised' | translate }}</h5>
-        <p class="text-muted mb-0">{{ 'competency.reports.readiness_empty_text' | translate }}</p>
+      <div class="ui-state">
+        <span class="ui-state__icon"><tui-icon icon="@tui.clipboard-list"></tui-icon></span>
+        <h3>{{ 'competency.reports.nothing_finalised' | translate }}</h3>
+        <p>{{ 'competency.reports.readiness_empty_text' | translate }}</p>
       </div>
     } @else {
-      <div class="card border-0 shadow-sm">
+      <section class="ui-section ui-section--flush">
         <div class="table-responsive">
           <table class="table align-middle mb-0">
             <thead>
@@ -95,7 +95,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     }
   }
 }
@@ -107,12 +107,12 @@
       {{ 'competency.reports.gaps_intro' | translate }}
     </p>
     @if (!r.competencies.length) {
-      <div class="empty-panel text-center py-5">
-        <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
-        <h5 class="mt-3 mb-1">{{ 'competency.reports.nothing_finalised' | translate }}</h5>
+      <div class="ui-state">
+        <span class="ui-state__icon"><tui-icon icon="@tui.clipboard-list"></tui-icon></span>
+        <h3>{{ 'competency.reports.nothing_finalised' | translate }}</h3>
       </div>
     } @else {
-      <div class="card border-0 shadow-sm">
+      <section class="ui-section ui-section--flush">
         <div class="table-responsive">
           <table class="table align-middle mb-0">
             <thead>
@@ -157,7 +157,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
       <div class="d-flex flex-wrap gap-3 small mt-3 text-muted">
         <span><i class="legend-dot met"></i> {{ 'competency.gap.met' | translate }}</span>
         <span><i class="legend-dot minor"></i> {{ 'competency.gap.minor' | translate }}</span>
@@ -175,15 +175,15 @@
        [innerHTML]="'competency.reports.critical_intro' | translate">
     </p>
     @if (!r.rows.length) {
-      <div class="empty-panel text-center py-5">
-        <tui-icon icon="@tui.circle-check" class="empty-icon text-success"></tui-icon>
-        <h5 class="mt-3 mb-1">{{ 'competency.reports.no_critical_title' | translate }}</h5>
-        <p class="text-muted mb-0">
+      <div class="ui-state">
+        <span class="ui-state__icon text-success"><tui-icon icon="@tui.circle-check"></tui-icon></span>
+        <h3>{{ 'competency.reports.no_critical_title' | translate }}</h3>
+        <p>
           {{ 'competency.reports.no_critical_text' | translate }}
         </p>
       </div>
     } @else {
-      <div class="card border-0 shadow-sm">
+      <section class="ui-section ui-section--flush">
         <div class="table-responsive">
           <table class="table align-middle mb-0">
             <thead>
@@ -228,7 +228,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     }
   }
 }
@@ -240,18 +240,18 @@
       {{ 'competency.reports.distribution_intro' | translate }}
     </p>
     @if (r.demonstrated.total === 0) {
-      <div class="empty-panel text-center py-5">
-        <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
-        <h5 class="mt-3 mb-1">{{ 'competency.reports.nothing_finalised' | translate }}</h5>
+      <div class="ui-state">
+        <span class="ui-state__icon"><tui-icon icon="@tui.clipboard-list"></tui-icon></span>
+        <h3>{{ 'competency.reports.nothing_finalised' | translate }}</h3>
       </div>
     } @else {
       <div class="row g-3 mb-4">
         @for (band of [{ key: 'demonstrated', title: 'Demonstrated', data: r.demonstrated },
                         { key: 'required', title: 'Required', data: r.required }]; track band.key) {
           <div class="col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <h6 class="card-title mb-3">{{ (band.key === 'demonstrated' ? 'competency.reports.demonstrated_levels' : 'competency.reports.required_levels') | translate }}</h6>
+            <section class="ui-section h-100">
+              <div class="ui-section__body">
+                <h2 class="ui-section__title mb-3">{{ (band.key === 'demonstrated' ? 'competency.reports.demonstrated_levels' : 'competency.reports.required_levels') | translate }}</h2>
                 <div class="level-bar mb-2">
                   <div class="seg none" [style.width.%]="pct(band.data.none, band.data.total)"></div>
                   <div class="seg knowledge" [style.width.%]="pct(band.data.knowledge, band.data.total)"></div>
@@ -267,15 +267,15 @@
                   <span><i class="legend-dot mastery"></i> {{ 'self_assessment.level_mastery' | translate }} {{ band.data.mastery }}</span>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
         }
       </div>
 
       @if (r.byFunction.length) {
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
-            <h6 class="card-title mb-3">{{ 'competency.reports.demonstrated_by_function' | translate }}</h6>
+        <section class="ui-section">
+          <div class="ui-section__body">
+            <h2 class="ui-section__title mb-3">{{ 'competency.reports.demonstrated_by_function' | translate }}</h2>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
                 <thead>
@@ -310,7 +310,7 @@
               </table>
             </div>
           </div>
-        </div>
+        </section>
       }
     }
   }
@@ -322,42 +322,34 @@
     <p class="text-muted small mb-3">
       {{ 'competency.reports.completion_intro' | translate }}
     </p>
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.reports.status_finalised' | translate }}</div>
-          <div class="stat-value text-success">
+    <div class="ui-kpi-grid ui-kpi-grid--4">
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.reports.status_finalised' | translate }}</span>
+          <span class="ui-kpi__value text-success">
             {{ r.overall.completion !== null ? (r.overall.completion | number: '1.0-1') + '%' : '—' }}
-          </div>
-          <div class="stat-sub">{{ 'competency.reports.of_assessments' | translate: { finalized: r.overall.finalized, total: r.overall.total } }}</div>
-        </div>
+          </span>
+          <span class="ui-kpi__sub">{{ 'competency.reports.of_assessments' | translate: { finalized: r.overall.finalized, total: r.overall.total } }}</span>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.reports.stat_people' | translate }}</div>
-          <div class="stat-value">{{ r.overall.people }}</div>
-          <div class="stat-sub">{{ 'competency.reports.with_assessment' | translate }}</div>
-        </div>
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.reports.stat_people' | translate }}</span>
+          <span class="ui-kpi__value">{{ r.overall.people }}</span>
+          <span class="ui-kpi__sub">{{ 'competency.reports.with_assessment' | translate }}</span>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.reports.stat_in_progress' | translate }}</div>
-          <div class="stat-value">{{ r.overall.selfAssessed + r.overall.reviewed }}</div>
-          <div class="stat-sub">{{ 'competency.reports.self_or_reviewed' | translate }}</div>
-        </div>
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.reports.stat_in_progress' | translate }}</span>
+          <span class="ui-kpi__value">{{ r.overall.selfAssessed + r.overall.reviewed }}</span>
+          <span class="ui-kpi__sub">{{ 'competency.reports.self_or_reviewed' | translate }}</span>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.reports.stat_not_started' | translate }}</div>
-          <div class="stat-value">{{ r.overall.draft }}</div>
-          <div class="stat-sub">{{ 'competency.reports.still_draft' | translate }}</div>
-        </div>
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.reports.stat_not_started' | translate }}</span>
+          <span class="ui-kpi__value">{{ r.overall.draft }}</span>
+          <span class="ui-kpi__sub">{{ 'competency.reports.still_draft' | translate }}</span>
       </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <h6 class="card-title mb-3">{{ 'competency.reports.where_stand' | translate }}</h6>
+    <section class="ui-section">
+      <div class="ui-section__body">
+        <h2 class="ui-section__title mb-3">{{ 'competency.reports.where_stand' | translate }}</h2>
         <div class="status-bar mb-2">
           <div class="seg draft" [style.width.%]="pct(r.overall.draft, r.overall.total)" [title]="'competency.reports.status_draft' | translate"></div>
           <div class="seg self" [style.width.%]="pct(r.overall.selfAssessed, r.overall.total)" [title]="'competency.reports.status_self_assessed' | translate"></div>
@@ -371,10 +363,10 @@
           <span><i class="legend-dot finalized"></i> {{ 'competency.reports.status_finalised' | translate }} {{ r.overall.finalized }}</span>
         </div>
       </div>
-    </div>
+    </section>
 
     @if (r.byDepartment.length) {
-      <div class="card border-0 shadow-sm">
+      <section class="ui-section ui-section--flush">
         <div class="table-responsive">
           <table class="table align-middle mb-0">
             <thead>
@@ -405,7 +397,7 @@
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     }
   }
 }

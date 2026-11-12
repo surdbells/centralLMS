@@ -1,123 +1,8 @@
 // skills/admin/admin-skills.component.scss
 
-// Variables
-$primary: #303234;
-$primary-light: rgba(201, 162, 39, 0.1);
-
-// Stat Cards
-.stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  height: 100%;
-
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    flex-shrink: 0;
-  }
-
-  .stat-content {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .stat-value {
-    font-size: 1.5rem;
-    font-weight: 600;
-    line-height: 1.2;
-  }
-
-  .stat-label {
-    font-size: 0.75rem;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-}
-
-// Custom colors
-.bg-purple-subtle {
-  background-color: rgba(111, 66, 193, 0.1);
-}
-
-.text-purple {
-  color: #6f42c1;
-}
-
-// Nav tabs
-.nav-tabs {
-  border-bottom: 2px solid #e9ecef;
-
-  .nav-link {
-    border: none;
-    color: #6c757d;
-    padding: 0.75rem 1.25rem;
-    font-weight: 500;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-
-    &:hover {
-      color: $primary;
-      border-color: transparent;
-    }
-
-    &.active {
-      color: $primary;
-      background: transparent;
-      border-bottom-color: $primary;
-    }
-  }
-}
-
-// Filter bar
-.filter-bar {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 10px;
-}
-
-// Skills Table
-.card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.table {
-  margin-bottom: 0;
-
-  th {
-    background: #f8f9fa;
-    font-weight: 600;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #6c757d;
-    padding: 0.875rem 1rem;
-    border-bottom: none;
-  }
-
-  td {
-    padding: 0.875rem 1rem;
-    vertical-align: middle;
-    border-color: #f0f0f0;
-  }
-
-  tbody tr:hover {
-    background-color: #fafafa;
-  }
-}
+// Accents are the tenant brand colour; page chrome comes from the UI kit.
+$primary: var(--brand-primary);
+$primary-light: rgba(var(--brand-primary-rgb), .1);
 
 .skill-icon {
   width: 36px;
@@ -127,37 +12,6 @@ $primary-light: rgba(201, 162, 39, 0.1);
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-}
-
-// Category Cards
-.category-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  height: 100%;
-
-  &.empty-state {
-    border: 2px dashed #dee2e6;
-    background: #fafafa;
-  }
-
-  .category-color-bar {
-    height: 4px;
-  }
-
-  .category-content {
-    padding: 1.25rem;
-  }
-
-  .category-name {
-    font-weight: 600;
-  }
-
-  .skill-count {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
 }
 
 // Color Picker
@@ -180,7 +34,7 @@ $primary-light: rgba(201, 162, 39, 0.1);
     }
 
     &.active {
-      border-color: #333;
+      border-color: var(--ui-text);
       box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
     }
   }
@@ -197,7 +51,7 @@ $primary-light: rgba(201, 162, 39, 0.1);
 
 // Skill Preview
 .skill-preview {
-  background: #f8f9fa;
+  background: var(--ui-surface-2);
   padding: 1rem;
   border-radius: 10px;
   display: flex;
@@ -233,7 +87,7 @@ $primary-light: rgba(201, 162, 39, 0.1);
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: #f8f9fa;
+  background: var(--ui-surface-2);
   border-radius: 10px;
 
   .learner-avatar {
@@ -278,7 +132,7 @@ $primary-light: rgba(201, 162, 39, 0.1);
   align-items: center;
   gap: 1rem;
   padding: 0.75rem;
-  background: #f8f9fa;
+  background: var(--ui-surface-2);
   border-radius: 10px;
 
   .course-thumb {
@@ -315,27 +169,6 @@ $primary-light: rgba(201, 162, 39, 0.1);
   max-height: 60vh;
 }
 
-// Badge styles
-.badge {
-  font-weight: 500;
-  padding: 0.35em 0.65em;
-
-  &.bg-success-subtle {
-    background-color: rgba(25, 135, 84, 0.1) !important;
-    color: #198754 !important;
-  }
-
-  &.bg-warning-subtle {
-    background-color: rgba(255, 193, 7, 0.15) !important;
-    color: #997404 !important;
-  }
-
-  &.bg-secondary-subtle {
-    background-color: rgba(108, 117, 125, 0.1) !important;
-    color: #6c757d !important;
-  }
-}
-
 // Button link styling
 .btn-link {
   text-decoration: none;
@@ -346,57 +179,8 @@ $primary-light: rgba(201, 162, 39, 0.1);
   }
 
   &:disabled {
-    color: #6c757d;
+    color: var(--ui-text-muted);
     cursor: default;
-  }
-}
-
-// Responsive
-@media (max-width: 767.98px) {
-  .stat-card {
-    padding: 0.75rem;
-
-    .stat-icon {
-      width: 40px;
-      height: 40px;
-      font-size: 1rem;
-    }
-
-    .stat-value {
-      font-size: 1.25rem;
-    }
-  }
-
-  .table {
-    th, td {
-      padding: 0.5rem;
-      font-size: 0.875rem;
-    }
-  }
-
-  .filter-bar {
-    padding: 0.75rem;
-  }
-}
-
-// Nav Pills for Analytics Sub-tabs
-.nav-pills {
-  .nav-link {
-    color: #6c757d;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-weight: 500;
-    margin-right: 0.5rem;
-
-    &:hover {
-      background: rgba(201, 162, 39, 0.1);
-      color: $primary;
-    }
-
-    &.active {
-      background: $primary;
-      color: white;
-    }
   }
 }
 
@@ -437,48 +221,54 @@ $primary-light: rgba(201, 162, 39, 0.1);
 .top-skill-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.875rem;
-  background: #f8f9fa;
-  border-radius: 10px;
-  margin-bottom: 0.75rem;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ui-border);
+
+  &:first-child { padding-top: 0; }
 
   &:last-child {
-    margin-bottom: 0;
+    border-bottom: 0;
+    padding-bottom: 0;
   }
 
   .top-skill-rank {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: #e9ecef;
-    color: #6c757d;
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border);
+    color: var(--ui-text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.875rem;
+    font-weight: 650;
+    font-size: .75rem;
     flex-shrink: 0;
 
+    // The podium reads as the brand at decreasing strength.
     &.gold {
-      background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
-      color: #7a5a00;
+      background: var(--brand-primary);
+      border-color: var(--brand-primary);
+      color: var(--brand-primary-contrast, #fff);
     }
 
     &.silver {
-      background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%);
-      color: #555;
+      background: rgba(var(--brand-primary-rgb), .18);
+      border-color: rgba(var(--brand-primary-rgb), .3);
+      color: var(--brand-primary);
     }
 
     &.bronze {
-      background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
-      color: #fff;
+      background: rgba(var(--brand-primary-rgb), .08);
+      border-color: rgba(var(--brand-primary-rgb), .2);
+      color: var(--brand-primary);
     }
   }
 
   .top-skill-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -504,34 +294,15 @@ $primary-light: rgba(201, 162, 39, 0.1);
   }
 }
 
-// Compact Stat Card
-.stat-card.compact {
-  padding: 0.75rem;
-
-  .stat-icon {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-
-  .stat-value {
-    font-size: 1.25rem;
-  }
-
-  .stat-label {
-    font-size: 0.7rem;
-  }
-}
-
 // Skill Card Compact
 .skill-card-compact {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
+  padding: 12px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
 
   .skill-icon {
     width: 36px;
@@ -553,7 +324,7 @@ $primary-light: rgba(201, 162, 39, 0.1);
 // Skill Assignment Row
 .skill-assignment-row {
   padding: 0.75rem;
-  background: #f8f9fa;
+  background: var(--ui-surface-2);
   border-radius: 8px;
   margin-bottom: 0.75rem;
 
@@ -576,42 +347,21 @@ $primary-light: rgba(201, 162, 39, 0.1);
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      color: #6c757d;
+      color: var(--ui-text-muted);
       margin-bottom: 0.25rem;
     }
 
     p {
       margin-bottom: 0;
-      color: #333;
+      color: var(--ui-text);
     }
   }
 }
 
-// Card Header
-.card-header {
-  background: white;
-  border-bottom: 1px solid #e9ecef;
-  padding: 1rem 1.25rem;
-
-  .card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #333;
-  }
-}
-
-// Alert styling
-.alert-info {
-  background: rgba(201, 162, 39, 0.1);
-  border: 1px solid rgba(201, 162, 39, 0.2);
-  color: #8b7316;
-  border-radius: 10px;
-}
-
 // Progress bar in tables
 .progress {
-  background-color: #e9ecef;
-  border-radius: 4px;
+  background-color: var(--ui-surface-2);
+  border-radius: 999px;
   overflow: hidden;
 }
 
@@ -627,8 +377,8 @@ $primary-light: rgba(201, 162, 39, 0.1);
 .user-select-list {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
 }
 
 .user-select-item {
@@ -637,20 +387,20 @@ $primary-light: rgba(201, 162, 39, 0.1);
   gap: 0.75rem;
   padding: 0.75rem;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  transition: all 0.2s;
+  border-bottom: 1px solid var(--ui-border);
+  transition: background .15s ease;
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: #f8f9fa;
+    background: var(--ui-surface-2);
   }
 
   &.active {
-    background: rgba(201, 162, 39, 0.1);
-    border-color: rgba(201, 162, 39, 0.2);
+    background: rgba(var(--brand-primary-rgb), .08);
+    border-color: rgba(var(--brand-primary-rgb), .25);
   }
 
   .user-avatar {
@@ -682,10 +432,10 @@ $primary-light: rgba(201, 162, 39, 0.1);
 
 // Selected User Card
 .selected-user-card {
-  background: rgba(201, 162, 39, 0.1);
-  border: 1px solid rgba(201, 162, 39, 0.2);
-  border-radius: 10px;
-  padding: 1rem;
+  background: rgba(var(--brand-primary-rgb), .08);
+  border: 1px solid rgba(var(--brand-primary-rgb), .25);
+  border-radius: var(--ui-radius-card);
+  padding: 14px 16px;
 }
 
 // Course Grid
@@ -696,10 +446,10 @@ $primary-light: rgba(201, 162, 39, 0.1);
 }
 
 .course-skill-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
-  padding: 1rem;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  padding: 14px 16px;
 
   .course-skill-header {
     display: flex;
@@ -746,4 +496,92 @@ $primary-light: rgba(201, 162, 39, 0.1);
   .user-select-list {
     max-height: 200px;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Page layout on the UI kit
+// ---------------------------------------------------------------------------
+
+// Tabs on the left, the page actions on the right.
+.skills-tabbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 20px;
+
+  .ui-tabs { margin-bottom: 0; }
+}
+
+.skills-tabbar__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.skills-toolbar { padding-top: 16px !important; }
+
+.skills-empty-cell { padding: 16px !important; }
+
+.skills-flush-pad { padding: 0 22px 22px; }
+
+.skills-title-icon { color: var(--brand-primary); }
+
+.skills-subhead {
+  margin: 0 0 12px;
+  font-size: .875rem;
+  font-weight: 650;
+  color: var(--ui-text);
+
+  i { color: var(--brand-primary); }
+}
+
+// Category cards: a thin bar keeps each category in its own colour.
+.category-card .category-color-bar { height: 4px; flex-shrink: 0; }
+
+.skill-count {
+  font-size: .8125rem;
+  color: var(--ui-text-muted);
+}
+
+// Top skills (2/1 split)
+.skills-split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 20px;
+
+  > .ui-section { margin-bottom: 0; }
+
+  @media (max-width: 991.98px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.quick-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ui-border);
+  font-size: .875rem;
+
+  span { color: var(--ui-text-muted); }
+}
+
+.top-skill-bar .ui-bar { width: 100%; }
+
+.progress-cell { width: 80px; flex: none; }
+
+.user-check { color: var(--brand-primary); }
+
+.skill-link { color: var(--ui-text); }
+.skill-link:hover { color: var(--brand-primary); }
+
+.min-w-0 { min-width: 0; }
+
+@media (max-width: 575.98px) {
+  .top-skill-item .top-skill-bar { display: none; }
 }

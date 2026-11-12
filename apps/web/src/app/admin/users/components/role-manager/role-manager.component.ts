@@ -47,94 +47,105 @@ export type PermissionGroup = Record<string, Permission[]>;
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid">
-    <div class="role-manager">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center gap-3">
-          <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-          <h4 class="fw-bold mb-0"><i class="bi bi-shield-lock me-2"></i>{{ 'admin.roles.title' | translate }}</h4>
+    <main class="main">
+    <div class="ui-page role-manager">
+      <header class="ui-page-header">
+        <a routerLink="/admin/users" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-shield-lock"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ 'admin.roles.title' | translate }}</h1>
+          <p>{{ 'admin.roles.subtitle' | translate }}</p>
         </div>
-        <button class="btn btn-primary btn-sm" (click)="openCreateModal()"><i class="bi bi-plus-lg me-1"></i>{{ 'admin.roles.new_role' | translate }}</button>
-      </div>
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-primary btn-sm" (click)="openCreateModal()"><i class="bi bi-plus-lg me-1"></i>{{ 'admin.roles.new_role' | translate }}</button>
+        </div>
+      </header>
 
       <div class="row g-4">
         <!-- Roles List -->
         <div class="col-md-4">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold">{{ 'admin.users.roles' | translate }}</div>
-            <div class="list-group list-group-flush">
-              <a *ngFor="let r of roles" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                 [class.active]="selectedRole?.role_id === r.role_id" role="button" (click)="selectRole(r)">
-                <div>
-                  <div class="fw-semibold">{{ r.role_name }}
-                    <span class="badge bg-light text-muted ms-1" style="font-size:.6rem" *ngIf="r.is_system">{{ 'admin.roles.system_badge' | translate }}</span>
-                  </div>
-                  <small class="text-muted" *ngIf="r.description">{{ r.description }}</small>
-                </div>
-                <span class="badge bg-primary rounded-pill">{{ r.user_count }}</span>
-              </a>
-              <div *ngIf="!roles.length" class="list-group-item text-center text-muted py-3">{{ 'admin.roles.no_roles' | translate }}</div>
+          <section class="ui-section ui-section--flush">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">{{ 'admin.users.roles' | translate }}</h2>
+              <span class="ui-pill ui-pill--neutral">{{ roles.length }}</span>
             </div>
-          </div>
+            <div class="role-list">
+              <a *ngFor="let r of roles" class="role-item"
+                 [class.is-active]="selectedRole?.role_id === r.role_id" role="button" (click)="selectRole(r)">
+                <div class="min-w-0">
+                  <div class="role-item__name">{{ r.role_name }}
+                    <span class="ui-pill ui-pill--neutral ms-1 role-item__sys" *ngIf="r.is_system">{{ 'admin.roles.system_badge' | translate }}</span>
+                  </div>
+                  <small class="ui-muted" *ngIf="r.description">{{ r.description }}</small>
+                </div>
+                <span class="ui-pill ui-pill--brand"><i class="bi bi-people"></i>{{ r.user_count }}</span>
+              </a>
+              <div *ngIf="!roles.length" class="p-3">
+                <div class="ui-state">
+                  <span class="ui-state__icon"><i class="bi bi-shield"></i></span>
+                  <h3>{{ 'admin.roles.no_roles' | translate }}</h3>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
         <!-- Permissions Panel -->
         <div class="col-md-8">
-          <div *ngIf="!selectedRole" class="text-center py-5 text-muted">
-            <i class="bi bi-shield fs-1 d-block mb-2"></i><p>{{ 'admin.roles.select_role_hint' | translate }}</p>
+          <div *ngIf="!selectedRole" class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-shield"></i></span>
+            <p>{{ 'admin.roles.select_role_hint' | translate }}</p>
           </div>
 
           <div *ngIf="selectedRole">
             <!-- Role header -->
-            <div class="card border-0 shadow-sm mb-3">
-              <div class="card-body d-flex justify-content-between align-items-center py-2">
-                <div>
-                  <h5 class="fw-bold mb-0">{{ selectedRole.role_name }}</h5>
-                  <small class="text-muted">{{ selectedRole.description || ('admin.roles.no_description' | translate) }}</small>
+            <section class="ui-section">
+              <div class="ui-section__head mb-0">
+                <div class="min-w-0">
+                  <h2 class="ui-section__title">{{ selectedRole.role_name }}</h2>
+                  <p class="ui-section__subtitle">{{ selectedRole.description || ('admin.roles.no_description' | translate) }}</p>
                 </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-sm btn-primary" (click)="openEditModal()" *ngIf="!selectedRole.is_system">
+                <div class="ui-section__actions">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openEditModal()" *ngIf="!selectedRole.is_system">
                     <i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}
                   </button>
-                  <button class="btn btn-sm btn-outline-danger" (click)="deleteRole()" *ngIf="!selectedRole.is_system">
+                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteRole()" *ngIf="!selectedRole.is_system">
                     <i class="bi bi-trash me-1"></i>{{ 'common.delete' | translate }}
                   </button>
-                  <button class="btn btn-sm btn-success" (click)="savePermissions()" [disabled]="savingPerms">
+                  <button type="button" class="btn btn-sm btn-primary" (click)="savePermissions()" [disabled]="savingPerms">
                     <span *ngIf="savingPerms" class="spinner-border spinner-border-sm me-1"></span>
                     <i *ngIf="!savingPerms" class="bi bi-check-lg me-1"></i>{{ 'admin.roles.save_permissions' | translate }}
                   </button>
                 </div>
               </div>
-            </div>
+            </section>
 
             <!-- Permission modules -->
-            <div *ngFor="let module of permissionModules" class="card border-0 shadow-sm mb-2">
-              <div class="card-header bg-white d-flex justify-content-between align-items-center py-2 cursor-pointer"
-                   (click)="toggleModule(module)">
-                <span class="fw-semibold text-capitalize"><i class="bi bi-folder me-2"></i>{{ module }}
-                  <span class="badge bg-primary-subtle text-primary ms-2">{{ getModuleSelectedCount(module) }}/{{ permissionGroups[module].length }}</span>
+            <section *ngFor="let module of permissionModules" class="ui-section ui-section--flush perm-module">
+              <div class="perm-module__head cursor-pointer" (click)="toggleModule(module)">
+                <span class="perm-module__title text-capitalize"><i class="bi bi-folder me-2"></i>{{ module }}
+                  <span class="ui-pill ui-pill--brand ms-2">{{ getModuleSelectedCount(module) }}/{{ permissionGroups[module].length }}</span>
                 </span>
                 <div class="d-flex gap-2 align-items-center">
-                  <button class="btn btn-sm btn-link p-0 small" (click)="selectAllModule(module, $event)">{{ 'admin.enroll.select_all' | translate }}</button>
-                  <i class="bi" [class]="expandedModules.has(module) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  <button type="button" class="btn btn-sm btn-link p-0 small" (click)="selectAllModule(module, $event)">{{ 'admin.enroll.select_all' | translate }}</button>
+                  <i class="bi" [ngClass]="expandedModules.has(module) ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
                 </div>
               </div>
-              <div class="card-body py-2" *ngIf="expandedModules.has(module)">
+              <div class="perm-module__body" *ngIf="expandedModules.has(module)">
                 <div class="row g-0">
                   <div *ngFor="let p of permissionGroups[module]" class="col-md-6">
                     <div class="form-check mb-1">
                       <input type="checkbox" class="form-check-input" [id]="'perm_'+p.permission_id"
                              [checked]="selectedPermIds.has(p.permission_id)" (change)="togglePermission(p.permission_id)">
                       <label class="form-check-label small" [for]="'perm_'+p.permission_id">
-                        <code class="text-muted">{{ p.permission_key }}</code>
-                        <span class="d-block text-muted" style="font-size:.7rem">{{ p.description }}</span>
+                        <code class="perm-key">{{ p.permission_key }}</code>
+                        <span class="d-block ui-muted perm-desc">{{ p.description }}</span>
                       </label>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </div>
@@ -150,23 +161,23 @@ export type PermissionGroup = Record<string, Permission[]>;
             <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.roles.role_name' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="modalData.name" placeholder="{{ 'admin.roles.role_name_placeholder' | translate }}">
+                <input type="text" class="form-control" [(ngModel)]="modalData.name" placeholder="{{ 'admin.roles.role_name_placeholder' | translate }}">
               </div>
               <div class="mb-3" *ngIf="!editingRole">
                 <label class="form-label small fw-semibold">{{ 'admin.roles.role_key' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="modalData.key"
+                <input type="text" class="form-control" [(ngModel)]="modalData.key"
                        placeholder="{{ 'admin.roles.role_key_placeholder' | translate }}" pattern="[a-z0-9_]+">
                 <small class="text-muted">{{ 'admin.roles.role_key_hint' | translate }}</small>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.course_content.description' | translate }}</label>
-                <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="modalData.description"></textarea>
+                <textarea class="form-control" rows="2" [(ngModel)]="modalData.description"></textarea>
               </div>
               <div class="alert alert-danger py-1 small" *ngIf="modalError">{{ modalError }}</div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-sm btn-secondary" (click)="showModal=false">{{ 'common.cancel' | translate }}</button>
-              <button class="btn btn-sm btn-primary" (click)="saveRole()" [disabled]="savingRole || !modalData.name">
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="showModal=false">{{ 'common.cancel' | translate }}</button>
+              <button type="button" class="btn btn-sm btn-primary" (click)="saveRole()" [disabled]="savingRole || !modalData.name">
                 <span *ngIf="savingRole" class="spinner-border spinner-border-sm me-1"></span>
                 {{ editingRole ? ('admin.roles.update' | translate) : ('admin.roles.create' | translate) }}
               </button>
@@ -175,10 +186,31 @@ export type PermissionGroup = Record<string, Permission[]>;
         </div>
       </div>
     </div>
-      </div>
     </main>
   `,
-  styles: [`.cursor-pointer { cursor:pointer; } .modal.fade { display:block; opacity:1; }`]
+  styles: [`
+    .cursor-pointer { cursor:pointer; }
+    .modal.fade { display:block; opacity:1; }
+    .min-w-0 { min-width: 0; }
+    .ui-section--flush > .ui-section__head { align-items: center; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--ui-border); }
+    .role-list { max-height: 70vh; overflow-y: auto; }
+    .role-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 22px;
+      border-bottom: 1px solid var(--ui-border); border-left: 3px solid transparent; color: var(--ui-text);
+      text-decoration: none; cursor: pointer; transition: background .15s ease; }
+    .role-item:last-child { border-bottom: 0; }
+    .role-item:hover { background: var(--ui-surface-2); color: var(--ui-text); }
+    .role-item.is-active { background: rgba(var(--brand-primary-rgb), .07); border-left-color: var(--brand-primary); }
+    .role-item.is-active .role-item__name { color: var(--brand-primary); }
+    .role-item__name { font-weight: 600; font-size: .875rem; }
+    .role-item__sys { height: 18px; font-size: .625rem; padding: 0 6px; }
+    .perm-module { margin-bottom: 10px; }
+    .perm-module__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; }
+    .perm-module__head:hover { background: var(--ui-surface-2); }
+    .perm-module__title { font-weight: 600; font-size: .875rem; color: var(--ui-text); }
+    .perm-module__body { padding: 12px 18px; border-top: 1px solid var(--ui-border); }
+    .perm-key { color: var(--ui-text-muted); }
+    .perm-desc { font-size: .7rem; }
+  `]
 })
 export class RoleManagerComponent implements OnInit, OnDestroy {
   private readonly rolesService = inject(RolesService);

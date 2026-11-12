@@ -18,79 +18,79 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
   template: `
     <app-top></app-top>
 
-    <div class="saved-messages">
+    <main class="main">
+    <div class="ui-page saved-messages">
       <!-- Header -->
-      <div class="page-header mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h1 class="page-title mb-1">
-              <i class="bi bi-bookmark-star me-2"></i>{{ 'messaging.saved_messages' | translate }}
-            </h1>
-            <p class="text-muted mb-0">{{ 'messaging.saved_count' | translate:{ count: savedMessages.length } }}</p>
-          </div>
-          <div class="d-flex gap-2">
-            <input type="text" class="form-control" placeholder="{{ 'messaging.search_saved' | translate }}"
-                   [(ngModel)]="searchTerm" (input)="filterMessages()">
-          </div>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-bookmark-star"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ 'messaging.saved_messages' | translate }}</h1>
+          <p>{{ 'messaging.saved_count' | translate:{ count: savedMessages.length } }}</p>
         </div>
-      </div>
+      </header>
 
-      <!-- Message List -->
-      <div class="card" *ngIf="filteredMessages.length > 0; else emptyState">
-        <div class="card-body p-0">
-          <div class="saved-list">
-            <div class="saved-item" *ngFor="let saved of filteredMessages; trackBy: trackById">
+      <section class="ui-section">
+        <div class="ui-toolbar">
+          <label class="ui-search">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="{{ 'messaging.search_saved' | translate }}"
+                   [(ngModel)]="searchTerm" (input)="filterMessages()">
+          </label>
+        </div>
+
+        <!-- Message List -->
+        <div *ngIf="filteredMessages.length > 0; else emptyState">
+          <ul class="ui-list saved-list">
+            <li class="saved-item" *ngFor="let saved of filteredMessages; trackBy: trackById">
               <div class="saved-content">
                 <div class="saved-header">
                   <div class="sender-info">
                     <strong>{{ saved.sender_first_name }} {{ saved.sender_last_name }}</strong>
-                    <span class="text-muted mx-2">{{ 'messaging.in_word' | translate }}</span>
+                    <span class="ui-muted mx-2">{{ 'messaging.in_word' | translate }}</span>
                     <span class="conversation-name">{{ saved.conversation_name || ('messaging.direct_message' | translate) }}</span>
                   </div>
-                  <span class="saved-date text-muted small">
+                  <span class="saved-date ui-muted small">
                     {{ formatDate(saved.message_created_at) }}
                   </span>
                 </div>
                 <div class="message-content">{{ saved.content }}</div>
                 <div class="saved-note" *ngIf="saved.note">
-                  <i class="bi bi-sticky text-warning me-1"></i>
+                  <i class="bi bi-sticky me-1"></i>
                   {{ saved.note }}
                 </div>
               </div>
               <div class="saved-actions">
-                <button class="btn btn-sm btn-primary" (click)="goToMessage(saved)" [title]="'messaging.go_to_message' | translate">
+                <button type="button" class="btn btn-sm btn-primary" (click)="goToMessage(saved)" [title]="'messaging.go_to_message' | translate">
                   <i class="bi bi-arrow-right"></i>
                 </button>
-                <button class="btn btn-sm btn-secondary" (click)="editNote(saved)" [title]="'messaging.edit_note' | translate">
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="editNote(saved)" [title]="'messaging.edit_note' | translate">
                   <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger" (click)="unsave(saved)" [title]="'common.remove' | translate">
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="unsave(saved)" [title]="'common.remove' | translate">
                   <i class="bi bi-bookmark-x"></i>
                 </button>
               </div>
-            </div>
+            </li>
+          </ul>
+
+          <!-- Load More -->
+          <div class="text-center pt-3" *ngIf="hasMore">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="loadMore()" [disabled]="loading">
+              {{ (loading ? 'common.loading' : 'messaging.load_more') | translate }}
+            </button>
           </div>
         </div>
 
-        <!-- Load More -->
-        <div class="card-footer text-center" *ngIf="hasMore">
-          <button class="btn btn-link" (click)="loadMore()" [disabled]="loading">
-            {{ (loading ? 'common.loading' : 'messaging.load_more') | translate }}
-          </button>
-        </div>
-      </div>
-
-      <ng-template #emptyState>
-        <div class="empty-state card">
-          <div class="card-body text-center py-5">
-            <i class="bi bi-bookmark display-4 text-muted"></i>
-            <h5 class="mt-3">{{ 'messaging.no_saved' | translate }}</h5>
-            <p class="text-muted">
+        <ng-template #emptyState>
+          <div class="ui-state empty-state">
+            <span class="ui-state__icon"><i class="bi bi-bookmark"></i></span>
+            <h3>{{ 'messaging.no_saved' | translate }}</h3>
+            <p>
               {{ (searchTerm ? 'messaging.no_saved_search' : 'messaging.no_saved_hint') | translate }}
             </p>
           </div>
-        </div>
-      </ng-template>
+        </ng-template>
+      </section>
 
       <!-- Edit Note Modal -->
       <div class="modal fade" [class.show]="showNoteModal" [style.display]="showNoteModal ? 'block' : 'none'">
@@ -107,36 +107,21 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
                         placeholder="{{ 'messaging.note_ph' | translate }}"></textarea>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeNoteModal()">{{ 'common.cancel' | translate }}</button>
-              <button class="btn btn-primary" (click)="saveNote()">{{ 'messaging.save_note' | translate }}</button>
+              <button type="button" class="btn btn-outline-secondary" (click)="closeNoteModal()">{{ 'common.cancel' | translate }}</button>
+              <button type="button" class="btn btn-primary" (click)="saveNote()">{{ 'messaging.save_note' | translate }}</button>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-backdrop fade show" *ngIf="showNoteModal" (click)="closeNoteModal()"></div>
     </div>
+    </main>
   `,
   styles: [`
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: #1a1a2e;
-
-      i { color: #303234; }
-    }
-
-    .saved-list {
-      .saved-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 1.25rem;
-        border-bottom: 1px solid #f0f0f0;
-
-        &:last-child { border-bottom: none; }
-
-        &:hover { background: #f8f9fa; }
-      }
+    .saved-list > li.saved-item {
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 14px 0;
     }
 
     .saved-content {
@@ -148,17 +133,21 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.5rem;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 0.375rem;
+      font-size: .875rem;
     }
 
     .conversation-name {
-      color: #303234;
+      color: var(--brand-primary);
       font-weight: 500;
     }
 
     .message-content {
-      color: #1a1a2e;
-      margin-bottom: 0.5rem;
+      color: var(--ui-text);
+      font-size: .875rem;
+      margin-bottom: 0.375rem;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
@@ -166,25 +155,28 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
     }
 
     .saved-note {
-      font-size: 0.875rem;
-      color: #6c757d;
+      font-size: 0.8125rem;
+      color: var(--ui-text-muted);
       font-style: italic;
-      padding: 0.5rem;
-      background: rgba(255, 193, 7, 0.1);
-      border-radius: 4px;
-      margin-top: 0.5rem;
+      padding: 6px 10px;
+      background: rgba(var(--ui-warning-rgb, 178, 94, 9), 0.08);
+      border: 1px solid rgba(var(--ui-warning-rgb, 178, 94, 9), 0.2);
+      border-radius: var(--ui-radius-ctl, 8px);
+      margin-top: 0.375rem;
     }
+
+    .saved-note .bi { color: var(--ui-warning-text, #8a4a07); }
 
     .saved-actions {
       display: flex;
       gap: 0.5rem;
       margin-left: 1rem;
+      flex-shrink: 0;
     }
 
-    .empty-state {
-      .bi {
-        color: #303234 !important;
-      }
+    @media (max-width: 575.98px) {
+      .saved-list > li.saved-item { flex-wrap: wrap; }
+      .saved-actions { margin-left: 0; }
     }
   `]
 })

@@ -14,7 +14,17 @@ import {I18nService} from '../../../i18n.service';
   standalone: true,
   imports: [CommonModule, RouterLink, AdminSkillsComponent, AdmintopComponent, TuiIcon, TranslatePipe],
   templateUrl: `reports-dashboard.component.html`,
-  styles: [`.cat-card:hover { transform: translateY(-2px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.1) !important; }`]
+  styles: [`
+    .rd-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .rd-link { text-decoration: none; }
+    .rd-link .ui-card__body { gap: 6px; padding: 14px 16px; }
+    .rd-cat { flex-direction: row; align-items: center; gap: 12px; }
+    .rd-cat__icon { width: 38px; height: 38px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 10px; background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); font-size: 1.05rem; }
+    .rd-min { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .rd-cap { text-transform: capitalize; align-self: flex-start; }
+    .rd-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  `]
 })
 export class ReportsDashboardComponent implements OnInit {
   categories: ReportCategory[] = [];

@@ -1,202 +1,72 @@
-@use 'sass:color';
-// Light Theme Variables
-$primary-color: var(--brand-primary, #303234);
-// Lighter than `$primary-color`, despite the name, and used as the
-// hover shade — so pressing a button made it paler. The button states
-// below darken properly; this stays for the text that still uses it.
-$primary-dark:   #696969;
-$primary-light: rgba(201, 162, 39, 0.1);
-
-$bg-primary: #f8f9fa;
-$bg-secondary: #ffffff;
-$bg-tertiary: #f1f3f5;
-$text-primary: #212529;
-$text-secondary: #6c757d;
-$text-muted: #adb5bd;
-$border-color: #e9ecef;
-
-$success-color: #28a745;
-$warning-color: #ffc107;
-$danger-color: #dc3545;
-$info-color: #17a2b8;
-
-$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-
-$border-radius: 0.5rem;
-$border-radius-lg: 0.75rem;
-
-// Container
-.enrollment-container {
-  // min-height: 100vh;
-  // background: $bg-primary;
-  // padding-bottom: 2rem;
-}
-
-// Header
-.page-header {
-  background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
-  padding: 2rem;
-  margin-bottom: 2rem;
-
-  .header-content {
-    max-width: 1200px;
-    margin: 0 auto;
-
-    h1 {
-      color: #fff;
-      font-size: 1.75rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-
-      i {
-        margin-right: 0.75rem;
-      }
-    }
-
-    p {
-      color: rgba(255, 255, 255, 0.85);
-      margin: 0;
-    }
-  }
-}
-
-// Loading State
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem;
-  text-align: center;
-
-  p {
-    margin-top: 1rem;
-    color: $text-secondary;
-  }
-}
+// training-enrollment.component.scss
+//
+// Page chrome (header, sections, tabs, search, pills, buttons, states) comes
+// from the global UI kit in styles.scss. This file lays out the enrolment
+// wizard's own pieces — course picker, user picker, options, the two modals —
+// on the kit's tokens, so the accent is always the tenant brand colour.
 
 // Main Content
 .enrollment-content {
-  margin: 0 auto;
+  margin: 0;
 }
 
-// Steps
-.enrollment-step {
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
-  padding: 2rem;
-  box-shadow: $shadow-md;
-  margin-bottom: 2rem;
-}
-
+// Step header: a numbered badge in front of the kit's section title.
 .step-header {
-  display: flex;
+  justify-content: flex-start;
   align-items: flex-start;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 12px;
 
   .step-number {
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: $primary-color;
-    color: #fff;
+    background: var(--brand-primary);
+    color: var(--brand-primary-contrast, #fff);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 1.25rem;
+    font-weight: 650;
+    font-size: .8125rem;
     flex-shrink: 0;
-  }
-
-  h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: $text-primary;
-    margin-bottom: 0.25rem;
-  }
-
-  p {
-    color: $text-secondary;
-    margin: 0;
-    font-size: 0.875rem;
-  }
-}
-
-// Search Box
-.search-box {
-  position: relative;
-  margin-bottom: 1.5rem;
-
-  i {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: $text-muted;
-  }
-
-  input {
-    padding-left: 2.75rem;
-    border-radius: $border-radius;
-    border: 1px solid $border-color;
-
-    &:focus {
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px $primary-light;
-    }
-  }
-
-  &.small {
-    margin-bottom: 0;
-
-    i {
-      left: 0.75rem;
-    }
-
-    input {
-      padding-left: 2rem;
-    }
+    margin-top: 1px;
   }
 }
 
 // Course Grid
 .course-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .course-card {
-  background: $bg-secondary;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-lg;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color .15s ease, box-shadow .15s ease;
 
   &:hover {
-    border-color: $primary-color;
-    box-shadow: $shadow-md;
-    transform: translateY(-2px);
+    border-color: rgba(var(--brand-primary-rgb), .45);
+    box-shadow: var(--ui-shadow-xs);
   }
 
   &.is-full {
-    opacity: 0.6;
+    opacity: .6;
     cursor: not-allowed;
 
     &:hover {
-      transform: none;
-      border-color: $border-color;
+      border-color: var(--ui-border);
+      box-shadow: none;
     }
   }
 
   .course-thumbnail {
     position: relative;
-    height: 140px;
-    background: $bg-tertiary;
+    height: 132px;
+    background: var(--ui-surface-2);
+    border-bottom: 1px solid var(--ui-border);
 
     img {
       width: 100%;
@@ -206,47 +76,42 @@ $border-radius-lg: 0.75rem;
 
     .course-badge {
       position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      background: $danger-color;
-      color: #fff;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
+      top: 10px;
+      right: 10px;
+      background: rgba(var(--ui-danger-rgb), .1);
+      border: 1px solid rgba(var(--ui-danger-rgb), .28);
+      color: var(--ui-danger-text);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: .75rem;
       font-weight: 600;
+      backdrop-filter: blur(4px);
     }
   }
 
   .course-info {
-    padding: 1rem;
+    padding: 14px;
 
     h4 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: $text-primary;
-      margin-bottom: 0.5rem;
+      font-size: .9375rem;
+      font-weight: 650;
+      color: var(--ui-text);
+      margin-bottom: 6px;
       line-height: 1.3;
     }
 
     .category-badge {
-      display: inline-block;
-      background: $primary-light;
-      color: $primary-dark;
-      padding: 0.125rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
+      margin-bottom: 8px;
     }
 
     .course-meta {
       display: flex;
-      gap: 1rem;
-      font-size: 0.75rem;
-      color: $text-secondary;
+      gap: 14px;
+      font-size: .75rem;
+      color: var(--ui-text-muted);
 
       i {
-        margin-right: 0.25rem;
+        margin-right: 4px;
       }
     }
   }
@@ -257,108 +122,67 @@ $border-radius-lg: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: $bg-tertiary;
-  padding: 1rem;
-  border-radius: $border-radius;
-  margin-bottom: 2rem;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  border: 1px solid rgba(var(--brand-primary-rgb), .22);
+  background: rgba(var(--brand-primary-rgb), .05);
+  border-radius: var(--ui-radius-card);
+  margin-bottom: 20px;
 
   .course-preview {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 12px;
+    min-width: 0;
 
     img {
-      width: 80px;
-      height: 50px;
+      width: 72px;
+      height: 46px;
       object-fit: cover;
       border-radius: 6px;
+      border: 1px solid var(--ui-border);
     }
 
     h3 {
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-
-    .category-badge {
-      background: $primary-light;
-      color: $primary-dark;
-      padding: 0.125rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
+      font-size: .9375rem;
+      font-weight: 650;
+      color: var(--ui-text);
+      margin-bottom: 4px;
     }
   }
 }
 
-// Enrollment Type Tabs
+// Enrollment type tabs: the kit's .ui-tabs, icons kept compact.
 .enrollment-type-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-
-  .type-tab {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    border: 2px solid $border-color;
-    border-radius: $border-radius;
-    background: $bg-secondary;
-    color: $text-secondary;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    i {
-      font-size: 1.25rem;
-    }
-
-    &:hover {
-      border-color: $primary-color;
-      color: $primary-color;
-    }
-
-    &.active {
-      background: $primary-color;
-      border-color: $primary-color;
-      color: #fff;
-    }
-  }
+  margin-bottom: 20px;
 }
 
 // Selection Panel
 .selection-panel {
-  margin-bottom: 2rem;
+  margin-bottom: 20px;
 
   .form-label {
     font-weight: 500;
-    color: $text-primary;
-    margin-bottom: 0.5rem;
+    color: var(--ui-text);
+    margin-bottom: 6px;
   }
 
   .form-select-lg {
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    border-radius: $border-radius;
-
-    &:focus {
-      border-color: $primary-color;
-      box-shadow: 0 0 0 3px $primary-light;
-    }
+    max-width: 560px;
   }
 
   .selection-info {
-    margin-top: 1rem;
-    padding: 0.75rem 1rem;
-    background: $bg-tertiary;
-    border-radius: $border-radius;
-    color: $text-secondary;
-    font-size: 0.875rem;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 1px solid rgba(var(--ui-info-rgb), .28);
+    background: rgba(var(--ui-info-rgb), .08);
+    border-radius: var(--ui-radius-ctl);
+    color: var(--ui-info-text);
+    font-size: .8125rem;
 
     i {
-      color: $info-color;
-      margin-right: 0.5rem;
+      margin-right: 6px;
     }
   }
 }
@@ -367,8 +191,8 @@ $border-radius-lg: 0.75rem;
 .user-selection-area {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  gap: 16px;
+  margin-top: 16px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -377,8 +201,9 @@ $border-radius-lg: 0.75rem;
 
 .user-list-panel,
 .selected-users-panel {
-  background: $bg-tertiary;
-  border-radius: $border-radius;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
   overflow: hidden;
 }
 
@@ -386,35 +211,41 @@ $border-radius-lg: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  background: $bg-secondary;
-  border-bottom: 1px solid $border-color;
+  padding: 12px 14px;
+  background: var(--ui-surface-2);
+  border-bottom: 1px solid var(--ui-border);
 
   h5 {
-    font-size: 0.875rem;
-    font-weight: 600;
+    font-size: .8125rem;
+    font-weight: 650;
+    color: var(--ui-text);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
   }
 
-  .badge {
-    font-size: 0.75rem;
+  .ui-filter__count.is-brand {
+    background: rgba(var(--brand-primary-rgb), .14);
+    color: var(--brand-primary);
   }
 }
 
+.panel-body {
+  padding: 12px 14px 0;
+}
+
 .panel-footer {
-  padding: 0.75rem 1rem;
-  background: $bg-secondary;
-  border-top: 1px solid $border-color;
+  padding: 8px 14px;
+  border-top: 1px solid var(--ui-border);
   display: flex;
-  gap: 1rem;
+  gap: 16px;
 
   .btn-link {
-    color: $primary-color;
+    color: var(--brand-primary);
     text-decoration: none;
     padding: 0;
+    font-size: .8125rem;
 
     &:hover {
       text-decoration: underline;
@@ -422,20 +253,44 @@ $border-radius-lg: 0.75rem;
   }
 }
 
+// Search box inside the user picker
+.search-box {
+  position: relative;
+  margin-bottom: 12px;
+
+  i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ui-text-subtle);
+    font-size: .8125rem;
+  }
+
+  input {
+    padding-left: 30px;
+  }
+
+  &.small {
+    margin-bottom: 8px;
+  }
+}
+
 .user-list {
   max-height: 350px;
   overflow-y: auto;
   position: relative;
+  margin: 0 -14px;
 
   &.loading {
     pointer-events: none;
-    opacity: 0.6;
+    opacity: .6;
   }
 
   .loading-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, .8);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -446,36 +301,23 @@ $border-radius-lg: 0.75rem;
 .user-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: 10px;
+  padding: 10px 14px;
   cursor: pointer;
-  transition: background 0.15s;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background .15s;
+  border-top: 1px solid var(--ui-border);
 
   &:hover {
-    background: rgba($primary-color, 0.05);
+    background: var(--ui-surface-2);
   }
 
   &.selected {
-    background: rgba($primary-color, 0.1);
-
-    .bi-check-circle-fill {
-      color: $success-color;
-    }
+    background: rgba(var(--brand-primary-rgb), .07);
+    box-shadow: inset 3px 0 0 var(--brand-primary);
   }
 
-  .user-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: $primary-color;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-    flex-shrink: 0;
+  .user-checkbox input {
+    accent-color: var(--brand-primary);
   }
 
   .user-info {
@@ -485,28 +327,29 @@ $border-radius-lg: 0.75rem;
     .user-name {
       display: block;
       font-weight: 500;
-      color: $text-primary;
-      font-size: 0.875rem;
+      color: var(--ui-text);
+      font-size: .8125rem;
     }
 
     .user-email {
       display: block;
-      font-size: 0.75rem;
-      color: $text-secondary;
+      font-size: .75rem;
+      color: var(--ui-text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-  }
 
-  .bi-plus-circle {
-    color: $text-muted;
+    .user-meta {
+      font-size: .75rem;
+      color: var(--ui-text-subtle);
+    }
   }
 }
 
 // Selected Users Panel
 .selected-users-list {
-  padding: 1rem;
+  padding: 12px;
   min-height: 200px;
   max-height: 350px;
   overflow-y: auto;
@@ -515,21 +358,22 @@ $border-radius-lg: 0.75rem;
 .selected-user-chip {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background: $bg-secondary;
-  border: 1px solid $border-color;
-  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
-  border-radius: 20px;
-  margin: 0.25rem;
-  font-size: 0.8125rem;
+  gap: 6px;
+  background: rgba(var(--brand-primary-rgb), .08);
+  border: 1px solid rgba(var(--brand-primary-rgb), .22);
+  color: var(--ui-text);
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  margin: 3px;
+  font-size: .8125rem;
 
   .btn-remove {
     width: 18px;
     height: 18px;
     border-radius: 50%;
     border: none;
-    background: $bg-tertiary;
-    color: $text-secondary;
+    background: transparent;
+    color: var(--ui-text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -537,103 +381,86 @@ $border-radius-lg: 0.75rem;
     padding: 0;
 
     &:hover {
-      background: $danger-color;
-      color: #fff;
+      background: rgba(var(--ui-danger-rgb), .12);
+      color: var(--ui-danger-text);
     }
 
     i {
-      font-size: 0.75rem;
+      font-size: .75rem;
     }
   }
 }
 
-// Empty State
+// Empty State (inside the two user panels)
 .empty-state {
   text-align: center;
-  padding: 2rem;
-  color: $text-muted;
+  padding: 28px 16px;
+  color: var(--ui-text-muted);
+  font-size: .8125rem;
 
   i {
-    font-size: 2.5rem;
+    font-size: 1.75rem;
     display: block;
-    margin-bottom: 0.5rem;
-    opacity: 0.5;
+    margin-bottom: 6px;
+    color: var(--ui-text-subtle);
   }
 
   p {
     margin: 0;
   }
-
-  &.small {
-    padding: 1.5rem;
-    margin-top: 2rem;
-
-    i {
-      font-size: 3rem;
-    }
-  }
 }
 
-// Enrollment Options
+// Enrollment Options / Standing rules
 .enrollment-options {
-  background: $bg-tertiary;
-  border-radius: $border-radius;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  padding: 16px 18px;
+  margin-bottom: 20px;
 
   h5 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
+    font-size: .875rem;
+    font-weight: 650;
+    color: var(--ui-text);
+    margin-bottom: 14px;
 
     i {
-      margin-right: 0.5rem;
-      color: $text-secondary;
+      margin-right: 6px;
+      color: var(--brand-primary);
     }
   }
 
   .options-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
   }
 
   .option-item {
     .form-check {
       display: flex;
       align-items: flex-start;
-      gap: 0.75rem;
+      gap: 10px;
+      padding-left: 0;
 
       .form-check-input {
-        margin-top: 0.25rem;
-
-        &:checked {
-          background-color: $primary-color;
-          border-color: $primary-color;
-        }
-
-        &:focus {
-          box-shadow: 0 0 0 3px $primary-light;
-        }
+        margin: 3px 0 0;
+        float: none;
+        flex-shrink: 0;
       }
 
       .form-check-label {
+        font-size: .8125rem;
+
         strong {
           display: block;
-          color: $text-primary;
-          margin-bottom: 0.125rem;
+          color: var(--ui-text);
+          margin-bottom: 2px;
+          font-weight: 600;
         }
 
         small {
-          color: $text-secondary;
+          color: var(--ui-text-muted);
         }
-      }
-    }
-
-    .form-control {
-      &:focus {
-        border-color: $primary-color;
-        box-shadow: 0 0 0 3px $primary-light;
       }
     }
   }
@@ -644,52 +471,22 @@ $border-radius-lg: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, $primary-light 0%, rgba($primary-color, 0.05) 100%);
-  border: 1px solid rgba($primary-color, 0.3);
-  border-radius: $border-radius;
-  padding: 1rem 1.5rem;
+  gap: 12px;
+  background: rgba(var(--brand-primary-rgb), .05);
+  border: 1px solid rgba(var(--brand-primary-rgb), .25);
+  border-radius: var(--ui-radius-card);
+  padding: 12px 16px;
 
   .summary-content {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    color: $text-primary;
+    gap: 10px;
+    color: var(--ui-text);
+    font-size: .875rem;
 
     i {
-      color: $primary-color;
-      font-size: 1.25rem;
-    }
-  }
-
-  .btn-primary {
-    background: $primary-color;
-    border-color: $primary-color;
-    color: #fff;
-
-    &:hover,
-    &:focus,
-    &:active,
-    &.active,
-    &:first-child:active {
-      // Bootstrap's `:active` rule is more specific than a bare
-      // `.btn-primary`, so leaving these unstated let a pressed button
-      // flash Bootstrap's blue in the middle of a themed screen.
-      background: color-mix(in srgb, $primary-color 92%, black);
-      border-color: color-mix(in srgb, $primary-color 88%, black);
-      color: #fff;
-    }
-
-    &:focus,
-    &:focus-visible {
-      box-shadow: 0 0 0 3px color-mix(in srgb, $primary-color 25%, transparent);
-    }
-
-    &:disabled,
-    &.disabled {
-      background: $primary-color;
-      border-color: $primary-color;
-      color: #fff;
-      opacity: 0.55;
+      color: var(--brand-primary);
+      font-size: 1.1rem;
     }
   }
 }
@@ -698,7 +495,7 @@ $border-radius-lg: 0.75rem;
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, .5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -707,15 +504,16 @@ $border-radius-lg: 0.75rem;
 }
 
 .modal-container {
-  background: $bg-secondary;
-  border-radius: $border-radius-lg;
+  background: var(--ui-surface, #fff);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel, 14px);
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: $shadow-lg;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .14);
 
   &.preview-modal {
     max-width: 700px;
@@ -726,83 +524,75 @@ $border-radius-lg: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid $border-color;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ui-border);
 
   h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 650;
+    color: var(--ui-text);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-  }
-
-  .btn-close {
-    opacity: 0.5;
-
-    &:hover {
-      opacity: 1;
-    }
+    gap: 10px;
   }
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 20px;
   overflow-y: auto;
   flex: 1;
+  font-size: .875rem;
 }
 
 .modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  border-top: 1px solid $border-color;
-  background: $bg-tertiary;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ui-border);
 }
 
 // Preview Modal Content
 .preview-course {
-  background: $bg-tertiary;
-  padding: 1rem;
-  border-radius: $border-radius;
-  margin-bottom: 1.5rem;
+  border: 1px solid var(--ui-border);
+  padding: 12px 14px;
+  border-radius: var(--ui-radius-card);
+  margin-bottom: 16px;
 }
 
 .preview-stats,
 .result-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 12px;
+  margin-bottom: 16px;
 
   .stat-card {
-    background: $bg-tertiary;
-    padding: 1rem;
-    border-radius: $border-radius;
+    border: 1px solid var(--ui-border);
+    padding: 12px;
+    border-radius: var(--ui-radius-card);
     text-align: center;
 
     .stat-value {
       display: block;
-      font-size: 2rem;
-      font-weight: 700;
+      font-size: 1.5rem;
+      font-weight: 650;
       line-height: 1;
-      margin-bottom: 0.25rem;
+      margin-bottom: 4px;
+      color: var(--ui-text);
     }
 
     .stat-label {
-      font-size: 0.75rem;
-      color: $text-secondary;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      font-size: .75rem;
+      color: var(--ui-text-muted);
     }
 
-    &.success .stat-value { color: $success-color; }
-    &.warning .stat-value { color: $warning-color; }
-    &.danger .stat-value { color: $danger-color; }
-    &.info .stat-value { color: $info-color; }
+    &.success .stat-value { color: var(--ui-success-text); }
+    &.warning .stat-value { color: var(--ui-warning-text); }
+    &.danger .stat-value { color: var(--ui-danger-text); }
+    &.info .stat-value { color: var(--ui-info-text); }
   }
 }
 
@@ -811,31 +601,30 @@ $border-radius-lg: 0.75rem;
   overflow-y: auto;
 
   .preview-list {
-    margin-bottom: 1.5rem;
+    margin-bottom: 16px;
 
     h5 {
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
+      font-size: .8125rem;
+      font-weight: 650;
+      margin-bottom: 8px;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 6px;
     }
 
     ul {
       list-style: none;
-      padding: 0;
       margin: 0;
-      background: $bg-tertiary;
-      border-radius: $border-radius;
-      padding: 0.5rem;
+      border: 1px solid var(--ui-border);
+      border-radius: var(--ui-radius-ctl);
+      padding: 4px;
       max-height: 150px;
       overflow-y: auto;
 
       li {
-        padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        font-size: 0.875rem;
+        padding: 6px 10px;
+        border-bottom: 1px solid var(--ui-border);
+        font-size: .8125rem;
 
         &:last-child {
           border-bottom: none;
@@ -847,60 +636,56 @@ $border-radius-lg: 0.75rem;
 
 .enrollment-settings-preview {
   display: flex;
-  gap: 0.5rem;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-top: 1rem;
-
-  .badge {
-    font-weight: 500;
-  }
+  margin-top: 12px;
 }
 
 // Result Modal Content
 .result-message {
   text-align: center;
-  font-size: 1.125rem;
-  color: $text-primary;
-  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  color: var(--ui-text);
+  margin-bottom: 16px;
 }
 
 .result-details {
-  margin-bottom: 1.5rem;
+  margin-bottom: 16px;
 
   h5 {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
+    font-size: .8125rem;
+    font-weight: 650;
+    margin-bottom: 8px;
   }
 
   .enrolled-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 6px;
 
     .enrolled-chip {
-      background: rgba($success-color, 0.1);
-      color: color.adjust($success-color, $lightness: -10%);
-      padding: 0.375rem 0.75rem;
-      border-radius: 20px;
-      font-size: 0.8125rem;
+      background: rgba(var(--ui-success-rgb), .1);
+      border: 1px solid rgba(var(--ui-success-rgb), .28);
+      color: var(--ui-success-text);
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: .8125rem;
     }
   }
 
   ul {
     list-style: none;
-    padding: 0;
     margin: 0;
-    background: $bg-tertiary;
-    border-radius: $border-radius;
-    padding: 0.5rem;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-ctl);
+    padding: 4px;
     max-height: 150px;
     overflow-y: auto;
 
     li {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      padding: 6px 10px;
+      font-size: .8125rem;
+      border-bottom: 1px solid var(--ui-border);
 
       &:last-child {
         border-bottom: none;
@@ -909,52 +694,31 @@ $border-radius-lg: 0.75rem;
   }
 
   &.warning ul {
-    background: rgba($warning-color, 0.1);
+    background: rgba(var(--ui-warning-rgb), .06);
+    border-color: rgba(var(--ui-warning-rgb), .28);
   }
 
   &.danger ul {
-    background: rgba($danger-color, 0.1);
+    background: rgba(var(--ui-danger-rgb), .06);
+    border-color: rgba(var(--ui-danger-rgb), .28);
+  }
+
+  &.info ul {
+    background: rgba(var(--ui-info-rgb), .06);
+    border-color: rgba(var(--ui-info-rgb), .28);
   }
 }
 
 // Responsive
 @media (max-width: 576px) {
-  .page-header {
-    padding: 1.5rem;
-
-    .header-content h1 {
-      font-size: 1.5rem;
-    }
-  }
-
-  .enrollment-step {
-    padding: 1.5rem;
-  }
-
-  .enrollment-type-tabs {
-    .type-tab {
-      flex: 1;
-      justify-content: center;
-      padding: 0.625rem;
-
-      span {
-        display: none;
-      }
-
-      i {
-        font-size: 1.5rem;
-      }
-    }
+  .enrollment-type-tabs .type-tab span {
+    display: none;
   }
 
   .enrollment-summary {
     flex-direction: column;
-    gap: 1rem;
+    align-items: stretch;
     text-align: center;
-
-    .btn-lg {
-      width: 100%;
-    }
   }
 
   .preview-stats,

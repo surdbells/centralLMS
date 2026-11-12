@@ -12,26 +12,26 @@ import { TranslatePipe } from '../../../translate.pipe';
   imports: [CommonModule, FormsModule, TranslatePipe],
   providers: [DecimalPipe, DatePipe],
   template: `
-    <div class="report-table card border-0 shadow-sm">
-      <div class="card-body p-0">
+    <div class="report-table ui-section ui-section--flush">
+      <div>
         <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom bg-light" *ngIf="title || searchable">
-          <h6 class="mb-0 fw-semibold" *ngIf="title">{{ title }}</h6>
-          <div class="d-flex gap-2 align-items-center">
-            <span class="badge bg-primary" *ngIf="filteredData.length">{{ 'reports.records_count' | translate:{ count: filteredData.length } }}</span>
-            <div class="input-group input-group-sm" style="width: 220px" *ngIf="searchable">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" placeholder="{{ 'reports.search_ph' | translate }}" [(ngModel)]="searchTerm" (input)="applySearch()">
-            </div>
+        <div class="rt-head" *ngIf="title || searchable">
+          <h2 class="ui-section__title" *ngIf="title">{{ title }}</h2>
+          <div class="rt-head__tools">
+            <span class="ui-pill ui-pill--brand" *ngIf="filteredData.length">{{ 'reports.records_count' | translate:{ count: filteredData.length } }}</span>
+            <label class="ui-search rt-search" *ngIf="searchable">
+              <i class="bi bi-search"></i>
+              <input type="text" placeholder="{{ 'reports.search_ph' | translate }}" [(ngModel)]="searchTerm" (input)="applySearch()">
+            </label>
           </div>
         </div>
 
         <!-- Table -->
         <div class="table-responsive">
-          <table class="table table-hover table-sm mb-0 align-middle">
-            <thead class="table-light">
+          <table class="table table-hover mb-0 align-middle">
+            <thead>
             <tr>
-              <th *ngFor="let col of columns" class="px-3 py-2 small text-uppercase text-muted fw-semibold"
+              <th *ngFor="let col of columns" class="px-3"
                   [class.sortable]="sortable" (click)="sortable && sort(col.key)"
                   [style.cursor]="sortable ? 'pointer' : 'default'"
                   [style.minWidth]="col.width || 'auto'">
@@ -43,11 +43,11 @@ import { TranslatePipe } from '../../../translate.pipe';
             </thead>
             <tbody>
             <tr *ngFor="let row of pagedData; let ri = index; trackBy: trackRow">
-              <td *ngFor="let col of columns" class="px-3 py-2">
+              <td *ngFor="let col of columns" class="px-3">
 
                 <!-- Drilldown link (clickable number) -->
                 <a *ngIf="col.type === 'drilldown' && row[col.key]"
-                   class="fw-semibold text-primary text-decoration-none drilldown-link"
+                   class="fw-semibold text-decoration-none drilldown-link"
                    (click)="onCellClick(row, col, $event)" role="button">
                   {{ dp.transform(row[col.key], '1.0-0') }}
                   <i class="bi bi-box-arrow-up-right ms-1 small"></i>
@@ -80,8 +80,8 @@ import { TranslatePipe } from '../../../translate.pipe';
               </td>
             </tr>
             <tr *ngIf="!filteredData.length">
-              <td [attr.colspan]="columns.length" class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-2 d-block mb-2"></i>{{ 'reports.no_data' | translate }}
+              <td [attr.colspan]="columns.length" class="rt-empty">
+                <i class="bi bi-inbox d-block mb-2"></i>{{ 'reports.no_data' | translate }}
               </td>
             </tr>
             </tbody>
@@ -89,8 +89,8 @@ import { TranslatePipe } from '../../../translate.pipe';
         </div>
 
         <!-- Pagination -->
-        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light" *ngIf="totalPages > 1">
-          <span class="small text-muted">
+        <div class="rt-foot" *ngIf="totalPages > 1">
+          <span class="small ui-muted">
             {{ 'reports.page_of_total' | translate:{ current: currentPage, total: totalPages, count: filteredData.length } }}
           </span>
           <nav>
@@ -111,7 +111,20 @@ import { TranslatePipe } from '../../../translate.pipe';
     </div>
   `,
   styles: [`
-    .sortable:hover { background-color: #e9ecef; }
+    .sortable:hover { background-color: var(--ui-surface-2); }
+    .rt-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; }
+    .rt-head__tools { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+    .rt-search { width: 240px; flex: 0 1 240px; }
+    .rt-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 10px 18px; border-top: 1px solid var(--ui-border); }
+    .rt-empty { text-align: center; padding: 40px 16px !important; color: var(--ui-text-muted); }
+    .rt-empty i { font-size: 1.5rem; color: var(--brand-primary); }
+    .drilldown-link { color: var(--brand-primary); }
+    .table-responsive { border-top: 1px solid var(--ui-border); }
+    /* Already inside a page section: drop the second card frame. */
+    :host-context(.ui-section) .report-table { border: 0; margin: 0; border-radius: 0; }
+    :host-context(.ui-section) .rt-head { padding-left: 0; padding-right: 0; padding-top: 0; }
+    :host-context(.ui-section) .table-responsive { border-top: 0; }
     .page-link { cursor: pointer; }
     .drilldown-link { cursor: pointer; }
     .drilldown-link:hover { text-decoration: underline !important; }

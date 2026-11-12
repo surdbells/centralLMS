@@ -1,9 +1,15 @@
+// Page chrome comes from the global UI kit (styles.scss). Only the
+// genuinely functional bits live here.
+
+.skills-training-select {
+  max-width: 420px;
+}
 
 .available-skills {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
+  border: 1px solid var(--ui-border, #e5e7eb);
+  border-radius: var(--ui-radius-ctl, 8px);
 }
 
 .list-group-item {
@@ -11,14 +17,15 @@
 }
 
 .list-group-item.active {
-  background-color: #303234;
-  border-color: #303234;
+  background-color: rgba(var(--brand-primary-rgb), .08);
+  border-color: rgba(var(--brand-primary-rgb), .28);
+  color: var(--ui-text, inherit);
+  box-shadow: inset 3px 0 0 var(--brand-primary);
 }
 
-.badge-beginner { background-color: #6c757d; }
-.badge-intermediate { background-color: #0dcaf0; }
-.badge-advanced { background-color: #0d6efd; }
-.badge-expert { background-color: #198754; }
+.list-group-item.active .text-muted {
+  color: var(--ui-text-muted) !important;
+}
 
 .modal.show {
   display: block !important;

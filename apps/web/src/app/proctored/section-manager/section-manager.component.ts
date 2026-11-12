@@ -42,7 +42,8 @@ interface SectionQuestion {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="section-manager">
+    <main class="main">
+    <div class="ui-page section-manager">
       <!-- Not-editable / error banner -->
       <div class="sm-error" *ngIf="editError">
         <tui-icon icon="@tui.alert-triangle" style="font-size:16px"></tui-icon>
@@ -51,27 +52,28 @@ interface SectionQuestion {
       </div>
 
       <!-- Header -->
-      <div class="sm-header">
-        <div class="sm-header-left">
-          <h3>Sections</h3>
-          <span class="sm-stats">
+      <header class="ui-page-header sm-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-collection"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Sections</h1>
+          <p class="sm-stats">
             {{ sections.length }} section{{ sections.length !== 1 ? 's' : '' }} ·
             {{ totalQuestions }} question{{ totalQuestions !== 1 ? 's' : '' }} ·
             {{ totalPoints }} points
-          </span>
+          </p>
         </div>
-        <div class="sm-header-actions">
-          <button class="btn-sm-action" (click)="expandAll()" title="Expand all">
+        <div class="ui-page-header__actions">
+          <button class="btn btn-sm btn-outline-secondary btn-sm-action" (click)="expandAll()" title="Expand all">
             <tui-icon icon="@tui.chevrons-down"></tui-icon>
           </button>
-          <button class="btn-sm-action" (click)="collapseAll()" title="Collapse all">
+          <button class="btn btn-sm btn-outline-secondary btn-sm-action" (click)="collapseAll()" title="Collapse all">
             <tui-icon icon="@tui.chevrons-up"></tui-icon>
           </button>
-          <button class="btn-add-section" (click)="addSection()">
+          <button class="btn btn-primary btn-add-section" (click)="addSection()">
             <tui-icon icon="@tui.plus"></tui-icon> Add Section
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Sections List -->
       <div class="sections-list" *ngIf="sections.length > 0">
@@ -92,7 +94,7 @@ interface SectionQuestion {
             </div>
 
             <tui-icon [icon]="section.collapsed ? '@tui.chevron-right' : '@tui.chevron-down'"
-                      style="font-size:16px;color:#94a3b8"></tui-icon>
+                      class="chevron-icon"></tui-icon>
 
             <div class="section-title-area" *ngIf="!section.editing">
               <span class="section-title">{{ section.title || 'Untitled Section' }}</span>
@@ -112,10 +114,10 @@ interface SectionQuestion {
 
             <div class="section-actions" (click)="$event.stopPropagation()">
               <button class="btn-icon" *ngIf="section.editing" (click)="saveSection(section)" title="Save">
-                <tui-icon icon="@tui.check" style="color:#22c55e"></tui-icon>
+                <tui-icon icon="@tui.check" class="ok-icon"></tui-icon>
               </button>
               <button class="btn-icon" *ngIf="section.editing" (click)="cancelEdit(section)" title="Cancel">
-                <tui-icon icon="@tui.x" style="color:#ef4444"></tui-icon>
+                <tui-icon icon="@tui.x" class="danger-icon"></tui-icon>
               </button>
               <button class="btn-icon" *ngIf="!section.editing" (click)="startEdit(section)" title="Edit">
                 <tui-icon icon="@tui.pencil"></tui-icon>
@@ -184,7 +186,7 @@ interface SectionQuestion {
 
             <!-- Empty State -->
             <div class="section-empty" *ngIf="!section.questions || section.questions.length === 0">
-              <tui-icon icon="@tui.inbox" style="font-size:24px;color:#cbd5e1"></tui-icon>
+              <tui-icon icon="@tui.inbox" class="empty-icon"></tui-icon>
               <p>No questions in this section</p>
               <button class="btn-add-questions" (click)="onAddQuestions.emit(section.id)">
                 <tui-icon icon="@tui.plus"></tui-icon> Add Questions
@@ -202,11 +204,11 @@ interface SectionQuestion {
       </div>
 
       <!-- Empty State -->
-      <div class="empty-state" *ngIf="sections.length === 0 && !loading">
-        <tui-icon icon="@tui.layers" style="font-size:48px;color:#cbd5e1"></tui-icon>
+      <div class="ui-state empty-state" *ngIf="sections.length === 0 && !loading">
+        <span class="ui-state__icon"><i class="bi bi-layers"></i></span>
         <h3>No Sections Yet</h3>
         <p>Create sections to organize your assessment questions</p>
-        <button class="btn-add-section" (click)="addSection()">
+        <button class="btn btn-primary btn-add-section" (click)="addSection()">
           <tui-icon icon="@tui.plus"></tui-icon> Add First Section
         </button>
       </div>
@@ -217,12 +219,12 @@ interface SectionQuestion {
           <h3>Delete Section</h3>
           <p>Are you sure you want to delete <strong>{{ deleteTarget.title || 'Untitled Section' }}</strong>?</p>
           <p class="warning-text" *ngIf="deleteTarget.question_count > 0">
-            <tui-icon icon="@tui.alert-triangle" style="color:#f59e0b;font-size:16px"></tui-icon>
+            <tui-icon icon="@tui.alert-triangle" class="warn-icon"></tui-icon>
             This section contains {{ deleteTarget.question_count }} question(s). They will be removed from this assessment but remain in the question bank.
           </p>
           <div class="modal-actions">
-            <button class="btn-cancel" (click)="deleteTarget = null">Cancel</button>
-            <button class="btn-delete" (click)="deleteSection(deleteTarget)">Delete Section</button>
+            <button class="btn btn-outline-secondary btn-cancel" (click)="deleteTarget = null">Cancel</button>
+            <button class="btn btn-danger btn-delete" (click)="deleteSection(deleteTarget)">Delete Section</button>
           </div>
         </div>
       </div>
@@ -232,190 +234,162 @@ interface SectionQuestion {
         <div class="spinner"></div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
     :host { display: block; }
-    .section-manager { }
+    /* Page chrome (header, buttons, states) comes from the global UI kit. */
 
     .sm-error {
-      display: flex; align-items: center; gap: 8px; background: #fffbeb;
-      border: 1px solid #fde68a; color: #92400e; padding: 10px 14px;
-      border-radius: 8px; font-size: 13px; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px; background: rgba(var(--ui-warning-rgb), .08);
+      border: 1px solid rgba(var(--ui-warning-rgb), .3); color: var(--ui-warning-text, #8f4b07); padding: 10px 14px;
+      border-radius: var(--ui-radius-ctl, 8px); font-size: 13px; margin-bottom: 16px;
     }
     .sm-error span { flex: 1; }
 
-    .sm-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
-    }
-    .sm-header h3 { font-size: 16px; font-weight: 600; color: #0f172a; margin: 0; }
-    .sm-stats { font-size: 13px; color: #64748b; margin-left: 12px; }
-    .sm-header-actions { display: flex; gap: 8px; align-items: center; }
-    .btn-sm-action {
-      background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px; border-radius: 6px;
-      cursor: pointer; display: flex; color: #64748b;
-    }
-    .btn-sm-action:hover { background: #e2e8f0; }
-    .btn-add-section {
-      display: flex; align-items: center; gap: 6px; background: #6366f1; color: white;
-      border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px;
-      font-weight: 500; cursor: pointer;
-    }
-    .btn-add-section:hover { background: #4f46e5; }
+    .chevron-icon { font-size: 16px; color: var(--ui-text-subtle, #8d948e); }
+    .ok-icon { color: var(--ui-success, #2e7d4f); }
+    .danger-icon { color: var(--ui-danger, #c0352b); }
+    .warn-icon { color: var(--ui-warning, #b25e09); font-size: 16px; flex-shrink: 0; }
+    .empty-icon { font-size: 24px; color: var(--ui-text-subtle, #8d948e); }
 
     /* Section Blocks */
-    .sections-list { display: flex; flex-direction: column; gap: 8px; }
+    .sections-list { display: flex; flex-direction: column; gap: 12px; }
     .section-block {
-      background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
-      transition: all 0.2s;
+      background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-card, 12px); overflow: hidden;
+      transition: border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
     }
     .section-block.dragging { opacity: 0.5; }
-    .section-block.drag-over { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); }
+    .section-block.drag-over { border-color: var(--brand-primary); box-shadow: 0 0 0 2px rgba(var(--brand-primary-rgb), .2); }
 
     .section-header {
       display: flex; align-items: center; gap: 8px; padding: 12px 16px;
-      background: #f8fafc; cursor: pointer; border-bottom: 1px solid #e2e8f0;
+      background: var(--ui-surface, #fff); cursor: pointer; border-bottom: 1px solid var(--ui-border, #e7e9e7);
     }
-    .section-header:hover { background: #f1f5f9; }
+    .section-header:hover { background: var(--ui-surface-2, #f7f8f7); }
 
-    .section-drag-handle { cursor: grab; color: #cbd5e1; display: flex; }
+    .section-drag-handle { cursor: grab; color: var(--ui-text-subtle, #8d948e); display: flex; }
     .section-drag-handle:active { cursor: grabbing; }
 
     .section-title-area { flex: 1; min-width: 0; }
-    .section-title { font-size: 15px; font-weight: 600; color: #0f172a; display: block; }
-    .section-meta { font-size: 12px; color: #94a3b8; }
+    .section-title { font-size: 15px; font-weight: 600; color: var(--ui-text, #1b1f1c); display: block; }
+    .section-meta { font-size: 12px; color: var(--ui-text-muted, #6a716b); }
 
     .section-edit-area { flex: 1; display: flex; flex-direction: column; gap: 6px; }
     .edit-input {
-      padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 4px;
+      height: 34px; padding: 0 10px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px);
       font-size: 14px; outline: none; width: 100%;
     }
-    .edit-input:focus { border-color: #6366f1; }
+    .edit-input:focus { border-color: rgba(var(--brand-primary-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .12); }
     .title-input { font-weight: 600; }
-    .desc-input { font-size: 13px; color: #64748b; }
+    .desc-input { font-size: 13px; color: var(--ui-text-muted, #6a716b); }
 
     .section-actions { display: flex; gap: 4px; align-items: center; }
     .btn-icon {
-      background: none; border: none; padding: 4px; cursor: pointer; color: #94a3b8;
-      border-radius: 4px; display: flex;
+      background: none; border: none; padding: 4px; cursor: pointer; color: var(--ui-text-muted, #6a716b);
+      border-radius: 6px; display: flex;
     }
-    .btn-icon:hover { background: #e2e8f0; color: #334155; }
+    .btn-icon:hover { background: var(--ui-surface-2, #f7f8f7); color: var(--ui-text, #1b1f1c); }
     .btn-icon:disabled { opacity: 0.3; cursor: default; }
-    .btn-icon.danger:hover { background: #fef2f2; color: #ef4444; }
+    .btn-icon.danger:hover { background: rgba(var(--ui-danger-rgb), .08); color: var(--ui-danger, #c0352b); }
 
     /* Section Body */
     .section-body { padding: 0; }
     .section-description {
-      padding: 8px 16px; font-size: 13px; color: #64748b; background: #fafbfc;
-      border-bottom: 1px solid #f1f5f9;
+      padding: 8px 16px; font-size: 13px; color: var(--ui-text-muted, #6a716b); background: var(--ui-surface-2, #f7f8f7);
+      border-bottom: 1px solid var(--ui-border, #e7e9e7);
     }
 
     /* Questions */
-    .section-questions { }
     .sq-item {
       display: flex; align-items: center; gap: 8px; padding: 10px 16px;
-      border-bottom: 1px solid #f1f5f9; font-size: 14px;
+      border-bottom: 1px solid var(--ui-border, #e7e9e7); font-size: 14px;
       transition: background 0.15s;
     }
-    .sq-item:hover { background: #fafbfc; }
-    .sq-item.q-drag-over { background: #ede9fe; border-bottom-color: #6366f1; }
-    .sq-drag { cursor: grab; color: #cbd5e1; display: flex; flex-shrink: 0; }
+    .sq-item:hover { background: var(--ui-surface-2, #f7f8f7); }
+    .sq-item.q-drag-over { background: rgba(var(--brand-primary-rgb), .08); border-bottom-color: var(--brand-primary); }
+    .sq-drag { cursor: grab; color: var(--ui-text-subtle, #8d948e); display: flex; flex-shrink: 0; }
     .sq-type-icon { font-size: 16px; flex-shrink: 0; }
-    .sq-text { flex: 1; min-width: 0; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sq-text { flex: 1; min-width: 0; color: var(--ui-text, #1b1f1c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sq-difficulty {
-      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500;
+      font-size: 11px; padding: 2px 9px; border-radius: 999px; font-weight: 600; border: 1px solid transparent;
       text-transform: capitalize; flex-shrink: 0;
     }
-    .diff-easy, .diff-beginner { background: #d1fae5; color: #059669; }
-    .diff-medium, .diff-intermediate { background: #fef3c7; color: #d97706; }
-    .diff-hard, .diff-professional { background: #fce7f3; color: #db2777; }
-    .sq-points { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #64748b; flex-shrink: 0; }
+    .diff-easy, .diff-beginner { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text, #23643e); }
+    .diff-medium, .diff-intermediate { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text, #8f4b07); }
+    .diff-hard, .diff-professional { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text, #a12c24); }
+    .sq-points { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ui-text-muted, #6a716b); flex-shrink: 0; }
     .points-input {
-      width: 48px; padding: 3px 6px; border: 1px solid #e2e8f0; border-radius: 4px;
+      width: 52px; height: 28px; padding: 0 6px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: 6px;
       text-align: center; font-size: 13px; outline: none;
     }
-    .points-input:focus { border-color: #6366f1; }
+    .points-input:focus { border-color: rgba(var(--brand-primary-rgb), .55); }
     .sq-actions { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
     .btn-icon-sm {
-      background: none; border: none; padding: 3px; cursor: pointer; color: #94a3b8;
-      border-radius: 3px; display: flex;
+      background: none; border: none; padding: 3px; cursor: pointer; color: var(--ui-text-muted, #6a716b);
+      border-radius: 4px; display: flex;
     }
-    .btn-icon-sm:hover { background: #e2e8f0; color: #334155; }
+    .btn-icon-sm:hover { background: var(--ui-surface-2, #f7f8f7); color: var(--ui-text, #1b1f1c); }
     .btn-icon-sm:disabled { opacity: 0.3; cursor: default; }
-    .btn-icon-sm.danger:hover { background: #fef2f2; color: #ef4444; }
+    .btn-icon-sm.danger:hover { background: rgba(var(--ui-danger-rgb), .08); color: var(--ui-danger, #c0352b); }
 
     /* Move to section dropdown */
     .move-to-dropdown { position: relative; }
     .move-menu {
-      position: absolute; right: 0; top: 100%; background: white;
-      border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      position: absolute; right: 0; top: 100%; background: var(--ui-surface, #fff);
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); box-shadow: var(--ui-shadow-pop);
       min-width: 180px; z-index: 10; padding: 4px;
     }
-    .move-menu-title { font-size: 11px; color: #94a3b8; padding: 6px 10px; text-transform: uppercase; }
+    .move-menu-title { font-size: 11px; color: var(--ui-text-subtle, #8d948e); padding: 6px 10px; text-transform: uppercase; letter-spacing: .03em; }
     .move-menu-item {
       display: block; width: 100%; text-align: left; padding: 8px 10px;
       border: none; background: none; cursor: pointer; font-size: 13px;
-      border-radius: 4px; color: #334155;
+      border-radius: 6px; color: var(--ui-text, #1b1f1c);
     }
-    .move-menu-item:hover { background: #f1f5f9; }
+    .move-menu-item:hover { background: var(--ui-surface-2, #f7f8f7); }
     .move-menu-item:disabled { opacity: 0.4; cursor: default; }
 
     /* Empty & Footer */
-    .section-empty {
-      text-align: center; padding: 32px 16px; color: #94a3b8;
-    }
+    .section-empty { text-align: center; padding: 32px 16px; color: var(--ui-text-muted, #6a716b); }
     .section-empty p { margin: 8px 0 16px; font-size: 14px; }
     .btn-add-questions {
       display: inline-flex; align-items: center; gap: 6px;
-      background: #ede9fe; color: #6366f1; border: none; padding: 8px 16px;
-      border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer;
+      background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); border: 1px solid rgba(var(--brand-primary-rgb), .25);
+      height: 34px; padding: 0 14px; border-radius: var(--ui-radius-ctl, 8px); font-size: 13px; font-weight: 500; cursor: pointer;
     }
-    .btn-add-questions:hover { background: #ddd6fe; }
-    .section-footer { padding: 8px 16px; border-top: 1px solid #f1f5f9; }
+    .btn-add-questions:hover { background: rgba(var(--brand-primary-rgb), .14); }
+    .section-footer { padding: 8px 16px; }
     .btn-add-questions-sm {
       display: inline-flex; align-items: center; gap: 4px; font-size: 13px;
-      color: #6366f1; background: none; border: none; cursor: pointer; padding: 4px 0;
+      color: var(--brand-primary); background: none; border: none; cursor: pointer; padding: 4px 0;
     }
     .btn-add-questions-sm:hover { text-decoration: underline; }
-
-    /* Empty State */
-    .empty-state { text-align: center; padding: 60px 20px; }
-    .empty-state h3 { font-size: 18px; font-weight: 600; color: #334155; margin: 16px 0 8px; }
-    .empty-state p { color: #94a3b8; margin-bottom: 24px; font-size: 14px; }
 
     /* Modal */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex;
-      align-items: center; justify-content: center; z-index: 200;
+      align-items: center; justify-content: center; z-index: 1050;
     }
-    .modal-card { background: white; border-radius: 10px; padding: 28px; max-width: 440px; width: 100%; }
-    .modal-card h3 { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
-    .modal-card p { font-size: 14px; color: #334155; margin-bottom: 12px; }
+    .modal-card { background: var(--ui-surface, #fff); border-radius: var(--ui-radius-panel, 16px); padding: 24px; max-width: 440px; width: 100%; }
+    .modal-card h3 { font-size: 1.0625rem; font-weight: 650; margin: 0 0 12px; }
+    .modal-card p { font-size: 14px; color: var(--ui-text, #1b1f1c); margin-bottom: 12px; }
     .warning-text {
-      display: flex; align-items: flex-start; gap: 8px; background: #fffbeb;
-      padding: 12px; border-radius: 6px; color: #92400e; font-size: 13px;
+      display: flex; align-items: flex-start; gap: 8px; background: rgba(var(--ui-warning-rgb), .08);
+      border: 1px solid rgba(var(--ui-warning-rgb), .25);
+      padding: 12px; border-radius: var(--ui-radius-ctl, 8px); color: var(--ui-warning-text, #8f4b07); font-size: 13px;
     }
-    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
-    .btn-cancel {
-      padding: 8px 20px; border: 1px solid #e2e8f0; border-radius: 6px;
-      background: white; cursor: pointer; font-size: 14px;
-    }
-    .btn-delete {
-      padding: 8px 20px; border: none; border-radius: 6px; background: #ef4444;
-      color: white; cursor: pointer; font-weight: 500; font-size: 14px;
-    }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
 
     .loading-state { display: flex; justify-content: center; padding: 40px; }
     .spinner {
-      width: 32px; height: 32px; border: 3px solid #e2e8f0;
-      border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;
+      width: 32px; height: 32px; border: 3px solid var(--ui-border, #e7e9e7);
+      border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
       .sq-difficulty { display: none; }
       .sq-text { max-width: 140px; }
-      .sm-header { flex-direction: column; align-items: flex-start; }
     }
   `]
 })

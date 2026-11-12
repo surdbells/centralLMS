@@ -1,58 +1,42 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
+<main class="main">
+  <div class="ui-page">
     <!-- Header -->
-    <div class="d-flex align-items-start gap-3 mb-4 mt-3">
-      <div (click)="goBack()" role="button" class="page-back">
-        <tui-icon icon="@tui.chevron-left"></tui-icon>
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-bullseye"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'competency.shell.title' | translate }}</h1>
+        <p>{{ 'competency.shell.subtitle' | translate }}</p>
       </div>
-      <div>
-        <h1 class="h4 fw-bold mb-1 d-flex align-items-center gap-2">
-          <tui-icon icon="@tui.target" class="text-primary"></tui-icon>
-          {{ 'competency.shell.title' | translate }}
-        </h1>
-        <p class="text-muted small mb-0">
-          {{ 'competency.shell.subtitle' | translate }}
-        </p>
-      </div>
-    </div>
+    </header>
 
     <!-- Sub-navigation -->
-    <ul class="nav nav-pills competency-nav mb-4">
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/admin/competency" routerLinkActive="active"
-           [routerLinkActiveOptions]="{ exact: true }">
-          <tui-icon icon="@tui.chart-pie"></tui-icon> {{ 'competency.shell.tab_overview' | translate }}
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/admin/competency/dictionary" routerLinkActive="active">
-          <tui-icon icon="@tui.book-open"></tui-icon> {{ 'nav.dictionary' | translate }}
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/admin/competency/profiles" routerLinkActive="active">
-          <tui-icon icon="@tui.briefcase"></tui-icon> {{ 'competency.shell.tab_profiles' | translate }}
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/admin/competency/assessments" routerLinkActive="active">
-          <tui-icon icon="@tui.clipboard-check"></tui-icon> {{ 'modules.assessments' | translate }}
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/admin/competency/reports" routerLinkActive="active">
-          <tui-icon icon="@tui.file-text"></tui-icon> {{ 'nav.reports' | translate }}
-        </a>
-      </li>
+    <nav class="ui-tabs competency-nav">
+      <a class="ui-tab" routerLink="/admin/competency" routerLinkActive="is-active"
+         [routerLinkActiveOptions]="{ exact: true }">
+        <i class="bi bi-pie-chart"></i> {{ 'competency.shell.tab_overview' | translate }}
+      </a>
+      <a class="ui-tab" routerLink="/admin/competency/dictionary" routerLinkActive="is-active">
+        <i class="bi bi-book"></i> {{ 'nav.dictionary' | translate }}
+      </a>
+      <a class="ui-tab" routerLink="/admin/competency/profiles" routerLinkActive="is-active">
+        <i class="bi bi-briefcase"></i> {{ 'competency.shell.tab_profiles' | translate }}
+      </a>
+      <a class="ui-tab" routerLink="/admin/competency/assessments" routerLinkActive="is-active">
+        <i class="bi bi-clipboard-check"></i> {{ 'modules.assessments' | translate }}
+      </a>
+      <a class="ui-tab" routerLink="/admin/competency/reports" routerLinkActive="is-active">
+        <i class="bi bi-file-earmark-text"></i> {{ 'nav.reports' | translate }}
+      </a>
       @if (canManageCycles()) {
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/admin/competency/cycles" routerLinkActive="active">
-            <tui-icon icon="@tui.calendar"></tui-icon> {{ 'competency.shell.tab_cycles' | translate }}
-          </a>
-        </li>
+        <a class="ui-tab" routerLink="/admin/competency/cycles" routerLinkActive="is-active">
+          <i class="bi bi-calendar3"></i> {{ 'competency.shell.tab_cycles' | translate }}
+        </a>
       }
-    </ul>
+    </nav>
 
     <router-outlet></router-outlet>
   </div>

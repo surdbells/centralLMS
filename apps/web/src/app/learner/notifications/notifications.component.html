@@ -1,86 +1,92 @@
 <app-top></app-top>
 
-<div class="container-fluid p-4">
-  <div class="row align-items-center mb-4">
-    <div (click)="goBack()" role="button" class="col-auto">
-      <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-        <i class="fs-5"><tui-icon icon="@tui.chevron-left" /></i>
-      </div>
-    </div>
-    <div class="col">
-      <h1 class="fs-4 mb-0">{{ 'notifications.title' | translate }}</h1>
-      <small class="text-muted" *ngIf="unread > 0">{{ 'notifications.unread_count' | translate:{ count: unread } }}</small>
-      <small class="text-muted" *ngIf="unread === 0">{{ 'notifications.nothing_unread' | translate }}</small>
-    </div>
-    <div class="col-auto">
-      <button class="btn btn-sm btn-outline-secondary" (click)="markAllRead()"
-              [disabled]="unread === 0">
-        <span class="material-symbols-outlined align-middle me-1">done_all</span>
-        {{ 'notifications.mark_all_read' | translate }}
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
       </button>
-    </div>
-  </div>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-bell"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'notifications.title' | translate }}</h1>
+        <p *ngIf="unread > 0">{{ 'notifications.unread_count' | translate:{ count: unread } }}</p>
+        <p *ngIf="unread === 0">{{ 'notifications.nothing_unread' | translate }}</p>
+      </div>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markAllRead()"
+                [disabled]="unread === 0">
+          <i class="bi bi-check2-all me-1"></i>
+          {{ 'notifications.mark_all_read' | translate }}
+        </button>
+      </div>
+    </header>
 
-  <div class="btn-group btn-group-sm mb-3" role="group">
-    <button type="button" class="btn" [class.btn-dark]="!unreadOnly"
-            [class.btn-outline-dark]="unreadOnly" (click)="showUnreadOnly(false)">{{ 'notifications.filter_all' | translate }}</button>
-    <button type="button" class="btn" [class.btn-dark]="unreadOnly"
-            [class.btn-outline-dark]="!unreadOnly" (click)="showUnreadOnly(true)">{{ 'notifications.filter_unread' | translate }}</button>
-  </div>
+    <section class="ui-section ui-section--flush">
+      <div class="ui-toolbar notif-toolbar">
+        <div class="ui-filters" role="group">
+          <button type="button" class="ui-filter" [class.is-active]="!unreadOnly"
+                  (click)="showUnreadOnly(false)">{{ 'notifications.filter_all' | translate }}</button>
+          <button type="button" class="ui-filter" [class.is-active]="unreadOnly"
+                  (click)="showUnreadOnly(true)">
+            {{ 'notifications.filter_unread' | translate }}
+            <span class="ui-filter__count" *ngIf="unread > 0">{{ unread }}</span>
+          </button>
+        </div>
+      </div>
 
-  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+      <div class="alert alert-danger mx-3" *ngIf="error">{{ error }}</div>
 
-  <div class="text-center py-5" *ngIf="loading">
-    <tui-loader />
-  </div>
+      <div class="text-center py-5" *ngIf="loading">
+        <tui-loader />
+      </div>
 
-  <div class="card" *ngIf="!loading">
-    <div class="list-group list-group-flush">
-      <div class="list-group-item d-flex gap-3 align-items-start py-3"
-           *ngFor="let n of notifications"
-           [class.bg-body-secondary]="!n.isRead">
-        <span class="material-symbols-outlined mt-1" [ngClass]="tone(n)">{{ icon(n) }}</span>
+      <div class="notif-list" *ngIf="!loading">
+        <div class="notif-item"
+             *ngFor="let n of notifications"
+             [class.is-unread]="!n.isRead">
+          <span class="notif-icon material-symbols-outlined" [ngClass]="tone(n)">{{ icon(n) }}</span>
 
-        <div class="flex-grow-1" role="button" (click)="open(n)">
-          <div class="d-flex align-items-center gap-2">
-            <span class="fw-semibold" [class.fw-normal]="n.isRead">{{ n.title }}</span>
-            <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ n.typeLabel }}</span>
+          <div class="flex-grow-1 min-w-0" role="button" (click)="open(n)">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <span class="notif-title" [class.fw-normal]="n.isRead">{{ n.title }}</span>
+              <span class="ui-pill ui-pill--neutral">{{ n.typeLabel }}</span>
+            </div>
+            <p class="notif-body" *ngIf="n.body">{{ n.body }}</p>
+            <small class="ui-muted">{{ n.createdAt | date:'medium' }}</small>
           </div>
-          <p class="mb-1 small text-muted" *ngIf="n.body">{{ n.body }}</p>
-          <small class="text-muted">{{ n.createdAt | date:'medium' }}</small>
+
+          <div class="d-flex gap-1 flex-shrink-0">
+            <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="!n.isRead"
+                    (click)="markRead(n)" [title]="'notifications.mark_as_read' | translate">
+              <i class="bi bi-envelope-open"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    (click)="remove(n)" [title]="'common.delete' | translate">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </div>
         </div>
 
-        <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-link text-decoration-none" *ngIf="!n.isRead"
-                  (click)="markRead(n)" [title]="'notifications.mark_as_read' | translate">
-            <span class="material-symbols-outlined">mark_email_read</span>
-          </button>
-          <button class="btn btn-sm btn-link text-danger text-decoration-none"
-                  (click)="remove(n)" [title]="'common.delete' | translate">
-            <span class="material-symbols-outlined">delete</span>
-          </button>
+        <div class="ui-state m-3" *ngIf="notifications.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-bell-slash"></i></span>
+          <h3 *ngIf="unreadOnly">{{ 'notifications.empty_unread' | translate }}</h3>
+          <h3 *ngIf="!unreadOnly">{{ 'notifications.empty_all' | translate }}</h3>
         </div>
       </div>
+    </section>
 
-      <div class="list-group-item text-center text-muted py-5" *ngIf="notifications.length === 0">
-        <span class="material-symbols-outlined d-block mb-2" style="font-size:2rem">notifications_off</span>
-        <span *ngIf="unreadOnly">{{ 'notifications.empty_unread' | translate }}</span>
-        <span *ngIf="!unreadOnly">{{ 'notifications.empty_all' | translate }}</span>
-      </div>
-    </div>
+    <nav class="mt-3" *ngIf="!loading && totalPages > 1">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        <li class="page-item" [class.disabled]="page === 1">
+          <button class="page-link" (click)="goToPage(page - 1)">{{ 'common.previous' | translate }}</button>
+        </li>
+        <li class="page-item disabled">
+          <span class="page-link">{{ 'common.page_of' | translate:{ current: page, total: totalPages } }}</span>
+        </li>
+        <li class="page-item" [class.disabled]="page === totalPages">
+          <button class="page-link" (click)="goToPage(page + 1)">{{ 'common.next' | translate }}</button>
+        </li>
+      </ul>
+    </nav>
   </div>
-
-  <nav class="mt-3" *ngIf="!loading && totalPages > 1">
-    <ul class="pagination pagination-sm justify-content-center mb-0">
-      <li class="page-item" [class.disabled]="page === 1">
-        <button class="page-link" (click)="goToPage(page - 1)">{{ 'common.previous' | translate }}</button>
-      </li>
-      <li class="page-item disabled">
-        <span class="page-link">{{ 'common.page_of' | translate:{ current: page, total: totalPages } }}</span>
-      </li>
-      <li class="page-item" [class.disabled]="page === totalPages">
-        <button class="page-link" (click)="goToPage(page + 1)">{{ 'common.next' | translate }}</button>
-      </li>
-    </ul>
-  </nav>
-</div>
+</main>

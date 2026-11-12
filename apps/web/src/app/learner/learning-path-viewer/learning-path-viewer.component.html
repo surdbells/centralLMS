@@ -1,6 +1,6 @@
 <app-top></app-top>
 <main class="main">
-  <div class="container-fluid py-4">
+  <div class="ui-page">
 @if (loading()) {
   <div class="loading-container">
     <div class="spinner-border text-primary" role="status">
@@ -9,86 +9,86 @@
   </div>
 } @else if (path()) {
   <div class="learning-path-viewer">
-    <!-- Hero Section -->
-    <section class="path-hero" [style.backgroundImage]="path()!.banner_url ? 'url(' + path()!.banner_url + ')' : ''">
-      <div class="hero-overlay"></div>
-      <div class="container">
-        <div class="row">
-          <div class="col-lg-8">
-            <!-- Breadcrumb -->
-            <nav aria-label="breadcrumb" class="mb-3">
-              <ol class="breadcrumb breadcrumb-light">
-                <li class="breadcrumb-item"><a routerLink="/learner">{{ 'paths.breadcrumb_learning' | translate }}</a></li>
-                <li class="breadcrumb-item"><a routerLink="/learner/paths">{{ 'paths.breadcrumb_paths' | translate }}</a></li>
-                <li class="breadcrumb-item active">{{ path()!.title }}</li>
-              </ol>
-            </nav>
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a routerLink="/learner">{{ 'paths.breadcrumb_learning' | translate }}</a></li>
+        <li class="breadcrumb-item"><a routerLink="/learner/paths">{{ 'paths.breadcrumb_paths' | translate }}</a></li>
+        <li class="breadcrumb-item active">{{ path()!.title }}</li>
+      </ol>
+    </nav>
 
-            <!-- Badges -->
-            <div class="path-badges mb-3">
-              <span class="badge bg-{{ getSkillLevel(path()!.skill_level).color }}">
-                {{ getSkillLevel(path()!.skill_level).label }}
-              </span>
-              @if (path()!.is_mandatory) {
-                <span class="badge bg-danger">{{ 'paths.mandatory' | translate }}</span>
-              }
-              @if (path()!.certificate_enabled) {
-                <span class="badge bg-warning text-dark">
-                  <i class="bi bi-award me-1"></i>{{ 'paths.certificate' | translate }}
-                </span>
-              }
-            </div>
-
-            <!-- Title -->
-            <h1 class="path-title">{{ path()!.title }}</h1>
-            <p class="path-description">{{ path()!.short_description }}</p>
-
-            <!-- Meta Info -->
-            <div class="path-meta">
-              @if (path()!.estimated_duration_hours) {
-                <div class="meta-item">
-                  <i class="bi bi-clock"></i>
-                  <span>{{ formatDuration(path()!.estimated_duration_hours) }}</span>
-                </div>
-              }
-              <div class="meta-item">
-                <i class="bi bi-collection"></i>
-                <span>{{ 'paths.items_count' | translate:{ count: path()!.total_items } }}</span>
-              </div>
-              <div class="meta-item">
-                <i class="bi bi-people"></i>
-                <span>{{ 'paths.enrolled_count' | translate:{ count: path()!.total_enrollments } }}</span>
-              </div>
-              @if (ratingSummary()?.avg_rating) {
-                <div class="meta-item">
-                  <i class="bi bi-star-fill text-warning"></i>
-                  <span>{{ ratingSummary()!.avg_rating | number:'1.1-1' }} ({{ 'paths.reviews_count' | translate:{ count: ratingSummary()!.total_reviews } }})</span>
-                </div>
-              }
-            </div>
-          </div>
-        </div>
+    <!-- Header -->
+    <header class="ui-page-header path-header">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></div>
+      <div class="ui-page-header__titles">
+        <h1 class="path-title">{{ path()!.title }}</h1>
+        @if (path()!.short_description) {
+          <p class="path-description">{{ path()!.short_description }}</p>
+        }
       </div>
-    </section>
+    </header>
 
-    <div class="container path-content">
-      <div class="row">
+    <!-- Badges -->
+    <div class="ui-insights path-header-badges">
+      <span class="badge bg-{{ getSkillLevel(path()!.skill_level).color }}">
+        {{ getSkillLevel(path()!.skill_level).label }}
+      </span>
+      @if (path()!.is_mandatory) {
+        <span class="badge bg-danger">{{ 'paths.mandatory' | translate }}</span>
+      }
+      @if (path()!.certificate_enabled) {
+        <span class="badge bg-warning text-dark">
+          <i class="bi bi-award me-1"></i>{{ 'paths.certificate' | translate }}
+        </span>
+      }
+    </div>
+
+    <!-- Meta Info -->
+    <div class="ui-kpi-grid path-meta">
+      @if (path()!.estimated_duration_hours) {
+        <div class="ui-kpi ui-kpi--brand meta-item">
+          <span class="ui-kpi__label"><i class="bi bi-clock"></i> {{ 'paths.duration' | translate }}</span>
+          <span class="ui-kpi__value ui-kpi__value--sm">{{ formatDuration(path()!.estimated_duration_hours) }}</span>
+        </div>
+      }
+      <div class="ui-kpi ui-kpi--info meta-item">
+        <span class="ui-kpi__label"><i class="bi bi-collection"></i> {{ 'paths_admin.items_col' | translate }}</span>
+        <span class="ui-kpi__value ui-kpi__value--sm">{{ path()!.total_items }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--success meta-item">
+        <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'paths_admin.enrolled' | translate }}</span>
+        <span class="ui-kpi__value ui-kpi__value--sm">{{ path()!.total_enrollments }}</span>
+      </div>
+      @if (ratingSummary()?.avg_rating) {
+        <div class="ui-kpi ui-kpi--warning meta-item">
+          <span class="ui-kpi__label"><i class="bi bi-star-fill"></i> {{ 'paths_admin.rating' | translate }}</span>
+          <span class="ui-kpi__value ui-kpi__value--sm">{{ ratingSummary()!.avg_rating | number:'1.1-1' }}</span>
+          <span class="ui-kpi__sub">{{ 'paths.reviews_count' | translate:{ count: ratingSummary()!.total_reviews } }}</span>
+        </div>
+      }
+    </div>
+
+    @if (path()!.banner_url) {
+      <div class="path-banner" [style.backgroundImage]="'url(' + path()!.banner_url + ')'" role="img" [attr.aria-label]="path()!.title"></div>
+    }
+
+    <div class="path-content">
+      <div class="row g-4">
         <!-- Main Content -->
         <div class="col-lg-8">
           <!-- Progress Card (if enrolled) -->
           @if (isEnrolled() && progress()) {
-            <div class="card progress-card mb-4">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h5 class="mb-0">{{ 'paths.your_progress' | translate }}</h5>
+            <div class="ui-section progress-card">
+              <div>
+                <div class="ui-section__head mb-3">
+                  <h2 class="ui-section__title">{{ 'paths.your_progress' | translate }}</h2>
                   <span class="progress-percentage">{{ enrollment()!.progress_percentage | number:'1.0-0' }}%</span>
                 </div>
-                <div class="progress mb-3" style="height: 8px;">
-                  <div
-                    class="progress-bar"
-                    [class.bg-success]="isCompleted()"
-                    [style.width.%]="enrollment()!.progress_percentage"
-                  ></div>
+                <div class="ui-progress mb-3">
+                  <div class="ui-bar" [class.is-complete]="isCompleted()">
+                    <span [style.width.%]="enrollment()!.progress_percentage"></span>
+                  </div>
                 </div>
                 <div class="progress-stats">
                   <div class="stat">
@@ -117,13 +117,13 @@
           }
 
           <!-- Content Sections -->
-          <div class="card content-card mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">
+          <div class="ui-section ui-section--flush content-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">
                 <i class="bi bi-list-check me-2"></i>{{ 'paths.path_content' | translate }}
-              </h5>
+              </h2>
             </div>
-            <div class="card-body p-0">
+            <div class="content-card__body">
               @if (progress()) {
                 <!-- Enrolled: Show with progress -->
                 @for (sectionData of progress()!.sections; track sectionData.section.section_id) {
@@ -300,11 +300,11 @@
 
           <!-- Description -->
           @if (path()!.description) {
-            <div class="card mb-4">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths.about' | translate }}</h5>
+            <div class="ui-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths.about' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div>
                 <div [innerHTML]="path()!.description"></div>
               </div>
             </div>
@@ -312,11 +312,11 @@
 
           <!-- Learning Objectives -->
           @if (path()!.learning_objectives && path()!.learning_objectives.length > 0) {
-            <div class="card mb-4">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths.what_youll_learn' | translate }}</h5>
+            <div class="ui-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths.what_youll_learn' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div>
                 <ul class="objectives-list">
                   @for (objective of showAllObjectives() ? path()!.learning_objectives : path()!.learning_objectives.slice(0, 4); track $index) {
                     <li>
@@ -335,21 +335,21 @@
           }
 
           <!-- Reviews -->
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">
+          <div class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">
                 {{ 'paths.reviews' | translate }}
                 @if (ratingSummary()) {
-                  <span class="text-muted small ms-2">({{ ratingSummary()!.total_reviews }})</span>
+                  <span class="ui-muted small ms-2">({{ ratingSummary()!.total_reviews }})</span>
                 }
-              </h5>
+              </h2>
               @if (isEnrolled() && !showReviewForm()) {
-                <button class="btn btn-sm btn-outline-primary" (click)="openReviewForm()">
+                <button class="btn btn-sm btn-outline-secondary" (click)="openReviewForm()">
                   <i class="bi bi-pencil me-1"></i>{{ myReview() ? ('paths.edit_review' | translate) : ('paths.write_review' | translate) }}
                 </button>
               }
             </div>
-            <div class="card-body">
+            <div>
               @if (reviewSubmitted()) {
                 <div class="alert alert-success">
                   <i class="bi bi-check-circle me-1"></i>
@@ -457,11 +457,11 @@
         <!-- Sidebar -->
         <div class="col-lg-4">
           <!-- Action Card -->
-          <div class="card action-card sticky-top mb-4">
+          <div class="ui-section ui-section--flush action-card sticky-top">
             @if (path()!.thumbnail_url) {
-              <img [src]="path()!.thumbnail_url" class="card-img-top" [alt]="path()!.title">
+              <img [src]="path()!.thumbnail_url" class="action-card__img" [alt]="path()!.title">
             }
-            <div class="card-body">
+            <div class="action-card__body">
               @if (!isEnrolled()) {
                 <!-- Not Enrolled -->
                 @if (!path()!.is_free) {
@@ -470,7 +470,7 @@
                   </div>
                 }
                 <button
-                  class="btn btn-primary btn-lg w-100 mb-3"
+                  class="btn btn-primary w-100 mb-3"
                   [disabled]="!canEnroll() || enrolling()"
                   (click)="enroll()"
                 >
@@ -484,12 +484,12 @@
                 </button>
               } @else if (!enrollment()!.started_at) {
                 <!-- Enrolled but not started -->
-                <button class="btn btn-primary btn-lg w-100 mb-3" (click)="startPath()">
+                <button class="btn btn-primary w-100 mb-3" (click)="startPath()">
                   <i class="bi bi-play-fill me-2"></i>{{ 'paths.start_learning' | translate }}
                 </button>
               } @else if (!isCompleted()) {
                 <!-- In Progress -->
-                <button class="btn btn-primary btn-lg w-100 mb-3" (click)="continuePath()">
+                <button class="btn btn-primary w-100 mb-3" (click)="continuePath()">
                   <i class="bi bi-play-fill me-2"></i>{{ 'paths.continue_learning' | translate }}
                 </button>
               } @else {
@@ -541,14 +541,14 @@
 
           <!-- Tags -->
           @if (path()!.tags && path()!.tags.length > 0) {
-            <div class="card mb-4">
-              <div class="card-header">
-                <h6 class="mb-0">{{ 'paths.tags' | translate }}</h6>
+            <div class="ui-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths.tags' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div>
                 <div class="tags">
                   @for (tag of path()!.tags; track tag) {
-                    <span class="badge bg-light text-dark">{{ tag }}</span>
+                    <span class="ui-pill ui-pill--neutral">{{ tag }}</span>
                   }
                 </div>
               </div>

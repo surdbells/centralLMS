@@ -66,33 +66,29 @@ interface SnapshotSessionInfo {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="snapshot-gallery-container">
+    <main class="main">
+    <div class="ui-page snapshot-gallery-container">
       <!-- Header -->
-      <div class="page-header">
-        <div class="header-left">
-          <button class="btn btn-sm btn-secondary me-2" (click)="goBack()">
-            <tui-icon icon="@tui.arrow-left"></tui-icon>
-          </button>
-          <div>
-            <h1 class="page-title">
-              <tui-icon icon="@tui.camera"></tui-icon>
-              Snapshot Gallery
-            </h1>
-            <p class="page-subtitle" *ngIf="sessionInfo">
-              {{ sessionInfo.learner_name }} - {{ sessionInfo.assessment_title }}
-            </p>
-          </div>
+      <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back" title="Back">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-camera"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Snapshot Gallery</h1>
+          <p *ngIf="sessionInfo">{{ sessionInfo.learner_name }} - {{ sessionInfo.assessment_title }}</p>
+          <p *ngIf="!sessionInfo">Webcam snapshots captured during the proctored session</p>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-sm btn-primary" (click)="toggleView()">
+        <div class="ui-page-header__actions">
+          <button class="btn btn-sm btn-outline-secondary" (click)="toggleView()">
             <tui-icon [icon]="viewMode === 'grid' ? '@tui.list' : '@tui.grid'"></tui-icon>
             {{ viewMode === 'grid' ? 'List' : 'Grid' }}
           </button>
-          <button class="btn btn-sm btn-secondary" (click)="downloadAll()" [disabled]="snapshots.length === 0">
+          <button class="btn btn-sm btn-primary" (click)="downloadAll()" [disabled]="snapshots.length === 0">
             <tui-icon icon="@tui.download"></tui-icon> Export
           </button>
         </div>
-      </div>
+      </header>
 
       <div class="alert alert-info d-flex align-items-center gap-2" *ngIf="notice">
         <tui-icon icon="@tui.info"></tui-icon>
@@ -101,144 +97,146 @@ interface SnapshotSessionInfo {
       </div>
 
       <!-- Session Info Bar -->
-      <div class="session-bar" *ngIf="sessionInfo">
-        <div class="info-chip">
-          <span class="chip-label">Trust Score</span>
-          <span class="chip-value" [ngClass]="getTrustClass(sessionInfo.trust_score)">{{ sessionInfo.trust_score }}%</span>
+      <div class="ui-kpi-grid ui-kpi-grid--5 session-bar" *ngIf="sessionInfo">
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-shield-check"></i> Trust Score</span>
+          <span class="ui-kpi__value chip-value" [ngClass]="getTrustClass(sessionInfo.trust_score)">{{ sessionInfo.trust_score }}<small>%</small></span>
         </div>
-        <div class="info-chip">
-          <span class="chip-label">Total Snapshots</span>
-          <span class="chip-value">{{ sessionInfo.total_snapshots }}</span>
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-images"></i> Total Snapshots</span>
+          <span class="ui-kpi__value">{{ sessionInfo.total_snapshots }}</span>
         </div>
-        <div class="info-chip">
-          <span class="chip-label">Flagged</span>
-          <span class="chip-value text-danger">{{ sessionInfo.flagged_snapshots }}</span>
+        <div class="ui-kpi ui-kpi--danger">
+          <span class="ui-kpi__label"><i class="bi bi-flag"></i> Flagged</span>
+          <span class="ui-kpi__value">{{ sessionInfo.flagged_snapshots }}</span>
         </div>
-        <div class="info-chip">
-          <span class="chip-label">Duration</span>
-          <span class="chip-value">{{ sessionInfo.duration_minutes }}m</span>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-clock"></i> Duration</span>
+          <span class="ui-kpi__value">{{ sessionInfo.duration_minutes }}<small>m</small></span>
         </div>
-        <div class="info-chip">
-          <span class="chip-label">Level</span>
-          <span class="level-tag" [ngClass]="'level-' + sessionInfo.proctoring_level">{{ sessionInfo.proctoring_level }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-sliders"></i> Level</span>
+          <span class="level-tag ui-pill" [ngClass]="'level-' + sessionInfo.proctoring_level">{{ sessionInfo.proctoring_level }}</span>
         </div>
       </div>
 
-      <!-- Filters -->
-      <div class="filters-bar">
-        <div class="filter-tabs">
-          <button class="filter-tab" [class.active]="filterMode === 'all'" (click)="filterMode = 'all'; applyFilter()">
-            All ({{ snapshots.length }})
-          </button>
-          <button class="filter-tab" [class.active]="filterMode === 'flagged'" (click)="filterMode = 'flagged'; applyFilter()">
-            <tui-icon icon="@tui.flag"></tui-icon> Flagged ({{ flaggedCount }})
-          </button>
-          <button class="filter-tab" [class.active]="filterMode === 'violations'" (click)="filterMode = 'violations'; applyFilter()">
-            <tui-icon icon="@tui.alert-triangle"></tui-icon> Violations ({{ violationCount }})
-          </button>
-          <button class="filter-tab" [class.active]="filterMode === 'no_face'" (click)="filterMode = 'no_face'; applyFilter()">
-            <tui-icon icon="@tui.user-x"></tui-icon> No Face ({{ noFaceCount }})
-          </button>
-          <button class="filter-tab" [class.active]="filterMode === 'multi_face'" (click)="filterMode = 'multi_face'; applyFilter()">
-            <tui-icon icon="@tui.users"></tui-icon> Multiple ({{ multiFaceCount }})
-          </button>
+      <section class="ui-section snapshots-section">
+        <!-- Filters -->
+        <div class="ui-toolbar filters-bar">
+          <div class="ui-filters filter-tabs">
+            <button class="ui-filter filter-tab" [class.is-active]="filterMode === 'all'" (click)="filterMode = 'all'; applyFilter()">
+              All <span class="ui-filter__count">{{ snapshots.length }}</span>
+            </button>
+            <button class="ui-filter filter-tab" [class.is-active]="filterMode === 'flagged'" (click)="filterMode = 'flagged'; applyFilter()">
+              <tui-icon icon="@tui.flag"></tui-icon> Flagged <span class="ui-filter__count">{{ flaggedCount }}</span>
+            </button>
+            <button class="ui-filter filter-tab" [class.is-active]="filterMode === 'violations'" (click)="filterMode = 'violations'; applyFilter()">
+              <tui-icon icon="@tui.alert-triangle"></tui-icon> Violations <span class="ui-filter__count">{{ violationCount }}</span>
+            </button>
+            <button class="ui-filter filter-tab" [class.is-active]="filterMode === 'no_face'" (click)="filterMode = 'no_face'; applyFilter()">
+              <tui-icon icon="@tui.user-x"></tui-icon> No Face <span class="ui-filter__count">{{ noFaceCount }}</span>
+            </button>
+            <button class="ui-filter filter-tab" [class.is-active]="filterMode === 'multi_face'" (click)="filterMode = 'multi_face'; applyFilter()">
+              <tui-icon icon="@tui.users"></tui-icon> Multiple <span class="ui-filter__count">{{ multiFaceCount }}</span>
+            </button>
+          </div>
+          <select class="form-select" [(ngModel)]="sortOrder" (change)="applyFilter()">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="confidence_asc">Confidence: Low → High</option>
+            <option value="confidence_desc">Confidence: High → Low</option>
+          </select>
         </div>
-        <select class="form-select form-select-sm" [(ngModel)]="sortOrder" (change)="applyFilter()">
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="confidence_asc">Confidence: Low → High</option>
-          <option value="confidence_desc">Confidence: High → Low</option>
-        </select>
-      </div>
 
-      <!-- GRID VIEW -->
-      <div class="snapshot-grid" *ngIf="!loading && viewMode === 'grid' && filteredSnapshots.length > 0">
-        <div class="snapshot-card" *ngFor="let s of paginatedSnapshots; let i = index"
-             [class.flagged-card]="s.flagged" [class.violation-card]="s.has_violation"
-             (click)="openLightbox(s, i)">
-          <div class="snapshot-thumb">
-            <img [src]="s.thumbnail_url || s.image_url" [alt]="'Snapshot ' + s.snapshot_id" loading="lazy">
-            <!-- Overlays -->
-            <div class="thumb-overlay">
-              <span class="face-count" [ngClass]="getFaceCountClass(s.faces_detected)">
-                <tui-icon icon="@tui.user"></tui-icon> {{ s.faces_detected }}
-              </span>
-              <span class="flag-icon" *ngIf="s.flagged" title="Flagged">
+        <!-- GRID VIEW -->
+        <div class="snapshot-grid" *ngIf="!loading && viewMode === 'grid' && filteredSnapshots.length > 0">
+          <div class="snapshot-card" *ngFor="let s of paginatedSnapshots; let i = index"
+               [class.flagged-card]="s.flagged" [class.violation-card]="s.has_violation"
+               (click)="openLightbox(s, i)">
+            <div class="snapshot-thumb">
+              <img [src]="s.thumbnail_url || s.image_url" [alt]="'Snapshot ' + s.snapshot_id" loading="lazy">
+              <!-- Overlays -->
+              <div class="thumb-overlay">
+                <span class="face-count" [ngClass]="getFaceCountClass(s.faces_detected)">
+                  <tui-icon icon="@tui.user"></tui-icon> {{ s.faces_detected }}
+                </span>
+                <span class="flag-icon" *ngIf="s.flagged" title="Flagged">
+                  <tui-icon icon="@tui.flag"></tui-icon>
+                </span>
+                <span class="violation-icon" *ngIf="s.has_violation" title="{{ formatType(s.violation_type) }}">
+                  <tui-icon icon="@tui.alert-triangle"></tui-icon>
+                </span>
+              </div>
+              <!-- Confidence Bar -->
+              <div class="confidence-bar" *ngIf="s.face_confidence > 0">
+                <div class="confidence-fill" [style.width.%]="s.face_confidence"
+                     [ngClass]="getConfidenceClass(s.face_confidence)"></div>
+              </div>
+            </div>
+            <div class="snapshot-meta">
+              <span class="snapshot-time">{{ formatTime(s.created_at) }}</span>
+              <span class="snapshot-confidence" *ngIf="s.face_confidence">{{ s.face_confidence }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIST VIEW -->
+        <div class="snapshot-list" *ngIf="!loading && viewMode === 'list' && filteredSnapshots.length > 0">
+          <div class="list-item" *ngFor="let s of paginatedSnapshots; let i = index"
+               [class.flagged-card]="s.flagged" (click)="openLightbox(s, i)">
+            <img [src]="s.thumbnail_url || s.image_url" class="list-thumb" [alt]="'Snapshot'">
+            <div class="list-body">
+              <div class="list-time">{{ formatDateTime(s.created_at) }}</div>
+              <div class="list-tags">
+                <span class="face-tag" [ngClass]="getFaceCountClass(s.faces_detected)">{{ s.faces_detected }} face{{ s.faces_detected !== 1 ? 's' : '' }}</span>
+                <span class="conf-tag" *ngIf="s.face_confidence">{{ s.face_confidence }}% confidence</span>
+                <span class="flag-tag" *ngIf="s.flagged">Flagged</span>
+                <span class="violation-tag" *ngIf="s.has_violation">{{ formatType(s.violation_type) }}</span>
+              </div>
+              <div class="list-ai" *ngIf="s.ai_analysis">
+                <span *ngIf="s.ai_analysis.looking_away" class="ai-tag warn">Looking Away</span>
+                <span *ngIf="s.ai_analysis.eyes_closed" class="ai-tag warn">Eyes Closed</span>
+                <span *ngIf="s.ai_analysis.mouth_open" class="ai-tag info">Mouth Open</span>
+                <span *ngIf="s.ai_analysis.suspicious" class="ai-tag danger">Suspicious</span>
+              </div>
+            </div>
+            <div class="list-actions" (click)="$event.stopPropagation()">
+              <button class="btn btn-sm btn-primary" (click)="openLightbox(s, i)" title="View">
+                <tui-icon icon="@tui.maximize-2"></tui-icon>
+              </button>
+              <button class="btn btn-sm" [ngClass]="s.flagged ? 'btn-danger' : 'btn-outline-secondary'"
+                      (click)="toggleFlag(s)" [title]="s.flagged ? 'Unflag' : 'Flag'">
                 <tui-icon icon="@tui.flag"></tui-icon>
-              </span>
-              <span class="violation-icon" *ngIf="s.has_violation" title="{{ formatType(s.violation_type) }}">
-                <tui-icon icon="@tui.alert-triangle"></tui-icon>
-              </span>
+              </button>
             </div>
-            <!-- Confidence Bar -->
-            <div class="confidence-bar" *ngIf="s.face_confidence > 0">
-              <div class="confidence-fill" [style.width.%]="s.face_confidence"
-                   [ngClass]="getConfidenceClass(s.face_confidence)"></div>
-            </div>
-          </div>
-          <div class="snapshot-meta">
-            <span class="snapshot-time">{{ formatTime(s.created_at) }}</span>
-            <span class="snapshot-confidence" *ngIf="s.face_confidence">{{ s.face_confidence }}%</span>
           </div>
         </div>
-      </div>
 
-      <!-- LIST VIEW -->
-      <div class="snapshot-list" *ngIf="!loading && viewMode === 'list' && filteredSnapshots.length > 0">
-        <div class="list-item" *ngFor="let s of paginatedSnapshots; let i = index"
-             [class.flagged-card]="s.flagged" (click)="openLightbox(s, i)">
-          <img [src]="s.thumbnail_url || s.image_url" class="list-thumb" [alt]="'Snapshot'">
-          <div class="list-body">
-            <div class="list-time">{{ formatDateTime(s.created_at) }}</div>
-            <div class="list-tags">
-              <span class="face-tag" [ngClass]="getFaceCountClass(s.faces_detected)">{{ s.faces_detected }} face{{ s.faces_detected !== 1 ? 's' : '' }}</span>
-              <span class="conf-tag" *ngIf="s.face_confidence">{{ s.face_confidence }}% confidence</span>
-              <span class="flag-tag" *ngIf="s.flagged">Flagged</span>
-              <span class="violation-tag" *ngIf="s.has_violation">{{ formatType(s.violation_type) }}</span>
-            </div>
-            <div class="list-ai" *ngIf="s.ai_analysis">
-              <span *ngIf="s.ai_analysis.looking_away" class="ai-tag warn">Looking Away</span>
-              <span *ngIf="s.ai_analysis.eyes_closed" class="ai-tag warn">Eyes Closed</span>
-              <span *ngIf="s.ai_analysis.mouth_open" class="ai-tag info">Mouth Open</span>
-              <span *ngIf="s.ai_analysis.suspicious" class="ai-tag danger">Suspicious</span>
-            </div>
-          </div>
-          <div class="list-actions" (click)="$event.stopPropagation()">
-            <button class="btn btn-sm btn-primary" (click)="openLightbox(s, i)" title="View">
-              <tui-icon icon="@tui.maximize-2"></tui-icon>
+        <!-- Pagination -->
+        <div class="pagination-bar" *ngIf="filteredSnapshots.length > pageSize">
+          <span class="ui-muted small">{{ filteredSnapshots.length }} snapshots</span>
+          <div class="pagination-controls">
+            <button class="btn btn-sm btn-outline-secondary" (click)="page = page - 1" [disabled]="page <= 1">
+              <tui-icon icon="@tui.chevron-left"></tui-icon>
             </button>
-            <button class="btn btn-sm" [ngClass]="s.flagged ? 'btn-danger' : 'btn-secondary'"
-                    (click)="toggleFlag(s)" [title]="s.flagged ? 'Unflag' : 'Flag'">
-              <tui-icon icon="@tui.flag"></tui-icon>
+            <span class="page-info">{{ page }} / {{ totalPages }}</span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="page = page + 1" [disabled]="page >= totalPages">
+              <tui-icon icon="@tui.chevron-right"></tui-icon>
             </button>
           </div>
         </div>
-      </div>
 
-      <!-- Pagination -->
-      <div class="pagination-bar" *ngIf="filteredSnapshots.length > pageSize">
-        <span class="text-muted small">{{ filteredSnapshots.length }} snapshots</span>
-        <div class="pagination-controls">
-          <button class="btn btn-sm btn-secondary" (click)="page = page - 1" [disabled]="page <= 1">
-            <tui-icon icon="@tui.chevron-left"></tui-icon>
-          </button>
-          <span class="page-info">{{ page }} / {{ totalPages }}</span>
-          <button class="btn btn-sm btn-secondary" (click)="page = page + 1" [disabled]="page >= totalPages">
-            <tui-icon icon="@tui.chevron-right"></tui-icon>
-          </button>
+        <!-- Empty / Loading -->
+        <div class="ui-state empty-state" *ngIf="!loading && filteredSnapshots.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-camera-video-off"></i></span>
+          <h3>{{ filterMode !== 'all' ? 'No matching snapshots' : 'No snapshots captured' }}</h3>
+          <p *ngIf="filterMode !== 'all'">Try showing all snapshots</p>
         </div>
-      </div>
-
-      <!-- Empty / Loading -->
-      <div class="empty-state" *ngIf="!loading && filteredSnapshots.length === 0">
-        <tui-icon icon="@tui.camera-off"></tui-icon>
-        <h5>{{ filterMode !== 'all' ? 'No matching snapshots' : 'No snapshots captured' }}</h5>
-        <p class="text-muted" *ngIf="filterMode !== 'all'">Try showing all snapshots</p>
-      </div>
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading snapshots...</p>
-      </div>
+        <div class="loading-state" *ngIf="loading">
+          <div class="spinner-border text-primary"></div>
+          <p>Loading snapshots...</p>
+        </div>
+      </section>
 
       <!-- ==========================================
            LIGHTBOX MODAL
@@ -305,98 +303,78 @@ interface SnapshotSessionInfo {
         </div>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .snapshot-gallery-container { padding: 1.5rem; }
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
-    .header-left { display: flex; align-items: flex-start; gap: 0.5rem; }
-    .page-title { font-size: 1.375rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.8125rem; margin: 0.125rem 0 0; }
-    .header-actions { display: flex; gap: 0.5rem; }
-
-    /* Session Bar */
-    .session-bar { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 0.625rem 1rem; background: #f8f9fa;
-      border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #e9ecef; }
-    .info-chip { display: flex; flex-direction: column; }
-    .chip-label { font-size: 0.5625rem; color: #6c757d; text-transform: uppercase; font-weight: 600; }
-    .chip-value { font-size: 0.9375rem; font-weight: 600; }
-    .level-tag { font-size: 0.6875rem; padding: 0.0625rem 0.375rem; border-radius: 0.25rem; text-transform: capitalize; font-weight: 500; }
-    .level-basic { background: #cfe2ff; color: #084298; }
-    .level-standard { background: #fff3cd; color: #664d03; }
-    .level-advanced { background: #f8d7da; color: #842029; }
-
-    /* Filters */
-    .filters-bar { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .filter-tabs { display: flex; gap: 0.25rem; flex-wrap: wrap; }
-    .filter-tab {
-      padding: 0.375rem 0.75rem; font-size: 0.75rem; border: 1px solid #dee2e6; border-radius: 2rem;
-      background: #fff; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; transition: all 0.2s;
-    }
-    .filter-tab:hover { border-color: #6c757d; }
-    .filter-tab.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+    /* Page chrome (header, KPIs, section, filters, states) comes from the global UI kit. */
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .ui-toolbar { margin-bottom: 16px; justify-content: space-between; }
+    .level-tag { align-self: flex-start; text-transform: capitalize; margin-top: 4px; }
+    .level-basic { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .level-standard { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .level-advanced { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
 
     /* GRID */
-    .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
-    .snapshot-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; overflow: hidden; cursor: pointer;
-      transition: all 0.2s; }
-    .snapshot-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-1px); }
-    .snapshot-card.flagged-card { border-color: #dc3545; }
-    .snapshot-card.violation-card { border-color: #ffc107; }
-    .snapshot-thumb { position: relative; aspect-ratio: 4/3; overflow: hidden; background: #f0f0f0; }
+    .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .snapshot-card { background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-card, 12px); overflow: hidden; cursor: pointer;
+      transition: border-color .15s ease, box-shadow .2s ease; }
+    .snapshot-card:hover { border-color: var(--ui-border-strong, #d9ddd9); box-shadow: 0 6px 20px rgba(16, 24, 18, .06); }
+    .snapshot-card.flagged-card { border-color: rgba(var(--ui-danger-rgb), .55); }
+    .snapshot-card.violation-card { border-color: rgba(var(--ui-warning-rgb), .55); }
+    .snapshot-thumb { position: relative; aspect-ratio: 4/3; overflow: hidden; background: var(--ui-surface-2, #f7f8f7); }
     .snapshot-thumb img { width: 100%; height: 100%; object-fit: cover; }
     .thumb-overlay { position: absolute; top: 0.375rem; left: 0.375rem; right: 0.375rem; display: flex;
       justify-content: space-between; align-items: flex-start; }
     .face-count { display: flex; align-items: center; gap: 0.125rem; font-size: 0.625rem; font-weight: 600;
       padding: 0.0625rem 0.375rem; border-radius: 1rem; }
-    .face-ok { background: rgba(40,167,69,0.85); color: #fff; }
-    .face-none { background: rgba(220,53,69,0.85); color: #fff; }
-    .face-multi { background: rgba(255,193,7,0.85); color: #000; }
+    .face-ok { background: rgba(var(--ui-success-rgb), .9); color: #fff; }
+    .face-none { background: rgba(var(--ui-danger-rgb), .9); color: #fff; }
+    .face-multi { background: rgba(var(--ui-warning-rgb), .9); color: #fff; }
     .flag-icon, .violation-icon { font-size: 0.75rem; background: rgba(0,0,0,0.5); color: #fff; border-radius: 50%;
       width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
-    .flag-icon { color: #f44336; }
-    .violation-icon { color: #ffc107; }
+    .flag-icon { color: #ff8a80; }
+    .violation-icon { color: #ffd54f; }
     .confidence-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: rgba(0,0,0,0.2); }
     .confidence-fill { height: 100%; }
-    .conf-high { background: #28a745; }
-    .conf-med { background: #ffc107; }
-    .conf-low { background: #dc3545; }
-    .snapshot-meta { padding: 0.375rem 0.5rem; display: flex; justify-content: space-between; font-size: 0.6875rem; }
-    .snapshot-time { color: #6c757d; }
+    .conf-high { background: var(--ui-success, #2e7d4f); }
+    .conf-med { background: var(--ui-warning, #b25e09); }
+    .conf-low { background: var(--ui-danger, #c0352b); }
+    .snapshot-meta { padding: 0.5rem 0.625rem; display: flex; justify-content: space-between; font-size: 0.6875rem; }
+    .snapshot-time { color: var(--ui-text-muted, #6a716b); }
     .snapshot-confidence { font-weight: 500; }
 
     /* LIST */
     .snapshot-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .list-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: #fff;
-      border: 1px solid #e9ecef; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; }
-    .list-item:hover { background: #f8f9fa; }
-    .list-item.flagged-card { border-left: 3px solid #dc3545; }
-    .list-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 0.375rem; flex-shrink: 0; }
+    .list-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--ui-surface, #fff);
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); cursor: pointer; transition: background .15s ease; }
+    .list-item:hover { background: var(--ui-surface-2, #f7f8f7); }
+    .list-item.flagged-card { border-left: 3px solid var(--ui-danger, #c0352b); }
+    .list-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; }
     .list-body { flex: 1; }
     .list-time { font-size: 0.8125rem; font-weight: 500; }
     .list-tags { display: flex; gap: 0.375rem; flex-wrap: wrap; margin-top: 0.125rem; }
-    .face-tag, .conf-tag, .flag-tag, .violation-tag { font-size: 0.625rem; padding: 0.0625rem 0.375rem; border-radius: 1rem; }
-    .face-tag.face-ok { background: #d4edda; color: #155724; }
-    .face-tag.face-none { background: #f8d7da; color: #842029; }
-    .face-tag.face-multi { background: #fff3cd; color: #856404; }
-    .conf-tag { background: #e2e3e5; color: #495057; }
-    .flag-tag { background: #f8d7da; color: #842029; }
-    .violation-tag { background: #fff3cd; color: #856404; }
+    .face-tag, .conf-tag, .flag-tag, .violation-tag { font-size: 0.6875rem; padding: 1px 8px; border-radius: 999px; border: 1px solid transparent; }
+    .face-tag.face-ok { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+    .face-tag.face-none { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .face-tag.face-multi { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .conf-tag { background: rgba(var(--ui-neutral-rgb), .1); border-color: rgba(var(--ui-neutral-rgb), .28); color: var(--ui-neutral-text); }
+    .flag-tag { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .violation-tag { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
     .list-ai { display: flex; gap: 0.25rem; flex-wrap: wrap; margin-top: 0.25rem; }
-    .ai-tag { font-size: 0.5625rem; padding: 0.0625rem 0.25rem; border-radius: 0.25rem; }
-    .ai-tag.warn { background: #fff3cd; color: #856404; }
-    .ai-tag.info { background: #cce5ff; color: #004085; }
-    .ai-tag.danger { background: #f8d7da; color: #842029; }
+    .ai-tag { font-size: 0.625rem; padding: 1px 6px; border-radius: 999px; }
+    .ai-tag.warn { background: rgba(var(--ui-warning-rgb), .12); color: var(--ui-warning-text, #8f4b07); }
+    .ai-tag.info { background: rgba(var(--ui-info-rgb), .12); color: var(--ui-info-text, #1d518c); }
+    .ai-tag.danger { background: rgba(var(--ui-danger-rgb), .12); color: var(--ui-danger-text, #a12c24); }
     .list-actions { display: flex; gap: 0.25rem; flex-shrink: 0; }
 
     /* Pagination */
-    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; }
+    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 0; margin-top: 16px; border-top: 1px solid var(--ui-border, #e7e9e7); }
     .pagination-controls { display: flex; align-items: center; gap: 0.5rem; }
-    .page-info { font-size: 0.8125rem; color: #6c757d; }
+    .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
 
-    .empty-state, .loading-state { text-align: center; padding: 3rem; }
-    .empty-state tui-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 0.75rem; }
+    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
-    /* LIGHTBOX */
+    /* LIGHTBOX (dark media viewer, intentionally kept dark) */
     .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1060;
       display: flex; align-items: center; justify-content: center; }
     .lightbox-content { position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; }
@@ -409,14 +387,14 @@ interface SnapshotSessionInfo {
     .nav-prev { left: -56px; }
     .nav-next { right: -56px; }
     .lightbox-image-wrapper { display: flex; justify-content: center; }
-    .lightbox-image { max-width: 100%; max-height: 70vh; border-radius: 0.5rem; }
+    .lightbox-image { max-width: 100%; max-height: 70vh; border-radius: var(--ui-radius-ctl, 8px); }
     .lightbox-info { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0;
       color: #fff; gap: 1rem; }
     .lightbox-info-left { display: flex; gap: 1rem; align-items: center; }
     .lightbox-info-center { display: flex; gap: 0.375rem; flex-wrap: wrap; }
     .lb-time { font-size: 0.8125rem; }
     .lb-counter { font-size: 0.75rem; color: #adb5bd; }
-    .lightbox-ai { background: rgba(255,255,255,0.08); border-radius: 0.375rem; padding: 0.5rem 0.75rem; color: #fff; }
+    .lightbox-ai { background: rgba(255,255,255,0.08); border-radius: var(--ui-radius-ctl, 8px); padding: 0.5rem 0.75rem; color: #fff; }
     .lightbox-ai h6 { font-size: 0.75rem; font-weight: 600; margin-bottom: 0.375rem; }
     .ai-tags { display: flex; gap: 0.375rem; flex-wrap: wrap; align-items: center; }
     .ai-detail { font-size: 0.75rem; }

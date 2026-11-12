@@ -1,23 +1,23 @@
-@use 'sass:color';
+
 // ========================================
 // MEDIA UPLOAD COMPONENT STYLES
 // ========================================
 
 // Variables
-$primary: #6366f1;
-$primary-dark: #4f46e5;
-$success: #10b981;
-$error: #ef4444;
-$warning: #f59e0b;
+$primary: var(--brand-primary);
+$primary-dark: var(--brand-primary);
+$success: var(--ui-success);
+$error: var(--ui-danger);
+$warning: var(--ui-warning);
 
-$bg-dark: #0f172a;
-$bg-card: #1e293b;
-$bg-hover: #334155;
-$border-color: #334155;
+$bg-dark: var(--ui-surface);
+$bg-card: var(--ui-surface);
+$bg-hover: var(--ui-surface-2);
+$border-color: var(--ui-border);
 
-$text-primary: #f1f5f9;
-$text-secondary: #94a3b8;
-$text-muted: #64748b;
+$text-primary: var(--ui-text);
+$text-secondary: var(--ui-text-muted);
+$text-muted: var(--ui-text-subtle);
 
 $radius-sm: 8px;
 $radius-md: 12px;
@@ -33,17 +33,17 @@ $transition: all 0.2s ease;
 }
 
 @mixin glass-effect {
-  background: rgba(30, 41, 59, 0.8);
+  background: var(--ui-surface);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(var(--ui-neutral-rgb), 0.08);
 }
 
 // Container
 .media-upload-container {
   width: 100%;
-  max-width: 800px;
+  max-width: none;
   margin: 0 auto;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: inherit;
 }
 
 // ========================================
@@ -57,17 +57,17 @@ $transition: all 0.2s ease;
   text-align: center;
   cursor: pointer;
   transition: $transition;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.05) 0%, transparent 100%);
 
   &:hover {
     border-color: $primary;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+    background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.1) 0%, transparent 100%);
   }
 
   &.drag-over {
     border-color: $primary;
     border-style: solid;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, transparent 100%);
+    background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.15) 0%, transparent 100%);
     transform: scale(1.01);
 
     .upload-icon-wrapper {
@@ -82,7 +82,7 @@ $transition: all 0.2s ease;
   &.has-files {
     padding: 1rem;
     border-style: solid;
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: rgba(var(--brand-primary-rgb), 0.3);
   }
 }
 
@@ -125,7 +125,7 @@ $transition: all 0.2s ease;
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 2px solid rgba(99, 102, 241, 0.3);
+    border: 2px solid rgba(var(--brand-primary-rgb), 0.3);
     animation: pulse-ring 2s ease-out infinite;
   }
 }
@@ -148,8 +148,8 @@ $transition: all 0.2s ease;
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--ui-neutral-rgb), 0.05);
+  border: 1px solid rgba(var(--ui-neutral-rgb), 0.1);
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 500;
@@ -161,7 +161,7 @@ $transition: all 0.2s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--ui-neutral-rgb), 0.1);
     border-color: var(--type-color);
     color: $text-primary;
   }
@@ -237,59 +237,7 @@ $transition: all 0.2s ease;
   gap: 0.5rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: $radius-sm;
-  font-size: 0.813rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: $transition;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, $primary 0%, $primary-dark 100%);
-  color: white;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-  }
-}
-
-.btn-secondary {
-  background: $bg-hover;
-  color: $text-primary;
-
-  &:hover:not(:disabled) {
-    background: color.adjust($bg-hover, $lightness: 5%);
-  }
-}
-
-.btn-secondary {
-  background: transparent;
-  border: 1px solid $border-color;
-  color: $text-secondary;
-
-  &:hover:not(:disabled) {
-    background: $bg-hover;
-    border-color: $text-muted;
-    color: $text-primary;
-  }
-}
+// Buttons use the global Bootstrap theme (.btn .btn-primary / .btn-outline-secondary).
 
 // Overall Progress
 .overall-progress {
@@ -297,7 +245,7 @@ $transition: all 0.2s ease;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(var(--brand-primary-rgb), 0.1);
   border-left: 1px solid $border-color;
   border-right: 1px solid $border-color;
 }
@@ -305,14 +253,14 @@ $transition: all 0.2s ease;
 .progress-bar-container {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--ui-neutral-rgb), 0.1);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, $primary, color.adjust($primary, $lightness: 15%));
+  background: $primary;
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -346,19 +294,19 @@ $transition: all 0.2s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(var(--ui-neutral-rgb), 0.02);
   }
 
   &.uploading {
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(var(--brand-primary-rgb), 0.05);
   }
 
   &.success {
-    background: rgba(16, 185, 129, 0.05);
+    background: rgba(var(--ui-success-rgb), 0.05);
   }
 
   &.error {
-    background: rgba(239, 68, 68, 0.05);
+    background: rgba(var(--ui-danger-rgb), 0.05);
   }
 }
 
@@ -367,7 +315,7 @@ $transition: all 0.2s ease;
   width: 56px;
   height: 56px;
   border-radius: $radius-sm;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(var(--ui-neutral-rgb), 0.05);
   @include flex-center;
   flex-shrink: 0;
   overflow: hidden;
@@ -389,7 +337,7 @@ $transition: all 0.2s ease;
   position: absolute;
   inset: 0;
   @include flex-center;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(16, 24, 18, .45);
 }
 
 .progress-ring {
@@ -404,7 +352,7 @@ $transition: all 0.2s ease;
   }
 
   .progress-bg {
-    stroke: rgba(255, 255, 255, 0.2);
+    stroke: rgba(var(--ui-neutral-rgb), 0.2);
   }
 
   .progress-fill {
@@ -423,7 +371,7 @@ $transition: all 0.2s ease;
 
 .status-overlay {
   &.success {
-    background: rgba(16, 185, 129, 0.9);
+    background: rgba(var(--ui-success-rgb), 0.9);
 
     i {
       font-size: 1.5rem;
@@ -432,7 +380,7 @@ $transition: all 0.2s ease;
   }
 
   &.error {
-    background: rgba(239, 68, 68, 0.9);
+    background: rgba(var(--ui-danger-rgb), 0.9);
 
     i {
       font-size: 1.5rem;
@@ -466,7 +414,7 @@ $transition: all 0.2s ease;
 
 .media-type {
   padding: 0.125rem 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--ui-neutral-rgb), 0.1);
   border-radius: 4px;
   font-weight: 500;
   text-transform: uppercase;
@@ -506,7 +454,7 @@ $transition: all 0.2s ease;
 
 .version-badge {
   padding: 0.125rem 0.5rem;
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(var(--brand-primary-rgb), 0.2);
   border-radius: 4px;
   font-size: 0.625rem;
   font-weight: 600;
@@ -535,7 +483,7 @@ $transition: all 0.2s ease;
   }
 
   &.danger:hover {
-    background: rgba(239, 68, 68, 0.2);
+    background: rgba(var(--ui-danger-rgb), 0.2);
     color: $error;
   }
 }
@@ -546,7 +494,7 @@ $transition: all 0.2s ease;
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(16, 24, 18, .45);
   backdrop-filter: blur(4px);
   z-index: 1000;
   @include flex-center;
@@ -559,7 +507,7 @@ $transition: all 0.2s ease;
   background: $bg-card;
   border: 1px solid $border-color;
   border-radius: $radius-lg;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 50px rgba(16, 24, 18, .16);
   animation: modalIn 0.2s ease;
 }
 
@@ -656,7 +604,7 @@ $transition: all 0.2s ease;
   &:focus {
     outline: none;
     border-color: $primary;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), 0.2);
   }
 }
 
@@ -746,8 +694,8 @@ textarea.form-control {
     border-radius: 999px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #0f7c43;
-    background: #e7f8ee;
+    color: var(--ui-success-text);
+    background: rgba(var(--ui-success-rgb), .1);
   }
 
   .scorm-detail {
@@ -755,7 +703,7 @@ textarea.form-control {
     align-items: center;
     gap: 4px;
     font-size: 0.78rem;
-    color: #6b7280;
+    color: var(--ui-text-muted);
   }
 }
 

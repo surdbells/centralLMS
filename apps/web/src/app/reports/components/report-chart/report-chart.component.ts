@@ -14,15 +14,15 @@ interface StackSeg { bottom: number; top: number; value: number; }
   imports: [CommonModule, TranslatePipe],
   providers: [DecimalPipe],
   template: `
-    <div class="report-chart card border-0 shadow-sm">
-      <div class="card-body">
+    <div class="report-chart ui-section">
+      <div>
         <!-- Header with type switcher -->
-        <div class="d-flex justify-content-between align-items-center mb-3" *ngIf="allowTypeChange || title">
-          <h6 class="mb-0 text-dark fw-semibold" *ngIf="title">{{ title }}</h6>
-          <div class="btn-group btn-group-sm" *ngIf="allowTypeChange">
-            <button *ngFor="let t of availableTypes" class="btn btn-success"
-                    [class.active]="chartType === t.key" (click)="setType(t.key)"
-                    [title]="t.label">
+        <div class="ui-section__head" *ngIf="allowTypeChange || title">
+          <div><h2 class="ui-section__title" *ngIf="title">{{ title }}</h2></div>
+          <div class="ui-section__actions rch-types" *ngIf="allowTypeChange">
+            <button type="button" *ngFor="let t of availableTypes" class="ui-filter"
+                    [class.is-active]="chartType === t.key" (click)="setType(t.key)"
+                    [title]="t.label" [attr.aria-label]="t.label">
               <i [class]="t.icon"></i>
             </button>
           </div>
@@ -161,9 +161,9 @@ interface StackSeg { bottom: number; top: number; value: number; }
           </svg>
 
           <!-- Empty state -->
-          <div *ngIf="!cd || !cd.labels.length" class="text-center py-5 text-muted">
-            <i class="bi bi-bar-chart-line fs-1 d-block mb-2"></i>
-            <p class="mb-0">{{ 'reports.no_chart_data' | translate }}</p>
+          <div *ngIf="!cd || !cd.labels.length" class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-bar-chart-line"></i></span>
+            <p>{{ 'reports.no_chart_data' | translate }}</p>
           </div>
         </div>
 
@@ -193,6 +193,10 @@ interface StackSeg { bottom: number; top: number; value: number; }
     .chart-point { transition: r 0.2s; cursor: pointer; }
     .chart-point:hover { r: 6; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .rch-types { gap: 4px; flex-wrap: wrap; }
+    .rch-types .ui-filter { padding-left: 10px; padding-right: 10px; }
+    /* Already inside a page section: drop the second card frame. */
+    :host-context(.ui-section) .report-chart { border: 0; padding: 0; margin: 0; border-radius: 0; }
   `]
 })
 export class ReportChartComponent implements OnChanges {
@@ -231,8 +235,9 @@ export class ReportChartComponent implements OnChanges {
     { key: 'stacked_bar', icon: 'bi bi-stack', label: 'Stacked' }
   ];
 
+  // The first series is the tenant brand colour, read at runtime.
   colors = [
-    '#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#3b82f6',
+    brandColor(), '#10b981', '#f59e0b', '#ef4444', '#3b82f6',
     '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
     '#06b6d4', '#84cc16'
   ];
@@ -519,5 +524,15 @@ export class ReportChartComponent implements OnChanges {
 
   private formatKey(key: string): string {
     return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+}
+
+/** The tenant brand colour (--brand-primary), with the old default as a fallback. */
+function brandColor(): string {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+    return v || '#4f46e5';
+  } catch {
+    return '#4f46e5';
   }
 }

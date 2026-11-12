@@ -1,12 +1,12 @@
 <!-- Toolbar -->
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <div class="d-flex gap-2 flex-wrap">
-    <div class="input-group input-group-sm search-box">
-      <span class="input-group-text bg-transparent border-end-0"><tui-icon icon="@tui.search"></tui-icon></span>
-      <input type="search" class="form-control border-start-0" placeholder="{{ 'competency.assess.search_placeholder' | translate }}"
+<div class="ui-toolbar">
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <label class="ui-search search-box">
+      <i class="bi bi-search"></i>
+      <input type="search" placeholder="{{ 'competency.assess.search_placeholder' | translate }}"
              [ngModel]="search" (ngModelChange)="onSearch($event)" />
-    </div>
-    <select class="form-select form-select-sm w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
+    </label>
+    <select class="form-select w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
       <option value="">{{ 'competency.assess.all_statuses' | translate }}</option>
       <option *ngFor="let s of statuses" [value]="s.value">{{ s.label | translate }}</option>
     </select>
@@ -23,15 +23,15 @@
   <div class="spinner-border text-primary" role="status"></div>
 </div>
 
-<div *ngIf="!loading && !assessments.length" class="empty-panel text-center py-5">
-  <tui-icon icon="@tui.clipboard-check" class="empty-icon"></tui-icon>
-  <h5 class="mt-3 mb-1">{{ 'competency.assess.empty_title' | translate }}</h5>
-  <p class="text-muted mb-3">{{ 'competency.assess.empty_text' | translate }}</p>
+<div *ngIf="!loading && !assessments.length" class="ui-state">
+  <span class="ui-state__icon"><tui-icon icon="@tui.clipboard-check"></tui-icon></span>
+  <h3>{{ 'competency.assess.empty_title' | translate }}</h3>
+  <p>{{ 'competency.assess.empty_text' | translate }}</p>
   <button class="btn btn-primary btn-sm" (click)="openStart()">{{ 'competency.assess.start_first' | translate }}</button>
 </div>
 
 <!-- Table -->
-<div *ngIf="!loading && assessments.length" class="card border-0 shadow-sm">
+<section *ngIf="!loading && assessments.length" class="ui-section ui-section--flush">
   <div class="table-responsive">
     <table class="table align-middle mb-0 assess-table">
       <thead>
@@ -78,7 +78,7 @@
       </tbody>
     </table>
   </div>
-</div>
+</section>
 
 <!-- Start modal -->
 <div class="overlay" *ngIf="modalOpen" (click)="closeStart()">
@@ -133,7 +133,7 @@
       </div>
     </div>
     <div class="overlay-foot">
-      <button class="btn btn-light" (click)="closeStart()">{{ 'common.cancel' | translate }}</button>
+      <button class="btn btn-outline-secondary" (click)="closeStart()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" [disabled]="starting || !selectedUsers.length || !selectedProfileId" (click)="start()">
         <span *ngIf="starting" class="spinner-border spinner-border-sm me-1"></span>
         {{ selectedUsers.length > 1 ? ('competency.assess.assign_to_people' | translate: { count: selectedUsers.length }) : ('competency.assess.assign' | translate) }}

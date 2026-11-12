@@ -33,27 +33,26 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
   template: `
     <app-top></app-top>
 
+    <main class="main">
+    <div class="ui-page">
     <!-- ==========================================
          VIEW MODE: Certificate List
          ========================================== -->
     <ng-container *ngIf="viewMode === 'list'">
 
       <!-- Header -->
-      <div class="page-header mb-4">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <h5 class="mb-1">
-              <tui-icon icon="@tui.award" class="me-2"></tui-icon> My Certificates
-            </h5>
-            <p class="text-muted mb-0">{{ certificates.length }} certificate(s) earned</p>
-          </div>
-          <div class="d-flex gap-2">
-            <div class="input-group input-group-sm" style="max-width: 250px;">
-              <span class="input-group-text"><tui-icon icon="@tui.search"></tui-icon></span>
-              <input type="text" class="form-control" placeholder="Search certificates..."
-                     [(ngModel)]="searchTerm" (ngModelChange)="filterCertificates()">
-            </div>
-            <select class="form-select form-select-sm" style="max-width: 150px;"
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-award"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>My Certificates</h1>
+          <p>{{ certificates.length }} certificate(s) earned</p>
+        </div>
+      </header>
+
+      <section class="ui-section">
+        <div class="ui-toolbar">
+          <div class="ui-filters">
+            <select class="form-select" aria-label="Status"
                     [(ngModel)]="statusFilter" (ngModelChange)="filterCertificates()">
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -62,94 +61,118 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
               <option value="revoked">Revoked</option>
             </select>
           </div>
+          <label class="ui-search">
+            <i class="bi bi-search"></i>
+            <input type="search" placeholder="Search certificates..." aria-label="Search certificates"
+                   [(ngModel)]="searchTerm" (ngModelChange)="filterCertificates()">
+          </label>
         </div>
-      </div>
 
-      <!-- Loading -->
-      <div class="text-center py-5" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p class="mt-2 text-muted">Loading certificates...</p>
-      </div>
+        <!-- Loading -->
+        <div class="text-center py-5" *ngIf="loading">
+          <div class="spinner-border text-secondary"></div>
+          <p class="mt-2 ui-muted">Loading certificates...</p>
+        </div>
 
-      <!-- Certificate Grid -->
-      <div class="certificates-grid" *ngIf="!loading">
-        <div class="certificate-card" *ngFor="let cert of filteredCertificates"
-             [class.expired]="isExpired(cert)" [class.expiring]="isExpiringSoon(cert)"
-             [class.revoked]="cert.status === 'revoked'" (click)="viewCertificate(cert.id)">
+        <!-- Certificate Grid -->
+        <div class="ui-grid certificates-grid" *ngIf="!loading">
+          <article class="ui-card certificate-card" *ngFor="let cert of filteredCertificates"
+               [class.expired]="isExpired(cert)" [class.expiring]="isExpiringSoon(cert)"
+               [class.revoked]="cert.status === 'revoked'" (click)="viewCertificate(cert.id)">
 
-          <div class="cert-card-header">
-            <div class="cert-icon"><tui-icon icon="@tui.award"></tui-icon></div>
-            <span class="cert-status-badge badge" [ngClass]="getStatusBadgeClass(displayStatus(cert))">
-              {{ getStatusLabel(displayStatus(cert)) }}
-            </span>
-          </div>
-
-          <div class="cert-card-body">
-            <h6 class="cert-title">{{ cert.title }}</h6>
-            <div class="cert-number">
-              <tui-icon icon="@tui.hash" class="me-1"></tui-icon>{{ cert.number }}
+            <div class="cert-card-header">
+              <div class="cert-icon"><i class="bi bi-award"></i></div>
+              <span class="cert-status-badge badge" [ngClass]="getStatusBadgeClass(displayStatus(cert))">
+                {{ getStatusLabel(displayStatus(cert)) }}
+              </span>
             </div>
-            <div class="cert-meta">
-              <div class="cert-meta-item">
-                <span class="meta-label">Score</span>
-                <span class="meta-value" [class.text-success]="(cert.percentage ?? 0) >= 70"
-                      [class.text-danger]="cert.percentage !== null && cert.percentage < 50">
-                  <ng-container *ngIf="cert.percentage !== null">{{ cert.percentage | number:'1.0-0' }}%<span *ngIf="cert.grade"> ({{ cert.grade }})</span></ng-container>
-                  <span *ngIf="cert.percentage === null">-</span>
-                </span>
+
+            <div class="ui-card__body cert-card-body">
+              <h6 class="ui-card__title cert-title">{{ cert.title }}</h6>
+              <div class="cert-number">
+                <i class="bi bi-hash"></i>{{ cert.number }}
               </div>
-              <div class="cert-meta-item">
-                <span class="meta-label">Issued</span>
-                <span class="meta-value">{{ formatDate(cert.issuedAt) }}</span>
-              </div>
-              <div class="cert-meta-item">
-                <span class="meta-label">{{ cert.validUntil ? 'Expires' : 'Validity' }}</span>
-                <span class="meta-value" [class.text-danger]="isExpired(cert)" [class.text-warning]="isExpiringSoon(cert)">
-                  <ng-container *ngIf="cert.validUntil">
-                    {{ formatDate(cert.validUntil) }}
-                    <small *ngIf="cert.daysRemaining && cert.daysRemaining > 0">({{ cert.daysRemaining }}d left)</small>
-                  </ng-container>
-                  <span *ngIf="!cert.validUntil" class="text-success">No Expiry</span>
-                </span>
+              <div class="cert-meta">
+                <div class="cert-meta-item">
+                  <span class="meta-label">Score</span>
+                  <span class="meta-value" [class.text-success]="(cert.percentage ?? 0) >= 70"
+                        [class.text-danger]="cert.percentage !== null && cert.percentage < 50">
+                    <ng-container *ngIf="cert.percentage !== null">{{ cert.percentage | number:'1.0-0' }}%<span *ngIf="cert.grade"> ({{ cert.grade }})</span></ng-container>
+                    <span *ngIf="cert.percentage === null">-</span>
+                  </span>
+                </div>
+                <div class="cert-meta-item">
+                  <span class="meta-label">Issued</span>
+                  <span class="meta-value">{{ formatDate(cert.issuedAt) }}</span>
+                </div>
+                <div class="cert-meta-item">
+                  <span class="meta-label">{{ cert.validUntil ? 'Expires' : 'Validity' }}</span>
+                  <span class="meta-value" [class.text-danger]="isExpired(cert)" [class.text-warning]="isExpiringSoon(cert)">
+                    <ng-container *ngIf="cert.validUntil">
+                      {{ formatDate(cert.validUntil) }}
+                      <small *ngIf="cert.daysRemaining && cert.daysRemaining > 0">({{ cert.daysRemaining }}d left)</small>
+                    </ng-container>
+                    <span *ngIf="!cert.validUntil" class="text-success">No Expiry</span>
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="cert-card-footer">
-            <button class="btn btn-sm btn-primary" (click)="viewCertificate(cert.id); $event.stopPropagation()">
-              <tui-icon icon="@tui.eye" class="me-1"></tui-icon> View
-            </button>
-            <button class="btn btn-sm btn-secondary"
-                    (click)="openForPrinting(cert.id); $event.stopPropagation()">
-              <tui-icon icon="@tui.download" class="me-1"></tui-icon> Download
-            </button>
+            <div class="ui-card__footer cert-card-footer">
+              <button type="button" class="btn btn-sm btn-primary" (click)="viewCertificate(cert.id); $event.stopPropagation()">
+                <i class="bi bi-eye me-1"></i> View
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary"
+                      (click)="openForPrinting(cert.id); $event.stopPropagation()">
+                <i class="bi bi-download me-1"></i> Download
+              </button>
+            </div>
+          </article>
+
+          <!-- Empty State -->
+          <div class="ui-state full-width" *ngIf="filteredCertificates.length === 0 && !loading">
+            <span class="ui-state__icon"><i class="bi bi-award"></i></span>
+            <h3 *ngIf="certificates.length === 0">No Certificates Yet</h3>
+            <h3 *ngIf="certificates.length > 0">No Matching Certificates</h3>
+            <p *ngIf="certificates.length === 0">Complete assessments to earn certificates!</p>
+            <p *ngIf="certificates.length > 0">Try adjusting your search or filter</p>
           </div>
         </div>
-
-        <!-- Empty State -->
-        <div class="empty-state full-width" *ngIf="filteredCertificates.length === 0 && !loading">
-          <tui-icon icon="@tui.award" class="empty-icon"></tui-icon>
-          <h6 *ngIf="certificates.length === 0">No Certificates Yet</h6>
-          <h6 *ngIf="certificates.length > 0">No Matching Certificates</h6>
-          <p *ngIf="certificates.length === 0">Complete assessments to earn certificates!</p>
-          <p *ngIf="certificates.length > 0">Try adjusting your search or filter</p>
-        </div>
-      </div>
+      </section>
     </ng-container>
 
     <!-- ==========================================
          VIEW MODE: Certificate Detail
          ========================================== -->
     <ng-container *ngIf="viewMode === 'detail'">
-      <div class="mb-3">
-        <button class="btn btn-sm btn-secondary" (click)="backToList()">
-          <tui-icon icon="@tui.arrow-left" class="me-1"></tui-icon> Back to Certificates
+      <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="backToList()" aria-label="Back to Certificates" title="Back to Certificates">
+          <i class="bi bi-chevron-left"></i>
         </button>
-      </div>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-award"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ selectedCertificate?.title || 'Certificate' }}</h1>
+          <p *ngIf="selectedCertificate">#{{ selectedCertificate.number }}</p>
+        </div>
+        <div class="ui-page-header__actions" *ngIf="!loadingDetail && selectedCertificate">
+          <button type="button" class="btn btn-primary" (click)="openForPrinting(selectedCertificate.id)">
+            <i class="bi bi-download me-1"></i> Download PDF
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="shareCertificate()">
+            <i class="bi bi-share me-1"></i> Share
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="verifyCertificate()">
+            <i class="bi bi-shield-check me-1"></i> Verify
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="openForPrinting(selectedCertificate.id)">
+            <i class="bi bi-printer me-1"></i> Print
+          </button>
+        </div>
+      </header>
 
       <div class="text-center py-5" *ngIf="loadingDetail">
-        <div class="spinner-border text-primary"></div>
-        <p class="mt-2 text-muted">Loading certificate...</p>
+        <div class="spinner-border text-secondary"></div>
+        <p class="mt-2 ui-muted">Loading certificate...</p>
       </div>
 
       <div class="certificate-detail-wrapper" *ngIf="!loadingDetail && selectedCertificate">
@@ -166,98 +189,86 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
         </div>
 
         <!-- Certificate Preview (server-rendered, isolated) -->
-        <div class="certificate-preview-card">
-          <div class="text-center py-5 w-100" *ngIf="!previewDoc">
-            <div class="spinner-border spinner-border-sm text-primary"></div>
-            <span class="ms-2 text-muted">Rendering certificate...</span>
+        <section class="ui-section preview-section">
+          <div class="certificate-preview-card">
+            <div class="text-center py-5 w-100" *ngIf="!previewDoc">
+              <div class="spinner-border spinner-border-sm text-secondary"></div>
+              <span class="ms-2 ui-muted">Rendering certificate...</span>
+            </div>
+            <iframe *ngIf="previewDoc" class="cert-preview-frame" [srcdoc]="previewDoc"
+                    title="Certificate preview" sandbox="allow-same-origin"></iframe>
           </div>
-          <iframe *ngIf="previewDoc" class="cert-preview-frame" [srcdoc]="previewDoc"
-                  title="Certificate preview" sandbox="allow-same-origin"></iframe>
-        </div>
+        </section>
 
-        <!-- Action Bar -->
-        <div class="cert-actions-bar mt-3">
-          <div class="d-flex justify-content-center gap-2 flex-wrap">
-            <button class="btn btn-primary" (click)="openForPrinting(selectedCertificate.id)">
-              <tui-icon icon="@tui.download" class="me-1"></tui-icon> Download PDF
-            </button>
-            <button class="btn btn-secondary" (click)="shareCertificate()">
-              <tui-icon icon="@tui.share-2" class="me-1"></tui-icon> Share
-            </button>
-            <button class="btn btn-secondary" (click)="verifyCertificate()">
-              <tui-icon icon="@tui.shield" class="me-1"></tui-icon> Verify
-            </button>
-            <button class="btn btn-secondary" (click)="openForPrinting(selectedCertificate.id)">
-              <tui-icon icon="@tui.printer" class="me-1"></tui-icon> Print
-            </button>
-          </div>
-        </div>
-
+        <div class="ui-row">
         <!-- Details Table -->
-        <div class="card mt-4">
-          <div class="card-header">
-            <h6 class="mb-0"><tui-icon icon="@tui.info" class="me-2"></tui-icon> Certificate Details</h6>
+        <section class="ui-section ui-section--flush">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Certificate Details</h2></div>
           </div>
-          <div class="card-body p-0">
-            <table class="table table-sm mb-0">
+          <div class="ui-table-wrap">
+            <table class="table table-sm details-table mb-0">
               <tbody>
-                <tr><td class="text-muted fw-light" style="width:180px">Certificate Number</td><td><strong>{{ selectedCertificate.number }}</strong></td></tr>
-                <tr><td class="text-muted fw-light">Verification Code</td><td><code class="user-select-all">{{ selectedCertificate.verificationCode }}</code>
-                  <button class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationCode)"><tui-icon icon="@tui.copy"></tui-icon></button></td></tr>
-                <tr><td class="text-muted fw-light">Assessment</td><td>{{ selectedCertificate.title }}</td></tr>
-                <tr><td class="text-muted fw-light">Recipient</td><td>{{ selectedCertificate.learnerName }}</td></tr>
-                <tr *ngIf="selectedCertificate.percentage !== null"><td class="text-muted fw-light">Score</td><td>{{ selectedCertificate.percentage | number:'1.0-0' }}%<span *ngIf="selectedCertificate.grade"> - {{ selectedCertificate.grade }}</span></td></tr>
-                <tr><td class="text-muted fw-light">Issued</td><td>{{ formatDate(selectedCertificate.issuedAt) }}</td></tr>
-                <tr><td class="text-muted fw-light">Expires</td><td><span *ngIf="selectedCertificate.validUntil">{{ formatDate(selectedCertificate.validUntil) }}</span><span *ngIf="!selectedCertificate.validUntil" class="text-success">No Expiry (Lifetime)</span></td></tr>
-                <tr><td class="text-muted fw-light">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(displayStatus(selectedCertificate))">{{ getStatusLabel(displayStatus(selectedCertificate)) }}</span></td></tr>
-                <tr><td class="text-muted fw-light">Verified</td><td>{{ selectedCertificate.verificationCount }} time(s)</td></tr>
-                <tr><td class="text-muted fw-light">Downloaded</td><td>{{ selectedCertificate.downloadCount }} time(s)</td></tr>
-                <tr *ngIf="selectedCertificate.verificationUrl"><td class="text-muted fw-light">Verify URL</td><td><a [href]="selectedCertificate.verificationUrl" target="_blank" rel="noopener" class="text-break">{{ selectedCertificate.verificationUrl }}</a>
-                  <button class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationUrl)"><tui-icon icon="@tui.copy"></tui-icon></button></td></tr>
+                <tr><td class="ui-muted" style="width:180px">Certificate Number</td><td><strong>{{ selectedCertificate.number }}</strong></td></tr>
+                <tr><td class="ui-muted">Verification Code</td><td><code class="user-select-all">{{ selectedCertificate.verificationCode }}</code>
+                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationCode)" aria-label="Copy"><i class="bi bi-copy"></i></button></td></tr>
+                <tr><td class="ui-muted">Assessment</td><td>{{ selectedCertificate.title }}</td></tr>
+                <tr><td class="ui-muted">Recipient</td><td>{{ selectedCertificate.learnerName }}</td></tr>
+                <tr *ngIf="selectedCertificate.percentage !== null"><td class="ui-muted">Score</td><td>{{ selectedCertificate.percentage | number:'1.0-0' }}%<span *ngIf="selectedCertificate.grade"> - {{ selectedCertificate.grade }}</span></td></tr>
+                <tr><td class="ui-muted">Issued</td><td>{{ formatDate(selectedCertificate.issuedAt) }}</td></tr>
+                <tr><td class="ui-muted">Expires</td><td><span *ngIf="selectedCertificate.validUntil">{{ formatDate(selectedCertificate.validUntil) }}</span><span *ngIf="!selectedCertificate.validUntil" class="text-success">No Expiry (Lifetime)</span></td></tr>
+                <tr><td class="ui-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(displayStatus(selectedCertificate))">{{ getStatusLabel(displayStatus(selectedCertificate)) }}</span></td></tr>
+                <tr><td class="ui-muted">Verified</td><td>{{ selectedCertificate.verificationCount }} time(s)</td></tr>
+                <tr><td class="ui-muted">Downloaded</td><td>{{ selectedCertificate.downloadCount }} time(s)</td></tr>
+                <tr *ngIf="selectedCertificate.verificationUrl"><td class="ui-muted">Verify URL</td><td><a [href]="selectedCertificate.verificationUrl" target="_blank" rel="noopener" class="text-break">{{ selectedCertificate.verificationUrl }}</a>
+                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationUrl)" aria-label="Copy"><i class="bi bi-copy"></i></button></td></tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
         <!-- Additional Information (custom data) -->
-        <div class="card mt-3" *ngIf="customFields.length">
-          <div class="card-header">
-            <h6 class="mb-0"><tui-icon icon="@tui.list" class="me-2"></tui-icon> Additional Information</h6>
+        <section class="ui-section ui-section--flush" *ngIf="customFields.length">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Additional Information</h2></div>
           </div>
-          <div class="card-body p-0">
-            <table class="table table-sm mb-0">
+          <div class="ui-table-wrap">
+            <table class="table table-sm details-table mb-0">
               <tbody>
                 <tr *ngFor="let field of customFields">
-                  <td class="text-muted fw-light" style="width:180px">{{ formatFieldName(field.key) }}</td>
+                  <td class="ui-muted" style="width:180px">{{ formatFieldName(field.key) }}</td>
                   <td>{{ field.value }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </section>
         </div>
       </div>
 
       <!-- Not Found -->
-      <div class="empty-state" *ngIf="!loadingDetail && !selectedCertificate && detailError">
-        <tui-icon icon="@tui.alert-triangle" class="empty-icon text-danger"></tui-icon>
-        <h6>Certificate Not Found</h6>
+      <div class="ui-state" *ngIf="!loadingDetail && !selectedCertificate && detailError">
+        <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+        <h3>Certificate Not Found</h3>
         <p>{{ detailError }}</p>
-        <button class="btn btn-primary" (click)="backToList()">Back to Certificates</button>
+        <button type="button" class="btn btn-primary" (click)="backToList()">Back to Certificates</button>
       </div>
     </ng-container>
+    </div>
+    </main>
 
     <!-- Share Modal -->
     <div class="modal-overlay" *ngIf="showShareModal" (click)="showShareModal = false">
       <div class="modal-box" (click)="$event.stopPropagation()">
-        <div class="modal-hdr"><h6><tui-icon icon="@tui.share-2" class="me-2"></tui-icon> Share Certificate</h6>
-          <button class="btn-close" (click)="showShareModal = false"></button></div>
+        <div class="modal-hdr"><h6><i class="bi bi-share me-2"></i> Share Certificate</h6>
+          <button type="button" class="btn-close" (click)="showShareModal = false" aria-label="Close"></button></div>
         <div class="modal-bdy">
           <div class="d-grid gap-2">
-            <button class="btn btn-primary" (click)="shareVia('linkedin')"><tui-icon icon="@tui.external-link" class="me-2"></tui-icon> Share on LinkedIn</button>
-            <button class="btn btn-secondary" (click)="shareVia('email')"><tui-icon icon="@tui.mail" class="me-2"></tui-icon> Share via Email</button>
-            <button class="btn btn-secondary" (click)="shareVia('link')"><tui-icon icon="@tui.link" class="me-2"></tui-icon> Copy Verification Link</button>
+            <button type="button" class="btn btn-primary" (click)="shareVia('linkedin')"><i class="bi bi-box-arrow-up-right me-2"></i> Share on LinkedIn</button>
+            <button type="button" class="btn btn-outline-secondary" (click)="shareVia('email')"><i class="bi bi-envelope me-2"></i> Share via Email</button>
+            <button type="button" class="btn btn-outline-secondary" (click)="shareVia('link')"><i class="bi bi-link-45deg me-2"></i> Copy Verification Link</button>
           </div>
-          <div class="alert alert-success mt-3" *ngIf="shareSuccess"><tui-icon icon="@tui.check" class="me-1"></tui-icon> {{ shareSuccess }}</div>
+          <div class="alert alert-success mt-3" *ngIf="shareSuccess"><i class="bi bi-check2 me-1"></i> {{ shareSuccess }}</div>
         </div>
       </div>
     </div>
@@ -265,23 +276,23 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
     <!-- Verify Modal -->
     <div class="modal-overlay" *ngIf="showVerifyModal" (click)="showVerifyModal = false">
       <div class="modal-box" (click)="$event.stopPropagation()">
-        <div class="modal-hdr"><h6><tui-icon icon="@tui.shield" class="me-2"></tui-icon> Verification</h6>
-          <button class="btn-close" (click)="showVerifyModal = false"></button></div>
+        <div class="modal-hdr"><h6><i class="bi bi-shield-check me-2"></i> Verification</h6>
+          <button type="button" class="btn-close" (click)="showVerifyModal = false" aria-label="Close"></button></div>
         <div class="modal-bdy">
-          <div class="text-center py-3" *ngIf="verifying"><div class="spinner-border spinner-border-sm text-primary"></div><span class="ms-2">Verifying...</span></div>
+          <div class="text-center py-3" *ngIf="verifying"><div class="spinner-border spinner-border-sm text-secondary"></div><span class="ms-2">Verifying...</span></div>
           <div *ngIf="!verifying && verificationResult" class="text-center">
             <div class="mb-3" style="font-size: 3rem;">
               <tui-icon [icon]="verificationResult.isValid ? '@tui.check-circle' : '@tui.x-circle'"
                         [class.text-success]="verificationResult.isValid" [class.text-danger]="!verificationResult.isValid"></tui-icon>
             </div>
             <h6>{{ verificationResult.isValid ? 'Certificate Verified!' : 'Verification Failed' }}</h6>
-            <p class="text-muted">{{ verificationResult.message }}</p>
+            <p class="ui-muted">{{ verificationResult.message }}</p>
             <div *ngIf="verificationResult.isValid" class="text-start mt-3 border-top pt-3">
               <table class="table table-sm"><tbody>
-                <tr><td class="text-muted">Recipient</td><td>{{ verificationResult.learnerName }}</td></tr>
-                <tr><td class="text-muted">Assessment</td><td>{{ verificationResult.title }}</td></tr>
-                <tr *ngIf="verificationResult.issuedAt"><td class="text-muted">Issued</td><td>{{ formatDate(verificationResult.issuedAt) }}</td></tr>
-                <tr><td class="text-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(verificationResult.status)">{{ verificationResult.statusLabel || getStatusLabel(verificationResult.status) }}</span></td></tr>
+                <tr><td class="ui-muted">Recipient</td><td>{{ verificationResult.learnerName }}</td></tr>
+                <tr><td class="ui-muted">Assessment</td><td>{{ verificationResult.title }}</td></tr>
+                <tr *ngIf="verificationResult.issuedAt"><td class="ui-muted">Issued</td><td>{{ formatDate(verificationResult.issuedAt) }}</td></tr>
+                <tr><td class="ui-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(verificationResult.status)">{{ verificationResult.statusLabel || getStatusLabel(verificationResult.status) }}</span></td></tr>
               </tbody></table>
             </div>
           </div>
@@ -292,59 +303,56 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
   styles: [`
     :host { display: block; }
 
-    .certificates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
+    .certificates-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
     .full-width { grid-column: 1 / -1; }
 
     .certificate-card {
-      background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem;
-      overflow: hidden; cursor: pointer; transition: all 0.2s;
-      &:hover { border-color: #c9a227; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: translateY(-2px); }
-      &.expired { opacity: 0.7; border-left: 4px solid #dc3545; }
-      &.expiring { border-left: 4px solid #ffc107; }
-      &.revoked { opacity: 0.6; border-left: 4px solid #6c757d; }
+      cursor: pointer;
+      &.expired { opacity: 0.75; border-left: 3px solid var(--ui-danger); }
+      &.expiring { border-left: 3px solid var(--ui-warning); }
+      &.revoked { opacity: 0.6; border-left: 3px solid var(--ui-text-subtle); }
     }
 
     .cert-card-header {
-      display: flex; justify-content: space-between; align-items: center; padding: 1rem 1rem 0;
-      .cert-icon { width: 40px; height: 40px; border-radius: 50%; background: #fff8e6; color: #c9a227;
-        display: flex; align-items: center; justify-content: center; }
+      display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 0;
+      .cert-icon { width: 40px; height: 40px; border-radius: var(--ui-radius-card); background: rgba(var(--brand-primary-rgb), .1); color: var(--brand-primary);
+        display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
     }
 
     .cert-card-body {
-      padding: 1rem;
-      .cert-title { font-size: 0.95rem; margin-bottom: 0.5rem; color: #212529;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      .cert-number { font-size: 0.8rem; color: #6c757d; margin-bottom: 0.75rem; font-family: monospace; }
+      gap: 8px;
+      .cert-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+      .cert-number { font-size: .75rem; color: var(--ui-text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     }
 
     .cert-meta .cert-meta-item {
-      display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.25rem 0;
-      border-bottom: 1px solid #f8f9fa; &:last-child { border-bottom: none; }
-      .meta-label { color: #6c757d; } .meta-value { font-weight: 600; color: #212529; }
+      display: flex; justify-content: space-between; font-size: .8125rem; padding: 6px 0;
+      border-bottom: 1px solid var(--ui-border); &:last-child { border-bottom: none; }
+      .meta-label { color: var(--ui-text-muted); } .meta-value { font-weight: 600; color: var(--ui-text); }
     }
 
-    .cert-card-footer { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #f8f9fa; background: #fafbfc; }
+    .cert-card-footer { justify-content: flex-start; }
 
+    .preview-section { padding: 16px; background: var(--ui-surface-2); }
     .certificate-preview-card {
-      border: 1px solid #dee2e6; border-radius: 0.5rem; overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto; aspect-ratio: 1.414/1;
+      border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); overflow: hidden;
+      box-shadow: 0 6px 20px rgba(16, 24, 18, .06); max-width: 800px; margin: 0 auto; aspect-ratio: 1.414/1;
       display: flex; align-items: center; justify-content: center; background: #fff;
     }
 
     .cert-preview-frame { width: 100%; height: 100%; border: 0; display: block; }
 
-    .cert-actions-bar { text-align: center; }
+    .details-table { font-size: .8125rem; }
+    .details-table td { vertical-align: middle; }
+    .ui-section--flush > .ui-table-wrap { margin-top: 0; }
 
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(16, 24, 18, .4);
       display: flex; align-items: center; justify-content: center; z-index: 1050; }
-    .modal-box { background: #fff; border-radius: 0.75rem; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
-    .modal-hdr { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; h6 { margin: 0; } }
-    .modal-bdy { padding: 1.25rem; }
+    .modal-box { background: var(--ui-surface); border-radius: var(--ui-radius-panel); width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: var(--ui-shadow-pop); }
+    .modal-hdr { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--ui-border); h6 { margin: 0; font-weight: 650; } }
+    .modal-bdy { padding: 20px; }
 
-    .empty-state { text-align: center; padding: 3rem 1rem; color: #6c757d;
-      .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; } }
-
-    @media (max-width: 768px) {
+    @media (max-width: 767.98px) {
       .certificates-grid { grid-template-columns: 1fr; }
       .certificate-preview-card { max-width: 100%; }
     }

@@ -6,10 +6,11 @@ import {Router} from '@angular/router';
 import {CrudService} from '../../services/crud.service';
 import {HotToastService} from '@ngneat/hot-toast';
 import {AdminLiveTrainingComponent} from '../../live-training/admin/admin-live-training.component';
+import {TranslatePipe} from '../../translate.pipe';
 @Component({
   selector: 'app-admin-training',
   standalone: true,
-  imports: [TopComponent, TuiIcon, AdmintopComponent, AdminLiveTrainingComponent],
+  imports: [TopComponent, TuiIcon, AdmintopComponent, AdminLiveTrainingComponent, TranslatePipe],
   templateUrl: './admin-training.component.html',
   styleUrl: './admin-training.component.css'
 })

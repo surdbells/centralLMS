@@ -1,64 +1,77 @@
-/* Course Insights Component - Bootstrap 5 Enhanced Styles */
+/* Course Insights — page frame, header, KPIs and tabs come from the global
+   UI kit (styles.scss). The Bootstrap cards below are restyled as kit
+   sections so the existing markup inside them stays untouched. */
 
-/* Nav Pills Customization */
-.nav-pills .nav-link {
-  color: #6c757d;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease;
+/* Inside the dialog the dialog already pads its content. */
+.insights-page--dialog { padding: 0; }
+
+.insights-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
 }
 
-.nav-pills .nav-link:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+.ui-kpi-grid--6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+@media (max-width: 1199.98px) {
+  .ui-kpi-grid--6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-.nav-pills .nav-link.active {
-  background-color: #d4a012;
-  color: #000;
+@media (max-width: 767.98px) {
+  .ui-kpi-grid--6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Card Enhancements */
-.card {
-  transition: box-shadow 0.2s ease;
+.insights-kpis { margin-bottom: 20px; }
+
+/* Cards → hairline sections */
+.insight-card {
+  border: 1px solid var(--ui-border) !important;
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-surface);
+  box-shadow: none;
+  overflow: hidden;
 }
 
-.card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+.insight-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 4px;
+  background: transparent;
+  border-bottom: 0;
 }
 
-/* Accordion Customization */
+.insight-card__head .ui-section__title { display: flex; align-items: center; }
+.insight-card__icon { color: var(--brand-primary); }
+
+.insight-card > .card-body { padding: 14px 22px 20px; }
+
+/* Accordion (module performance) */
 .accordion-button:not(.collapsed) {
-  background-color: rgba(212, 160, 18, 0.1);
+  background-color: rgba(var(--brand-primary-rgb), .06);
   color: inherit;
+  box-shadow: none;
 }
 
 .accordion-button:focus {
   box-shadow: none;
-  border-color: rgba(212, 160, 18, 0.25);
+  border-color: rgba(var(--brand-primary-rgb), .25);
 }
 
 .accordion-button::after {
   background-size: 1rem;
 }
 
-/* Progress Bar Enhancements */
+/* Progress bars */
 .progress {
-  background-color: #e9ecef;
-  border-radius: 0.5rem;
+  background-color: var(--ui-surface-2);
+  border-radius: 999px;
   overflow: hidden;
 }
 
-/* Table Enhancements */
-.table > :not(caption) > * > * {
-  padding: 1rem 0.75rem;
-}
-
-.table-hover tbody tr:hover {
-  background-color: rgba(212, 160, 18, 0.05);
-}
-
-/* Badge Customization */
-.badge {
-  font-weight: 500;
+.table-hover tbody tr:hover > * {
+  background-color: rgba(var(--brand-primary-rgb), .03);
 }
 
 /* Funnel Stages */
@@ -70,10 +83,11 @@
   justify-content: center;
 }
 
-/* List Group Enhancements */
+/* List Group */
 .list-group-item {
   border-left: none;
   border-right: none;
+  border-color: var(--ui-border);
   transition: background-color 0.2s ease;
 }
 
@@ -82,23 +96,21 @@
 }
 
 .list-group-item:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--ui-surface-2);
 }
 
 /* Tab Content Animation */
 .tab-pane-content {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.25s ease;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-pane-content { animation: none; }
 }
 
 /* Spinner */
@@ -113,25 +125,14 @@
   transition: height 0.3s ease;
 }
 
-/* Icon sizing in stats cards */
 .card-body tui-icon {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
 /* Dropdown Menu */
-.dropdown-menu {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  border: none;
-}
-
 .dropdown-item {
-  padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
-}
-
-.dropdown-item:hover {
-  background-color: rgba(212, 160, 18, 0.1);
 }
 
 /* Responsive Adjustments */
@@ -155,7 +156,7 @@
 }
 
 @media (max-width: 576px) {
-  .container-fluid {
+  .insights-page {
     padding: 1rem !important;
   }
 
@@ -227,11 +228,12 @@
 }
 
 .podium-card {
-  background: #ffffff;
-  border-radius: 20px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel);
   padding: 30px 25px;
   text-align: center;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--ui-shadow-xs);
   position: relative;
   transition: all 0.3s ease;
   width: 220px;
@@ -239,7 +241,7 @@
 
 .podium-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(16, 24, 18, .06);
 }
 
 /* First Place - Center Card */
@@ -353,7 +355,7 @@
   bottom: 8px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: rgba(var(--brand-primary-rgb), .12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -373,7 +375,7 @@
 }
 
 .avatar-initials {
-  color: #ffffff;
+  color: var(--brand-primary);
   font-size: 28px;
   font-weight: 600;
 }
@@ -427,7 +429,7 @@
 .podium-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--ui-text);
   margin: 10px 0 5px;
   white-space: nowrap;
   overflow: hidden;
@@ -489,7 +491,7 @@
 .stat-value {
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--ui-text);
 }
 
 /* Responsive */

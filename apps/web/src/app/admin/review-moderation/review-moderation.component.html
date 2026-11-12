@@ -1,42 +1,41 @@
 <app-admintop></app-admintop>
 
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <div class="moderation-page">
-      <!-- Header -->
-      <div class="page-header mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <nav aria-label="breadcrumb">
-              <ol class="breadcrumb mb-1">
-                <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
-                <li class="breadcrumb-item active">{{ 'review.title' | translate }}</li>
-              </ol>
-            </nav>
-            <h1 class="h3 mb-0">{{ 'review.title' | translate }}</h1>
-          </div>
-          @if (!loading()) {
-            <span class="badge bg-warning text-dark fs-6">{{ 'review.waiting_count' | translate:{ count: total() } }}</span>
-          }
-        </div>
-      </div>
+<main class="main">
+  <div class="ui-page moderation-page">
+    <nav aria-label="breadcrumb" class="moderation-crumbs">
+      <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
+        <li class="breadcrumb-item active">{{ 'review.title' | translate }}</li>
+      </ol>
+    </nav>
 
-      @if (loading()) {
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
+    <!-- Header -->
+    <header class="ui-page-header">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-chat-square-quote"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'review.title' | translate }}</h1>
+        <p>{{ 'review.page_subtitle' | translate }}</p>
+      </div>
+      @if (!loading()) {
+        <div class="ui-page-header__actions">
+          <span class="ui-pill ui-pill--warning"><span class="ui-pill__dot"></span>{{ 'review.waiting_count' | translate:{ count: total() } }}</span>
         </div>
-      } @else if (reviews().length === 0) {
-        <div class="card review-card">
-          <div class="card-body text-center py-5">
-            <i class="bi bi-check2-circle display-4 text-success"></i>
-            <h5 class="mt-3">{{ 'review.nothing_waiting' | translate }}</h5>
-            <p class="text-muted mb-0">{{ 'review.all_checked' | translate }}</p>
-          </div>
-        </div>
-      } @else {
-        @for (review of reviews(); track review.review_id) {
-          <div class="card review-card mb-3">
-            <div class="card-body">
+      }
+    </header>
+
+    @if (loading()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+    } @else if (reviews().length === 0) {
+      <div class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
+        <h3>{{ 'review.nothing_waiting' | translate }}</h3>
+        <p>{{ 'review.all_checked' | translate }}</p>
+      </div>
+    } @else {
+      @for (review of reviews(); track review.review_id) {
+        <section class="ui-section review-card">
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="d-flex">
                   <div class="reviewer-avatar me-3">
@@ -61,7 +60,7 @@
                   </div>
                 </div>
                 @if (review.path_title) {
-                  <a class="badge bg-light text-dark text-decoration-none"
+                  <a class="ui-pill ui-pill--neutral text-decoration-none"
                      [routerLink]="['/admin/learning-paths', review.path_id, 'reviews']">
                     {{ review.path_title }}
                   </a>
@@ -73,7 +72,7 @@
               }
               <p class="review-text mb-3">{{ review.review_text }}</p>
 
-              <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top review-foot">
                 <div class="text-muted small">
                   <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'review.found_helpful' | translate:{ count: review.helpful_count } }}
                   @if (review.reported_count > 0) {
@@ -82,21 +81,20 @@
                     </span>
                   }
                 </div>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-success"
+                <div class="d-flex gap-2 review-actions">
+                  <button type="button" class="btn btn-sm btn-primary"
                           [disabled]="acting() === review.review_id"
                           (click)="approve(review)">
                     <i class="bi bi-check-lg me-1"></i>{{ 'review.approve' | translate }}
                   </button>
-                  <button class="btn btn-outline-danger"
+                  <button type="button" class="btn btn-sm btn-outline-danger"
                           [disabled]="acting() === review.review_id"
                           (click)="reject(review)">
                     <i class="bi bi-x-lg me-1"></i>{{ 'review.reject' | translate }}
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
+        </section>
         }
 
         <!-- Pagination -->
@@ -120,6 +118,5 @@
           </nav>
         }
       }
-    </div>
   </div>
 </main>

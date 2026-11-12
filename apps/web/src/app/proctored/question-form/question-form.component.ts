@@ -43,23 +43,28 @@ interface QuestionForm {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="question-form-container">
-      <div class="page-header">
-        <button class="btn btn-ghost" (click)="goBack()"><tui-icon icon="@tui.arrow-left"></tui-icon> Back</button>
-        <h1 class="page-title">{{ isEdit ? 'Edit Question' : 'Create Question' }}</h1>
-        <div class="header-actions">
-          <button class="btn btn-outline" (click)="saveDraft()" [disabled]="saving">Save Draft</button>
+    <main class="main">
+    <div class="ui-page question-form-container">
+      <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back" title="Back"><i class="bi bi-chevron-left"></i></button>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-patch-question"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ isEdit ? 'Edit Question' : 'Create Question' }}</h1>
+          <p>Write the question, its answers and how it is scored</p>
+        </div>
+        <div class="ui-page-header__actions">
+          <button class="btn btn-outline-secondary" (click)="saveDraft()" [disabled]="saving">Save Draft</button>
           <button class="btn btn-primary" (click)="save()" [disabled]="saving || !isValid()">
             {{ saving ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
           </button>
         </div>
-      </div>
+      </header>
 
       <div class="form-layout">
         <div class="form-main">
           <!-- Type Selector -->
-          <div class="form-section" *ngIf="!isEdit">
-            <h2 class="section-title">Question Type</h2>
+          <div class="ui-section form-section" *ngIf="!isEdit">
+            <h2 class="ui-section__title section-title">Question Type</h2>
             <div class="type-grid">
               <button *ngFor="let t of questionTypes" class="type-card"
                       [class.selected]="form.question_type === t.value" (click)="selectType(t.value)">
@@ -71,8 +76,8 @@ interface QuestionForm {
           </div>
 
           <!-- Question Text -->
-          <div class="form-section">
-            <h2 class="section-title">Question Text *</h2>
+          <div class="ui-section form-section">
+            <h2 class="ui-section__title section-title">Question Text *</h2>
             <div class="toolbar">
               <button class="tb" (click)="insertTag('b')" title="Bold"><strong>B</strong></button>
               <button class="tb" (click)="insertTag('i')" title="Italic"><em>I</em></button>
@@ -84,30 +89,30 @@ interface QuestionForm {
           </div>
 
           <!-- Question Image (non-hotspot) -->
-          <div class="form-section" *ngIf="form.question_type !== 'hotspot'">
-            <h2 class="section-title">Image <span class="opt">(Optional)</span></h2>
+          <div class="ui-section form-section" *ngIf="form.question_type !== 'hotspot'">
+            <h2 class="ui-section__title section-title">Image <span class="opt">(Optional)</span></h2>
             <div class="upload-area" *ngIf="!form.image_url" (click)="imgInput.click()">
-              <tui-icon icon="@tui.upload-cloud" style="font-size:32px;color:#94a3b8"></tui-icon>
+              <tui-icon icon="@tui.upload-cloud" class="upload-icon"></tui-icon>
               <p>Click or drag image here</p>
               <input type="file" #imgInput hidden accept="image/*" (change)="onImageSelect($event)" />
             </div>
             <div class="img-preview" *ngIf="form.image_url">
               <img *ngIf="isInternalImage(form.image_url); else extImg" [appAuthImg]="form.image_url" />
               <ng-template #extImg><img [src]="form.image_url" /></ng-template>
-              <button class="btn btn-sm btn-outline" (click)="form.image_url=''"><tui-icon icon="@tui.x"></tui-icon> Remove</button>
+              <button class="btn btn-sm btn-outline-secondary" (click)="form.image_url=''"><tui-icon icon="@tui.x"></tui-icon> Remove</button>
             </div>
           </div>
 
           <!-- MULTIPLE CHOICE / MULTIPLE RESPONSE -->
-          <div class="form-section" *ngIf="form.question_type==='multiple_choice' || form.question_type==='multiple_response'">
-            <div class="section-row"><h2 class="section-title">Answer Options</h2>
-              <button class="btn btn-sm btn-outline" (click)="addOption()"><tui-icon icon="@tui.plus"></tui-icon> Add</button>
+          <div class="ui-section form-section" *ngIf="form.question_type==='multiple_choice' || form.question_type==='multiple_response'">
+            <div class="section-row"><h2 class="ui-section__title section-title">Answer Options</h2>
+              <button class="btn btn-sm btn-outline-secondary" (click)="addOption()"><tui-icon icon="@tui.plus"></tui-icon> Add</button>
             </div>
             <p class="desc">{{ form.question_type==='multiple_choice' ? 'Select ONE correct answer.' : 'Select ALL correct answers.' }}</p>
             <div class="opt-list">
               <div *ngFor="let o of form.options; let i=index; trackBy:trackByIndex" class="opt-row" [class.correct]="o.is_correct"
                    draggable="true" (dragstart)="dragIdx=i" (dragover)="$event.preventDefault()" (drop)="dropItem(i,'options')">
-                <tui-icon icon="@tui.grip-vertical" style="font-size:14px;color:#94a3b8;cursor:grab"></tui-icon>
+                <tui-icon icon="@tui.grip-vertical" class="grip-icon"></tui-icon>
                 <div class="marker" (click)="toggleCorrect(i)">
                   <span *ngIf="form.question_type==='multiple_choice'" class="radio" [class.on]="o.is_correct"></span>
                   <span *ngIf="form.question_type==='multiple_response'" class="check" [class.on]="o.is_correct"></span>
@@ -124,8 +129,8 @@ interface QuestionForm {
           </div>
 
           <!-- TRUE/FALSE -->
-          <div class="form-section" *ngIf="form.question_type==='true_false'">
-            <h2 class="section-title">Correct Answer</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='true_false'">
+            <h2 class="ui-section__title section-title">Correct Answer</h2>
             <div class="tf-row">
               <button class="tf-btn" [class.sel]="form.options[0]?.is_correct===true" (click)="setTF(true)">
                 <tui-icon icon="@tui.check-circle" style="font-size:20px"></tui-icon> True</button>
@@ -137,15 +142,15 @@ interface QuestionForm {
           </div>
 
           <!-- SHORT ANSWER -->
-          <div class="form-section" *ngIf="form.question_type==='short_answer'">
-            <h2 class="section-title">Accepted Answers</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='short_answer'">
+            <h2 class="ui-section__title section-title">Accepted Answers</h2>
             <div class="ans-list">
               <div *ngFor="let o of form.options; let i=index" class="ans-row">
                 <input class="form-control" [(ngModel)]="o.option_text" placeholder="Accepted answer..." />
                 <button class="btn-icon btn-danger" (click)="removeOption(i)" *ngIf="form.options.length>1">
                   <tui-icon icon="@tui.x" style="font-size:14px"></tui-icon></button>
               </div>
-              <button class="btn btn-sm btn-outline" (click)="addShortAnswer()"><tui-icon icon="@tui.plus"></tui-icon> Add Alternative</button>
+              <button class="btn btn-sm btn-outline-secondary" (click)="addShortAnswer()"><tui-icon icon="@tui.plus"></tui-icon> Add Alternative</button>
             </div>
             <div class="mt-12"><label class="form-label">Sample Answer:</label>
               <textarea class="form-textarea" rows="3" [(ngModel)]="form.sample_answer" placeholder="Model answer for graders..."></textarea>
@@ -153,8 +158,8 @@ interface QuestionForm {
           </div>
 
           <!-- LONG ANSWER -->
-          <div class="form-section" *ngIf="form.question_type==='long_answer'">
-            <h2 class="section-title">Essay Settings</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='long_answer'">
+            <h2 class="ui-section__title section-title">Essay Settings</h2>
             <div class="grid-2">
               <div class="fg"><label class="form-label">Max Word Count</label><input type="number" class="form-control" [(ngModel)]="form.max_length" min="10" /></div>
               <div class="fg"><label class="form-label">Grading</label><select class="form-control"><option>Manual</option><option>Rubric-Based</option></select></div>
@@ -164,8 +169,8 @@ interface QuestionForm {
           </div>
 
           <!-- NUMERIC -->
-          <div class="form-section" *ngIf="form.question_type==='numeric'">
-            <h2 class="section-title">Numeric Answer</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='numeric'">
+            <h2 class="ui-section__title section-title">Numeric Answer</h2>
             <div class="grid-3">
               <div class="fg"><label class="form-label">Answer *</label><input type="number" class="form-control" [(ngModel)]="form.numeric_answer" step="any" /></div>
               <div class="fg"><label class="form-label">Tolerance (±)</label><input type="number" class="form-control" [(ngModel)]="form.numeric_tolerance" step="any" min="0" /></div>
@@ -177,8 +182,8 @@ interface QuestionForm {
           </div>
 
           <!-- FILL IN THE BLANK -->
-          <div class="form-section" *ngIf="form.question_type==='fill_blank'">
-            <h2 class="section-title">Blanks</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='fill_blank'">
+            <h2 class="ui-section__title section-title">Blanks</h2>
             <p class="desc">Use <code>___</code> in question text to mark blanks. Define answers below.</p>
             <div class="blanks-list">
               <div *ngFor="let b of form.fill_blanks; let i=index" class="blank-card">
@@ -194,20 +199,20 @@ interface QuestionForm {
                 <button class="btn btn-sm btn-ghost" (click)="b.acceptable_answers.push('')">+ Alternative</button>
               </div>
             </div>
-            <button class="btn btn-sm btn-outline" (click)="addBlank()"><tui-icon icon="@tui.plus"></tui-icon> Add Blank</button>
+            <button class="btn btn-sm btn-outline-secondary" (click)="addBlank()"><tui-icon icon="@tui.plus"></tui-icon> Add Blank</button>
           </div>
 
           <!-- MATCHING -->
-          <div class="form-section" *ngIf="form.question_type==='matching'">
-            <div class="section-row"><h2 class="section-title">Matching Pairs</h2>
-              <button class="btn btn-sm btn-outline" (click)="addMatch()"><tui-icon icon="@tui.plus"></tui-icon> Add</button>
+          <div class="ui-section form-section" *ngIf="form.question_type==='matching'">
+            <div class="section-row"><h2 class="ui-section__title section-title">Matching Pairs</h2>
+              <button class="btn btn-sm btn-outline-secondary" (click)="addMatch()"><tui-icon icon="@tui.plus"></tui-icon> Add</button>
             </div>
             <div class="match-list">
               <div class="match-hdr"><span>Premise</span><span></span><span>Response</span><span></span></div>
               <div *ngFor="let p of form.match_pairs; let i=index" class="match-row"
                    draggable="true" (dragstart)="dragIdx=i" (dragover)="$event.preventDefault()" (drop)="dropItem(i,'match_pairs')">
                 <input class="form-control" [(ngModel)]="p.premise" placeholder="Premise..." />
-                <tui-icon icon="@tui.arrow-right" style="font-size:14px;color:#94a3b8"></tui-icon>
+                <tui-icon icon="@tui.arrow-right" class="muted-icon"></tui-icon>
                 <input class="form-control" [(ngModel)]="p.response" placeholder="Response..." />
                 <button class="btn-icon btn-danger" (click)="removeMatch(i)" *ngIf="form.match_pairs.length>2">
                   <tui-icon icon="@tui.trash-2" style="font-size:14px"></tui-icon></button>
@@ -216,15 +221,15 @@ interface QuestionForm {
           </div>
 
           <!-- ORDERING -->
-          <div class="form-section" *ngIf="form.question_type==='ordering'">
-            <div class="section-row"><h2 class="section-title">Items (Correct Order)</h2>
-              <button class="btn btn-sm btn-outline" (click)="addOrder()"><tui-icon icon="@tui.plus"></tui-icon> Add</button>
+          <div class="ui-section form-section" *ngIf="form.question_type==='ordering'">
+            <div class="section-row"><h2 class="ui-section__title section-title">Items (Correct Order)</h2>
+              <button class="btn btn-sm btn-outline-secondary" (click)="addOrder()"><tui-icon icon="@tui.plus"></tui-icon> Add</button>
             </div>
             <div class="order-list">
               <div *ngFor="let it of form.order_items; let i=index" class="order-row"
                    draggable="true" (dragstart)="dragIdx=i" (dragover)="$event.preventDefault()" (drop)="dropItem(i,'order_items')">
                 <span class="order-num">{{ i+1 }}</span>
-                <tui-icon icon="@tui.grip-vertical" style="font-size:14px;color:#94a3b8;cursor:grab"></tui-icon>
+                <tui-icon icon="@tui.grip-vertical" class="grip-icon"></tui-icon>
                 <input class="form-control" [(ngModel)]="it.item_text" placeholder="Item..." />
                 <button class="btn-icon btn-danger" (click)="removeOrder(i)" *ngIf="form.order_items.length>2">
                   <tui-icon icon="@tui.trash-2" style="font-size:14px"></tui-icon></button>
@@ -233,8 +238,8 @@ interface QuestionForm {
           </div>
 
           <!-- FILE UPLOAD -->
-          <div class="form-section" *ngIf="form.question_type==='file_upload'">
-            <h2 class="section-title">Upload Settings</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='file_upload'">
+            <h2 class="ui-section__title section-title">Upload Settings</h2>
             <div class="grid-2">
               <div class="fg"><label class="form-label">Allowed Types</label>
                 <input class="form-control" [(ngModel)]="form.allowed_extensions" placeholder="pdf,docx,jpg" />
@@ -247,10 +252,10 @@ interface QuestionForm {
           </div>
 
           <!-- HOTSPOT -->
-          <div class="form-section" *ngIf="form.question_type==='hotspot'">
-            <h2 class="section-title">Hotspot Image</h2>
+          <div class="ui-section form-section" *ngIf="form.question_type==='hotspot'">
+            <h2 class="ui-section__title section-title">Hotspot Image</h2>
             <div class="upload-area" *ngIf="!form.hotspot_image_url" (click)="hsInput.click()">
-              <tui-icon icon="@tui.image" style="font-size:32px;color:#94a3b8"></tui-icon>
+              <tui-icon icon="@tui.image" class="upload-icon"></tui-icon>
               <p>Upload image for hotspot</p>
               <input type="file" #hsInput hidden accept="image/*" (change)="onHotspotSelect($event)" />
             </div>
@@ -273,27 +278,27 @@ interface QuestionForm {
                   <button class="btn-icon btn-danger" (click)="form.hotspot_areas.splice(i,1)"><tui-icon icon="@tui.trash-2" style="font-size:14px"></tui-icon></button>
                 </div>
               </div>
-              <button class="btn btn-sm btn-outline" (click)="form.hotspot_image_url=''"><tui-icon icon="@tui.x"></tui-icon> Change Image</button>
+              <button class="btn btn-sm btn-outline-secondary" (click)="form.hotspot_image_url=''"><tui-icon icon="@tui.x"></tui-icon> Change Image</button>
             </div>
           </div>
 
           <!-- Explanation -->
-          <div class="form-section">
-            <h2 class="section-title">Explanation <span class="opt">(Optional)</span></h2>
+          <div class="ui-section form-section">
+            <h2 class="ui-section__title section-title">Explanation <span class="opt">(Optional)</span></h2>
             <textarea class="form-textarea" rows="3" [(ngModel)]="form.explanation" placeholder="Explain correct answer..."></textarea>
           </div>
 
           <!-- Hint -->
-          <div class="form-section">
-            <h2 class="section-title">Hint <span class="opt">(Optional)</span></h2>
+          <div class="ui-section form-section">
+            <h2 class="ui-section__title section-title">Hint <span class="opt">(Optional)</span></h2>
             <input class="form-control" [(ngModel)]="form.hint" placeholder="Optional hint for learners" />
           </div>
         </div>
 
         <!-- SIDEBAR -->
         <div class="form-sidebar">
-          <div class="side-card">
-            <h3 class="sc-title">Settings</h3>
+          <div class="ui-section side-card">
+            <h3 class="ui-section__title sc-title">Settings</h3>
             <div class="fg"><label class="form-label">Bank *</label>
               <select class="form-control" [(ngModel)]="form.bank_id">
                 <option [value]="null">-- Select --</option>
@@ -313,8 +318,8 @@ interface QuestionForm {
             <div class="fg"><label class="form-label">Status</label>
               <select class="form-control" [(ngModel)]="form.status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></div>
           </div>
-          <div class="side-card">
-            <h3 class="sc-title">Tags</h3>
+          <div class="ui-section side-card">
+            <h3 class="ui-section__title sc-title">Tags</h3>
             <input class="form-control" [(ngModel)]="form.tags" placeholder="Comma-separated" />
             <div class="tag-preview" *ngIf="form.tags">
               <span *ngFor="let t of parseTags(form.tags)" class="tag-chip">{{ t }}</span></div>
@@ -322,12 +327,12 @@ interface QuestionForm {
               <span class="hint">Popular:</span>
               <button *ngFor="let t of existingTags.slice(0,8)" class="tag-chip tc" (click)="addTag(t)">{{ t }}</button></div>
           </div>
-          <div class="side-card side-info" *ngIf="form.question_type">
-            <h3 class="sc-title"><tui-icon [icon]="getTypeIcon(form.question_type)" style="font-size:16px"></tui-icon> {{ getTypeLabel(form.question_type) }}</h3>
+          <div class="ui-section side-card side-info" *ngIf="form.question_type">
+            <h3 class="ui-section__title sc-title"><tui-icon [icon]="getTypeIcon(form.question_type)" style="font-size:16px"></tui-icon> {{ getTypeLabel(form.question_type) }}</h3>
             <p class="info-desc">{{ getTypeDescription(form.question_type) }}</p>
           </div>
-          <div class="side-card side-err" *ngIf="validationErrors.length">
-            <h3 class="sc-title" style="color:#ef4444"><tui-icon icon="@tui.alert-triangle" style="font-size:16px"></tui-icon> Issues</h3>
+          <div class="ui-section side-card side-err" *ngIf="validationErrors.length">
+            <h3 class="ui-section__title sc-title err-title"><tui-icon icon="@tui.alert-triangle" style="font-size:16px"></tui-icon> Issues</h3>
             <ul class="err-list"><li *ngFor="let e of validationErrors">{{ e }}</li></ul>
           </div>
         </div>
@@ -336,108 +341,121 @@ interface QuestionForm {
         <tui-icon [icon]="toast.type==='success'?'@tui.check-circle':'@tui.alert-circle'" style="font-size:18px"></tui-icon> {{ toast.message }}
       </div>
     </div>
+    </main>
   `,
   styles: [`
     :host { display: block; }
-    .question-form-container { max-width: 1200px; margin: 0 auto; padding: 24px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    .page-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-    .page-title { font-size: 22px; font-weight: 700; color: #0f172a; margin: 0; flex: 1; }
-    .header-actions { display: flex; gap: 10px; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; }
-    .btn-primary { background: #6366f1; color: #fff; } .btn-primary:hover { background: #4f46e5; } .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; } .btn-outline:hover { background: #f9fafb; }
-    .btn-ghost { background: none; color: #64748b; border: none; } .btn-ghost:hover { color: #334155; }
-    .btn-sm { padding: 5px 10px; font-size: 13px; }
-    .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; color: #64748b; }
-    .btn-icon:hover { background: #f1f5f9; } .btn-danger:hover { background: #fef2f2; color: #ef4444; }
-    .form-layout { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
-    .form-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    .section-title { font-size: 16px; font-weight: 600; color: #0f172a; margin: 0 0 12px; }
+    /* Page chrome (header, sections, buttons, inputs) comes from the global UI kit. */
+    .btn-ghost { background: none; border: none; color: var(--ui-text-muted, #6a716b); }
+    .btn-ghost:hover { color: var(--brand-primary); }
+    .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; color: var(--ui-text-muted, #6a716b); display: inline-flex; }
+    .btn-icon:hover { background: var(--ui-surface-2, #f7f8f7); }
+    .btn-icon.btn-danger:hover { background: rgba(var(--ui-danger-rgb), .08); color: var(--ui-danger, #c0352b); }
+    .form-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
+    .form-section { margin-bottom: 16px; }
+    .section-title { margin: 0 0 12px; }
     .section-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .section-row .section-title { margin: 0; }
-    .desc { font-size: 13px; color: #64748b; margin: -4px 0 12px; } .opt { font-size: 13px; color: #94a3b8; font-weight: 400; }
-    .form-control { width: 100%; padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
-    .form-control:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-    .fc-sm { padding: 6px 10px; font-size: 13px; width: auto; }
-    .form-textarea { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; resize: vertical; font-family: inherit; box-sizing: border-box; }
-    .form-textarea:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
-    .no-top-radius { border-radius: 0 0 8px 8px; }
-    .form-label { display: block; font-size: 14px; font-weight: 500; color: #374151; margin-bottom: 6px; }
-    .fg { margin-bottom: 14px; } .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .desc { font-size: 13px; color: var(--ui-text-muted, #6a716b); margin: -4px 0 12px; }
+    .opt { font-size: 13px; color: var(--ui-text-subtle, #8d948e); font-weight: 400; }
+    .fc-sm { width: auto; }
+    .form-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px);
+      font-size: 14px; resize: vertical; font-family: inherit; box-sizing: border-box; background: var(--ui-surface, #fff); color: var(--ui-text, #1b1f1c); }
+    .form-textarea:focus { border-color: rgba(var(--brand-primary-rgb), .55); outline: none; box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .12); }
+    .no-top-radius { border-radius: 0 0 var(--ui-radius-ctl, 8px) var(--ui-radius-ctl, 8px); }
+    .form-label { font-size: 13px; font-weight: 500; color: var(--ui-text, #1b1f1c); margin-bottom: 6px; }
+    .fg { margin-bottom: 14px; } .fg:last-child { margin-bottom: 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; } .mt-12 { margin-top: 12px; }
-    .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-    .toolbar { display: flex; gap: 4px; padding: 6px 8px; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 8px 8px 0 0; background: #f8fafc; }
-    .tb { width: 32px; height: 28px; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; border-radius: 4px; font-size: 14px; color: #475569; }
-    .tb:hover { background: #e2e8f0; }
+    .hint { font-size: 12px; color: var(--ui-text-subtle, #8d948e); margin-top: 4px; }
+    .upload-icon { font-size: 32px; color: var(--ui-text-subtle, #8d948e); }
+    .grip-icon { font-size: 14px; color: var(--ui-text-subtle, #8d948e); cursor: grab; }
+    .muted-icon { font-size: 14px; color: var(--ui-text-subtle, #8d948e); }
+    .toolbar { display: flex; gap: 4px; padding: 6px 8px; border: 1px solid var(--ui-border, #e7e9e7); border-bottom: none;
+      border-radius: var(--ui-radius-ctl, 8px) var(--ui-radius-ctl, 8px) 0 0; background: var(--ui-surface-2, #f7f8f7); }
+    .tb { width: 32px; height: 28px; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; border-radius: 4px; font-size: 14px; color: var(--ui-text-muted, #6a716b); }
+    .tb:hover { background: var(--ui-border, #e7e9e7); color: var(--ui-text, #1b1f1c); }
     .type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
-    .type-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border: 2px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; transition: all 0.15s; text-align: center; }
-    .type-card:hover { border-color: #a5b4fc; background: #f5f3ff; } .type-card.selected { border-color: #6366f1; background: #eef2ff; }
-    .type-name { font-size: 12px; font-weight: 600; color: #0f172a; } .type-desc { font-size: 10px; color: #94a3b8; line-height: 1.2; }
+    .type-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border: 1px solid var(--ui-border, #e7e9e7);
+      border-radius: var(--ui-radius-card, 12px); background: var(--ui-surface, #fff); cursor: pointer; transition: border-color .15s ease, background .15s ease; text-align: center; }
+    .type-card:hover { border-color: rgba(var(--brand-primary-rgb), .45); background: var(--ui-surface-2, #f7f8f7); }
+    .type-card.selected { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); box-shadow: 0 0 0 1px var(--brand-primary) inset; }
+    .type-card.selected tui-icon { color: var(--brand-primary); }
+    .type-name { font-size: 12px; font-weight: 600; color: var(--ui-text, #1b1f1c); } .type-desc { font-size: 10px; color: var(--ui-text-subtle, #8d948e); line-height: 1.2; }
     .opt-list { display: flex; flex-direction: column; gap: 8px; }
-    .opt-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
-    .opt-row.correct { border-color: #86efac; background: #f0fdf4; }
+    .opt-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); background: var(--ui-surface, #fff); }
+    .opt-row.correct { border-color: rgba(var(--ui-success-rgb), .45); background: rgba(var(--ui-success-rgb), .06); }
     .marker { cursor: pointer; padding-top: 4px; }
-    .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #d1d5db; display: block; }
-    .radio.on { border-color: #22c55e; background: #22c55e; box-shadow: inset 0 0 0 3px #fff; }
-    .check { width: 20px; height: 20px; border-radius: 4px; border: 2px solid #d1d5db; display: block; }
-    .check.on { border-color: #22c55e; background: #22c55e; }
+    .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ui-border-strong, #d9ddd9); display: block; }
+    .radio.on { border-color: var(--ui-success, #2e7d4f); background: var(--ui-success, #2e7d4f); box-shadow: inset 0 0 0 3px #fff; }
+    .check { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--ui-border-strong, #d9ddd9); display: block; }
+    .check.on { border-color: var(--ui-success, #2e7d4f); background: var(--ui-success, #2e7d4f); }
     .opt-inputs { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .opt-text { border: none; border-bottom: 1px solid #e2e8f0; padding: 4px 0; font-size: 14px; outline: none; background: transparent; width: 100%; }
-    .opt-text:focus { border-bottom-color: #6366f1; }
-    .opt-fb { border: none; padding: 2px 0; font-size: 12px; color: #64748b; outline: none; background: transparent; width: 100%; }
+    .opt-text { border: none; border-bottom: 1px solid var(--ui-border, #e7e9e7); padding: 4px 0; font-size: 14px; outline: none; background: transparent; width: 100%; }
+    .opt-text:focus { border-bottom-color: var(--brand-primary); }
+    .opt-fb { border: none; padding: 2px 0; font-size: 12px; color: var(--ui-text-muted, #6a716b); outline: none; background: transparent; width: 100%; }
     .tf-row { display: flex; gap: 12px; margin-bottom: 16px; }
-    .tf-btn { display: flex; align-items: center; gap: 8px; padding: 14px 24px; border: 2px solid #e2e8f0; border-radius: 10px; background: #fff; cursor: pointer; font-size: 16px; font-weight: 600; flex: 1; justify-content: center; }
-    .tf-btn:hover { border-color: #a5b4fc; } .tf-btn.sel { border-color: #6366f1; background: #eef2ff; color: #4f46e5; }
-    .fb-group { margin-bottom: 10px; } .fb-group label { font-size: 13px; color: #64748b; margin-bottom: 4px; display: block; }
-    .ans-list { display: flex; flex-direction: column; gap: 8px; }
-    .ans-row { display: flex; gap: 8px; align-items: center; } .ans-row .form-control { flex: 1; }
-    .range-box { margin-top: 12px; padding: 10px 14px; background: #f0fdf4; border-radius: 8px; font-size: 14px; color: #065f46; }
+    .tf-btn { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-card, 12px);
+      background: var(--ui-surface, #fff); cursor: pointer; font-size: 15px; font-weight: 600; flex: 1; justify-content: center; color: var(--ui-text, #1b1f1c); }
+    .tf-btn:hover { border-color: rgba(var(--brand-primary-rgb), .45); }
+    .tf-btn.sel { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); box-shadow: 0 0 0 1px var(--brand-primary) inset; }
+    .fb-group { margin-bottom: 10px; } .fb-group label { font-size: 13px; color: var(--ui-text-muted, #6a716b); margin-bottom: 4px; display: block; }
+    .ans-list { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .ans-row { display: flex; gap: 8px; align-items: center; width: 100%; } .ans-row .form-control { flex: 1; }
+    .range-box { margin-top: 12px; padding: 10px 14px; background: rgba(var(--ui-success-rgb), .08); border: 1px solid rgba(var(--ui-success-rgb), .25);
+      border-radius: var(--ui-radius-ctl, 8px); font-size: 14px; color: var(--ui-success-text, #23643e); }
     .blanks-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
-    .blank-card { padding: 14px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
-    .blank-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .cb-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; cursor: pointer; }
+    .blank-card { padding: 14px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); background: var(--ui-surface-2, #f7f8f7); display: flex; flex-direction: column; gap: 8px; }
+    .blank-card .btn-ghost { align-self: flex-start; }
+    .blank-hdr { display: flex; align-items: center; justify-content: space-between; }
+    .cb-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ui-text-muted, #6a716b); cursor: pointer; margin: 0; }
     .match-list { display: flex; flex-direction: column; gap: 8px; }
-    .match-hdr { display: grid; grid-template-columns: 1fr 20px 1fr 32px; gap: 8px; padding: 0 8px; font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-    .match-row { display: grid; grid-template-columns: 1fr 20px 1fr 32px; gap: 8px; align-items: center; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; }
+    .match-hdr { display: grid; grid-template-columns: 1fr 20px 1fr 32px; gap: 8px; padding: 0 8px; font-size: 11px; font-weight: 600; color: var(--ui-text-muted, #6a716b); text-transform: uppercase; letter-spacing: .03em; }
+    .match-row { display: grid; grid-template-columns: 1fr 20px 1fr 32px; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); }
     .order-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-    .order-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
-    .order-num { width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+    .order-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); }
+    .order-num { width: 26px; height: 26px; border-radius: 50%; background: rgba(var(--brand-primary-rgb), .12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
     .order-row .form-control { flex: 1; }
-    .upload-area { border: 2px dashed #e2e8f0; border-radius: 10px; padding: 30px; text-align: center; cursor: pointer; }
-    .upload-area:hover { border-color: #a5b4fc; background: #f5f3ff; }
-    .upload-area p { margin: 8px 0 0; color: #475569; font-size: 14px; }
+    .upload-area { border: 1px dashed var(--ui-border-strong, #d9ddd9); border-radius: var(--ui-radius-card, 12px); padding: 30px; text-align: center; cursor: pointer; background: var(--ui-surface-2, #f7f8f7); }
+    .upload-area:hover { border-color: rgba(var(--brand-primary-rgb), .55); background: rgba(var(--brand-primary-rgb), .04); }
+    .upload-area p { margin: 8px 0 0; color: var(--ui-text-muted, #6a716b); font-size: 14px; }
     .img-preview { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .img-preview img { max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e2e8f0; }
-    .hs-editor { display: flex; flex-direction: column; gap: 16px; }
+    .img-preview img { max-width: 100%; max-height: 250px; border-radius: var(--ui-radius-ctl, 8px); border: 1px solid var(--ui-border, #e7e9e7); }
+    .hs-editor { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
     .hs-img { position: relative; display: inline-block; cursor: crosshair; }
-    .hs-img img { max-width: 100%; border-radius: 8px; }
-    .hs-area { position: absolute; border: 2px solid #6366f1; background: rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; }
-    .hs-area.correct { border-color: #22c55e; background: rgba(34,197,94,0.15); }
+    .hs-img img { max-width: 100%; border-radius: var(--ui-radius-ctl, 8px); }
+    .hs-area { position: absolute; border: 2px solid var(--brand-primary); background: rgba(var(--brand-primary-rgb), .15); display: flex; align-items: center; justify-content: center; }
+    .hs-area.correct { border-color: var(--ui-success, #2e7d4f); background: rgba(var(--ui-success-rgb), .15); }
     .hs-lbl { font-size: 10px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 3px; }
+    .hs-list { width: 100%; }
     .hs-list h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
     .hs-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
-    .side-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .sc-title { font-size: 15px; font-weight: 600; color: #0f172a; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+    .side-card { margin-bottom: 16px; }
+    .sc-title { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
     .diff-sel { display: flex; gap: 6px; }
-    .db { flex: 1; padding: 7px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; font-weight: 500; background: #fff; cursor: pointer; }
-    .db:hover { border-color: #a5b4fc; }
-    .db.sel { color: #fff; border-color: transparent; }
-    .db.easy { background: #22c55e; } .db.med { background: #f59e0b; } .db.hard { background: #ef4444; }
+    .db { flex: 1; height: 34px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-ctl, 8px); font-size: 13px; font-weight: 500; background: var(--ui-surface, #fff); cursor: pointer; color: var(--ui-text, #1b1f1c); }
+    .db:hover { border-color: var(--ui-border-strong, #d9ddd9); }
+    .db.easy { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .45); color: var(--ui-success-text, #23643e); }
+    .db.med { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .45); color: var(--ui-warning-text, #8f4b07); }
+    .db.hard { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .45); color: var(--ui-danger-text, #a12c24); }
     .tag-preview { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-    .tag-chip { display: inline-flex; padding: 2px 8px; border-radius: 20px; font-size: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; }
-    .tc { cursor: pointer; } .tc:hover { border-color: #6366f1; color: #6366f1; }
+    .tag-chip { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--ui-border, #e7e9e7); background: var(--ui-surface-2, #f7f8f7); color: var(--ui-text-muted, #6a716b); }
+    .tc { cursor: pointer; } .tc:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
     .pop-tags { margin-top: 10px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .side-info { background: #f5f3ff; border-color: #e0e7ff; }
-    .info-desc { font-size: 13px; color: #475569; line-height: 1.5; margin: 0; }
-    .side-err { background: #fef2f2; border-color: #fecaca; }
-    .err-list { margin: 0; padding: 0 0 0 18px; font-size: 13px; color: #dc2626; }
+    .side-info { background: rgba(var(--brand-primary-rgb), .04); border-color: rgba(var(--brand-primary-rgb), .2); }
+    .side-info .sc-title tui-icon { color: var(--brand-primary); }
+    .info-desc { font-size: 13px; color: var(--ui-text-muted, #6a716b); line-height: 1.5; margin: 0; }
+    .side-err { background: rgba(var(--ui-danger-rgb), .04); border-color: rgba(var(--ui-danger-rgb), .3); }
+    .err-title { color: var(--ui-danger-text, #a12c24); }
+    .err-list { margin: 0; padding: 0 0 0 18px; font-size: 13px; color: var(--ui-danger-text, #a12c24); }
     .err-list li { margin-bottom: 4px; }
-    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; z-index: 2000; animation: slideUp 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .toast-success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
-    .toast-error { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--ui-radius-card, 12px); display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; z-index: 2000; animation: slideUp 0.3s ease; box-shadow: var(--ui-shadow-pop); }
+    .toast-success { background: #fff; color: var(--ui-success-text, #23643e); border: 1px solid rgba(var(--ui-success-rgb), .35); }
+    .toast-error { background: #fff; color: var(--ui-danger-text, #a12c24); border: 1px solid rgba(var(--ui-danger-rgb), .35); }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 768px) { .form-layout { grid-template-columns: 1fr; } .type-grid { grid-template-columns: repeat(3, 1fr); } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    @media (max-width: 992px) { .form-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .type-grid { grid-template-columns: repeat(3, 1fr); } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
   `]
 })
 export class QuestionFormComponent implements OnInit, OnDestroy {

@@ -1,75 +1,79 @@
 <app-admintop></app-admintop>
 
-<div class="analytics-wrap">
-  <header class="an-header">
-    <div>
+<main class="main">
+<div class="ui-page analytics-wrap">
+  <header class="ui-page-header">
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></div>
+    <div class="ui-page-header__titles">
       <h1>{{ 'analytics.title' | translate }}</h1>
       <p>{{ 'analytics.subtitle' | translate }}</p>
     </div>
-    <div class="period" role="group" [attr.aria-label]="'analytics.period' | translate">
-      <button type="button" *ngFor="let d of [7, 30, 90, 365]"
-              [class.active]="days === d" (click)="setDays(d)">
-        {{ d }}{{ 'analytics.days_short' | translate }}
-      </button>
+    <div class="ui-page-header__actions">
+      <div class="ui-filters period" role="group" [attr.aria-label]="'analytics.period' | translate">
+        <button type="button" class="ui-filter" *ngFor="let d of [7, 30, 90, 365]"
+                [class.is-active]="days === d" [attr.aria-pressed]="days === d" (click)="setDays(d)">
+          {{ d }}{{ 'analytics.days_short' | translate }}
+        </button>
+      </div>
     </div>
   </header>
 
-  <div class="an-state" *ngIf="loading">
-    <div class="spinner-border text-primary"></div>
-    <p>{{ 'analytics.loading' | translate }}</p>
+  <div class="ui-state" *ngIf="loading">
+    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+    <p class="mt-2">{{ 'analytics.loading' | translate }}</p>
   </div>
 
-  <div class="an-state error" *ngIf="failed && !loading">
-    <i class="bi bi-exclamation-triangle"></i>
-    <p>{{ 'analytics.failed' | translate }}</p>
+  <div class="ui-state" *ngIf="failed && !loading">
+    <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+    <p class="mt-2">{{ 'analytics.failed' | translate }}</p>
   </div>
 
   <ng-container *ngIf="!loading && !failed && engagement && summary">
 
     <!-- ================= A · Participation & access ================= -->
-    <section class="an-section">
-      <h2><span class="tag">A</span> {{ 'analytics.participation' | translate }}</h2>
+    <div class="an-group">
+      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">A</span> {{ 'analytics.participation' | translate }}</h2>
 
-      <div class="kpi-grid">
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.adoption.adoptionRate }}%</span>
-          <span class="kpi-label">{{ 'analytics.adoption_rate' | translate }}</span>
-          <span class="kpi-sub">{{ summary.adoption.activated }} / {{ summary.adoption.people }} {{ 'analytics.activated' | translate }}</span>
+      <div class="ui-kpi-grid">
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-person-check"></i> {{ 'analytics.adoption_rate' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.adoption.adoptionRate }}<small>%</small></span>
+          <span class="ui-kpi__sub">{{ summary.adoption.activated }} / {{ summary.adoption.people }} {{ 'analytics.activated' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.adoption.activeLearners }}</span>
-          <span class="kpi-label">{{ 'analytics.active_learners' | translate }}</span>
-          <span class="kpi-sub">{{ summary.adoption.activeLearnerRate }}% {{ 'analytics.of_headcount' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'analytics.active_learners' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.adoption.activeLearners }}</span>
+          <span class="ui-kpi__sub">{{ summary.adoption.activeLearnerRate }}% {{ 'analytics.of_headcount' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.adoption.firstTimeLoginRate }}%</span>
-          <span class="kpi-label">{{ 'analytics.first_login_rate' | translate }}</span>
-          <span class="kpi-sub">{{ summary.adoption.newActivated }} / {{ summary.adoption.newUsers }} {{ 'analytics.new_joiners' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-box-arrow-in-right"></i> {{ 'analytics.first_login_rate' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.adoption.firstTimeLoginRate }}<small>%</small></span>
+          <span class="ui-kpi__sub">{{ summary.adoption.newActivated }} / {{ summary.adoption.newUsers }} {{ 'analytics.new_joiners' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ engagement.login.averagePerLearner }}</span>
-          <span class="kpi-label">{{ 'analytics.login_frequency' | translate }}</span>
-          <span class="kpi-sub">{{ engagement.login.signIns }} {{ 'analytics.sign_ins' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-arrow-repeat"></i> {{ 'analytics.login_frequency' | translate }}</span>
+          <span class="ui-kpi__value">{{ engagement.login.averagePerLearner }}</span>
+          <span class="ui-kpi__sub">{{ engagement.login.signIns }} {{ 'analytics.sign_ins' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ engagement.totals.averageMinutes }}<small>m</small></span>
-          <span class="kpi-label">{{ 'analytics.avg_session' | translate }}</span>
-          <span class="kpi-sub">{{ engagement.totals.sessions }} {{ 'analytics.sessions' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-clock-history"></i> {{ 'analytics.avg_session' | translate }}</span>
+          <span class="ui-kpi__value">{{ engagement.totals.averageMinutes }}<small>m</small></span>
+          <span class="ui-kpi__sub">{{ engagement.totals.sessions }} {{ 'analytics.sessions' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.adoption.neverSignedIn }}</span>
-          <span class="kpi-label">{{ 'analytics.never_signed_in' | translate }}</span>
+        <div class="ui-kpi ui-kpi--warning">
+          <span class="ui-kpi__label"><i class="bi bi-person-dash"></i> {{ 'analytics.never_signed_in' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.adoption.neverSignedIn }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.adoption.avgCoursesPerEmployee | number:'1.1-1' }}</span>
-          <span class="kpi-label">{{ 'analytics.courses_per_employee' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-journal-bookmark"></i> {{ 'analytics.courses_per_employee' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.adoption.avgCoursesPerEmployee | number:'1.1-1' }}</span>
         </div>
       </div>
 
       <div class="chart-row">
-        <div class="chart-card">
-          <div class="chart-head">
-            <h3>{{ 'analytics.active_over_time' | translate }}</h3>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h3 class="ui-section__title">{{ 'analytics.active_over_time' | translate }}</h3></div>
             <span class="chart-note">{{ chartBucketKey | translate }}</span>
           </div>
           <div class="bars" *ngIf="chartSeries.length">
@@ -78,10 +82,10 @@
             </div>
           </div>
           <div class="chart-empty" *ngIf="!chartSeries.length">{{ 'analytics.no_sessions_yet' | translate }}</div>
-        </div>
+        </section>
 
-        <div class="chart-card">
-          <div class="chart-head"><h3>{{ 'analytics.device_split' | translate }}</h3></div>
+        <section class="ui-section">
+          <div class="ui-section__head"><div><h3 class="ui-section__title">{{ 'analytics.device_split' | translate }}</h3></div></div>
           <div class="donut-wrap">
             <div class="donut" [style.background]="deviceGradient"><div class="donut-hole"></div></div>
             <ul class="legend">
@@ -93,112 +97,112 @@
               <li *ngIf="!devices.length" class="muted">{{ 'analytics.no_sessions_yet' | translate }}</li>
             </ul>
           </div>
-        </div>
+        </section>
       </div>
-    </section>
+    </div>
 
     <!-- ================= B · Completion by org unit ================= -->
-    <section class="an-section" *ngIf="fields.length">
-      <h2><span class="tag">B</span> {{ 'analytics.by_unit' | translate }}</h2>
-      <div class="an-panel">
-        <div class="field-picker">
+    <section class="ui-section" *ngIf="fields.length">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">B</span> {{ 'analytics.by_unit' | translate }}</h2></div>
+        <div class="ui-section__actions field-picker">
           <label>{{ 'analytics.slice_by' | translate }}</label>
-          <select class="form-select" [ngModel]="selectedField" (ngModelChange)="onFieldChange($event)">
+          <select class="form-select form-select-sm" [ngModel]="selectedField" (ngModelChange)="onFieldChange($event)">
             <option *ngFor="let f of fields" [value]="f.key">{{ f.label }}</option>
           </select>
         </div>
-        <div class="unit-rows">
-          <div class="unit-row" *ngFor="let r of fieldRows">
-            <span class="unit-name" [title]="r.value">{{ r.value }}</span>
-            <div class="unit-track"><div class="unit-fill" [style.width.%]="r.rate"></div></div>
-            <span class="unit-rate">{{ r.rate }}%</span>
-            <span class="unit-count">{{ r.completed }}/{{ r.enrolled }}</span>
-          </div>
-          <p class="muted small" *ngIf="!fieldRows.length">{{ 'analytics.no_enrolments' | translate }}</p>
+      </div>
+      <div class="unit-rows">
+        <div class="unit-row" *ngFor="let r of fieldRows">
+          <span class="unit-name" [title]="r.value">{{ r.value }}</span>
+          <div class="unit-track"><div class="unit-fill" [style.width.%]="r.rate"></div></div>
+          <span class="unit-rate">{{ r.rate }}%</span>
+          <span class="unit-count">{{ r.completed }}/{{ r.enrolled }}</span>
         </div>
+        <p class="muted small mb-0" *ngIf="!fieldRows.length">{{ 'analytics.no_enrolments' | translate }}</p>
       </div>
     </section>
 
     <!-- ================= C · Assessment ================= -->
-    <section class="an-section">
-      <h2><span class="tag">C</span> {{ 'analytics.assessment' | translate }}</h2>
-      <div class="kpi-grid">
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.assessment.passRate }}%</span>
-          <span class="kpi-label">{{ 'analytics.pass_rate' | translate }}</span>
+    <div class="an-group">
+      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">C</span> {{ 'analytics.assessment' | translate }}</h2>
+      <div class="ui-kpi-grid ui-kpi-grid--3">
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-check2-circle"></i> {{ 'analytics.pass_rate' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.assessment.passRate }}<small>%</small></span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.assessment.averageScore }}%</span>
-          <span class="kpi-label">{{ 'analytics.avg_score' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-percent"></i> {{ 'analytics.avg_score' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.assessment.averageScore }}<small>%</small></span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.assessment.attempts }}</span>
-          <span class="kpi-label">{{ 'analytics.attempts' | translate }}</span>
-          <span class="kpi-sub">{{ summary.assessment.learners }} {{ 'analytics.active_learners' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-pencil-square"></i> {{ 'analytics.attempts' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.assessment.attempts }}</span>
+          <span class="ui-kpi__sub">{{ summary.assessment.learners }} {{ 'analytics.active_learners' | translate }}</span>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- ================= D · Engagement ================= -->
-    <section class="an-section">
-      <h2><span class="tag">D</span> {{ 'analytics.engagement_detail' | translate }}</h2>
-      <div class="kpi-grid">
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.engagement.avgActiveDays }}</span>
-          <span class="kpi-label">{{ 'analytics.active_days' | translate }}</span>
-          <span class="kpi-sub">{{ 'analytics.per_learner' | translate }}</span>
+    <div class="an-group">
+      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">D</span> {{ 'analytics.engagement_detail' | translate }}</h2>
+      <div class="ui-kpi-grid">
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-calendar-check"></i> {{ 'analytics.active_days' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.engagement.avgActiveDays }}</span>
+          <span class="ui-kpi__sub">{{ 'analytics.per_learner' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.engagement.forum.threads }}</span>
-          <span class="kpi-label">{{ 'analytics.forum_threads' | translate }}</span>
-          <span class="kpi-sub">{{ summary.engagement.forum.replies }} {{ 'analytics.forum_replies' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-chat-square-text"></i> {{ 'analytics.forum_threads' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.engagement.forum.threads }}</span>
+          <span class="ui-kpi__sub">{{ summary.engagement.forum.replies }} {{ 'analytics.forum_replies' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.engagement.forum.participants }}</span>
-          <span class="kpi-label">{{ 'analytics.forum_participants' | translate }}</span>
-          <span class="kpi-sub">{{ summary.engagement.forum.posts }} {{ 'analytics.forum_posts' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'analytics.forum_participants' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.engagement.forum.participants }}</span>
+          <span class="ui-kpi__sub">{{ summary.engagement.forum.posts }} {{ 'analytics.forum_posts' | translate }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ summary.engagement.forum.reactions }}</span>
-          <span class="kpi-label">{{ 'analytics.forum_reactions' | translate }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-hand-thumbs-up"></i> {{ 'analytics.forum_reactions' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.engagement.forum.reactions }}</span>
         </div>
-        <div class="kpi">
-          <span class="kpi-value">{{ (summary.engagement.forum.answerRate * 100) | number:'1.0-0' }}<small>%</small></span>
-          <span class="kpi-label">{{ 'analytics.forum_answer_rate' | translate }}</span>
-          <span class="kpi-sub">{{ summary.engagement.forum.answeredThreads }} / {{ summary.engagement.forum.threads }}</span>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-patch-check"></i> {{ 'analytics.forum_answer_rate' | translate }}</span>
+          <span class="ui-kpi__value">{{ (summary.engagement.forum.answerRate * 100) | number:'1.0-0' }}<small>%</small></span>
+          <span class="ui-kpi__sub">{{ summary.engagement.forum.answeredThreads }} / {{ summary.engagement.forum.threads }}</span>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- ================= G · Compliance ================= -->
-    <section class="an-section">
-      <h2><span class="tag">G</span> {{ 'analytics.compliance' | translate }}</h2>
-      <div class="an-panel">
-        <div class="compliance-bar" *ngIf="summary.compliance.total > 0">
-          <div class="seg done" [style.width.%]="compliancePct('completed')"></div>
-          <div class="seg prog" [style.width.%]="compliancePct('inProgress')"></div>
-          <div class="seg todo" [style.width.%]="compliancePct('yetToAttempt')"></div>
-        </div>
-        <div class="compliance-legend">
-          <div><span class="dot done"></span>{{ 'analytics.completed' | translate }}
-            <b>{{ summary.compliance.completed }}</b> ({{ compliancePct('completed') }}%)</div>
-          <div><span class="dot prog"></span>{{ 'analytics.in_progress' | translate }}
-            <b>{{ summary.compliance.inProgress }}</b> ({{ compliancePct('inProgress') }}%)</div>
-          <div><span class="dot todo"></span>{{ 'analytics.yet_to_attempt' | translate }}
-            <b>{{ summary.compliance.yetToAttempt }}</b> ({{ compliancePct('yetToAttempt') }}%)</div>
-        </div>
-        <p class="muted small" *ngIf="summary.compliance.total === 0">{{ 'analytics.no_mandatory' | translate }}</p>
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">G</span> {{ 'analytics.compliance' | translate }}</h2></div>
       </div>
+      <div class="compliance-bar" *ngIf="summary.compliance.total > 0">
+        <div class="seg done" [style.width.%]="compliancePct('completed')"></div>
+        <div class="seg prog" [style.width.%]="compliancePct('inProgress')"></div>
+        <div class="seg todo" [style.width.%]="compliancePct('yetToAttempt')"></div>
+      </div>
+      <div class="compliance-legend">
+        <div><span class="dot done"></span>{{ 'analytics.completed' | translate }}
+          <b>{{ summary.compliance.completed }}</b> ({{ compliancePct('completed') }}%)</div>
+        <div><span class="dot prog"></span>{{ 'analytics.in_progress' | translate }}
+          <b>{{ summary.compliance.inProgress }}</b> ({{ compliancePct('inProgress') }}%)</div>
+        <div><span class="dot todo"></span>{{ 'analytics.yet_to_attempt' | translate }}
+          <b>{{ summary.compliance.yetToAttempt }}</b> ({{ compliancePct('yetToAttempt') }}%)</div>
+      </div>
+      <p class="muted small mb-0 mt-2" *ngIf="summary.compliance.total === 0">{{ 'analytics.no_mandatory' | translate }}</p>
     </section>
 
     <!-- ================= E · Satisfaction ================= -->
-    <section class="an-section">
-      <h2><span class="tag">E</span> {{ 'analytics.satisfaction' | translate }}</h2>
-      <div class="chart-row">
-        <div class="chart-card sat-score">
+    <div class="an-group">
+      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">E</span> {{ 'analytics.satisfaction' | translate }}</h2>
+      <div class="chart-row chart-row--score">
+        <section class="ui-section sat-score">
           <span class="sat-avg">{{ summary.satisfaction.average | number:'1.1-1' }}</span>
           <app-star-rating [value]="summary.satisfaction.average" [readonly]="true"></app-star-rating>
-          <span class="kpi-sub">{{ summary.satisfaction.count }} {{ 'analytics.ratings' | translate }}</span>
+          <span class="ui-kpi__sub">{{ summary.satisfaction.count }} {{ 'analytics.ratings' | translate }}</span>
           <div class="sat-dist">
             <div class="sat-row" *ngFor="let s of stars">
               <span class="sat-star">{{ s }}★</span>
@@ -206,68 +210,70 @@
               <span class="sat-count">{{ satCount(s) }}</span>
             </div>
           </div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head"><h3>{{ 'analytics.top_rated' | translate }}</h3></div>
+        </section>
+        <section class="ui-section">
+          <div class="ui-section__head"><div><h3 class="ui-section__title">{{ 'analytics.top_rated' | translate }}</h3></div></div>
           <ul class="course-rank" *ngIf="summary.satisfaction.top.length; else noRatings">
             <li *ngFor="let c of summary.satisfaction.top">
               <span class="rank-title">{{ c.title }}</span>
               <span class="rank-score">{{ c.average | number:'1.1-1' }}★ <small>({{ c.reviews }})</small></span>
             </li>
           </ul>
-          <div class="chart-head" *ngIf="summary.satisfaction.low.length"><h3>{{ 'analytics.lowest_rated' | translate }}</h3></div>
+          <div class="ui-section__head rank-subhead" *ngIf="summary.satisfaction.low.length"><div><h3 class="ui-section__title">{{ 'analytics.lowest_rated' | translate }}</h3></div></div>
           <ul class="course-rank" *ngIf="summary.satisfaction.low.length">
             <li *ngFor="let c of summary.satisfaction.low">
               <span class="rank-title">{{ c.title }}</span>
               <span class="rank-score low">{{ c.average | number:'1.1-1' }}★ <small>({{ c.reviews }})</small></span>
             </li>
           </ul>
-          <ng-template #noRatings><p class="muted small">{{ 'analytics.no_ratings_yet' | translate }}</p></ng-template>
-        </div>
+          <ng-template #noRatings><p class="muted small mb-0">{{ 'analytics.no_ratings_yet' | translate }}</p></ng-template>
+        </section>
       </div>
-    </section>
+    </div>
 
     <!-- ================= F · Competency ================= -->
-    <section class="an-section">
-      <h2><span class="tag">F</span> {{ 'analytics.competency' | translate }}</h2>
-      <div class="an-panel">
-        <div class="compliance-bar" *ngIf="summary.competency.items > 0">
-          <div class="seg done" [style.width.%]="summary.competency.rate"></div>
-          <div class="seg todo" [style.width.%]="100 - summary.competency.rate"></div>
-        </div>
-        <div class="compliance-legend">
-          <div><span class="dot done"></span>{{ 'analytics.meeting_competency' | translate }} <b>{{ summary.competency.rate }}%</b></div>
-          <div class="muted small">{{ summary.competency.met }} / {{ summary.competency.items }} {{ 'analytics.requirements_met' | translate }}</div>
-        </div>
-        <p class="muted small" *ngIf="summary.competency.items === 0">{{ 'analytics.no_competency' | translate }}</p>
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">F</span> {{ 'analytics.competency' | translate }}</h2></div>
+      </div>
+      <div class="compliance-bar" *ngIf="summary.competency.items > 0">
+        <div class="seg done" [style.width.%]="summary.competency.rate"></div>
+        <div class="seg todo" [style.width.%]="100 - summary.competency.rate"></div>
+      </div>
+      <div class="compliance-legend">
+        <div><span class="dot done"></span>{{ 'analytics.meeting_competency' | translate }} <b>{{ summary.competency.rate }}%</b></div>
+        <div class="muted small">{{ summary.competency.met }} / {{ summary.competency.items }} {{ 'analytics.requirements_met' | translate }}</div>
+      </div>
+      <p class="muted small mb-0 mt-2" *ngIf="summary.competency.items === 0">{{ 'analytics.no_competency' | translate }}</p>
 
-        <div class="trend" *ngIf="summary.competencyTrend.length > 1">
-          <div class="trend-head">
-            <span>{{ 'analytics.readiness_trend' | translate }}</span>
-            <span class="closure" *ngIf="competencyClosure !== null" [class.up]="competencyClosure >= 0">
-              {{ competencyClosure >= 0 ? '+' : '' }}{{ competencyClosure }}% {{ 'analytics.vs_prev' | translate }}
-            </span>
-          </div>
-          <div class="unit-rows">
-            <div class="unit-row" *ngFor="let c of summary.competencyTrend">
-              <span class="unit-name" [title]="c.cycle">{{ c.cycle }}</span>
-              <div class="unit-track"><div class="unit-fill" [style.width.%]="c.rate"></div></div>
-              <span class="unit-rate">{{ c.rate }}%</span>
-              <span class="unit-count">{{ c.met }}/{{ c.items }}</span>
-            </div>
+      <div class="trend" *ngIf="summary.competencyTrend.length > 1">
+        <div class="trend-head">
+          <span>{{ 'analytics.readiness_trend' | translate }}</span>
+          <span class="ui-pill closure" *ngIf="competencyClosure !== null"
+                [class.ui-pill--success]="competencyClosure >= 0"
+                [class.ui-pill--danger]="competencyClosure < 0">
+            {{ competencyClosure >= 0 ? '+' : '' }}{{ competencyClosure }}% {{ 'analytics.vs_prev' | translate }}
+          </span>
+        </div>
+        <div class="unit-rows">
+          <div class="unit-row" *ngFor="let c of summary.competencyTrend">
+            <span class="unit-name" [title]="c.cycle">{{ c.cycle }}</span>
+            <div class="unit-track"><div class="unit-fill" [style.width.%]="c.rate"></div></div>
+            <span class="unit-rate">{{ c.rate }}%</span>
+            <span class="unit-count">{{ c.met }}/{{ c.items }}</span>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ================= H · Business impact ================= -->
-    <section class="an-section">
-      <h2><span class="tag">H</span> {{ 'analytics.impact' | translate }}</h2>
-      <div class="chart-row">
-        <div class="chart-card sat-score">
+    <div class="an-group">
+      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">H</span> {{ 'analytics.impact' | translate }}</h2>
+      <div class="chart-row chart-row--score">
+        <section class="ui-section sat-score">
           <span class="sat-avg">{{ summary.behaviour.average | number:'1.1-1' }}</span>
           <app-star-rating [value]="summary.behaviour.average" [readonly]="true"></app-star-rating>
-          <span class="kpi-sub">{{ summary.behaviour.count }} {{ 'analytics.evaluations' | translate }}</span>
+          <span class="ui-kpi__sub">{{ summary.behaviour.count }} {{ 'analytics.evaluations' | translate }}</span>
           <div class="sat-dist">
             <div class="sat-row" *ngFor="let s of stars">
               <span class="sat-star">{{ s }}★</span>
@@ -275,23 +281,28 @@
               <span class="sat-count">{{ behCount(s) }}</span>
             </div>
           </div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head"><h3>{{ 'analytics.behaviour_change' | translate }}</h3></div>
-          <p class="muted small">{{ 'analytics.behaviour_note' | translate }}</p>
-        </div>
+        </section>
+        <section class="ui-section">
+          <div class="ui-section__head"><div><h3 class="ui-section__title">{{ 'analytics.behaviour_change' | translate }}</h3></div></div>
+          <p class="muted small mb-0">{{ 'analytics.behaviour_note' | translate }}</p>
+        </section>
       </div>
-    </section>
+    </div>
 
     <!-- ================= Deeper breakdowns ================= -->
-    <section class="an-section">
-      <h2><span class="tag">B–H</span> {{ 'analytics.deeper' | translate }}</h2>
-      <div class="an-panel links">
-        <a routerLink="/admin/reports"><i class="bi bi-bar-chart-line"></i> {{ 'analytics.open_reports' | translate }}</a>
-        <a routerLink="/administration"><i class="bi bi-grid"></i> {{ 'analytics.open_competency' | translate }}</a>
-        <p class="muted small">{{ 'analytics.deeper_note' | translate }}</p>
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">B–H</span> {{ 'analytics.deeper' | translate }}</h2>
+          <p class="ui-section__subtitle">{{ 'analytics.deeper_note' | translate }}</p>
+        </div>
+      </div>
+      <div class="links">
+        <a class="btn btn-outline-secondary" routerLink="/admin/reports"><i class="bi bi-bar-chart-line"></i> {{ 'analytics.open_reports' | translate }}</a>
+        <a class="btn btn-outline-secondary" routerLink="/administration"><i class="bi bi-grid"></i> {{ 'analytics.open_competency' | translate }}</a>
       </div>
     </section>
 
   </ng-container>
 </div>
+</main>

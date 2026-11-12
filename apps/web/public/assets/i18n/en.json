@@ -3886,5 +3886,18 @@
   "course_player.seek": "Seek",
   "course_player.volume": "Volume",
   "course_player.thread_count": "{{count}} threads",
-  "course_player.thread_count_one": "{{count}} thread"
+  "course_player.thread_count_one": "{{count}} thread",
+  "learner_dash.greeting": "Welcome back, {{name}}",
+  "learner_dash.yet_to_attempt": "Yet to attempt",
+  "learner_dash.avg_completion": "Average completion",
+  "admin.courses.page_subtitle": "Create, publish and manage your course catalogue.",
+  "admin.course_content.page_subtitle": "Drag modules and lessons to reorder them.",
+  "review.page_subtitle": "Approve or reject learner reviews before they are published.",
+  "admin.roles.subtitle": "Decide what each role can see and do",
+  "certificates.subtitle": "Certificates you have earned, ready to open.",
+  "live.skills.subtitle": "Map the skills and competencies each live training programme develops.",
+  "reports.saved_subtitle": "Reports you bookmarked, with their filters, ready to run again",
+  "reports.scheduled_subtitle": "Reports emailed automatically on a daily, weekly or monthly schedule",
+  "reports.manager_subtitle": "Your team's enrolments, completions and overdue training",
+  "messaging.page_subtitle": "Direct messages, groups and channels in one place"
 }

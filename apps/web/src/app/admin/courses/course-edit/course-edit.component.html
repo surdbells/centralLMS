@@ -1,18 +1,20 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-      <div class="d-flex align-items-center gap-3">
-        <a routerLink="/courses" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-        <div>
-          <h4 class="fw-bold mb-0">{{ isEdit ? ('admin.course_edit.edit_title' | translate) : ('admin.course_edit.new_title' | translate) }}</h4>
-          <small class="text-muted">{{ 'admin.course_edit.subtitle' | translate }}</small>
-        </div>
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <a routerLink="/courses" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-pencil-square"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ isEdit ? ('admin.course_edit.edit_title' | translate) : ('admin.course_edit.new_title' | translate) }}</h1>
+        <p>{{ 'admin.course_edit.subtitle' | translate }}</p>
       </div>
-      <span class="badge fs-6 align-self-center" [class]="statusBadge(status)" *ngIf="isEdit">
-        {{ ('admin.courses.' + status) | translate }}
-      </span>
-    </div>
+      <div class="ui-page-header__actions" *ngIf="isEdit">
+        <span class="ui-pill"
+              [ngClass]="status === 'published' ? 'ui-pill--success' : (status === 'archived' ? 'ui-pill--warning' : 'ui-pill--neutral')">
+          <span class="ui-pill__dot"></span>{{ ('admin.courses.' + status) | translate }}
+        </span>
+      </div>
+    </header>
 
     <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
 
@@ -31,9 +33,9 @@
     <form *ngIf="!loading" (ngSubmit)="save()" class="row g-4">
       <!-- What it is -->
       <div class="col-lg-8">
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-header bg-white fw-semibold"><i class="bi bi-info-circle me-2"></i>{{ 'admin.course_edit.about' | translate }}</div>
-          <div class="card-body">
+        <section class="ui-section">
+          <div class="ui-section__head"><h2 class="ui-section__title"><i class="bi bi-info-circle me-2 ui-muted"></i>{{ 'admin.course_edit.about' | translate }}</h2></div>
+          <div>
             <div class="mb-3">
               <label class="form-label small fw-semibold">{{ 'admin.course_edit.field_title' | translate }} <span class="text-danger">*</span></label>
               <input type="text" class="form-control" name="title" [(ngModel)]="form.title"
@@ -72,11 +74,11 @@
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="card border-0 shadow-sm">
-          <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>{{ 'admin.course_edit.how_it_runs' | translate }}</div>
-          <div class="card-body">
+        <section class="ui-section">
+          <div class="ui-section__head"><h2 class="ui-section__title"><i class="bi bi-sliders me-2 ui-muted"></i>{{ 'admin.course_edit.how_it_runs' | translate }}</h2></div>
+          <div>
             <div class="row g-3">
               <div class="col-md-4">
                 <label class="form-label small fw-semibold">{{ 'admin.course_edit.pass_mark' | translate }}</label>
@@ -142,14 +144,14 @@
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Where it belongs, and what to do next -->
       <div class="col-lg-4">
-        <div class="card border-0 shadow-sm mb-4">
-          <div class="card-header bg-white fw-semibold"><i class="bi bi-tags me-2"></i>{{ 'admin.course_edit.classification' | translate }}</div>
-          <div class="card-body">
+        <section class="ui-section">
+          <div class="ui-section__head"><h2 class="ui-section__title"><i class="bi bi-tags me-2 ui-muted"></i>{{ 'admin.course_edit.classification' | translate }}</h2></div>
+          <div>
             <div class="mb-3">
               <label class="form-label small fw-semibold">{{ 'admin.course_edit.category' | translate }}</label>
               <select class="form-select form-select-sm" name="categoryId" [(ngModel)]="form.categoryId">
@@ -173,10 +175,10 @@
               <small class="text-muted">{{ 'admin.course_edit.instructor_hint' | translate }}</small>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
+        <section class="ui-section">
+          <div>
             <button type="submit" class="btn btn-primary w-100 mb-2" [disabled]="saving || !form.title.trim()">
               <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
               <i *ngIf="!saving" class="bi bi-check-lg me-1"></i>
@@ -184,7 +186,7 @@
             </button>
 
             <ng-container *ngIf="isEdit">
-              <button type="button" class="btn btn-secondary w-100 mb-3" (click)="manageContent()">
+              <button type="button" class="btn btn-outline-secondary w-100 mb-3" (click)="manageContent()">
                 <i class="bi bi-list-check me-1"></i>{{ 'admin.course_edit.modules_lessons' | translate }}
               </button>
 
@@ -209,7 +211,7 @@
               </p>
             </ng-container>
           </div>
-        </div>
+        </section>
       </div>
     </form>
   </div>

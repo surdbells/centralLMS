@@ -15,32 +15,38 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid">
-    <div class="report-scheduler">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i>{{ 'reports.scheduled_reports' | translate }}</h4>
-        <div class="d-flex gap-2">
-          <a routerLink="/admin/reports" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>{{ 'common.back' | translate }}</a>
-          <button class="btn btn-primary btn-sm" (click)="showForm=!showForm"><i class="bi bi-plus-lg me-1"></i>{{ 'reports.new_schedule' | translate }}</button>
-        </div>
-      </div>
+    <main class="main">
+      <div class="ui-page report-scheduler">
+        <header class="ui-page-header">
+          <a routerLink="/admin/reports" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate" [title]="'common.back' | translate">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>{{ 'reports.scheduled_reports' | translate }}</h1>
+            <p>{{ 'reports.scheduled_subtitle' | translate }}</p>
+          </div>
+          <div class="ui-page-header__actions">
+            <button type="button" class="btn btn-primary" (click)="showForm=!showForm"><i class="bi bi-plus-lg me-1"></i>{{ 'reports.new_schedule' | translate }}</button>
+          </div>
+        </header>
 
-      <!-- New Schedule Form -->
-      <div class="card border-0 shadow-sm mb-4" *ngIf="showForm">
-        <div class="card-body">
-          <h6 class="fw-semibold mb-3">{{ 'reports.create_schedule' | translate }}</h6>
+        <!-- New Schedule Form -->
+        <section class="ui-section" *ngIf="showForm">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">{{ 'reports.create_schedule' | translate }}</h2></div>
+          </div>
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label small">{{ 'reports.report_label' | translate }}</label>
-              <select class="form-select form-select-sm" [(ngModel)]="newSchedule.report_key">
+              <select class="form-select" [(ngModel)]="newSchedule.report_key">
                 <option value="">{{ 'reports.select_report' | translate }}</option>
                 <option *ngFor="let r of reportOptions" [value]="r.key">{{ r.name }}</option>
               </select>
             </div>
             <div class="col-md-2">
               <label class="form-label small">{{ 'reports.frequency' | translate }}</label>
-              <select class="form-select form-select-sm" [(ngModel)]="newSchedule.frequency">
+              <select class="form-select" [(ngModel)]="newSchedule.frequency">
                 <option value="daily">{{ 'reports.freq_daily' | translate }}</option>
                 <option value="weekly">{{ 'reports.freq_weekly' | translate }}</option>
                 <option value="monthly">{{ 'reports.freq_monthly' | translate }}</option>
@@ -48,7 +54,7 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
             </div>
             <div class="col-md-2">
               <label class="form-label small">{{ 'reports.format' | translate }}</label>
-              <select class="form-select form-select-sm" [(ngModel)]="newSchedule.export_format">
+              <select class="form-select" [(ngModel)]="newSchedule.export_format">
                 <option value="csv">CSV</option>
                 <option value="xlsx">{{ 'reports.excel' | translate }}</option>
                 <option value="pdf">PDF</option>
@@ -56,49 +62,53 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
             </div>
             <div class="col-md-4">
               <label class="form-label small">{{ 'reports.recipients_emails' | translate }}</label>
-              <input type="text" class="form-control form-control-sm" [(ngModel)]="newSchedule.recipients" placeholder="email1@co.com, email2@co.com">
+              <input type="text" class="form-control" [(ngModel)]="newSchedule.recipients" placeholder="email1@co.com, email2@co.com">
             </div>
           </div>
           <div class="mt-3 d-flex gap-2">
-            <button class="btn btn-sm btn-primary" (click)="createSchedule()" [disabled]="!newSchedule.report_key">
+            <button type="button" class="btn btn-sm btn-primary" (click)="createSchedule()" [disabled]="!newSchedule.report_key">
               <i class="bi bi-check-lg me-1"></i>{{ 'common.create' | translate }}
             </button>
-            <button class="btn btn-sm btn-secondary" (click)="showForm=false">{{ 'common.cancel' | translate }}</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="showForm=false">{{ 'common.cancel' | translate }}</button>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Schedules List -->
-      <div class="card border-0 shadow-sm">
-        <div class="table-responsive">
-          <table class="table table-hover table-sm mb-0">
-            <thead class="table-light">
-            <tr><th class="px-3">{{ 'reports.report_label' | translate }}</th><th>{{ 'reports.frequency' | translate }}</th><th>{{ 'reports.format' | translate }}</th><th>{{ 'reports.recipients' | translate }}</th><th>{{ 'reports.last_run' | translate }}</th><th>{{ 'common.status' | translate }}</th><th>{{ 'common.actions' | translate }}</th></tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let s of schedules">
-              <td class="px-3 fw-medium">{{ getReportName(s.report_key) }}</td>
-              <td><span class="badge bg-primary-subtle text-primary">{{ s.frequency }}</span></td>
-              <td>{{ s.export_format | uppercase }}</td>
-              <td class="small text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.recipients }}</td>
-              <td class="small text-muted">{{ s.last_run_at | date:'short' }}</td>
-              <td>
-                  <span class="badge" [class]="s.last_run_status==='success'?'bg-success-subtle text-success':s.last_run_status==='error'?'bg-danger-subtle text-danger':'bg-warning-subtle text-warning'">
-                    {{ s.last_run_status || ('common.pending' | translate) }}
+        <!-- Schedules List -->
+        <section class="ui-section ui-section--flush">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">{{ 'reports.scheduled' | translate }}</h2></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+              <tr><th class="ps-4">{{ 'reports.report_label' | translate }}</th><th>{{ 'reports.frequency' | translate }}</th><th>{{ 'reports.format' | translate }}</th><th>{{ 'reports.recipients' | translate }}</th><th>{{ 'reports.last_run' | translate }}</th><th>{{ 'common.status' | translate }}</th><th class="pe-4">{{ 'common.actions' | translate }}</th></tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let s of schedules">
+                <td class="ps-4 fw-medium">{{ getReportName(s.report_key) }}</td>
+                <td><span class="ui-pill ui-pill--brand">{{ s.frequency }}</span></td>
+                <td>{{ s.export_format | uppercase }}</td>
+                <td class="small ui-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.recipients }}</td>
+                <td class="small ui-muted">{{ s.last_run_at | date:'short' }}</td>
+                <td>
+                  <span class="ui-pill" [ngClass]="s.last_run_status==='success'?'ui-pill--success':s.last_run_status==='error'?'ui-pill--danger':'ui-pill--warning'">
+                    <span class="ui-pill__dot"></span>{{ s.last_run_status || ('common.pending' | translate) }}
                   </span>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-outline-danger" (click)="remove(s)" [title]="'common.delete' | translate"><i class="bi bi-trash"></i></button>
-              </td>
-            </tr>
-            <tr *ngIf="!schedules.length">
-              <td colspan="7" class="text-center py-4 text-muted">{{ 'reports.no_schedules' | translate }}</td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+                </td>
+                <td class="pe-4">
+                  <button type="button" class="btn btn-sm btn-outline-danger" (click)="remove(s)" [title]="'common.delete' | translate"><i class="bi bi-trash"></i></button>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="!schedules.length" class="p-4">
+            <div class="ui-state">
+              <span class="ui-state__icon"><i class="bi bi-calendar-x"></i></span>
+              <p>{{ 'reports.no_schedules' | translate }}</p>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   `

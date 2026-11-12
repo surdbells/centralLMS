@@ -60,44 +60,47 @@ export interface UserFormData {
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid">
-    <div class="user-form">
-      <div class="d-flex align-items-center gap-3 mb-4">
-        <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-        <h4 class="fw-bold mb-0"><i class="bi me-2" [class]="isEdit ? 'bi-pencil' : 'bi-person-plus'"></i>{{ isEdit ? ('admin.user_form.edit_title' | translate) : ('admin.user_form.create_title' | translate) }}</h4>
-      </div>
+    <main class="main">
+      <div class="ui-page user-form">
+      <header class="ui-page-header">
+        <a routerLink="/admin/users" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi" [ngClass]="isEdit ? 'bi-pencil' : 'bi-person-plus'"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ isEdit ? ('admin.user_form.edit_title' | translate) : ('admin.user_form.create_title' | translate) }}</h1>
+        </div>
+      </header>
 
       <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
 
-      <div class="alert alert-danger mt-3" *ngIf="error"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
+      <div class="alert alert-danger" *ngIf="error"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
 
-      <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="row g-4">
+      <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="ui-row">
         <!-- Personal Info -->
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>{{ 'admin.user_form.personal_info' | translate }}</div>
-            <div class="card-body">
+        <div class="section-stack">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-person me-2"></i>{{ 'admin.user_form.personal_info' | translate }}</h2>
+            </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.first_name' | translate }} <span class="text-danger">*</span></label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.first_name" name="first_name" required>
+                <input type="text" class="form-control" [(ngModel)]="form.first_name" name="first_name" required>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.last_name' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.last_name" name="last_name">
+                <input type="text" class="form-control" [(ngModel)]="form.last_name" name="last_name">
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.users.col_email' | translate }} <span class="text-danger">*</span></label>
-                <input type="email" class="form-control form-control-sm" [(ngModel)]="form.email" name="email" required>
+                <input type="email" class="form-control" [(ngModel)]="form.email" name="email" required>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.phone' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.phone" name="phone">
+                <input type="text" class="form-control" [(ngModel)]="form.phone" name="phone">
               </div>
               <div class="row g-2">
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'admin.user_form.gender' | translate }}</label>
-                  <select class="form-select form-select-sm" [(ngModel)]="form.gender" name="gender">
+                  <select class="form-select" [(ngModel)]="form.gender" name="gender">
                     <option value="">{{ 'admin.user_form.gender_unspecified' | translate }}</option>
                     <option value="male">{{ 'admin.user_form.gender_male' | translate }}</option>
                     <option value="female">{{ 'admin.user_form.gender_female' | translate }}</option>
@@ -107,147 +110,146 @@ export interface UserFormData {
                 </div>
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'admin.user_form.employee_id' | translate }}</label>
-                  <input type="text" class="form-control form-control-sm" [(ngModel)]="form.staffId" name="staffId">
+                  <input type="text" class="form-control" [(ngModel)]="form.staffId" name="staffId">
                 </div>
               </div>
               <div class="row g-2">
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'common.language' | translate }}</label>
-                  <select class="form-select form-select-sm" [(ngModel)]="form.language" name="language">
+                  <select class="form-select" [(ngModel)]="form.language" name="language">
                     <option value="en">{{ 'admin.user_form.lang_en' | translate }}</option><option value="fr">{{ 'admin.user_form.lang_fr' | translate }}</option><option value="ar">{{ 'admin.user_form.lang_ar' | translate }}</option>
                   </select>
                 </div>
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'admin.user_form.learning_mode' | translate }}</label>
-                  <select class="form-select form-select-sm" [(ngModel)]="form.preferred_learning_mode" name="learning_mode">
+                  <select class="form-select" [(ngModel)]="form.preferred_learning_mode" name="learning_mode">
                     <option value="video">{{ 'admin.user_form.mode_video' | translate }}</option><option value="audio">{{ 'admin.user_form.mode_audio' | translate }}</option>
                     <option value="reading">{{ 'admin.user_form.mode_reading' | translate }}</option><option value="interactive">{{ 'admin.user_form.mode_interactive' | translate }}</option>
                   </select>
                 </div>
               </div>
-              <div class="mb-3" *ngIf="!isEdit">
+              <div class="mb-0" *ngIf="!isEdit">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.temp_password' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" [(ngModel)]="form.password" name="password"
+                <input type="text" class="form-control" [(ngModel)]="form.password" name="password"
                        placeholder="{{ 'admin.user_form.temp_password_placeholder' | translate }}">
               </div>
-            </div>
-          </div>
+          </section>
         </div>
 
         <!-- Org Info -->
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>{{ 'admin.user_form.organization' | translate }}</div>
-            <div class="card-body">
+        <div class="section-stack">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-building me-2"></i>{{ 'admin.user_form.organization' | translate }}</h2>
+            </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.enrollees.col_department' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.department_id" name="department_id">
+                <select class="form-select" [(ngModel)]="form.department_id" name="department_id">
                   <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.branch' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.branch_id" name="branch_id">
+                <select class="form-select" [(ngModel)]="form.branch_id" name="branch_id">
                   <option *ngFor="let b of branches" [ngValue]="b.branch_id">{{ b.branch_name }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.team' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.team_id" name="team_id">
+                <select class="form-select" [(ngModel)]="form.team_id" name="team_id">
                   <option *ngFor="let t of teams" [ngValue]="t.team_id">{{ t.team_name }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_detail.job_title' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.job_title_id" name="job_title_id">
+                <select class="form-select" [(ngModel)]="form.job_title_id" name="job_title_id">
                   <option [ngValue]="null">—</option>
                   <option *ngFor="let j of jobTitles" [ngValue]="j.id">{{ j.name }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.job_grade' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.level_id" name="level_id">
+                <select class="form-select" [(ngModel)]="form.level_id" name="level_id">
                   <option [ngValue]="null">—</option>
                   <option *ngFor="let l of levels" [ngValue]="l.id">{{ l.name }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_detail.manager' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.manager_id" name="manager_id">
+                <select class="form-select" [(ngModel)]="form.manager_id" name="manager_id">
                   <option [ngValue]="null">—</option>
                   <option *ngFor="let p of people" [ngValue]="p.id">{{ p.fullName }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.line_executive' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="form.line_executive_id" name="line_executive_id">
+                <select class="form-select" [(ngModel)]="form.line_executive_id" name="line_executive_id">
                   <option [ngValue]="null">—</option>
                   <option *ngFor="let p of people" [ngValue]="p.id">{{ p.fullName }}</option>
                 </select>
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.hire_date' | translate }}</label>
-                <input type="date" class="form-control form-control-sm" [(ngModel)]="form.hire_date" name="hire_date">
+                <input type="date" class="form-control" [(ngModel)]="form.hire_date" name="hire_date">
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.users.roles' | translate }}</label>
-                <div class="border rounded p-2" style="max-height:180px; overflow-y:auto">
+                <div class="role-box">
                   <div *ngFor="let r of roles" class="form-check">
                     <input type="checkbox" class="form-check-input" [id]="'role_'+r.role_id"
                            [checked]="selectedRoleIds.has(r.role_id)" (change)="toggleRole(r.role_id)">
                     <label class="form-check-label small" [for]="'role_'+r.role_id">{{ r.role_name }}
-                      <span class="text-muted" *ngIf="r.description"> - {{ r.description }}</span>
+                      <span class="ui-muted" *ngIf="r.description"> - {{ r.description }}</span>
                     </label>
                   </div>
                 </div>
               </div>
-              <div class="form-check mb-3">
+              <div class="form-check mb-0">
                 <input type="checkbox" class="form-check-input" id="isActive" [(ngModel)]="isActive" name="is_active">
                 <label class="form-check-label small" for="isActive">{{ 'admin.user_form.active_account' | translate }}</label>
               </div>
-            </div>
-          </div>
+          </section>
 
           <!-- Custom fields — whatever this tenant records beyond the fixed profile -->
-          <div class="card border-0 shadow-sm mt-4" *ngIf="customFields.length">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>{{ 'admin.user_form.additional_info' | translate }}</div>
-            <div class="card-body">
-              <div class="mb-3" *ngFor="let f of customFields">
+          <section class="ui-section" *ngIf="customFields.length">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-sliders me-2"></i>{{ 'admin.user_form.additional_info' | translate }}</h2>
+            </div>
+              <div class="mb-3 cf-field" *ngFor="let f of customFields">
                 <label class="form-label small fw-semibold">{{ f.label }}<span class="text-danger" *ngIf="f.required"> *</span></label>
                 <ng-container [ngSwitch]="f.type">
-                  <select *ngSwitchCase="'dropdown'" class="form-select form-select-sm"
+                  <select *ngSwitchCase="'dropdown'" class="form-select"
                           [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
                     <option [ngValue]="null">—</option>
                     <option *ngFor="let o of f.options" [ngValue]="o">{{ o }}</option>
                   </select>
-                  <input *ngSwitchCase="'number'" type="number" class="form-control form-control-sm"
+                  <input *ngSwitchCase="'number'" type="number" class="form-control"
                          [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
-                  <input *ngSwitchCase="'date'" type="date" class="form-control form-control-sm"
+                  <input *ngSwitchCase="'date'" type="date" class="form-control"
                          [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
                   <div *ngSwitchCase="'boolean'" class="form-check">
                     <input type="checkbox" class="form-check-input" [id]="'cf_' + f.key"
                            [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
                     <label class="form-check-label small" [for]="'cf_' + f.key">{{ 'common.yes' | translate }}</label>
                   </div>
-                  <input *ngSwitchDefault type="text" class="form-control form-control-sm"
+                  <input *ngSwitchDefault type="text" class="form-control"
                          [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
                 </ng-container>
               </div>
-            </div>
-          </div>
+          </section>
 
           <!-- Submit -->
-          <div class="d-flex gap-2 mt-3">
+          <div class="form-actions">
             <button type="submit" class="btn btn-primary" [disabled]="saving || !form.first_name || !form.email">
               <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-              <i *ngIf="!saving" class="bi me-1" [class]="isEdit ? 'bi-check-lg' : 'bi-plus-lg'"></i>
+              <i *ngIf="!saving" class="bi me-1" [ngClass]="isEdit ? 'bi-check-lg' : 'bi-plus-lg'"></i>
               {{ isEdit ? ('admin.user_form.save_changes' | translate) : ('admin.user_form.create_title' | translate) }}
             </button>
-            <a routerLink="/admin/users" class="btn btn-secondary">{{ 'common.cancel' | translate }}</a>
+            <a routerLink="/admin/users" class="btn btn-outline-secondary">{{ 'common.cancel' | translate }}</a>
           </div>
 
           <!-- Temp password result -->
-          <div class="alert alert-success mt-3" *ngIf="createdPassword">
+          <div class="alert alert-success mt-3 mb-0" *ngIf="createdPassword">
             <strong>{{ 'admin.user_form.user_created' | translate }}</strong> {{ 'admin.user_form.temp_password_result' | translate }} <code class="user-select-all">{{ createdPassword }}</code>
           </div>
         </div>
@@ -255,35 +257,52 @@ export interface UserFormData {
 
       <!-- Competency job profiles — the assignment that lets a new cycle
            auto-start this person's assessment. Assessors only, edit mode. -->
-      <div class="card border-0 shadow-sm mt-4" *ngIf="isEdit && canAssignProfiles && !loading">
-        <div class="card-header bg-white d-flex align-items-center justify-content-between">
-          <span class="fw-semibold"><i class="bi bi-bullseye me-2"></i>{{ 'admin.user_form.job_profiles' | translate }}</span>
-          <button type="button" class="btn btn-primary btn-sm" [disabled]="savingProfiles" (click)="saveProfiles()">
-            <span *ngIf="savingProfiles" class="spinner-border spinner-border-sm me-1"></span>
-            {{ 'admin.user_form.save_profiles' | translate }}
-          </button>
-        </div>
-        <div class="card-body">
-          <p class="small text-muted">{{ 'admin.user_form.job_profiles_hint' | translate }}</p>
-          <div *ngIf="allProfiles.length === 0" class="text-muted small">{{ 'admin.user_form.no_profiles' | translate }}</div>
-          <div class="row g-2">
-            <div class="col-md-6" *ngFor="let p of allProfiles">
-              <label class="d-flex align-items-start gap-2 p-2 border rounded h-100" style="cursor: pointer">
-                <input type="checkbox" class="form-check-input mt-1" [checked]="selectedProfiles.has(p.id)" (change)="toggleProfile(p.id)">
-                <span>
-                  <span class="fw-medium d-block">{{ p.jobTitle }}</span>
-                  <small class="text-muted">{{ p.functionName }} · {{ p.competencyCount }} {{ 'admin.user_form.competencies' | translate }}</small>
-                </span>
-              </label>
-            </div>
+      <section class="ui-section" *ngIf="isEdit && canAssignProfiles && !loading">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title"><i class="bi bi-bullseye me-2"></i>{{ 'admin.user_form.job_profiles' | translate }}</h2>
+            <p class="ui-section__subtitle">{{ 'admin.user_form.job_profiles_hint' | translate }}</p>
+          </div>
+          <div class="ui-section__actions">
+            <button type="button" class="btn btn-primary btn-sm" [disabled]="savingProfiles" (click)="saveProfiles()">
+              <span *ngIf="savingProfiles" class="spinner-border spinner-border-sm me-1"></span>
+              {{ 'admin.user_form.save_profiles' | translate }}
+            </button>
           </div>
         </div>
-      </div>
+        <div *ngIf="allProfiles.length === 0" class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-bullseye"></i></span>
+          <p>{{ 'admin.user_form.no_profiles' | translate }}</p>
+        </div>
+        <div class="row g-2">
+          <div class="col-md-6" *ngFor="let p of allProfiles">
+            <label class="profile-option" [class.is-checked]="selectedProfiles.has(p.id)">
+              <input type="checkbox" class="form-check-input mt-1" [checked]="selectedProfiles.has(p.id)" (change)="toggleProfile(p.id)">
+              <span>
+                <span class="fw-medium d-block">{{ p.jobTitle }}</span>
+                <small class="ui-muted">{{ p.functionName }} · {{ p.competencyCount }} {{ 'admin.user_form.competencies' | translate }}</small>
+              </span>
+            </label>
+          </div>
+        </div>
+      </section>
 
-    </div>
       </div>
     </main>
-  `
+  `,
+  styles: [`
+    .section-stack { min-width: 0; }
+    .section-stack > .ui-section { margin-bottom: 20px; }
+    .role-box { max-height: 180px; overflow-y: auto; padding: 8px 12px; border: 1px solid var(--ui-border);
+      border-radius: var(--ui-radius-ctl); background: var(--ui-surface); }
+    .cf-field:last-child { margin-bottom: 0 !important; }
+    .form-actions { display: flex; gap: 8px; }
+    .profile-option { display: flex; align-items: flex-start; gap: 8px; height: 100%; padding: 10px 12px; cursor: pointer;
+      border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl); background: var(--ui-surface);
+      transition: border-color .15s ease, background .15s ease; }
+    .profile-option:hover { border-color: var(--ui-border-strong); }
+    .profile-option.is-checked { border-color: rgba(var(--brand-primary-rgb), .45); background: rgba(var(--brand-primary-rgb), .05); }
+  `]
 })
 /**
  * Creating and editing one person.

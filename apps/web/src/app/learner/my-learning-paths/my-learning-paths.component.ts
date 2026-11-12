@@ -13,59 +13,71 @@ import { TopComponent } from '../../partials/top/top.component';
   template: `
     <app-top></app-top>
 
-    <div class="my-learning-paths">
+    <main class="main">
+    <div class="ui-page my-learning-paths">
       <!-- Header -->
-      <div class="page-header mb-4">
-        <h1 class="h3 mb-1">My Learning Paths</h1>
-        <p class="text-muted mb-0">Track your progress across all assigned and enrolled learning paths</p>
-      </div>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>My Learning Paths</h1>
+          <p>Track your progress across all assigned and enrolled learning paths</p>
+        </div>
+        <div class="ui-page-header__actions">
+          <a routerLink="/learner/paths" class="btn btn-outline-secondary">
+            <i class="bi bi-search me-2"></i>Browse Catalog
+          </a>
+        </div>
+      </header>
 
       <!-- Tabs -->
-      <ul class="nav nav-tabs mb-4">
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            [class.active]="activeTab() === 'in-progress'"
-            (click)="setActiveTab('in-progress')"
-          >
-            In Progress
-            @if (inProgressCount() > 0) {
-              <span class="badge bg-primary ms-2">{{ inProgressCount() }}</span>
-            }
-          </a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            [class.active]="activeTab() === 'completed'"
-            (click)="setActiveTab('completed')"
-          >
-            Completed
-            @if (completedCount() > 0) {
-              <span class="badge bg-success ms-2">{{ completedCount() }}</span>
-            }
-          </a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            [class.active]="activeTab() === 'all'"
-            (click)="setActiveTab('all')"
-          >
-            All
-          </a>
-        </li>
-      </ul>
+      <nav class="ui-tabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          class="ui-tab"
+          [class.is-active]="activeTab() === 'in-progress'"
+          [attr.aria-selected]="activeTab() === 'in-progress'"
+          (click)="setActiveTab('in-progress')"
+        >
+          <i class="bi bi-play-circle"></i> In Progress
+          @if (inProgressCount() > 0) {
+            <span class="ui-tab__count">{{ inProgressCount() }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="ui-tab"
+          [class.is-active]="activeTab() === 'completed'"
+          [attr.aria-selected]="activeTab() === 'completed'"
+          (click)="setActiveTab('completed')"
+        >
+          <i class="bi bi-check-circle"></i> Completed
+          @if (completedCount() > 0) {
+            <span class="ui-tab__count">{{ completedCount() }}</span>
+          }
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="ui-tab"
+          [class.is-active]="activeTab() === 'all'"
+          [attr.aria-selected]="activeTab() === 'all'"
+          (click)="setActiveTab('all')"
+        >
+          <i class="bi bi-grid"></i> All
+        </button>
+      </nav>
 
       @if (loading()) {
         <div class="text-center py-5">
           <div class="spinner-border text-primary" role="status"></div>
         </div>
       } @else if (filteredEnrollments().length === 0) {
-        <div class="empty-state text-center py-5">
-          <i class="bi bi-signpost-split display-3 text-muted"></i>
-          <h4 class="mt-3">No Learning Paths</h4>
-          <p class="text-muted">
+        <div class="ui-state empty-state">
+          <span class="ui-state__icon"><i class="bi bi-signpost-split"></i></span>
+          <h3>No Learning Paths</h3>
+          <p>
             @if (activeTab() === 'in-progress') {
               You don't have any learning paths in progress.
             } @else if (activeTab() === 'completed') {
@@ -79,10 +91,9 @@ import { TopComponent } from '../../partials/top/top.component';
           </a>
         </div>
       } @else {
-        <div class="row g-4">
+        <div class="ui-grid">
           @for (enrollment of filteredEnrollments(); track enrollment.enrollment_id) {
-            <div class="col-md-6 col-lg-4">
-              <div class="card path-card h-100">
+              <div class="ui-card path-card">
                 <div class="path-thumbnail">
                   @if (enrollment.path_thumbnail) {
                     <img [src]="enrollment.path_thumbnail" [alt]="enrollment.path_title">
@@ -103,39 +114,37 @@ import { TopComponent } from '../../partials/top/top.component';
                   }
                 </div>
 
-                <div class="card-body">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="ui-card__body">
+                  <div class="d-flex justify-content-between align-items-start">
                     <span class="badge bg-{{ getSkillBadgeColor(enrollment.skill_level) }}">
                       {{ getSkillLabel(enrollment.skill_level) }}
                     </span>
                     @if (enrollment.due_date && enrollment.status !== 'completed') {
-                      <small class="text-muted" [class.text-danger]="enrollment.is_overdue">
+                      <small class="ui-muted" [class.text-danger]="enrollment.is_overdue">
                         Due {{ enrollment.due_date | date:'MMM d' }}
                       </small>
                     }
                   </div>
 
-                  <h5 class="card-title">
+                  <h5 class="ui-card__title card-title">
                     <a [routerLink]="['/learner/paths', enrollment.path_id]">{{ enrollment.path_title }}</a>
                   </h5>
 
                   <!-- Progress -->
-                  <div class="progress-section mt-3">
+                  <div class="progress-section">
                     <div class="d-flex justify-content-between mb-1">
-                      <small class="text-muted">{{ enrollment.items_completed }}/{{ enrollment.items_total }} items</small>
-                      <small class="fw-medium">{{ enrollment.progress_percentage }}%</small>
+                      <small class="ui-muted">{{ enrollment.items_completed }}/{{ enrollment.items_total }} items</small>
                     </div>
-                    <div class="progress" style="height: 6px;">
-                      <div
-                        class="progress-bar"
-                        [class.bg-success]="enrollment.status === 'completed'"
-                        [style.width.%]="enrollment.progress_percentage"
-                      ></div>
+                    <div class="ui-progress">
+                      <div class="ui-bar" [class.is-complete]="enrollment.status === 'completed'">
+                        <span [style.width.%]="enrollment.progress_percentage"></span>
+                      </div>
+                      <span class="ui-pct">{{ enrollment.progress_percentage }}%</span>
                     </div>
                   </div>
 
                   <!-- Stats -->
-                  <div class="path-stats mt-3">
+                  <div class="path-stats">
                     <div class="stat">
                       <i class="bi bi-clock"></i>
                       <span>{{ formatMinutes(enrollment.total_time_spent_minutes) }}</span>
@@ -147,15 +156,15 @@ import { TopComponent } from '../../partials/top/top.component';
                   </div>
                 </div>
 
-                <div class="card-footer bg-transparent">
+                <div class="ui-card__footer">
                   @if (enrollment.status === 'completed') {
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 w-100">
                       @if (enrollment.certificate_id) {
                         <a [routerLink]="['/certificates', enrollment.certificate_id]" class="btn btn-success btn-sm flex-fill">
                           <i class="bi bi-award me-1"></i>Certificate
                         </a>
                       }
-                      <a [routerLink]="['/learner/paths', enrollment.path_id]" class="btn btn-secondary btn-sm flex-fill">
+                      <a [routerLink]="['/learner/paths', enrollment.path_id]" class="btn btn-outline-secondary btn-sm flex-fill">
                         <i class="bi bi-eye me-1"></i>Review
                       </a>
                     </div>
@@ -170,135 +179,93 @@ import { TopComponent } from '../../partials/top/top.component';
                   }
                 </div>
               </div>
-            </div>
           }
         </div>
       }
     </div>
+    </main>
   `,
   styles: [`
-    .my-learning-paths {
-      padding-bottom: 3rem;
+    /* Page chrome (header, tabs, cards, states, progress) comes from the
+       global UI kit in styles.scss; only the path-card specifics live here. */
+    .path-card .path-thumbnail {
+      position: relative;
+      height: 140px;
+      background: linear-gradient(135deg, rgba(var(--brand-primary-rgb), .16), rgba(var(--brand-primary-rgb), .04));
     }
 
-    .nav-tabs {
-      border-bottom: 2px solid #e2e8f0;
-
-      .nav-link {
-        border: none;
-        color: #64748b;
-        font-weight: 500;
-        padding: 0.75rem 1.25rem;
-        cursor: pointer;
-
-        &:hover {
-          color: var(--bs-primary);
-        }
-
-        &.active {
-          color: var(--bs-primary);
-          border-bottom: 2px solid var(--bs-primary);
-          margin-bottom: -2px;
-        }
-      }
+    .path-card .path-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
-    .path-card {
-      border: none;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      border-radius: 12px;
-      overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
-
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-      }
-
-      .path-thumbnail {
-        position: relative;
-        height: 140px;
-        background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-
-        img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .thumbnail-placeholder {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
-          i {
-            font-size: 2.5rem;
-            color: #94a3b8;
-          }
-        }
-
-        .completion-badge {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          background: #22c55e;
-          color: white;
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-
-        .overdue-badge {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          background: #ef4444;
-          color: white;
-          padding: 0.25rem 0.75rem;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-      }
-
-      .card-title {
-        font-size: 1rem;
-        margin-bottom: 0;
-
-        a {
-          color: inherit;
-          text-decoration: none;
-
-          &:hover {
-            color: var(--bs-primary);
-          }
-        }
-      }
-
-      .path-stats {
-        display: flex;
-        gap: 1rem;
-
-        .stat {
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-          font-size: 0.8125rem;
-          color: #64748b;
-        }
-      }
-
-      .card-footer {
-        border-top: 1px solid #f1f5f9;
-        padding: 0.75rem 1rem;
-      }
+    .path-card .thumbnail-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .empty-state i {
-      opacity: 0.3;
+    .path-card .thumbnail-placeholder i {
+      font-size: 2.25rem;
+      color: rgba(var(--brand-primary-rgb), .55);
+    }
+
+    /* Overlay chips on the thumbnail */
+    .path-card .completion-badge,
+    .path-card .overdue-badge {
+      position: absolute;
+      top: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 10px;
+      height: 24px;
+      border-radius: 999px;
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+
+    .path-card .completion-badge {
+      right: 12px;
+      background: var(--ui-success, #2e7d4f);
+    }
+
+    .path-card .overdue-badge {
+      left: 12px;
+      background: var(--ui-danger, #c0352b);
+    }
+
+    .path-card .card-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .path-card .card-title a:hover {
+      color: var(--brand-primary);
+    }
+
+    .path-card .ui-bar.is-complete > span {
+      background: var(--ui-success, #2e7d4f);
+    }
+
+    .path-card .path-stats {
+      display: flex;
+      gap: 1rem;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--ui-border);
+    }
+
+    .path-card .path-stats .stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .75rem;
+      color: var(--ui-text-muted);
     }
   `]
 })

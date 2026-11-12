@@ -1,170 +1,72 @@
-@use 'sass:color';
 // admin-live-training.component.scss
-
-// Variables
 //
-// The organisation's colour when it has chosen one, this grey when it
-// has not. `primary_color` has been in the settings catalogue since it
-// was written, describing itself as honoured by "the web app theme";
-// until now every stylesheet hardcoded its own and nothing honoured it.
-//
-// A CSS variable, not a Sass one, because the value arrives after this
-// file is compiled. That rules out `darken()` — see the button states
-// below, which mix towards black at run time instead.
-$primary: var(--brand-primary, #303234);
-$primary-light: #696969;
-$border-radius: 12px;
-$transition: all 0.2s ease;
-// Page Header
-.page-header {
-  .page-title {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: #1a1a2e;
+// Page chrome (header, toolbar, tabs, KPIs, sections, cards, pills, buttons,
+// tables, states) comes from the global UI kit in styles.scss, and the accent
+// is always the tenant brand colour. Only this screen's own pieces live here.
 
-    i {
-      color: $primary;
-    }
-  }
+// Toolbar filters sit at the kit's control height.
+.ui-toolbar .ui-filters .form-select {
+  width: auto;
+  min-width: 150px;
 }
 
 // Training Cards
 .training-card {
-  border: none;
-  border-radius: $border-radius;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   cursor: pointer;
-  transition: $transition;
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
-
-  .card-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #1a1a2e;
-    margin-bottom: 0.5rem;
+  .ui-card__footer {
+    cursor: pointer;
   }
 }
 
 .training-type-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ui-radius-ctl);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-
-  &.type-physical {
-    background: rgba(25, 135, 84, 0.15);
-    color: #198754;
-  }
-
-  &.type-virtual {
-    background: rgba(13, 110, 253, 0.15);
-    color: #0d6efd;
-  }
-
-  &.type-hybrid {
-    background: rgba(111, 66, 193, 0.15);
-    color: #6f42c1;
-  }
+  font-size: 1.1rem;
+  background: rgba(var(--brand-primary-rgb), .1);
+  color: var(--brand-primary);
 }
 
 .training-stats {
   display: flex;
-  gap: 1.5rem;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 4px;
 
   .stat-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: #6c757d;
+    gap: 6px;
+    font-size: .8125rem;
+    color: var(--ui-text-muted);
 
     i {
-      font-size: 1rem;
+      font-size: .9rem;
+      color: var(--ui-text-subtle);
     }
   }
 }
 
-// Nav Pills
-.nav-pills {
-  gap: 0.5rem;
-
-  .nav-link {
-    border-radius: 8px;
-    padding: 0.625rem 1rem;
-    color: #6c757d;
-    font-weight: 500;
-    transition: $transition;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.05);
-    }
-
-    &.active {
-      background: $primary;
-      color: #fff;
-    }
-
-    .badge {
-      font-size: 0.7rem;
-    }
-  }
+// Overview: main column + side column.
+.overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
 }
 
-// Cards
-.card {
-  border: none;
-  border-radius: $border-radius;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-
-  .card-header {
-    background: #fff;
-    border-bottom: 1px solid #f0f0f0;
-    padding: 1rem 1.25rem;
-
-    .card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1a1a2e;
-    }
-  }
+@media (max-width: 991.98px) {
+  .overview-layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
 }
 
-// Stat Cards
-.stat-card {
-  .card-body {
-    padding: 1.5rem;
-  }
-
-  .stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1a1a2e;
-    line-height: 1;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: #6c757d;
-    margin-top: 0.25rem;
-  }
+.detail-label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: .75rem;
+  color: var(--ui-text-muted);
 }
 
 // Stat Rows
@@ -172,15 +74,21 @@ $transition: all 0.2s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ui-border);
+  font-size: .875rem;
+
+  &:first-of-type { padding-top: 0; }
 
   &:last-child {
     border-bottom: none;
+    padding-bottom: 0;
   }
 
   strong {
-    font-size: 1.125rem;
+    font-size: 1rem;
+    font-weight: 650;
+    color: var(--ui-text);
   }
 }
 
@@ -188,76 +96,26 @@ $transition: all 0.2s ease;
 .reminder-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
-  color: #6c757d;
-
-  &.active {
-    color: #1a1a2e;
-  }
+  gap: 10px;
+  padding: 6px 0;
+  font-size: .875rem;
+  color: var(--ui-text-muted);
 
   i {
-    font-size: 1.125rem;
+    font-size: 1rem;
+    color: var(--ui-text-subtle);
+  }
+
+  &.active {
+    color: var(--ui-text);
+
+    i { color: var(--brand-primary); }
   }
 }
 
-// Tables
-.table {
-  th {
-    font-weight: 600;
-    font-size: 0.8125rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #6c757d;
-    border-bottom-width: 1px;
-  }
-
-  td {
-    vertical-align: middle;
-    padding: 1rem 0.75rem;
-  }
-
-  .btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
-  }
-}
-
-// Avatar
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  overflow: hidden;
-  background: $primary-light;
-
-  &-sm {
-    width: 36px;
-    height: 36px;
-  }
-
-  &-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  &-initials {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: $primary;
-    text-transform: uppercase;
-  }
-}
-
-// Progress
-.progress {
-  background: #e9ecef;
-  border-radius: 4px;
-
-  .progress-bar {
-    border-radius: 4px;
-  }
+.empty-icon {
+  font-size: 1.75rem;
+  color: var(--ui-text-subtle);
 }
 
 // Attendance Breakdown
@@ -266,69 +124,100 @@ $transition: all 0.2s ease;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 0;
+    padding: 8px 0;
+    font-size: .875rem;
 
     .breakdown-label {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      color: #6c757d;
+      gap: 8px;
+      color: var(--ui-text-muted);
     }
 
     .breakdown-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
     .breakdown-value {
-      font-weight: 600;
-      font-size: 1.125rem;
-      color: #1a1a2e;
+      font-weight: 650;
+      font-size: 1rem;
+      color: var(--ui-text);
     }
+  }
+
+  &.breakdown-divided {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ui-border);
   }
 }
 
 // Certification Breakdown
 .certification-breakdown {
   display: flex;
-  gap: 1.5rem;
+  gap: 16px;
 
   .cert-item {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 12px;
 
     .cert-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--ui-radius-ctl);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      font-size: 1.05rem;
+      flex-shrink: 0;
+
+      &.tone-success { background: rgba(var(--ui-success-rgb), .1); color: var(--ui-success-text); }
+      &.tone-danger  { background: rgba(var(--ui-danger-rgb), .1);  color: var(--ui-danger-text); }
+      &.tone-brand   { background: rgba(var(--brand-primary-rgb), .1); color: var(--brand-primary); }
     }
 
     .cert-value {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #1a1a2e;
+      font-size: 1.375rem;
+      font-weight: 650;
+      color: var(--ui-text);
       line-height: 1;
     }
 
     .cert-label {
-      font-size: 0.8125rem;
-      color: #6c757d;
+      font-size: .8125rem;
+      color: var(--ui-text-muted);
     }
   }
 }
 
+// Integration platform icon
+.integration-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ui-radius-ctl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: rgba(var(--brand-primary-rgb), .1);
+  color: var(--brand-primary);
+}
+
+// Soft inset panel used inside modals.
+.soft-panel {
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-2);
+}
+
 // QR Code
 .qr-container {
-  padding: 1.5rem;
-  background: #f8f9fa;
-  border-radius: $border-radius;
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
   display: inline-block;
 
   .qr-image {
@@ -339,190 +228,44 @@ $transition: all 0.2s ease;
 
 // Modals
 .modal-content {
-  border: none;
-  border-radius: $border-radius;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-panel);
 
   .modal-header {
-    border-bottom: 1px solid #f0f0f0;
-    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--ui-border);
+    padding: 16px 20px;
 
     .modal-title {
-      font-weight: 600;
+      font-size: 1rem;
+      font-weight: 650;
 
       i {
-        color: $primary;
+        color: var(--brand-primary);
       }
     }
   }
 
   .modal-body {
-    padding: 1.5rem;
+    padding: 20px;
   }
 
   .modal-footer {
-    border-top: 1px solid #f0f0f0;
-    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--ui-border);
+    padding: 14px 20px;
   }
-}
-
-// Form Controls
-.form-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #1a1a2e;
-  margin-bottom: 0.5rem;
-}
-
-.form-control,
-.form-select {
-  border-radius: 8px;
-  border-color: #e0e0e0;
-  padding: 0.625rem 0.875rem;
-
-  &:focus {
-    border-color: $primary;
-    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 15%, transparent);
-  }
-}
-
-.form-check-input {
-  &:checked {
-    background-color: $primary;
-    border-color: $primary;
-  }
-
-  &:focus {
-    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 15%, transparent);
-  }
-}
-
-// Buttons
-//
-// `.btn-primary` was declared twice, and the second declaration set
-// `color` to the same value as the first set `background`. Every primary
-// button on these screens was its own colour on its own colour: "Create
-// Training", "Save", "Add Session" — all of them blank rectangles with
-// the label invisible inside. The second block is an outline button that
-// was never renamed, and it is one below.
-.btn-primary {
-  background: $primary;
-  border-color: $primary;
-  color: #fff;
-
-  &:hover,
-  &:focus,
-  &:active,
-  &.active,
-  &:first-child:active {
-    // Bootstrap's own active state would repaint this its blue, so each
-    // state is stated rather than left to whichever rule loads last.
-    background: color-mix(in srgb, $primary 92%, black);
-    border-color: color-mix(in srgb, $primary 88%, black);
-    color: #fff;
-  }
-
-  &:focus,
-  &:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 25%, transparent);
-  }
-
-  &:disabled,
-  &.disabled {
-    background: $primary;
-    border-color: $primary;
-    color: #fff;
-    opacity: 0.55;
-  }
-}
-
-.btn-outline-primary {
-  background: transparent;
-  color: $primary;
-  border-color: $primary;
-
-  &:hover,
-  &:focus,
-  &:active,
-  &.active,
-  &:first-child:active {
-    background: $primary;
-    border-color: $primary;
-    color: #fff;
-  }
-
-  &:focus,
-  &:focus-visible {
-    box-shadow: 0 0 0 3px color-mix(in srgb, $primary 25%, transparent);
-  }
-}
-
-// Badges
-.badge {
-  font-weight: 500;
-  padding: 0.35em 0.65em;
-  border-radius: 6px;
-}
-
-// Alerts
-.alert {
-  border: none;
-  border-radius: 8px;
 }
 
 // Responsive
 @media (max-width: 991.98px) {
   .certification-breakdown {
     flex-direction: column;
-    gap: 1rem;
+    gap: 12px;
   }
 }
 
 @media (max-width: 767.98px) {
-  .page-header {
-    .page-title {
-      font-size: 1.5rem;
-    }
-  }
-
-  .training-stats {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .nav-pills {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-
-    .nav-link {
-      white-space: nowrap;
-    }
-  }
-
-  .stat-card {
-    .stat-value {
-      font-size: 1.5rem;
-    }
-  }
-
   .qr-container .qr-image {
     width: 200px;
     height: 200px;
   }
-}
-
-// Loading Spinner
-.spinner-border {
-  width: 1rem;
-  height: 1rem;
-  border-width: 2px;
-}
-
-// Empty States
-.display-1 {
-  opacity: 0.3;
-}
-
-.display-4 {
-  opacity: 0.4;
 }

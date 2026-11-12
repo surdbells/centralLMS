@@ -119,9 +119,9 @@ interface AttendanceStats {
   `,
   styles: [`
     .attendance-widget {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      background: var(--ui-surface);
+      border-radius: var(--ui-radius-card, 12px);
+      border: 1px solid var(--ui-border);
       overflow: hidden;
     }
 
@@ -130,17 +130,17 @@ interface AttendanceStats {
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.25rem;
-      border-bottom: 1px solid #f0f0f0;
-      background: #f8f9fa;
+      border-bottom: 1px solid var(--ui-border);
+      background: var(--ui-surface-2);
     }
 
     .widget-title {
       font-weight: 600;
-      color: #1a1a2e;
+      color: var(--ui-text);
       font-size: 0.9375rem;
 
       i {
-        color: #303234;
+        color: var(--brand-primary);
       }
     }
 
@@ -169,7 +169,7 @@ interface AttendanceStats {
         position: absolute;
         width: 90px;
         height: 90px;
-        background: #fff;
+        background: var(--ui-surface);
         border-radius: 50%;
       }
 
@@ -181,19 +181,19 @@ interface AttendanceStats {
       .rate-number {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #1a1a2e;
+        color: var(--ui-text);
       }
 
       .rate-percent {
         font-size: 0.875rem;
-        color: #6c757d;
+        color: var(--ui-text-muted);
       }
 
       .rate-label {
         position: relative;
         z-index: 1;
         font-size: 0.6875rem;
-        color: #6c757d;
+        color: var(--ui-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -208,7 +208,7 @@ interface AttendanceStats {
 
     .breakdown-item {
       padding: 0.75rem 0.5rem;
-      background: #f8f9fa;
+      background: var(--ui-surface-2);
       border-radius: 8px;
 
       .breakdown-value {
@@ -220,7 +220,7 @@ interface AttendanceStats {
 
       .breakdown-label {
         font-size: 0.6875rem;
-        color: #6c757d;
+        color: var(--ui-text-muted);
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -232,7 +232,7 @@ interface AttendanceStats {
         height: 8px;
         border-radius: 4px;
         overflow: hidden;
-        background: #e9ecef;
+        background: var(--ui-surface-2);
       }
 
       .segment {
@@ -254,7 +254,7 @@ interface AttendanceStats {
           align-items: center;
           gap: 0.25rem;
           font-size: 0.75rem;
-          color: #6c757d;
+          color: var(--ui-text-muted);
         }
 
         .dot {
@@ -275,7 +275,7 @@ interface AttendanceStats {
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 0;
-        border-bottom: 1px dashed #e9ecef;
+        border-bottom: 1px dashed var(--ui-border);
 
         &:last-child {
           border-bottom: none;
@@ -289,7 +289,7 @@ interface AttendanceStats {
         .session-title {
           font-weight: 500;
           font-size: 0.875rem;
-          color: #1a1a2e;
+          color: var(--ui-text);
         }
 
         .session-time {

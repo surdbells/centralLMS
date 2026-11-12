@@ -30,6 +30,16 @@ import { TranslatePipe } from '../../../../translate.pipe';
   styles: [`
     .mono { font-family: var(--bs-font-monospace); font-size: .75rem; }
     .cursor-pointer { cursor: pointer; }
+    .audit-section > .ui-toolbar { padding: 16px 22px 0; }
+    .audit-toolbar .form-control[type=date] { min-width: 140px; }
+    .table-responsive { border-top: 1px solid var(--ui-border); }
+    .detail-row > td { background: var(--ui-surface-2); }
+    .table-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 22px;
+      border-top: 1px solid var(--ui-border); }
+    @media (max-width: 575.98px) {
+      .audit-section > .ui-toolbar { padding: 14px 16px 0; }
+      .table-foot { padding: 10px 16px; }
+    }
   `],
 })
 export class UserActivityLogComponent implements OnInit, OnDestroy {

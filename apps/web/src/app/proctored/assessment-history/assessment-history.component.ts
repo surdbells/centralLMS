@@ -76,82 +76,71 @@ interface PaginationInfo {
   template: `
     <app-top></app-top>
     <main class="main">
-      <div class="container-fluid py-4">
+      <div class="ui-page">
         <!-- ==========================================
              PAGE HEADER
              ========================================== -->
-        <div class="page-header mb-4">
-          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <h5 class="mb-1">
-                <tui-icon icon="@tui.clock" class="me-2"></tui-icon> Assessment History
-              </h5>
-              <p class="text-muted mb-0" *ngIf="stats">
-                {{ stats.total_attempts }} total attempts · {{ stats.pass_rate | number:'1.0-0' }}% pass rate
-              </p>
-            </div>
-            <button class="btn btn-sm btn-secondary" (click)="exportHistory()">
-              <tui-icon icon="@tui.download" class="me-1"></tui-icon> Export
+        <header class="ui-page-header">
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clock-history"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>Assessment History</h1>
+            <p *ngIf="stats">
+              {{ stats.total_attempts }} total attempts · {{ stats.pass_rate | number:'1.0-0' }}% pass rate
+            </p>
+            <p *ngIf="!stats">Every assessment attempt you have made</p>
+          </div>
+          <div class="ui-page-header__actions">
+            <button type="button" class="btn btn-outline-secondary" (click)="exportHistory()">
+              <i class="bi bi-download"></i> Export
             </button>
           </div>
-        </div>
+        </header>
 
         <!-- ==========================================
              STATS CARDS
              ========================================== -->
-        <div class="row g-3 mb-4" *ngIf="stats && !loading">
-          <div class="col-6 col-md-2">
-            <div class="stat-card">
-              <div class="stat-value text-primary">{{ stats.total_attempts }}</div>
-              <div class="stat-label">Total Attempts</div>
-            </div>
+        <div class="ui-kpi-grid history-kpis" *ngIf="stats && !loading">
+          <div class="ui-kpi ui-kpi--brand">
+            <span class="ui-kpi__label"><i class="bi bi-list-check"></i> Total Attempts</span>
+            <span class="ui-kpi__value">{{ stats.total_attempts }}</span>
           </div>
-          <div class="col-6 col-md-2">
-            <div class="stat-card">
-              <div class="stat-value text-success">{{ stats.total_passed }}</div>
-              <div class="stat-label">Passed</div>
-            </div>
+          <div class="ui-kpi ui-kpi--success">
+            <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> Passed</span>
+            <span class="ui-kpi__value">{{ stats.total_passed }}</span>
           </div>
-          <div class="col-6 col-md-2">
-            <div class="stat-card">
-              <div class="stat-value text-danger">{{ stats.total_failed }}</div>
-              <div class="stat-label">Failed</div>
-            </div>
+          <div class="ui-kpi ui-kpi--danger">
+            <span class="ui-kpi__label"><i class="bi bi-x-circle"></i> Failed</span>
+            <span class="ui-kpi__value">{{ stats.total_failed }}</span>
           </div>
-          <div class="col-6 col-md-2">
-            <div class="stat-card">
-              <div class="stat-value text-info">{{ stats.average_score | number:'1.0-0' }}%</div>
-              <div class="stat-label">Avg Score</div>
-            </div>
+          <div class="ui-kpi ui-kpi--info">
+            <span class="ui-kpi__label"><i class="bi bi-graph-up"></i> Avg Score</span>
+            <span class="ui-kpi__value">{{ stats.average_score | number:'1.0-0' }}<small>%</small></span>
           </div>
-          <div class="col-6 col-md-2">
-            <div class="stat-card">
-              <div class="stat-value text-warning">{{ stats.best_score | number:'1.0-0' }}%</div>
-              <div class="stat-label">Best Score</div>
-            </div>
+          <div class="ui-kpi ui-kpi--warning">
+            <span class="ui-kpi__label"><i class="bi bi-trophy"></i> Best Score</span>
+            <span class="ui-kpi__value">{{ stats.best_score | number:'1.0-0' }}<small>%</small></span>
           </div>
-          <div class="col-6 col-md-2">
-            <div class="stat-card">
-              <div class="stat-value">{{ stats.certificates_earned }}</div>
-              <div class="stat-label">Certificates</div>
-            </div>
+          <div class="ui-kpi ui-kpi--brand">
+            <span class="ui-kpi__label"><i class="bi bi-award"></i> Certificates</span>
+            <span class="ui-kpi__value">{{ stats.certificates_earned }}</span>
           </div>
         </div>
 
-        <!-- ==========================================
-             FILTERS
-             ========================================== -->
-        <div class="filter-bar mb-3">
-          <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-              <div class="input-group input-group-sm">
-                <span class="input-group-text"><tui-icon icon="@tui.search"></tui-icon></span>
-                <input type="text" class="form-control" placeholder="Search assessments..."
-                       [(ngModel)]="filters.search" (ngModelChange)="onFilterChange()">
-              </div>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.type" (ngModelChange)="onFilterChange()">
+        <section class="ui-section ui-section--flush">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Attempts</h2><p class="ui-section__subtitle">Search, filter and sort your attempts</p></div>
+          </div>
+          <!-- ==========================================
+               FILTERS
+               ========================================== -->
+          <div class="ui-toolbar">
+            <label class="ui-search">
+              <i class="bi bi-search"></i>
+              <input type="search" placeholder="Search assessments..." aria-label="Search assessments"
+                     [(ngModel)]="filters.search" (ngModelChange)="onFilterChange()">
+            </label>
+            <div class="ui-filters">
+              <select class="form-select" [(ngModel)]="filters.type" (ngModelChange)="onFilterChange()" aria-label="Type">
                 <option value="">All Types</option>
                 <option value="exam">Exam</option>
                 <option value="quiz">Quiz</option>
@@ -159,56 +148,46 @@ interface PaginationInfo {
                 <option value="survey">Survey</option>
                 <option value="assignment">Assignment</option>
               </select>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.status" (ngModelChange)="onFilterChange()">
+              <select class="form-select" [(ngModel)]="filters.status" (ngModelChange)="onFilterChange()" aria-label="Status">
                 <option value="">All Status</option>
                 <option value="completed">Completed</option>
                 <option value="in_progress">In Progress</option>
                 <option value="submitted">Submitted</option>
                 <option value="abandoned">Abandoned</option>
               </select>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.result" (ngModelChange)="onFilterChange()">
+              <select class="form-select" [(ngModel)]="filters.result" (ngModelChange)="onFilterChange()" aria-label="Result">
                 <option value="">All Results</option>
                 <option value="passed">Passed</option>
                 <option value="failed">Failed</option>
                 <option value="pending">Pending Grading</option>
               </select>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.sort" (ngModelChange)="onFilterChange()">
+              <select class="form-select" [(ngModel)]="filters.sort" (ngModelChange)="onFilterChange()" aria-label="Sort">
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
                 <option value="score_high">Highest Score</option>
                 <option value="score_low">Lowest Score</option>
                 <option value="title_az">Title A-Z</option>
               </select>
-            </div>
-            <div class="col-md-1">
-              <button class="btn btn-sm btn-secondary w-100" (click)="clearFilters()" title="Clear filters">
-                <tui-icon icon="@tui.x"></tui-icon>
+              <button type="button" class="btn btn-outline-secondary clear-btn" (click)="clearFilters()" title="Clear filters" aria-label="Clear filters">
+                <i class="bi bi-x-lg"></i>
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- ==========================================
-             LOADING
-             ========================================== -->
-        <div class="text-center py-5" *ngIf="loading">
-          <div class="spinner-border text-primary"></div>
-          <p class="mt-2 text-muted">Loading history...</p>
-        </div>
+          <!-- ==========================================
+               LOADING
+               ========================================== -->
+          <div class="text-center py-5" *ngIf="loading">
+            <div class="spinner-border text-secondary"></div>
+            <p class="mt-2 ui-muted">Loading history...</p>
+          </div>
 
-        <!-- ==========================================
-             HISTORY TABLE
-             ========================================== -->
-        <div class="card" *ngIf="!loading">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
+          <!-- ==========================================
+               HISTORY TABLE
+               ========================================== -->
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table align-middle mb-0">
+              <thead>
                 <tr>
                   <th style="width: 30%">Assessment</th>
                   <th class="text-center">Attempt</th>
@@ -229,11 +208,10 @@ interface PaginationInfo {
                         <span class="badge badge-sm" [ngClass]="getTypeBadgeClass(item.assessment_type)">
                           {{ item.assessment_type }}
                         </span>
-                        <tui-icon *ngIf="item.proctored" icon="@tui.eye" class="text-info"
-                                  title="Proctored Assessment"></tui-icon>
+                        <i *ngIf="item.proctored" class="bi bi-eye proctor-icon" title="Proctored Assessment"></i>
                       </div>
                       <h6 class="assessment-title mb-0 mt-1">{{ item.assessment_title }}</h6>
-                      <small class="text-muted" *ngIf="item.category_name">{{ item.category_name }}</small>
+                      <small class="ui-muted" *ngIf="item.category_name">{{ item.category_name }}</small>
                     </div>
                   </td>
                   <td class="text-center">
@@ -253,8 +231,8 @@ interface PaginationInfo {
                         {{ item.total_score | number:'1.0-1' }}/{{ item.max_score | number:'1.0-1' }}
                       </div>
                     </div>
-                    <span *ngIf="item.status === 'in_progress'" class="text-muted">-</span>
-                    <span *ngIf="item.status === 'abandoned'" class="text-muted">N/A</span>
+                    <span *ngIf="item.status === 'in_progress'" class="ui-muted">-</span>
+                    <span *ngIf="item.status === 'abandoned'" class="ui-muted">N/A</span>
                   </td>
                   <td class="text-center">
                     <span class="badge" [ngClass]="getResultBadgeClass(item)">
@@ -262,77 +240,75 @@ interface PaginationInfo {
                     </span>
                     <div *ngIf="item.violation_count > 0" class="mt-1">
                       <small class="text-danger">
-                        <tui-icon icon="@tui.alert-triangle" class="me-1"></tui-icon>
+                        <i class="bi bi-exclamation-triangle me-1"></i>
                         {{ item.violation_count }} violation(s)
                       </small>
                     </div>
                   </td>
                   <td class="text-center">
                     <span *ngIf="item.grade && item.status === 'completed'" class="grade-badge">{{ item.grade }}</span>
-                    <span *ngIf="item.status !== 'completed'" class="text-muted">-</span>
+                    <span *ngIf="item.status !== 'completed'" class="ui-muted">-</span>
                   </td>
                   <td>
                     <div class="date-info">
                       <span class="date-primary">{{ formatDate(item.started_at) }}</span>
-                      <small class="text-muted d-block" *ngIf="item.completed_at">
+                      <small class="ui-muted d-block" *ngIf="item.completed_at">
                         Completed: {{ formatDate(item.completed_at) }}
                       </small>
                     </div>
                   </td>
                   <td class="text-center">
                     <span *ngIf="item.duration_seconds > 0">{{ formatDuration(item.duration_seconds) }}</span>
-                    <span *ngIf="!item.duration_seconds" class="text-muted">-</span>
+                    <span *ngIf="!item.duration_seconds" class="ui-muted">-</span>
                   </td>
                   <td class="text-center">
                     <div class="d-flex justify-content-center gap-1">
-                      <button class="btn btn-sm btn-primary" (click)="viewResults(item)"
+                      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewResults(item)"
                               *ngIf="item.status === 'completed' || item.status === 'submitted'"
-                              title="View Results">
-                        <tui-icon icon="@tui.eye"></tui-icon>
+                              title="View Results" aria-label="View Results">
+                        <i class="bi bi-eye"></i>
                       </button>
-                      <button class="btn btn-sm btn-outline-warning" (click)="resumeAttempt(item)"
-                              *ngIf="item.status === 'in_progress'" title="Resume">
-                        <tui-icon icon="@tui.play"></tui-icon>
+                      <button type="button" class="btn btn-sm btn-primary" (click)="resumeAttempt(item)"
+                              *ngIf="item.status === 'in_progress'" title="Resume" aria-label="Resume">
+                        <i class="bi bi-play-fill"></i>
                       </button>
-                      <button class="btn btn-sm btn-success" (click)="viewCertificate(item)"
-                              *ngIf="item.has_certificate" title="View Certificate">
-                        <tui-icon icon="@tui.award"></tui-icon>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewCertificate(item)"
+                              *ngIf="item.has_certificate" title="View Certificate" aria-label="View Certificate">
+                        <i class="bi bi-award"></i>
                       </button>
                     </div>
                   </td>
                 </tr>
               </tbody>
             </table>
-
-            <!-- No Results -->
-            <div class="empty-state" *ngIf="attempts.length === 0">
-              <tui-icon icon="@tui.clock" class="empty-icon"></tui-icon>
-              <h6>No Assessment History</h6>
-              <p *ngIf="hasActiveFilters()">No results match your filters. Try adjusting them.</p>
-              <p *ngIf="!hasActiveFilters()">You haven't taken any assessments yet.</p>
-              <button class="btn btn-primary btn-sm" *ngIf="!hasActiveFilters()" (click)="goToAssessments()">
-                <tui-icon icon="@tui.file-text" class="me-1"></tui-icon> Browse Assessments
-              </button>
-              <button class="btn btn-secondary btn-sm" *ngIf="hasActiveFilters()" (click)="clearFilters()">
-                <tui-icon icon="@tui.x" class="me-1"></tui-icon> Clear Filters
-              </button>
-            </div>
           </div>
-        </div>
 
-        <!-- ==========================================
-             PAGINATION
-             ========================================== -->
-        <div class="pagination-bar mt-3" *ngIf="pagination && pagination.total_pages > 1">
-          <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">
+          <!-- No Results -->
+          <div class="ui-state history-empty" *ngIf="!loading && attempts.length === 0">
+            <span class="ui-state__icon"><i class="bi bi-clock-history"></i></span>
+            <h3>No Assessment History</h3>
+            <p *ngIf="hasActiveFilters()">No results match your filters. Try adjusting them.</p>
+            <p *ngIf="!hasActiveFilters()">You haven't taken any assessments yet.</p>
+            <button type="button" class="btn btn-primary btn-sm" *ngIf="!hasActiveFilters()" (click)="goToAssessments()">
+              <i class="bi bi-file-earmark-text me-1"></i> Browse Assessments
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" *ngIf="hasActiveFilters()" (click)="clearFilters()">
+              <i class="bi bi-x-lg me-1"></i> Clear Filters
+            </button>
+          </div>
+
+          <!-- ==========================================
+               PAGINATION
+               ========================================== -->
+          <div class="pagination-bar" *ngIf="pagination && pagination.total_pages > 1">
+            <p class="ui-result-count mb-0">
               Showing {{ getShowingStart() }}-{{ getShowingEnd() }} of {{ pagination.total_records }}
-            </small>
+            </p>
             <nav>
               <ul class="pagination pagination-sm mb-0">
                 <li class="page-item" [class.disabled]="pagination.current_page <= 1">
-                  <a class="page-link" href="javascript:void(0)" (click)="goToPage(pagination.current_page - 1)">
-                    <tui-icon icon="@tui.chevron-left"></tui-icon>
+                  <a class="page-link" href="javascript:void(0)" (click)="goToPage(pagination.current_page - 1)" aria-label="Previous page">
+                    <i class="bi bi-chevron-left"></i>
                   </a>
                 </li>
                 <li class="page-item" *ngFor="let page of getPageNumbers()"
@@ -343,73 +319,64 @@ interface PaginationInfo {
                   </a>
                 </li>
                 <li class="page-item" [class.disabled]="pagination.current_page >= pagination.total_pages">
-                  <a class="page-link" href="javascript:void(0)" (click)="goToPage(pagination.current_page + 1)">
-                    <tui-icon icon="@tui.chevron-right"></tui-icon>
+                  <a class="page-link" href="javascript:void(0)" (click)="goToPage(pagination.current_page + 1)" aria-label="Next page">
+                    <i class="bi bi-chevron-right"></i>
                   </a>
                 </li>
               </ul>
             </nav>
-            <select class="form-select form-select-sm" style="width: 90px;"
+            <select class="form-select per-page" aria-label="Rows per page"
                     [(ngModel)]="filters.perPage" (ngModelChange)="onFilterChange()">
               <option [value]="10">10</option>
               <option [value]="25">25</option>
               <option [value]="50">50</option>
             </select>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   `,
   styles: [`
     :host { display: block; }
 
-    .stat-card {
-      background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem;
-      padding: 1rem; text-align: center;
-      .stat-value { font-size: 1.25rem; font-weight: 700; }
-      .stat-label { font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem; }
-    }
+    .history-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 20px; }
+    @media (max-width: 1199.98px) { .history-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 767.98px) { .history-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-    .filter-bar { background: #f8f9fa; border-radius: 0.5rem; padding: 0.75rem; }
+    .ui-section--flush > .ui-toolbar { padding-bottom: 4px; }
+    .clear-btn { width: var(--ui-ctl-h); padding: 0; }
 
-    .history-row {
-      &.in-progress { background: #fffef5; }
-      &:hover { background: #f8f9fa; }
-    }
+    .history-row.in-progress > td { background: rgba(var(--ui-warning-rgb), .04); }
 
-    .assessment-info {
-      .assessment-title { font-size: 0.9rem; font-weight: 600; color: #212529; }
-    }
+    .assessment-title { font-size: .875rem; font-weight: 600; color: var(--ui-text); }
+    .proctor-icon { color: var(--brand-primary); }
 
-    .badge-sm { font-size: 0.65rem; padding: 0.15rem 0.4rem; text-transform: uppercase; }
+    .badge-sm { font-size: .65rem; text-transform: uppercase; }
 
     .attempt-badge {
-      display: inline-block; background: #e9ecef; padding: 0.2rem 0.5rem;
-      border-radius: 0.25rem; font-weight: 600; font-size: 0.85rem;
+      display: inline-block; background: var(--ui-surface-2); border: 1px solid var(--ui-border);
+      padding: .15rem .5rem; border-radius: var(--ui-radius-ctl); font-weight: 600; font-size: .8125rem;
+      font-variant-numeric: tabular-nums;
     }
 
-    .score-value { font-size: 1rem; font-weight: 700; display: block; }
-    .score-detail { font-size: 0.75rem; color: #6c757d; }
+    .score-value { font-size: .9375rem; font-weight: 700; display: block; font-variant-numeric: tabular-nums; }
+    .score-detail { font-size: .75rem; color: var(--ui-text-muted); font-variant-numeric: tabular-nums; }
 
     .grade-badge {
-      display: inline-block; background: #c9a227; color: #fff;
+      display: inline-block; background: rgba(var(--brand-primary-rgb), .1); color: var(--brand-primary);
       width: 32px; height: 32px; line-height: 32px; border-radius: 50%;
-      text-align: center; font-weight: 700; font-size: 0.8rem;
+      text-align: center; font-weight: 700; font-size: .8rem;
     }
 
-    .date-info { .date-primary { font-size: 0.85rem; color: #212529; } }
+    .date-primary { font-size: .8125rem; color: var(--ui-text); }
 
-    .empty-state {
-      text-align: center; padding: 3rem 1rem; color: #6c757d;
-      .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+    .history-empty { margin: 0 22px 22px; }
+
+    .pagination-bar {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 14px 22px; border-top: 1px solid var(--ui-border);
     }
-
-    .pagination-bar { padding: 0.5rem 0; }
-
-    @media (max-width: 768px) {
-      .stat-card { padding: 0.75rem; .stat-value { font-size: 1rem; } }
-      .filter-bar .row > div { margin-bottom: 0.25rem; }
-    }
+    .per-page { width: 90px; }
   `]
 })
 export class AssessmentHistoryComponent implements OnInit, OnDestroy {

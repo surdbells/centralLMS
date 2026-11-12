@@ -6,7 +6,7 @@
 
 <ng-container *ngIf="!loading && report as r">
   <!-- Cycle selector -->
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div class="ui-toolbar">
     <div class="text-muted small" [innerHTML]="'competency.outcome.intro' | translate">
     </div>
     <div class="d-flex align-items-center gap-2" *ngIf="r.cycles.length">
@@ -19,10 +19,10 @@
   </div>
 
   <!-- Nothing finalised yet -->
-  <div *ngIf="r.coverage.finalized === 0" class="empty-panel text-center py-5">
-    <tui-icon icon="@tui.clipboard-list" class="empty-icon"></tui-icon>
-    <h5 class="mt-3 mb-1">{{ 'competency.reports.nothing_finalised' | translate }}</h5>
-    <p class="text-muted mb-3">
+  <div *ngIf="r.coverage.finalized === 0" class="ui-state">
+    <span class="ui-state__icon"><tui-icon icon="@tui.clipboard-list"></tui-icon></span>
+    <h3>{{ 'competency.reports.nothing_finalised' | translate }}</h3>
+    <p>
       {{ 'competency.outcome.empty_text' | translate }}
     </p>
     <a routerLink="/admin/competency/assessments" class="btn btn-primary btn-sm">
@@ -32,45 +32,37 @@
 
   <ng-container *ngIf="r.coverage.finalized > 0">
     <!-- Headline cards -->
-    <div class="row g-3 mb-4">
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.outcome.workforce_readiness' | translate }}</div>
-          <div class="stat-value" [class]="readinessClass(r.gaps.readiness)">
+    <div class="ui-kpi-grid ui-kpi-grid--4">
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.outcome.workforce_readiness' | translate }}</span>
+          <span class="ui-kpi__value" [class]="readinessClass(r.gaps.readiness)">
             {{ r.gaps.readiness !== null ? (r.gaps.readiness | number: '1.0-1') + '%' : '-' }}
-          </div>
-          <div class="stat-sub">{{ 'competency.outcome.requirements_met' | translate: { met: r.gaps.met, total: r.gaps.requirements } }}</div>
-        </div>
+          </span>
+          <span class="ui-kpi__sub">{{ 'competency.outcome.requirements_met' | translate: { met: r.gaps.met, total: r.gaps.requirements } }}</span>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.outcome.people_assessed' | translate }}</div>
-          <div class="stat-value">{{ r.coverage.people }}</div>
-          <div class="stat-sub">{{ 'competency.outcome.n_finalised' | translate: { count: r.coverage.finalized } }}</div>
-        </div>
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.outcome.people_assessed' | translate }}</span>
+          <span class="ui-kpi__value">{{ r.coverage.people }}</span>
+          <span class="ui-kpi__sub">{{ 'competency.outcome.n_finalised' | translate: { count: r.coverage.finalized } }}</span>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.common.open_gaps' | translate }}</div>
-          <div class="stat-value text-danger">
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.common.open_gaps' | translate }}</span>
+          <span class="ui-kpi__value text-danger">
             {{ r.gaps.minor + r.gaps.major + r.gaps.significant }}
-          </div>
-          <div class="stat-sub">{{ 'competency.outcome.n_significant' | translate: { count: r.gaps.significant } }}</div>
-        </div>
+          </span>
+          <span class="ui-kpi__sub">{{ 'competency.outcome.n_significant' | translate: { count: r.gaps.significant } }}</span>
       </div>
-      <div class="col-6 col-lg-3">
-        <div class="stat-card">
-          <div class="stat-label">{{ 'competency.outcome.est_close_all' | translate }}</div>
-          <div class="stat-value">{{ monthsLabel(r.gaps.estimatedMonths) }}</div>
-          <div class="stat-sub">{{ 'competency.outcome.standard_estimates' | translate }}</div>
-        </div>
+      <div class="ui-kpi">
+          <span class="ui-kpi__label">{{ 'competency.outcome.est_close_all' | translate }}</span>
+          <span class="ui-kpi__value">{{ monthsLabel(r.gaps.estimatedMonths) }}</span>
+          <span class="ui-kpi__sub">{{ 'competency.outcome.standard_estimates' | translate }}</span>
       </div>
     </div>
 
     <!-- Gap distribution bar -->
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body">
-        <h6 class="card-title mb-3">{{ 'competency.outcome.where_stand' | translate }}</h6>
+    <section class="ui-section">
+      <div class="ui-section__body">
+        <h2 class="ui-section__title mb-3">{{ 'competency.outcome.where_stand' | translate }}</h2>
         <div class="gap-bar mb-2">
           <div class="seg met" [style.width.%]="r.gaps.requirements ? (r.gaps.met / r.gaps.requirements) * 100 : 0"
                [title]="'competency.outcome.title_met' | translate: { count: r.gaps.met }"></div>
@@ -88,14 +80,14 @@
           <span><i class="legend-dot significant"></i> {{ 'competency.gap.significant' | translate }} {{ r.gaps.significant }}</span>
         </div>
       </div>
-    </div>
+    </section>
 
     <div class="row g-4">
       <!-- By function -->
       <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h6 class="card-title mb-3">{{ 'competency.outcome.readiness_by_function' | translate }}</h6>
+        <section class="ui-section h-100">
+          <div class="ui-section__body">
+            <h2 class="ui-section__title mb-3">{{ 'competency.outcome.readiness_by_function' | translate }}</h2>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
                 <thead>
@@ -131,14 +123,14 @@
               </table>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Top gaps -->
       <div class="col-lg-6">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-body">
-            <h6 class="card-title mb-3">{{ 'competency.outcome.dev_priorities' | translate }}</h6>
+        <section class="ui-section h-100">
+          <div class="ui-section__body">
+            <h2 class="ui-section__title mb-3">{{ 'competency.outcome.dev_priorities' | translate }}</h2>
             <p class="text-muted small mb-3">{{ 'competency.outcome.dev_priorities_hint' | translate }}</p>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
@@ -173,7 +165,7 @@
               </table>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </ng-container>

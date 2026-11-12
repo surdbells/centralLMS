@@ -1,6 +1,6 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
+<main class="main">
+  <div class="ui-page">
       <!-- Loading State -->
       <div class="loading-container" *ngIf="loading">
         <div class="spinner-border text-primary" role="status">
@@ -8,27 +8,51 @@
         </div>
       </div>
 
+      <!-- Header -->
+      <header class="ui-page-header" *ngIf="!loading && path">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ path.title }}</h1>
+          <p>{{ 'paths_admin.content_builder' | translate }}</p>
+        </div>
+        <div class="ui-page-header__actions">
+          <button class="btn btn-outline-secondary" (click)="goToSettings()">
+            <i class="bi bi-gear me-2"></i>{{ 'nav.settings' | translate }}
+          </button>
+          <button
+            class="btn btn-primary"
+            (click)="publishPath()"
+            [disabled]="totalItems === 0 || path.status === 'published'"
+          >
+            <i class="bi bi-check-lg me-2"></i>{{ 'paths_admin.publish' | translate }}
+          </button>
+        </div>
+      </header>
+
       <!-- Builder Content -->
       <div class="learning-path-builder" *ngIf="!loading && path">
         <!-- Main Content Area -->
         <div class="builder-main">
-          <!-- Stats Bar -->
-          <div class="stats-bar">
-            <div class="stat">
-              <span class="stat-value">{{ totalItems }}</span>
-              <span class="stat-label">{{ 'paths_admin.items_col' | translate }}</span>
+          <!-- Stats -->
+          <div class="ui-kpi-grid ui-kpi-grid--4 mb-0">
+            <div class="ui-kpi ui-kpi--brand">
+              <span class="ui-kpi__label"><i class="bi bi-collection"></i> {{ 'paths_admin.items_col' | translate }}</span>
+              <span class="ui-kpi__value">{{ totalItems }}</span>
             </div>
-            <div class="stat">
-              <span class="stat-value">{{ totalSections }}</span>
-              <span class="stat-label">{{ 'paths_admin.sections' | translate }}</span>
+            <div class="ui-kpi ui-kpi--info">
+              <span class="ui-kpi__label"><i class="bi bi-folder2"></i> {{ 'paths_admin.sections' | translate }}</span>
+              <span class="ui-kpi__value">{{ totalSections }}</span>
             </div>
-            <div class="stat">
-              <span class="stat-value">{{ totalPoints }}</span>
-              <span class="stat-label">{{ 'paths.total_points' | translate }}</span>
+            <div class="ui-kpi ui-kpi--warning">
+              <span class="ui-kpi__label"><i class="bi bi-star"></i> {{ 'paths.total_points' | translate }}</span>
+              <span class="ui-kpi__value">{{ totalPoints }}</span>
             </div>
-            <div class="stat">
-              <span class="stat-value">{{ formattedDuration }}</span>
-              <span class="stat-label">{{ 'paths.duration' | translate }}</span>
+            <div class="ui-kpi ui-kpi--success">
+              <span class="ui-kpi__label"><i class="bi bi-clock"></i> {{ 'paths.duration' | translate }}</span>
+              <span class="ui-kpi__value">{{ formattedDuration }}</span>
             </div>
           </div>
 
@@ -109,7 +133,7 @@
                   </span>
                 </div>
                 <div class="item-badges">
-                  <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">{{ 'paths.required' | translate }}</span>
+                  <span class="ui-pill ui-pill--brand" *ngIf="item.is_required">{{ 'paths.required' | translate }}</span>
                 </div>
                 <div class="item-actions">
                   <button class="btn btn-icon" (click)="openItemModal(null, item)" [title]="'paths_admin.edit' | translate">
@@ -218,7 +242,7 @@
                     </span>
                   </div>
                   <div class="item-badges">
-                    <span class="badge bg-primary-subtle text-primary" *ngIf="item.is_required">{{ 'paths.required' | translate }}</span>
+                    <span class="ui-pill ui-pill--brand" *ngIf="item.is_required">{{ 'paths.required' | translate }}</span>
                   </div>
                   <div class="item-actions">
                     <button class="btn btn-icon" (click)="openItemModal(section.section_id, item)" [title]="'paths_admin.edit' | translate">
@@ -311,24 +335,6 @@
           </div>
         </div>
 
-        <!-- Bottom Action Bar -->
-        <div class="builder-footer">
-          <button class="btn btn-link" (click)="goBack()">
-            <i class="bi bi-arrow-left me-1"></i>
-          </button>
-          <div class="footer-actions">
-            <button class="btn btn-secondary" (click)="goToSettings()">
-              <i class="bi bi-gear me-2"></i>{{ 'nav.settings' | translate }}
-            </button>
-            <button
-              class="btn btn-primary"
-              (click)="publishPath()"
-              [disabled]="totalItems === 0 || path.status === 'published'"
-            >
-              <i class="bi bi-check-lg me-2"></i>{{ 'paths_admin.publish' | translate }}
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Section Modal -->
@@ -385,7 +391,7 @@
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeSectionModal()">{{ 'common.cancel' | translate }}</button>
+                <button type="button" class="btn btn-outline-secondary" (click)="closeSectionModal()">{{ 'common.cancel' | translate }}</button>
                 <button
                   type="button"
                   class="btn btn-primary"
@@ -473,7 +479,7 @@
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" (click)="closeItemModal()">{{ 'common.cancel' | translate }}</button>
+                <button type="button" class="btn btn-outline-secondary" (click)="closeItemModal()">{{ 'common.cancel' | translate }}</button>
                 <button
                   type="button"
                   class="btn btn-primary"

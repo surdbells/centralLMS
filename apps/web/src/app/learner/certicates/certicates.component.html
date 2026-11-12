@@ -1,97 +1,82 @@
 <app-top></app-top>
 <main class="main">
-  <div class="container-lg">
-    <div class="row align-items-center mb-7">
-      <div (click)="goBack()" role="button" class="col-auto">
-        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-          <i class="fs-5">
-            <tui-icon icon="@tui.chevron-left" />
-          </i>
-        </div>
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-award"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'certificates.title' | translate }}</h1>
+        <p>{{ 'certificates.subtitle' | translate }}</p>
       </div>
-      <div class="col">
-        <h1 class="fs-4 mb-0">{{ 'certificates.title' | translate }} </h1>
-      </div>
+    </header>
+
+    <!-- Something went wrong. Said out loud, rather than shown as nothing. -->
+    <div *ngIf="error && !ui_controls.is_loading" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <h3>{{ 'certificates.load_error_title' | translate }}</h3>
+      <p>{{ error }}</p>
+      <button type="button" (click)="load()" class="btn btn-primary">
+        <i class="bi bi-arrow-clockwise me-1"></i> {{ 'common.retry' | translate }}
+      </button>
     </div>
 
-    <!-- Page content -->
-    <div class="row">
-      <div class="col-12">
-        <!-- Something went wrong. Said out loud, rather than shown as nothing. -->
-        <section *ngIf="error && !ui_controls.is_loading" class="card py-5 mb-5">
-          <div class="empty-state animate__animated animate__fadeInUp">
-            <tui-icon class="fs-1 mb-3" icon="@tui.alert-triangle" [style.color]="'var(--text)'"/>
-            <h4>{{ 'certificates.load_error_title' | translate }}</h4>
-            <p>{{ error }}</p>
-            <button (click)="load()" class="btn btn-secondary abayti_primary_background text-black btn-note mt-2">
-              <i class="bi bi-arrow-clockwise me-2"></i> {{ 'common.retry' | translate }}
-            </button>
-          </div>
-        </section>
-
-        <section *ngIf="!ui_controls.is_loading && !error && earned.length === 0" class="card py-5 mb-5">
-          <div class="empty-state animate__animated animate__fadeInUp">
-            <tui-icon class="fs-1 mb-3" icon="@tui.folder-tree" [style.color]="'var(--text)'"/>
-            <h4>{{ 'certificates.empty_title' | translate }}</h4>
-            <p>
-              {{ 'certificates.empty_text' | translate }}
-            </p>
-            <button (click)="to_dashboard()" class="btn btn-secondary abayti_primary_background text-black btn-note mt-2">
-              <i class="bi bi-mortarboard me-2"></i> {{ 'certificates.complete_courses' | translate }}
-            </button>
-          </div>
-        </section>
-
-        <div *ngIf="!ui_controls.is_loading && !error && earned.length > 0" class="row g-4 mb-5">
-          <div class="col-md-6 col-xl-4" *ngFor="let certificate of earned">
-            <div class="card h-100 shadow-sm border-0">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                  <tui-icon class="fs-3 text-warning" icon="@tui.award" />
-                  <span class="badge" [ngClass]="statusClass(certificate)">
-                    {{ certificate.statusLabel }}
-                  </span>
-                </div>
-
-                <h5 class="mb-1">{{ certificate.title }}</h5>
-                <p class="text-muted small mb-3">{{ certificate.sourceLabel }}</p>
-
-                <dl class="row small mb-0">
-                  <dt class="col-5 text-muted fw-normal">{{ 'certificates.number' | translate }}</dt>
-                  <dd class="col-7 mb-1">{{ certificate.number }}</dd>
-
-                  <dt class="col-5 text-muted fw-normal">{{ 'certificates.issued' | translate }}</dt>
-                  <dd class="col-7 mb-1">{{ certificate.issuedAt | date:'d MMM y' }}</dd>
-
-                  <ng-container *ngIf="certificate.percentage !== null">
-                    <dt class="col-5 text-muted fw-normal">{{ 'certificates.score' | translate }}</dt>
-                    <dd class="col-7 mb-1">{{ certificate.percentage }}%</dd>
-                  </ng-container>
-
-                  <!-- Only when there is one: most certificates do not expire. -->
-                  <ng-container *ngIf="certificate.validUntil">
-                    <dt class="col-5 text-muted fw-normal">{{ 'certificates.valid_until' | translate }}</dt>
-                    <dd class="col-7 mb-1">{{ certificate.validUntil | date:'d MMM y' }}</dd>
-                  </ng-container>
-                </dl>
-
-                <p class="text-danger small mt-3 mb-0" *ngIf="certificate.revocationReason">
-                  {{ certificate.revocationReason }}
-                </p>
-              </div>
-              <div class="card-footer bg-transparent border-0 pt-0">
-                <button class="btn btn-sm btn-dark w-100"
-                        [disabled]="!certificate.isValid"
-                        (click)="download(certificate)">
-                  <i class="bi bi-download me-1"></i> {{ 'certificates.open' | translate }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <tui-loader *ngIf="ui_controls.is_loading" />
-      </div>
+    <div *ngIf="!ui_controls.is_loading && !error && earned.length === 0" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-award"></i></span>
+      <h3>{{ 'certificates.empty_title' | translate }}</h3>
+      <p>{{ 'certificates.empty_text' | translate }}</p>
+      <button type="button" (click)="to_dashboard()" class="btn btn-primary">
+        <i class="bi bi-mortarboard me-1"></i> {{ 'certificates.complete_courses' | translate }}
+      </button>
     </div>
+
+    <div *ngIf="!ui_controls.is_loading && !error && earned.length > 0" class="ui-grid">
+      <article class="ui-card" *ngFor="let certificate of earned">
+        <div class="ui-card__body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="cert-icon" aria-hidden="true"><i class="bi bi-award"></i></span>
+            <span class="badge" [ngClass]="statusClass(certificate)">
+              {{ certificate.statusLabel }}
+            </span>
+          </div>
+
+          <h3 class="ui-card__title">{{ certificate.title }}</h3>
+          <p class="ui-card__meta mb-2">{{ certificate.sourceLabel }}</p>
+
+          <dl class="cert-facts mb-0">
+            <dt>{{ 'certificates.number' | translate }}</dt>
+            <dd>{{ certificate.number }}</dd>
+
+            <dt>{{ 'certificates.issued' | translate }}</dt>
+            <dd>{{ certificate.issuedAt | date:'d MMM y' }}</dd>
+
+            <ng-container *ngIf="certificate.percentage !== null">
+              <dt>{{ 'certificates.score' | translate }}</dt>
+              <dd>{{ certificate.percentage }}%</dd>
+            </ng-container>
+
+            <!-- Only when there is one: most certificates do not expire. -->
+            <ng-container *ngIf="certificate.validUntil">
+              <dt>{{ 'certificates.valid_until' | translate }}</dt>
+              <dd>{{ certificate.validUntil | date:'d MMM y' }}</dd>
+            </ng-container>
+          </dl>
+
+          <p class="text-danger small mt-2 mb-0" *ngIf="certificate.revocationReason">
+            {{ certificate.revocationReason }}
+          </p>
+        </div>
+        <div class="ui-card__footer">
+          <button type="button" class="btn btn-sm btn-primary w-100"
+                  [disabled]="!certificate.isValid"
+                  (click)="download(certificate)">
+            <i class="bi bi-download me-1"></i> {{ 'certificates.open' | translate }}
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <tui-loader *ngIf="ui_controls.is_loading" />
   </div>
 </main>

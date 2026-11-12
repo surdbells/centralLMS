@@ -6,6 +6,7 @@ import {LearnerReportComponent} from './learner-report/learner-report.component'
 import {Router} from '@angular/router';
 import {CrudService} from '../../services/crud.service';
 import {HotToastService} from '@ngneat/hot-toast';
+import {TranslatePipe} from '../../translate.pipe';
 
 @Component({
   selector: 'app-my-report',
@@ -14,7 +15,8 @@ import {HotToastService} from '@ngneat/hot-toast';
     MyLearningComponent,
     TopComponent,
     TuiIcon,
-    LearnerReportComponent
+    LearnerReportComponent,
+    TranslatePipe
   ],
   templateUrl: './my-report.component.html',
   styleUrl: './my-report.component.css'

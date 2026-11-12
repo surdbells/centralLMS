@@ -1,3 +1,25 @@
+// Header row (inside the competency shell page)
+.ad-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ad-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--ui-text);
+}
+
+.min-w-0 { min-width: 0; }
+
+// Flush table section: no double line on top, padded footer.
+.ui-section--flush > .table-responsive:first-child { border-top: 0; }
+.ui-section__foot { padding: 14px 18px; border-top: 1px solid var(--ui-border); }
+
 .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -36,9 +58,9 @@
     }
 
     &.active .dot {
-      background: #ede9fe;
-      color: var(--brand-primary, #6d5ef6);
-      box-shadow: 0 0 0 3px rgba(109, 94, 246, 0.15);
+      background: rgba(var(--brand-primary-rgb), .12);
+      color: var(--brand-primary);
+      box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .12);
     }
 
     &.done .dot {
@@ -64,37 +86,7 @@
   }
 }
 
-// --- mini cards -----------------------------------------------------------
-.mini-card {
-  background: var(--bs-body-bg, #fff);
-  border: 1px solid var(--bs-border-color, #e5e7eb);
-  border-radius: 0.7rem;
-  padding: 0.7rem 0.9rem;
-  text-align: center;
-
-  .mini-label {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--bs-secondary-color, #6b7280);
-  }
-
-  .mini-value {
-    font-size: 1.4rem;
-    font-weight: 700;
-  }
-}
-
 // --- items table ----------------------------------------------------------
-.items-table {
-  thead th {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--bs-secondary-color, #6b7280);
-  }
-}
-
 .lvl {
   display: inline-flex;
   align-items: center;
@@ -108,8 +100,8 @@
   color: var(--bs-body-color, #374151);
 
   &.req {
-    background: #ede9fe;
-    color: var(--brand-primary, #6d5ef6);
+    background: rgba(var(--brand-primary-rgb), .1);
+    color: var(--brand-primary);
   }
 
   &.muted {
@@ -136,10 +128,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
-  color: #5b21b6;
-  border-radius: 0.6rem;
+  background: rgba(var(--brand-primary-rgb), .06);
+  border: 1px solid rgba(var(--brand-primary-rgb), .25);
+  color: var(--brand-primary);
+  border-radius: var(--ui-radius-card);
   padding: 0.5rem 0.85rem;
   font-size: 0.88rem;
 }

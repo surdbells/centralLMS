@@ -1,51 +1,61 @@
-<!-- admin-live-training.component.html -->
+<!-- training-skills.component.html -->
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <!-- The way back. Every one of these is opened from the Live Training
-         admin screen, and only the reports page offered a route home. -->
-    <div class="mb-3">
-      <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
+<main class="main">
+  <div class="ui-page training-skills">
+    <header class="ui-page-header">
+      <!-- The way back. Every one of these is opened from the Live Training
+           admin screen, and only the reports page offered a route home. -->
+      <button type="button" class="ui-page-header__back" (click)="goBack()"
+              [attr.aria-label]="'live.common.back_to_live_training' | translate"
+              [title]="'live.common.back_to_live_training' | translate">
+        <i class="bi bi-chevron-left"></i>
       </button>
-    </div>
-  <div class="training-skills">
-  <!-- Header -->
-  <div class="card-header bg-white d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">
-      <i class="bi bi-award me-2"></i>{{ 'live.skills.title' | translate }}
-    </h5>
-    <button class="btn btn-primary btn-sm" (click)="showAddSkillModal = true" [disabled]="!trainingId">
-      <i class="bi bi-plus-circle me-1"></i>{{ 'live.skills.add_skill' | translate }}
-    </button>
-  </div>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-award"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'live.skills.title' | translate }}</h1>
+        <p>{{ 'live.skills.subtitle' | translate }}</p>
+      </div>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-primary" (click)="showAddSkillModal = true" [disabled]="!trainingId">
+          <i class="bi bi-plus-lg me-1"></i>{{ 'live.skills.add_skill' | translate }}
+        </button>
+      </div>
+    </header>
 
-  <div class="card-body">
     <!-- Which programme's skills to manage (the screen carries no context on its own) -->
-    <div class="mb-4" style="max-width: 480px;">
-      <label class="form-label">{{ 'nav.live_training' | translate }}</label>
-      <select class="form-select" [(ngModel)]="trainingId" (ngModelChange)="onTrainingChange()">
+    <div class="ui-toolbar">
+      <label class="visually-hidden" for="skillsTrainingSelect">{{ 'nav.live_training' | translate }}</label>
+      <select id="skillsTrainingSelect" class="form-select skills-training-select" [(ngModel)]="trainingId" (ngModelChange)="onTrainingChange()">
         <option [ngValue]="undefined">{{ 'live.admin.select_training' | translate }}</option>
         <option *ngFor="let t of trainings" [value]="t.training_id">{{ t.title }}</option>
       </select>
     </div>
 
     <!-- Nothing chosen yet -->
-    <div *ngIf="!trainingId" class="text-center text-muted py-4">
-      {{ 'live.skills.select_training_prompt' | translate }}
+    <div *ngIf="!trainingId" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-diagram-3"></i></span>
+      <p>{{ 'live.skills.select_training_prompt' | translate }}</p>
     </div>
 
     <!-- Loading State -->
-    <div *ngIf="loading" class="text-center py-4">
+    <div *ngIf="loading" class="ui-state">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
     </div>
 
     <!-- Assigned Skills List -->
-    <div *ngIf="!loading && assignedSkills.length > 0">
+    <section class="ui-section ui-section--flush" *ngIf="!loading && assignedSkills.length > 0">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title">{{ 'live.skills.title' | translate }}</h2>
+          <p class="ui-section__subtitle">
+            <i class="bi bi-info-circle me-1"></i><strong>{{ assignedSkills.length }}</strong> {{ 'live.skills.skills_assigned_note' | translate }}
+          </p>
+        </div>
+      </div>
       <div class="table-responsive">
-        <table class="table table-hover">
+        <table class="table table-hover align-middle">
           <thead>
           <tr>
             <th>{{ 'live.skills.skill_name' | translate }}</th>
@@ -59,23 +69,22 @@
           <tr *ngFor="let skill of assignedSkills">
             <td>
               <strong>{{ skill.skill_name }}</strong>
-              <div class="small text-muted" *ngIf="skill.skill_description">
+              <div class="small ui-muted" *ngIf="skill.skill_description">
                 {{ skill.skill_description }}
               </div>
             </td>
             <td>
-              <span class="badge bg-secondary">{{ skill.skill_category }}</span>
+              <span class="ui-pill ui-pill--neutral">{{ skill.skill_category }}</span>
             </td>
             <td>
-                    <span class="badge" [ngClass]="getProficiencyBadgeClass(skill.proficiency_level)">
-                      {{ getProficiencyDisplayName(skill.proficiency_level) }}
-                    </span>
+              <span class="badge" [ngClass]="getProficiencyBadgeClass(skill.proficiency_level)">
+                {{ getProficiencyDisplayName(skill.proficiency_level) }}
+              </span>
             </td>
             <td>
-              <i class="bi"
-                 [ngClass]="skill.is_required ? 'bi-check-circle text-success' : 'bi-circle text-muted'">
-              </i>
-              <span class="ms-1">{{ (skill.is_required ? 'live.common.yes' : 'live.common.no') | translate }}</span>
+              <span class="ui-pill" [ngClass]="skill.is_required ? 'ui-pill--success' : 'ui-pill--neutral'">
+                <span class="ui-pill__dot"></span>{{ (skill.is_required ? 'live.common.yes' : 'live.common.no') | translate }}
+              </span>
             </td>
             <td>
               <button class="btn btn-sm btn-outline-danger"
@@ -88,26 +97,17 @@
           </tbody>
         </table>
       </div>
-
-      <!-- Summary -->
-      <div class="alert alert-info mt-3">
-        <i class="bi bi-info-circle me-2"></i>
-        <strong>{{ assignedSkills.length }}</strong> {{ 'live.skills.skills_assigned_note' | translate }}
-      </div>
-    </div>
+    </section>
 
     <!-- Empty State -->
-    <div *ngIf="!loading && assignedSkills.length === 0" class="text-center py-5">
-      <i class="bi bi-award display-4 text-muted"></i>
-      <h5 class="mt-3">{{ 'live.skills.empty_title' | translate }}</h5>
-      <p class="text-muted">
-        {{ 'live.skills.empty_text' | translate }}
-      </p>
+    <div *ngIf="!loading && assignedSkills.length === 0" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-award"></i></span>
+      <h3>{{ 'live.skills.empty_title' | translate }}</h3>
+      <p>{{ 'live.skills.empty_text' | translate }}</p>
       <button class="btn btn-primary" (click)="showAddSkillModal = true">
-        <i class="bi bi-plus-circle me-2"></i>{{ 'live.skills.add_first_skill' | translate }}
+        <i class="bi bi-plus-lg me-1"></i>{{ 'live.skills.add_first_skill' | translate }}
       </button>
     </div>
-  </div>
 
   <!-- Add Skill Modal -->
   <div class="modal fade" [class.show]="showAddSkillModal"
@@ -129,7 +129,7 @@
                      placeholder="{{ 'live.skills.search_placeholder' | translate }}"
                      [(ngModel)]="skillSearchQuery"
                      (input)="searchSkills()">
-              <button class="btn btn-secondary" (click)="searchSkills()">
+              <button class="btn btn-outline-secondary" (click)="searchSkills()">
                 <i class="bi bi-search"></i>
               </button>
             </div>
@@ -209,7 +209,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeAddSkillModal()">
+          <button class="btn btn-outline-secondary" (click)="closeAddSkillModal()">
             {{ 'common.cancel' | translate }}
           </button>
           <button class="btn btn-primary"
@@ -224,6 +224,5 @@
     </div>
   </div>
   <div class="modal-backdrop fade show" *ngIf="showAddSkillModal" (click)="closeAddSkillModal()"></div>
-</div>
   </div>
 </main>

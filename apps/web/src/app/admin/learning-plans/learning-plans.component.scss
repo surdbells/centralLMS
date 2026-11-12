@@ -1,51 +1,51 @@
-:host { --lp-accent: #2f4b7c; --lp-muted: #6c757d; --lp-line: #e6eaf0; }
+// Page chrome (header, sections, pills, states) comes from the global UI kit;
+// this file only lays out the plan list + editor.
 
-.lp-admin { max-width: 1100px; margin: 0 auto; padding: 16px 16px 72px; color: #182033; }
-.lp-head { margin: 6px 0 16px;
-  h1 { font-size: 1.4rem; font-weight: 700; margin: 0; } p { margin: 2px 0 0; color: var(--lp-muted); font-size: .9rem; } }
+.lp-create { padding: 14px 16px; }
 
-.create-row { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
+.create-row { display: flex; gap: 8px; flex-wrap: wrap;
   .yr { max-width: 110px; } .form-control { flex: 1 1 180px; } }
 
-.lp-cols { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; align-items: start; }
+.lp-cols { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; align-items: start;
+  > .ui-section { margin-bottom: 0; } }
 @media (max-width: 860px) { .lp-cols { grid-template-columns: 1fr; } }
 
-.plan-list { display: flex; flex-direction: column; gap: 8px; }
 .lp-loading { padding: 20px; text-align: center; }
+.lp-empty { padding: 16px; }
+
 .plan-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: #fff; border: 1px solid var(--lp-line); border-radius: 10px; padding: 11px 14px; cursor: pointer;
-  &.active { border-color: var(--lp-accent); box-shadow: 0 0 0 1px var(--lp-accent); }
-  .pr-main { display: flex; flex-direction: column; gap: 1px; }
-  .pr-meta { font-size: .76rem; color: var(--lp-muted); } }
+  padding: 12px 18px; cursor: pointer; border-bottom: 1px solid var(--ui-border);
+  border-left: 3px solid transparent; transition: background .15s ease;
+  &:last-child { border-bottom: 0; }
+  &:hover { background: var(--ui-surface-2); }
+  &.active { background: rgba(var(--brand-primary-rgb), .06); border-left-color: var(--brand-primary); }
+  .pr-main { display: flex; flex-direction: column; gap: 1px; min-width: 0;
+    strong { font-size: .875rem; font-weight: 600; } }
+  .pr-meta { font-size: .75rem; color: var(--ui-text-muted); } }
 
-.status-chip { font-size: .7rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap;
-  &[data-status="published"] { background: #e3f3e9; color: #1f8a53; }
-  &[data-status="draft"]     { background: #eef1f5; color: #6c757d; }
-  &[data-status="archived"]  { background: #f7edd9; color: #b06f16; } }
-
-.plan-editor { background: #fff; border: 1px solid var(--lp-line); border-radius: 12px; padding: 16px; }
-.editor-head { display: flex; align-items: center; justify-content: space-between;
-  h2 { font-size: 1.05rem; font-weight: 700; margin: 0; } }
-.editor-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 8px; }
+.editor-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 16px; }
 .assign-dept { display: inline-flex; align-items: center; gap: 6px; .form-select { max-width: 180px; } }
 
-.assign-user { margin: 10px 0 2px;
-  label { font-size: .78rem; color: var(--lp-muted); font-weight: 600; display: block; margin-bottom: 4px; }
-  .user-search { position: relative; max-width: 360px; }
-  .user-results { position: absolute; z-index: 5; left: 0; right: 0; margin: 2px 0 0; padding: 0; list-style: none;
-    background: #fff; border: 1px solid var(--lp-line); border-radius: 8px; box-shadow: 0 6px 20px -8px rgba(24,32,51,.25); max-height: 220px; overflow: auto;
-    li { padding: 7px 11px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
-      small { color: var(--lp-muted); } &:hover { background: #f6f8fb; } } } }
+.assign-user { margin: 0 0 4px;
+  label { font-size: .75rem; color: var(--ui-text-muted); font-weight: 600; display: block; margin-bottom: 6px; }
+  .user-search { max-width: 360px; }
+  .user-results { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 4px 0 0; padding: 4px; list-style: none;
+    background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl);
+    box-shadow: var(--ui-shadow-pop); max-height: 220px; overflow: auto;
+    li { padding: 7px 10px; border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+      font-size: .8125rem;
+      small { color: var(--ui-text-muted); } &:hover { background: var(--ui-surface-2); } } } }
 
-.sub { font-size: .85rem; font-weight: 700; color: var(--lp-muted); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 8px; }
+.sub { font-size: .8125rem; font-weight: 650; color: var(--ui-text); margin: 20px 0 8px; }
 .item-admin-list { list-style: none; margin: 0; padding: 0;
-  li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--lp-line);
+  li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ui-border);
+    font-size: .875rem;
     &:last-child { border-bottom: 0; } }
-  .ia-title { display: inline-flex; align-items: center; gap: 8px; i { color: var(--lp-accent); } } }
-.ia-badge { font-size: .66rem; font-weight: 700; color: #b06f16; background: #f7edd9; padding: 2px 6px; border-radius: 5px; }
+  .ia-title { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; i { color: var(--brand-primary); } } }
 
-.add-item { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px; align-items: center; margin-top: 12px;
-  .mand { font-size: .82rem; color: var(--lp-muted); display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; } }
+.add-item { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 8px; align-items: center; margin-top: 16px;
+  padding-top: 16px; border-top: 1px solid var(--ui-border);
+  .mand { font-size: .8125rem; color: var(--ui-text-muted); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; } }
 @media (max-width: 680px) { .add-item { grid-template-columns: 1fr; } }
 
-.muted { color: var(--lp-muted); } .small { font-size: .82rem; }
+.muted { color: var(--ui-text-muted); } .small { font-size: .8125rem; }

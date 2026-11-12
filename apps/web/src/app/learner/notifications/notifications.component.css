@@ -1,3 +1,50 @@
-.list-group-item .material-symbols-outlined {
-  font-size: 1.4rem;
+.notif-toolbar {
+  padding: 14px 18px !important;
+  margin: 0;
 }
+
+.notif-list {
+  border-top: 1px solid var(--ui-border);
+}
+
+.notif-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ui-border);
+  font-size: .875rem;
+}
+
+.notif-item:last-child { border-bottom: 0; }
+
+.notif-item.is-unread {
+  background: rgba(var(--brand-primary-rgb), .04);
+}
+
+.notif-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--ui-surface-2);
+  font-size: 1.2rem;
+}
+
+.notif-icon.text-primary { color: var(--brand-primary) !important; }
+
+.notif-title {
+  font-weight: 600;
+  color: var(--ui-text);
+}
+
+.notif-body {
+  margin: 2px 0 4px;
+  font-size: .8125rem;
+  color: var(--ui-text-muted);
+}
+
+.min-w-0 { min-width: 0; }

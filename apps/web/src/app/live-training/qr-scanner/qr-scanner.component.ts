@@ -19,41 +19,46 @@ declare var Html5Qrcode: any;
   template: `
     <app-top></app-top>
 
-    <div class="qr-scanner-container">
+    <main class="main">
+    <div class="ui-page qr-scanner-page">
       <!-- Scanner Header -->
-      <div class="scanner-header">
-        <h5 class="mb-0">
-          <i class="bi bi-qr-code-scan me-2"></i>
-          {{ 'live.qr.title' | translate }}
-        </h5>
-        <button class="btn btn-sm btn-secondary" (click)="close()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-qr-code-scan"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ 'live.qr.title' | translate }}</h1>
+          <p>{{ 'live.learner.scan_desc' | translate }}</p>
+        </div>
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-outline-secondary" (click)="close()" [attr.aria-label]="'common.close' | translate">
+            <i class="bi bi-x-lg me-1"></i>{{ 'common.close' | translate }}
+          </button>
+        </div>
+      </header>
 
+    <section class="ui-section qr-scanner-container">
       <!-- Scanner View -->
       <div class="scanner-body">
         <div *ngIf="!scanning && !result" class="scanner-start text-center py-5">
           <div class="scanner-icon mb-4">
-            <i class="bi bi-qr-code display-1 text-primary"></i>
+            <span class="ui-state__icon"><i class="bi bi-qr-code"></i></span>
           </div>
-          <h5>{{ 'live.qr.ready' | translate }}</h5>
-          <p class="text-muted mb-4">
+          <h3 class="scanner-heading">{{ 'live.qr.ready' | translate }}</h3>
+          <p class="ui-muted mb-4">
             {{ 'live.qr.ready_hint' | translate }}
           </p>
-          <button class="btn btn-primary btn-lg" (click)="startScanning()">
-            <i class="bi bi-camera me-2"></i>{{ 'live.qr.start_camera' | translate }}
+          <button class="btn btn-primary" (click)="startScanning()">
+            <i class="bi bi-camera me-1"></i>{{ 'live.qr.start_camera' | translate }}
           </button>
         </div>
 
         <div *ngIf="scanning" class="scanner-active">
           <div id="qr-reader" class="qr-reader"></div>
           <div class="scanner-instructions mt-3 text-center">
-            <p class="text-muted mb-2">
+            <p class="ui-muted mb-2">
               <i class="bi bi-info-circle me-1"></i>
               {{ 'live.qr.point_camera' | translate }}
             </p>
-            <button class="btn btn-secondary" (click)="stopScanning()">
+            <button class="btn btn-outline-secondary" (click)="stopScanning()">
               <i class="bi bi-stop-circle me-1"></i>{{ 'live.qr.stop_scanning' | translate }}
             </button>
           </div>
@@ -62,9 +67,9 @@ declare var Html5Qrcode: any;
         <!-- Success Result -->
         <div *ngIf="result && result.success" class="scanner-result success text-center py-5">
           <div class="result-icon mb-4">
-            <i class="bi bi-check-circle-fill display-1 text-success"></i>
+            <i class="bi bi-check-circle-fill result-glyph text-success"></i>
           </div>
-          <h4 class="text-success mb-3">{{ 'live.qr.marked' | translate }}</h4>
+          <h3 class="scanner-heading text-success mb-3">{{ 'live.qr.marked' | translate }}</h3>
           <div class="result-details">
             <div class="detail-item">
               <span class="label">{{ 'live.qr.status_label' | translate }}</span>
@@ -85,15 +90,15 @@ declare var Html5Qrcode: any;
         <!-- Error Result -->
         <div *ngIf="result && !result.success" class="scanner-result error text-center py-5">
           <div class="result-icon mb-4">
-            <i class="bi bi-x-circle-fill display-1 text-danger"></i>
+            <i class="bi bi-x-circle-fill result-glyph text-danger"></i>
           </div>
-          <h4 class="text-danger mb-3">{{ 'live.qr.unable' | translate }}</h4>
-          <p class="text-muted mb-4">{{ result.message }}</p>
+          <h3 class="scanner-heading text-danger mb-3">{{ 'live.qr.unable' | translate }}</h3>
+          <p class="ui-muted mb-4">{{ result.message }}</p>
           <div class="d-flex gap-2 justify-content-center">
             <button class="btn btn-primary" (click)="tryAgain()">
               <i class="bi bi-arrow-repeat me-1"></i>{{ 'live.qr.try_again' | translate }}
             </button>
-            <button class="btn btn-secondary" (click)="close()">
+            <button class="btn btn-outline-secondary" (click)="close()">
               {{ 'common.close' | translate }}
             </button>
           </div>
@@ -102,100 +107,95 @@ declare var Html5Qrcode: any;
         <!-- Loading -->
         <div *ngIf="processing" class="scanner-processing text-center py-5">
           <div class="spinner-border text-primary mb-3" role="status"></div>
-          <p class="text-muted">{{ 'live.qr.verifying' | translate }}</p>
+          <p class="ui-muted">{{ 'live.qr.verifying' | translate }}</p>
         </div>
       </div>
 
       <!-- Camera Permission Error -->
-      <div *ngIf="cameraError" class="camera-error p-4 text-center">
-        <i class="bi bi-camera-video-off display-4 text-warning mb-3"></i>
-        <h5>{{ 'live.qr.camera_required' | translate }}</h5>
-        <p class="text-muted mb-3">
+      <div *ngIf="cameraError" class="camera-error ui-state">
+        <span class="ui-state__icon"><i class="bi bi-camera-video-off"></i></span>
+        <h3>{{ 'live.qr.camera_required' | translate }}</h3>
+        <p class="ui-muted mb-3">
           {{ 'live.qr.camera_hint' | translate }}
         </p>
-        <button class="btn btn-warning" (click)="requestCameraPermission()">
+        <button class="btn btn-primary" (click)="requestCameraPermission()">
           <i class="bi bi-unlock me-1"></i>{{ 'live.qr.grant_permission' | translate }}
         </button>
       </div>
+    </section>
     </div>
+    </main>
   `,
   styles: [`
-    .qr-scanner-container {
-      background: #fff;
-      border-radius: 16px;
+    /* Page chrome comes from the global UI kit (styles.scss). These rules are
+       global (ViewEncapsulation.None, for the scanner library's own markup),
+       so every one is scoped under .qr-scanner-page. */
+    .qr-scanner-page .qr-scanner-container {
+      max-width: 480px;
+      padding: 0;
       overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-      max-width: 400px;
-      margin: auto;
     }
 
-    .scanner-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid #f0f0f0;
-      background: #f8f9fa;
-    }
-
-    .scanner-body {
-      padding: 1.5rem;
+    .qr-scanner-page .scanner-body {
+      padding: 20px;
       min-height: 350px;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
 
-    .scanner-icon i {
-      opacity: 0.8;
+    .qr-scanner-page .scanner-heading {
+      font-size: 1rem;
+      font-weight: 650;
+      margin-bottom: 6px;
     }
 
-    .qr-reader {
+    .qr-scanner-page .result-glyph {
+      font-size: 3rem;
+      line-height: 1;
+    }
+
+    .qr-scanner-page .qr-reader {
       width: 100%;
-      border-radius: 12px;
+      border-radius: var(--ui-radius-card, 12px);
       overflow: hidden;
     }
 
     #qr-reader video {
-      border-radius: 12px;
+      border-radius: var(--ui-radius-card, 12px);
     }
 
     #qr-reader__scan_region {
       min-height: 250px !important;
     }
 
-    .result-details {
-      background: #f8f9fa;
-      padding: 1rem;
-      border-radius: 10px;
+    .qr-scanner-page .result-details {
+      border: 1px solid var(--ui-border);
+      padding: 12px 16px;
+      border-radius: var(--ui-radius-card, 12px);
       display: inline-block;
+      font-size: .875rem;
     }
 
-    .detail-item {
+    .qr-scanner-page .detail-item {
       display: flex;
       justify-content: space-between;
-      gap: 1rem;
-      padding: 0.5rem 0;
-
-      .label {
-        color: #6c757d;
-        font-weight: 500;
-      }
-
-      .value {
-        font-weight: 600;
-      }
+      align-items: center;
+      gap: 16px;
+      padding: 6px 0;
     }
 
-    .camera-error {
-      background: #fff3cd;
-      border-radius: 12px;
-      margin: 1rem;
+    .qr-scanner-page .detail-item .label {
+      color: var(--ui-text-muted);
+      font-weight: 500;
     }
 
-    .badge {
-      font-size: 0.875rem;
-      padding: 0.5em 0.75em;
+    .qr-scanner-page .detail-item .value {
+      font-weight: 600;
+    }
+
+    .qr-scanner-page .camera-error {
+      margin: 16px;
     }
   `]
 })

@@ -1,142 +1,89 @@
 <!-- skills/admin/admin-skills.component.html -->
 
 <div class="admin-skills-container">
-  <!-- Header -->
-  <div class="page-header mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <h1 class="h3 mb-1">{{ 'nav.skills' | translate }}</h1>
-        <p class="text-muted mb-0">{{ 'admin_skills.subtitle' | translate }}</p>
-      </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary" (click)="openNewCategoryModal()">
-          <i class="bi bi-folder-plus me-2"></i>{{ 'admin_skills.new_category' | translate }}
-        </button>
-        <button class="btn btn-primary" (click)="openNewSkillModal()">
-          <i class="bi bi-plus-lg me-2"></i>{{ 'admin_skills.new_skill' | translate }}
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Summary Cards -->
-  <div class="row g-3 mb-4" *ngIf="summary">
-    <div class="col-6 col-md-4 col-xl-2">
-      <div class="stat-card">
-        <div class="stat-icon bg-primary-subtle text-primary">
-          <i class="bi bi-star"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ summary.total_skills }}</div>
-          <div class="stat-label">{{ 'admin_skills.total_skills' | translate }}</div>
-        </div>
-      </div>
+  <div class="ui-kpi-grid ui-kpi-grid--5" *ngIf="summary">
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><i class="bi bi-star"></i> {{ 'admin_skills.total_skills' | translate }}</span>
+      <span class="ui-kpi__value">{{ summary.total_skills }}</span>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
-      <div class="stat-card">
-        <div class="stat-icon bg-success-subtle text-success">
-          <i class="bi bi-check-circle"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ summary.active_skills }}</div>
-          <div class="stat-label">{{ 'common.active' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--success">
+      <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'common.active' | translate }}</span>
+      <span class="ui-kpi__value">{{ summary.active_skills }}</span>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
-      <div class="stat-card">
-        <div class="stat-icon bg-info-subtle text-info">
-          <i class="bi bi-folder"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ summary.total_categories }}</div>
-          <div class="stat-label">{{ 'skills.categories' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--info">
+      <span class="ui-kpi__label"><i class="bi bi-folder"></i> {{ 'skills.categories' | translate }}</span>
+      <span class="ui-kpi__value">{{ summary.total_categories }}</span>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
-      <div class="stat-card">
-        <div class="stat-icon bg-warning-subtle text-warning">
-          <i class="bi bi-book"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ summary.courses_with_skills }}</div>
-          <div class="stat-label">{{ 'nav.courses' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--warning">
+      <span class="ui-kpi__label"><i class="bi bi-book"></i> {{ 'nav.courses' | translate }}</span>
+      <span class="ui-kpi__value">{{ summary.courses_with_skills }}</span>
     </div>
-    <div class="col-6 col-md-4 col-xl-2">
-      <div class="stat-card">
-        <div class="stat-icon bg-purple-subtle text-purple">
-          <i class="bi bi-people"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">{{ summary.learners_with_skills }}</div>
-          <div class="stat-label">{{ 'admin_skills.learners' | translate }}</div>
-        </div>
-      </div>
+    <div class="ui-kpi">
+      <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'admin_skills.learners' | translate }}</span>
+      <span class="ui-kpi__value">{{ summary.learners_with_skills }}</span>
     </div>
   </div>
 
-  <!-- Tabs -->
-  <ul class="nav nav-tabs mb-4">
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'skills'" (click)="onTabChange('skills')">
-        <i class="bi bi-star me-2"></i>{{ 'nav.skills' | translate }}
+  <!-- Tabs + the page's actions -->
+  <div class="skills-tabbar">
+    <nav class="ui-tabs" role="tablist">
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'skills'"
+              [attr.aria-selected]="activeTab === 'skills'" (click)="onTabChange('skills')">
+        <i class="bi bi-star"></i>{{ 'nav.skills' | translate }}
       </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'categories'" (click)="onTabChange('categories')">
-        <i class="bi bi-folder me-2"></i>{{ 'skills.categories' | translate }}
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'categories'"
+              [attr.aria-selected]="activeTab === 'categories'" (click)="onTabChange('categories')">
+        <i class="bi bi-folder"></i>{{ 'skills.categories' | translate }}
       </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'analytics'" (click)="onTabChange('analytics')">
-        <i class="bi bi-graph-up me-2"></i>{{ 'admin_skills.analytics_reports' | translate }}
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'analytics'"
+              [attr.aria-selected]="activeTab === 'analytics'" (click)="onTabChange('analytics')">
+        <i class="bi bi-graph-up"></i>{{ 'admin_skills.analytics_reports' | translate }}
       </button>
-    </li>
-  </ul>
+    </nav>
+    <div class="skills-tabbar__actions">
+      <button class="btn btn-outline-secondary" (click)="openNewCategoryModal()">
+        <i class="bi bi-folder-plus me-1"></i>{{ 'admin_skills.new_category' | translate }}
+      </button>
+      <button class="btn btn-primary" (click)="openNewSkillModal()">
+        <i class="bi bi-plus-lg me-1"></i>{{ 'admin_skills.new_skill' | translate }}
+      </button>
+    </div>
+  </div>
 
   <!-- Skills Tab -->
   <div *ngIf="activeTab === 'skills'">
-    <!-- Filters -->
-    <div class="filter-bar mb-4">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="{{ 'admin_skills.search_skills' | translate }}"
-                   [(ngModel)]="searchTerm" (input)="onSearch()">
-          </div>
-        </div>
-        <div class="col-md-3">
+    <section class="ui-section ui-section--flush">
+      <!-- Filters -->
+      <div class="ui-toolbar skills-toolbar">
+        <div class="ui-filters">
           <select class="form-select" [(ngModel)]="selectedCategoryId" (change)="onFilterChange()">
             <option [ngValue]="null">{{ 'paths.all_categories' | translate }}</option>
             <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
               {{ cat.name }}
             </option>
           </select>
-        </div>
-        <div class="col-md-2">
           <select class="form-select" [(ngModel)]="selectedLevel" (change)="onFilterChange()">
             <option value="">{{ 'skills.all_levels' | translate }}</option>
             <option *ngFor="let lvl of levels" [value]="lvl">{{ lvl | titlecase }}</option>
           </select>
-        </div>
-        <div class="col-md-3">
-          <div class="form-check form-switch mt-2">
+          <div class="form-check form-switch mb-0 ms-1">
             <input class="form-check-input" type="checkbox" id="showInactive"
                    [(ngModel)]="showInactive" (change)="onFilterChange()">
             <label class="form-check-label" for="showInactive">{{ 'admin_skills.show_inactive' | translate }}</label>
           </div>
         </div>
+        <label class="ui-search">
+          <i class="bi bi-search"></i>
+          <input type="search" placeholder="{{ 'admin_skills.search_skills' | translate }}"
+                 [attr.aria-label]="'admin_skills.search_skills' | translate"
+                 [(ngModel)]="searchTerm" (input)="onSearch()">
+        </label>
       </div>
-    </div>
 
-    <!-- Skills Table -->
-    <div class="card">
+      <!-- Skills Table -->
       <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover align-middle mb-0">
           <thead>
           <tr>
             <th style="width: 40px;"></th>
@@ -152,15 +99,17 @@
           <tbody>
           <tr *ngIf="loading">
             <td colspan="8" class="text-center py-5">
-              <div class="spinner-border text-primary" role="status">
+              <div class="spinner-border spinner-border-sm text-primary" role="status">
                 <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
               </div>
             </td>
           </tr>
           <tr *ngIf="!loading && filteredSkills.length === 0">
-            <td colspan="8" class="text-center py-5 text-muted">
-              <i class="bi bi-inbox display-4 d-block mb-2"></i>
-              {{ 'admin_skills.no_skills_found' | translate }}
+            <td colspan="8" class="skills-empty-cell">
+              <div class="ui-state">
+                <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
+                <h3>{{ 'admin_skills.no_skills_found' | translate }}</h3>
+              </div>
             </td>
           </tr>
           <tr *ngFor="let skill of filteredSkills; trackBy: trackBySkillId">
@@ -202,16 +151,16 @@
               </button>
             </td>
             <td class="text-center">
-                <span class="badge" [ngClass]="skill.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                  {{ skill.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
-                </span>
+              <span class="ui-pill" [ngClass]="skill.is_active ? 'ui-pill--success' : 'ui-pill--neutral'">
+                <span class="ui-pill__dot"></span>{{ skill.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
+              </span>
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
-                <button class="btn btn-secondary" (click)="viewSkillDetail(skill.skill_id)" title="{{ 'admin_skills.view_details' | translate }}">
+                <button class="btn btn-outline-secondary" (click)="viewSkillDetail(skill.skill_id)" title="{{ 'admin_skills.view_details' | translate }}">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button class="btn btn-secondary" (click)="openEditSkillModal(skill)" title="{{ 'common.edit' | translate }}">
+                <button class="btn btn-outline-secondary" (click)="openEditSkillModal(skill)" title="{{ 'common.edit' | translate }}">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-outline-danger" (click)="confirmDeleteSkill(skill)" title="{{ 'common.delete' | translate }}">
@@ -223,57 +172,51 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Categories Tab -->
   <div *ngIf="activeTab === 'categories'">
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-4" *ngFor="let category of categories; trackBy: trackByCategoryId">
-        <div class="category-card">
-          <div class="category-color-bar" [style.background]="category.color"></div>
-          <div class="category-content">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <h5 class="category-name mb-0">{{ category.name }}</h5>
-              <span class="badge" [ngClass]="category.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                {{ category.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
-              </span>
-            </div>
-            <p class="text-muted small mb-3" *ngIf="category.description">
-              {{ category.description | slice:0:100 }}{{ category.description.length > 100 ? '...' : '' }}
-            </p>
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="skill-count">
-                <i class="bi bi-star me-1"></i>{{ 'skills.skill_count' | translate:{ count: category.skill_count } }}
-              </span>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-secondary" (click)="viewCategoryDetail(category.category_id)" title="{{ 'admin_skills.view_details' | translate }}">
-                  <i class="bi bi-eye"></i>
-                </button>
-                <button class="btn btn-secondary" (click)="openEditCategoryModal(category)">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-outline-danger" (click)="confirmDeleteCategory(category)"
-                        [disabled]="category.skill_count > 0">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </div>
-            </div>
+    <div class="ui-grid">
+      <article class="ui-card category-card" *ngFor="let category of categories; trackBy: trackByCategoryId">
+        <div class="category-color-bar" [style.background]="category.color"></div>
+        <div class="ui-card__body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <h3 class="ui-card__title">{{ category.name }}</h3>
+            <span class="ui-pill" [ngClass]="category.is_active ? 'ui-pill--success' : 'ui-pill--neutral'">
+              <span class="ui-pill__dot"></span>{{ category.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
+            </span>
           </div>
+          <p class="ui-card__meta mb-0" *ngIf="category.description">
+            {{ category.description | slice:0:100 }}{{ category.description.length > 100 ? '...' : '' }}
+          </p>
         </div>
-      </div>
-
-      <div class="col-md-6 col-lg-4" *ngIf="categories.length === 0 && !loading">
-        <div class="category-card empty-state">
-          <div class="text-center py-4">
-            <i class="bi bi-folder-plus display-4 text-muted mb-3"></i>
-            <p class="text-muted mb-3">{{ 'admin_skills.no_categories' | translate }}</p>
-            <button class="btn btn-primary btn-sm" (click)="openNewCategoryModal()">
-              {{ 'admin_skills.create_first_category' | translate }}
+        <div class="ui-card__footer">
+          <span class="skill-count">
+            <i class="bi bi-star me-1"></i>{{ 'skills.skill_count' | translate:{ count: category.skill_count } }}
+          </span>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" (click)="viewCategoryDetail(category.category_id)" title="{{ 'admin_skills.view_details' | translate }}">
+              <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn btn-outline-secondary" (click)="openEditCategoryModal(category)">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-outline-danger" (click)="confirmDeleteCategory(category)"
+                    [disabled]="category.skill_count > 0">
+              <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
-      </div>
+      </article>
+    </div>
+
+    <div class="ui-state" *ngIf="categories.length === 0 && !loading">
+      <span class="ui-state__icon"><i class="bi bi-folder-plus"></i></span>
+      <p>{{ 'admin_skills.no_categories' | translate }}</p>
+      <button class="btn btn-primary btn-sm" (click)="openNewCategoryModal()">
+        {{ 'admin_skills.create_first_category' | translate }}
+      </button>
     </div>
   </div>
 </div>
@@ -281,291 +224,271 @@
 <!-- Analytics Tab -->
 <div *ngIf="activeTab === 'analytics'">
   <!-- Analytics Sub-Tabs -->
-  <ul class="nav nav-pills mb-4">
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="analyticsSubTab === 'overview'"
-              (click)="onAnalyticsSubTabChange('overview')">
-        <i class="bi bi-bar-chart me-2"></i>{{ 'admin_skills.overview' | translate }}
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="analyticsSubTab === 'top-skills'"
-              (click)="onAnalyticsSubTabChange('top-skills')">
-        <i class="bi bi-trophy me-2"></i>{{ 'admin_skills.top_skills' | translate }}
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="analyticsSubTab === 'skill-gaps'"
-              (click)="onAnalyticsSubTabChange('skill-gaps')">
-        <i class="bi bi-exclamation-triangle me-2"></i>{{ 'admin_skills.skill_gaps' | translate }}
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="analyticsSubTab === 'course-skills'"
-              (click)="onAnalyticsSubTabChange('course-skills')">
-        <i class="bi bi-link-45deg me-2"></i>{{ 'admin_skills.course_skills' | translate }}
-      </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="analyticsSubTab === 'user-lookup'"
-              (click)="onAnalyticsSubTabChange('user-lookup')">
-        <i class="bi bi-person-badge me-2"></i>{{ 'admin_skills.user_lookup' | translate }}
-      </button>
-    </li>
-  </ul>
+  <nav class="ui-tabs" role="tablist">
+    <button type="button" role="tab" class="ui-tab" [class.is-active]="analyticsSubTab === 'overview'"
+            (click)="onAnalyticsSubTabChange('overview')">
+      <i class="bi bi-bar-chart"></i>{{ 'admin_skills.overview' | translate }}
+    </button>
+    <button type="button" role="tab" class="ui-tab" [class.is-active]="analyticsSubTab === 'top-skills'"
+            (click)="onAnalyticsSubTabChange('top-skills')">
+      <i class="bi bi-trophy"></i>{{ 'admin_skills.top_skills' | translate }}
+    </button>
+    <button type="button" role="tab" class="ui-tab" [class.is-active]="analyticsSubTab === 'skill-gaps'"
+            (click)="onAnalyticsSubTabChange('skill-gaps')">
+      <i class="bi bi-exclamation-triangle"></i>{{ 'admin_skills.skill_gaps' | translate }}
+    </button>
+    <button type="button" role="tab" class="ui-tab" [class.is-active]="analyticsSubTab === 'course-skills'"
+            (click)="onAnalyticsSubTabChange('course-skills')">
+      <i class="bi bi-link-45deg"></i>{{ 'admin_skills.course_skills' | translate }}
+    </button>
+    <button type="button" role="tab" class="ui-tab" [class.is-active]="analyticsSubTab === 'user-lookup'"
+            (click)="onAnalyticsSubTabChange('user-lookup')">
+      <i class="bi bi-person-badge"></i>{{ 'admin_skills.user_lookup' | translate }}
+    </button>
+  </nav>
 
   <!-- Overview Sub-Tab -->
   <div *ngIf="analyticsSubTab === 'overview'">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-bar-chart me-2"></i>{{ 'admin_skills.adoption_stats' | translate }}
-        </h5>
+    <section class="ui-section ui-section--flush">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title">{{ 'admin_skills.adoption_stats' | translate }}</h2></div>
       </div>
-      <div class="card-body p-0">
-        <div *ngIf="loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-          </div>
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
         </div>
-        <div class="table-responsive" *ngIf="!loading && skillStats.length > 0">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-            <tr>
-              <th>{{ 'admin_skills.col_skill' | translate }}</th>
-              <th>{{ 'admin_skills.col_category' | translate }}</th>
-              <th>{{ 'paths.level' | translate }}</th>
-              <th class="text-center">{{ 'nav.courses' | translate }}</th>
-              <th class="text-center">{{ 'skills.acquired' | translate }}</th>
-              <th class="text-center">{{ 'skills.in_progress' | translate }}</th>
-              <th class="text-center">{{ 'admin_skills.adoption' | translate }}</th>
-              <th>{{ 'common.status' | translate }}</th>
-              <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let stat of skillStats; trackBy: trackBySkillId">
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="skill-icon-sm" [style.background-color]="stat.color + '20'" [style.color]="stat.color">
-                    <i class="bi" [ngClass]="stat.icon || 'bi-star'"></i>
-                  </div>
-                  <a href="javascript:void(0)" class="fw-medium text-decoration-none" (click)="viewSkillDetail(stat.skill_id)">
-                    {{ stat.name }}
-                  </a>
+      </div>
+      <div class="table-responsive" *ngIf="!loading && skillStats.length > 0">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+          <tr>
+            <th>{{ 'admin_skills.col_skill' | translate }}</th>
+            <th>{{ 'admin_skills.col_category' | translate }}</th>
+            <th>{{ 'paths.level' | translate }}</th>
+            <th class="text-center">{{ 'nav.courses' | translate }}</th>
+            <th class="text-center">{{ 'skills.acquired' | translate }}</th>
+            <th class="text-center">{{ 'skills.in_progress' | translate }}</th>
+            <th class="text-center">{{ 'admin_skills.adoption' | translate }}</th>
+            <th>{{ 'common.status' | translate }}</th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let stat of skillStats; trackBy: trackBySkillId">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="skill-icon-sm" [style.background-color]="stat.color + '20'" [style.color]="stat.color">
+                  <i class="bi" [ngClass]="stat.icon || 'bi-star'"></i>
                 </div>
-              </td>
-              <td>
-                <a href="javascript:void(0)" class="badge bg-black text-white text-decoration-none"
-                   *ngIf="stat.category_name && stat.category_id"
-                   (click)="viewCategoryDetail(stat.category_id)">
-                  {{ stat.category_name }}
+                <a href="javascript:void(0)" class="fw-medium text-decoration-none skill-link" (click)="viewSkillDetail(stat.skill_id)">
+                  {{ stat.name }}
                 </a>
-                <span class="text-muted" *ngIf="!stat.category_name">-</span>
-              </td>
-              <td>
-                  <span class="badge" [ngClass]="getLevelBadgeClass(stat.level)">
-                    {{ stat.level | titlecase }}
-                  </span>
-              </td>
-              <td class="text-center">{{ stat.course_count }}</td>
-              <td class="text-center">
-                <span class="fw-semibold text-success">{{ stat.learners_acquired }}</span>
-              </td>
-              <td class="text-center">
-                <span class="text-warning">{{ stat.learners_in_progress }}</span>
-              </td>
-              <td class="text-center">
-                <span class="badge bg-black text-white">{{ getAdoptionPercentage(stat.learners_acquired) }}%</span>
-              </td>
-              <td>
-                  <span class="badge" [ngClass]="stat.is_active ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-                    {{ stat.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
-                  </span>
-              </td>
-              <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-secondary" (click)="viewSkillDetail(stat.skill_id)" title="{{ 'admin_skills.view_details' | translate }}">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <button class="btn btn-secondary" (click)="viewSkillLearners(stat)" title="View Learners">
-                    <i class="bi bi-people"></i>
-                  </button>
-                  <button class="btn btn-secondary" (click)="viewSkillCourses(stat)" title="View Courses">
-                    <i class="bi bi-book"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-        <div *ngIf="!loading && skillStats.length === 0" class="text-center py-5 text-muted">
-          <i class="bi bi-bar-chart display-4 mb-3 d-block"></i>
+              </div>
+            </td>
+            <td>
+              <a href="javascript:void(0)" class="ui-pill ui-pill--neutral text-decoration-none"
+                 *ngIf="stat.category_name && stat.category_id"
+                 (click)="viewCategoryDetail(stat.category_id)">
+                {{ stat.category_name }}
+              </a>
+              <span class="text-muted" *ngIf="!stat.category_name">-</span>
+            </td>
+            <td>
+                <span class="badge" [ngClass]="getLevelBadgeClass(stat.level)">
+                  {{ stat.level | titlecase }}
+                </span>
+            </td>
+            <td class="text-center">{{ stat.course_count }}</td>
+            <td class="text-center">
+              <span class="fw-semibold text-success">{{ stat.learners_acquired }}</span>
+            </td>
+            <td class="text-center">
+              <span class="text-warning">{{ stat.learners_in_progress }}</span>
+            </td>
+            <td class="text-center">
+              <span class="ui-pill ui-pill--brand">{{ getAdoptionPercentage(stat.learners_acquired) }}%</span>
+            </td>
+            <td>
+              <span class="ui-pill" [ngClass]="stat.is_active ? 'ui-pill--success' : 'ui-pill--neutral'">
+                <span class="ui-pill__dot"></span>{{ stat.is_active ? ('common.active' | translate) : ('admin_skills.inactive' | translate) }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary" (click)="viewSkillDetail(stat.skill_id)" title="{{ 'admin_skills.view_details' | translate }}">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-outline-secondary" (click)="viewSkillLearners(stat)" title="View Learners">
+                  <i class="bi bi-people"></i>
+                </button>
+                <button class="btn btn-outline-secondary" (click)="viewSkillCourses(stat)" title="View Courses">
+                  <i class="bi bi-book"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="!loading && skillStats.length === 0" class="skills-flush-pad">
+        <div class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-bar-chart"></i></span>
           <p>{{ 'admin_skills.no_stats' | translate }}</p>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Top Skills Sub-Tab -->
   <div *ngIf="analyticsSubTab === 'top-skills'">
-    <div class="row">
-      <div class="col-lg-8">
-        <div class="card">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <i class="bi bi-trophy text-warning me-2"></i>{{ 'admin_skills.top_10_skills' | translate }}
-            </h5>
+    <div class="skills-split">
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title"><i class="bi bi-trophy me-2 skills-title-icon"></i>{{ 'admin_skills.top_10_skills' | translate }}</h2>
           </div>
-          <div class="card-body">
-            <div *ngIf="loading" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status"></div>
+        </div>
+        <div *ngIf="loading" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        </div>
+        <div *ngIf="!loading && topSkills.length > 0">
+          <div class="top-skill-item" *ngFor="let skill of topSkills; let i = index">
+            <div class="top-skill-rank" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
+              {{ i + 1 }}
             </div>
-            <div *ngIf="!loading && topSkills.length > 0">
-              <div class="top-skill-item" *ngFor="let skill of topSkills; let i = index">
-                <div class="top-skill-rank" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
-                  {{ i + 1 }}
-                </div>
-                <div class="top-skill-icon" [style.background-color]="skill.color + '20'" [style.color]="skill.color">
-                  <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
-                </div>
-                <div class="top-skill-info">
-                  <div class="fw-medium">{{ skill.name }}</div>
-                  <small class="text-muted">{{ skill.category_name || ('skills.uncategorized' | translate) }}</small>
-                </div>
-                <div class="top-skill-count">
-                  <span class="fw-bold text-success">{{ skill.learners_acquired }}</span>
-                  <small class="text-muted d-block">{{ 'admin_skills.learners_lower' | translate }}</small>
-                </div>
-                <div class="top-skill-bar">
-                  <div class="progress" style="height: 6px;">
-                    <div class="progress-bar bg-success"
-                         [style.width.%]="topSkills[0]?.learners_acquired ? (skill.learners_acquired / topSkills[0].learners_acquired * 100) : 0">
-                    </div>
-                  </div>
-                </div>
+            <div class="top-skill-icon" [style.background-color]="skill.color + '20'" [style.color]="skill.color">
+              <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
+            </div>
+            <div class="top-skill-info">
+              <div class="fw-medium">{{ skill.name }}</div>
+              <small class="text-muted">{{ skill.category_name || ('skills.uncategorized' | translate) }}</small>
+            </div>
+            <div class="top-skill-count">
+              <span class="fw-bold">{{ skill.learners_acquired }}</span>
+              <small class="text-muted d-block">{{ 'admin_skills.learners_lower' | translate }}</small>
+            </div>
+            <div class="top-skill-bar">
+              <div class="ui-bar">
+                <span [style.width.%]="topSkills[0]?.learners_acquired ? (skill.learners_acquired / topSkills[0].learners_acquired * 100) : 0"></span>
               </div>
             </div>
-            <div *ngIf="!loading && topSkills.length === 0" class="text-center py-4 text-muted">
-              <i class="bi bi-trophy display-4 mb-3 d-block"></i>
-              <p>{{ 'admin_skills.no_skills_acquired' | translate }}</p>
-            </div>
           </div>
         </div>
-      </div>
-      <div class="col-lg-4">
-        <div class="card bg-light border-0">
-          <div class="card-body">
-            <h6 class="text-muted mb-3">{{ 'admin_skills.quick_stats' | translate }}</h6>
-            <div class="d-flex justify-content-between mb-2">
-              <span>{{ 'admin_skills.total_skills_label' | translate }}</span>
-              <strong>{{ summary?.total_skills || 0 }}</strong>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span>{{ 'admin_skills.total_learners_label' | translate }}</span>
-              <strong>{{ summary?.learners_with_skills || 0 }}</strong>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-              <span>{{ 'admin_skills.mapped_courses_label' | translate }}</span>
-              <strong>{{ summary?.courses_with_skills || 0 }}</strong>
-            </div>
-            <hr>
-            <p class="text-muted small mb-0">
-              {{ 'admin_skills.top_skills_note' | translate }}
-            </p>
-          </div>
+        <div *ngIf="!loading && topSkills.length === 0" class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-trophy"></i></span>
+          <p>{{ 'admin_skills.no_skills_acquired' | translate }}</p>
         </div>
-      </div>
+      </section>
+
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">{{ 'admin_skills.quick_stats' | translate }}</h2></div>
+        </div>
+        <div class="quick-stat">
+          <span>{{ 'admin_skills.total_skills_label' | translate }}</span>
+          <strong>{{ summary?.total_skills || 0 }}</strong>
+        </div>
+        <div class="quick-stat">
+          <span>{{ 'admin_skills.total_learners_label' | translate }}</span>
+          <strong>{{ summary?.learners_with_skills || 0 }}</strong>
+        </div>
+        <div class="quick-stat">
+          <span>{{ 'admin_skills.mapped_courses_label' | translate }}</span>
+          <strong>{{ summary?.courses_with_skills || 0 }}</strong>
+        </div>
+        <p class="ui-muted small mb-0 mt-3">
+          {{ 'admin_skills.top_skills_note' | translate }}
+        </p>
+      </section>
     </div>
   </div>
 
   <!-- Skill Gaps Sub-Tab -->
   <div *ngIf="analyticsSubTab === 'skill-gaps'">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-exclamation-triangle text-warning me-2"></i>{{ 'admin_skills.gap_analysis' | translate }}
-        </h5>
-        <small class="text-muted">{{ 'admin_skills.gap_subtitle' | translate }}</small>
+    <section class="ui-section ui-section--flush">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title">{{ 'admin_skills.gap_analysis' | translate }}</h2>
+          <p class="ui-section__subtitle">{{ 'admin_skills.gap_subtitle' | translate }}</p>
+        </div>
       </div>
-      <div class="card-body p-0">
-        <div *ngIf="loading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
-        <div class="table-responsive" *ngIf="!loading && skillGaps.length > 0">
-          <table class="table table-hover mb-0">
-            <thead class="table-light">
-            <tr>
-              <th>{{ 'admin_skills.col_skill' | translate }}</th>
-              <th>{{ 'admin_skills.col_category' | translate }}</th>
-              <th class="text-center">{{ 'nav.courses' | translate }}</th>
-              <th class="text-center">{{ 'skills.acquired' | translate }}</th>
-              <th class="text-center">{{ 'admin_skills.total_users' | translate }}</th>
-              <th>{{ 'admin_skills.adoption_rate' | translate }}</th>
-              <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr *ngFor="let gap of skillGaps; trackBy: trackBySkillId">
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="skill-icon-sm" [style.background-color]="gap.color + '20'" [style.color]="gap.color">
-                    <i class="bi" [ngClass]="gap.icon || 'bi-star'"></i>
-                  </div>
-                  <span class="fw-medium">{{ gap.name }}</span>
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      </div>
+      <div class="table-responsive" *ngIf="!loading && skillGaps.length > 0">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+          <tr>
+            <th>{{ 'admin_skills.col_skill' | translate }}</th>
+            <th>{{ 'admin_skills.col_category' | translate }}</th>
+            <th class="text-center">{{ 'nav.courses' | translate }}</th>
+            <th class="text-center">{{ 'skills.acquired' | translate }}</th>
+            <th class="text-center">{{ 'admin_skills.total_users' | translate }}</th>
+            <th>{{ 'admin_skills.adoption_rate' | translate }}</th>
+            <th></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let gap of skillGaps; trackBy: trackBySkillId">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="skill-icon-sm" [style.background-color]="gap.color + '20'" [style.color]="gap.color">
+                  <i class="bi" [ngClass]="gap.icon || 'bi-star'"></i>
                 </div>
-              </td>
-              <td>
-                  <span class="badge bg-black text-white" *ngIf="gap.category_name">
-                    {{ gap.category_name }}
+                <span class="fw-medium">{{ gap.name }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="ui-pill ui-pill--neutral" *ngIf="gap.category_name">
+                {{ gap.category_name }}
+              </span>
+              <span class="text-muted" *ngIf="!gap.category_name">-</span>
+            </td>
+            <td class="text-center">
+              <span [class.text-danger]="gap.course_count === 0">{{ gap.course_count }}</span>
+            </td>
+            <td class="text-center">{{ gap.learners_acquired }}</td>
+            <td class="text-center">{{ gap.total_users }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height: 6px; width: 100px;">
+                  <div class="progress-bar"
+                       [ngClass]="{
+                           'bg-danger': gap.adoption_rate < 20,
+                           'bg-warning': gap.adoption_rate >= 20 && gap.adoption_rate < 50,
+                           'bg-success': gap.adoption_rate >= 50
+                         }"
+                       [style.width.%]="gap.adoption_rate">
+                  </div>
+                </div>
+                <span class="fw-semibold"
+                      [ngClass]="{
+                          'text-danger': gap.adoption_rate < 20,
+                          'text-warning': gap.adoption_rate >= 20 && gap.adoption_rate < 50,
+                          'text-success': gap.adoption_rate >= 50
+                        }">
+                    {{ gap.adoption_rate }}%
                   </span>
-                <span class="text-muted" *ngIf="!gap.category_name">-</span>
-              </td>
-              <td class="text-center">
-                <span [class.text-danger]="gap.course_count === 0">{{ gap.course_count }}</span>
-              </td>
-              <td class="text-center">{{ gap.learners_acquired }}</td>
-              <td class="text-center">{{ gap.total_users }}</td>
-              <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="progress flex-grow-1" style="height: 8px; width: 100px;">
-                    <div class="progress-bar"
-                         [ngClass]="{
-                             'bg-danger': gap.adoption_rate < 20,
-                             'bg-warning': gap.adoption_rate >= 20 && gap.adoption_rate < 50,
-                             'bg-success': gap.adoption_rate >= 50
-                           }"
-                         [style.width.%]="gap.adoption_rate">
-                    </div>
-                  </div>
-                  <span class="fw-semibold"
-                        [ngClass]="{
-                            'text-danger': gap.adoption_rate < 20,
-                            'text-warning': gap.adoption_rate >= 20 && gap.adoption_rate < 50,
-                            'text-success': gap.adoption_rate >= 50
-                          }">
-                      {{ gap.adoption_rate }}%
-                    </span>
-                </div>
-              </td>
-              <td>
-                <button class="btn btn-sm btn-primary" (click)="viewSkillCourses(gap)">
-                  <i class="bi bi-book me-1"></i>{{ 'nav.courses' | translate }}
-                </button>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-        <div *ngIf="!loading && skillGaps.length === 0" class="text-center py-5 text-muted">
-          <i class="bi bi-check-circle display-4 mb-3 d-block text-success"></i>
+              </div>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-secondary" (click)="viewSkillCourses(gap)">
+                <i class="bi bi-book me-1"></i>{{ 'nav.courses' | translate }}
+              </button>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="!loading && skillGaps.length === 0" class="skills-flush-pad">
+        <div class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-check-circle"></i></span>
           <p>{{ 'admin_skills.no_gaps' | translate }}</p>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="alert alert-info mt-4">
+    <div class="alert alert-info">
       <i class="bi bi-lightbulb me-2"></i>
       <strong>{{ 'admin_skills.tip' | translate }}</strong> {{ 'admin_skills.gap_tip_text' | translate }}
     </div>
@@ -573,231 +496,204 @@
 
   <!-- Course Skills Sub-Tab -->
   <div *ngIf="analyticsSubTab === 'course-skills'">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-link-45deg me-2"></i>{{ 'admin_skills.course_skills_assignment' | translate }}
-        </h5>
-        <button class="btn btn-sm btn-primary" (click)="loadCourses()" *ngIf="courses.length === 0 && !coursesLoading">
-          <i class="bi bi-arrow-repeat me-2"></i>{{ 'admin_skills.load_courses' | translate }}
-        </button>
-      </div>
-      <div class="card-body">
-        <p class="text-muted mb-4">
-          {{ 'admin_skills.course_skills_intro' | translate }}
-        </p>
-
-        <div *ngIf="coursesLoading" class="text-center py-4">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-2 text-muted">{{ 'admin_skills.loading_courses' | translate }}</p>
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title">{{ 'admin_skills.course_skills_assignment' | translate }}</h2>
+          <p class="ui-section__subtitle">{{ 'admin_skills.course_skills_intro' | translate }}</p>
         </div>
+        <div class="ui-section__actions">
+          <button class="btn btn-sm btn-primary" (click)="loadCourses()" *ngIf="courses.length === 0 && !coursesLoading">
+            <i class="bi bi-arrow-repeat me-1"></i>{{ 'admin_skills.load_courses' | translate }}
+          </button>
+        </div>
+      </div>
 
-        <div class="course-grid" *ngIf="!coursesLoading && courses.length > 0">
-          <div class="course-skill-card" *ngFor="let course of courses">
-            <div class="course-skill-header">
-              <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-book text-primary"></i>
-                <span class="fw-medium">{{ course.title }}</span>
-              </div>
-              <span class="badge bg-black text-white" *ngIf="course.category_name">{{ course.category_name }}</span>
+      <div *ngIf="coursesLoading" class="text-center py-4">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <p class="mt-2 ui-muted small">{{ 'admin_skills.loading_courses' | translate }}</p>
+      </div>
+
+      <div class="course-grid" *ngIf="!coursesLoading && courses.length > 0">
+        <div class="course-skill-card" *ngFor="let course of courses">
+          <div class="course-skill-header">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <i class="bi bi-book skills-title-icon"></i>
+              <span class="fw-medium">{{ course.title }}</span>
             </div>
-            <div class="course-skill-actions">
-              <button class="btn btn-sm btn-primary" (click)="openCourseSkillsModal(course)">
-                <i class="bi bi-link-45deg me-1"></i>{{ 'admin_skills.manage_skills' | translate }}
-              </button>
-            </div>
+            <span class="ui-pill ui-pill--neutral" *ngIf="course.category_name">{{ course.category_name }}</span>
+          </div>
+          <div class="course-skill-actions">
+            <button class="btn btn-sm btn-outline-secondary" (click)="openCourseSkillsModal(course)">
+              <i class="bi bi-link-45deg me-1"></i>{{ 'admin_skills.manage_skills' | translate }}
+            </button>
           </div>
         </div>
-
-        <div *ngIf="!coursesLoading && courses.length === 0" class="text-center py-5 text-muted">
-          <i class="bi bi-book display-4 mb-3 d-block"></i>
-          <p>{{ 'admin_skills.load_courses_hint' | translate }}</p>
-        </div>
       </div>
-    </div>
+
+      <div *ngIf="!coursesLoading && courses.length === 0" class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-book"></i></span>
+        <p>{{ 'admin_skills.load_courses_hint' | translate }}</p>
+      </div>
+    </section>
   </div>
 
   <!-- User Lookup Sub-Tab -->
   <div *ngIf="analyticsSubTab === 'user-lookup'">
-    <div class="card">
-      <div class="card-header">
-        <h5 class="card-title mb-0">
-          <i class="bi bi-person-badge me-2"></i>{{ 'admin_skills.learner_lookup' | translate }}
-        </h5>
+    <section class="ui-section">
+      <div class="ui-section__head">
+        <div><h2 class="ui-section__title">{{ 'admin_skills.learner_lookup' | translate }}</h2></div>
       </div>
-      <div class="card-body">
-        <div class="row mb-4">
-          <div class="col-md-6">
-            <label class="form-label">{{ 'admin_skills.select_learner' | translate }}</label>
-            <div class="input-group mb-2">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" [(ngModel)]="userSearchTerm"
-                     placeholder="{{ 'admin_skills.search_user_placeholder' | translate }}" (input)="onUserSearch()">
-              <button class="btn btn-secondary" (click)="userSearchTerm = ''; onUserSearch()" *ngIf="userSearchTerm">
-                <i class="bi bi-x"></i>
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <label class="form-label">{{ 'admin_skills.select_learner' | translate }}</label>
+          <div class="input-group mb-2">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" [(ngModel)]="userSearchTerm"
+                   placeholder="{{ 'admin_skills.search_user_placeholder' | translate }}" (input)="onUserSearch()">
+            <button class="btn btn-outline-secondary" (click)="userSearchTerm = ''; onUserSearch()" *ngIf="userSearchTerm">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+          <div *ngIf="usersLoading" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span class="ms-2">{{ 'admin_skills.loading_users' | translate }}</span>
+          </div>
+          <div class="user-select-list" *ngIf="!usersLoading && filteredUsers.length > 0">
+            <div class="user-select-item"
+                 *ngFor="let user of filteredUsers"
+                 [class.active]="targetUserId === user.user_id"
+                 (click)="onUserSelect(user.user_id)">
+              <div class="user-avatar">
+                <img *ngIf="user.profile_image" [src]="user.profile_image" alt="">
+                <span *ngIf="!user.profile_image">{{ user.first_name?.charAt(0) }}{{ user.last_name?.charAt(0) }}</span>
+              </div>
+              <div class="user-info">
+                <div class="fw-medium">{{ user.first_name }} {{ user.last_name }}</div>
+                <small class="text-muted">{{ user.email }}</small>
+              </div>
+              <i class="bi bi-check-circle-fill user-check" *ngIf="targetUserId === user.user_id"></i>
+            </div>
+          </div>
+          <div *ngIf="!usersLoading && filteredUsers.length === 0" class="text-center py-3 text-muted">
+            <i class="bi bi-person-x me-2"></i>{{ 'admin_skills.no_users' | translate }}
+          </div>
+        </div>
+        <div class="col-md-6" *ngIf="targetUserId">
+          <div class="selected-user-card">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h6 class="mb-1">{{ 'admin_skills.selected' | translate:{ name: selectedUserName } }}</h6>
+                <small class="text-muted">{{ 'admin_skills.user_id_label' | translate:{ id: targetUserId } }}</small>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary" (click)="clearUserLookup()">
+                <i class="bi bi-x-lg me-1"></i>{{ 'common.clear' | translate }}
               </button>
             </div>
-            <div *ngIf="usersLoading" class="text-center py-3">
-              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-              <span class="ms-2">{{ 'admin_skills.loading_users' | translate }}</span>
-            </div>
-            <div class="user-select-list" *ngIf="!usersLoading && filteredUsers.length > 0">
-              <div class="user-select-item"
-                   *ngFor="let user of filteredUsers"
-                   [class.active]="targetUserId === user.user_id"
-                   (click)="onUserSelect(user.user_id)">
-                <div class="user-avatar">
-                  <img *ngIf="user.profile_image" [src]="user.profile_image" alt="">
-                  <span *ngIf="!user.profile_image">{{ user.first_name?.charAt(0) }}{{ user.last_name?.charAt(0) }}</span>
-                </div>
-                <div class="user-info">
-                  <div class="fw-medium">{{ user.first_name }} {{ user.last_name }}</div>
-                  <small class="text-muted">{{ user.email }}</small>
-                </div>
-                <i class="bi bi-check-circle-fill text-success" *ngIf="targetUserId === user.user_id"></i>
-              </div>
-            </div>
-            <div *ngIf="!usersLoading && filteredUsers.length === 0" class="text-center py-3 text-muted">
-              <i class="bi bi-person-x me-2"></i>{{ 'admin_skills.no_users' | translate }}
-            </div>
           </div>
-          <div class="col-md-6" *ngIf="targetUserId">
-            <div class="selected-user-card">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <h6 class="mb-1">{{ 'admin_skills.selected' | translate:{ name: selectedUserName } }}</h6>
-                  <small class="text-muted">{{ 'admin_skills.user_id_label' | translate:{ id: targetUserId } }}</small>
-                </div>
-                <button class="btn btn-sm btn-secondary" (click)="clearUserLookup()">
-                  <i class="bi bi-x-lg me-1"></i>{{ 'common.clear' | translate }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Loading State -->
-        <div *ngIf="userLookupLoading" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-2 text-muted">{{ 'admin_skills.loading_skill_data' | translate }}</p>
-        </div>
-
-        <!-- User Skills Results -->
-        <div *ngIf="!userLookupLoading && (userSkills.length > 0 || userSkillProgress.length > 0)">
-          <!-- Summary Cards -->
-          <div class="row g-3 mb-4">
-            <div class="col-md-3">
-              <div class="stat-card compact">
-                <div class="stat-icon bg-success-subtle text-success">
-                  <i class="bi bi-check-circle"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ getUserAcquiredCount() }}</div>
-                  <div class="stat-label">{{ 'skills.acquired' | translate }}</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="stat-card compact">
-                <div class="stat-icon bg-warning-subtle text-warning">
-                  <i class="bi bi-hourglass-split"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ getUserInProgressCount() }}</div>
-                  <div class="stat-label">{{ 'skills.in_progress' | translate }}</div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="stat-card compact">
-                <div class="stat-icon bg-info-subtle text-info">
-                  <i class="bi bi-collection"></i>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ userSkillProgress.length }}</div>
-                  <div class="stat-label">{{ 'admin_skills.total_available' | translate }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Acquired Skills -->
-          <h6 class="mb-3"><i class="bi bi-check-circle text-success me-2"></i>{{ 'admin_skills.acquired_skills' | translate }}</h6>
-          <div class="row g-3 mb-4" *ngIf="userSkills.length > 0">
-            <div class="col-md-4" *ngFor="let skill of userSkills">
-              <div class="skill-card-compact">
-                <div class="skill-icon" [style.background-color]="skill.color + '20'" [style.color]="skill.color">
-                  <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
-                </div>
-                <div class="skill-info">
-                  <div class="fw-medium">{{ skill.skill_name }}</div>
-                  <small class="text-muted">{{ skill.category_name || ('skills.uncategorized' | translate) }}</small>
-                </div>
-                <span class="badge" [ngClass]="getLevelBadgeClass(skill.highest_proficiency)">
-                  {{ skill.highest_proficiency | titlecase }}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div class="text-muted mb-4" *ngIf="userSkills.length === 0">
-            <i class="bi bi-info-circle me-2"></i>{{ 'admin_skills.no_user_skills' | translate }}
-          </div>
-
-          <!-- Skill Progress -->
-          <h6 class="mb-3"><i class="bi bi-list-check text-info me-2"></i>{{ 'admin_skills.all_skill_progress' | translate }}</h6>
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead class="table-light">
-              <tr>
-                <th>{{ 'admin_skills.col_skill' | translate }}</th>
-                <th>{{ 'admin_skills.col_category' | translate }}</th>
-                <th class="text-center">{{ 'nav.courses' | translate }}</th>
-                <th class="text-center">{{ 'skills.completed' | translate }}</th>
-                <th>{{ 'skills.progress' | translate }}</th>
-                <th>{{ 'common.status' | translate }}</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr *ngFor="let progress of userSkillProgress">
-                <td>
-                  <div class="d-flex align-items-center gap-2">
-                    <div class="skill-icon-xs" [style.background-color]="progress.color + '20'" [style.color]="progress.color">
-                      <i class="bi" [ngClass]="progress.icon || 'bi-star'"></i>
-                    </div>
-                    {{ progress.skill_name }}
-                  </div>
-                </td>
-                <td>{{ progress.category_name || '-' }}</td>
-                <td class="text-center">{{ progress.total_courses }}</td>
-                <td class="text-center">{{ progress.completed_courses }}</td>
-                <td>
-                  <div class="progress" style="height: 6px; width: 80px;">
-                    <div class="progress-bar bg-success" [style.width.%]="progress.progress_percentage"></div>
-                  </div>
-                </td>
-                <td>
-                  <span class="badge bg-success" *ngIf="progress.is_acquired">{{ 'skills.acquired' | translate }}</span>
-                  <span class="badge bg-warning" *ngIf="!progress.is_acquired && progress.in_progress_courses > 0">{{ 'skills.in_progress' | translate }}</span>
-                  <span class="badge bg-secondary" *ngIf="!progress.is_acquired && progress.in_progress_courses === 0">{{ 'admin_skills.not_started' | translate }}</span>
-                </td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div *ngIf="!userLookupLoading && targetUserId && userSkills.length === 0 && userSkillProgress.length === 0"
-             class="text-center py-4 text-muted">
-          <i class="bi bi-person-x display-4 mb-3 d-block"></i>
-          <p>{{ 'admin_skills.no_skill_data' | translate:{ name: selectedUserName } }}</p>
-        </div>
-
-        <div *ngIf="!targetUserId" class="text-center py-4 text-muted">
-          <i class="bi bi-arrow-left display-4 mb-3 d-block"></i>
-          <p>{{ 'admin_skills.select_learner_hint' | translate }}</p>
         </div>
       </div>
-    </div>
+
+      <!-- Loading State -->
+      <div *ngIf="userLookupLoading" class="text-center py-5">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <p class="mt-2 ui-muted small">{{ 'admin_skills.loading_skill_data' | translate }}</p>
+      </div>
+
+      <!-- User Skills Results -->
+      <div *ngIf="!userLookupLoading && (userSkills.length > 0 || userSkillProgress.length > 0)">
+        <!-- Summary Cards -->
+        <div class="ui-kpi-grid ui-kpi-grid--3 mb-4">
+          <div class="ui-kpi ui-kpi--success">
+            <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'skills.acquired' | translate }}</span>
+            <span class="ui-kpi__value">{{ getUserAcquiredCount() }}</span>
+          </div>
+          <div class="ui-kpi ui-kpi--warning">
+            <span class="ui-kpi__label"><i class="bi bi-hourglass-split"></i> {{ 'skills.in_progress' | translate }}</span>
+            <span class="ui-kpi__value">{{ getUserInProgressCount() }}</span>
+          </div>
+          <div class="ui-kpi ui-kpi--info">
+            <span class="ui-kpi__label"><i class="bi bi-collection"></i> {{ 'admin_skills.total_available' | translate }}</span>
+            <span class="ui-kpi__value">{{ userSkillProgress.length }}</span>
+          </div>
+        </div>
+
+        <!-- Acquired Skills -->
+        <h3 class="skills-subhead"><i class="bi bi-check-circle me-2"></i>{{ 'admin_skills.acquired_skills' | translate }}</h3>
+        <div class="row g-3 mb-4" *ngIf="userSkills.length > 0">
+          <div class="col-md-4" *ngFor="let skill of userSkills">
+            <div class="skill-card-compact">
+              <div class="skill-icon" [style.background-color]="skill.color + '20'" [style.color]="skill.color">
+                <i class="bi" [ngClass]="skill.icon || 'bi-star'"></i>
+              </div>
+              <div class="skill-info">
+                <div class="fw-medium">{{ skill.skill_name }}</div>
+                <small class="text-muted">{{ skill.category_name || ('skills.uncategorized' | translate) }}</small>
+              </div>
+              <span class="badge" [ngClass]="getLevelBadgeClass(skill.highest_proficiency)">
+                {{ skill.highest_proficiency | titlecase }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="text-muted small mb-4" *ngIf="userSkills.length === 0">
+          <i class="bi bi-info-circle me-2"></i>{{ 'admin_skills.no_user_skills' | translate }}
+        </div>
+
+        <!-- Skill Progress -->
+        <h3 class="skills-subhead"><i class="bi bi-list-check me-2"></i>{{ 'admin_skills.all_skill_progress' | translate }}</h3>
+        <div class="ui-table-wrap">
+          <table class="table align-middle">
+            <thead>
+            <tr>
+              <th>{{ 'admin_skills.col_skill' | translate }}</th>
+              <th>{{ 'admin_skills.col_category' | translate }}</th>
+              <th class="text-center">{{ 'nav.courses' | translate }}</th>
+              <th class="text-center">{{ 'skills.completed' | translate }}</th>
+              <th>{{ 'skills.progress' | translate }}</th>
+              <th>{{ 'common.status' | translate }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let progress of userSkillProgress">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="skill-icon-xs" [style.background-color]="progress.color + '20'" [style.color]="progress.color">
+                    <i class="bi" [ngClass]="progress.icon || 'bi-star'"></i>
+                  </div>
+                  {{ progress.skill_name }}
+                </div>
+              </td>
+              <td>{{ progress.category_name || '-' }}</td>
+              <td class="text-center">{{ progress.total_courses }}</td>
+              <td class="text-center">{{ progress.completed_courses }}</td>
+              <td>
+                <div class="ui-bar progress-cell">
+                  <span [style.width.%]="progress.progress_percentage"></span>
+                </div>
+              </td>
+              <td>
+                <span class="ui-pill ui-pill--success" *ngIf="progress.is_acquired"><span class="ui-pill__dot"></span>{{ 'skills.acquired' | translate }}</span>
+                <span class="ui-pill ui-pill--warning" *ngIf="!progress.is_acquired && progress.in_progress_courses > 0"><span class="ui-pill__dot"></span>{{ 'skills.in_progress' | translate }}</span>
+                <span class="ui-pill ui-pill--neutral" *ngIf="!progress.is_acquired && progress.in_progress_courses === 0"><span class="ui-pill__dot"></span>{{ 'admin_skills.not_started' | translate }}</span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div *ngIf="!userLookupLoading && targetUserId && userSkills.length === 0 && userSkillProgress.length === 0"
+           class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-person-x"></i></span>
+        <p>{{ 'admin_skills.no_skill_data' | translate:{ name: selectedUserName } }}</p>
+      </div>
+
+      <div *ngIf="!targetUserId" class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-person-badge"></i></span>
+        <p>{{ 'admin_skills.select_learner_hint' | translate }}</p>
+      </div>
+    </section>
   </div>
 </div>
 

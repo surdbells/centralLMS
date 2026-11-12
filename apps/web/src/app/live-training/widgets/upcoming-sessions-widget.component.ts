@@ -77,9 +77,9 @@ import { I18nService } from '../../i18n.service';
   `,
   styles: [`
     .upcoming-sessions-widget {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      background: var(--ui-surface);
+      border-radius: var(--ui-radius-card, 12px);
+      border: 1px solid var(--ui-border);
       overflow: hidden;
     }
 
@@ -88,17 +88,17 @@ import { I18nService } from '../../i18n.service';
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.25rem;
-      border-bottom: 1px solid #f0f0f0;
-      background: #f8f9fa;
+      border-bottom: 1px solid var(--ui-border);
+      background: var(--ui-surface-2);
     }
 
     .widget-title {
       font-weight: 600;
-      color: #1a1a2e;
+      color: var(--ui-text);
       font-size: 0.9375rem;
 
       i {
-        color: #303234;
+        color: var(--brand-primary);
       }
     }
 
@@ -116,7 +116,7 @@ import { I18nService } from '../../i18n.service';
       align-items: center;
       gap: 1rem;
       padding: 1rem 1.25rem;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--ui-border);
       transition: background 0.15s ease;
 
       &:last-child {
@@ -124,12 +124,12 @@ import { I18nService } from '../../i18n.service';
       }
 
       &:hover {
-        background: #f8f9fa;
+        background: var(--ui-surface-2);
       }
 
       &.today {
-        background: rgba(201, 162, 39, 0.05);
-        border-left: 3px solid #303234;
+        background: rgba(var(--brand-primary-rgb), .05);
+        border-left: 3px solid var(--brand-primary);
       }
     }
 
@@ -140,14 +140,14 @@ import { I18nService } from '../../i18n.service';
       .date-day {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #1a1a2e;
+        color: var(--ui-text);
         line-height: 1;
       }
 
       .date-month {
         font-size: 0.6875rem;
         text-transform: uppercase;
-        color: #6c757d;
+        color: var(--ui-text-muted);
         letter-spacing: 0.5px;
       }
     }
@@ -158,7 +158,7 @@ import { I18nService } from '../../i18n.service';
 
       .session-title {
         font-weight: 600;
-        color: #1a1a2e;
+        color: var(--ui-text);
         margin-bottom: 0.25rem;
         white-space: nowrap;
         overflow: hidden;

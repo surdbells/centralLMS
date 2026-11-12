@@ -1,39 +1,47 @@
-<!-- admin-live-training.component.html -->
+<!-- training-enrollment.component.html -->
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <!-- The way back. Every one of these is opened from the Live Training
-         admin screen, and only the reports page offered a route home. -->
-    <div class="mb-3">
-      <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <!-- The way back. Every one of these is opened from the Live Training
+           admin screen, and only the reports page offered a route home. -->
+      <button type="button" class="ui-page-header__back" (click)="goBack()"
+              [attr.aria-label]="'live.common.back_to_live_training' | translate"
+              [title]="'live.common.back_to_live_training' | translate">
+        <i class="bi bi-chevron-left"></i>
       </button>
-    </div>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-person-plus"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'live.admin.enroll_learners' | translate }}</h1>
+        <p>{{ 'live.enroll.select_training_desc' | translate }}</p>
+      </div>
+    </header>
 
-    <div class="loading-state" *ngIf="loading">
+    <div class="ui-state" *ngIf="loading">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
-      <p>{{ 'live.enroll.loading' | translate }}</p>
+      <p class="mt-3">{{ 'live.enroll.loading' | translate }}</p>
     </div>
 
     <div class="enrollment-content" *ngIf="!loading">
 
       <!-- Step 1: Training Selection -->
-      <div class="enrollment-step" *ngIf="showTrainingSelector">
-        <div class="step-header">
+      <section class="ui-section enrollment-step" *ngIf="showTrainingSelector">
+        <div class="ui-section__head step-header">
           <span class="step-number">1</span>
-          <div>
-            <h2>{{ 'live.enroll.select_training' | translate }}</h2>
-            <p>{{ 'live.enroll.select_training_desc' | translate }}</p>
+          <div class="flex-grow-1">
+            <h2 class="ui-section__title">{{ 'live.enroll.select_training' | translate }}</h2>
+            <p class="ui-section__subtitle">{{ 'live.enroll.select_training_desc' | translate }}</p>
           </div>
         </div>
-        <div class="search-box">
-          <i class="bi bi-search"></i>
-          <input type="text"
-                 class="form-control"
-                 placeholder="{{ 'live.common.search_trainings' | translate }}"
-                 [(ngModel)]="trainingSearch">
+        <div class="ui-toolbar">
+          <label class="ui-search">
+            <i class="bi bi-search"></i>
+            <input type="search"
+                   placeholder="{{ 'live.common.search_trainings' | translate }}"
+                   [(ngModel)]="trainingSearch">
+          </label>
         </div>
         <div class="course-grid">
           <div class="course-card"
@@ -47,7 +55,7 @@
             </div>
             <div class="course-info">
               <h4>{{ training.title }}</h4>
-              <span class="category-badge" *ngIf="training.category_name">{{ training.category_name }}</span>
+              <span class="category-badge ui-pill ui-pill--brand" *ngIf="training.category_name">{{ training.category_name }}</span>
               <div class="course-meta">
                 <span><i class="bi bi-calendar"></i> {{ 'live.common.sessions_count' | translate:{ count: training.session_count } }}</span>
                 <span><i class="bi bi-people"></i> {{ 'live.common.enrolled_count' | translate:{ count: training.enrollment_count } }}</span>
@@ -56,14 +64,14 @@
           </div>
         </div>
 
-        <div class="empty-state" *ngIf="filterTrainings().length === 0">
-          <i class="bi bi-search"></i>
+        <div class="ui-state" *ngIf="filterTrainings().length === 0">
+          <span class="ui-state__icon"><i class="bi bi-search"></i></span>
           <p>{{ 'live.enroll.no_trainings' | translate }}</p>
         </div>
-      </div>
+      </section>
 
       <!-- Step 2: Enrollment Configuration -->
-      <div class="enrollment-step" *ngIf="!showTrainingSelector && selectedTraining">
+      <div class="ui-section enrollment-step" *ngIf="!showTrainingSelector && selectedTraining">
         <!-- Selected Training Summary -->
         <div class="selected-course-banner">
           <div class="course-preview">
@@ -71,43 +79,43 @@
                  [alt]="selectedTraining.title">
             <div class="course-details">
               <h3>{{ selectedTraining.title }}</h3>
-              <span class="category-badge" *ngIf="selectedTraining.category_name">{{ selectedTraining.category_name }}</span>
+              <span class="ui-pill ui-pill--brand" *ngIf="selectedTraining.category_name">{{ selectedTraining.category_name }}</span>
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" (click)="changeTraining()">
+          <button class="btn btn-outline-secondary btn-sm" (click)="changeTraining()">
             <i class="bi bi-arrow-left"></i> {{ 'live.enroll.change_training' | translate }}
           </button>
         </div>
 
-        <div class="step-header">
+        <div class="ui-section__head step-header">
           <span class="step-number">2</span>
-          <div>
-            <h2>{{ 'live.enroll.select_users' | translate }}</h2>
-            <p>{{ 'live.enroll.select_users_desc' | translate }}</p>
+          <div class="flex-grow-1">
+            <h2 class="ui-section__title">{{ 'live.enroll.select_users' | translate }}</h2>
+            <p class="ui-section__subtitle">{{ 'live.enroll.select_users_desc' | translate }}</p>
           </div>
         </div>
 
         <!-- Enrollment Type Tabs -->
-        <div class="enrollment-type-tabs">
-          <button class="type-tab"
+        <div class="ui-tabs enrollment-type-tabs" role="tablist">
+          <button type="button" class="ui-tab type-tab"
                   [class.active]="enrollmentType === 'department'"
                   (click)="enrollmentType = 'department'; onEnrollmentTypeChange()">
             <i class="bi bi-building"></i>
             <span>{{ 'live.enroll.by_department' | translate }}</span>
           </button>
-          <button class="type-tab"
+          <button type="button" class="ui-tab type-tab"
                   [class.active]="enrollmentType === 'team'"
                   (click)="enrollmentType = 'team'; onEnrollmentTypeChange()">
             <i class="bi bi-people"></i>
             <span>{{ 'live.enroll.by_team' | translate }}</span>
           </button>
-          <button class="type-tab"
+          <button type="button" class="ui-tab type-tab"
                   [class.active]="enrollmentType === 'branch'"
                   (click)="enrollmentType = 'branch'; onEnrollmentTypeChange()">
             <i class="bi bi-geo-alt"></i>
             <span>{{ 'live.enroll.by_branch' | translate }}</span>
           </button>
-          <button class="type-tab"
+          <button type="button" class="ui-tab type-tab"
                   [class.active]="enrollmentType === 'users'"
                   (click)="enrollmentType = 'users'; onEnrollmentTypeChange()">
             <i class="bi bi-person-check"></i>
@@ -208,7 +216,7 @@
                   <h5>
                     <i class="bi bi-people"></i>
                     {{ 'live.enroll.available_users' | translate }}
-                    <span class="badge bg-secondary">{{ users.length }}</span>
+                    <span class="ui-filter__count">{{ users.length }}</span>
                   </h5>
                 </div>
 
@@ -261,7 +269,7 @@
                   <h5>
                     <i class="bi bi-person-check"></i>
                     {{ 'live.enroll.selected_users' | translate }}
-                    <span class="badge bg-primary">{{ selectedUsers.length }}</span>
+                    <span class="ui-filter__count is-brand">{{ selectedUsers.length }}</span>
                   </h5>
                 </div>
 
@@ -347,9 +355,9 @@
                       <span class="text-muted"> - {{ ruleTarget(rule) }}</span>
                     </td>
                     <td>
-                      <span class="badge" [class.bg-success]="rule.is_active"
-                            [class.bg-secondary]="!rule.is_active">
-                        {{ (rule.is_active ? 'live.common.active' : 'live.enroll.paused') | translate }}
+                      <span class="ui-pill" [class.ui-pill--success]="rule.is_active"
+                            [class.ui-pill--neutral]="!rule.is_active">
+                        <span class="ui-pill__dot"></span>{{ (rule.is_active ? 'live.common.active' : 'live.enroll.paused') | translate }}
                       </span>
                     </td>
                     <td class="text-end">
@@ -380,7 +388,7 @@
               <i class="bi bi-info-circle"></i>
               <span>{{ getEnrollmentSummary() }}</span>
             </div>
-            <button class="btn btn-primary btn-lg"
+            <button class="btn btn-primary"
                     (click)="previewEnrollment()"
                     [disabled]="loadingPreview">
           <span *ngIf="!loadingPreview">
@@ -463,8 +471,8 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closePreviewModal()">{{ 'common.cancel' | translate }}</button>
-          <button class="btn btn-success btn-lg"
+          <button class="btn btn-outline-secondary" (click)="closePreviewModal()">{{ 'common.cancel' | translate }}</button>
+          <button class="btn btn-primary"
                   (click)="confirmEnrollment()"
                   [disabled]="enrolling || preview?.summary?.will_enroll === 0">
         <span *ngIf="!enrolling">
@@ -549,7 +557,7 @@
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-primary btn-lg" (click)="startNewEnrollment()">
+          <button class="btn btn-primary" (click)="startNewEnrollment()">
             <i class="bi bi-plus-circle me-2"></i>{{ 'live.enroll.new_enrollment' | translate }}
           </button>
         </div>

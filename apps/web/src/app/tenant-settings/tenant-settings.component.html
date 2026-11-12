@@ -11,8 +11,8 @@
   </div>
 
   <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner-border text-primary" role="status">
+  <div class="ui-state loading-state" *ngIf="loading">
+    <div class="spinner-border spinner-border-sm text-primary" role="status">
       <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
     <p>{{ 'tenant.loading_settings' | translate }}</p>
@@ -31,21 +31,23 @@
 
     <div class="settings-panel">
       <!-- ============ The organisation itself ============ -->
-      <div class="panel-content" *ngIf="activeTab === 'organisation'">
-        <div class="panel-header">
-          <h2>{{ 'tenant.organisation' | translate }}</h2>
-          <p>{{ 'tenant.organisation_desc' | translate }}</p>
-        </div>
-
-        <div class="info-card">
-          <div class="info-card-header">
-            <h3>{{ 'tenant.details' | translate }}</h3>
-            <span class="badge" [class.bg-success]="tenant.status === 'active'"
-                  [class.bg-secondary]="tenant.status !== 'active'">
-              {{ tenant.status | titlecase }}
-            </span>
+      <ng-container *ngIf="activeTab === 'organisation'">
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div>
+              <h2 class="ui-section__title">{{ 'tenant.organisation' | translate }}</h2>
+              <p class="ui-section__subtitle">{{ 'tenant.organisation_desc' | translate }}</p>
+            </div>
+            <div class="ui-section__actions">
+              <span class="ui-pill"
+                    [class.ui-pill--success]="tenant.status === 'active'"
+                    [class.ui-pill--neutral]="tenant.status !== 'active'">
+                <span class="ui-pill__dot"></span>{{ tenant.status | titlecase }}
+              </span>
+            </div>
           </div>
 
+          <h3 class="ts-subhead">{{ 'tenant.details' | translate }}</h3>
           <div class="info-grid">
             <div class="info-item">
               <label class="form-label">{{ 'tenant.organisation_name' | translate }}</label>
@@ -89,117 +91,114 @@
             </div>
           </div>
 
-          <div class="info-card-footer" *ngIf="tenantHasChanges">
+          <div class="ts-footer ts-footer--end" *ngIf="tenantHasChanges">
             <button class="btn btn-primary" (click)="saveTenant()" [disabled]="saving">
               <span *ngIf="!saving">{{ 'common.save_changes' | translate }}</span>
               <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
             </button>
           </div>
-        </div>
+        </section>
 
         <!-- Usage. Counted at read time, never stored. -->
-        <div class="stats-section">
-          <h3>{{ 'tenant.usage' | translate }}</h3>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-icon users"><i class="bi bi-people-fill"></i></div>
-              <div class="stat-content">
-                <span class="stat-value">
-                  {{ tenant.usage.users }}<span *ngIf="tenant.limits.users"> / {{ tenant.limits.users }}</span>
-                </span>
-                <span class="stat-label">{{ 'tenant.people' | translate }}</span>
-              </div>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div>
+              <h2 class="ui-section__title">{{ 'tenant.usage' | translate }}</h2>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon courses"><i class="bi bi-journal-bookmark-fill"></i></div>
-              <div class="stat-content">
-                <span class="stat-value">{{ tenant.usage.courses }}</span>
-                <span class="stat-label">{{ 'nav.courses' | translate }}</span>
-              </div>
+          </div>
+          <div class="ui-kpi-grid ui-kpi-grid--3">
+            <div class="ui-kpi ui-kpi--info">
+              <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'tenant.people' | translate }}</span>
+              <span class="ui-kpi__value">
+                {{ tenant.usage.users }}<small *ngIf="tenant.limits.users"> / {{ tenant.limits.users }}</small>
+              </span>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon storage"><i class="bi bi-hdd-fill"></i></div>
-              <div class="stat-content">
-                <span class="stat-value">{{ tenant.usage.storageMb }} MB</span>
-                <span class="stat-label">{{ 'tenant.storage_used' | translate }}</span>
-              </div>
+            <div class="ui-kpi ui-kpi--brand">
+              <span class="ui-kpi__label"><i class="bi bi-journal-bookmark"></i> {{ 'nav.courses' | translate }}</span>
+              <span class="ui-kpi__value">{{ tenant.usage.courses }}</span>
+            </div>
+            <div class="ui-kpi">
+              <span class="ui-kpi__label"><i class="bi bi-hdd"></i> {{ 'tenant.storage_used' | translate }}</span>
+              <span class="ui-kpi__value">{{ tenant.usage.storageMb }}<small>MB</small></span>
             </div>
           </div>
 
           <div class="storage-progress-card" *ngIf="tenant.limits.storage">
             <div class="storage-info">
               <span>{{ 'tenant.storage' | translate }}</span>
-              <span>{{ tenant.usage.storageMb }} MB {{ 'common.of' | translate }} {{ tenant.limits.storage }} MB</span>
+              <span class="ui-muted">{{ tenant.usage.storageMb }} MB {{ 'common.of' | translate }} {{ tenant.limits.storage }} MB</span>
             </div>
-            <div class="progress">
-              <div class="progress-bar" [style.width.%]="storagePercentage"
-                   [class.bg-warning]="storagePercentage > 70"
-                   [class.bg-danger]="storagePercentage > 90"></div>
+            <div class="ui-progress">
+              <div class="ui-bar">
+                <span [style.width.%]="storagePercentage"
+                      [class.is-warning]="storagePercentage > 70"
+                      [class.is-danger]="storagePercentage > 90"></span>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </ng-container>
 
       <!-- ============ Settings, rendered from the catalogue ============ -->
-      <div class="panel-content"
+      <section class="ui-section"
            *ngIf="activeTab !== 'organisation' && activeTab !== 'email' && activeTab !== 'sso'">
-        <div class="panel-header">
-          <h2>{{ activeTabInfo?.label }}</h2>
-          <p>{{ activeTabInfo?.description }}</p>
-        </div>
-
-        <div class="form-section">
-          <div class="form-grid">
-            <div class="form-group" *ngFor="let s of settingsFor(activeTab)"
-                 [class.full-width]="s.type === 'text'">
-
-              <!-- A switch, for the ones that are on or off. -->
-              <div class="form-check-item" *ngIf="s.type === 'boolean'">
-                <input class="form-check-input" type="checkbox" [id]="s.key"
-                       [checked]="boolValue(s.key)"
-                       (change)="setBool(s.key, $any($event.target).checked)">
-                <label class="form-check-label" [for]="s.key">{{ s.label }}</label>
-              </div>
-
-              <ng-container *ngIf="s.type !== 'boolean'">
-                <label class="form-label" [for]="s.key">{{ s.label }}</label>
-
-                <select class="form-select" [id]="s.key" *ngIf="s.type === 'choice'"
-                        [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
-                  <option *ngFor="let choice of s.choices" [value]="choice">{{ choice }}</option>
-                </select>
-
-                <input class="form-control" [id]="s.key" type="number"
-                       *ngIf="s.type === 'integer'"
-                       [value]="asString(s.key)"
-                       (input)="setNumber(s.key, $any($event.target).value)">
-
-                <div class="color-picker-group" *ngIf="s.type === 'colour'">
-                  <input class="color-input" type="color" [id]="s.key"
-                         [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
-                  <input class="form-control" type="text"
-                         [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
-                </div>
-
-                <input class="form-control" [id]="s.key" type="url" *ngIf="s.type === 'url'"
-                       [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event"
-                       placeholder="https://…">
-
-                <input class="form-control" [id]="s.key" type="text" *ngIf="s.type === 'text'"
-                       [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
-              </ng-container>
-
-              <small class="text-muted" *ngIf="s.help">{{ s.help }}</small>
-              <!-- Where it takes effect. The whole point of this screen being
-                   built from the catalogue is that this is never a guess. -->
-              <small class="text-muted d-block" *ngIf="s.honouredBy">
-                <i class="bi bi-check2 me-1"></i>{{ s.honouredBy }}
-              </small>
-            </div>
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">{{ activeTabInfo?.label }}</h2>
+            <p class="ui-section__subtitle">{{ activeTabInfo?.description }}</p>
           </div>
         </div>
 
-        <div class="panel-footer">
+        <div class="form-grid">
+          <div class="form-group" *ngFor="let s of settingsFor(activeTab)"
+               [class.full-width]="s.type === 'text'">
+
+            <!-- A switch, for the ones that are on or off. -->
+            <div class="form-check-item" *ngIf="s.type === 'boolean'">
+              <input class="form-check-input" type="checkbox" [id]="s.key"
+                     [checked]="boolValue(s.key)"
+                     (change)="setBool(s.key, $any($event.target).checked)">
+              <label class="form-check-label" [for]="s.key">{{ s.label }}</label>
+            </div>
+
+            <ng-container *ngIf="s.type !== 'boolean'">
+              <label class="form-label" [for]="s.key">{{ s.label }}</label>
+
+              <select class="form-select" [id]="s.key" *ngIf="s.type === 'choice'"
+                      [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+                <option *ngFor="let choice of s.choices" [value]="choice">{{ choice }}</option>
+              </select>
+
+              <input class="form-control" [id]="s.key" type="number"
+                     *ngIf="s.type === 'integer'"
+                     [value]="asString(s.key)"
+                     (input)="setNumber(s.key, $any($event.target).value)">
+
+              <div class="color-picker-group" *ngIf="s.type === 'colour'">
+                <input class="color-input" type="color" [id]="s.key"
+                       [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+                <input class="form-control" type="text"
+                       [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+              </div>
+
+              <input class="form-control" [id]="s.key" type="url" *ngIf="s.type === 'url'"
+                     [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event"
+                     placeholder="https://…">
+
+              <input class="form-control" [id]="s.key" type="text" *ngIf="s.type === 'text'"
+                     [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
+            </ng-container>
+
+            <small class="text-muted" *ngIf="s.help">{{ s.help }}</small>
+            <!-- Where it takes effect. The whole point of this screen being
+                 built from the catalogue is that this is never a guess. -->
+            <small class="text-muted d-block" *ngIf="s.honouredBy">
+              <i class="bi bi-check2 me-1"></i>{{ s.honouredBy }}
+            </small>
+          </div>
+        </div>
+
+        <div class="ts-footer">
           <button class="btn btn-outline-secondary" (click)="resetCategory(activeTab)"
                   [disabled]="saving">
             {{ 'tenant.reset_to_defaults' | translate }}
@@ -210,166 +209,169 @@
             <span *ngIf="saving"><span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}</span>
           </button>
         </div>
-      </div>
+      </section>
 
       <!-- ============ Single sign-on ============ -->
-      <div class="panel-content" *ngIf="activeTab === 'sso'">
-        <div class="panel-header">
-          <h2>{{ 'tenant.sso_title' | translate }}</h2>
-          <p>{{ 'tenant.sso_desc' | translate }}</p>
+      <section class="ui-section" *ngIf="activeTab === 'sso'">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">{{ 'tenant.sso_title' | translate }}</h2>
+            <p class="ui-section__subtitle">{{ 'tenant.sso_desc' | translate }}</p>
+          </div>
         </div>
 
-        <div class="form-section">
-          <!-- The one redirect URI to register with each provider. -->
-          <div class="alert alert-info d-flex align-items-center gap-2">
-            <i class="bi bi-link-45deg"></i>
-            <span>{{ 'tenant.sso_redirect_hint' | translate }} <code>{{ ssoRedirectUri }}</code></span>
+        <!-- The one redirect URI to register with each provider. -->
+        <div class="alert alert-info d-flex align-items-center gap-2">
+          <i class="bi bi-link-45deg"></i>
+          <span>{{ 'tenant.sso_redirect_hint' | translate }} <code>{{ ssoRedirectUri }}</code></span>
+        </div>
+
+        <div class="ts-card" *ngFor="let c of ssoConnections">
+          <div class="ts-card__head">
+            <h3>
+              <i class="bi" [ngClass]="c.provider === 'microsoft' ? 'bi-microsoft' : 'bi-google'"></i>
+              {{ c.providerLabel }}
+            </h3>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="ui-pill"
+                    [class.ui-pill--success]="c.enabled && c.clientId"
+                    [class.ui-pill--neutral]="!c.enabled || !c.clientId">
+                <span class="ui-pill__dot"></span>
+                {{ (c.clientId
+                      ? (c.enabled ? 'tenant.sso_on' : 'tenant.sso_off')
+                      : 'tenant.sso_not_configured') | translate }}
+              </span>
+              <span class="ui-pill ui-pill--info" *ngIf="c.managed">
+                <i class="bi bi-hdd-network"></i>{{ 'tenant.sso_env_managed' | translate }}
+              </span>
+            </div>
           </div>
 
-          <div class="info-card mb-3" *ngFor="let c of ssoConnections">
-            <div class="info-card-header">
-              <h3 class="d-flex align-items-center gap-2">
-                <i class="bi" [ngClass]="c.provider === 'microsoft' ? 'bi-microsoft' : 'bi-google'"></i>
-                {{ c.providerLabel }}
-              </h3>
-              <div class="d-flex align-items-center gap-2">
-                <span class="badge"
-                      [class.bg-success]="c.enabled && c.clientId"
-                      [class.bg-secondary]="!c.enabled || !c.clientId">
-                  {{ (c.clientId
-                        ? (c.enabled ? 'tenant.sso_on' : 'tenant.sso_off')
-                        : 'tenant.sso_not_configured') | translate }}
-                </span>
-                <span class="badge bg-info" *ngIf="c.managed">
-                  <i class="bi bi-hdd-network me-1"></i>{{ 'tenant.sso_env_managed' | translate }}
-                </span>
+          <!-- Managed in the environment → read-only, changed where it is set. -->
+          <ng-container *ngIf="c.managed; else editable">
+            <div class="info-grid">
+              <div class="info-item">
+                <label class="form-label">{{ 'tenant.sso_client_id' | translate }}</label>
+                <div><code>{{ c.clientId }}</code></div>
+              </div>
+              <div class="info-item" *ngIf="c.directory">
+                <label class="form-label">{{ 'tenant.sso_directory' | translate }}</label>
+                <div><code>{{ c.directory }}</code></div>
+              </div>
+              <div class="info-item" *ngIf="c.domains.length">
+                <label class="form-label">{{ 'tenant.sso_domains' | translate }}</label>
+                <div>{{ c.domains.join(', ') }}</div>
+              </div>
+              <div class="info-item">
+                <label class="form-label">{{ 'tenant.sso_auto_provision' | translate }}</label>
+                <div>{{ (c.autoProvision ? 'tenant.sso_yes' : 'tenant.sso_no') | translate }}</div>
+              </div>
+            </div>
+            <div class="alert alert-info mt-3 mb-0">
+              <i class="bi bi-hdd-network me-2"></i>{{ 'tenant.sso_env_note' | translate }}
+            </div>
+          </ng-container>
+
+          <!-- Editable (database-backed) connection. -->
+          <ng-template #editable>
+            <div class="info-grid" *ngIf="ssoForm[c.provider] as f">
+              <div class="info-item">
+                <label class="form-label">{{ 'tenant.sso_client_id' | translate }}</label>
+                <input class="form-control" type="text" [(ngModel)]="f.clientId"
+                       [disabled]="ssoSavingProvider === c.provider">
+              </div>
+              <div class="info-item">
+                <label class="form-label">{{ 'tenant.sso_client_secret' | translate }}</label>
+                <input class="form-control" type="password" autocomplete="new-password"
+                       [(ngModel)]="f.clientSecret"
+                       [placeholder]="c.hasSecret ? ('tenant.sso_secret_set' | translate) : ''"
+                       [disabled]="ssoSavingProvider === c.provider">
+                <small class="text-muted">
+                  {{ (c.hasSecret ? 'tenant.sso_secret_keep_help' : 'tenant.sso_secret_help') | translate }}
+                </small>
+              </div>
+              <div class="info-item" *ngIf="c.provider === 'microsoft'">
+                <label class="form-label">{{ 'tenant.sso_directory' | translate }}</label>
+                <input class="form-control" type="text" [(ngModel)]="f.directory"
+                       placeholder="organizations" [disabled]="ssoSavingProvider === c.provider">
+                <small class="text-muted">{{ 'tenant.sso_directory_help' | translate }}</small>
+              </div>
+              <div class="info-item full-width">
+                <label class="form-label">{{ 'tenant.sso_domains' | translate }}</label>
+                <input class="form-control" type="text" [(ngModel)]="f.domains"
+                       placeholder="example.com, acme.co" [disabled]="ssoSavingProvider === c.provider">
+                <small class="text-muted">{{ 'tenant.sso_domains_help' | translate }}</small>
               </div>
             </div>
 
-            <!-- Managed in the environment → read-only, changed where it is set. -->
-            <ng-container *ngIf="c.managed; else editable">
-              <div class="info-grid">
-                <div class="info-item">
-                  <label class="form-label">{{ 'tenant.sso_client_id' | translate }}</label>
-                  <div><code>{{ c.clientId }}</code></div>
-                </div>
-                <div class="info-item" *ngIf="c.directory">
-                  <label class="form-label">{{ 'tenant.sso_directory' | translate }}</label>
-                  <div><code>{{ c.directory }}</code></div>
-                </div>
-                <div class="info-item" *ngIf="c.domains.length">
-                  <label class="form-label">{{ 'tenant.sso_domains' | translate }}</label>
-                  <div>{{ c.domains.join(', ') }}</div>
-                </div>
-                <div class="info-item">
-                  <label class="form-label">{{ 'tenant.sso_auto_provision' | translate }}</label>
-                  <div>{{ (c.autoProvision ? 'tenant.sso_yes' : 'tenant.sso_no') | translate }}</div>
-                </div>
+            <ng-container *ngIf="ssoForm[c.provider] as f">
+              <div class="form-check-item">
+                <input class="form-check-input" type="checkbox" [id]="c.provider + '-sso-enabled'"
+                       [(ngModel)]="f.enabled" [disabled]="ssoSavingProvider === c.provider">
+                <label class="form-check-label" [for]="c.provider + '-sso-enabled'">
+                  {{ 'tenant.sso_enable' | translate }}
+                </label>
               </div>
-              <div class="alert alert-info mt-2 mb-0">
-                <i class="bi bi-hdd-network me-2"></i>{{ 'tenant.sso_env_note' | translate }}
+              <div class="form-check-item">
+                <input class="form-check-input" type="checkbox" [id]="c.provider + '-sso-auto'"
+                       [(ngModel)]="f.autoProvision" [disabled]="ssoSavingProvider === c.provider">
+                <label class="form-check-label" [for]="c.provider + '-sso-auto'">
+                  {{ 'tenant.sso_auto_provision' | translate }}
+                </label>
               </div>
             </ng-container>
 
-            <!-- Editable (database-backed) connection. -->
-            <ng-template #editable>
-              <div class="info-grid" *ngIf="ssoForm[c.provider] as f">
-                <div class="info-item">
-                  <label class="form-label">{{ 'tenant.sso_client_id' | translate }}</label>
-                  <input class="form-control" type="text" [(ngModel)]="f.clientId"
-                         [disabled]="ssoSavingProvider === c.provider">
-                </div>
-                <div class="info-item">
-                  <label class="form-label">{{ 'tenant.sso_client_secret' | translate }}</label>
-                  <input class="form-control" type="password" autocomplete="new-password"
-                         [(ngModel)]="f.clientSecret"
-                         [placeholder]="c.hasSecret ? ('tenant.sso_secret_set' | translate) : ''"
-                         [disabled]="ssoSavingProvider === c.provider">
-                  <small class="text-muted">
-                    {{ (c.hasSecret ? 'tenant.sso_secret_keep_help' : 'tenant.sso_secret_help') | translate }}
-                  </small>
-                </div>
-                <div class="info-item" *ngIf="c.provider === 'microsoft'">
-                  <label class="form-label">{{ 'tenant.sso_directory' | translate }}</label>
-                  <input class="form-control" type="text" [(ngModel)]="f.directory"
-                         placeholder="organizations" [disabled]="ssoSavingProvider === c.provider">
-                  <small class="text-muted">{{ 'tenant.sso_directory_help' | translate }}</small>
-                </div>
-                <div class="info-item full-width">
-                  <label class="form-label">{{ 'tenant.sso_domains' | translate }}</label>
-                  <input class="form-control" type="text" [(ngModel)]="f.domains"
-                         placeholder="example.com, acme.co" [disabled]="ssoSavingProvider === c.provider">
-                  <small class="text-muted">{{ 'tenant.sso_domains_help' | translate }}</small>
-                </div>
-              </div>
-
-              <ng-container *ngIf="ssoForm[c.provider] as f">
-                <div class="form-check-item">
-                  <input class="form-check-input" type="checkbox" [id]="c.provider + '-sso-enabled'"
-                         [(ngModel)]="f.enabled" [disabled]="ssoSavingProvider === c.provider">
-                  <label class="form-check-label" [for]="c.provider + '-sso-enabled'">
-                    {{ 'tenant.sso_enable' | translate }}
-                  </label>
-                </div>
-                <div class="form-check-item">
-                  <input class="form-check-input" type="checkbox" [id]="c.provider + '-sso-auto'"
-                         [(ngModel)]="f.autoProvision" [disabled]="ssoSavingProvider === c.provider">
-                  <label class="form-check-label" [for]="c.provider + '-sso-auto'">
-                    {{ 'tenant.sso_auto_provision' | translate }}
-                  </label>
-                </div>
-              </ng-container>
-
-              <div class="info-card-footer d-flex justify-content-between">
-                <button class="btn btn-outline-danger" *ngIf="c.id; else noRemove"
-                        [disabled]="ssoSavingProvider === c.provider" (click)="removeSso(c.provider)">
-                  {{ 'tenant.sso_remove' | translate }}
-                </button>
-                <ng-template #noRemove><span></span></ng-template>
-                <button class="btn btn-primary" [disabled]="ssoSavingProvider === c.provider"
-                        (click)="saveSso(c.provider)">
-                  <span *ngIf="ssoSavingProvider !== c.provider">{{ 'common.save' | translate }}</span>
-                  <span *ngIf="ssoSavingProvider === c.provider">
-                    <span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}
-                  </span>
-                </button>
-              </div>
-            </ng-template>
-          </div>
+            <div class="ts-footer">
+              <button class="btn btn-outline-danger" *ngIf="c.id; else noRemove"
+                      [disabled]="ssoSavingProvider === c.provider" (click)="removeSso(c.provider)">
+                {{ 'tenant.sso_remove' | translate }}
+              </button>
+              <ng-template #noRemove><span></span></ng-template>
+              <button class="btn btn-primary" [disabled]="ssoSavingProvider === c.provider"
+                      (click)="saveSso(c.provider)">
+                <span *ngIf="ssoSavingProvider !== c.provider">{{ 'common.save' | translate }}</span>
+                <span *ngIf="ssoSavingProvider === c.provider">
+                  <span class="spinner-border spinner-border-sm me-1"></span> {{ 'tenant.saving' | translate }}
+                </span>
+              </button>
+            </div>
+          </ng-template>
         </div>
-      </div>
+      </section>
 
       <!-- ============ Email templates ============ -->
-      <div class="panel-content" *ngIf="activeTab === 'email'">
-        <div class="panel-header">
-          <h2>{{ 'tenant.email_templates' | translate }}</h2>
-          <p>
-            {{ 'tenant.email_templates_desc' | translate }}
-          </p>
+      <section class="ui-section" *ngIf="activeTab === 'email'">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">{{ 'tenant.email_templates' | translate }}</h2>
+            <p class="ui-section__subtitle">{{ 'tenant.email_templates_desc' | translate }}</p>
+          </div>
         </div>
 
         <!-- The list -->
-        <div class="form-section" *ngIf="!editingTemplate">
-          <div class="history-list">
-            <div class="history-item" *ngFor="let t of templates" role="button"
-                 (click)="editTemplate(t.type)">
-              <div class="history-icon"><i class="bi bi-envelope"></i></div>
-              <div class="history-content">
-                <div class="history-header">
-                  <strong>{{ t.label }}</strong>
-                  <span class="chip" [class.bg-success]="!t.usesDefault">
-                    {{ (t.usesDefault ? 'tenant.standard_wording' : 'tenant.your_wording') | translate }}
-                  </span>
-                </div>
-                <div class="history-changes">{{ t.default.title }}</div>
+        <div class="history-list" *ngIf="!editingTemplate">
+          <div class="history-item" *ngFor="let t of templates" role="button"
+               (click)="editTemplate(t.type)">
+            <div class="history-icon"><i class="bi bi-envelope"></i></div>
+            <div class="history-content">
+              <div class="history-header">
+                <strong>{{ t.label }}</strong>
+                <span class="ui-pill"
+                      [class.ui-pill--success]="!t.usesDefault"
+                      [class.ui-pill--neutral]="t.usesDefault">
+                  <span class="ui-pill__dot"></span>
+                  {{ (t.usesDefault ? 'tenant.standard_wording' : 'tenant.your_wording') | translate }}
+                </span>
               </div>
+              <div class="history-changes">{{ t.default.title }}</div>
             </div>
+            <i class="bi bi-chevron-right history-chevron" aria-hidden="true"></i>
           </div>
         </div>
 
         <!-- The editor -->
-        <div class="form-section" *ngIf="editingTemplate">
-          <div class="info-card-header">
+        <div class="template-editor" *ngIf="editingTemplate">
+          <div class="ts-card__head ts-card__head--flat">
             <h3>{{ editingTemplate.label }}</h3>
             <button class="btn btn-sm btn-outline-secondary" (click)="closeTemplate()">
               <i class="bi bi-arrow-left me-1"></i>{{ 'tenant.all_templates' | translate }}
@@ -419,7 +421,7 @@
             <div class="preview-body" [innerHTML]="editingTemplate.preview.body"></div>
           </div>
 
-          <div class="panel-footer">
+          <div class="ts-footer">
             <button class="btn btn-outline-secondary" (click)="resetTemplate()" [disabled]="saving">
               {{ 'tenant.back_to_standard' | translate }}
             </button>
@@ -429,7 +431,6 @@
             </button>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
-

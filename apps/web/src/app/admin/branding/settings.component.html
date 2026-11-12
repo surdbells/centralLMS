@@ -1,17 +1,16 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid py-4">
-    <div class="row align-items-center mb-4">
-      <div (click)="goBack()" role="button" class="col-auto">
-        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-          <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-        </div>
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-sliders"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'branding.title' | translate }}</h1>
+        <p>{{ 'branding.subtitle' | translate }}</p>
       </div>
-      <div class="col">
-        <h1 class="fs-4 mb-0">{{ 'branding.title' | translate }}</h1>
-        <small class="text-muted">{{ 'branding.subtitle' | translate }}</small>
-      </div>
-    </div>
+    </header>
 
     <app-tenant-settings></app-tenant-settings>
   </div>

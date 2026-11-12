@@ -1,0 +1,30 @@
+.cert-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(var(--brand-primary-rgb), .1);
+  color: var(--brand-primary);
+  font-size: 1.05rem;
+}
+
+.cert-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: .8125rem;
+}
+
+.cert-facts dt {
+  font-weight: 400;
+  color: var(--ui-text-muted);
+}
+
+.cert-facts dd {
+  margin: 0;
+  color: var(--ui-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

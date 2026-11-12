@@ -88,18 +88,17 @@ interface ProctoringConfig {
   template: `
     <app-admintop></app-admintop>
 
-    <div class="proctoring-settings-container">
+    <main class="main">
+    <div class="ui-page proctoring-settings-container">
       <!-- Header -->
-      <div class="settings-header" *ngIf="!embedded">
-        <div class="header-left">
-          <h1 class="page-title">
-            <tui-icon icon="@tui.shield"></tui-icon>
-            Proctoring Settings
-          </h1>
-          <p class="page-subtitle">Configure proctoring rules for assessments</p>
+      <header class="ui-page-header settings-header" *ngIf="!embedded">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-shield-check"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Proctoring Settings</h1>
+          <p>Configure proctoring rules for assessments</p>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-secondary" (click)="resetToDefaults()">
+        <div class="ui-page-header__actions">
+          <button class="btn btn-outline-secondary" (click)="resetToDefaults()">
             <tui-icon icon="@tui.refresh-cw"></tui-icon> Reset
           </button>
           <button class="btn btn-primary" (click)="saveSettings()" [disabled]="saving">
@@ -107,7 +106,7 @@ interface ProctoringConfig {
             <tui-icon icon="@tui.save" *ngIf="!saving"></tui-icon> Save Settings
           </button>
         </div>
-      </div>
+      </header>
 
       <div class="alert alert-warning d-flex align-items-center gap-2" *ngIf="saveError">
         <tui-icon icon="@tui.alert-triangle"></tui-icon>
@@ -119,11 +118,11 @@ interface ProctoringConfig {
         <!-- LEFT: Settings Panels -->
         <div class="settings-left">
           <!-- Preset Selection -->
-          <div class="settings-card">
-            <div class="card-header">
-              <h5><tui-icon icon="@tui.zap"></tui-icon> Quick Presets</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.zap"></tui-icon> Quick Presets</h2>
             </div>
-            <div class="card-body">
+            <div class="section-body">
               <div class="preset-grid">
                 <button *ngFor="let p of presets" class="preset-btn"
                         [class.active]="activePreset === p.level"
@@ -137,12 +136,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- Browser Lockdown -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('browser')">
-              <h5><tui-icon icon="@tui.monitor"></tui-icon> Browser Lockdown</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('browser')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.monitor"></tui-icon> Browser Lockdown</h2>
               <tui-icon [icon]="expandedSections['browser'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['browser']">
+            <div class="section-body" *ngIf="expandedSections['browser']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Lock Browser</span>
@@ -237,12 +236,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- Webcam & Face Detection -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('webcam')">
-              <h5><tui-icon icon="@tui.camera"></tui-icon> Webcam & Face Detection</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('webcam')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.camera"></tui-icon> Webcam & Face Detection</h2>
               <tui-icon [icon]="expandedSections['webcam'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['webcam']">
+            <div class="section-body" *ngIf="expandedSections['webcam']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Require Webcam</span>
@@ -311,12 +310,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- Screen Recording -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('screen')">
-              <h5><tui-icon icon="@tui.airplay"></tui-icon> Screen Monitoring</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('screen')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.airplay"></tui-icon> Screen Monitoring</h2>
               <tui-icon [icon]="expandedSections['screen'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['screen']">
+            <div class="section-body" *ngIf="expandedSections['screen']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Require Screen Share</span>
@@ -352,12 +351,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- ID Verification -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('id')">
-              <h5><tui-icon icon="@tui.credit-card"></tui-icon> ID Verification</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('id')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.credit-card"></tui-icon> ID Verification</h2>
               <tui-icon [icon]="expandedSections['id'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['id']">
+            <div class="section-body" *ngIf="expandedSections['id']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Require ID Verification</span>
@@ -392,12 +391,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- Violation Thresholds -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('violations')">
-              <h5><tui-icon icon="@tui.alert-triangle"></tui-icon> Violation Thresholds</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('violations')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.alert-triangle"></tui-icon> Violation Thresholds</h2>
               <tui-icon [icon]="expandedSections['violations'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['violations']">
+            <div class="section-body" *ngIf="expandedSections['violations']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Flag After # Violations</span>
@@ -456,12 +455,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- Environment Checks -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('environment')">
-              <h5><tui-icon icon="@tui.settings"></tui-icon> Environment Checks</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('environment')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.settings"></tui-icon> Environment Checks</h2>
               <tui-icon [icon]="expandedSections['environment'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['environment']">
+            <div class="section-body" *ngIf="expandedSections['environment']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Require System Check</span>
@@ -534,12 +533,12 @@ interface ProctoringConfig {
           </div>
 
           <!-- Notifications -->
-          <div class="settings-card">
-            <div class="card-header" (click)="toggleSection('notifications')">
-              <h5><tui-icon icon="@tui.bell"></tui-icon> Admin Notifications</h5>
+          <div class="ui-section settings-card">
+            <div class="ui-section__head is-toggle" (click)="toggleSection('notifications')">
+              <h2 class="ui-section__title"><tui-icon icon="@tui.bell"></tui-icon> Admin Notifications</h2>
               <tui-icon [icon]="expandedSections['notifications'] ? '@tui.chevron-up' : '@tui.chevron-down'"></tui-icon>
             </div>
-            <div class="card-body" *ngIf="expandedSections['notifications']">
+            <div class="section-body" *ngIf="expandedSections['notifications']">
               <div class="setting-row">
                 <div class="setting-info">
                   <span class="setting-label">Notify on Flag</span>
@@ -566,11 +565,11 @@ interface ProctoringConfig {
 
         <!-- RIGHT: Summary Sidebar -->
         <div class="settings-right">
-          <div class="settings-card summary-card sticky-top">
-            <div class="card-header"><h5>Active Settings Summary</h5></div>
-            <div class="card-body">
+          <div class="ui-section settings-card summary-card summary-sticky">
+            <div class="ui-section__head"><h2 class="ui-section__title">Active Settings Summary</h2></div>
+            <div class="section-body">
               <div class="summary-level">
-                <span class="level-badge" [ngClass]="'level-' + config.proctoring_level">
+                <span class="ui-pill level-badge" [ngClass]="'level-' + config.proctoring_level">
                   <tui-icon [icon]="getPresetIcon(config.proctoring_level)"></tui-icon>
                   {{ config.proctoring_level | titlecase }}
                 </span>
@@ -637,78 +636,80 @@ interface ProctoringConfig {
         <p>Loading settings...</p>
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .proctoring-settings-container { padding: 1.5rem; }
-    .settings-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .page-subtitle { color: #6c757d; font-size: 0.875rem; margin: 0.25rem 0 0; }
+    /* Page chrome (header, sections, pills) comes from the global UI kit. */
+    .ui-section__head { align-items: center; }
+    .ui-section__title { display: flex; align-items: center; gap: 8px; }
+    .ui-section__title tui-icon { color: var(--ui-text-subtle, #8d948e); }
+    .ui-section__head.is-toggle { cursor: pointer; user-select: none; }
+    .ui-section__head.is-toggle:last-child { margin-bottom: 0; }
+    .ui-section__head.is-toggle > tui-icon { color: var(--ui-text-muted, #6a716b); }
 
-    .settings-layout { display: grid; grid-template-columns: 1fr 300px; gap: 1.25rem; }
-    .settings-card { background: #fff; border: 1px solid #e9ecef; border-radius: 0.5rem; margin-bottom: 0.75rem; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem;
-      background: #f8f9fa; border-radius: 0.5rem 0.5rem 0 0; cursor: pointer; border-bottom: 1px solid #e9ecef; }
-    .card-header h5 { margin: 0; font-size: 0.9375rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-    .card-body { padding: 0.75rem 1rem; }
+    .settings-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start; }
 
     /* Presets */
     .preset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
     .preset-btn {
       display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.75rem 0.5rem;
-      border: 2px solid #dee2e6; border-radius: 0.5rem; background: #fff; cursor: pointer; text-align: center;
-      transition: all 0.2s;
+      border: 1px solid var(--ui-border, #e7e9e7); border-radius: var(--ui-radius-card, 12px); background: var(--ui-surface, #fff); cursor: pointer; text-align: center;
+      transition: border-color .15s ease, background .15s ease;
     }
-    .preset-btn:hover { border-color: #6c757d; }
-    .preset-btn.active { border-color: #0d6efd; background: #e8f0fe; }
+    .preset-btn:hover { border-color: var(--ui-border-strong, #d9ddd9); }
+    .preset-btn.active { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); box-shadow: 0 0 0 1px var(--brand-primary) inset; }
+    .preset-btn.active tui-icon { color: var(--brand-primary); }
     .preset-name { font-size: 0.8125rem; font-weight: 600; }
-    .preset-desc { font-size: 0.625rem; color: #6c757d; }
+    .preset-desc { font-size: 0.6875rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Settings Rows */
-    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 0.625rem 0;
-      border-bottom: 1px solid #f0f0f0; }
-    .setting-row:last-child { border-bottom: none; }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.625rem 0;
+      border-bottom: 1px solid var(--ui-border, #e7e9e7); }
+    .setting-row:first-child { padding-top: 0; }
+    .setting-row:last-child { border-bottom: none; padding-bottom: 0; }
     .setting-info { flex: 1; }
     .setting-label { font-size: 0.875rem; font-weight: 500; display: block; }
-    .setting-desc { font-size: 0.6875rem; color: #6c757d; }
-    .setting-input { width: 130px !important; flex-shrink: 0; }
+    .setting-desc { font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); }
+    .setting-input { width: 140px !important; flex-shrink: 0; }
 
     /* Toggle */
-    .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; margin: 0; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .toggle-slider {
-      position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 24px; transition: 0.3s;
+      position: absolute; cursor: pointer; inset: 0; background: var(--ui-border-strong, #d9ddd9); border-radius: 22px; transition: background .2s ease;
     }
     .toggle-slider::before {
-      content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px;
-      background: #fff; border-radius: 50%; transition: 0.3s;
+      content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: transform .2s ease; box-shadow: 0 1px 2px rgba(16, 24, 18, .2);
     }
-    .toggle-switch input:checked + .toggle-slider { background: #0d6efd; }
-    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
-    .toggle-switch input:disabled + .toggle-slider { opacity: 0.5; }
+    .toggle-switch input:checked + .toggle-slider { background: var(--brand-primary); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+    .toggle-switch input:focus-visible + .toggle-slider { outline: 2px solid rgba(var(--brand-primary-rgb), .35); outline-offset: 2px; }
+    .toggle-switch input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
 
     /* Summary */
-    .sticky-top { position: sticky; top: 1rem; }
+    .summary-sticky { position: sticky; top: 1rem; }
     .summary-level { text-align: center; margin-bottom: 1rem; }
-    .level-badge { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 1rem;
-      border-radius: 2rem; font-weight: 600; font-size: 0.875rem; }
-    .level-none { background: #e2e3e5; color: #6c757d; }
-    .level-basic { background: #cfe2ff; color: #084298; }
-    .level-standard { background: #fff3cd; color: #664d03; }
-    .level-advanced { background: #f8d7da; color: #842029; }
-    .summary-section { margin-bottom: 0.75rem; }
-    .summary-section h6 { font-size: 0.75rem; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 0.375rem; }
+    .level-badge { font-size: 0.8125rem; padding: 4px 14px; }
+    .level-none { background: rgba(var(--ui-neutral-rgb), .1); border-color: rgba(var(--ui-neutral-rgb), .28); color: var(--ui-neutral-text); }
+    .level-basic { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+    .level-standard { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
+    .level-advanced { background: rgba(var(--ui-danger-rgb), .1); border-color: rgba(var(--ui-danger-rgb), .28); color: var(--ui-danger-text); }
+    .summary-section { margin-bottom: 0.875rem; }
+    .summary-section h6 { font-size: 0.6875rem; font-weight: 600; color: var(--ui-text-muted, #6a716b); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 0.375rem; }
     .summary-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-    .tag { font-size: 0.6875rem; padding: 0.125rem 0.5rem; border-radius: 1rem;
-      background: #e9ecef; color: #6c757d; }
-    .tag.enabled { background: #d4edda; color: #155724; }
+    .tag { font-size: 0.6875rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--ui-border, #e7e9e7);
+      background: var(--ui-surface-2, #f7f8f7); color: var(--ui-text-subtle, #8d948e); }
+    .tag.enabled { background: rgba(var(--brand-primary-rgb), .08); border-color: rgba(var(--brand-primary-rgb), .28); color: var(--brand-primary); }
     .summary-stats { font-size: 0.8125rem; }
     .stat-row { display: flex; justify-content: space-between; padding: 0.25rem 0; }
 
-    .loading-state { text-align: center; padding: 3rem; }
+    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     @media (max-width: 992px) {
       .settings-layout { grid-template-columns: 1fr; }
       .preset-grid { grid-template-columns: repeat(2, 1fr); }
+      .summary-sticky { position: static; }
     }
   `]
 })

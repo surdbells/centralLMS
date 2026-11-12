@@ -35,8 +35,20 @@ type Step = 'choose' | 'check' | 'done';
   imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
   templateUrl: './user-import.component.html',
   styles: [`
-    .drop-zone { border: 2px dashed var(--bs-border-color); border-radius: .5rem; cursor: pointer; }
-    .drop-zone.dragging { border-color: var(--bs-primary); background: var(--bs-primary-bg-subtle); }
+    .drop-zone { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 240px;
+      padding: 40px 16px; border: 1px dashed var(--ui-border-strong); border-radius: var(--ui-radius-card);
+      background: var(--ui-surface-2); cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+    .drop-zone:hover { border-color: rgba(var(--brand-primary-rgb), .45); }
+    .drop-zone.dragging { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .06); }
+    .drop-zone__title { margin: 12px 0 4px; font-size: .9375rem; font-weight: 600; color: var(--ui-text); }
+    .column-list > li { padding: 8px 0; }
+    .columns-note { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--ui-border); }
+    .mapping-section { padding: 14px 18px; }
+    .ui-section--flush > .ui-section__head { align-items: center; flex-wrap: wrap; padding-bottom: 14px; margin-bottom: 0; }
+    .ui-section--flush > .table-responsive { border-top: 1px solid var(--ui-border); }
+    .rows-scroll { max-height: 480px; overflow-y: auto; }
+    .ui-filter:disabled { opacity: .5; cursor: not-allowed; }
+    .section-foot { padding: 14px 22px 18px; border-top: 1px solid var(--ui-border); }
     .mono { font-family: var(--bs-font-monospace); font-size: .75rem; }
   `],
 })

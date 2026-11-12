@@ -2,14 +2,16 @@
 
 <!-- course-enrollment/course-enrollees.component.html -->
 
-<div class="enrollees-container">
+<main class="main">
+<div class="ui-page enrollees-container">
   <!-- Header -->
-  <div class="page-header">
-    <div class="header-content">
-      <h1><i class="bi bi-person-lines-fill"></i> {{ 'admin.enrollees.title' | translate }}</h1>
-      <p class="text-muted">{{ 'admin.enrollees.subtitle' | translate }}</p>
+  <header class="ui-page-header">
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-person-lines-fill"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ 'admin.enrollees.title' | translate }}</h1>
+      <p>{{ 'admin.enrollees.subtitle' | translate }}</p>
     </div>
-  </div>
+  </header>
 
   <!-- Messages -->
   <div class="messages-container" *ngIf="successMessage || errorMessage">
@@ -33,13 +35,13 @@
 
   <!-- Course Selection -->
   <div class="course-selector-section" *ngIf="!loading && showCourseSelector">
-    <div class="section-card">
-      <div class="section-header">
-        <h2>{{ 'admin.enroll.select_course' | translate }}</h2>
-        <p>{{ 'admin.enrollees.select_course_hint' | translate }}</p>
-      </div>
+    <section class="ui-section section-card">
+      <div class="ui-section__head"><div>
+        <h2 class="ui-section__title">{{ 'admin.enroll.select_course' | translate }}</h2>
+        <p class="ui-section__subtitle">{{ 'admin.enrollees.select_course_hint' | translate }}</p>
+      </div></div>
 
-      <div class="search-box">
+      <div class="ui-search course-search">
         <i class="bi bi-search"></i>
         <input type="text"
                class="form-control"
@@ -71,89 +73,59 @@
           <p>{{ 'admin.enroll.no_courses' | translate }}</p>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Enrollees Management -->
   <div class="enrollees-management" *ngIf="!loading && !showCourseSelector && selectedCourse">
     <!-- Course Header -->
-    <div class="course-header-card">
+    <section class="ui-section course-header-card">
       <div class="course-info">
         <img [src]="selectedCourse.thumbnail_url || 'assets/images/course-placeholder.png'"
              [alt]="selectedCourse.title"
              class="course-thumb">
         <div class="course-text">
           <h2>{{ selectedCourse.title }}</h2>
-          <span class="category-badge" *ngIf="selectedCourse.category_name">
+          <span class="category-badge ui-pill ui-pill--brand" *ngIf="selectedCourse.category_name">
             {{ selectedCourse.category_name }}
           </span>
         </div>
       </div>
-      <button class="btn btn-secondary" (click)="changeCourse()">
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="changeCourse()">
         <i class="bi bi-arrow-left me-1"></i> {{ 'admin.enroll.change_course' | translate }}
       </button>
-    </div>
+    </section>
 
     <!-- Stats Cards -->
-    <div class="stats-grid" *ngIf="stats">
-      <div class="stat-card">
-        <div class="stat-icon total">
-          <i class="bi bi-people-fill"></i>
-        </div>
-        <div class="stat-content">
-          <span class="stat-value">{{ stats.total_enrolled || 0 }}</span>
-          <span class="stat-label">{{ 'admin.enrollees.total_enrolled' | translate }}</span>
-        </div>
+    <div class="ui-kpi-grid stats-grid" *ngIf="stats">
+      <div class="ui-kpi ui-kpi--brand">
+        <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'admin.enrollees.total_enrolled' | translate }}</span>
+        <span class="ui-kpi__value">{{ stats.total_enrolled || 0 }}</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon not-started">
-          <i class="bi bi-hourglass"></i>
-        </div>
-        <div class="stat-content">
-          <span class="stat-value">{{ stats.not_started || 0 }}</span>
-          <span class="stat-label">{{ 'admin.enrollees.status_not_started' | translate }}</span>
-        </div>
+      <div class="ui-kpi">
+        <span class="ui-kpi__label"><i class="bi bi-hourglass"></i> {{ 'admin.enrollees.status_not_started' | translate }}</span>
+        <span class="ui-kpi__value">{{ stats.not_started || 0 }}</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon in-progress">
-          <i class="bi bi-play-circle"></i>
-        </div>
-        <div class="stat-content">
-          <span class="stat-value">{{ stats.in_progress || 0 }}</span>
-          <span class="stat-label">{{ 'admin.enrollees.status_in_progress' | translate }}</span>
-        </div>
+      <div class="ui-kpi ui-kpi--info">
+        <span class="ui-kpi__label"><i class="bi bi-play-circle"></i> {{ 'admin.enrollees.status_in_progress' | translate }}</span>
+        <span class="ui-kpi__value">{{ stats.in_progress || 0 }}</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon completed">
-          <i class="bi bi-check-circle"></i>
-        </div>
-        <div class="stat-content">
-          <span class="stat-value">{{ stats.completed || 0 }}</span>
-          <span class="stat-label">{{ 'admin.enrollees.status_completed' | translate }}</span>
-        </div>
+      <div class="ui-kpi ui-kpi--success">
+        <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'admin.enrollees.status_completed' | translate }}</span>
+        <span class="ui-kpi__value">{{ stats.completed || 0 }}</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon mandatory">
-          <i class="bi bi-exclamation-circle"></i>
-        </div>
-        <div class="stat-content">
-          <span class="stat-value">{{ stats.mandatory || 0 }}</span>
-          <span class="stat-label">{{ 'admin.enrollees.mandatory' | translate }}</span>
-        </div>
+      <div class="ui-kpi ui-kpi--danger">
+        <span class="ui-kpi__label"><i class="bi bi-exclamation-circle"></i> {{ 'admin.enrollees.mandatory' | translate }}</span>
+        <span class="ui-kpi__value">{{ stats.mandatory || 0 }}</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon progress">
-          <i class="bi bi-graph-up"></i>
-        </div>
-        <div class="stat-content">
-          <span class="stat-value">{{ formatProgress(stats.avg_progress) }}</span>
-          <span class="stat-label">{{ 'admin.enrollees.avg_progress' | translate }}</span>
-        </div>
+      <div class="ui-kpi">
+        <span class="ui-kpi__label"><i class="bi bi-graph-up"></i> {{ 'admin.enrollees.avg_progress' | translate }}</span>
+        <span class="ui-kpi__value">{{ formatProgress(stats.avg_progress) }}</span>
       </div>
     </div>
 
     <!-- Toolbar -->
-    <div class="toolbar-card">
+    <div class="ui-toolbar toolbar-card">
       <div class="toolbar-left">
         <div class="filter-group">
           <label>{{ 'admin.enrollees.status_filter_label' | translate }}</label>
@@ -169,7 +141,7 @@
         </div>
 
         <div class="selection-info" *ngIf="selectedCount > 0">
-          <span class="badge bg-primary">{{ 'admin.enrollees.n_selected' | translate:{ count: selectedCount } }}</span>
+          <span class="ui-pill ui-pill--brand">{{ 'admin.enrollees.n_selected' | translate:{ count: selectedCount } }}</span>
         </div>
       </div>
 
@@ -179,13 +151,13 @@
         </button>
 
         <div class="btn-group" *ngIf="selectedCount > 0">
-          <button class="btn btn-secondary btn-sm" (click)="openDueDateModal()">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openDueDateModal()">
             <i class="bi bi-calendar-event me-1"></i> {{ 'admin.enrollees.set_due_date' | translate }}
           </button>
           <button class="btn btn-outline-warning btn-sm" (click)="initiateMandatory()">
             <i class="bi bi-exclamation-circle me-1"></i> {{ 'admin.enrollees.set_mandatory' | translate }}
           </button>
-          <button class="btn btn-secondary btn-sm" (click)="initiateOptional()">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="initiateOptional()">
             <i class="bi bi-dash-circle me-1"></i> {{ 'admin.enrollees.set_optional' | translate }}
           </button>
           <button class="btn btn-outline-danger btn-sm" (click)="initiateUnenroll()">
@@ -196,7 +168,7 @@
     </div>
 
     <!-- Enrollees Table -->
-    <div class="table-card">
+    <section class="ui-section ui-section--flush table-card">
       <div class="table-loading" *ngIf="loadingEnrollees">
         <div class="spinner-border spinner-border-sm"></div>
         <span>{{ 'admin.enrollees.loading_enrollees' | translate }}</span>
@@ -243,13 +215,13 @@
                 </div>
               </td>
               <td>
-                <span class="dept-badge" *ngIf="enrollee.department_name">
+                <span class="dept-badge ui-pill ui-pill--neutral" *ngIf="enrollee.department_name">
                   {{ enrollee.department_name }}
                 </span>
                 <span class="text-muted" *ngIf="!enrollee.department_name">-</span>
               </td>
               <td>
-                <span class="badge" [ngClass]="getStatusBadgeClass(enrollee.status)">
+                <span class="ui-pill" [ngClass]="{ 'ui-pill--neutral': enrollee.status === 'not_started', 'ui-pill--info': enrollee.status === 'in_progress', 'ui-pill--success': enrollee.status === 'completed', 'ui-pill--warning': enrollee.status === 'dropped' }"><span class="ui-pill__dot"></span>
                   {{ getStatusLabel(enrollee.status) }}
                 </span>
               </td>
@@ -270,7 +242,7 @@
                 </span>
               </td>
               <td>
-                <span class="badge" [ngClass]="enrollee.is_mandatory ? 'bg-danger' : 'bg-black text-white'">
+                <span class="ui-pill" [ngClass]="enrollee.is_mandatory ? 'ui-pill--danger' : 'ui-pill--neutral'">
                   {{ enrollee.is_mandatory ? ('common.yes' | translate) : ('common.no' | translate) }}
                 </span>
               </td>
@@ -312,7 +284,7 @@
           </ul>
         </nav>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Add Users Modal -->
@@ -383,7 +355,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeAddUsersModal()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="closeAddUsersModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-primary"
                 (click)="confirmAddUsers()"
                 [disabled]="selectedUsersToAdd.length === 0 || processing">
@@ -417,7 +389,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeDueDateModal()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="closeDueDateModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-primary"
                 (click)="confirmDueDateUpdate()"
                 [disabled]="processing">
@@ -455,7 +427,7 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closeConfirmModal()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="closeConfirmModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn"
                 [class.btn-danger]="confirmAction === 'unenroll'"
                 [class.btn-warning]="confirmAction === 'mandatory'"
@@ -471,3 +443,4 @@
     </div>
   </div>
 </div>
+</main>

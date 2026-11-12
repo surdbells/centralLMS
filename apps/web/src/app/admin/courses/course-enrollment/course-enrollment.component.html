@@ -1,17 +1,17 @@
 <app-admintop></app-admintop>
 
-<div class="enrollment-container">
-  <div class="page-header">
-    <div class="header-content">
-      <div (click)="goBack()" role="button" class="back-button">
-        <tui-icon icon="@tui.chevron-left"></tui-icon>
-      </div>
-      <div class="header-text">
-        <h1><i class="bi bi-person-plus-fill"></i> {{ 'admin.enroll.title' | translate }}</h1>
-        <p class="text-muted">{{ 'admin.enroll.subtitle' | translate }}</p>
-      </div>
+<main class="main">
+<div class="ui-page enrollment-container">
+  <header class="ui-page-header">
+    <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-person-plus"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ 'admin.enroll.title' | translate }}</h1>
+      <p>{{ 'admin.enroll.subtitle' | translate }}</p>
     </div>
-  </div>
+  </header>
 
   <div class="alert alert-danger" *ngIf="error">
     <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
@@ -27,7 +27,7 @@
   <div class="enrollment-content" *ngIf="!loading">
 
     <!-- Step 1: Course Selection -->
-    <div class="enrollment-step" *ngIf="showCourseSelector">
+    <section class="ui-section enrollment-step" *ngIf="showCourseSelector">
       <div class="step-header">
         <span class="step-number">1</span>
         <div>
@@ -36,7 +36,7 @@
         </div>
       </div>
 
-      <div class="search-box">
+      <div class="ui-search course-search">
         <i class="bi bi-search"></i>
         <input type="text"
                class="form-control"
@@ -52,11 +52,11 @@
           <div class="course-thumbnail">
             <img [src]="course.thumbnail_url || 'assets/img/course-placeholder.png'"
                  [alt]="course.title">
-            <span class="course-badge" *ngIf="course.is_full">{{ 'admin.enroll.full' | translate }}</span>
+            <span class="course-badge ui-pill ui-pill--danger" *ngIf="course.is_full">{{ 'admin.enroll.full' | translate }}</span>
           </div>
           <div class="course-info">
             <h4>{{ course.title }}</h4>
-            <span class="category-badge" *ngIf="course.category_name">{{ course.category_name }}</span>
+            <span class="category-badge ui-pill ui-pill--brand" *ngIf="course.category_name">{{ course.category_name }}</span>
             <div class="course-meta">
               <span><i class="bi bi-clock"></i> {{ course.duration_minutes }}m</span>
               <span><i class="bi bi-people"></i> {{ 'admin.enroll.n_enrolled' | translate:{ count: course.current_enrollments } }}</span>
@@ -65,14 +65,14 @@
         </div>
       </div>
 
-      <div class="empty-state" *ngIf="filterCourses().length === 0">
-        <i class="bi bi-search"></i>
+      <div class="ui-state" *ngIf="filterCourses().length === 0">
+        <span class="ui-state__icon"><i class="bi bi-search"></i></span>
         <p>{{ 'admin.enroll.no_courses' | translate }}</p>
       </div>
-    </div>
+    </section>
 
     <!-- Step 2: Enrollment Configuration -->
-    <div class="enrollment-step" *ngIf="!showCourseSelector && selectedCourse">
+    <section class="ui-section enrollment-step" *ngIf="!showCourseSelector && selectedCourse">
       <!-- Selected Course Summary -->
       <div class="selected-course-banner">
         <div class="course-preview">
@@ -80,10 +80,10 @@
                [alt]="selectedCourse.title">
           <div class="course-details">
             <h3>{{ selectedCourse.title }}</h3>
-            <span class="category-badge" *ngIf="selectedCourse.category_name">{{ selectedCourse.category_name }}</span>
+            <span class="category-badge ui-pill ui-pill--brand" *ngIf="selectedCourse.category_name">{{ selectedCourse.category_name }}</span>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" (click)="changeCourse()">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="changeCourse()">
           <i class="bi bi-arrow-left"></i> {{ 'admin.enroll.change_course' | translate }}
         </button>
       </div>
@@ -97,26 +97,26 @@
       </div>
 
       <!-- Enrollment Type Tabs -->
-      <div class="enrollment-type-tabs">
-        <button class="type-tab"
+      <div class="ui-tabs enrollment-type-tabs" role="tablist">
+        <button type="button" class="ui-tab"
                 [class.active]="enrollmentType === 'department'"
                 (click)="enrollmentType = 'department'; onEnrollmentTypeChange()">
           <i class="bi bi-building"></i>
           <span>{{ 'admin.enroll.by_department' | translate }}</span>
         </button>
-        <button class="type-tab"
+        <button type="button" class="ui-tab"
                 [class.active]="enrollmentType === 'team'"
                 (click)="enrollmentType = 'team'; onEnrollmentTypeChange()">
           <i class="bi bi-people"></i>
           <span>{{ 'admin.enroll.by_team' | translate }}</span>
         </button>
-        <button class="type-tab"
+        <button type="button" class="ui-tab"
                 [class.active]="enrollmentType === 'branch'"
                 (click)="enrollmentType = 'branch'; onEnrollmentTypeChange()">
           <i class="bi bi-geo-alt"></i>
           <span>{{ 'admin.enroll.by_branch' | translate }}</span>
         </button>
-        <button class="type-tab"
+        <button type="button" class="ui-tab"
                 [class.active]="enrollmentType === 'users'"
                 (click)="enrollmentType = 'users'; onEnrollmentTypeChange()">
           <i class="bi bi-person-check"></i>
@@ -128,7 +128,7 @@
         <!-- Department Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'department'">
           <label class="form-label">{{ 'admin.enroll.select_department' | translate }}</label>
-          <select class="form-select form-select-lg" [(ngModel)]="selectedDepartmentId">
+          <select class="form-select" [(ngModel)]="selectedDepartmentId">
             <option [ngValue]="null">{{ 'admin.enroll.select_department_option' | translate }}</option>
             <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
               {{ dept.department_name }} {{ 'admin.enroll.n_users' | translate:{ count: dept.user_count } }}
@@ -144,7 +144,7 @@
         <!-- Team Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'team'">
           <label class="form-label">{{ 'admin.enroll.select_team' | translate }}</label>
-          <select class="form-select form-select-lg" [(ngModel)]="selectedTeamId">
+          <select class="form-select" [(ngModel)]="selectedTeamId">
             <option [ngValue]="null">{{ 'admin.enroll.select_team_option' | translate }}</option>
             <option *ngFor="let team of teams" [ngValue]="team.team_id">
               {{ team.team_name }} {{ 'admin.enroll.n_users' | translate:{ count: team.user_count } }}
@@ -160,7 +160,7 @@
         <!-- Branch Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'branch'">
           <label class="form-label">{{ 'admin.enroll.select_branch' | translate }}</label>
-          <select class="form-select form-select-lg" [(ngModel)]="selectedBranchId">
+          <select class="form-select" [(ngModel)]="selectedBranchId">
             <option [ngValue]="null">{{ 'admin.enroll.select_branch_option' | translate }}</option>
             <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
               {{ branch.branch_name }} - {{ branch.city }} {{ 'admin.enroll.n_users' | translate:{ count: branch.user_count } }}
@@ -216,7 +216,7 @@
             <div class="user-list-panel">
               <div class="panel-header">
                 <h5>{{ 'admin.enroll.available_users' | translate }}</h5>
-                <div class="search-box small">
+                <div class="ui-search">
                   <i class="bi bi-search"></i>
                   <input type="text"
                          class="form-control form-control-sm"
@@ -262,7 +262,7 @@
             <div class="selected-users-panel">
               <div class="panel-header">
                 <h5>{{ 'admin.enroll.selected_users' | translate }}</h5>
-                <span class="badge bg-primary">{{ selectedUsers.length }}</span>
+                <span class="ui-pill ui-pill--brand">{{ selectedUsers.length }}</span>
               </div>
 
               <div class="selected-users-list">
@@ -338,7 +338,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </section>
   </div>
   <div class="modal-overlay" *ngIf="showPreviewModal" (click)="closePreviewModal()">
     <div class="modal-container preview-modal" (click)="$event.stopPropagation()">
@@ -388,14 +388,14 @@
         </div>
 
         <div class="enrollment-settings-preview">
-          <span *ngIf="isMandatory" class="badge bg-danger">{{ 'admin.enroll.mandatory' | translate }}</span>
-          <span *ngIf="dueDate" class="badge bg-info">{{ 'admin.enroll.due_date_label' | translate }} {{ dueDate }}</span>
-          <span *ngIf="notifyUsers" class="badge bg-secondary">{{ 'admin.enroll.email_enabled' | translate }}</span>
+          <span *ngIf="isMandatory" class="ui-pill ui-pill--danger">{{ 'admin.enroll.mandatory' | translate }}</span>
+          <span *ngIf="dueDate" class="ui-pill ui-pill--info">{{ 'admin.enroll.due_date_label' | translate }} {{ dueDate }}</span>
+          <span *ngIf="notifyUsers" class="ui-pill ui-pill--neutral">{{ 'admin.enroll.email_enabled' | translate }}</span>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="closePreviewModal()">{{ 'common.cancel' | translate }}</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="closePreviewModal()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-success btn-lg"
                 (click)="confirmEnrollment()"
                 [disabled]="enrolling || preview?.summary?.will_enroll === 0">
@@ -473,3 +473,4 @@
     </div>
   </div>
 </div>
+</main>

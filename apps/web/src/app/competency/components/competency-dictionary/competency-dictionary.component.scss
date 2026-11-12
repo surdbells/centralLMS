@@ -20,111 +20,31 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
   }
 }
 
-// --- header: totals + actions ---------------------------------------------
+// --- header: totals + actions (KPI cards / chips / search from the UI kit) --
 .dict-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .dict-stats {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  flex: 1 1 420px;
+  margin-bottom: 0;
 }
 
-.dstat {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.55rem 1rem 0.55rem 0.8rem;
-  background: var(--bs-body-bg, #fff);
-  border: 1px solid var(--bs-border-color, #e5e7eb);
-  border-radius: 0.7rem;
+.fn-chips { flex: 1; }
 
-  .dstat-icon {
-    font-size: 1.15rem;
-    color: $brand;
-  }
-
-  .dstat-val {
-    font-size: 1.2rem;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .dstat-lbl {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--bs-secondary-color, #6b7280);
-  }
-}
-
-// --- search + function chips ----------------------------------------------
-.dict-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.25rem;
-}
-
-.fn-chips {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.fn-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--bs-border-color, #e5e7eb);
-  background: var(--bs-body-bg, #fff);
-  color: var(--bs-body-color, #374151);
-  border-radius: 999px;
-  padding: 0.3rem 0.8rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.12s ease;
-
-  .chip-count {
-    font-size: 0.72rem;
-    font-weight: 700;
-    background: var(--bs-tertiary-bg, #f3f4f6);
-    color: var(--bs-secondary-color, #6b7280);
-    border-radius: 999px;
-    padding: 0.02rem 0.4rem;
-  }
-
-  &:hover {
-    border-color: rgba($brand-rgb, 0.5);
-  }
-
-  &.active {
-    background: $brand;
-    border-color: $brand;
-    color: #fff;
-
-    .chip-count {
-      background: rgba(255, 255, 255, 0.25);
-      color: #fff;
-    }
-  }
-}
+.search-box { min-width: 240px; }
 
 // --- function group heading ------------------------------------------------
 .fn-group-head {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
 
   .fn-dot {
     width: 9px;
@@ -133,18 +53,7 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
     background: $brand;
   }
 
-  h6 {
-    font-size: 0.95rem;
-  }
-
-  .fn-count {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--bs-secondary-color, #6b7280);
-    background: var(--bs-tertiary-bg, #f3f4f6);
-    border-radius: 999px;
-    padding: 0.05rem 0.5rem;
-  }
+  .ui-section__title { margin: 0; }
 }
 
 // --- cards -----------------------------------------------------------------
@@ -178,7 +87,7 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
   }
 
   &:hover {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+    box-shadow: var(--ui-shadow-xs);
     border-color: rgba($brand-rgb, 0.35);
 
     &::before { opacity: 0.6; }
@@ -233,8 +142,8 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
   &.on {
     color: #fff;
     &.k { background: #64748b; }
-    &.s { background: #2563eb; }
-    &.m { background: #7c3aed; }
+    &.s { background: rgba($brand-rgb, 0.65); }
+    &.m { background: $brand; }
   }
 }
 
@@ -287,8 +196,8 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
   padding: 0.05rem 0.4rem;
 
   &.k { background: #64748b; }
-  &.s { background: #2563eb; }
-  &.m { background: #7c3aed; }
+  &.s { background: rgba($brand-rgb, 0.65); }
+  &.m { background: $brand; }
 }
 
 .comp-meta {
@@ -421,8 +330,8 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
     justify-content: center;
 
     &.k { background: #64748b; }
-    &.s { background: #2563eb; }
-    &.m { background: #7c3aed; }
+    &.s { background: rgba($brand-rgb, 0.65); }
+    &.m { background: $brand; }
   }
 
   app-rich-html-editor { flex: 1 1 auto; min-width: 0; }
@@ -445,7 +354,7 @@ $brand-rgb: var(--brand-primary-rgb, 109, 94, 246);
 
   &:hover {
     border-color: var(--brand-primary, #6d5ef6);
-    background: #f5f3ff;
+    background: rgba($brand-rgb, 0.05);
   }
 
   .file-drop-icon {

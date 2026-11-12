@@ -1,45 +1,45 @@
 <!-- Header: totals + actions -->
 <div class="dict-header">
-  <div class="dict-stats">
-    <div class="dstat">
-      <tui-icon icon="@tui.layers" class="dstat-icon"></tui-icon>
-      <div><div class="dstat-val">{{ functionStats.length }}</div><div class="dstat-lbl">{{ 'competency.dict.functions' | translate }}</div></div>
+  <div class="ui-kpi-grid ui-kpi-grid--3 dict-stats">
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><tui-icon icon="@tui.layers"></tui-icon> {{ 'competency.dict.functions' | translate }}</span>
+      <span class="ui-kpi__value">{{ functionStats.length }}</span>
     </div>
-    <div class="dstat">
-      <tui-icon icon="@tui.book-open" class="dstat-icon"></tui-icon>
-      <div><div class="dstat-val">{{ totalCompetencies }}</div><div class="dstat-lbl">{{ 'competency.dict.competencies' | translate }}</div></div>
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><tui-icon icon="@tui.book-open"></tui-icon> {{ 'competency.dict.competencies' | translate }}</span>
+      <span class="ui-kpi__value">{{ totalCompetencies }}</span>
     </div>
-    <div class="dstat">
-      <tui-icon icon="@tui.briefcase" class="dstat-icon"></tui-icon>
-      <div><div class="dstat-val">{{ totalProfiles }}</div><div class="dstat-lbl">{{ 'competency.dict.job_profiles' | translate }}</div></div>
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><tui-icon icon="@tui.briefcase"></tui-icon> {{ 'competency.dict.job_profiles' | translate }}</span>
+      <span class="ui-kpi__value">{{ totalProfiles }}</span>
     </div>
   </div>
-  <div class="d-flex gap-2">
-    <button class="btn btn-outline-secondary btn-sm" (click)="openImport()">
+  <div class="d-flex gap-2 flex-wrap">
+    <button class="btn btn-outline-secondary" (click)="openImport()">
       <tui-icon icon="@tui.upload"></tui-icon> {{ 'competency.dict.import' | translate }}
     </button>
-    <button class="btn btn-primary btn-sm" (click)="openNew()">
+    <button class="btn btn-primary" (click)="openNew()">
       <tui-icon icon="@tui.plus"></tui-icon> {{ 'competency.dict.new_competency' | translate }}
     </button>
   </div>
 </div>
 
 <!-- Search + function chips -->
-<div class="dict-toolbar">
-  <div class="input-group input-group-sm search-box">
-    <span class="input-group-text bg-transparent border-end-0"><tui-icon icon="@tui.search"></tui-icon></span>
-    <input type="search" class="form-control border-start-0" placeholder="{{ 'competency.dict.search_placeholder' | translate }}"
+<div class="ui-toolbar dict-toolbar">
+  <div class="ui-filters fn-chips">
+    <button type="button" class="ui-filter fn-chip" [class.is-active]="!functionFilter" (click)="selectFunction('')">
+      {{ 'competency.dict.all' | translate }} <span class="ui-filter__count">{{ totalCompetencies }}</span>
+    </button>
+    <button type="button" class="ui-filter fn-chip" *ngFor="let f of functionStats"
+            [class.is-active]="functionFilter === f.function" (click)="selectFunction(f.function)">
+      {{ f.function }} <span class="ui-filter__count">{{ f.competencies }}</span>
+    </button>
+  </div>
+  <label class="ui-search search-box">
+    <i class="bi bi-search"></i>
+    <input type="search" placeholder="{{ 'competency.dict.search_placeholder' | translate }}"
            [ngModel]="search" (ngModelChange)="onSearch($event)" />
-  </div>
-  <div class="fn-chips">
-    <button class="fn-chip" [class.active]="!functionFilter" (click)="selectFunction('')">
-      {{ 'competency.dict.all' | translate }} <span class="chip-count">{{ totalCompetencies }}</span>
-    </button>
-    <button class="fn-chip" *ngFor="let f of functionStats"
-            [class.active]="functionFilter === f.function" (click)="selectFunction(f.function)">
-      {{ f.function }} <span class="chip-count">{{ f.competencies }}</span>
-    </button>
-  </div>
+  </label>
 </div>
 
 <!-- Loading -->
@@ -48,10 +48,10 @@
 </div>
 
 <!-- Empty -->
-<div *ngIf="!loading && !groups.length" class="empty-panel text-center py-5">
-  <tui-icon icon="@tui.book-open" class="empty-icon"></tui-icon>
-  <h5 class="mt-3 mb-1">{{ (search || functionFilter ? 'competency.dict.empty_no_match' : 'competency.dict.empty_title') | translate }}</h5>
-  <p class="text-muted mb-3">
+<div *ngIf="!loading && !groups.length" class="ui-state">
+  <span class="ui-state__icon"><tui-icon icon="@tui.book-open"></tui-icon></span>
+  <h3>{{ (search || functionFilter ? 'competency.dict.empty_no_match' : 'competency.dict.empty_title') | translate }}</h3>
+  <p>
     {{ (search || functionFilter
         ? 'competency.dict.empty_no_match_text'
         : 'competency.dict.empty_text') | translate }}
@@ -65,12 +65,12 @@
 </div>
 
 <!-- Groups -->
-<div *ngIf="!loading && groups.length" class="d-flex flex-column gap-4">
-  <div *ngFor="let group of groups" class="function-group">
-    <div class="fn-group-head">
+<div *ngIf="!loading && groups.length">
+  <section *ngFor="let group of groups" class="ui-section function-group">
+    <div class="ui-section__head fn-group-head">
       <span class="fn-dot"></span>
-      <h6 class="mb-0 fw-semibold">{{ group.function }}</h6>
-      <span class="fn-count">{{ group.competencies.length }}</span>
+      <h2 class="ui-section__title">{{ group.function }}</h2>
+      <span class="ui-pill ui-pill--neutral fn-count">{{ group.competencies.length }}</span>
     </div>
     <div class="comp-grid">
       <div class="comp-card" *ngFor="let c of group.competencies">
@@ -111,7 +111,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </div>
 
 <!-- Levels modal -->
@@ -143,7 +143,7 @@
       </div>
     </div>
     <div class="overlay-foot">
-      <button class="btn btn-light" (click)="closeLevels()">{{ 'common.close' | translate }}</button>
+      <button class="btn btn-outline-secondary" (click)="closeLevels()">{{ 'common.close' | translate }}</button>
       <button class="btn btn-primary" (click)="closeLevels(); openEdit(c)">
         <tui-icon icon="@tui.pencil"></tui-icon> {{ 'competency.common.edit' | translate }}
       </button>
@@ -207,7 +207,7 @@
       </div>
     </div>
     <div class="overlay-foot">
-      <button class="btn btn-light" (click)="closeModal()">{{ 'common.cancel' | translate }}</button>
+      <button class="btn btn-outline-secondary" (click)="closeModal()">{{ 'common.cancel' | translate }}</button>
       <button class="btn btn-primary" [disabled]="saving" (click)="save()">
         <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
         {{ (editing ? 'competency.common.save_changes' : 'competency.dict.add_competency') | translate }}
@@ -301,7 +301,7 @@
       </div>
     </div>
     <div class="overlay-foot">
-      <button class="btn btn-light" (click)="closeImport()" [disabled]="importing">
+      <button class="btn btn-outline-secondary" (click)="closeImport()" [disabled]="importing">
         {{ (importResult ? 'common.done' : 'common.cancel') | translate }}
       </button>
       <button *ngIf="!importResult" class="btn btn-primary" [disabled]="importing || !importFiles.length"
@@ -324,7 +324,7 @@
       </p>
     </div>
     <div class="overlay-foot">
-      <button class="btn btn-light" (click)="cancelDelete()">{{ 'competency.common.keep_it' | translate }}</button>
+      <button class="btn btn-outline-secondary" (click)="cancelDelete()">{{ 'competency.common.keep_it' | translate }}</button>
       <button class="btn btn-danger" (click)="confirmDelete()">{{ 'competency.common.remove' | translate }}</button>
     </div>
   </div>

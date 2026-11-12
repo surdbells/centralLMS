@@ -71,53 +71,48 @@ export interface LoginRecord {
   template: `
     <app-top></app-top>
     <main class="main">
-      <div class="container-fluid py-4">
-        <div class="row align-items-center mb-4">
-          <div (click)="goBack()" role="button" class="col-auto">
-            <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-              <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-            </div>
+      <div class="ui-page">
+        <header class="ui-page-header">
+          <button type="button" class="ui-page-header__back" (click)="goBack()" aria-label="Back">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-person-circle"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>My Account</h1>
+            <p>Track your progress and continue learning</p>
           </div>
-          <div class="col">
-            <h1 class="fs-4 mb-0">My Account</h1>
-            <small class="text-muted">Track your progress and continue learning</small>
-          </div>
-        </div>
+        </header>
         <div class="my-account">
-      <!-- Header -->
 
-      <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+      <div *ngIf="loading" class="text-center py-5"><div class="spinner-border acct-spinner"></div></div>
 
       <div *ngIf="profile && !loading">
-        <!-- Profile Banner -->
-        <div class="card border-0 shadow-sm mb-4 overflow-hidden">
-          <div class="profile-banner"></div>
-          <div class="card-body position-relative pt-0">
-            <div class="d-flex align-items-end gap-3" style="margin-top:-40px">
-              <!-- Avatar -->
-              <div class="position-relative">
-                <div class="avatar-xl rounded-circle border border-4 border-white shadow-sm overflow-hidden"
-                     [style.background-color]="!profile.avatar_url ? getColor(profile.full_name) : 'transparent'">
-                  <img *ngIf="profile.avatar_url" [appAuthImg]="profile.avatar_url" class="w-100 h-100 object-fit-cover" alt="Avatar">
-                  <span *ngIf="!profile.avatar_url" class="avatar-letter">{{ profile.full_name.charAt(0).toUpperCase() }}</span>
-                </div>
-                <button class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow"
-                        style="width:32px; height:32px; padding:0" (click)="avatarInput.click()" title="Change photo">
-                  <i class="bi bi-camera-fill" style="font-size:14px"></i>
-                </button>
-                <input #avatarInput type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="d-none"
-                       (change)="onAvatarSelected($event)">
+        <!-- Profile summary -->
+        <section class="ui-section">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <!-- Avatar -->
+            <div class="position-relative">
+              <div class="avatar-xl rounded-circle overflow-hidden"
+                   [style.background-color]="!profile.avatar_url ? getColor(profile.full_name) : 'transparent'">
+                <img *ngIf="profile.avatar_url" [appAuthImg]="profile.avatar_url" class="w-100 h-100 object-fit-cover" alt="Avatar">
+                <span *ngIf="!profile.avatar_url" class="avatar-letter">{{ profile.full_name.charAt(0).toUpperCase() }}</span>
               </div>
-              <div class="pb-1">
-                <h5 class="fw-bold mb-0">{{ profile.full_name }}</h5>
-                <p class="text-muted mb-0 small">{{ profile.email }}</p>
-                <div class="mt-1">
-                  <span *ngFor="let r of profile.roles" class="badge bg-primary-subtle text-primary me-1 small">{{ r.role_name }}</span>
-                </div>
+              <button type="button" class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 avatar-cam"
+                      (click)="avatarInput.click()" title="Change photo">
+                <i class="bi bi-camera-fill"></i>
+              </button>
+              <input #avatarInput type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="d-none"
+                     (change)="onAvatarSelected($event)">
+            </div>
+            <div class="min-w-0">
+              <h2 class="acct-name">{{ profile.full_name }}</h2>
+              <p class="ui-muted mb-0 small">{{ profile.email }}</p>
+              <div class="mt-2 d-flex flex-wrap gap-1">
+                <span *ngFor="let r of profile.roles" class="ui-pill ui-pill--brand">{{ r.role_name }}</span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <!-- Avatar crop/preview modal -->
         <div class="modal fade show d-block" *ngIf="avatarPreview" style="background:rgba(0,0,0,.6)">
@@ -132,8 +127,8 @@ export interface LoginRecord {
                 <p class="small text-muted mb-0">{{ avatarFile?.name }}</p>
               </div>
               <div class="modal-footer py-2">
-                <button class="btn btn-sm btn-secondary" (click)="cancelAvatarUpload()">Cancel</button>
-                <button class="btn btn-sm btn-danger" *ngIf="profile.avatar_url" (click)="removeAvatar()">
+                <button class="btn btn-sm btn-outline-secondary" (click)="cancelAvatarUpload()">Cancel</button>
+                <button class="btn btn-sm btn-outline-danger" *ngIf="profile.avatar_url" (click)="removeAvatar()">
                   <i class="bi bi-trash me-1"></i>Remove
                 </button>
                 <button class="btn btn-sm btn-primary" (click)="uploadAvatar()" [disabled]="uploadingAvatar">
@@ -146,29 +141,27 @@ export interface LoginRecord {
         </div>
 
         <!-- Tabs -->
-        <ul class="nav nav-tabs mb-4">
-          <li class="nav-item" *ngFor="let tab of tabs">
-            <a class="nav-link" [class.active]="activeTab === tab.key" role="button"
-               (click)="onTabChange(tab.key)">
-              <i class="bi me-1" [class]="tab.icon"></i>{{ tab.label }}
-            </a>
-          </li>
-        </ul>
+        <nav class="ui-tabs" role="tablist">
+          <button type="button" class="ui-tab" *ngFor="let tab of tabs" [class.is-active]="activeTab === tab.key"
+                  (click)="onTabChange(tab.key)">
+            <i class="bi" [class]="tab.icon"></i> {{ tab.label }}
+          </button>
+        </nav>
 
         <!-- ═══════ PROFILE TAB ═══════ -->
         <div *ngIf="activeTab === 'profile'">
           <div class="row g-4">
             <div class="col-md-6">
-              <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                  <span class="fw-semibold"><i class="bi bi-person me-2"></i>Personal Information</span>
-                  <button class="btn btn-sm" [class]="editingProfile ? 'btn-secondary' : 'btn-primary'"
+              <section class="ui-section">
+                <div class="ui-section__head">
+                  <h2 class="ui-section__title">Personal Information</h2>
+                  <button type="button" class="btn btn-sm" [class]="editingProfile ? 'btn-outline-secondary' : 'btn-primary'"
                           (click)="editingProfile = !editingProfile">
                     <i class="bi" [class]="editingProfile ? 'bi-x' : 'bi-pencil'"></i>
                     {{ editingProfile ? 'Cancel' : 'Edit' }}
                   </button>
                 </div>
-                <div class="card-body">
+                <div>
                   <!-- View mode -->
                   <div *ngIf="!editingProfile">
                     <div class="row mb-3" *ngFor="let f of personalInfo">
@@ -223,49 +216,49 @@ export interface LoginRecord {
                         <span *ngIf="savingProfile" class="spinner-border spinner-border-sm me-1"></span>
                         Save Changes
                       </button>
-                      <button class="btn btn-secondary btn-sm" (click)="editingProfile = false">Cancel</button>
+                      <button class="btn btn-outline-secondary btn-sm" (click)="editingProfile = false">Cancel</button>
                     </div>
                     <div class="alert alert-success py-1 small mt-2" *ngIf="profileSuccess">{{ profileSuccess }}</div>
                     <div class="alert alert-danger py-1 small mt-2" *ngIf="profileError">{{ profileError }}</div>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
 
             <div class="col-md-6">
               <!-- Organization (read-only) -->
-              <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>Organization</div>
-                <div class="card-body">
+              <section class="ui-section">
+                <div class="ui-section__head"><h2 class="ui-section__title">Organization</h2></div>
+                <div>
                   <div class="row mb-3" *ngFor="let f of orgInfo">
                     <div class="col-5 text-muted small">{{ f.label }}</div>
                     <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
                   </div>
                   <small class="text-muted fst-italic">Organization info can only be changed by your administrator.</small>
                 </div>
-              </div>
+              </section>
 
               <!-- Additional (tenant custom) info, read-only -->
-              <div class="card border-0 shadow-sm mb-3" *ngIf="customInfo.length">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>Additional Information</div>
-                <div class="card-body">
+              <section class="ui-section" *ngIf="customInfo.length">
+                <div class="ui-section__head"><h2 class="ui-section__title">Additional Information</h2></div>
+                <div>
                   <div class="row mb-3" *ngFor="let f of customInfo">
                     <div class="col-5 text-muted small">{{ f.label }}</div>
                     <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
                   </div>
                 </div>
-              </div>
+              </section>
 
               <!-- Account info -->
-              <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-info-circle me-2"></i>Account</div>
-                <div class="card-body">
+              <section class="ui-section">
+                <div class="ui-section__head"><h2 class="ui-section__title">Account</h2></div>
+                <div>
                   <div class="row mb-3" *ngFor="let f of accountInfo">
                     <div class="col-5 text-muted small">{{ f.label }}</div>
                     <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </div>
@@ -274,14 +267,14 @@ export interface LoginRecord {
         <div *ngIf="activeTab === 'security'">
           <div class="row g-4">
             <div class="col-md-6">
-              <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-key me-2"></i>Change Password</div>
-                <div class="card-body">
+              <section class="ui-section">
+                <div class="ui-section__head"><h2 class="ui-section__title">Change Password</h2></div>
+                <div>
                   <div class="mb-3">
                     <label class="form-label small fw-semibold">Current Password</label>
                     <div class="input-group input-group-sm">
                       <input [type]="showCurrentPw ? 'text' : 'password'" class="form-control" [(ngModel)]="pwForm.current_password">
-                      <button class="btn btn-secondary" type="button" (click)="showCurrentPw = !showCurrentPw">
+                      <button class="btn btn-outline-secondary" type="button" (click)="showCurrentPw = !showCurrentPw">
                         <i class="bi" [class]="showCurrentPw ? 'bi-eye-slash' : 'bi-eye'"></i>
                       </button>
                     </div>
@@ -291,7 +284,7 @@ export interface LoginRecord {
                     <div class="input-group input-group-sm">
                       <input [type]="showNewPw ? 'text' : 'password'" class="form-control" [(ngModel)]="pwForm.new_password"
                              (ngModelChange)="validatePassword()">
-                      <button class="btn btn-secondary" type="button" (click)="showNewPw = !showNewPw">
+                      <button class="btn btn-outline-secondary" type="button" (click)="showNewPw = !showNewPw">
                         <i class="bi" [class]="showNewPw ? 'bi-eye-slash' : 'bi-eye'"></i>
                       </button>
                     </div>
@@ -319,16 +312,16 @@ export interface LoginRecord {
                   <div class="alert alert-success py-1 small mt-2" *ngIf="pwSuccess">{{ pwSuccess }}</div>
                   <div class="alert alert-danger py-1 small mt-2" *ngIf="pwError">{{ pwError }}</div>
                 </div>
-              </div>
+              </section>
             </div>
 
             <div class="col-md-6">
               <!-- Login History -->
-              <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-clock-history me-2"></i>Recent Login Activity</div>
-                <div class="card-body p-0">
-                  <div *ngIf="loadingHistory" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-                  <div class="list-group list-group-flush" *ngIf="!loadingHistory">
+              <section class="ui-section">
+                <div class="ui-section__head"><h2 class="ui-section__title">Recent Login Activity</h2></div>
+                <div class="acct-flush">
+                  <div *ngIf="loadingHistory" class="text-center py-3"><div class="spinner-border spinner-border-sm acct-spinner"></div></div>
+                  <div class="list-group list-group-flush acct-history" *ngIf="!loadingHistory">
                     <div *ngFor="let h of loginHistory" class="list-group-item py-2">
                       <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -350,7 +343,7 @@ export interface LoginRecord {
                     <div *ngIf="!loginHistory.length" class="list-group-item text-center text-muted py-3">No login activity</div>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </div>
@@ -359,9 +352,9 @@ export interface LoginRecord {
         <div *ngIf="activeTab === 'preferences'">
           <div class="row g-4">
             <div class="col-md-6">
-              <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-bell me-2"></i>Data & Privacy</div>
-                <div class="card-body">
+              <section class="ui-section">
+                <div class="ui-section__head"><h2 class="ui-section__title">Data & Privacy</h2></div>
+                <div>
                   <div class="form-check form-switch mb-3">
                     <input class="form-check-input" type="checkbox" id="privacyConsent"
                            [checked]="consentForm.privacy_consent" (change)="consentForm.privacy_consent = $any($event.target).checked ? 1 : 0">
@@ -392,18 +385,18 @@ export interface LoginRecord {
                   </button>
                   <div class="alert alert-success py-1 small mt-2" *ngIf="consentSuccess">{{ consentSuccess }}</div>
                 </div>
-              </div>
+              </section>
             </div>
 
             <div class="col-md-6">
               <!-- Roles & Permissions (read-only) -->
-              <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold"><i class="bi bi-shield me-2"></i>My Roles & Permissions</div>
-                <div class="card-body">
+              <section class="ui-section">
+                <div class="ui-section__head"><h2 class="ui-section__title">My Roles & Permissions</h2></div>
+                <div>
                   <div class="mb-3">
                     <label class="form-label small fw-semibold text-muted">Assigned Roles</label>
                     <div>
-                      <span *ngFor="let r of profile.roles" class="badge bg-primary me-1 mb-1">{{ r.role_name }}</span>
+                      <span *ngFor="let r of profile.roles" class="ui-pill ui-pill--brand me-1 mb-1">{{ r.role_name }}</span>
                       <span *ngIf="!profile.roles?.length" class="text-muted small">No roles assigned</span>
                     </div>
                   </div>
@@ -418,7 +411,7 @@ export interface LoginRecord {
                     <small class="text-muted fst-italic mt-2 d-block">Roles and permissions are managed by your administrator.</small>
                   </div>
                 </div>
-              </div>
+              </section>
             </div>
           </div>
         </div>
@@ -428,12 +421,17 @@ export interface LoginRecord {
     </main>
   `,
   styles: [`
-    .profile-banner { height: 120px; background: linear-gradient(135deg, #4e79a7 0%, #59a14f 100%); }
-    .avatar-xl { width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; background-size: cover; }
-    .avatar-letter { color: #fff; font-size: 36px; font-weight: 700; }
+    .avatar-xl { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; background-size: cover; border: 1px solid var(--ui-border); }
+    .avatar-letter { color: #fff; font-size: 28px; font-weight: 700; }
+    .avatar-cam { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
+    .acct-name { font-size: 1.05rem; font-weight: 650; margin: 0; color: var(--ui-text); }
+    .acct-spinner { color: var(--brand-primary); }
+    .acct-flush { margin: 0 -22px -22px; border-top: 1px solid var(--ui-border); }
+    .acct-history .list-group-item { padding-left: 22px; padding-right: 22px; }
+    .min-w-0 { min-width: 0; }
     .object-fit-cover { object-fit: cover; }
-    .nav-link { cursor: pointer; }
     .modal.fade { display: block; opacity: 1; }
+    @media (max-width: 575.98px) { .acct-flush { margin: 0 -16px -16px; } }
   `]
 })
 /**

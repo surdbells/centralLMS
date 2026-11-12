@@ -1,13 +1,14 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <div class="d-flex align-items-center gap-3 mb-4">
-      <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-      <div>
-        <h4 class="fw-bold mb-0"><i class="bi bi-upload me-2"></i>{{ 'admin.user_import.title' | translate }}</h4>
-        <small class="text-muted">{{ 'admin.user_import.subtitle' | translate }}</small>
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <a routerLink="/admin/users" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-upload"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'admin.user_import.title' | translate }}</h1>
+        <p>{{ 'admin.user_import.subtitle' | translate }}</p>
       </div>
-    </div>
+    </header>
 
     <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
       <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
@@ -18,83 +19,65 @@
     <!-- Step 1: the file -->
     <div class="row g-4" *ngIf="step === 'choose'">
       <div class="col-lg-7">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
-            <div class="drop-zone text-center py-5" [class.dragging]="dragging"
-                 (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
-                 (click)="fileInput.click()">
-              <div *ngIf="!working">
-                <i class="bi bi-file-earmark-spreadsheet display-4 text-muted d-block mb-2"></i>
-                <p class="mb-1 fw-medium">{{ 'admin.user_import.drop_csv' | translate }}</p>
-                <small class="text-muted">{{ 'admin.user_import.nothing_written' | translate }}</small>
-              </div>
-              <div *ngIf="working">
-                <div class="spinner-border text-primary mb-2"></div>
-                <p class="mb-0 text-muted">{{ 'admin.user_import.reading' | translate:{ name: file?.name } }}</p>
-              </div>
+        <section class="ui-section h-100 mb-0">
+          <div class="drop-zone" [class.dragging]="dragging"
+               (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
+               (click)="fileInput.click()">
+            <div *ngIf="!working">
+              <span class="ui-state__icon"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+              <p class="drop-zone__title">{{ 'admin.user_import.drop_csv' | translate }}</p>
+              <small class="ui-muted">{{ 'admin.user_import.nothing_written' | translate }}</small>
             </div>
-            <input #fileInput type="file" accept=".csv,text/csv" class="d-none" (change)="onFileSelected($event)">
+            <div *ngIf="working">
+              <div class="spinner-border text-primary mb-2"></div>
+              <p class="mb-0 ui-muted">{{ 'admin.user_import.reading' | translate:{ name: file?.name } }}</p>
+            </div>
           </div>
-        </div>
+          <input #fileInput type="file" accept=".csv,text/csv" class="d-none" (change)="onFileSelected($event)">
+        </section>
       </div>
 
       <div class="col-lg-5">
-        <div class="card border-0 shadow-sm">
-          <div class="card-header bg-white fw-semibold">
-            <i class="bi bi-list-columns me-2"></i>{{ 'admin.user_import.columns_title' | translate }}
+        <section class="ui-section h-100 mb-0">
+          <div class="ui-section__head">
+            <h2 class="ui-section__title"><i class="bi bi-list-columns me-2"></i>{{ 'admin.user_import.columns_title' | translate }}</h2>
           </div>
-          <div class="card-body py-2">
-            <div class="d-flex justify-content-between align-items-start py-1" *ngFor="let c of columns">
+          <ul class="ui-list column-list">
+            <li *ngFor="let c of columns">
               <div>
                 <code class="mono">{{ c.name }}</code>
-                <span class="badge bg-danger-subtle text-danger ms-1" *ngIf="c.required">{{ 'admin.user_import.required' | translate }}</span>
-                <small class="d-block text-muted" *ngIf="c.note">{{ c.note | translate }}</small>
+                <span class="ui-pill ui-pill--danger ms-1" *ngIf="c.required">{{ 'admin.user_import.required' | translate }}</span>
+                <small class="d-block ui-muted" *ngIf="c.note">{{ c.note | translate }}</small>
               </div>
-            </div>
-          </div>
-          <div class="card-footer bg-white small text-muted">
+            </li>
+          </ul>
+          <div class="columns-note small ui-muted">
             {{ 'admin.user_import.columns_note' | translate }}
             <strong class="d-block mt-2">{{ 'admin.user_import.no_password_column' | translate }}</strong>
             {{ 'admin.user_import.invited_note' | translate }}
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
     <!-- Step 2: what it would do -->
     <ng-container *ngIf="step === 'check' && preview">
-      <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0 text-success">{{ preview.summary.create }}</h4>
-              <small class="text-muted">{{ 'admin.user_import.to_create' | translate }}</small>
-            </div>
-          </div>
+      <div class="ui-kpi-grid ui-kpi-grid--4">
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-person-plus"></i> {{ 'admin.user_import.to_create' | translate }}</span>
+          <span class="ui-kpi__value">{{ preview.summary.create }}</span>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0 text-info">{{ preview.summary.existing }}</h4>
-              <small class="text-muted">{{ 'admin.user_import.already_here' | translate }}</small>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-person-check"></i> {{ 'admin.user_import.already_here' | translate }}</span>
+          <span class="ui-kpi__value">{{ preview.summary.existing }}</span>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0" [class.text-danger]="preview.summary.error">{{ preview.summary.error }}</h4>
-              <small class="text-muted">{{ 'admin.user_import.cannot_import' | translate }}</small>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--danger">
+          <span class="ui-kpi__label"><i class="bi bi-x-circle"></i> {{ 'admin.user_import.cannot_import' | translate }}</span>
+          <span class="ui-kpi__value" [class.text-danger]="preview.summary.error">{{ preview.summary.error }}</span>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0" [class.text-warning]="preview.summary.warnings">{{ preview.summary.warnings }}</h4>
-              <small class="text-muted">{{ 'admin.user_import.with_warning' | translate }}</small>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--warning">
+          <span class="ui-kpi__label"><i class="bi bi-exclamation-triangle"></i> {{ 'admin.user_import.with_warning' | translate }}</span>
+          <span class="ui-kpi__value" [class.text-warning]="preview.summary.warnings">{{ preview.summary.warnings }}</span>
         </div>
       </div>
 
@@ -104,38 +87,36 @@
       </div>
 
       <!-- How it read the file -->
-      <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-2">
-          <div class="d-flex flex-wrap gap-3 align-items-center">
-            <span class="small text-muted">{{ 'admin.user_import.read_as' | translate }}</span>
-            <span class="badge bg-light text-black border" *ngFor="let field of preview.mapping | keyvalue">
-              <code class="mono">{{ field.value }}</code>
-              <i class="bi bi-arrow-right mx-1"></i>{{ field.key }}
-            </span>
-          </div>
-          <div class="d-flex flex-wrap gap-2 align-items-center mt-2" *ngIf="preview.ignored.length">
-            <span class="small text-muted">{{ 'admin.user_import.ignored' | translate }}</span>
-            <span class="badge bg-secondary-subtle text-secondary" *ngFor="let c of preview.ignored">{{ c }}</span>
-          </div>
+      <section class="ui-section mapping-section">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <span class="small ui-muted">{{ 'admin.user_import.read_as' | translate }}</span>
+          <span class="ui-pill" *ngFor="let field of preview.mapping | keyvalue">
+            <code class="mono">{{ field.value }}</code>
+            <i class="bi bi-arrow-right"></i>{{ field.key }}
+          </span>
         </div>
-      </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center mt-2" *ngIf="preview.ignored.length">
+          <span class="small ui-muted">{{ 'admin.user_import.ignored' | translate }}</span>
+          <span class="ui-pill ui-pill--neutral" *ngFor="let c of preview.ignored">{{ c }}</span>
+        </div>
+      </section>
 
       <!-- The rows -->
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-          <span class="fw-semibold">{{ 'admin.user_import.n_rows' | translate:{ count: preview.summary.total } }}</span>
-          <div class="btn-group btn-group-sm">
-            <button class="btn" [class]="showOnly === 'all' ? 'btn-primary' : 'btn-secondary'"
+      <section class="ui-section ui-section--flush">
+        <div class="ui-section__head">
+          <h2 class="ui-section__title">{{ 'admin.user_import.n_rows' | translate:{ count: preview.summary.total } }}</h2>
+          <div class="ui-filters">
+            <button type="button" class="ui-filter" [class.is-active]="showOnly === 'all'"
                     (click)="showOnly = 'all'">{{ 'common.all' | translate }}</button>
-            <button class="btn" [class]="showOnly === 'error' ? 'btn-primary' : 'btn-secondary'"
+            <button type="button" class="ui-filter" [class.is-active]="showOnly === 'error'"
                     (click)="showOnly = 'error'" [disabled]="!preview.summary.error">{{ 'admin.user_import.problems' | translate }}</button>
-            <button class="btn" [class]="showOnly === 'warning' ? 'btn-primary' : 'btn-secondary'"
+            <button type="button" class="ui-filter" [class.is-active]="showOnly === 'warning'"
                     (click)="showOnly = 'warning'" [disabled]="!preview.summary.warnings">{{ 'admin.user_import.warnings' | translate }}</button>
           </div>
         </div>
-        <div class="table-responsive" style="max-height: 480px; overflow-y: auto">
-          <table class="table table-sm table-hover align-middle mb-0">
-            <thead class="table-light">
+        <div class="table-responsive rows-scroll">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
             <tr>
               <th style="width:60px">{{ 'admin.user_import.col_line' | translate }}</th>
               <th>{{ 'admin.user_import.col_person' | translate }}</th>
@@ -145,10 +126,10 @@
             </thead>
             <tbody>
             <tr *ngFor="let row of visibleRows; trackBy: trackByLine">
-              <td><small class="text-muted">{{ row.line }}</small></td>
+              <td><small class="ui-muted">{{ row.line }}</small></td>
               <td>
                 <div class="fw-medium small">{{ row.name || ('admin.user_import.no_name' | translate) }}</div>
-                <small class="text-muted mono">{{ row.email || ('admin.user_import.no_address' | translate) }}</small>
+                <small class="ui-muted mono">{{ row.email || ('admin.user_import.no_address' | translate) }}</small>
               </td>
               <td><span class="badge" [class]="actionClass(row.action)">{{ actionLabel(row) | translate }}</span></td>
               <td>
@@ -161,93 +142,77 @@
               </td>
             </tr>
             <tr *ngIf="!visibleRows.length">
-              <td colspan="4" class="text-center text-muted py-4">{{ 'admin.user_import.nothing_to_show' | translate }}</td>
+              <td colspan="4" class="text-center ui-muted py-4">{{ 'admin.user_import.nothing_to_show' | translate }}</td>
             </tr>
             </tbody>
           </table>
         </div>
-        <div class="card-footer bg-white">
-          <div class="row g-3 align-items-center">
+        <div class="section-foot">
+          <div class="row g-3 align-items-end">
             <div class="col-md-5" *ngIf="preview.summary.existing">
               <label class="form-label small fw-semibold mb-1">{{ 'admin.user_import.people_already_here' | translate }}</label>
-              <select class="form-select form-select-sm" [(ngModel)]="onExisting">
+              <select class="form-select" [(ngModel)]="onExisting">
                 <option value="skip">{{ 'admin.user_import.leave_alone' | translate }}</option>
                 <option value="update">{{ 'admin.user_import.update_from_file' | translate }}</option>
               </select>
             </div>
             <div class="col text-end">
-              <button class="btn btn-secondary me-2" (click)="startOver()">{{ 'admin.user_import.choose_another' | translate }}</button>
-              <button class="btn btn-primary" (click)="runImport()" [disabled]="working || !importable.length">
+              <button type="button" class="btn btn-outline-secondary me-2" (click)="startOver()">{{ 'admin.user_import.choose_another' | translate }}</button>
+              <button type="button" class="btn btn-primary" (click)="runImport()" [disabled]="working || !importable.length">
                 <span *ngIf="working" class="spinner-border spinner-border-sm me-1"></span>
                 {{ 'admin.user_import.import_n' | translate:{ count: importable.length } }}
               </button>
             </div>
           </div>
-          <p class="text-muted small mt-3 mb-0" *ngIf="preview.summary.error">
+          <p class="ui-muted small mt-3 mb-0" *ngIf="preview.summary.error">
             {{ 'admin.user_import.error_rows_note' | translate:{ count: preview.summary.error } }}
           </p>
         </div>
-      </div>
+      </section>
     </ng-container>
 
     <!-- Step 3: what happened -->
     <ng-container *ngIf="step === 'done' && result">
-      <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0 text-success">{{ result.created }}</h4>
-              <small class="text-muted">{{ 'admin.user_import.created' | translate }}</small>
-            </div>
-          </div>
+      <div class="ui-kpi-grid ui-kpi-grid--4">
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-person-plus"></i> {{ 'admin.user_import.created' | translate }}</span>
+          <span class="ui-kpi__value">{{ result.created }}</span>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0 text-primary">{{ result.updated }}</h4>
-              <small class="text-muted">{{ 'admin.user_import.updated' | translate }}</small>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-arrow-repeat"></i> {{ 'admin.user_import.updated' | translate }}</span>
+          <span class="ui-kpi__value">{{ result.updated }}</span>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0">{{ result.skipped }}</h4>
-              <small class="text-muted">{{ 'admin.enroll.skipped' | translate }}</small>
-            </div>
-          </div>
+        <div class="ui-kpi">
+          <span class="ui-kpi__label"><i class="bi bi-skip-forward"></i> {{ 'admin.enroll.skipped' | translate }}</span>
+          <span class="ui-kpi__value">{{ result.skipped }}</span>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card border-0 shadow-sm h-100">
-            <div class="card-body py-3 text-center">
-              <h4 class="fw-bold mb-0" [class.text-danger]="result.failed">{{ result.failed }}</h4>
-              <small class="text-muted">{{ 'admin.enroll.failed' | translate }}</small>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--danger">
+          <span class="ui-kpi__label"><i class="bi bi-x-circle"></i> {{ 'admin.enroll.failed' | translate }}</span>
+          <span class="ui-kpi__value" [class.text-danger]="result.failed">{{ result.failed }}</span>
         </div>
       </div>
 
-      <div class="card border-0 shadow-sm" *ngIf="result.failed">
-        <div class="card-header bg-white fw-semibold text-danger">
-          <i class="bi bi-x-circle me-2"></i>{{ 'admin.user_import.what_failed' | translate }}
+      <section class="ui-section ui-section--flush" *ngIf="result.failed">
+        <div class="ui-section__head">
+          <h2 class="ui-section__title text-danger"><i class="bi bi-x-circle me-2"></i>{{ 'admin.user_import.what_failed' | translate }}</h2>
         </div>
         <div class="table-responsive">
-          <table class="table table-sm mb-0">
-            <thead class="table-light">
+          <table class="table mb-0">
+            <thead>
             <tr><th style="width:60px">{{ 'admin.user_import.col_line' | translate }}</th><th>{{ 'admin.user_import.col_person' | translate }}</th><th>{{ 'admin.user_import.col_why' | translate }}</th></tr>
             </thead>
             <tbody>
             <tr *ngFor="let row of result.rows; trackBy: trackByLine">
               <ng-container *ngIf="row.outcome === 'error'">
-                <td><small class="text-muted">{{ row.line }}</small></td>
-                <td><small>{{ row.name }} <span class="mono text-muted">{{ row.email }}</span></small></td>
+                <td><small class="ui-muted">{{ row.line }}</small></td>
+                <td><small>{{ row.name }} <span class="mono ui-muted">{{ row.email }}</span></small></td>
                 <td><small class="text-danger">{{ row.reason }}</small></td>
               </ng-container>
             </tr>
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
       <div class="alert alert-success mt-3" *ngIf="!result.failed">
         <i class="bi bi-check-circle me-2"></i>
@@ -255,8 +220,8 @@
       </div>
 
       <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-primary" (click)="done()">{{ 'admin.user_import.back_to_people' | translate }}</button>
-        <button class="btn btn-secondary" (click)="startOver()">{{ 'admin.user_import.import_another' | translate }}</button>
+        <button type="button" class="btn btn-primary" (click)="done()">{{ 'admin.user_import.back_to_people' | translate }}</button>
+        <button type="button" class="btn btn-outline-secondary" (click)="startOver()">{{ 'admin.user_import.import_another' | translate }}</button>
       </div>
     </ng-container>
   </div>

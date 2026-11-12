@@ -1,96 +1,114 @@
 <app-admintop></app-admintop>
 
-<div class="lp-admin">
-  <header class="lp-head">
-    <div>
-      <h1>{{ 'plan.admin_title' | translate }}</h1>
-      <p>{{ 'plan.admin_subtitle' | translate }}</p>
-    </div>
-  </header>
-
-  <div class="alert alert-success" *ngIf="message">{{ message }}</div>
-  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
-
-  <div class="create-row">
-    <input type="number" class="form-control yr" [(ngModel)]="newPlan.year" min="2000" max="2100">
-    <input type="text" class="form-control" [(ngModel)]="newPlan.title"
-           [placeholder]="'plan.new_placeholder' | translate">
-    <button class="btn btn-primary" [disabled]="saving || !newPlan.title.trim()" (click)="createPlan()">
-      {{ 'plan.create' | translate }}
-    </button>
-  </div>
-
-  <div class="lp-cols">
-    <div class="plan-list">
-      <div class="lp-loading" *ngIf="loading"><div class="spinner-border spinner-border-sm"></div></div>
-      <div class="plan-row" *ngFor="let plan of plans"
-           [class.active]="selected?.id === plan.id" (click)="select(plan)">
-        <div class="pr-main">
-          <strong>{{ plan.year }} · {{ plan.title }}</strong>
-          <span class="pr-meta">{{ plan.itemCount }} {{ 'plan.items' | translate }} · {{ plan.memberCount }} {{ 'plan.people' | translate }}</span>
-        </div>
-        <span class="status-chip" [attr.data-status]="plan.status">{{ ('plan.state_' + plan.status) | translate }}</span>
+<main class="main">
+  <div class="ui-page lp-admin">
+    <header class="ui-page-header">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-calendar2-check"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'plan.admin_title' | translate }}</h1>
+        <p>{{ 'plan.admin_subtitle' | translate }}</p>
       </div>
-      <p class="muted small" *ngIf="!loading && plans.length === 0">{{ 'plan.none_yet' | translate }}</p>
-    </div>
+    </header>
 
-    <div class="plan-editor" *ngIf="selected as plan">
-      <div class="editor-head">
-        <h2>{{ plan.year }} · {{ plan.title }}</h2>
-        <button class="btn-close" (click)="closeEditor()"></button>
+    <div class="alert alert-success" *ngIf="message">{{ message }}</div>
+    <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+    <section class="ui-section lp-create">
+      <div class="create-row">
+        <input type="number" class="form-control yr" [(ngModel)]="newPlan.year" min="2000" max="2100">
+        <input type="text" class="form-control" [(ngModel)]="newPlan.title"
+               [placeholder]="'plan.new_placeholder' | translate">
+        <button class="btn btn-primary" [disabled]="saving || !newPlan.title.trim()" (click)="createPlan()">
+          <i class="bi bi-plus-lg me-1"></i>{{ 'plan.create' | translate }}
+        </button>
       </div>
+    </section>
 
-      <div class="editor-actions">
-        <button class="btn btn-sm btn-success" *ngIf="plan.status !== 'published'" (click)="setStatus(plan, 'published')">{{ 'plan.publish' | translate }}</button>
-        <button class="btn btn-sm btn-outline-secondary" *ngIf="plan.status === 'published'" (click)="setStatus(plan, 'draft')">{{ 'plan.unpublish' | translate }}</button>
-        <button class="btn btn-sm btn-outline-secondary" (click)="setStatus(plan, 'archived')">{{ 'plan.archive' | translate }}</button>
-        <button class="btn btn-sm btn-outline-primary" (click)="assignEveryone()">{{ 'plan.assign_everyone' | translate }}</button>
-        <span class="assign-dept" *ngIf="departments.length">
-          <select class="form-select form-select-sm" [(ngModel)]="assignDept">
-            <option value="">{{ 'plan.pick_department' | translate }}</option>
-            <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
-          </select>
-          <button class="btn btn-sm btn-outline-primary" [disabled]="!assignDept" (click)="assignDepartment()">{{ 'plan.assign_dept' | translate }}</button>
-        </span>
-        <button class="btn btn-sm btn-outline-danger" (click)="removePlan(plan)">{{ 'common.delete' | translate }}</button>
-      </div>
-
-      <div class="assign-user">
-        <label>{{ 'plan.assign_individual' | translate }}</label>
-        <div class="user-search">
-          <input type="text" class="form-control form-control-sm" [(ngModel)]="userSearch"
-                 (ngModelChange)="searchUsers()" [placeholder]="'plan.search_user' | translate">
-          <ul class="user-results" *ngIf="userResults.length">
-            <li *ngFor="let u of userResults" (click)="assignUser(u)">
-              <span>{{ u.fullName }}</span><small>{{ u.email }}</small>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <h3 class="sub">{{ 'plan.items' | translate }}</h3>
-      <ul class="item-admin-list">
-        <li *ngFor="let item of items">
-          <span class="ia-title">
-            <i class="bi" [ngClass]="item.course_id ? 'bi-journal-text' : 'bi-easel'"></i>
-            {{ item.title }}
-            <span class="ia-badge" *ngIf="item.is_mandatory">{{ 'plan.mandatory' | translate }}</span>
+    <div class="lp-cols">
+      <section class="ui-section ui-section--flush plan-list">
+        <div class="lp-loading" *ngIf="loading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        <div class="plan-row" *ngFor="let plan of plans"
+             [class.active]="selected?.id === plan.id" (click)="select(plan)">
+          <div class="pr-main">
+            <strong>{{ plan.year }} · {{ plan.title }}</strong>
+            <span class="pr-meta">{{ plan.itemCount }} {{ 'plan.items' | translate }} · {{ plan.memberCount }} {{ 'plan.people' | translate }}</span>
+          </div>
+          <span class="ui-pill" [attr.data-status]="plan.status"
+                [class.ui-pill--success]="plan.status === 'published'"
+                [class.ui-pill--neutral]="plan.status === 'draft'"
+                [class.ui-pill--warning]="plan.status === 'archived'">
+            <span class="ui-pill__dot"></span>{{ ('plan.state_' + plan.status) | translate }}
           </span>
-          <button class="btn btn-sm btn-link text-danger" (click)="removeItem(item)"><i class="bi bi-trash"></i></button>
-        </li>
-        <li class="muted small" *ngIf="items.length === 0">{{ 'plan.no_items' | translate }}</li>
-      </ul>
+        </div>
+        <div class="lp-empty" *ngIf="!loading && plans.length === 0">
+          <div class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-calendar2-plus"></i></span>
+            <p>{{ 'plan.none_yet' | translate }}</p>
+          </div>
+        </div>
+      </section>
 
-      <div class="add-item">
-        <select class="form-select" [(ngModel)]="newItem.courseId">
-          <option value="">{{ 'plan.intervention_option' | translate }}</option>
-          <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
-        </select>
-        <input type="text" class="form-control" [(ngModel)]="newItem.title"
-               [placeholder]="'plan.item_title_placeholder' | translate">
-        <label class="mand"><input type="checkbox" [(ngModel)]="newItem.isMandatory"> {{ 'plan.mandatory' | translate }}</label>
-        <button class="btn btn-primary btn-sm" [disabled]="saving" (click)="addItem()">{{ 'plan.add_item' | translate }}</button>
-      </div>
+      <section class="ui-section plan-editor" *ngIf="selected as plan">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">{{ plan.year }} · {{ plan.title }}</h2></div>
+          <div class="ui-section__actions">
+            <button class="btn-close" (click)="closeEditor()"></button>
+          </div>
+        </div>
+
+        <div class="editor-actions">
+          <button class="btn btn-sm btn-primary" *ngIf="plan.status !== 'published'" (click)="setStatus(plan, 'published')">{{ 'plan.publish' | translate }}</button>
+          <button class="btn btn-sm btn-outline-secondary" *ngIf="plan.status === 'published'" (click)="setStatus(plan, 'draft')">{{ 'plan.unpublish' | translate }}</button>
+          <button class="btn btn-sm btn-outline-secondary" (click)="setStatus(plan, 'archived')">{{ 'plan.archive' | translate }}</button>
+          <button class="btn btn-sm btn-outline-secondary" (click)="assignEveryone()">{{ 'plan.assign_everyone' | translate }}</button>
+          <span class="assign-dept" *ngIf="departments.length">
+            <select class="form-select form-select-sm" [(ngModel)]="assignDept">
+              <option value="">{{ 'plan.pick_department' | translate }}</option>
+              <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
+            </select>
+            <button class="btn btn-sm btn-outline-secondary" [disabled]="!assignDept" (click)="assignDepartment()">{{ 'plan.assign_dept' | translate }}</button>
+          </span>
+          <button class="btn btn-sm btn-outline-danger" (click)="removePlan(plan)">{{ 'common.delete' | translate }}</button>
+        </div>
+
+        <div class="assign-user">
+          <label>{{ 'plan.assign_individual' | translate }}</label>
+          <div class="user-search ui-search">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" [(ngModel)]="userSearch"
+                   (ngModelChange)="searchUsers()" [placeholder]="'plan.search_user' | translate">
+            <ul class="user-results" *ngIf="userResults.length">
+              <li *ngFor="let u of userResults" (click)="assignUser(u)">
+                <span>{{ u.fullName }}</span><small>{{ u.email }}</small>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 class="sub">{{ 'plan.items' | translate }}</h3>
+        <ul class="item-admin-list">
+          <li *ngFor="let item of items">
+            <span class="ia-title">
+              <i class="bi" [ngClass]="item.course_id ? 'bi-journal-text' : 'bi-easel'"></i>
+              {{ item.title }}
+              <span class="ui-pill ui-pill--warning" *ngIf="item.is_mandatory">{{ 'plan.mandatory' | translate }}</span>
+            </span>
+            <button class="btn btn-sm btn-link text-danger" (click)="removeItem(item)"><i class="bi bi-trash"></i></button>
+          </li>
+          <li class="muted small" *ngIf="items.length === 0">{{ 'plan.no_items' | translate }}</li>
+        </ul>
+
+        <div class="add-item">
+          <select class="form-select" [(ngModel)]="newItem.courseId">
+            <option value="">{{ 'plan.intervention_option' | translate }}</option>
+            <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
+          </select>
+          <input type="text" class="form-control" [(ngModel)]="newItem.title"
+                 [placeholder]="'plan.item_title_placeholder' | translate">
+          <label class="mand"><input type="checkbox" class="form-check-input mt-0" [(ngModel)]="newItem.isMandatory"> {{ 'plan.mandatory' | translate }}</label>
+          <button class="btn btn-primary btn-sm" [disabled]="saving" (click)="addItem()">{{ 'plan.add_item' | translate }}</button>
+        </div>
+      </section>
     </div>
   </div>
-</div>
+</main>

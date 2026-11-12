@@ -1,8 +1,8 @@
-<div class="cm">
-  <div class="cm-head">
+<section class="ui-section cm">
+  <div class="ui-section__head cm-head">
     <div>
-      <h2 class="h5 fw-bold mb-1">{{ 'competency.cycles.title' | translate }}</h2>
-      <p class="text-muted small mb-0">
+      <h2 class="ui-section__title">{{ 'competency.cycles.title' | translate }}</h2>
+      <p class="ui-section__subtitle">
         {{ 'competency.cycles.subtitle' | translate }}
       </p>
     </div>
@@ -36,11 +36,12 @@
   @if (loading()) {
     <div class="cm-loading"><div class="spinner-border" role="status"></div></div>
   } @else if (!cycles().length) {
-    <div class="cm-empty">
-      <i class="bi bi-calendar3"></i>
-      <p class="mb-0">{{ 'competency.cycles.empty' | translate }}</p>
+    <div class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-calendar3"></i></span>
+      <p>{{ 'competency.cycles.empty' | translate }}</p>
     </div>
   } @else {
+    <div class="ui-table-wrap mb-3">
     <table class="table cm-table align-middle">
       <thead>
         <tr>
@@ -64,7 +65,7 @@
                        [(ngModel)]="editDescription" maxlength="255" autocomplete="off" />
               </td>
               <td>
-                <span class="badge" [class.text-bg-success]="row.isActive" [class.text-bg-secondary]="!row.isActive">
+                <span class="ui-pill" [class.ui-pill--success]="row.isActive" [class.ui-pill--neutral]="!row.isActive"><span class="ui-pill__dot"></span>
                   {{ (row.isActive ? 'competency.cycles.active' : 'competency.cycles.retired') | translate }}
                 </span>
               </td>
@@ -81,7 +82,7 @@
               <td class="fw-semibold">{{ row.name }}</td>
               <td class="text-muted">{{ row.description || '—' }}</td>
               <td>
-                <span class="badge" [class.text-bg-success]="row.isActive" [class.text-bg-secondary]="!row.isActive">
+                <span class="ui-pill" [class.ui-pill--success]="row.isActive" [class.ui-pill--neutral]="!row.isActive"><span class="ui-pill__dot"></span>
                   {{ (row.isActive ? 'competency.cycles.active' : 'competency.cycles.retired') | translate }}
                 </span>
               </td>
@@ -104,8 +105,9 @@
         }
       </tbody>
     </table>
+    </div>
     <p class="text-muted small mb-0">
       {{ 'competency.cycles.footer_note' | translate }}
     </p>
   }
-</div>
+</section>

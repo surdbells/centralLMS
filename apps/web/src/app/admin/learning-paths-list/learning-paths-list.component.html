@@ -1,14 +1,14 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <div class="learning-paths-list">
+<main class="main">
+  <div class="ui-page learning-paths-list">
   <!-- Header -->
-  <div class="page-header d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h1 class="h3 mb-1">{{ 'paths.title' | translate }}</h1>
-      <p class="text-muted mb-0">{{ 'paths_admin.list.subtitle' | translate }}</p>
+  <header class="ui-page-header">
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ 'paths.title' | translate }}</h1>
+      <p>{{ 'paths_admin.list.subtitle' | translate }}</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="ui-page-header__actions">
       <a routerLink="/admin/learning-paths/moderation" class="btn btn-outline-secondary">
         <i class="bi bi-shield-check me-2"></i>{{ 'paths_admin.list.review_moderation' | translate }}
       </a>
@@ -16,160 +16,94 @@
         <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.create_path' | translate }}
       </a>
     </div>
-  </div>
+  </header>
 
-  <!-- Stats Cards -->
-  <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-lg-3">
-      <div class="card stat-card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="stat-icon bg-primary-subtle text-primary">
-              <i class="bi bi-signpost-split"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="text-muted mb-1">{{ 'paths_admin.list.total_paths' | translate }}</h6>
-              <h3 class="mb-0">{{ totalItems() }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
+  <!-- Stats -->
+  <div class="ui-kpi-grid ui-kpi-grid--4">
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><i class="bi bi-signpost-split"></i> {{ 'paths_admin.list.total_paths' | translate }}</span>
+      <span class="ui-kpi__value">{{ totalItems() }}</span>
     </div>
-    <div class="col-sm-6 col-lg-3">
-      <div class="card stat-card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="stat-icon bg-success-subtle text-success">
-              <i class="bi bi-check-circle"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="text-muted mb-1">{{ 'paths_admin.list.published' | translate }}</h6>
-              <!-- FIXED: Use computed signal instead of arrow function -->
-              <h3 class="mb-0">{{ publishedCount() }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--success">
+      <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'paths_admin.list.published' | translate }}</span>
+      <span class="ui-kpi__value">{{ publishedCount() }}</span>
     </div>
-    <div class="col-sm-6 col-lg-3">
-      <div class="card stat-card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="stat-icon bg-warning-subtle text-warning">
-              <i class="bi bi-pencil-square"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="text-muted mb-1">{{ 'paths_admin.list.drafts' | translate }}</h6>
-              <!-- FIXED: Use computed signal instead of arrow function -->
-              <h3 class="mb-0">{{ draftCount() }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--warning">
+      <span class="ui-kpi__label"><i class="bi bi-pencil-square"></i> {{ 'paths_admin.list.drafts' | translate }}</span>
+      <span class="ui-kpi__value">{{ draftCount() }}</span>
     </div>
-    <div class="col-sm-6 col-lg-3">
-      <div class="card stat-card">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="stat-icon bg-info-subtle text-info">
-              <i class="bi bi-people"></i>
-            </div>
-            <div class="ms-3">
-              <h6 class="text-muted mb-1">{{ 'paths_admin.list.total_enrollments' | translate }}</h6>
-              <!-- FIXED: Use computed signal instead of arrow function -->
-              <h3 class="mb-0">{{ totalEnrollments() }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="ui-kpi ui-kpi--info">
+      <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'paths_admin.list.total_enrollments' | translate }}</span>
+      <span class="ui-kpi__value">{{ totalEnrollments() }}</span>
     </div>
   </div>
 
   <!-- Filters & Actions Bar -->
-  <div class="card filter-card mb-4">
-    <div class="card-body">
-      <div class="row g-3 align-items-end">
-        <!-- Search -->
-        <div class="col-md-4">
-          <label class="form-label small text-muted">{{ 'common.search' | translate }}</label>
-          <div class="input-group">
-            <span class="input-group-text bg-transparent border-end-0">
-              <i class="bi bi-search"></i>
-            </span>
-            <input
-              type="text"
-              class="form-control border-start-0"
-              placeholder="{{ 'paths_admin.list.search_placeholder' | translate }}"
-              [(ngModel)]="searchQuery"
-              (keyup.enter)="onSearch()"
-            >
-          </div>
+  <div class="ui-toolbar paths-toolbar">
+    <div class="ui-filters">
+      <label class="ui-search">
+        <i class="bi bi-search"></i>
+        <input
+          type="search"
+          placeholder="{{ 'paths_admin.list.search_placeholder' | translate }}"
+          [attr.aria-label]="'common.search' | translate"
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+        >
+      </label>
+
+      <select class="form-select" [attr.aria-label]="'paths_admin.status' | translate" [(ngModel)]="statusFilter" (change)="onFilterChange()">
+        <option value="">{{ 'paths_admin.list.all_statuses' | translate }}</option>
+        @for (status of pathStatuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
+
+      <select class="form-select" [attr.aria-label]="'paths_admin.skill_level' | translate" [(ngModel)]="skillFilter" (change)="onFilterChange()">
+        <option value="">{{ 'paths.all_levels' | translate }}</option>
+        @for (level of skillLevels; track level.value) {
+          <option [value]="level.value">{{ level.label }}</option>
+        }
+      </select>
+
+      @if (searchQuery() || statusFilter() || skillFilter()) {
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearFilters()">
+          <i class="bi bi-x-lg me-1"></i>{{ 'paths_admin.clear' | translate }}
+        </button>
+      }
+    </div>
+
+    <div class="ui-filters">
+      @if (hasSelection()) {
+        <div class="btn-group">
+          <button class="btn btn-success btn-sm" (click)="bulkPublish()">
+            <i class="bi bi-check-lg me-1"></i>{{ 'paths_admin.publish' | translate }}
+          </button>
+          <button class="btn btn-outline-warning btn-sm" (click)="bulkArchive()">
+            <i class="bi bi-archive me-1"></i>{{ 'paths_admin.archive' | translate }}
+          </button>
+          <button class="btn btn-outline-danger btn-sm" (click)="bulkDelete()">
+            <i class="bi bi-trash me-1"></i>{{ 'paths_admin.delete' | translate }}
+          </button>
         </div>
+      }
 
-        <!-- Status Filter -->
-        <div class="col-md-2">
-          <label class="form-label small text-muted">{{ 'paths_admin.status' | translate }}</label>
-          <select class="form-select" [(ngModel)]="statusFilter" (change)="onFilterChange()">
-            <option value="">{{ 'paths_admin.list.all_statuses' | translate }}</option>
-            @for (status of pathStatuses; track status.value) {
-              <option [value]="status.value">{{ status.label }}</option>
-            }
-          </select>
-        </div>
-
-        <!-- Skill Level Filter -->
-        <div class="col-md-2">
-          <label class="form-label small text-muted">{{ 'paths_admin.skill_level' | translate }}</label>
-          <select class="form-select" [(ngModel)]="skillFilter" (change)="onFilterChange()">
-            <option value="">{{ 'paths.all_levels' | translate }}</option>
-            @for (level of skillLevels; track level.value) {
-              <option [value]="level.value">{{ level.label }}</option>
-            }
-          </select>
-        </div>
-
-        <!-- View Toggle & Actions -->
-        <div class="col-md-4">
-          <div class="d-flex justify-content-end gap-2">
-            @if (hasSelection()) {
-              <div class="btn-group">
-                <button class="btn btn-success btn-sm" (click)="bulkPublish()">
-                  <i class="bi bi-check-lg me-1"></i>{{ 'paths_admin.publish' | translate }}
-                </button>
-                <button class="btn btn-outline-warning btn-sm" (click)="bulkArchive()">
-                  <i class="bi bi-archive me-1"></i>{{ 'paths_admin.archive' | translate }}
-                </button>
-                <button class="btn btn-outline-danger btn-sm" (click)="bulkDelete()">
-                  <i class="bi bi-trash me-1"></i>{{ 'paths_admin.delete' | translate }}
-                </button>
-              </div>
-            }
-
-            <div class="btn-group">
-              <button
-                class="btn btn-secondary btn-sm"
-                [class.active]="viewMode() === 'grid'"
-                (click)="setViewMode('grid')"
-              >
-                <i class="bi bi-grid-3x3-gap"></i>
-              </button>
-              <button
-                class="btn btn-secondary btn-sm"
-                [class.active]="viewMode() === 'list'"
-                (click)="setViewMode('list')"
-              >
-                <i class="bi bi-list-ul"></i>
-              </button>
-            </div>
-
-            @if (searchQuery() || statusFilter() || skillFilter()) {
-              <button class="btn btn-secondary btn-sm" (click)="clearFilters()">
-                <i class="bi bi-x-lg me-1"></i>{{ 'paths_admin.clear' | translate }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
+      <button
+        type="button"
+        class="ui-filter"
+        [class.is-active]="viewMode() === 'grid'"
+        (click)="setViewMode('grid')"
+      >
+        <i class="bi bi-grid-3x3-gap"></i>
+      </button>
+      <button
+        type="button"
+        class="ui-filter"
+        [class.is-active]="viewMode() === 'list'"
+        (click)="setViewMode('list')"
+      >
+        <i class="bi bi-list-ul"></i>
+      </button>
     </div>
   </div>
 
@@ -183,33 +117,29 @@
   } @else {
     <!-- Empty State -->
     @if (paths().length === 0) {
-      <div class="card">
-        <div class="card-body text-center py-5">
-          <div class="empty-state-icon mb-4">
-            <i class="bi bi-signpost-split display-1 text-muted"></i>
-          </div>
-          <h4>{{ 'paths.empty_title' | translate }}</h4>
-          <p class="text-muted mb-4">
-            @if (searchQuery() || statusFilter() || skillFilter()) {
-              {{ 'paths_admin.list.empty_filtered' | translate }}
-            } @else {
-              {{ 'paths_admin.list.empty_get_started' | translate }}
-            }
-          </p>
-          @if (!searchQuery() && !statusFilter() && !skillFilter()) {
-            <a routerLink="/admin/learning-paths/create" class="btn btn-primary">
-              <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.create_path' | translate }}
-            </a>
+      <div class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-signpost-split"></i></span>
+        <h3>{{ 'paths.empty_title' | translate }}</h3>
+        <p>
+          @if (searchQuery() || statusFilter() || skillFilter()) {
+            {{ 'paths_admin.list.empty_filtered' | translate }}
+          } @else {
+            {{ 'paths_admin.list.empty_get_started' | translate }}
           }
-        </div>
+        </p>
+        @if (!searchQuery() && !statusFilter() && !skillFilter()) {
+          <a routerLink="/admin/learning-paths/create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.create_path' | translate }}
+          </a>
+        }
       </div>
     } @else {
       <!-- Grid View -->
       @if (viewMode() === 'grid') {
-        <div class="row g-4">
+        <div class="ui-grid">
           @for (path of paths(); track path.path_id) {
-            <div class="col-md-6 col-lg-4">
-              <div class="card path-card h-100">
+            <div class="d-flex">
+              <div class="ui-card path-card w-100">
                 <!-- Thumbnail -->
                 <div class="path-thumbnail">
                   @if (path.thumbnail_url) {
@@ -236,8 +166,8 @@
                   </div>
                 </div>
 
-                <div class="card-body">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="ui-card__body">
+                  <div class="d-flex justify-content-between align-items-start">
                     <span [class]="getSkillBadgeClass(path.skill_level)" class="badge-sm">
                       {{ getSkillLabel(path.skill_level) }}
                     </span>
@@ -249,11 +179,11 @@
                     }
                   </div>
 
-                  <h5 class="card-title">
+                  <h5 class="ui-card__title">
                     <a [routerLink]="['/admin/learning-paths', path.path_id]">{{ path.title }}</a>
                   </h5>
 
-                  <p class="card-text text-muted small">{{ path.short_description }}</p>
+                  <p class="card-text ui-card__meta mb-0">{{ path.short_description }}</p>
 
                   <!-- Stats -->
                   <div class="path-stats">
@@ -272,9 +202,9 @@
                   </div>
                 </div>
 
-                <div class="card-footer bg-transparent">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
+                <div class="ui-card__footer">
+                  <div class="d-flex justify-content-between align-items-center w-100">
+                    <small class="ui-muted">
                       {{ 'paths_admin.list.updated' | translate:{ date: formatDate(path.updated_at || path.created_at) } }}
                     </small>
                     <div class="dropdown">
@@ -333,7 +263,7 @@
         </div>
       } @else {
         <!-- List View -->
-        <div class="card">
+        <section class="ui-section ui-section--flush">
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
               <thead>
@@ -400,7 +330,7 @@
                           @if (path.is_mandatory) {
                             <span class="badge bg-danger-subtle text-danger ms-2">{{ 'paths.mandatory' | translate }}</span>
                           }
-                          <div class="text-muted small text-truncate" style="max-width: 300px">
+                          <div class="ui-muted small text-truncate path-desc-trunc">
                             {{ path.short_description }}
                           </div>
                         </div>
@@ -430,11 +360,11 @@
                     <td>{{ formatDate(path.created_at) }}</td>
                     <td>
                       <div class="btn-group btn-group-sm">
-                        <a [routerLink]="['/admin/learning-paths', path.path_id, 'edit']" class="btn btn-secondary">
+                        <a [routerLink]="['/admin/learning-paths', path.path_id, 'edit']" class="btn btn-outline-secondary">
                           <i class="bi bi-pencil"></i>
                         </a>
                         <div class="btn-group btn-group-sm" role="group">
-                          <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                          <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                           </button>
                           <ul class="dropdown-menu dropdown-menu-end">
                             <li>
@@ -480,7 +410,7 @@
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       }
 
       <!-- Pagination -->
@@ -527,7 +457,5 @@
       }
     }
   }
-</div>
   </div>
 </main>
-

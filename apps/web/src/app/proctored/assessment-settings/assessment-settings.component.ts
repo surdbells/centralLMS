@@ -55,21 +55,37 @@ interface GradingScale { id: string; name: string; description: string; }
   template: `
     <app-admintop></app-admintop>
 
-    <div class="settings-panel">
+    <main class="main">
+    <div class="ui-page settings-panel">
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-sliders"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>Assessment Settings</h1>
+          <p>Timing, scoring, display, results, proctoring and availability</p>
+        </div>
+        <div class="ui-page-header__actions" *ngIf="showSaveButton">
+          <button type="button" class="btn btn-primary" (click)="saveSettings()" [disabled]="saving">
+            <i *ngIf="!saving" class="bi bi-floppy"></i>
+            <span *ngIf="saving" class="spinner-border spinner-border-sm"></span>
+            <span *ngIf="saving">Saving...</span>
+            <span *ngIf="!saving">Save Settings</span>
+          </button>
+        </div>
+      </header>
+
       <!-- Time & Attempts -->
-      <div class="settings-section">
-        <div class="section-title">
-          <tui-icon icon="@tui.clock"></tui-icon>
-          <h4>Time & Attempts</h4>
+      <section class="ui-section settings-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-clock section-icon"></i> Time & Attempts</h2></div>
         </div>
         <div class="settings-grid">
           <div class="form-group">
-            <label>Time Limit (minutes)</label>
+            <label class="form-label">Time Limit (minutes)</label>
             <div class="input-with-toggle">
-              <input type="number" class="form-input" [(ngModel)]="settings.time_limit_minutes"
+              <input type="number" class="form-control" [(ngModel)]="settings.time_limit_minutes"
                      [disabled]="!hasTimeLimit" min="1" max="600" placeholder="No limit" />
               <label class="toggle-label">
-                <input type="checkbox" [(ngModel)]="hasTimeLimit"
+                <input type="checkbox" class="form-check-input" [(ngModel)]="hasTimeLimit"
                        (change)="!hasTimeLimit && (settings.time_limit_minutes = null)" />
                 <span>Enable</span>
               </label>
@@ -77,40 +93,39 @@ interface GradingScale { id: string; name: string; description: string; }
             <span class="help-text">Leave empty or disable for unlimited time</span>
           </div>
           <div class="form-group">
-            <label>Maximum Attempts</label>
-            <input type="number" class="form-input" [(ngModel)]="settings.max_attempts" min="1" max="99" />
+            <label class="form-label">Maximum Attempts</label>
+            <input type="number" class="form-control" [(ngModel)]="settings.max_attempts" min="1" max="99" />
             <span class="help-text">Number of times a learner can attempt this assessment</span>
           </div>
           <div class="form-group">
-            <label>Cooldown Period (hours)</label>
-            <input type="number" class="form-input" [(ngModel)]="settings.cooldown_hours" min="0" max="720" />
+            <label class="form-label">Cooldown Period (hours)</label>
+            <input type="number" class="form-control" [(ngModel)]="settings.cooldown_hours" min="0" max="720" />
             <span class="help-text">Minimum wait time between attempts (0 for none)</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Scoring -->
-      <div class="settings-section">
-        <div class="section-title">
-          <tui-icon icon="@tui.target"></tui-icon>
-          <h4>Scoring</h4>
+      <section class="ui-section settings-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-bullseye section-icon"></i> Scoring</h2></div>
         </div>
         <div class="settings-grid">
           <div class="form-group">
-            <label>Passing Score</label>
-            <div class="input-group">
-              <input type="number" class="form-input" [(ngModel)]="settings.passing_score" min="0"
+            <label class="form-label">Passing Score</label>
+            <div class="score-group">
+              <input type="number" class="form-control" [(ngModel)]="settings.passing_score" min="0"
                      [max]="settings.passing_score_type === 'percentage' ? 100 : 9999" />
               <div class="input-toggle-group">
-                <button class="toggle-btn" [class.active]="settings.passing_score_type === 'percentage'"
+                <button type="button" class="toggle-btn" [class.active]="settings.passing_score_type === 'percentage'"
                         (click)="settings.passing_score_type = 'percentage'">%</button>
-                <button class="toggle-btn" [class.active]="settings.passing_score_type === 'points'"
+                <button type="button" class="toggle-btn" [class.active]="settings.passing_score_type === 'points'"
                         (click)="settings.passing_score_type = 'points'">Points</button>
               </div>
             </div>
           </div>
           <div class="form-group">
-            <label>Grading Scale</label>
+            <label class="form-label">Grading Scale</label>
             <select class="form-select" [(ngModel)]="settings.grading_scale_id">
               <option [ngValue]="null">None (Pass/Fail only)</option>
               <option *ngFor="let gs of gradingScales" [ngValue]="gs.id">{{ gs.name }}</option>
@@ -128,7 +143,7 @@ interface GradingScale { id: string; name: string; description: string; }
                 <span class="toggle-desc">Deduct points for incorrect answers</span>
               </div>
               <div class="penalty-input" *ngIf="settings.negative_marking">
-                <input type="number" class="form-input sm" [(ngModel)]="settings.negative_marking_penalty"
+                <input type="number" class="form-control sm" [(ngModel)]="settings.negative_marking_penalty"
                        min="1" max="100" /> <span>% penalty</span>
               </div>
             </div>
@@ -146,17 +161,16 @@ interface GradingScale { id: string; name: string; description: string; }
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Display Options -->
-      <div class="settings-section">
-        <div class="section-title">
-          <tui-icon icon="@tui.monitor"></tui-icon>
-          <h4>Display Options</h4>
+      <section class="ui-section settings-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-display section-icon"></i> Display Options</h2></div>
         </div>
         <div class="settings-grid">
           <div class="form-group">
-            <label>Questions Per Page</label>
+            <label class="form-label">Questions Per Page</label>
             <select class="form-select" [(ngModel)]="settings.questions_per_page">
               <option [ngValue]="1">1 (one at a time)</option>
               <option [ngValue]="5">5</option>
@@ -165,7 +179,7 @@ interface GradingScale { id: string; name: string; description: string; }
             </select>
           </div>
           <div class="form-group">
-            <label>Navigation Type</label>
+            <label class="form-label">Navigation Type</label>
             <select class="form-select" [(ngModel)]="settings.navigation_type">
               <option value="free">Free Navigation (jump to any question)</option>
               <option value="linear">Linear (forward only)</option>
@@ -205,13 +219,12 @@ interface GradingScale { id: string; name: string; description: string; }
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Results Display -->
-      <div class="settings-section">
-        <div class="section-title">
-          <tui-icon icon="@tui.bar-chart-2"></tui-icon>
-          <h4>Results Display</h4>
+      <section class="ui-section settings-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-bar-chart section-icon"></i> Results Display</h2></div>
         </div>
         <div class="settings-grid">
           <div class="form-group full-width">
@@ -252,7 +265,7 @@ interface GradingScale { id: string; name: string; description: string; }
             </div>
           </div>
           <div class="form-group" *ngIf="settings.show_results">
-            <label>Results Release</label>
+            <label class="form-label">Results Release</label>
             <select class="form-select" [(ngModel)]="settings.results_release_type">
               <option value="immediate">Immediately after submission</option>
               <option value="after_close">After assessment closes</option>
@@ -261,17 +274,17 @@ interface GradingScale { id: string; name: string; description: string; }
             </select>
           </div>
           <div class="form-group" *ngIf="settings.show_results && settings.results_release_type === 'date'">
-            <label>Release Date</label>
-            <input type="datetime-local" class="form-input" [(ngModel)]="settings.results_release_date" />
+            <label class="form-label">Release Date</label>
+            <input type="datetime-local" class="form-control" [(ngModel)]="settings.results_release_date" />
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Proctoring -->
-      <div class="settings-section">
-        <div class="section-title">
-          <tui-icon icon="@tui.shield"></tui-icon>
-          <h4>Proctoring</h4>
+      <section class="ui-section settings-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-shield-check section-icon"></i> Proctoring</h2>
+            <p class="ui-section__subtitle">How closely attempts are monitored</p></div>
         </div>
         <div class="proctoring-cards">
           <div class="procto-card" *ngFor="let level of proctoringLevels"
@@ -286,186 +299,137 @@ interface GradingScale { id: string; name: string; description: string; }
             </div>
             <div class="procto-features" *ngIf="level.features.length > 0">
               <span class="procto-feature" *ngFor="let f of level.features">
-                <tui-icon icon="@tui.check" style="font-size:12px;color:#22c55e"></tui-icon> {{ f }}
+                <i class="bi bi-check2 feature-check"></i> {{ f }}
               </span>
             </div>
             <div class="procto-check" *ngIf="settings.proctoring_level === level.value">
-              <tui-icon icon="@tui.check-circle" style="color:#6366f1"></tui-icon>
+              <i class="bi bi-check-circle-fill"></i>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Availability -->
-      <div class="settings-section">
-        <div class="section-title">
-          <tui-icon icon="@tui.calendar"></tui-icon>
-          <h4>Availability</h4>
+      <section class="ui-section settings-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-calendar-event section-icon"></i> Availability</h2></div>
         </div>
         <div class="settings-grid">
           <div class="form-group">
-            <label>Start Date & Time</label>
-            <input type="datetime-local" class="form-input" [(ngModel)]="settings.start_date" (change)="emitChange()" />
+            <label class="form-label">Start Date & Time</label>
+            <input type="datetime-local" class="form-control" [(ngModel)]="settings.start_date" (change)="emitChange()" />
             <span class="help-text">When the assessment becomes available</span>
           </div>
           <div class="form-group">
-            <label>End Date & Time</label>
-            <input type="datetime-local" class="form-input" [(ngModel)]="settings.end_date" (change)="emitChange()" />
+            <label class="form-label">End Date & Time</label>
+            <input type="datetime-local" class="form-control" [(ngModel)]="settings.end_date" (change)="emitChange()" />
             <span class="help-text">When the assessment closes (leave empty for no end date)</span>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Save Button (standalone mode) -->
       <div class="settings-footer" *ngIf="showSaveButton">
-        <button class="btn-save" (click)="saveSettings()" [disabled]="saving">
-          <tui-icon *ngIf="!saving" icon="@tui.save"></tui-icon>
+        <button type="button" class="btn btn-primary" (click)="saveSettings()" [disabled]="saving">
+          <i *ngIf="!saving" class="bi bi-floppy"></i>
           <span *ngIf="saving">Saving...</span>
           <span *ngIf="!saving">Save Settings</span>
         </button>
-        <span class="save-success" *ngIf="showSaved">
-          <tui-icon icon="@tui.check" style="color:#22c55e"></tui-icon> Settings saved
+        <span class="ui-pill ui-pill--success" *ngIf="showSaved">
+          <i class="bi bi-check2"></i> Settings saved
         </span>
-        <span class="save-error" *ngIf="saveError">
-          <tui-icon icon="@tui.alert-triangle" style="color:#ef4444"></tui-icon> {{ saveError }}
+        <span class="ui-pill ui-pill--danger" *ngIf="saveError">
+          <i class="bi bi-exclamation-triangle"></i> {{ saveError }}
         </span>
       </div>
     </div>
+    </main>
   `,
   styles: [`
     :host { display: block; }
-    .settings-panel { }
 
-    .settings-section {
-      background: white; border: 1px solid #e2e8f0; border-radius: 8px;
-      padding: 20px; margin-bottom: 16px;
-    }
-    .section-title {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
-      padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;
-    }
-    .section-title tui-icon { color: #6366f1; font-size: 18px; }
-    .section-title h4 { font-size: 15px; font-weight: 600; color: #0f172a; margin: 0; }
+    .section-icon { color: var(--brand-primary); margin-right: 6px; font-size: .95rem; }
 
     .settings-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px 20px;
     }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .form-group.full-width { grid-column: 1 / -1; }
-    .form-group label {
-      font-size: 13px; font-weight: 500; color: #475569;
-    }
-    .form-input, .form-select {
-      padding: 9px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
-      font-size: 14px; color: #0f172a; outline: none; width: 100%;
-      background: white; font-family: inherit;
-    }
-    .form-input:focus, .form-select:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.1); }
-    .form-input:disabled { background: #f1f5f9; color: #94a3b8; }
-    .form-input.sm { width: 80px; }
-    .help-text { font-size: 12px; color: #94a3b8; }
+    .form-group .form-label { font-size: .8125rem; font-weight: 550; color: var(--ui-text); margin: 0; }
+    .form-control.sm { width: 80px; }
+    .help-text { font-size: .75rem; color: var(--ui-text-subtle); }
 
     .input-with-toggle { display: flex; gap: 12px; align-items: center; }
-    .input-with-toggle .form-input { flex: 1; }
+    .input-with-toggle .form-control { flex: 1; }
     .toggle-label {
-      display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b;
-      white-space: nowrap; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; font-size: .8125rem; color: var(--ui-text-muted);
+      white-space: nowrap; cursor: pointer; margin: 0;
     }
+    .toggle-label .form-check-input { margin: 0; }
 
-    .input-group { display: flex; gap: 0; }
-    .input-group .form-input { border-radius: 6px 0 0 6px; flex: 1; }
+    .score-group { display: flex; gap: 0; }
+    .score-group .form-control { border-top-right-radius: 0; border-bottom-right-radius: 0; flex: 1; }
     .input-toggle-group { display: flex; }
     .toggle-btn {
-      padding: 9px 14px; border: 1px solid #e2e8f0; background: #f8fafc;
-      cursor: pointer; font-size: 13px; font-weight: 500; color: #64748b;
+      height: var(--ui-ctl-h); padding: 0 14px; border: 1px solid var(--ui-border); border-left: none; background: var(--ui-surface-2);
+      cursor: pointer; font-size: .8125rem; font-weight: 550; color: var(--ui-text-muted);
     }
-    .toggle-btn:first-child { border-left: none; }
-    .toggle-btn:last-child { border-radius: 0 6px 6px 0; }
-    .toggle-btn.active { background: #6366f1; color: white; border-color: #6366f1; }
+    .toggle-btn:last-child { border-radius: 0 var(--ui-radius-ctl) var(--ui-radius-ctl) 0; }
+    .toggle-btn.active { background: rgba(var(--brand-primary-rgb), .1); color: var(--brand-primary); }
 
     /* Toggle Switch */
-    .toggle-row {
-      display: flex; align-items: center; gap: 12px;
-    }
-    .toggle-row.compact { gap: 8px; font-size: 14px; color: #334155; }
-    .toggle-switch {
-      position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0;
-    }
-    .toggle-switch.sm { width: 36px; height: 20px; }
+    .toggle-row { display: flex; align-items: center; gap: 12px; }
+    .toggle-row.compact { gap: 8px; font-size: .875rem; color: var(--ui-text); }
+    .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; margin: 0; }
+    .toggle-switch.sm { width: 34px; height: 20px; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute; cursor: pointer; inset: 0; background: #cbd5e1;
-      border-radius: 24px; transition: 0.2s;
-    }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: var(--ui-border-strong); border-radius: 24px; transition: 0.2s; }
     .slider::before {
-      content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px;
-      background: white; border-radius: 50%; transition: 0.2s;
+      content: ''; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,.15);
     }
     .toggle-switch.sm .slider::before { height: 14px; width: 14px; }
-    .toggle-switch input:checked + .slider { background: #6366f1; }
+    .toggle-switch input:checked + .slider { background: var(--brand-primary); }
+    .toggle-switch input:focus-visible + .slider { outline: 2px solid rgba(var(--brand-primary-rgb), .35); outline-offset: 2px; }
     .toggle-switch input:checked + .slider::before { transform: translateX(18px); }
-    .toggle-switch.sm input:checked + .slider::before { transform: translateX(16px); }
+    .toggle-switch.sm input:checked + .slider::before { transform: translateX(14px); }
 
-    .toggle-info { flex: 1; }
-    .toggle-label-text { display: block; font-size: 14px; font-weight: 500; color: #0f172a; }
-    .toggle-desc { display: block; font-size: 12px; color: #94a3b8; }
-    .penalty-input {
-      display: flex; align-items: center; gap: 6px; font-size: 13px; color: #64748b;
-    }
+    .toggle-info { flex: 1; min-width: 0; }
+    .toggle-label-text { display: block; font-size: .875rem; font-weight: 550; color: var(--ui-text); }
+    .toggle-desc { display: block; font-size: .75rem; color: var(--ui-text-muted); }
+    .penalty-input { display: flex; align-items: center; gap: 6px; font-size: .8125rem; color: var(--ui-text-muted); }
 
-    .toggle-grid {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-    }
+    .toggle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .sub-toggles {
-      display: flex; flex-direction: column; gap: 10px; padding-left: 8px;
-      border-left: 3px solid #ede9fe;
+      display: flex; flex-direction: column; gap: 10px; padding-left: 12px;
+      border-left: 2px solid rgba(var(--brand-primary-rgb), .2);
     }
 
     /* Proctoring Cards */
-    .proctoring-cards {
-      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
-    }
+    .proctoring-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .procto-card {
-      border: 2px solid #e2e8f0; border-radius: 8px; padding: 16px;
-      cursor: pointer; transition: all 0.15s; position: relative;
+      border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); padding: 16px;
+      cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; position: relative; background: var(--ui-surface);
     }
-    .procto-card:hover { border-color: #c7d2fe; }
-    .procto-card.active { border-color: #6366f1; background: #faf5ff; }
+    .procto-card:hover { border-color: var(--ui-border-strong); }
+    .procto-card.active { border-color: rgba(var(--brand-primary-rgb), .55); box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .1); }
     .procto-icon {
-      width: 40px; height: 40px; background: #f1f5f9; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
+      width: 36px; height: 36px; background: var(--ui-surface-2); border-radius: var(--ui-radius-ctl); color: var(--ui-text-muted);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 10px;
     }
-    .procto-card.active .procto-icon { background: #ede9fe; color: #6366f1; }
-    .procto-name { display: block; font-size: 14px; font-weight: 600; color: #0f172a; }
-    .procto-desc { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+    .procto-card.active .procto-icon { background: rgba(var(--brand-primary-rgb), .1); color: var(--brand-primary); }
+    .procto-name { display: block; font-size: .875rem; font-weight: 600; color: var(--ui-text); }
+    .procto-desc { display: block; font-size: .75rem; color: var(--ui-text-muted); margin-bottom: 8px; }
     .procto-features { display: flex; flex-direction: column; gap: 4px; }
-    .procto-feature {
-      display: flex; align-items: center; gap: 4px; font-size: 12px; color: #475569;
-    }
-    .procto-check { position: absolute; top: 12px; right: 12px; }
+    .procto-feature { display: flex; align-items: center; gap: 6px; font-size: .75rem; color: var(--ui-text-muted); }
+    .feature-check { color: var(--ui-success); }
+    .procto-check { position: absolute; top: 12px; right: 14px; color: var(--brand-primary); }
 
     /* Footer */
-    .settings-footer {
-      display: flex; align-items: center; gap: 16px; margin-top: 8px;
-    }
-    .btn-save {
-      display: flex; align-items: center; gap: 8px; background: #6366f1; color: white;
-      border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600;
-      font-size: 14px; cursor: pointer;
-    }
-    .btn-save:hover { background: #4f46e5; }
-    .btn-save:disabled { opacity: 0.5; cursor: default; }
-    .save-success {
-      display: flex; align-items: center; gap: 6px; font-size: 14px; color: #22c55e; font-weight: 500;
-    }
-    .save-error {
-      display: flex; align-items: center; gap: 6px; font-size: 14px; color: #ef4444; font-weight: 500;
-    }
+    .settings-footer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
 
-    @media (max-width: 768px) {
-      .settings-grid { grid-template-columns: 1fr; }
-      .proctoring-cards { grid-template-columns: 1fr; }
-      .toggle-grid { grid-template-columns: 1fr; }
+    @media (max-width: 767.98px) {
+      .settings-grid, .proctoring-cards, .toggle-grid { grid-template-columns: 1fr; }
     }
   `]
 })

@@ -19,205 +19,177 @@ import { HotToastService } from '@ngneat/hot-toast';
   template: `
     <app-top></app-top>
 
-    <div class="messaging-settings">
+    <main class="main">
+    <div class="ui-page messaging-settings">
       <!-- Header -->
-      <div class="page-header mb-4">
-        <h1 class="page-title">
-          <i class="bi bi-gear me-2"></i>{{ 'messaging.settings_title' | translate }}
-        </h1>
-        <p class="text-muted">{{ 'messaging.settings_subtitle' | translate }}</p>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-gear"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ 'messaging.settings_title' | translate }}</h1>
+          <p>{{ 'messaging.settings_subtitle' | translate }}</p>
+        </div>
+        <!-- Quick actions -->
+        <div class="ui-page-header__actions" [attr.aria-label]="'messaging.quick_actions' | translate">
+          <button type="button" class="btn btn-outline-secondary" (click)="markAllAsRead()">
+            <i class="bi bi-check2-all me-1"></i>{{ 'messaging.mark_all_read' | translate }}
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="clearAllDrafts()">
+            <i class="bi bi-file-earmark-x me-1"></i>{{ 'messaging.clear_all_drafts' | translate }}
+          </button>
+          <button type="button" class="btn btn-primary" (click)="exportData()">
+            <i class="bi bi-download me-1"></i>{{ 'messaging.export_messages' | translate }}
+          </button>
+        </div>
+      </header>
+
+      <div class="ui-insights">
+        <span class="ui-pill ui-pill--info"><i class="bi bi-info-circle"></i> {{ 'messaging.autosave_note' | translate }}</span>
       </div>
 
-      <div class="row">
-        <!-- Settings Column -->
-        <div class="col-lg-8">
-          <!-- Privacy Settings -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">
-                <i class="bi bi-shield-lock me-2"></i>{{ 'messaging.privacy' | translate }}
-              </h5>
+      <div class="ui-row">
+        <!-- Privacy Settings -->
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title"><i class="bi bi-shield-lock me-2"></i>{{ 'messaging.privacy' | translate }}</h2></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.allow_dm' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.allow_dm_desc' | translate }}</p>
             </div>
-            <div class="card-body">
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.allow_dm' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.allow_dm_desc' | translate }}</p>
-                </div>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="allowDM"
-                         [(ngModel)]="settings.allow_direct_messages" (change)="saveSettings()">
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.allow_group_invites' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.allow_group_invites_desc' | translate }}</p>
-                </div>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="allowGroups"
-                         [(ngModel)]="settings.allow_group_invites" (change)="saveSettings()">
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.show_online' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.show_online_desc' | translate }}</p>
-                </div>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="showOnline"
-                         [(ngModel)]="settings.show_online_status" (change)="saveSettings()">
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.show_receipts' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.show_receipts_desc' | translate }}</p>
-                </div>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="showRead"
-                         [(ngModel)]="settings.show_read_receipts" (change)="saveSettings()">
-                </div>
-              </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="allowDM"
+                     [(ngModel)]="settings.allow_direct_messages" (change)="saveSettings()">
             </div>
           </div>
 
-          <!-- Notification Settings -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">
-                <i class="bi bi-bell me-2"></i>{{ 'messaging.notifications' | translate }}
-              </h5>
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.allow_group_invites' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.allow_group_invites_desc' | translate }}</p>
             </div>
-            <div class="card-body">
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.email_digest' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.email_digest_desc' | translate }}</p>
-                </div>
-                <select class="form-select form-select-sm" style="width: 150px;"
-                        [(ngModel)]="settings.email_digest_frequency" (change)="saveSettings()">
-                  <option value="never">{{ 'messaging.freq_never' | translate }}</option>
-                  <option value="instant">{{ 'messaging.freq_instant' | translate }}</option>
-                  <option value="hourly">{{ 'messaging.freq_hourly' | translate }}</option>
-                  <option value="daily">{{ 'messaging.freq_daily' | translate }}</option>
-                  <option value="weekly">{{ 'messaging.freq_weekly' | translate }}</option>
-                </select>
-              </div>
-
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.quiet_hours' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.quiet_hours_desc' | translate }}</p>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  <input type="time" class="form-control form-control-sm" style="width: 120px;"
-                         [(ngModel)]="settings.quiet_hours_start" (change)="saveSettings()">
-                  <span>{{ 'messaging.time_to' | translate }}</span>
-                  <input type="time" class="form-control form-control-sm" style="width: 120px;"
-                         [(ngModel)]="settings.quiet_hours_end" (change)="saveSettings()">
-                </div>
-              </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="allowGroups"
+                     [(ngModel)]="settings.allow_group_invites" (change)="saveSettings()">
             </div>
           </div>
 
-          <!-- Auto-Reply Settings -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="card-title mb-0">
-                <i class="bi bi-reply-all me-2"></i>{{ 'messaging.auto_reply' | translate }}
-              </h5>
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.show_online' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.show_online_desc' | translate }}</p>
             </div>
-            <div class="card-body">
-              <div class="setting-item">
-                <div class="setting-info">
-                  <h6 class="setting-title">{{ 'messaging.enable_auto_reply' | translate }}</h6>
-                  <p class="setting-desc text-muted">{{ 'messaging.enable_auto_reply_desc' | translate }}</p>
-                </div>
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" id="autoReply"
-                         [(ngModel)]="settings.auto_reply_enabled" (change)="saveSettings()">
-                </div>
-              </div>
-
-              <div class="mt-3" *ngIf="settings.auto_reply_enabled">
-                <label class="form-label">{{ 'messaging.auto_reply_message' | translate }}</label>
-                <textarea class="form-control" rows="3"
-                          [(ngModel)]="settings.auto_reply_message"
-                          placeholder="{{ 'messaging.auto_reply_ph' | translate }}"
-                          (blur)="saveSettings()"></textarea>
-              </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="showOnline"
+                     [(ngModel)]="settings.show_online_status" (change)="saveSettings()">
             </div>
           </div>
 
-          <!-- Blocked Users -->
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="card-title mb-0">
-                <i class="bi bi-person-x me-2"></i>{{ 'messaging.blocked_users' | translate }}
-              </h5>
-              <span class="badge bg-secondary">{{ blockedUsers.length }}</span>
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.show_receipts' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.show_receipts_desc' | translate }}</p>
             </div>
-            <div class="card-body">
-              <div *ngIf="blockedUsers.length === 0" class="text-center py-4 text-muted">
-                <i class="bi bi-person-check display-6"></i>
-                <p class="mt-2 mb-0">{{ 'messaging.no_blocked' | translate }}</p>
-              </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="showRead"
+                     [(ngModel)]="settings.show_read_receipts" (change)="saveSettings()">
+            </div>
+          </div>
+        </section>
 
-              <div class="blocked-list" *ngIf="blockedUsers.length > 0">
-                <div class="blocked-item" *ngFor="let user of blockedUsers">
-                  <div class="d-flex align-items-center gap-3">
-                    <div class="avatar">
-                      <img [src]="user.profile_image" *ngIf="user.profile_image" class="avatar-img">
-                      <span class="avatar-initials" *ngIf="!user.profile_image">
-                        {{ getInitials(user.first_name, user.last_name) }}
-                      </span>
-                    </div>
-                    <div>
-                      <strong>{{ user.first_name }} {{ user.last_name }}</strong>
-                      <div class="small text-muted">{{ user.email }}</div>
-                    </div>
-                  </div>
-                  <button class="btn btn-sm btn-outline-danger" (click)="unblockUser(user)">
-                    <i class="bi bi-person-plus me-1"></i>{{ 'messaging.unblock' | translate }}
-                  </button>
+        <!-- Notification Settings -->
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title"><i class="bi bi-bell me-2"></i>{{ 'messaging.notifications' | translate }}</h2></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.email_digest' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.email_digest_desc' | translate }}</p>
+            </div>
+            <select class="form-select" style="width: 150px;"
+                    [(ngModel)]="settings.email_digest_frequency" (change)="saveSettings()">
+              <option value="never">{{ 'messaging.freq_never' | translate }}</option>
+              <option value="instant">{{ 'messaging.freq_instant' | translate }}</option>
+              <option value="hourly">{{ 'messaging.freq_hourly' | translate }}</option>
+              <option value="daily">{{ 'messaging.freq_daily' | translate }}</option>
+              <option value="weekly">{{ 'messaging.freq_weekly' | translate }}</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.quiet_hours' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.quiet_hours_desc' | translate }}</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <input type="time" class="form-control" style="width: 120px;"
+                     [(ngModel)]="settings.quiet_hours_start" (change)="saveSettings()">
+              <span class="ui-muted small">{{ 'messaging.time_to' | translate }}</span>
+              <input type="time" class="form-control" style="width: 120px;"
+                     [(ngModel)]="settings.quiet_hours_end" (change)="saveSettings()">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="ui-row">
+        <!-- Auto-Reply Settings -->
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title"><i class="bi bi-reply-all me-2"></i>{{ 'messaging.auto_reply' | translate }}</h2></div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-info">
+              <h3 class="setting-title">{{ 'messaging.enable_auto_reply' | translate }}</h3>
+              <p class="setting-desc">{{ 'messaging.enable_auto_reply_desc' | translate }}</p>
+            </div>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="autoReply"
+                     [(ngModel)]="settings.auto_reply_enabled" (change)="saveSettings()">
+            </div>
+          </div>
+
+          <div class="mt-3" *ngIf="settings.auto_reply_enabled">
+            <label class="form-label small">{{ 'messaging.auto_reply_message' | translate }}</label>
+            <textarea class="form-control" rows="3"
+                      [(ngModel)]="settings.auto_reply_message"
+                      placeholder="{{ 'messaging.auto_reply_ph' | translate }}"
+                      (blur)="saveSettings()"></textarea>
+          </div>
+        </section>
+
+        <!-- Blocked Users -->
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title"><i class="bi bi-person-x me-2"></i>{{ 'messaging.blocked_users' | translate }}</h2></div>
+            <div class="ui-section__actions"><span class="ui-pill ui-pill--neutral">{{ blockedUsers.length }}</span></div>
+          </div>
+          <div *ngIf="blockedUsers.length === 0" class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-person-check"></i></span>
+            <p>{{ 'messaging.no_blocked' | translate }}</p>
+          </div>
+
+          <ul class="ui-list blocked-list" *ngIf="blockedUsers.length > 0">
+            <li class="blocked-item" *ngFor="let user of blockedUsers">
+              <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
+                <span class="ui-avatar avatar">
+                  <img [src]="user.profile_image" *ngIf="user.profile_image" class="avatar-img">
+                  <span class="avatar-initials" *ngIf="!user.profile_image">
+                    {{ getInitials(user.first_name, user.last_name) }}
+                  </span>
+                </span>
+                <div class="min-w-0">
+                  <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                  <div class="small ui-muted">{{ user.email }}</div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions Column -->
-        <div class="col-lg-4">
-          <div class="card sticky-top" style="top: 20px;">
-            <div class="card-header">
-              <h5 class="card-title mb-0">{{ 'messaging.quick_actions' | translate }}</h5>
-            </div>
-            <div class="card-body">
-              <div class="d-grid gap-2">
-                <button class="btn btn-primary text-start" (click)="exportData()">
-                  <i class="bi bi-download me-2"></i>{{ 'messaging.export_messages' | translate }}
-                </button>
-                <button class="btn btn-secondary text-start" (click)="clearAllDrafts()">
-                  <i class="bi bi-file-earmark-x me-2"></i>{{ 'messaging.clear_all_drafts' | translate }}
-                </button>
-                <button class="btn btn-outline-warning text-start" (click)="markAllAsRead()">
-                  <i class="bi bi-check2-all me-2"></i>{{ 'messaging.mark_all_read' | translate }}
-                </button>
-              </div>
-
-              <hr>
-
-              <div class="alert alert-info mb-0">
-                <i class="bi bi-info-circle me-2"></i>
-                <small>{{ 'messaging.autosave_note' | translate }}</small>
-              </div>
-            </div>
-          </div>
-        </div>
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="unblockUser(user)">
+                <i class="bi bi-person-plus me-1"></i>{{ 'messaging.unblock' | translate }}
+              </button>
+            </li>
+          </ul>
+        </section>
       </div>
 
       <!-- Save Indicator -->
@@ -228,97 +200,84 @@ import { HotToastService } from '@ngneat/hot-toast';
         <i class="bi bi-check-circle me-2"></i>{{ 'messaging.saved_indicator' | translate }}
       </div>
     </div>
+    </main>
   `,
   styles: [`
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: #1a1a2e;
-
-      i { color: #303234; }
-    }
+    .ui-insights { margin-bottom: 16px; }
 
     .setting-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 0;
-      border-bottom: 1px solid #f0f0f0;
-
-      &:last-child { border-bottom: none; }
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--ui-border);
     }
 
+    .setting-item:last-child { border-bottom: none; padding-bottom: 0; }
+
     .setting-title {
+      font-size: .875rem;
       font-weight: 600;
-      margin-bottom: 0.25rem;
+      color: var(--ui-text);
+      margin: 0 0 2px;
     }
 
     .setting-desc {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
+      color: var(--ui-text-muted);
       margin-bottom: 0;
     }
 
     .form-switch .form-check-input {
-      width: 3em;
-      height: 1.5em;
+      width: 2.5em;
+      height: 1.35em;
       cursor: pointer;
+    }
 
-      &:checked {
-        background-color: #303234;
-        border-color: #303234;
-      }
+    .form-switch .form-check-input:checked {
+      background-color: var(--brand-primary);
+      border-color: var(--brand-primary);
     }
 
     .avatar {
       width: 40px;
       height: 40px;
-      border-radius: 50%;
-      overflow: hidden;
       flex-shrink: 0;
-
-      .avatar-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .avatar-initials {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(201, 162, 39, 0.15);
-        color: #303234;
-        font-weight: 600;
-      }
     }
 
-    .blocked-item {
+    .avatar .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .avatar .avatar-initials {
+      width: 100%;
+      height: 100%;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid #f0f0f0;
-
-      &:last-child { border-bottom: none; }
+      justify-content: center;
+      font-weight: 600;
     }
+
+    .blocked-item { justify-content: space-between; }
 
     .save-indicator {
       position: fixed;
       bottom: 20px;
       right: 20px;
-      padding: 0.75rem 1.25rem;
-      background: #1a1a2e;
+      padding: 0.625rem 1rem;
+      background: var(--ui-text, #1a1a2e);
       color: #fff;
-      border-radius: 8px;
-      font-size: 0.875rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-radius: var(--ui-radius-ctl, 8px);
+      font-size: 0.8125rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       z-index: 1000;
+    }
 
-      &.saved {
-        background: #198754;
-      }
+    .save-indicator.saved {
+      background: var(--ui-success, #2e7d4f);
     }
 
     .spin {
@@ -328,6 +287,10 @@ import { HotToastService } from '@ngneat/hot-toast';
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 575.98px) {
+      .setting-item { flex-wrap: wrap; }
     }
   `]
 })

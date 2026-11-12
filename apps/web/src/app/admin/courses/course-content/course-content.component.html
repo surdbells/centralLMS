@@ -2,56 +2,47 @@
 
 <app-admintop></app-admintop>
 
-<div class="course-content-manager">
-  <div class="content-header">
-    <div class="header-left">
-      <div class="row align-items-center">
-        <div (click)="goBack()" role="button" class="col-auto">
-          <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-            <i class="fs-5">
-              <tui-icon icon="@tui.chevron-left" />
-            </i>
-          </div>
-        </div>
-        <div class="col">
-          <h1 class="fs-4 mb-0" *ngIf="course">{{ course.title }} - {{ 'admin.course_content.curriculum' | translate }}</h1>
-        </div>
-      </div>
+<main class="main">
+<div class="ui-page course-content-manager">
+  <header class="ui-page-header">
+    <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+      <i class="bi bi-chevron-left"></i>
+    </button>
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ course?.title || ('admin.course_content.curriculum' | translate) }}</h1>
+      <p>{{ 'admin.course_content.curriculum' | translate }} · {{ 'admin.course_content.page_subtitle' | translate }}</p>
     </div>
-    <div class="header-actions">
-      <button class="btn btn-secondary btn-sm me-2" (click)="collapseAllModules()">
+    <div class="ui-page-header__actions">
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="collapseAllModules()">
         <i class="bi bi-arrows-collapse"></i> {{ 'admin.course_content.collapse_all' | translate }}
       </button>
-      <button class="btn btn-secondary btn-sm me-2" (click)="expandAllModules()">
+      <button type="button" class="btn btn-outline-secondary btn-sm" (click)="expandAllModules()">
         <i class="bi bi-arrows-expand"></i> {{ 'admin.course_content.expand_all' | translate }}
       </button>
-      <button class="btn btn-primary" (click)="openModuleModal()">
+      <button type="button" class="btn btn-primary" (click)="openModuleModal()">
         <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_module' | translate }}
       </button>
     </div>
-  </div>
+  </header>
 
-  <!-- Stats Bar -->
-  <div class="stats-bar">
-    <div class="stat-item">
-      <i class="bi bi-collection"></i>
-      <span class="stat-value">{{ stats.total_modules }}</span>
-      <span class="stat-label">{{ 'admin.course_content.modules' | translate }}</span>
+  <!-- Stats -->
+  <div class="ui-kpi-grid ui-kpi-grid--4 mb-4">
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><i class="bi bi-collection"></i> {{ 'admin.course_content.modules' | translate }}</span>
+      <span class="ui-kpi__value">{{ stats.total_modules }}</span>
     </div>
-    <div class="stat-item">
-      <i class="bi bi-play-circle"></i>
-      <span class="stat-value">{{ stats.total_lessons }}</span>
-      <span class="stat-label">{{ 'admin.course_content.lessons' | translate }}</span>
+    <div class="ui-kpi ui-kpi--info">
+      <span class="ui-kpi__label"><i class="bi bi-play-circle"></i> {{ 'admin.course_content.lessons' | translate }}</span>
+      <span class="ui-kpi__value">{{ stats.total_lessons }}</span>
     </div>
-    <div class="stat-item">
-      <i class="bi bi-question-circle"></i>
-      <span class="stat-value">{{ stats.total_assessments }}</span>
-      <span class="stat-label">{{ 'admin.course_content.assessments' | translate }}</span>
+    <div class="ui-kpi ui-kpi--warning">
+      <span class="ui-kpi__label"><i class="bi bi-question-circle"></i> {{ 'admin.course_content.assessments' | translate }}</span>
+      <span class="ui-kpi__value">{{ stats.total_assessments }}</span>
     </div>
-    <div class="stat-item">
-      <i class="bi bi-clock"></i>
-      <span class="stat-value">{{ formatDuration(stats.total_duration_minutes) }}</span>
-      <span class="stat-label">{{ 'admin.course_content.duration' | translate }}</span>
+    <div class="ui-kpi">
+      <span class="ui-kpi__label"><i class="bi bi-clock"></i> {{ 'admin.course_content.duration' | translate }}</span>
+      <span class="ui-kpi__value">{{ formatDuration(stats.total_duration_minutes) }}</span>
     </div>
   </div>
 
@@ -74,11 +65,11 @@
   </div>
 
   <!-- Empty State -->
-  <div class="empty-state" *ngIf="!loading && modules.length === 0">
-    <i class="bi bi-inbox"></i>
-    <h4>{{ 'admin.course_content.empty_title' | translate }}</h4>
-    <p class="text-muted">{{ 'admin.course_content.empty_text' | translate }}</p>
-    <button class="btn btn-primary" (click)="openModuleModal()">
+  <div class="ui-state" *ngIf="!loading && modules.length === 0">
+    <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
+    <h3>{{ 'admin.course_content.empty_title' | translate }}</h3>
+    <p>{{ 'admin.course_content.empty_text' | translate }}</p>
+    <button type="button" class="btn btn-primary" (click)="openModuleModal()">
       <i class="bi bi-plus-lg me-1"></i> {{ 'admin.course_content.add_first_module' | translate }}
     </button>
   </div>
@@ -100,29 +91,30 @@
           <div class="module-number">{{ 'admin.course_content.module_n' | translate:{ n: i + 1 } }}</div>
           <h4 class="module-title">{{ module.title }}</h4>
           <div class="module-meta">
-            <span class="badge bg-black text-white">
-              <i class="bi bi-play-circle me-1"></i>
+            <span class="ui-pill ui-pill--neutral">
+              <i class="bi bi-play-circle"></i>
               {{ 'admin.course_content.lessons_count' | translate:{ count: module.lessons?.length || 0 } }}
             </span>
-            <span class="badge bg-black text-white" *ngIf="(module.assessments?.length || 0) > 0">
-              <i class="bi bi-question-circle me-1"></i>
+            <span class="ui-pill ui-pill--neutral" *ngIf="(module.assessments?.length || 0) > 0">
+              <i class="bi bi-question-circle"></i>
               {{ 'admin.course_content.assessments_count' | translate:{ count: module.assessments?.length } }}
             </span>
-            <span class="badge" [class.bg-success]="module.is_active" [class.bg-secondary]="!module.is_active">
+            <span class="ui-pill" [ngClass]="module.is_active ? 'ui-pill--success' : 'ui-pill--neutral'">
+              <span class="ui-pill__dot"></span>
               {{ module.is_active ? ('common.active' | translate) : ('common.inactive' | translate) }}
             </span>
           </div>
         </div>
 
         <div class="module-actions" (click)="$event.stopPropagation()">
-          <button class="btn btn-sm btn-warning" (click)="openLessonModal(module.module_id)" title="{{ 'admin.course_content.add_lesson' | translate }}">
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openLessonModal(module.module_id)" title="{{ 'admin.course_content.add_lesson' | translate }}">
             <i class="bi bi-plus-lg"></i> {{ 'admin.course_content.lesson' | translate }}
           </button>
-          <button class="btn btn-sm btn-secondary" (click)="openAssessmentModal(module.module_id)" title="{{ 'admin.course_content.add_assessment' | translate }}">
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="openAssessmentModal(module.module_id)" title="{{ 'admin.course_content.add_assessment' | translate }}">
             <i class="bi bi-plus-lg"></i> {{ 'admin.course_content.quiz' | translate }}
           </button>
           <div class="dropdown">
-            <button class="btn btn-sm btn-ghost" data-bs-toggle="dropdown">
+            <button type="button" class="btn btn-sm btn-ghost" data-bs-toggle="dropdown" [attr.aria-label]="'common.actions' | translate">
               <i class="bi bi-three-dots-vertical"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
@@ -134,7 +126,7 @@
               </a></li>
             </ul>
           </div>
-          <button class="btn btn-sm btn-ghost expand-btn">
+          <button type="button" class="btn btn-sm btn-ghost expand-btn">
             <i class="bi" [class.bi-chevron-down]="module.expanded" [class.bi-chevron-right]="!module.expanded"></i>
           </button>
         </div>
@@ -172,16 +164,16 @@
               <div class="lesson-info">
                 <span class="lesson-order">{{ j + 1 }}.</span>
                 <span class="lesson-title">{{ lesson.title }}</span>
-                <span class="lesson-type badge bg-black text-white">{{ getContentTypeLabel(lesson.content_type) | translate }}</span>
+                <span class="lesson-type ui-pill ui-pill--neutral">{{ getContentTypeLabel(lesson.content_type) | translate }}</span>
                 <span class="lesson-duration" *ngIf="lesson.duration_minutes">
                   <i class="bi bi-clock"></i> {{ lesson.duration_minutes }}m
                 </span>
-                <span class="badge bg-warning-subtle text-warning" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
-                <span class="badge bg-danger-subtle text-danger" *ngIf="lesson.is_mandatory">{{ 'admin.course_content.required' | translate }}</span>
+                <span class="ui-pill ui-pill--warning" *ngIf="lesson.content_type === 'scorm'">SCORM</span>
+                <span class="ui-pill ui-pill--danger" *ngIf="lesson.is_mandatory">{{ 'admin.course_content.required' | translate }}</span>
               </div>
 
               <div class="lesson-status">
-                <span class="badge" [class.bg-success]="lesson.is_active" [class.bg-secondary]="!lesson.is_active">
+                <span class="ui-pill" [ngClass]="lesson.is_active ? 'ui-pill--success' : 'ui-pill--neutral'"><span class="ui-pill__dot"></span>
                   {{ lesson.is_active ? ('common.active' | translate) : ('admin.course_content.draft' | translate) }}
                 </span>
               </div>
@@ -225,7 +217,7 @@
               <div class="assessment-info">
                 <span class="assessment-title">{{ assessment.title }}</span>
                 <div class="assessment-meta">
-                  <span class="badge bg-black text-white">{{ assessment.assessment_type | titlecase }}</span>
+                  <span class="ui-pill ui-pill--neutral">{{ assessment.assessment_type | titlecase }}</span>
                   <span *ngIf="assessment.time_limit_minutes">
                     <i class="bi bi-clock"></i> {{ assessment.time_limit_minutes }}m
                   </span>
@@ -237,7 +229,7 @@
               </div>
 
               <div class="assessment-status">
-                <span class="badge" [class.bg-success]="assessment.is_active" [class.bg-secondary]="!assessment.is_active">
+                <span class="ui-pill" [ngClass]="assessment.is_active ? 'ui-pill--success' : 'ui-pill--neutral'"><span class="ui-pill__dot"></span>
                   {{ assessment.is_active ? ('common.active' | translate) : ('admin.course_content.draft' | translate) }}
                 </span>
               </div>
@@ -266,20 +258,22 @@
   <!-- ==========================================
   COURSE RESOURCES - downloadable files of any type
   ========================================== -->
-  <div class="resources-section" *ngIf="!loading">
-    <div class="resources-head">
+  <section class="ui-section resources-section" *ngIf="!loading">
+    <div class="ui-section__head">
       <div>
-        <h2 class="fs-5 mb-0"><i class="bi bi-paperclip me-2"></i>{{ 'admin.course_content.resources' | translate }}</h2>
-        <p class="text-muted small mb-0">{{ 'admin.course_content.resources_subtitle' | translate }}</p>
+        <h2 class="ui-section__title"><i class="bi bi-paperclip me-2 ui-muted"></i>{{ 'admin.course_content.resources' | translate }}</h2>
+        <p class="ui-section__subtitle">{{ 'admin.course_content.resources_subtitle' | translate }}</p>
       </div>
-      <label class="btn btn-primary btn-sm mb-0">
-        <i class="bi bi-upload me-1"></i>
-        {{ uploadingResource ? ('admin.course_content.uploading' | translate) : ('admin.course_content.add_resource' | translate) }}
-        <input type="file" hidden (change)="onResourcePicked($event)" [disabled]="uploadingResource" />
-      </label>
+      <div class="ui-section__actions">
+        <label class="btn btn-primary btn-sm mb-0">
+          <i class="bi bi-upload me-1"></i>
+          {{ uploadingResource ? ('admin.course_content.uploading' | translate) : ('admin.course_content.add_resource' | translate) }}
+          <input type="file" hidden (change)="onResourcePicked($event)" [disabled]="uploadingResource" />
+        </label>
+      </div>
     </div>
 
-    <div class="resources-empty text-muted small" *ngIf="!resources.length">
+    <div class="resources-empty ui-muted small" *ngIf="!resources.length">
       {{ 'admin.course_content.resources_empty' | translate }}
     </div>
 
@@ -290,16 +284,17 @@
           <div class="resource-title">{{ res.title }}</div>
           <div class="resource-sub">{{ res.originalFilename }} · {{ formatBytes(res.sizeBytes) }}</div>
         </div>
-        <button class="btn btn-sm btn-outline-secondary" (click)="downloadResource(res)" title="{{ 'admin.course_content.download' | translate }}">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="downloadResource(res)" title="{{ 'admin.course_content.download' | translate }}">
           <i class="bi bi-download"></i>
         </button>
-        <button class="btn btn-sm btn-outline-danger" (click)="deleteResource(res)" title="{{ 'common.remove' | translate }}">
+        <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteResource(res)" title="{{ 'common.remove' | translate }}">
           <i class="bi bi-trash"></i>
         </button>
       </div>
     </div>
-  </div>
+  </section>
 </div>
+</main>
 
 <!-- ==========================================
 QUESTION MANAGER MODAL

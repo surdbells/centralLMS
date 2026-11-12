@@ -1,126 +1,118 @@
 <app-top></app-top>
-<div class="container-fluid p-4">
-    <div class="row align-items-center mb-7">
-      <div (click)="goBack()" role="button" class="col-auto">
-        <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-          <i class="fs-5">
-            <tui-icon icon="@tui.chevron-left" />
-          </i>
-        </div>
-      </div>
-      <div class="col">
-        <h1 class="fs-4 mb-0">{{ 'notes.title' | translate }} </h1>
-        <p class="text-muted mb-0 small" *ngIf="meta.total > 0">
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-journal-text"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'notes.title' | translate }}</h1>
+        <p *ngIf="meta.total > 0">
           {{ meta.total }} {{ (meta.total === 1 ? 'notes.note_one' : 'notes.note_other') | translate }}
         </p>
       </div>
-    </div>
+    </header>
 
     <!-- Search and filter -->
-    <div class="row mb-4 align-items-center g-2">
-      <div class="col-md-5">
-        <div class="input-group">
-          <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <div class="ui-toolbar">
+      <div class="ui-filters">
+        <button
+          type="button"
+          class="ui-filter"
+          [class.is-active]="filterPinned"
+          (click)="togglePinnedFilter()">
+          <i class="bi bi-pin-angle"></i> {{ 'notes.pinned_only' | translate }}
+        </button>
+      </div>
+      <div class="d-flex gap-2 align-items-center notes-search">
+        <label class="ui-search">
+          <i class="bi bi-search"></i>
           <input
-            type="text"
-            class="form-control"
+            type="search"
             placeholder="{{ 'notes.search_placeholder' | translate }}"
             [(ngModel)]="searchQuery"
             (keyup.enter)="search()" />
-          <button class="btn btn-primary" type="button" (click)="search()">{{ 'common.search' | translate }}</button>
-        </div>
-      </div>
-      <div class="col-auto">
-        <button
-          type="button"
-          class="btn"
-          [class.btn-primary]="filterPinned"
-          [class.btn-outline-primary]="!filterPinned"
-          (click)="togglePinnedFilter()">
-          <i class="bi bi-pin-angle me-1"></i>{{ 'notes.pinned_only' | translate }}
-        </button>
+        </label>
+        <button class="btn btn-primary" type="button" (click)="search()">{{ 'common.search' | translate }}</button>
       </div>
     </div>
 
-    <!-- Page content -->
-    <div class="row">
-      <div class="col-12">
-        <tui-loader *ngIf="ui_controls.is_loading" />
+    <tui-loader *ngIf="ui_controls.is_loading" />
 
-        <div class="card border-0 shadow-sm mb-3" *ngFor="let note of notes">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-3">
-              <div class="flex-grow-1">
-                <h2 class="fs-6 fw-semibold mb-1">{{ note.title || ('notes.untitled' | translate) }}</h2>
-                <p class="text-muted small mb-2" *ngIf="contextOf(note) !== ''">
-                  {{ contextOf(note) }}
-                  <span *ngIf="positionOf(note) !== null" class="badge bg-light text-muted ms-1">
-                    <i class="bi bi-clock"></i> {{ positionOf(note) }}
-                  </span>
-                </p>
-              </div>
-              <div class="d-flex gap-1 flex-shrink-0">
-                <button
-                  type="button"
-                  class="btn btn-sm"
-                  [class.btn-primary]="note.isPinned"
-                  [class.btn-outline-secondary]="!note.isPinned"
-                  [title]="(note.isPinned ? 'notes.unpin' : 'notes.pin') | translate"
-                  (click)="togglePin(note)">
-                  <i class="bi" [class.bi-pin-angle-fill]="note.isPinned" [class.bi-pin-angle]="!note.isPinned"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" [title]="'common.edit' | translate" (click)="edit(note)">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" [title]="'common.delete' | translate" (click)="remove(note)">
-                  <i class="bi bi-trash3"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Reading -->
-            <p class="mb-0" style="white-space: pre-wrap" *ngIf="editingNote?.id !== note.id">{{ note.content }}</p>
-
-            <!-- Editing, in place -->
-            <div *ngIf="editingNote?.id === note.id">
-              <div class="mb-2">
-                <label class="form-label small">{{ 'notes.field_title' | translate }}</label>
-                <input type="text" class="form-control" [(ngModel)]="draft.title" />
-              </div>
-              <div class="mb-2">
-                <label class="form-label small">{{ 'notes.field_note' | translate }}</label>
-                <textarea rows="5" class="form-control" [(ngModel)]="draft.content"></textarea>
-              </div>
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-primary" (click)="saveEdit()">{{ 'common.save' | translate }}</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
-              </div>
-            </div>
-
-            <div class="text-muted small mt-2">{{ 'notes.last_edited' | translate:{ date: (note.updatedAt | date: 'medium') } }}</div>
-          </div>
-        </div>
-
-        <div *ngIf="!ui_controls.is_loading && notes.length === 0" class="text-center text-muted py-5">
-          <i class="bi bi-journal-text fs-1 d-block mb-2"></i>
-          <p class="mb-0" *ngIf="searchQuery === '' && !filterPinned">
-            {{ 'notes.empty_text' | translate }}
+    <section class="ui-section note-card" *ngFor="let note of notes">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div class="flex-grow-1">
+          <h2 class="ui-section__title mb-1">
+            <i class="bi bi-pin-angle-fill note-pin me-1" *ngIf="note.isPinned"></i>{{ note.title || ('notes.untitled' | translate) }}
+          </h2>
+          <p class="ui-muted small mb-2" *ngIf="contextOf(note) !== ''">
+            {{ contextOf(note) }}
+            <span *ngIf="positionOf(note) !== null" class="ui-pill ui-pill--neutral ms-1">
+              <i class="bi bi-clock"></i> {{ positionOf(note) }}
+            </span>
           </p>
-          <p class="mb-0" *ngIf="searchQuery !== '' || filterPinned">{{ 'notes.empty_filtered' | translate }}</p>
         </div>
-
-        <!-- Pagination -->
-        <nav *ngIf="meta.totalPages > 1" aria-label="Page navigation" class="mt-4">
-          <ul class="pagination pagination-sm justify-content-center mb-0">
-            <li class="page-item" [class.disabled]="meta.page === 1">
-              <a role="button" class="page-link" (click)="goToPage(meta.page - 1)">{{ 'common.previous' | translate }}</a>
-            </li>
-            <li class="page-item active"><a class="page-link">{{ 'common.page_of' | translate:{ current: meta.page, total: meta.totalPages } }}</a></li>
-            <li class="page-item" [class.disabled]="meta.page === meta.totalPages">
-              <a role="button" class="page-link" (click)="goToPage(meta.page + 1)">{{ 'common.next' | translate }}</a>
-            </li>
-          </ul>
-        </nav>
+        <div class="d-flex gap-1 flex-shrink-0">
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="note.isPinned"
+            [class.btn-outline-secondary]="!note.isPinned"
+            [title]="(note.isPinned ? 'notes.unpin' : 'notes.pin') | translate"
+            (click)="togglePin(note)">
+            <i class="bi" [class.bi-pin-angle-fill]="note.isPinned" [class.bi-pin-angle]="!note.isPinned"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" [title]="'common.edit' | translate" (click)="edit(note)">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" [title]="'common.delete' | translate" (click)="remove(note)">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
       </div>
+
+      <!-- Reading -->
+      <p class="note-content mb-0" *ngIf="editingNote?.id !== note.id">{{ note.content }}</p>
+
+      <!-- Editing, in place -->
+      <div *ngIf="editingNote?.id === note.id">
+        <div class="mb-2">
+          <label class="form-label small">{{ 'notes.field_title' | translate }}</label>
+          <input type="text" class="form-control" [(ngModel)]="draft.title" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">{{ 'notes.field_note' | translate }}</label>
+          <textarea rows="5" class="form-control" [(ngModel)]="draft.content"></textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-primary" (click)="saveEdit()">{{ 'common.save' | translate }}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
+        </div>
+      </div>
+
+      <div class="ui-muted small mt-2">{{ 'notes.last_edited' | translate:{ date: (note.updatedAt | date: 'medium') } }}</div>
+    </section>
+
+    <div *ngIf="!ui_controls.is_loading && notes.length === 0" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-journal-text"></i></span>
+      <p *ngIf="searchQuery === '' && !filterPinned">
+        {{ 'notes.empty_text' | translate }}
+      </p>
+      <p *ngIf="searchQuery !== '' || filterPinned">{{ 'notes.empty_filtered' | translate }}</p>
     </div>
+
+    <!-- Pagination -->
+    <nav *ngIf="meta.totalPages > 1" aria-label="Page navigation" class="mt-4">
+      <ul class="pagination pagination-sm justify-content-center mb-0">
+        <li class="page-item" [class.disabled]="meta.page === 1">
+          <a role="button" class="page-link" (click)="goToPage(meta.page - 1)">{{ 'common.previous' | translate }}</a>
+        </li>
+        <li class="page-item active"><a class="page-link">{{ 'common.page_of' | translate:{ current: meta.page, total: meta.totalPages } }}</a></li>
+        <li class="page-item" [class.disabled]="meta.page === meta.totalPages">
+          <a role="button" class="page-link" (click)="goToPage(meta.page + 1)">{{ 'common.next' | translate }}</a>
+        </li>
+      </ul>
+    </nav>
   </div>
+</main>

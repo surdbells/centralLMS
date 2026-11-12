@@ -1,37 +1,30 @@
+// Section, empty state and pills come from the global UI kit.
 :host {
   display: block;
-  background: #eceff1;
-  min-height: 100vh;
 }
 
 .rv-bar {
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
   position: sticky;
   top: 0;
   z-index: 20;
 }
 
 .rv-bar-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1.25rem 2rem;
   display: flex;
   align-items: flex-end;
-  gap: 1.5rem;
+  gap: 16px 20px;
   flex-wrap: wrap;
 }
 
 .rv-heading {
-  h1 { font-size: 1.35rem; font-weight: 700; margin: 0; color: #1f2937; }
-  p { margin: 0.25rem 0 0; color: #6b7280; font-size: 0.85rem; }
+  flex: 1 1 100%;
 }
 
 // --- the searchable picker ------------------------------------------------
 .rv-picker {
   position: relative;
   flex: 1;
-  min-width: 300px;
+  min-width: 260px;
   max-width: 520px;
 }
 
@@ -42,12 +35,10 @@
 
 .rv-picker-label {
   display: block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #94a3b8;
-  margin-bottom: 0.35rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--ui-text-muted);
+  margin-bottom: 6px;
 }
 
 .rv-input-wrap {
@@ -57,15 +48,15 @@
 
   > .bi-search {
     position: absolute;
-    left: 0.9rem;
-    color: #94a3b8;
-    font-size: 0.95rem;
+    left: 12px;
+    color: var(--ui-text-subtle);
+    font-size: .875rem;
   }
   .rv-caret {
     position: absolute;
-    right: 0.9rem;
-    color: #94a3b8;
-    transition: transform 0.15s ease;
+    right: 12px;
+    color: var(--ui-text-subtle);
+    transition: transform .15s ease;
   }
 }
 
@@ -73,18 +64,19 @@
 
 .rv-input {
   width: 100%;
-  padding: 0.7rem 2.4rem 0.7rem 2.4rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  background: #f8fafc;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  height: var(--ui-ctl-h);
+  padding: 0 34px 0 34px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-ctl);
+  font-size: .875rem;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  transition: border-color .15s ease, box-shadow .15s ease;
 
   &:focus {
     outline: none;
-    background: #fff;
-    border-color: var(--brand-primary, #1f4e79);
-    box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb, 31, 78, 121), 0.12);
+    border-color: rgba(var(--brand-primary-rgb), .55);
+    box-shadow: 0 0 0 3px rgba(var(--brand-primary-rgb), .12);
   }
 }
 
@@ -93,53 +85,53 @@
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-shadow-pop);
   max-height: 380px;
   overflow-y: auto;
   z-index: 30;
-  padding: 0.35rem;
+  padding: 4px;
 }
 
 .rv-loading,
 .rv-empty {
   padding: 1rem;
-  color: #94a3b8;
-  font-size: 0.85rem;
+  color: var(--ui-text-muted);
+  font-size: .8125rem;
   text-align: center;
 }
 
 .rv-option {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 10px;
   width: 100%;
   border: none;
   background: none;
   text-align: left;
-  padding: 0.6rem 0.7rem;
-  border-radius: 10px;
+  padding: 8px 10px;
+  border-radius: var(--ui-radius-ctl);
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: background .12s ease;
 
-  &:hover { background: #f1f5f9; }
-  &.selected { background: rgba(var(--brand-primary-rgb, 31, 78, 121), 0.1); }
+  &:hover { background: var(--ui-surface-2); }
+  &.selected { background: rgba(var(--brand-primary-rgb), .08); }
 }
 
 .rv-avatar {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: var(--brand-primary, #1f4e79);
-  color: #fff;
-  font-weight: 700;
+  background: rgba(var(--brand-primary-rgb), .12);
+  color: var(--brand-primary);
+  font-weight: 650;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: .8125rem;
 }
 
 .rv-option-text {
@@ -149,10 +141,10 @@
   flex-direction: column;
 }
 
-.rv-name { font-weight: 600; color: #1f2937; font-size: 0.9rem; }
+.rv-name { font-weight: 600; color: var(--ui-text); font-size: .875rem; }
 .rv-sub {
-  font-size: 0.76rem;
-  color: #94a3b8;
+  font-size: .75rem;
+  color: var(--ui-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -160,32 +152,23 @@
 
 .rv-status {
   flex-shrink: 0;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.2rem 0.55rem;
+  font-size: .7rem;
+  font-weight: 600;
+  padding: 2px 9px;
   border-radius: 999px;
-  background: #e2e8f0;
-  color: #475569;
+  border: 1px solid rgba(var(--ui-neutral-rgb), .28);
+  background: rgba(var(--ui-neutral-rgb), .1);
+  color: var(--ui-neutral-text);
 
-  &[data-status='Finalised'] { background: #d1fae5; color: #065f46; }
-  &[data-status='Reviewed']  { background: #dbeafe; color: #1e40af; }
-  &[data-status='Self-assessed'] { background: #fef3c7; color: #92400e; }
+  &[data-status='Finalised'] { background: rgba(var(--ui-success-rgb), .1); border-color: rgba(var(--ui-success-rgb), .28); color: var(--ui-success-text); }
+  &[data-status='Reviewed']  { background: rgba(var(--ui-info-rgb), .1); border-color: rgba(var(--ui-info-rgb), .28); color: var(--ui-info-text); }
+  &[data-status='Self-assessed'] { background: rgba(var(--ui-warning-rgb), .1); border-color: rgba(var(--ui-warning-rgb), .28); color: var(--ui-warning-text); }
 }
 
 .rv-print { flex-shrink: 0; white-space: nowrap; }
 
 // --- report area ----------------------------------------------------------
 .rv-report { position: relative; }
-
-.rv-placeholder {
-  text-align: center;
-  padding: 5rem 1rem;
-  color: #94a3b8;
-
-  i { font-size: 3rem; display: block; margin-bottom: 1rem; opacity: 0.6; }
-  h3 { font-size: 1.1rem; color: #475569; margin: 0 0 0.35rem; }
-  p { margin: 0; font-size: 0.9rem; }
-}
 
 // --- print ----------------------------------------------------------------
 @media print {

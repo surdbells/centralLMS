@@ -1,120 +1,79 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <!-- The way back. Every one of these is opened from the Live Training
-         admin screen, and only the reports page offered a route home. -->
-    <div class="mb-3">
-      <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
+<main class="main">
+  <div class="ui-page instructor-dashboard">
+    <!-- Header -->
+    <header class="ui-page-header">
+      <!-- The way back. Every one of these is opened from the Live Training
+           admin screen, and only the reports page offered a route home. -->
+      <button type="button" class="ui-page-header__back" (click)="goBack()"
+              [attr.aria-label]="'live.common.back_to_live_training' | translate"
+              [title]="'live.common.back_to_live_training' | translate">
+        <i class="bi bi-chevron-left"></i>
       </button>
-    </div>
-    <div class="instructor-dashboard">
-  <!-- Header -->
-  <div class="page-header mb-4">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h1 class="page-title mb-1">
-          <i class="bi bi-mortarboard me-2"></i>{{ 'live.instructor.title' | translate }}
-        </h1>
-        <p class="text-muted mb-0">{{ 'live.instructor.subtitle' | translate }}</p>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-mortarboard"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'live.instructor.title' | translate }}</h1>
+        <p>{{ 'live.instructor.subtitle' | translate }}</p>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-primary" (click)="refreshData()">
-          <i class="bi bi-arrow-clockwise me-2"></i>{{ 'live.instructor.refresh' | translate }}
+      <div class="ui-page-header__actions">
+        <button class="btn btn-outline-secondary" (click)="refreshData()">
+          <i class="bi bi-arrow-clockwise me-1"></i>{{ 'live.instructor.refresh' | translate }}
         </button>
       </div>
-    </div>
-  </div>
+    </header>
 
-  <!-- Stats Cards -->
-  <div class="row g-4 mb-4">
-    <div class="col-md-3">
-      <div class="stat-card">
-        <div class="stat-icon bg-primary-subtle">
-          <i class="bi bi-calendar-event text-primary"></i>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ todaySessions.length }}</div>
-          <div class="stat-label">{{ 'live.instructor.todays_sessions' | translate }}</div>
-        </div>
+    <!-- Stats Cards -->
+    <div class="ui-kpi-grid ui-kpi-grid--4">
+      <div class="ui-kpi ui-kpi--brand">
+        <span class="ui-kpi__label"><i class="bi bi-calendar-event"></i> {{ 'live.instructor.todays_sessions' | translate }}</span>
+        <span class="ui-kpi__value">{{ todaySessions.length }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--success">
+        <span class="ui-kpi__label"><i class="bi bi-calendar-week"></i> {{ 'live.instructor.this_week' | translate }}</span>
+        <span class="ui-kpi__value">{{ upcomingSessions.length }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--info">
+        <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'live.instructor.total_learners' | translate }}</span>
+        <span class="ui-kpi__value">{{ totalLearners }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--warning">
+        <span class="ui-kpi__label"><i class="bi bi-percent"></i> {{ 'live.common.avg_attendance' | translate }}</span>
+        <span class="ui-kpi__value">{{ avgAttendance }}<small>%</small></span>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="stat-card">
-        <div class="stat-icon bg-success-subtle">
-          <i class="bi bi-calendar-week text-success"></i>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ upcomingSessions.length }}</div>
-          <div class="stat-label">{{ 'live.instructor.this_week' | translate }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="stat-card">
-        <div class="stat-icon bg-info-subtle">
-          <i class="bi bi-people text-info"></i>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ totalLearners }}</div>
-          <div class="stat-label">{{ 'live.instructor.total_learners' | translate }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="stat-card">
-        <div class="stat-icon bg-warning-subtle">
-          <i class="bi bi-percent text-warning"></i>
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ avgAttendance }}%</div>
-          <div class="stat-label">{{ 'live.common.avg_attendance' | translate }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Active/Ongoing Session Banner -->
-  <div class="alert alert-warning d-flex align-items-center mb-4" *ngIf="activeSession">
-    <i class="bi bi-broadcast fs-4 me-3"></i>
-    <div class="flex-grow-1">
-      <strong>{{ 'live.instructor.session_in_progress' | translate }}</strong> {{ activeSession.title }}
-      <span class="text-muted ms-2">{{ activeSession.training_title }}</span>
+    <!-- Active/Ongoing Session Banner -->
+    <div class="live-banner" *ngIf="activeSession">
+      <span class="live-banner__icon"><i class="bi bi-broadcast"></i></span>
+      <div class="flex-grow-1 min-w-0">
+        <strong>{{ 'live.instructor.session_in_progress' | translate }}</strong> {{ activeSession.title }}
+        <span class="ui-muted ms-2">{{ activeSession.training_title }}</span>
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="openSession(activeSession)">
+        <i class="bi bi-arrow-right me-1"></i>{{ 'live.instructor.go_to_session' | translate }}
+      </button>
     </div>
-    <button class="btn btn-warning" (click)="openSession(activeSession)">
-      <i class="bi bi-arrow-right me-2"></i>{{ 'live.instructor.go_to_session' | translate }}
-    </button>
-  </div>
 
-  <!-- Tabs -->
-  <ul class="nav nav-pills mb-4">
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'today'" (click)="activeTab = 'today'">
-        <i class="bi bi-calendar-day me-2"></i>{{ 'live.instructor.tab_today' | translate }}
-        <span class="badge bg-primary ms-2" *ngIf="todaySessions.length">{{ todaySessions.length }}</span>
+    <!-- Tabs -->
+    <nav class="ui-tabs" role="tablist">
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'today'" (click)="activeTab = 'today'">
+        <i class="bi bi-calendar-day"></i> {{ 'live.instructor.tab_today' | translate }}
+        <span class="ui-tab__count" *ngIf="todaySessions.length">{{ todaySessions.length }}</span>
       </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'upcoming'" (click)="activeTab = 'upcoming'">
-        <i class="bi bi-calendar-week me-2"></i>{{ 'live.instructor.tab_upcoming' | translate }}
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'upcoming'" (click)="activeTab = 'upcoming'">
+        <i class="bi bi-calendar-week"></i> {{ 'live.instructor.tab_upcoming' | translate }}
       </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'past'" (click)="activeTab = 'past'">
-        <i class="bi bi-clock-history me-2"></i>{{ 'live.instructor.tab_past' | translate }}
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'past'" (click)="activeTab = 'past'">
+        <i class="bi bi-clock-history"></i> {{ 'live.instructor.tab_past' | translate }}
       </button>
-    </li>
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'attendance'" (click)="activeTab = 'attendance'">
-        <i class="bi bi-clipboard-check me-2"></i>{{ 'live.common.attendance' | translate }}
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'attendance'" (click)="activeTab = 'attendance'">
+        <i class="bi bi-clipboard-check"></i> {{ 'live.common.attendance' | translate }}
       </button>
-    </li>
-  </ul>
+    </nav>
 
-  <!-- Today's Sessions -->
-  <div *ngIf="activeTab === 'today'">
-    <div class="card" *ngIf="todaySessions.length > 0; else noToday">
-      <div class="card-body p-0">
+    <!-- Today's Sessions -->
+    <div *ngIf="activeTab === 'today'">
+      <section class="ui-section ui-section--flush" *ngIf="todaySessions.length > 0; else noToday">
         <div class="session-list">
           <div class="session-item" *ngFor="let session of todaySessions; trackBy: trackBySessionId">
             <div class="session-time">
@@ -122,19 +81,19 @@
               <span class="time-end">{{ formatTime(session.end_time) }}</span>
             </div>
             <div class="session-info flex-grow-1">
-              <h6 class="session-title mb-1">{{ session.title }}</h6>
-              <p class="text-muted mb-2">{{ session.training_title }}</p>
+              <h3 class="session-title mb-1">{{ session.title }}</h3>
+              <p class="ui-muted mb-2">{{ session.training_title }}</p>
               <div class="session-meta">
-                    <span class="badge" [ngClass]="getSessionTypeBadge(session.session_type)">
-                      <i class="bi me-1" [ngClass]="getTypeIcon(session.session_type)"></i>
-                      {{ session.session_type | titlecase }}
-                    </span>
-                <span class="badge bg-black text-white" *ngIf="session.venue_name">
-                      <i class="bi bi-geo-alt me-1"></i>{{ session.venue_name }}
-                    </span>
+                <span class="badge" [ngClass]="getSessionTypeBadge(session.session_type)">
+                  <i class="bi me-1" [ngClass]="getTypeIcon(session.session_type)"></i>
+                  {{ session.session_type | titlecase }}
+                </span>
+                <span class="ui-pill ui-pill--neutral" *ngIf="session.venue_name">
+                  <i class="bi bi-geo-alt"></i>{{ session.venue_name }}
+                </span>
                 <span class="badge" [ngClass]="getStatusBadge(session.status)">
-                      {{ session.status | titlecase }}
-                    </span>
+                  {{ session.status | titlecase }}
+                </span>
               </div>
             </div>
             <div class="session-stats text-center">
@@ -148,280 +107,271 @@
                 <i class="bi bi-arrow-right me-1"></i>
                 {{ (session.status === 'ongoing' ? 'common.continue' : 'live.common.start') | translate }}
               </button>
-              <button class="btn btn-secondary btn-sm" (click)="showQRCode(session)"
+              <button class="btn btn-outline-secondary btn-sm" (click)="showQRCode(session)"
                       *ngIf="session.session_type !== 'virtual'" [title]="'live.common.qr_code' | translate">
                 <i class="bi bi-qr-code"></i>
               </button>
-              <button class="btn btn-outline-info btn-sm" (click)="loadSessionInstructors(session.session_id, session.training_id)"
+              <button class="btn btn-outline-secondary btn-sm" (click)="loadSessionInstructors(session.session_id, session.training_id)"
                       [title]="'live.instructor.view_instructors' | translate">
                 <i class="bi bi-person-badge"></i>
               </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <ng-template #noToday>
-      <div class="empty-state">
-        <i class="bi bi-calendar-x display-4 text-muted"></i>
-        <h5 class="mt-3">{{ 'live.instructor.no_today_title' | translate }}</h5>
-        <p class="text-muted">{{ 'live.instructor.no_today_text' | translate }}</p>
-      </div>
-    </ng-template>
-  </div>
-
-  <!-- Upcoming Sessions -->
-  <div *ngIf="activeTab === 'upcoming'">
-    <div class="card" *ngIf="upcomingSessions.length > 0; else noUpcoming">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead>
-          <tr>
-            <th>{{ 'live.common.session' | translate }}</th>
-            <th>{{ 'live.common.training' | translate }}</th>
-            <th>{{ 'live.common.date_time' | translate }}</th>
-            <th>{{ 'live.common.type' | translate }}</th>
-            <th>{{ 'live.common.enrolled' | translate }}</th>
-            <th class="text-end">{{ 'live.common.actions' | translate }}</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr *ngFor="let session of upcomingSessions; trackBy: trackBySessionId">
-            <td>
-              <strong>{{ session.title }}</strong>
-              <div class="small text-muted" *ngIf="session.is_mandatory">
-                <i class="bi bi-asterisk text-danger"></i> {{ 'live.common.mandatory' | translate }}
-              </div>
-            </td>
-            <td>{{ session.training_title }}</td>
-            <td>
-              <div>{{ formatDate(session.session_date) }}</div>
-              <small class="text-muted">{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</small>
-            </td>
-            <td>
-                    <span class="badge" [ngClass]="getSessionTypeBadge(session.session_type)">
-                      {{ session.session_type | titlecase }}
-                    </span>
-            </td>
-            <td>{{ session.enrolled_count || 0 }}</td>
-            <td class="text-end">
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-primary" (click)="viewSessionDetails(session)">
-                  <i class="bi bi-eye"></i>
-                </button>
-                <button class="btn btn-secondary" (click)="showQRCode(session)">
-                  <i class="bi bi-qr-code"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <ng-template #noUpcoming>
-      <div class="empty-state">
-        <i class="bi bi-calendar-plus display-4 text-muted"></i>
-        <h5 class="mt-3">{{ 'live.instructor.no_upcoming_title' | translate }}</h5>
-        <p class="text-muted">{{ 'live.instructor.no_upcoming_text' | translate }}</p>
-      </div>
-    </ng-template>
-  </div>
-
-  <!-- Past Sessions -->
-  <div *ngIf="activeTab === 'past'">
-    <div class="card" *ngIf="pastSessions.length > 0; else noPast">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0">
-          <thead>
-          <tr>
-            <th>{{ 'live.common.session' | translate }}</th>
-            <th>{{ 'live.common.training' | translate }}</th>
-            <th>{{ 'live.common.date' | translate }}</th>
-            <th>{{ 'live.common.attendance' | translate }}</th>
-            <th>{{ 'live.common.status' | translate }}</th>
-            <th class="text-end">{{ 'live.common.actions' | translate }}</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr *ngFor="let session of pastSessions; trackBy: trackBySessionId">
-            <td><strong>{{ session.title }}</strong></td>
-            <td>{{ session.training_title }}</td>
-            <td>{{ formatDate(session.session_date) }}</td>
-            <td>
-              <div class="d-flex align-items-center gap-2">
-                <div class="progress flex-grow-1" style="height: 8px; width: 100px;">
-                  <div class="progress-bar bg-success" [style.width.%]="getAttendancePercent(session)"></div>
-                </div>
-                <span class="small">{{ session.present_count || 0 }}/{{ session.enrolled_count || 0 }}</span>
-              </div>
-            </td>
-            <td>
-                    <span class="badge" [ngClass]="getStatusBadge(session.status)">
-                      {{ session.status | titlecase }}
-                    </span>
-            </td>
-            <td class="text-end">
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-primary" (click)="viewAttendance(session)">
-                  <i class="bi bi-clipboard-data me-1"></i>{{ 'live.common.attendance' | translate }}
-                </button>
-                <button class="btn btn-secondary" (click)="exportAttendance(session)">
-                  <i class="bi bi-download"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <ng-template #noPast>
-      <div class="empty-state">
-        <i class="bi bi-clock-history display-4 text-muted"></i>
-        <h5 class="mt-3">{{ 'live.instructor.no_past_title' | translate }}</h5>
-        <p class="text-muted">{{ 'live.instructor.no_past_text' | translate }}</p>
-      </div>
-    </ng-template>
-  </div>
-
-  <!-- Attendance View -->
-  <div *ngIf="activeTab === 'attendance'">
-    <div class="card">
-      <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">
-            <i class="bi bi-clipboard-check me-2"></i>
-            {{ selectedSessionForAttendance ? selectedSessionForAttendance.title : ('live.instructor.select_a_session' | translate) }}
-          </h5>
-          <select class="form-select" style="width: auto;" [(ngModel)]="selectedSessionId" (change)="loadAttendance()">
-            <option value="">{{ 'live.instructor.select_session' | translate }}</option>
-            <option *ngFor="let session of allSessions" [value]="session.session_id">
-              {{ session.title }} - {{ formatDate(session.session_date) }}
-            </option>
-          </select>
+      </section>
+      <ng-template #noToday>
+        <div class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-calendar-x"></i></span>
+          <h3>{{ 'live.instructor.no_today_title' | translate }}</h3>
+          <p>{{ 'live.instructor.no_today_text' | translate }}</p>
         </div>
-      </div>
-      <div class="card-body" *ngIf="selectedSessionForAttendance">
-        <!-- Attendance Summary -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-3">
-            <div class="summary-card bg-success-subtle">
-              <div class="summary-value text-success">{{ attendanceSummary.present }}</div>
-              <div class="summary-label">{{ 'live.common.present' | translate }}</div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="summary-card bg-warning-subtle">
-              <div class="summary-value text-warning">{{ attendanceSummary.late }}</div>
-              <div class="summary-label">{{ 'live.common.late' | translate }}</div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="summary-card bg-danger-subtle">
-              <div class="summary-value text-danger">{{ attendanceSummary.absent }}</div>
-              <div class="summary-label">{{ 'live.common.absent' | translate }}</div>
-            </div>
-          </div>
-          <div class="col-md-3">
-            <div class="summary-card bg-secondary-subtle">
-              <div class="summary-value">{{ attendanceSummary.excused }}</div>
-              <div class="summary-label">{{ 'live.common.excused' | translate }}</div>
-            </div>
-          </div>
-        </div>
+      </ng-template>
+    </div>
 
-        <!-- Attendance List -->
+    <!-- Upcoming Sessions -->
+    <div *ngIf="activeTab === 'upcoming'">
+      <section class="ui-section ui-section--flush" *ngIf="upcomingSessions.length > 0; else noUpcoming">
         <div class="table-responsive">
-          <table class="table">
+          <table class="table table-hover align-middle mb-0">
             <thead>
             <tr>
-              <th>{{ 'live.common.learner' | translate }}</th>
-              <th>{{ 'live.common.mode' | translate }}</th>
-              <th>{{ 'live.instructor.checkin_time' | translate }}</th>
-              <th>{{ 'live.common.status' | translate }}</th>
+              <th>{{ 'live.common.session' | translate }}</th>
+              <th>{{ 'live.common.training' | translate }}</th>
+              <th>{{ 'live.common.date_time' | translate }}</th>
+              <th>{{ 'live.common.type' | translate }}</th>
+              <th>{{ 'live.common.enrolled' | translate }}</th>
               <th class="text-end">{{ 'live.common.actions' | translate }}</th>
             </tr>
             </thead>
             <tbody>
-            <tr *ngFor="let record of attendanceRecords; trackBy: trackByAttendanceId">
+            <tr *ngFor="let session of upcomingSessions; trackBy: trackBySessionId">
               <td>
-                <div class="d-flex align-items-center gap-2">
-                  <div class="avatar avatar-sm">
-                    <img [src]="record.profile_image" *ngIf="record.profile_image" class="avatar-img">
-                    <span class="avatar-initials" *ngIf="!record.profile_image">
-                            {{ getInitials(record.first_name, record.last_name) }}
-                          </span>
-                  </div>
-                  <div>
-                    <strong>{{ record.first_name }} {{ record.last_name }}</strong>
-                    <div class="small text-muted">{{ record.email }}</div>
-                  </div>
+                <strong>{{ session.title }}</strong>
+                <div class="small ui-muted" *ngIf="session.is_mandatory">
+                  <i class="bi bi-asterisk text-danger"></i> {{ 'live.common.mandatory' | translate }}
                 </div>
               </td>
+              <td>{{ session.training_title }}</td>
               <td>
-                      <span class="badge bg-black text-white">
-                        <i class="bi me-1" [ngClass]="record.attendance_mode === 'virtual' ? 'bi-camera-video' : 'bi-qr-code'"></i>
-                        {{ record.attendance_mode | titlecase }}
-                      </span>
+                <div>{{ formatDate(session.session_date) }}</div>
+                <small class="ui-muted">{{ formatTime(session.start_time) }} - {{ formatTime(session.end_time) }}</small>
               </td>
               <td>
-                {{ record.marked_at ? formatDateTime(record.marked_at) : '-' }}
+                <span class="badge" [ngClass]="getSessionTypeBadge(session.session_type)">
+                  {{ session.session_type | titlecase }}
+                </span>
               </td>
-              <td>
-                      <span class="badge" [ngClass]="getAttendanceStatusBadge(record.status)">
-                        {{ record.status | titlecase }}
-                      </span>
-              </td>
+              <td>{{ session.enrolled_count || 0 }}</td>
               <td class="text-end">
-                <div class="btn-group btn-group-sm" *ngIf="!selectedSessionForAttendance?.attendance_locked">
-                  <button class="btn btn-success btn-sm"
-                          (click)="markAttendance(record, 'present')"
-                          [disabled]="record.status === 'present'"
-                          [title]="'live.instructor.mark_present' | translate">
-                    <i class="bi bi-check"></i>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" (click)="viewSessionDetails(session)">
+                    <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn btn-outline-warning btn-sm"
-                          (click)="markAttendance(record, 'late')"
-                          [disabled]="record.status === 'late'"
-                          [title]="'live.instructor.mark_late' | translate">
-                    <i class="bi bi-clock"></i>
-                  </button>
-                  <button class="btn btn-outline-danger btn-sm"
-                          (click)="markAttendance(record, 'absent')"
-                          [disabled]="record.status === 'absent'"
-                          [title]="'live.instructor.mark_absent' | translate">
-                    <i class="bi bi-x"></i>
-                  </button>
-                  <button class="btn btn-outline-info btn-sm"
-                          (click)="openVirtualAttendanceForm(record)"
-                          *ngIf="selectedSessionForAttendance?.session_type !== 'physical'"
-                          [title]="'live.common.mark_virtual' | translate">
-                    <i class="bi bi-camera-video"></i>
+                  <button class="btn btn-outline-secondary" (click)="showQRCode(session)">
+                    <i class="bi bi-qr-code"></i>
                   </button>
                 </div>
-                <span class="badge bg-secondary" *ngIf="selectedSessionForAttendance?.attendance_locked">
-                        <i class="bi bi-lock me-1"></i>{{ 'live.common.locked' | translate }}
-                      </span>
               </td>
             </tr>
             </tbody>
           </table>
         </div>
-
-        <!-- Lock Attendance Button -->
-        <div class="text-end mt-3" *ngIf="!selectedSessionForAttendance?.attendance_locked">
-          <button class="btn btn-warning" (click)="lockAttendance()">
-            <i class="bi bi-lock me-2"></i>{{ 'live.common.lock_attendance' | translate }}
-          </button>
+      </section>
+      <ng-template #noUpcoming>
+        <div class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-calendar-plus"></i></span>
+          <h3>{{ 'live.instructor.no_upcoming_title' | translate }}</h3>
+          <p>{{ 'live.instructor.no_upcoming_text' | translate }}</p>
         </div>
-      </div>
-      <div class="card-body text-center py-5" *ngIf="!selectedSessionForAttendance">
-        <i class="bi bi-clipboard2 display-4 text-muted"></i>
-        <p class="text-muted mt-3">{{ 'live.instructor.select_to_view' | translate }}</p>
-      </div>
+      </ng-template>
     </div>
-  </div>
+
+    <!-- Past Sessions -->
+    <div *ngIf="activeTab === 'past'">
+      <section class="ui-section ui-section--flush" *ngIf="pastSessions.length > 0; else noPast">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+            <tr>
+              <th>{{ 'live.common.session' | translate }}</th>
+              <th>{{ 'live.common.training' | translate }}</th>
+              <th>{{ 'live.common.date' | translate }}</th>
+              <th>{{ 'live.common.attendance' | translate }}</th>
+              <th>{{ 'live.common.status' | translate }}</th>
+              <th class="text-end">{{ 'live.common.actions' | translate }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let session of pastSessions; trackBy: trackBySessionId">
+              <td><strong>{{ session.title }}</strong></td>
+              <td>{{ session.training_title }}</td>
+              <td>{{ formatDate(session.session_date) }}</td>
+              <td>
+                <div class="ui-progress attendance-progress">
+                  <div class="ui-bar"><span [style.width.%]="getAttendancePercent(session)"></span></div>
+                  <span class="ui-pct">{{ session.present_count || 0 }}/{{ session.enrolled_count || 0 }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadge(session.status)">
+                  {{ session.status | titlecase }}
+                </span>
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" (click)="viewAttendance(session)">
+                    <i class="bi bi-clipboard-data me-1"></i>{{ 'live.common.attendance' | translate }}
+                  </button>
+                  <button class="btn btn-outline-secondary" (click)="exportAttendance(session)">
+                    <i class="bi bi-download"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <ng-template #noPast>
+        <div class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-clock-history"></i></span>
+          <h3>{{ 'live.instructor.no_past_title' | translate }}</h3>
+          <p>{{ 'live.instructor.no_past_text' | translate }}</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Attendance View -->
+    <div *ngIf="activeTab === 'attendance'">
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div>
+            <h2 class="ui-section__title">
+              <i class="bi bi-clipboard-check me-2"></i>
+              {{ selectedSessionForAttendance ? selectedSessionForAttendance.title : ('live.instructor.select_a_session' | translate) }}
+            </h2>
+          </div>
+          <div class="ui-section__actions">
+            <select class="form-select" style="width: auto;" [(ngModel)]="selectedSessionId" (change)="loadAttendance()">
+              <option value="">{{ 'live.instructor.select_session' | translate }}</option>
+              <option *ngFor="let session of allSessions" [value]="session.session_id">
+                {{ session.title }} - {{ formatDate(session.session_date) }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div *ngIf="selectedSessionForAttendance">
+          <!-- Attendance Summary -->
+          <div class="ui-kpi-grid ui-kpi-grid--4">
+            <div class="ui-kpi ui-kpi--success">
+              <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'live.common.present' | translate }}</span>
+              <span class="ui-kpi__value">{{ attendanceSummary.present }}</span>
+            </div>
+            <div class="ui-kpi ui-kpi--warning">
+              <span class="ui-kpi__label"><i class="bi bi-clock"></i> {{ 'live.common.late' | translate }}</span>
+              <span class="ui-kpi__value">{{ attendanceSummary.late }}</span>
+            </div>
+            <div class="ui-kpi ui-kpi--danger">
+              <span class="ui-kpi__label"><i class="bi bi-x-circle"></i> {{ 'live.common.absent' | translate }}</span>
+              <span class="ui-kpi__value">{{ attendanceSummary.absent }}</span>
+            </div>
+            <div class="ui-kpi">
+              <span class="ui-kpi__label"><i class="bi bi-dash-circle"></i> {{ 'live.common.excused' | translate }}</span>
+              <span class="ui-kpi__value">{{ attendanceSummary.excused }}</span>
+            </div>
+          </div>
+
+          <!-- Attendance List -->
+          <div class="ui-table-wrap">
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead>
+                <tr>
+                  <th>{{ 'live.common.learner' | translate }}</th>
+                  <th>{{ 'live.common.mode' | translate }}</th>
+                  <th>{{ 'live.instructor.checkin_time' | translate }}</th>
+                  <th>{{ 'live.common.status' | translate }}</th>
+                  <th class="text-end">{{ 'live.common.actions' | translate }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let record of attendanceRecords; trackBy: trackByAttendanceId">
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="ui-avatar">
+                        <img [src]="record.profile_image" *ngIf="record.profile_image" alt="">
+                        <span *ngIf="!record.profile_image">{{ getInitials(record.first_name, record.last_name) }}</span>
+                      </div>
+                      <div>
+                        <strong>{{ record.first_name }} {{ record.last_name }}</strong>
+                        <div class="small ui-muted">{{ record.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="ui-pill ui-pill--neutral">
+                      <i class="bi" [ngClass]="record.attendance_mode === 'virtual' ? 'bi-camera-video' : 'bi-qr-code'"></i>
+                      {{ record.attendance_mode | titlecase }}
+                    </span>
+                  </td>
+                  <td>
+                    {{ record.marked_at ? formatDateTime(record.marked_at) : '-' }}
+                  </td>
+                  <td>
+                    <span class="badge" [ngClass]="getAttendanceStatusBadge(record.status)">
+                      {{ record.status | titlecase }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm" *ngIf="!selectedSessionForAttendance?.attendance_locked">
+                      <button class="btn btn-outline-success btn-sm"
+                              (click)="markAttendance(record, 'present')"
+                              [disabled]="record.status === 'present'"
+                              [title]="'live.instructor.mark_present' | translate">
+                        <i class="bi bi-check"></i>
+                      </button>
+                      <button class="btn btn-outline-warning btn-sm"
+                              (click)="markAttendance(record, 'late')"
+                              [disabled]="record.status === 'late'"
+                              [title]="'live.instructor.mark_late' | translate">
+                        <i class="bi bi-clock"></i>
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm"
+                              (click)="markAttendance(record, 'absent')"
+                              [disabled]="record.status === 'absent'"
+                              [title]="'live.instructor.mark_absent' | translate">
+                        <i class="bi bi-x"></i>
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm"
+                              (click)="openVirtualAttendanceForm(record)"
+                              *ngIf="selectedSessionForAttendance?.session_type !== 'physical'"
+                              [title]="'live.common.mark_virtual' | translate">
+                        <i class="bi bi-camera-video"></i>
+                      </button>
+                    </div>
+                    <span class="ui-pill ui-pill--neutral" *ngIf="selectedSessionForAttendance?.attendance_locked">
+                      <i class="bi bi-lock"></i>{{ 'live.common.locked' | translate }}
+                    </span>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Lock Attendance Button -->
+          <div class="text-end mt-3" *ngIf="!selectedSessionForAttendance?.attendance_locked">
+            <button class="btn btn-outline-secondary" (click)="lockAttendance()">
+              <i class="bi bi-lock me-1"></i>{{ 'live.common.lock_attendance' | translate }}
+            </button>
+          </div>
+        </div>
+        <div class="ui-state" *ngIf="!selectedSessionForAttendance">
+          <span class="ui-state__icon"><i class="bi bi-clipboard2"></i></span>
+          <p>{{ 'live.instructor.select_to_view' | translate }}</p>
+        </div>
+      </section>
+    </div>
 
   <!-- QR Code Modal -->
   <div class="modal fade" [class.show]="showQRModal" [style.display]="showQRModal ? 'block' : 'none'">
@@ -446,7 +396,7 @@
               <button class="btn btn-primary" (click)="downloadQR()">
                 <i class="bi bi-download me-2"></i>{{ 'live.common.download' | translate }}
               </button>
-              <button class="btn btn-secondary" (click)="regenerateQR()">
+              <button class="btn btn-outline-secondary" (click)="regenerateQR()">
                 <i class="bi bi-arrow-clockwise me-2"></i>{{ 'live.common.regenerate' | translate }}
               </button>
             </div>
@@ -479,7 +429,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeVirtualModal()">{{ 'common.cancel' | translate }}</button>
+          <button class="btn btn-outline-secondary" (click)="closeVirtualModal()">{{ 'common.cancel' | translate }}</button>
           <button class="btn btn-primary" (click)="submitVirtualAttendance()" [disabled]="!virtualDuration">
             <i class="bi bi-check me-1"></i>{{ 'live.common.mark_attendance' | translate }}
           </button>
@@ -504,8 +454,8 @@
             <div class="list-group">
               <div class="list-group-item d-flex align-items-center gap-3"
                    *ngFor="let instructor of sessionInstructors; trackBy: trackByInstructorId">
-                <div class="avatar">
-                  <span class="avatar-initials">{{ getInitials(instructor.first_name, instructor.last_name) }}</span>
+                <div class="ui-avatar">
+                  <span>{{ getInitials(instructor.first_name, instructor.last_name) }}</span>
                 </div>
                 <div class="flex-grow-1">
                   <div class="fw-medium">{{ instructor.first_name }} {{ instructor.last_name }}</div>
@@ -524,12 +474,11 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="showInstructorsModal = false">{{ 'common.close' | translate }}</button>
+          <button class="btn btn-outline-secondary" (click)="showInstructorsModal = false">{{ 'common.close' | translate }}</button>
         </div>
       </div>
     </div>
   </div>
   <div class="modal-backdrop fade show" *ngIf="showInstructorsModal" (click)="showInstructorsModal = false"></div>
-</div>
   </div>
 </main>

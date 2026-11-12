@@ -1,100 +1,86 @@
 <app-admintop></app-admintop>
-  <main class="main px-lg-6">
-  <div class="container-fluid">
-  <div class="user-management">
+<main class="main">
+  <div class="ui-page user-management">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 class="fw-bold mb-1"><i class="bi bi-people me-2"></i>{{ 'admin.users.title' | translate }}</h4>
-          <p class="text-muted small mb-0" *ngIf="stats">{{ 'admin.users.total_users' | translate:{ count: stats.total_users } }}</p>
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ 'admin.users.title' | translate }}</h1>
+          <p *ngIf="stats">{{ 'admin.users.total_users' | translate:{ count: stats.total_users } }}</p>
         </div>
-        <div class="d-flex gap-2">
-          <a routerLink="roles" class="btn btn-primary btn-sm"><i class="bi bi-shield-lock me-1"></i>{{ 'admin.users.roles' | translate }}</a>
-          <a routerLink="activity" class="btn btn-secondary btn-sm"><i class="bi bi-clock-history me-1"></i>{{ 'admin.users.activity_log' | translate }}</a>
-          <button class="btn btn-outline-primary btn-sm" (click)="openRegistrationLink()">
+        <div class="ui-page-header__actions">
+          <a routerLink="roles" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-lock me-1"></i>{{ 'admin.users.roles' | translate }}</a>
+          <a routerLink="activity" class="btn btn-outline-secondary btn-sm"><i class="bi bi-clock-history me-1"></i>{{ 'admin.users.activity_log' | translate }}</a>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openRegistrationLink()">
             <i class="bi bi-link-45deg me-1"></i>{{ 'admin.users.registration_link' | translate }}
           </button>
-          <a routerLink="import" class="btn btn-success btn-sm"><i class="bi bi-upload me-1"></i>{{ 'admin.users.import' | translate }}</a>
+          <a routerLink="import" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload me-1"></i>{{ 'admin.users.import' | translate }}</a>
           <a routerLink="create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>{{ 'admin.users.add_user' | translate }}</a>
         </div>
-      </div>
+      </header>
 
       <!-- Stats Cards -->
-      <div class="row g-3 mb-4" *ngIf="stats">
-        <div class="col-6 col-md-3 col-lg" *ngFor="let card of statCards">
-          <div class="card border-0 shadow-sm h-100 cursor-pointer" (click)="filterByStatus(card.filter)"
-               [class.border-primary]="filters.status === card.filter" [class.border-2]="filters.status === card.filter">
-            <div class="card-body py-3 text-center">
-              <i class="bi fs-4 d-block mb-1" [class]="card.icon + ' ' + card.color"></i>
-              <h5 class="fw-bold mb-0">{{ card.value }}</h5>
-              <small class="text-muted">{{ card.label | translate }}</small>
-            </div>
+      <div class="ui-kpi-grid" *ngIf="stats">
+        <button type="button" class="ui-kpi" *ngFor="let card of statCards" (click)="filterByStatus(card.filter)"
+                [ngClass]="'ui-kpi--' + (card.color === 'text-primary' ? 'brand' : card.color.slice(5))"
+                [class.is-active]="filters.status === card.filter">
+          <span class="ui-kpi__label"><i class="bi" [ngClass]="card.icon"></i> {{ card.label | translate }}</span>
+          <span class="ui-kpi__value">{{ card.value }}</span>
+        </button>
+      </div>
+
+      <section class="ui-section ui-section--flush users-table-section">
+        <!-- Search & Filters -->
+        <div class="ui-toolbar users-toolbar">
+          <label class="ui-search">
+            <i class="bi bi-search"></i>
+            <input type="search" placeholder="{{ 'admin.users.search_placeholder' | translate }}"
+                   [attr.aria-label]="'admin.users.search_placeholder' | translate"
+                   [(ngModel)]="filters.search" (ngModelChange)="onSearchChange($event)">
+          </label>
+          <div class="ui-filters">
+            <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="filters.search"
+                    (click)="filters.search=''; loadUsers()" [attr.aria-label]="'common.clear' | translate">
+              <i class="bi bi-x-lg"></i>
+            </button>
+            <select class="form-select" [(ngModel)]="filters.department_id" (change)="loadUsers()">
+              <option [ngValue]="undefined">{{ 'admin.enroll.all_departments' | translate }}</option>
+              <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filters.role_key" (change)="loadUsers()">
+              <option value="">{{ 'admin.users.all_roles' | translate }}</option>
+              <option *ngFor="let r of roles" [value]="r.role_key">{{ r.role_name }}</option>
+            </select>
+            <select class="form-select" [(ngModel)]="filters.status" (change)="loadUsers()">
+              <option value="">{{ 'admin.users.all_status' | translate }}</option>
+              <option value="active">{{ 'admin.users.status_active' | translate }}</option>
+              <option value="inactive">{{ 'admin.users.status_inactive' | translate }}</option>
+              <option value="suspended">{{ 'admin.users.status_suspended' | translate }}</option>
+              <option value="locked">{{ 'admin.users.status_locked' | translate }}</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-link text-muted" (click)="resetFilters()">{{ 'admin.courses.clear_filters' | translate }}</button>
           </div>
         </div>
-      </div>
 
-      <!-- Search & Filters -->
-      <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body py-2">
-          <div class="row g-2 align-items-center">
-            <div class="col-md-4">
-              <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="{{ 'admin.users.search_placeholder' | translate }}"
-                       [(ngModel)]="filters.search" (ngModelChange)="onSearchChange($event)">
-                <button class="btn btn-secondary" *ngIf="filters.search" (click)="filters.search=''; loadUsers()">
-                  <i class="bi bi-x"></i>
-                </button>
-              </div>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.department_id" (change)="loadUsers()">
-                <option [ngValue]="undefined">{{ 'admin.enroll.all_departments' | translate }}</option>
-                <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.role_key" (change)="loadUsers()">
-                <option value="">{{ 'admin.users.all_roles' | translate }}</option>
-                <option *ngFor="let r of roles" [value]="r.role_key">{{ r.role_name }}</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <select class="form-select form-select-sm" [(ngModel)]="filters.status" (change)="loadUsers()">
-                <option value="">{{ 'admin.users.all_status' | translate }}</option>
-                <option value="active">{{ 'admin.users.status_active' | translate }}</option>
-                <option value="inactive">{{ 'admin.users.status_inactive' | translate }}</option>
-                <option value="suspended">{{ 'admin.users.status_suspended' | translate }}</option>
-                <option value="locked">{{ 'admin.users.status_locked' | translate }}</option>
-              </select>
-            </div>
-            <div class="col-md-2 text-end">
-              <button class="btn btn-sm btn-link text-muted p-0" (click)="resetFilters()">{{ 'admin.courses.clear_filters' | translate }}</button>
-            </div>
+        <!-- Bulk Actions Bar -->
+        <div class="bulk-bar" *ngIf="selectedIds.length">
+          <span class="ui-pill ui-pill--brand">{{ 'admin.users.n_selected' | translate:{ count: selectedIds.length } }}</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="bulkAction('activate')"><i class="bi bi-check-circle me-1 text-success"></i>{{ 'admin.users.activate' | translate }}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="bulkAction('suspend')"><i class="bi bi-pause-circle me-1 text-warning"></i>{{ 'admin.users.suspend' | translate }}</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" (click)="bulkAction('delete')"><i class="bi bi-trash me-1"></i>{{ 'common.delete' | translate }}</button>
+          <div class="dropdown d-inline-block">
+            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">{{ 'admin.users.assign_role' | translate }}</button>
+            <ul class="dropdown-menu">
+              <li *ngFor="let r of roles"><a class="dropdown-item" (click)="bulkAction('assign_role', {role_id: r.role_id})">{{ r.role_name }}</a></li>
+            </ul>
           </div>
+          <button type="button" class="btn btn-sm btn-link text-muted ms-auto" (click)="selectedIds = []">{{ 'admin.users.clear_selection' | translate }}</button>
         </div>
-      </div>
 
-      <!-- Bulk Actions Bar -->
-      <div class="alert alert-primary py-2 d-flex align-items-center gap-3" *ngIf="selectedIds.length">
-        <strong>{{ 'admin.users.n_selected' | translate:{ count: selectedIds.length } }}</strong>
-        <button class="btn btn-sm btn-success" (click)="bulkAction('activate')"><i class="bi bi-check-circle me-1"></i>{{ 'admin.users.activate' | translate }}</button>
-        <button class="btn btn-sm btn-warning" (click)="bulkAction('suspend')"><i class="bi bi-pause-circle me-1"></i>{{ 'admin.users.suspend' | translate }}</button>
-        <button class="btn btn-sm btn-danger" (click)="bulkAction('delete')"><i class="bi bi-trash me-1"></i>{{ 'common.delete' | translate }}</button>
-        <div class="dropdown d-inline-block">
-          <button class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">{{ 'admin.users.assign_role' | translate }}</button>
-          <ul class="dropdown-menu">
-            <li *ngFor="let r of roles"><a class="dropdown-item" (click)="bulkAction('assign_role', {role_id: r.role_id})">{{ r.role_name }}</a></li>
-          </ul>
-        </div>
-        <button class="btn btn-sm btn-link text-muted ms-auto" (click)="selectedIds = []">{{ 'admin.users.clear_selection' | translate }}</button>
-      </div>
-
-      <!-- Table -->
-      <div class="card border-0 shadow-sm">
+        <!-- Table -->
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+            <thead>
               <tr>
                 <th style="width:40px"><input type="checkbox" class="form-check-input" (change)="toggleSelectAll($event)" [checked]="allSelected"></th>
                 <th class="sortable" (click)="sort('first_name')">{{ 'admin.users.col_name' | translate }} <i class="bi bi-chevron-expand small"></i></th>
@@ -108,17 +94,24 @@
             </thead>
             <tbody>
               <tr *ngIf="loading"><td colspan="8" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>
-              <tr *ngIf="!loading && !users.length"><td colspan="8" class="text-center py-4 text-muted">{{ 'admin.users.no_users' | translate }}</td></tr>
+              <tr *ngIf="!loading && !users.length">
+                <td colspan="8" class="p-3">
+                  <div class="ui-state">
+                    <span class="ui-state__icon"><i class="bi bi-people"></i></span>
+                    <h3>{{ 'admin.users.no_users' | translate }}</h3>
+                  </div>
+                </td>
+              </tr>
               <tr *ngFor="let u of users" [class.table-warning]="u.status === 'suspended'" [class.table-danger]="u.status === 'locked'">
                 <td><input type="checkbox" class="form-check-input" [checked]="selectedIds.includes(u.id)" (change)="toggleSelect(u.id)"></td>
                 <td>
-                  <a [routerLink]="['/admin/users', u.id]" class="text-decoration-none d-flex align-items-center gap-2">
-                    <div class="avatar-circle" [style.background-color]="getAvatarColor(u.full_name)">
+                  <a [routerLink]="['/admin/users', u.id]" class="user-link">
+                    <div class="ui-avatar">
                       {{ u.full_name.charAt(0).toUpperCase() }}
                     </div>
-                    <div>
-                      <div class="fw-semibold">{{ u.full_name }}</div>
-                      <small class="text-muted" *ngIf="u.staffId">{{ u.staffId }}</small>
+                    <div class="min-w-0">
+                      <div class="user-name">{{ u.full_name }}</div>
+                      <small class="ui-muted" *ngIf="u.staffId">{{ u.staffId }}</small>
                     </div>
                   </a>
                 </td>
@@ -128,11 +121,18 @@
                   <span *ngFor="let r of u.roles"
                         class="badge me-1" [class]="getRoleBadgeClass(r.slug)">{{ r.name }}</span>
                 </td>
-                <td><span class="badge" [class]="getStatusBadgeClass(u.status)">{{ ('admin.users.status_' + u.status) | translate }}</span></td>
-                <td><small class="text-muted">{{ u.last_login_at ? (u.last_login_at | date:'mediumDate') : ('admin.users.never' | translate) }}</small></td>
+                <td>
+                  <span class="ui-pill" [ngClass]="{
+                          'ui-pill--success': u.status === 'active',
+                          'ui-pill--neutral': u.status === 'invited',
+                          'ui-pill--warning': u.status === 'suspended',
+                          'ui-pill--danger': u.status === 'locked'
+                        }"><span class="ui-pill__dot"></span>{{ ('admin.users.status_' + u.status) | translate }}</span>
+                </td>
+                <td><small class="ui-muted">{{ u.last_login_at ? (u.last_login_at | date:'mediumDate') : ('admin.users.never' | translate) }}</small></td>
                 <td>
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-light" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" [attr.aria-label]="'common.actions' | translate"><i class="bi bi-three-dots"></i></button>
                     <ul class="dropdown-menu dropdown-menu-end">
                       <li><a class="dropdown-item" [routerLink]="['/admin/users', u.id]"><i class="bi bi-eye me-2"></i>{{ 'common.view' | translate }}</a></li>
                       <li><a class="dropdown-item" [routerLink]="['/admin/users', u.id, 'edit']"><i class="bi bi-pencil me-2"></i>{{ 'common.edit' | translate }}</a></li>
@@ -151,14 +151,14 @@
           </table>
         </div>
         <!-- Pagination -->
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2" *ngIf="meta.total_pages > 1">
-          <small class="text-muted">{{ 'admin.users.page_info' | translate:{ page: meta.page, totalPages: meta.total_pages, total: meta.total } }}</small>
+        <div class="table-foot" *ngIf="meta.total_pages > 1">
+          <small class="ui-muted">{{ 'admin.users.page_info' | translate:{ page: meta.page, totalPages: meta.total_pages, total: meta.total } }}</small>
           <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-secondary" [disabled]="meta.page <= 1" (click)="goPage(meta.page - 1)">‹</button>
-            <button class="btn btn-sm btn-secondary" [disabled]="meta.page >= meta.total_pages" (click)="goPage(meta.page + 1)">›</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="meta.page <= 1" (click)="goPage(meta.page - 1)">‹</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="meta.page >= meta.total_pages" (click)="goPage(meta.page + 1)">›</button>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Temp password modal -->
       <!-- The organisation's own registration link, to hand out. -->
@@ -167,7 +167,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h6 class="modal-title"><i class="bi bi-link-45deg me-2"></i>{{ 'admin.users.registration_link' | translate }}</h6>
-              <button class="btn-close" (click)="showRegistrationLink = false"></button>
+              <button type="button" class="btn-close" (click)="showRegistrationLink = false"></button>
             </div>
             <div class="modal-body">
               <p class="small text-muted">
@@ -176,7 +176,7 @@
 
               <div class="input-group input-group-sm mb-3">
                 <input class="form-control user-select-all" readonly [value]="registrationLink">
-                <button class="btn btn-outline-secondary" (click)="copyRegistrationLink()">
+                <button type="button" class="btn btn-outline-secondary" (click)="copyRegistrationLink()">
                   <i class="bi bi-clipboard me-1"></i>{{ 'admin.users.copy' | translate }}
                 </button>
               </div>
@@ -200,7 +200,7 @@
               </p>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-sm btn-primary" (click)="showRegistrationLink = false">{{ 'common.close' | translate }}</button>
+              <button type="button" class="btn btn-sm btn-primary" (click)="showRegistrationLink = false">{{ 'common.close' | translate }}</button>
             </div>
           </div>
         </div>
@@ -214,10 +214,9 @@
               <p class="small text-muted mb-2">{{ 'admin.users.temp_password_body' | translate }}</p>
               <code class="fs-5 user-select-all">{{ tempPasswordModal }}</code>
             </div>
-            <div class="modal-footer"><button class="btn btn-sm btn-primary" (click)="tempPasswordModal = ''">{{ 'common.close' | translate }}</button></div>
+            <div class="modal-footer"><button type="button" class="btn btn-sm btn-primary" (click)="tempPasswordModal = ''">{{ 'common.close' | translate }}</button></div>
           </div>
         </div>
       </div>
-    </div>
   </div>
 </main>

@@ -1,6 +1,6 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
+<main class="main">
+  <div class="ui-page">
 @if (loading()) {
   <div class="loading-container">
     <div class="spinner-border text-primary" role="status">
@@ -9,366 +9,341 @@
   </div>
 } @else if (path()) {
   <div class="learning-path-detail">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
+        <li class="breadcrumb-item active">{{ path()!.title }}</li>
+      </ol>
+    </nav>
+
     <!-- Header -->
-    <div class="page-header mb-4">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-2">
-              <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
-              <li class="breadcrumb-item active">{{ path()!.title }}</li>
-            </ol>
-          </nav>
-          <div class="d-flex align-items-center gap-3">
-            <h1 class="h3 mb-0">{{ path()!.title }}</h1>
-            <span class="badge bg-{{ getStatusBadge(path()!.status).color }}">
-              {{ getStatusBadge(path()!.status).label }}
-            </span>
-            @if (path()!.is_mandatory) {
-              <span class="badge bg-danger">{{ 'paths.mandatory' | translate }}</span>
+    <header class="ui-page-header">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-signpost-split"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ path()!.title }}</h1>
+        <p class="detail-header-badges">
+          <span class="badge bg-{{ getStatusBadge(path()!.status).color }}">
+            {{ getStatusBadge(path()!.status).label }}
+          </span>
+          @if (path()!.is_mandatory) {
+            <span class="badge bg-danger">{{ 'paths.mandatory' | translate }}</span>
+          }
+        </p>
+      </div>
+      <div class="ui-page-header__actions">
+        @if (path()!.status === 'draft') {
+          <button
+            class="btn btn-success"
+            (click)="publishPath()"
+            [disabled]="publishing() || path()!.total_items === 0"
+          >
+            @if (publishing()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
             }
-          </div>
+            <i class="bi bi-check-lg me-2"></i>{{ 'paths_admin.publish' | translate }}
+          </button>
+        }
+        @if (path()!.status === 'published') {
+          <button class="btn btn-outline-warning" (click)="archivePath()">
+            <i class="bi bi-archive me-2"></i>{{ 'paths_admin.archive' | translate }}
+          </button>
+        }
+        <a [routerLink]="['/admin/learning-paths', pathId, 'edit']" class="btn btn-outline-secondary">
+          <i class="bi bi-pencil me-2"></i>{{ 'paths_admin.edit' | translate }}
+        </a>
+        <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-primary">
+          <i class="bi bi-diagram-3 me-2"></i>{{ 'paths_admin.builder' | translate }}
+        </a>
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary" data-bs-toggle="dropdown">
+            <i class="bi bi-three-dots-vertical"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'enrollments']">
+                <i class="bi bi-people me-2"></i>{{ 'paths_admin.manage_enrollments' | translate }}
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'assignments']">
+                <i class="bi bi-person-plus me-2"></i>{{ 'paths_admin.assignments' | translate }}
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'reviews']">
+                <i class="bi bi-star me-2"></i>{{ 'paths_admin.reviews' | translate }}
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <button class="dropdown-item" (click)="duplicatePath()">
+                <i class="bi bi-copy me-2"></i>{{ 'paths_admin.duplicate' | translate }}
+              </button>
+            </li>
+            <li>
+              <a class="dropdown-item" [href]="'/learn/paths/' + pathId" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-2"></i>{{ 'paths_admin.preview_as_learner' | translate }}
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <button class="dropdown-item text-danger" (click)="deletePath()">
+                <i class="bi bi-trash me-2"></i>{{ 'paths_admin.delete' | translate }}
+              </button>
+            </li>
+          </ul>
         </div>
-        <div class="d-flex gap-2">
-          @if (path()!.status === 'draft') {
-            <button
-              class="btn btn-success"
-              (click)="publishPath()"
-              [disabled]="publishing() || path()!.total_items === 0"
-            >
-              @if (publishing()) {
-                <span class="spinner-border spinner-border-sm me-2"></span>
-              }
-              <i class="bi bi-check-lg me-2"></i>{{ 'paths_admin.publish' | translate }}
-            </button>
-          }
-          @if (path()!.status === 'published') {
-            <button class="btn btn-outline-warning" (click)="archivePath()">
-              <i class="bi bi-archive me-2"></i>{{ 'paths_admin.archive' | translate }}
-            </button>
-          }
-          <a [routerLink]="['/admin/learning-paths', pathId, 'edit']" class="btn btn-primary">
-            <i class="bi bi-pencil me-2"></i>{{ 'paths_admin.edit' | translate }}
-          </a>
-          <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-primary">
-            <i class="bi bi-diagram-3 me-2"></i>{{ 'paths_admin.builder' | translate }}
-          </a>
-          <div class="dropdown">
-            <button class="btn btn-secondary" data-bs-toggle="dropdown">
-              <i class="bi bi-three-dots-vertical"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'enrollments']">
-                  <i class="bi bi-people me-2"></i>{{ 'paths_admin.manage_enrollments' | translate }}
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'assignments']">
-                  <i class="bi bi-person-plus me-2"></i>{{ 'paths_admin.assignments' | translate }}
-                </a>
-              </li>
-              <li>
-                <a class="dropdown-item" [routerLink]="['/admin/learning-paths', pathId, 'reviews']">
-                  <i class="bi bi-star me-2"></i>{{ 'paths_admin.reviews' | translate }}
-                </a>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <button class="dropdown-item" (click)="duplicatePath()">
-                  <i class="bi bi-copy me-2"></i>{{ 'paths_admin.duplicate' | translate }}
-                </button>
-              </li>
-              <li>
-                <a class="dropdown-item" [href]="'/learn/paths/' + pathId" target="_blank">
-                  <i class="bi bi-box-arrow-up-right me-2"></i>{{ 'paths_admin.preview_as_learner' | translate }}
-                </a>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <button class="dropdown-item text-danger" (click)="deletePath()">
-                  <i class="bi bi-trash me-2"></i>{{ 'paths_admin.delete' | translate }}
-                </button>
-              </li>
-            </ul>
-          </div>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="ui-kpi-grid ui-kpi-grid--4 mb-4">
+      <div class="ui-kpi ui-kpi--brand">
+        <span class="ui-kpi__label"><i class="bi bi-collection"></i> {{ 'paths_admin.items_col' | translate }}</span>
+        <span class="ui-kpi__value">{{ path()!.total_items }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--info">
+        <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'paths_admin.enrolled' | translate }}</span>
+        <span class="ui-kpi__value">{{ statistics()?.total_enrollments || 0 }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--success">
+        <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'paths_admin.completed' | translate }}</span>
+        <span class="ui-kpi__value">{{ statistics()?.completed_enrollments || 0 }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--warning">
+        <span class="ui-kpi__label"><i class="bi bi-graph-up"></i> {{ 'paths_admin.completion_rate' | translate }}</span>
+        <span class="ui-kpi__value">{{ getCompletionRate() }}<small>%</small></span>
+        <div class="ui-progress">
+          <div class="ui-bar"><span [style.width.%]="getCompletionRate()"></span></div>
         </div>
       </div>
     </div>
 
-    <div class="row">
+    <div class="row g-4">
       <!-- Main Content -->
       <div class="col-lg-8">
-        <!-- Stats Cards -->
-        <div class="row g-3 mb-4">
-          <div class="col-sm-6 col-md-3">
-            <div class="card stat-card">
-              <div class="card-body text-center">
-                <div class="stat-value">{{ path()!.total_items }}</div>
-                <div class="stat-label">{{ 'paths_admin.items_col' | translate }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <div class="card stat-card">
-              <div class="card-body text-center">
-                <div class="stat-value">{{ statistics()?.total_enrollments || 0 }}</div>
-                <div class="stat-label">{{ 'paths_admin.enrolled' | translate }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <div class="card stat-card">
-              <div class="card-body text-center">
-                <div class="stat-value">{{ statistics()?.completed_enrollments || 0 }}</div>
-                <div class="stat-label">{{ 'paths_admin.completed' | translate }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-6 col-md-3">
-            <div class="card stat-card">
-              <div class="card-body text-center">
-                <div class="stat-value">{{ getCompletionRate() }}%</div>
-                <div class="stat-label">{{ 'paths_admin.completion_rate' | translate }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Description -->
         @if (path()!.short_description || path()!.description) {
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">{{ 'paths_admin.description' | translate }}</h5>
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">{{ 'paths_admin.description' | translate }}</h2>
             </div>
-            <div class="card-body">
-              <p class="lead mb-3">{{ path()!.short_description }}</p>
-              @if (path()!.description) {
-                <div [innerHTML]="path()!.description"></div>
-              }
-            </div>
-          </div>
+            <p class="detail-lead mb-3">{{ path()!.short_description }}</p>
+            @if (path()!.description) {
+              <div class="detail-body" [innerHTML]="path()!.description"></div>
+            }
+          </section>
         }
 
         <!-- Content Structure -->
-        <div class="card mb-4">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">{{ 'paths_admin.content_structure' | translate }}</h5>
-            <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-sm btn-primary">
-              <i class="bi bi-pencil me-1"></i>{{ 'paths_admin.edit_content' | translate }}
-            </a>
+        <section class="ui-section ui-section--flush">
+          <div class="ui-section__head">
+            <h2 class="ui-section__title">{{ 'paths_admin.content_structure' | translate }}</h2>
+            <div class="ui-section__actions">
+              <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-pencil me-1"></i>{{ 'paths_admin.edit_content' | translate }}
+              </a>
+            </div>
           </div>
-          <div class="card-body p-0">
-            @if (sections().length === 0 && path()!.total_items === 0) {
-              <div class="text-center py-5">
-                <i class="bi bi-collection display-4 text-muted"></i>
-                <h5 class="mt-3">{{ 'paths_admin.no_content_title' | translate }}</h5>
-                <p class="text-muted">{{ 'paths_admin.no_content_text' | translate }}</p>
-                <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-primary">
-                  <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.add_content' | translate }}
-                </a>
-              </div>
-            } @else {
-              <div class="content-structure">
-                @for (section of sections(); track section.section_id) {
-                  <div class="content-section">
-                    <div class="section-header">
-                      <div class="d-flex align-items-center gap-2">
-                        @if (section.is_milestone) {
-                          <span class="badge bg-warning text-dark">
-                            <i class="bi bi-flag me-1"></i>{{ 'paths_admin.milestone' | translate }}
-                          </span>
-                        }
-                        <h6 class="mb-0">{{ section.title }}</h6>
-                        <span class="text-muted">({{ 'paths.items_count' | translate:{ count: section.items?.length || 0 } }})</span>
-                      </div>
+          @if (sections().length === 0 && path()!.total_items === 0) {
+            <div class="ui-state m-3">
+              <span class="ui-state__icon"><i class="bi bi-collection"></i></span>
+              <h3>{{ 'paths_admin.no_content_title' | translate }}</h3>
+              <p>{{ 'paths_admin.no_content_text' | translate }}</p>
+              <a [routerLink]="['/admin/learning-paths', pathId, 'builder']" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>{{ 'paths_admin.add_content' | translate }}
+              </a>
+            </div>
+          } @else {
+            <div class="content-structure">
+              @for (section of sections(); track section.section_id) {
+                <div class="content-section">
+                  <div class="section-header">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                      @if (section.is_milestone) {
+                        <span class="ui-pill ui-pill--warning">
+                          <i class="bi bi-flag"></i>{{ 'paths_admin.milestone' | translate }}
+                        </span>
+                      }
+                      <h6 class="mb-0">{{ section.title }}</h6>
+                      <span class="ui-muted small">({{ 'paths.items_count' | translate:{ count: section.items?.length || 0 } }})</span>
                     </div>
-                    @if (section.items && section.items.length > 0) {
-                      <div class="section-items">
-                        @for (item of section.items; track item.item_id) {
-                          <div class="content-item">
-                            <div class="item-icon">
-                              <i class="bi {{ getItemTypeIcon(item.item_type) }}"></i>
-                            </div>
-                            <div class="item-info">
-                              <span class="item-title">{{ item.display_title || item.external_title }}</span>
-                              <span class="item-meta">
-                                {{ item.item_type | titlecase }}
-                                @if (item.points_value) {
-                                  • {{ 'paths.points' | translate:{ count: item.points_value } }}
-                                }
-                                @if (item.estimated_duration_minutes) {
-                                  • {{ 'paths.minutes' | translate:{ count: item.estimated_duration_minutes } }}
-                                }
-                              </span>
-                            </div>
-                            @if (item.is_required) {
-                              <span class="badge bg-primary-subtle text-primary">{{ 'paths.required' | translate }}</span>
-                            }
-                          </div>
-                        }
-                      </div>
-                    }
                   </div>
-                }
-              </div>
-            }
-          </div>
-        </div>
+                  @if (section.items && section.items.length > 0) {
+                    <div class="section-items">
+                      @for (item of section.items; track item.item_id) {
+                        <div class="content-item">
+                          <div class="item-icon">
+                            <i class="bi {{ getItemTypeIcon(item.item_type) }}"></i>
+                          </div>
+                          <div class="item-info">
+                            <span class="item-title">{{ item.display_title || item.external_title }}</span>
+                            <span class="item-meta">
+                              {{ item.item_type | titlecase }}
+                              @if (item.points_value) {
+                                • {{ 'paths.points' | translate:{ count: item.points_value } }}
+                              }
+                              @if (item.estimated_duration_minutes) {
+                                • {{ 'paths.minutes' | translate:{ count: item.estimated_duration_minutes } }}
+                              }
+                            </span>
+                          </div>
+                          @if (item.is_required) {
+                            <span class="ui-pill ui-pill--brand">{{ 'paths.required' | translate }}</span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </section>
 
         <!-- Learning Objectives -->
         @if (path()!.learning_objectives && path()!.learning_objectives.length > 0) {
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">{{ 'paths_admin.learning_objectives' | translate }}</h5>
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">{{ 'paths_admin.learning_objectives' | translate }}</h2>
             </div>
-            <div class="card-body">
-              <ul class="objectives-list">
-                @for (objective of path()!.learning_objectives; track $index) {
-                  <li>
-                    <i class="bi bi-check2-circle text-success"></i>
-                    <span>{{ objective }}</span>
-                  </li>
-                }
-              </ul>
-            </div>
-          </div>
+            <ul class="objectives-list">
+              @for (objective of path()!.learning_objectives; track $index) {
+                <li>
+                  <i class="bi bi-check2-circle text-success"></i>
+                  <span>{{ objective }}</span>
+                </li>
+              }
+            </ul>
+          </section>
         }
       </div>
 
       <!-- Sidebar -->
       <div class="col-lg-4">
         <!-- Quick Info -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h6 class="mb-0">{{ 'paths_admin.quick_info' | translate }}</h6>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <h2 class="ui-section__title">{{ 'paths_admin.quick_info' | translate }}</h2>
           </div>
-          <div class="card-body">
-            <dl class="info-list">
-              <div class="info-item">
-                <dt>{{ 'paths_admin.skill_level' | translate }}</dt>
-                <dd>
-                  <span class="badge bg-{{ getSkillLevel(path()!.skill_level).color }}">
-                    {{ getSkillLevel(path()!.skill_level).label }}
-                  </span>
-                </dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths_admin.path_type' | translate }}</dt>
-                <dd>{{ path()!.path_type | titlecase }}</dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths_admin.completion' | translate }}</dt>
-                <dd>{{ path()!.completion_type | titlecase }}</dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths.duration' | translate }}</dt>
-                <dd>{{ formatDuration(path()!.estimated_duration_hours) }}</dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths.total_points' | translate }}</dt>
-                <dd>{{ path()!.total_points }}</dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths.certificate' | translate }}</dt>
-                <dd>
-                  @if (path()!.certificate_enabled) {
-                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>{{ 'paths_admin.enabled' | translate }}</span>
-                  } @else {
-                    <span class="text-muted">{{ 'paths_admin.disabled' | translate }}</span>
-                  }
-                </dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths_admin.visibility' | translate }}</dt>
-                <dd>{{ path()!.visibility | titlecase }}</dd>
-              </div>
-              <div class="info-item">
-                <dt>{{ 'paths_admin.enrollment' | translate }}</dt>
-                <dd>{{ path()!.enrollment_type | titlecase }}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
+          <dl class="info-list">
+            <div class="info-item">
+              <dt>{{ 'paths_admin.skill_level' | translate }}</dt>
+              <dd>
+                <span class="badge bg-{{ getSkillLevel(path()!.skill_level).color }}">
+                  {{ getSkillLevel(path()!.skill_level).label }}
+                </span>
+              </dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths_admin.path_type' | translate }}</dt>
+              <dd>{{ path()!.path_type | titlecase }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths_admin.completion' | translate }}</dt>
+              <dd>{{ path()!.completion_type | titlecase }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths.duration' | translate }}</dt>
+              <dd>{{ formatDuration(path()!.estimated_duration_hours) }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths.total_points' | translate }}</dt>
+              <dd>{{ path()!.total_points }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths.certificate' | translate }}</dt>
+              <dd>
+                @if (path()!.certificate_enabled) {
+                  <span class="ui-pill ui-pill--success"><span class="ui-pill__dot"></span>{{ 'paths_admin.enabled' | translate }}</span>
+                } @else {
+                  <span class="ui-pill ui-pill--neutral"><span class="ui-pill__dot"></span>{{ 'paths_admin.disabled' | translate }}</span>
+                }
+              </dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths_admin.visibility' | translate }}</dt>
+              <dd>{{ path()!.visibility | titlecase }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths_admin.enrollment' | translate }}</dt>
+              <dd>{{ path()!.enrollment_type | titlecase }}</dd>
+            </div>
+          </dl>
+        </section>
 
         <!-- Ratings -->
         @if (ratingSummary() && ratingSummary()!.total_reviews > 0) {
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h6 class="mb-0">{{ 'paths_admin.ratings' | translate }}</h6>
-              <a [routerLink]="['/admin/learning-paths', pathId, 'reviews']" class="btn btn-sm btn-link p-0">
-                {{ 'common.view_all' | translate }}
-              </a>
-            </div>
-            <div class="card-body">
-              <div class="rating-summary text-center mb-3">
-                <div class="rating-value">{{ (ratingSummary()?.avg_rating || 0) | number:'1.1-1' }}</div>
-                <div class="rating-stars">
-                  @for (star of [1,2,3,4,5]; track star) {
-                    <i class="bi" [class.bi-star-fill]="star <= (ratingSummary()?.avg_rating || 0)" [class.bi-star]="star > (ratingSummary()?.avg_rating || 0)" [class.text-warning]="star <= (ratingSummary()?.avg_rating || 0)"></i>
-                  }
-                </div>
-                <div class="rating-count text-muted">{{ 'paths.reviews_count' | translate:{ count: ratingSummary()?.total_reviews || 0 } }}</div>
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">{{ 'paths_admin.ratings' | translate }}</h2>
+              <div class="ui-section__actions">
+                <a [routerLink]="['/admin/learning-paths', pathId, 'reviews']" class="btn btn-sm btn-outline-secondary">
+                  {{ 'common.view_all' | translate }}
+                </a>
               </div>
-
-              <!-- Rating Distribution -->
-              <div class="rating-distribution">
-                @for (rating of [5,4,3,2,1]; track rating) {
-                  <div class="distribution-row">
-                    <span class="rating-label">{{ rating }}</span>
-                    <div class="progress flex-fill">
-                      <div
-                        class="progress-bar bg-warning"
-                        [style.width.%]="((ratingSummary()?.distribution?.[rating] || 0) / (ratingSummary()?.total_reviews || 1)) * 100"
-                      ></div>
-                    </div>
-                    <span class="rating-count">{{ ratingSummary()?.distribution?.[rating] || 0 }}</span>
-                  </div>
+            </div>
+            <div class="rating-summary text-center mb-3">
+              <div class="rating-value">{{ (ratingSummary()?.avg_rating || 0) | number:'1.1-1' }}</div>
+              <div class="rating-stars">
+                @for (star of [1,2,3,4,5]; track star) {
+                  <i class="bi" [class.bi-star-fill]="star <= (ratingSummary()?.avg_rating || 0)" [class.bi-star]="star > (ratingSummary()?.avg_rating || 0)" [class.text-warning]="star <= (ratingSummary()?.avg_rating || 0)"></i>
                 }
               </div>
+              <div class="rating-count ui-muted">{{ 'paths.reviews_count' | translate:{ count: ratingSummary()?.total_reviews || 0 } }}</div>
             </div>
-          </div>
+
+            <!-- Rating Distribution -->
+            <div class="rating-distribution">
+              @for (rating of [5,4,3,2,1]; track rating) {
+                <div class="distribution-row">
+                  <span class="rating-label">{{ rating }}</span>
+                  <div class="ui-bar">
+                    <span [style.width.%]="((ratingSummary()?.distribution?.[rating] || 0) / (ratingSummary()?.total_reviews || 1)) * 100"></span>
+                  </div>
+                  <span class="rating-count">{{ ratingSummary()?.distribution?.[rating] || 0 }}</span>
+                </div>
+              }
+            </div>
+          </section>
         }
 
         <!-- Dates -->
-        <div class="card mb-4">
-          <div class="card-header">
-            <h6 class="mb-0">{{ 'paths_admin.dates' | translate }}</h6>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <h2 class="ui-section__title">{{ 'paths_admin.dates' | translate }}</h2>
           </div>
-          <div class="card-body">
-            <dl class="info-list mb-0">
+          <dl class="info-list mb-0">
+            <div class="info-item">
+              <dt>{{ 'paths_admin.created' | translate }}</dt>
+              <dd>{{ formatDate(path()!.created_at) }}</dd>
+            </div>
+            <div class="info-item">
+              <dt>{{ 'paths_admin.last_updated' | translate }}</dt>
+              <dd>{{ formatDate(path()!.updated_at) }}</dd>
+            </div>
+            @if (path()!.published_at) {
               <div class="info-item">
-                <dt>{{ 'paths_admin.created' | translate }}</dt>
-                <dd>{{ formatDate(path()!.created_at) }}</dd>
+                <dt>{{ 'paths_admin.list.published' | translate }}</dt>
+                <dd>{{ formatDate(path()!.published_at) }}</dd>
               </div>
-              <div class="info-item">
-                <dt>{{ 'paths_admin.last_updated' | translate }}</dt>
-                <dd>{{ formatDate(path()!.updated_at) }}</dd>
-              </div>
-              @if (path()!.published_at) {
-                <div class="info-item">
-                  <dt>{{ 'paths_admin.list.published' | translate }}</dt>
-                  <dd>{{ formatDate(path()!.published_at) }}</dd>
-                </div>
-              }
-            </dl>
-          </div>
-        </div>
+            }
+          </dl>
+        </section>
 
         <!-- Tags -->
         @if (path()!.tags && path()!.tags.length > 0) {
-          <div class="card">
-            <div class="card-header">
-              <h6 class="mb-0">{{ 'paths.tags' | translate }}</h6>
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">{{ 'paths.tags' | translate }}</h2>
             </div>
-            <div class="card-body">
-              <div class="tags">
-                @for (tag of path()!.tags; track tag) {
-                  <span class="badge bg-black text-white">{{ tag }}</span>
-                }
-              </div>
+            <div class="tags">
+              @for (tag of path()!.tags; track tag) {
+                <span class="ui-pill ui-pill--neutral">{{ tag }}</span>
+              }
             </div>
-          </div>
+          </section>
         }
       </div>
     </div>

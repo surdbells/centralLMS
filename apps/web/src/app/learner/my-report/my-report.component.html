@@ -1,14 +1,10 @@
 <app-top></app-top>
 <main class="main">
-<div class="container-fluid py-4">
-  <div class="row align-items-center mb-4">
-    <div (click)="goBack()" role="button" class="col-auto">
-      <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-        <i class="fs-5"><tui-icon icon="@tui.chevron-left"></tui-icon></i>
-      </div>
-    </div>
-    <div class="col"></div>
+  <div class="ui-page">
+    <app-learner-report>
+      <button reportBack type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </app-learner-report>
   </div>
-  <app-learner-report></app-learner-report>
-</div>
 </main>

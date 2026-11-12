@@ -17,22 +17,17 @@
 }
 
 .assess-table {
-  thead th {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--bs-secondary-color, #6b7280);
-    border-bottom: 1px solid var(--bs-border-color, #eef0f3);
-  }
-
   tr.clickable {
     cursor: pointer;
 
-    &:hover {
-      background: var(--bs-tertiary-bg, #f9fafb);
+    &:hover > td {
+      background: var(--ui-surface-2);
     }
   }
 }
+
+// Flush table sections without a head: the section border is enough.
+.ui-section--flush > .table-responsive:first-child { border-top: 0; }
 
 .gap-chip {
   display: inline-flex;
@@ -52,27 +47,16 @@
   &.significant { background: #dc2626; }
 }
 
-.empty-panel {
-  background: var(--bs-tertiary-bg, #f9fafb);
-  border: 1px dashed var(--bs-border-color, #e5e7eb);
-  border-radius: 0.75rem;
-
-  .empty-icon {
-    font-size: 2.5rem;
-    color: var(--bs-secondary-color, #9ca3af);
-  }
-}
-
 // --- user picker ----------------------------------------------------------
 .user-results {
   position: absolute;
   z-index: 30;
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid var(--bs-border-color, #e5e7eb);
-  border-radius: 0.5rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  box-shadow: var(--ui-shadow-pop);
   margin-top: 0.25rem;
   overflow: hidden;
 }

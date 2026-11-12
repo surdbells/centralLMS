@@ -1,24 +1,22 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <!-- The way back. Every one of these is opened from the Live Training
-         admin screen, and only the reports page offered a route home. -->
-    <div class="mb-3">
-      <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <!-- The way back. Every one of these is opened from the Live Training
+           admin screen, and only the reports page offered a route home. -->
+      <button type="button" class="ui-page-header__back" (click)="goBack()"
+              [attr.aria-label]="'live.common.back_to_live_training' | translate"
+              [title]="'live.common.back_to_live_training' | translate">
+        <i class="bi bi-chevron-left"></i>
       </button>
-    </div>
-    <div class="integrations-settings">
-      <div class="settings-header mb-4">
-        <h4 class="mb-1">
-          <i class="bi bi-plug me-2"></i>
-          {{ 'live.integrations.title' | translate }}
-        </h4>
-        <p class="text-muted mb-0">
-          {{ 'live.integrations.subtitle' | translate }}
-        </p>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-plug"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'live.integrations.title' | translate }}</h1>
+        <p>{{ 'live.integrations.subtitle' | translate }}</p>
       </div>
+    </header>
 
+    <div class="integrations-settings">
       <div class="platforms-grid">
         <div *ngFor="let platform of platforms" class="platform-card" [class.connected]="isConnected(platform.id)">
           <!-- Platform Header -->
@@ -27,12 +25,12 @@
               <i class="bi" [ngClass]="getIcon(platform.id)"></i>
             </div>
             <div class="platform-info">
-              <h5 class="platform-name mb-0">{{ getDisplayName(platform.id) }}</h5>
-              <span class="platform-status" *ngIf="isConnected(platform.id)">
-                <i class="bi bi-check-circle-fill text-success me-1"></i>{{ 'live.integrations.connected' | translate }}
+              <h3 class="platform-name mb-1">{{ getDisplayName(platform.id) }}</h3>
+              <span class="platform-status ui-pill ui-pill--success" *ngIf="isConnected(platform.id)">
+                <span class="ui-pill__dot"></span>{{ 'live.integrations.connected' | translate }}
               </span>
-              <span class="platform-status text-muted" *ngIf="!isConnected(platform.id)">
-                {{ 'live.integrations.not_connected' | translate }}
+              <span class="platform-status ui-pill ui-pill--neutral" *ngIf="!isConnected(platform.id)">
+                <span class="ui-pill__dot"></span>{{ 'live.integrations.not_connected' | translate }}
               </span>
             </div>
             <div class="platform-action">
@@ -44,11 +42,11 @@
                 {{ 'live.integrations.connect' | translate }}
               </button>
               <div *ngIf="isConnected(platform.id)" class="btn-group btn-group-sm">
-                <button class="btn btn-primary" (click)="openTestMeetingModal(platform.id)"
+                <button class="btn btn-outline-secondary" (click)="openTestMeetingModal(platform.id)"
                         [title]="'live.integrations.test_connection' | translate">
                   <i class="bi bi-play-fill"></i>
                 </button>
-                <button class="btn btn-secondary" (click)="setDefault(platform.id)"
+                <button class="btn btn-outline-secondary" (click)="setDefault(platform.id)"
                         [class.active]="isDefault(platform.id)"
                         [disabled]="isDefault(platform.id)">
                   <i class="bi bi-star me-1" [class.bi-star-fill]="isDefault(platform.id)"></i>
@@ -60,7 +58,6 @@
               </div>
             </div>
           </div>
-
           <!-- Platform Description -->
           <div class="platform-body">
             <p class="platform-description text-muted small">
@@ -90,15 +87,17 @@
       </div>
 
       <!-- Help Section -->
-      <div class="help-section mt-4 p-4 bg-light rounded">
-        <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>{{ 'live.integrations.how_to_connect' | translate }}</h6>
+      <section class="ui-section help-section mt-4">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title"><i class="bi bi-info-circle me-2"></i>{{ 'live.integrations.how_to_connect' | translate }}</h2></div>
+        </div>
         <ol class="mb-0 ps-3">
           <li class="mb-2">{{ 'live.integrations.step1' | translate }}</li>
           <li class="mb-2">{{ 'live.integrations.step2' | translate }}</li>
           <li class="mb-2">{{ 'live.integrations.step3' | translate }}</li>
           <li>{{ 'live.integrations.step4' | translate }}</li>
         </ol>
-      </div>
+      </section>
 
       <!-- OAuth Callback Handler -->
       <div *ngIf="callbackMessage" class="alert mt-4" [ngClass]="callbackSuccess ? 'alert-success' : 'alert-danger'">
@@ -148,7 +147,7 @@
                 {{ 'live.integrations.meeting_created' | translate }}
               </div>
 
-              <div class="meeting-details p-3 bg-light rounded">
+              <div class="meeting-details p-3 rounded">
                 <h6 class="mb-3">{{ testMeetingResult.topic }}</h6>
 
                 <div class="detail-row mb-2">
@@ -181,7 +180,7 @@
                   <a [href]="testMeetingResult.join_url" target="_blank" class="btn btn-primary btn-sm me-2">
                     <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'live.integrations.join_meeting' | translate }}
                   </a>
-                  <button class="btn btn-secondary btn-sm me-2" (click)="copyToClipboard(testMeetingResult.join_url)">
+                  <button class="btn btn-outline-secondary btn-sm me-2" (click)="copyToClipboard(testMeetingResult.join_url)">
                     <i class="bi bi-link-45deg me-1"></i>{{ 'live.integrations.copy_link' | translate }}
                   </button>
                   <button class="btn btn-outline-danger btn-sm" (click)="deleteMeeting(testMeetingPlatform, testMeetingResult.id)">
@@ -192,7 +191,7 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeTestMeetingModal()">{{ 'common.close' | translate }}</button>
+            <button type="button" class="btn btn-outline-secondary" (click)="closeTestMeetingModal()">{{ 'common.close' | translate }}</button>
             <button *ngIf="!testMeetingResult" type="button" class="btn btn-primary"
                     (click)="createTestMeeting()" [disabled]="testMeetingLoading">
               <span *ngIf="testMeetingLoading" class="spinner-border spinner-border-sm me-2"></span>
@@ -257,7 +256,7 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeMeetingDetailsModal()">{{ 'common.close' | translate }}</button>
+            <button type="button" class="btn btn-outline-secondary" (click)="closeMeetingDetailsModal()">{{ 'common.close' | translate }}</button>
           </div>
         </div>
       </div>

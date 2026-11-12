@@ -1,446 +1,388 @@
 <app-admintop></app-admintop>
 <main class="main courses-dashboard">
-  <div class="admin-course-listing">
-    <div class="listing-header">
-      <div class="header-content">
-        <div class="header-title-section">
-          <div class="back-button" (click)="goBack()" role="button">
-            <tui-icon icon="@tui.chevron-left" />
-          </div>
-            <h1 class="page-title"> {{ 'nav.courses' | translate }} </h1>
-        </div>
-        <div class="header-actions">
-          <button class="btn btn-refresh" (click)="confirmCreate()">
-            <i class="bi bi-plus-lg"></i> <span class="ps-4">{{ 'common.create' | translate }}</span>
-          </button>
-          <button class="btn btn-refresh" (click)="list_course()" title="{{ 'common.refresh' | translate }}">
-            <i class="bi bi-arrow-clockwise"></i> <span class="ps-4">{{ 'common.refresh' | translate }}</span>
-          </button>
-        </div>
+  <div class="ui-page admin-course-listing">
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-collection-play"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'nav.courses' | translate }}</h1>
+        <p>{{ 'admin.courses.page_subtitle' | translate }}</p>
       </div>
-      <div class="row g-3 mb-4">
-        <div class="col-sm-6 col-md-2">
-          <div class="card h-100">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <div>{{ 'admin.courses.total_courses' | translate }}</div>
-                  <div class="fw-bold fs-5 mt-1">{{ statistics.total }}</div>
-                </div>
-                <div class="text-primary align-self-center">
-                  <tui-icon class="fs-1"  icon="@tui.rows-2"></tui-icon>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-2">
-          <div class="card h-100">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <div>{{ 'admin.courses.draft' | translate }}</div>
-                  <div class="fw-bold fs-5 mt-1">{{ statistics.draft }}</div>
-                </div>
-                <div class="text-primary align-self-center">
-                  <tui-icon class="fs-1"  icon="@tui.square-pen"></tui-icon>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-2">
-          <div class="card h-100">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <div>{{ 'admin.courses.archived' | translate }}</div>
-                  <div class="fw-bold fs-5 mt-1">{{ statistics.archived }}</div>
-                </div>
-                <div class="text-primary align-self-center">
-                  <tui-icon class="fs-1"  icon="@tui.archive"></tui-icon>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-sm-6 col-md-2">
-          <div class="card h-100">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <div>{{ 'admin.courses.published' | translate }}</div>
-                  <div class="fw-bold fs-5 mt-1">{{ statistics.published }}</div>
-                </div>
-                <div class="text-primary align-self-center">
-                  <tui-icon class="fs-1"  icon="@tui.folder-check"></tui-icon>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="list_course()" title="{{ 'common.refresh' | translate }}">
+          <i class="bi bi-arrow-clockwise"></i> {{ 'common.refresh' | translate }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmCreate()">
+          <i class="bi bi-plus-lg"></i> {{ 'common.create' | translate }}
+        </button>
       </div>
+    </header>
+
+    <!-- KPIs: each one filters the list by status -->
+    <div class="ui-kpi-grid ui-kpi-grid--4">
+      <button type="button" class="ui-kpi ui-kpi--brand" [class.is-active]="initial.status === ''" (click)="filterByStatus('')">
+        <span class="ui-kpi__label"><i class="bi bi-collection"></i> {{ 'admin.courses.total_courses' | translate }}</span>
+        <span class="ui-kpi__value">{{ statistics.total }}</span>
+      </button>
+      <button type="button" class="ui-kpi ui-kpi--success" [class.is-active]="initial.status === 'published'" (click)="filterByStatus('published')">
+        <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'admin.courses.published' | translate }}</span>
+        <span class="ui-kpi__value">{{ statistics.published }}</span>
+      </button>
+      <button type="button" class="ui-kpi ui-kpi--warning" [class.is-active]="initial.status === 'draft'" (click)="filterByStatus('draft')">
+        <span class="ui-kpi__label"><i class="bi bi-pencil-square"></i> {{ 'admin.courses.draft' | translate }}</span>
+        <span class="ui-kpi__value">{{ statistics.draft }}</span>
+      </button>
+      <button type="button" class="ui-kpi" [class.is-active]="initial.status === 'archived'" (click)="filterByStatus('archived')">
+        <span class="ui-kpi__label"><i class="bi bi-archive"></i> {{ 'admin.courses.archived' | translate }}</span>
+        <span class="ui-kpi__value">{{ statistics.archived }}</span>
+      </button>
     </div>
-    <div class="filters-toolbar">
-      <div class="toolbar-row">
-        <div class="search-wrapper">
-          <input type="text" class="form-control search-input"  placeholder="{{ 'admin.courses.search_placeholder' | translate }}" [(ngModel)]="searchQuery" (input)="onSearchChange()">
-          <button *ngIf="searchQuery" class="btn-clear-search" (click)="clearSearch()">
-            <i class="bi bi-x-lg"></i>
+
+    <section class="ui-section courses-section">
+      <div class="ui-toolbar">
+        <div class="ui-filters">
+          <button type="button" class="ui-filter" [class.is-active]="initial.status === ''" (click)="filterByStatus('')">
+            <i class="bi bi-collection"></i> {{ 'common.all' | translate }}
           </button>
-        </div>
-        <div class="status-filter-pills">
-          <button class="status-pill" [class.active]="initial.status === 'published'" (click)="filterByStatus('published')">
-            <i class="bi bi-check-circle"></i>
-            <span>{{ 'admin.courses.published' | translate }}</span>
+          <button type="button" class="ui-filter" [class.is-active]="initial.status === 'published'" (click)="filterByStatus('published')">
+            <i class="bi bi-check-circle"></i> {{ 'admin.courses.published' | translate }}
           </button>
-          <button class="status-pill" [class.active]="initial.status === 'draft'" (click)="filterByStatus('draft')">
-            <i class="bi bi-file-earmark"></i>
-            <span>{{ 'admin.courses.draft' | translate }}</span>
+          <button type="button" class="ui-filter" [class.is-active]="initial.status === 'draft'" (click)="filterByStatus('draft')">
+            <i class="bi bi-file-earmark"></i> {{ 'admin.courses.draft' | translate }}
           </button>
-          <button class="status-pill" [class.active]="initial.status === 'archived'" (click)="filterByStatus('archived')">
-            <i class="bi bi-archive"></i>
-            <span>{{ 'admin.courses.archived' | translate }}</span>
-          </button>
-          <button class="status-pill" [class.active]="initial.status === ''" (click)="filterByStatus('')">
-            <i class="bi bi-collection"></i>
-            <span>{{ 'common.all' | translate }}</span>
+          <button type="button" class="ui-filter" [class.is-active]="initial.status === 'archived'" (click)="filterByStatus('archived')">
+            <i class="bi bi-archive"></i> {{ 'admin.courses.archived' | translate }}
           </button>
         </div>
 
         <div class="toolbar-actions">
-          <div class="filter-dropdown">
-            <select class="form-select" [(ngModel)]="initial.category_id" (change)="list_course()">
-              <option [ngValue]="null">{{ 'admin.courses.all_categories' | translate }}</option>
-              <option *ngFor="let c of category" [ngValue]="c.category_id">
-                {{ c.category_name }}
-              </option>
-            </select>
-          </div>
-
-          <div class="view-toggle">
-            <button class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="{{ 'admin.courses.grid_view' | translate }}">
-              <i class="bi bi-grid-3x3-gap-fill"></i>
+          <label class="ui-search">
+            <i class="bi bi-search"></i>
+            <input type="search" class="search-input" placeholder="{{ 'admin.courses.search_placeholder' | translate }}" [(ngModel)]="searchQuery" (input)="onSearchChange()">
+            <button type="button" *ngIf="searchQuery" class="btn-clear-search" (click)="clearSearch()" [attr.aria-label]="'common.clear' | translate">
+              <i class="bi bi-x-lg"></i>
             </button>
-            <button  class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="{{ 'admin.courses.list_view' | translate }}">
+          </label>
+
+          <select class="form-select" [(ngModel)]="initial.category_id" (change)="list_course()">
+            <option [ngValue]="null">{{ 'admin.courses.all_categories' | translate }}</option>
+            <option *ngFor="let c of category" [ngValue]="c.category_id">
+              {{ c.category_name }}
+            </option>
+          </select>
+
+          <div class="view-toggle" role="group">
+            <button type="button" class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="{{ 'admin.courses.grid_view' | translate }}">
+              <i class="bi bi-grid-3x3-gap"></i>
+            </button>
+            <button type="button" class="btn-view" [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="{{ 'admin.courses.list_view' | translate }}">
               <i class="bi bi-list-ul"></i>
             </button>
           </div>
         </div>
       </div>
-    </div>
-    <div class="loading-state" *ngIf="ui_controls.is_loading">
-      <div class="spinner-wrapper">
+
+      <div class="loading-state" *ngIf="ui_controls.is_loading">
         <tui-loader class="loader-custom" />
-        <p>{{ 'admin.courses.loading' | translate }}</p>
+        <p class="ui-muted">{{ 'admin.courses.loading' | translate }}</p>
       </div>
-    </div>
-    <div class="empty-state" *ngIf="!ui_controls.is_loading && course.length === 0">
-      <div class="empty-icon">
-        <i class="bi bi-folder2-open"></i>
+
+      <div class="ui-state" *ngIf="!ui_controls.is_loading && course.length === 0">
+        <span class="ui-state__icon"><i class="bi bi-folder2-open"></i></span>
+        <h3>{{ 'admin.courses.empty_title' | translate }}</h3>
+        <p *ngIf="hasActiveFilters()">
+          {{ 'admin.courses.empty_filtered' | translate }}
+        </p>
+        <p *ngIf="!hasActiveFilters()">
+          {{ 'admin.courses.empty_text' | translate }}
+        </p>
+        <button type="button" class="btn btn-primary" *ngIf="!hasActiveFilters()" (click)="open.set(true)">
+          <i class="bi bi-plus-lg"></i>
+          {{ 'admin.courses.create_course' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" *ngIf="hasActiveFilters()" (click)="clearFilters()">
+          {{ 'admin.courses.clear_filters' | translate }}
+        </button>
       </div>
-      <h3>{{ 'admin.courses.empty_title' | translate }}</h3>
-      <p *ngIf="hasActiveFilters()">
-        {{ 'admin.courses.empty_filtered' | translate }}
-      </p>
-      <p *ngIf="!hasActiveFilters()">
-        {{ 'admin.courses.empty_text' | translate }}
-      </p>
-      <button class="btn btn-create-course" *ngIf="!hasActiveFilters()" (click)="open.set(true)">
-        <i class="bi bi-plus-lg"></i>
-        {{ 'admin.courses.create_course' | translate }}
-      </button>
-      <button class="btn btn-dark" *ngIf="hasActiveFilters()" (click)="clearFilters()">
-        {{ 'admin.courses.clear_filters' | translate }}
-      </button>
-    </div>
 
-    <!-- ============================================================
-         GRID VIEW
-         ============================================================ -->
-    <div class="courses-grid" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'grid'">
-      <div
-        class="course-card"
-        *ngFor="let c of course; let i = index">
-        <!-- Thumbnail -->
-        <div class="card-thumbnail">
-          <app-course-card [title]="c.title" [index]="i"> </app-course-card>
-          <div class="thumbnail-overlay">
-            <button class="btn-quick-action" (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" title="{{ 'admin.courses.insights' | translate }}">
-              <i class="bi bi-graph-up"></i>
-            </button>
-            <button class="btn-quick-action" (click)="edit_course(c.course_id, c.title)" title="{{ 'common.edit' | translate }}">
-              <i class="bi bi-pencil-fill"></i>
-            </button>
-          </div>
-
-          <!-- Status Badge -->
-          <span class="status-badge" [ngClass]="getStatusClass(c.status)">
-            <i [class]="getStatusIcon(c.status)"></i>
-            {{ getStatusLabel(c.status) }}
-          </span>
-
-          <!-- Featured Badge -->
-          <div class="special-badges" *ngIf="c.is_featured">
-            <span class="badge-featured" title="{{ 'admin.courses.featured_course' | translate }}">
-              <i class="bi bi-star-fill"></i>
-            </span>
-          </div>
-        </div>
-
-        <!-- Card Body -->
-        <div class="card-body">
-          <!-- Category Tag -->
-          <span class="category-tag">{{ c.category_name }}</span>
-
-          <!-- Title -->
-          <h3 class="course-title" [title]="c.title">
-            {{ c.title }}
-          </h3>
-
-          <!-- Description -->
-          <p class="course-description">{{ c.description }}</p>
-
-          <!-- Stats Row -->
-          <div class="course-stats">
-            <div class="stat-item" title="{{ 'admin.courses.level' | translate }}">
-              <i class="bi bi-bar-chart-fill"></i>
-              <span>{{ c.level || ('admin.courses.not_set' | translate) }}</span>
+      <!-- ============================================================
+           GRID VIEW
+           ============================================================ -->
+      <div class="ui-grid courses-grid" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'grid'">
+        <article class="ui-card course-card" *ngFor="let c of course; let i = index">
+          <!-- Thumbnail -->
+          <div class="card-thumbnail">
+            <app-course-card [title]="c.title" [index]="i"> </app-course-card>
+            <div class="thumbnail-overlay">
+              <button type="button" class="btn-quick-action" (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" title="{{ 'admin.courses.insights' | translate }}">
+                <i class="bi bi-graph-up"></i>
+              </button>
+              <button type="button" class="btn-quick-action" (click)="edit_course(c.course_id, c.title)" title="{{ 'common.edit' | translate }}">
+                <i class="bi bi-pencil"></i>
+              </button>
             </div>
-            <div class="stat-item" title="{{ 'admin.courses.duration' | translate }}">
-              <i class="bi bi-clock-fill"></i>
-              <span>{{ c.duration_minutes }}h</span>
+
+            <!-- Status -->
+            <span class="ui-pill status-badge" [ngClass]="getStatusClass(c.status)">
+              <span class="ui-pill__dot"></span>
+              {{ getStatusLabel(c.status) }}
+            </span>
+
+            <!-- Featured -->
+            <div class="special-badges" *ngIf="c.is_featured">
+              <span class="badge-featured" title="{{ 'admin.courses.featured_course' | translate }}">
+                <i class="bi bi-star-fill"></i>
+              </span>
             </div>
           </div>
 
-          <!-- Meta Info -->
-          <div class="card-meta">
-            <span class="meta-date" *ngIf="c.start_date">
-              <i class="bi bi-calendar-event"></i>
-              {{ formatDate(c.start_date) }}
-            </span>
-            <span class="meta-status" [ngClass]="c.is_active ? 'active' : 'inactive'">
+          <div class="ui-card__body">
+            <span class="category-tag" *ngIf="c.category_name">{{ c.category_name }}</span>
+            <h3 class="ui-card__title course-title" [title]="c.title">{{ c.title }}</h3>
+            <p class="course-description">{{ c.description }}</p>
+
+            <div class="ui-card__meta course-stats">
+              <span class="stat-item" title="{{ 'admin.courses.level' | translate }}">
+                <i class="bi bi-bar-chart"></i>
+                {{ c.level || ('admin.courses.not_set' | translate) }}
+              </span>
+              <span class="stat-item" title="{{ 'admin.courses.duration' | translate }}">
+                <i class="bi bi-clock"></i>
+                {{ c.duration_minutes }}h
+              </span>
+              <span class="stat-item" *ngIf="c.start_date">
+                <i class="bi bi-calendar-event"></i>
+                {{ formatDate(c.start_date) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ui-card__footer">
+            <span class="ui-pill" [ngClass]="c.is_active ? 'ui-pill--success' : 'ui-pill--neutral'">
+              <span class="ui-pill__dot"></span>
               {{ c.is_active ? ('common.active' | translate) : ('common.inactive' | translate) }}
             </span>
+            <div class="card-actions">
+              <button type="button" class="btn btn-sm btn-primary" (click)="manage_course(c.course_id, c.title)">
+                <i class="bi bi-sliders"></i>
+                {{ 'common.manage' | translate }}
+              </button>
+              <div class="dropdown">
+                <button
+                  class="btn btn-sm btn-outline-secondary btn-action-more dropdown-toggle"
+                  type="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  [attr.aria-label]="'common.actions' | translate">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
+                      <i class="bi bi-graph-up"></i>
+                      {{ 'admin.courses.insights' | translate }}
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item" (click)="duplicateCourse(c)">
+                      <i class="bi bi-copy"></i>
+                      {{ 'common.duplicate' | translate }}
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item" (click)="edit_course(c.course_id, c.title)">
+                      <i class="bi bi-pencil"></i>
+                      {{ 'admin.courses.edit_course' | translate }}
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li *ngIf="c.status === 'draft' || c.status === 'archived'">
+                    <button class="dropdown-item" (click)="confirmPublish(c)">
+                      <i class="bi bi-check-circle"></i>
+                      {{ 'admin.courses.publish' | translate }}
+                    </button>
+                  </li>
+                  <li *ngIf="c.status === 'published'">
+                    <button class="dropdown-item" (click)="confirmUnPublish(c)">
+                      <i class="bi bi-eye-slash"></i>
+                      {{ 'admin.courses.unpublish' | translate }}
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li *ngIf="c.status != 'archived'">
+                    <button class="dropdown-item text-danger" (click)="confirmArchive(c)">
+                      <i class="bi bi-archive"></i>
+                      {{ 'admin.courses.archive' | translate }}
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
+                      <i class="bi bi-trash"></i>
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- ============================================================
+           LIST VIEW
+           ============================================================ -->
+      <div class="ui-table-wrap courses-list" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'list'">
+        <div class="list-header">
+          <div class="col-course">{{ 'admin.courses.col_course' | translate }}</div>
+          <div class="col-category">{{ 'admin.courses.col_category' | translate }}</div>
+          <div class="col-status">{{ 'admin.courses.col_status' | translate }}</div>
+          <div class="col-level">{{ 'admin.courses.level' | translate }}</div>
+          <div class="col-duration">{{ 'admin.courses.duration' | translate }}</div>
+          <div class="col-actions">{{ 'common.actions' | translate }}</div>
+        </div>
+        <div class="list-item" *ngFor="let c of course; let i = index">
+          <div class="col-course">
+            <div class="course-info">
+              <app-course-mini-card [title]="c.title" [index]="i"></app-course-mini-card>
+              <div class="course-details">
+                <h4 class="course-title-list">{{ c.title }}</h4>
+                <p class="course-desc-list">{{ c.description | slice:0:60 }}{{ (c.description?.length || 0) > 60 ? '...' : '' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-category">
+            <span class="ui-pill ui-pill--neutral" *ngIf="c.category_name">{{ c.category_name }}</span>
+          </div>
+
+          <div class="col-status">
+            <span class="ui-pill" [ngClass]="getStatusClass(c.status)">
+              <span class="ui-pill__dot"></span>
+              {{ getStatusLabel(c.status) }}
+            </span>
+          </div>
+
+          <div class="col-level">
+            <span class="level-text">{{ c.level || '-' }}</span>
+          </div>
+
+          <div class="col-duration">
+            <span class="duration-text">
+              <i class="bi bi-clock"></i>
+              {{ c.duration_minutes }}h
+            </span>
+          </div>
+
+          <div class="col-actions">
+            <div class="action-buttons-list">
+              <button type="button" class="btn-icon" (click)="manage_course(c.course_id, c.title)" title="{{ 'common.manage' | translate }}">
+                <i class="bi bi-sliders"></i>
+              </button>
+              <button type="button" class="btn-icon" (click)="edit_course(c.course_id, c.title)" title="{{ 'common.edit' | translate }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+
+              <div class="dropdown">
+                <button class="btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown" [attr.aria-label]="'common.actions' | translate">
+                  <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
+                      <i class="bi bi-graph-up"></i>
+                      {{ 'admin.courses.insights' | translate }}
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item" (click)="duplicateCourse(c)">
+                      <i class="bi bi bi-copy"></i>
+                      {{ 'common.duplicate' | translate }}
+                    </button>
+                  </li>
+                  <li *ngIf="c.status === 'draft'">
+                    <button class="dropdown-item" (click)="confirmPublish(c)">
+                      <i class="bi bi-check-circle"></i>
+                      {{ 'admin.courses.publish' | translate }}
+                    </button>
+                  </li>
+                  <li *ngIf="c.status === 'published'">
+                    <button class="dropdown-item" (click)="confirmUnPublish(c)">
+                      <i class="bi bi-eye-slash"></i>
+                      {{ 'admin.courses.unpublish' | translate }}
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li *ngIf="c.status != 'archived'">
+                    <button class="dropdown-item" (click)="confirmArchive(c)">
+                      <i class="bi bi-archive"></i>
+                      {{ 'admin.courses.archive' | translate }}
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
+                      <i class="bi bi-trash"></i>
+                      {{ 'common.delete' | translate }}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        <!-- Card Actions -->
-        <div class="card-actions">
-          <button class="btn btn-action-primary" (click)="manage_course(c.course_id, c.title)">
-            <i class="bi bi-sliders"></i>
-            {{ 'common.manage' | translate }}
-          </button>
-          <div class="dropdown">
-            <button
-              class="btn btn-action-more dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false">
-              <i class="bi bi-three-dots-vertical"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
-                  <i class="bi bi-graph-up"></i>
-                  {{ 'admin.courses.insights' | translate }}
+      <div class="pagination-wrapper" *ngIf="!ui_controls.is_loading && course.length > 0">
+        <div class="ui-result-count pagination-info">
+          {{ 'admin.courses.pagination_info' | translate:{ page: meta.page, totalPages: meta.total_pages, total: meta.total } }}
+        </div>
+
+        <div class="pagination-controls">
+          <select
+            class="form-select form-select-sm per-page-select"
+            [(ngModel)]="initial.per_page"
+            (change)="paginate()"
+          >
+            <option [ngValue]="4">{{ 'admin.courses.per_page' | translate:{ count: 4 } }}</option>
+            <option [ngValue]="5">{{ 'admin.courses.per_page' | translate:{ count: 5 } }}</option>
+            <option [ngValue]="10">{{ 'admin.courses.per_page' | translate:{ count: 10 } }}</option>
+            <option [ngValue]="25">{{ 'admin.courses.per_page' | translate:{ count: 25 } }}</option>
+            <option [ngValue]="50">{{ 'admin.courses.per_page' | translate:{ count: 50 } }}</option>
+          </select>
+
+          <nav aria-label="Course pagination">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" [class.disabled]="initial.page === 1">
+                <button class="page-link" (click)="list_course(1)" aria-label="First">
+                  <i class="bi bi-chevron-double-left"></i>
                 </button>
               </li>
-              <li>
-                <button class="dropdown-item" (click)="duplicateCourse(c)">
-                  <i class="bi bi-copy"></i>
-                  {{ 'common.duplicate' | translate }}
+              <li class="page-item" [class.disabled]="initial.page === 1">
+                <button class="page-link" (click)="list_course(initial.page - 1)" aria-label="Previous">
+                  <i class="bi bi-chevron-left"></i>
                 </button>
               </li>
-              <li>
-                <button class="dropdown-item" (click)="edit_course(c.course_id, c.title)">
-                  <i class="bi bi-pencil"></i>
-                  {{ 'admin.courses.edit_course' | translate }}
+
+              <li class="page-item active">
+                <span class="page-link">{{ meta.page }}</span>
+              </li>
+
+              <li class="page-item" [class.disabled]="meta.page === meta.total_pages">
+                <button class="page-link" (click)="list_course(initial.page + 1)" aria-label="Next">
+                  <i class="bi bi-chevron-right"></i>
                 </button>
               </li>
-              <li><hr class="dropdown-divider"></li>
-              <li *ngIf="c.status === 'draft' || c.status === 'archived'">
-                <button class="dropdown-item" (click)="confirmPublish(c)">
-                  <i class="bi bi-check-circle"></i>
-                  {{ 'admin.courses.publish' | translate }}
-                </button>
-              </li>
-              <li *ngIf="c.status === 'published'">
-                <button class="dropdown-item" (click)="confirmUnPublish(c)">
-                  <i class="bi bi-eye-slash"></i>
-                  {{ 'admin.courses.unpublish' | translate }}
-                </button>
-              </li>
-              <li><hr class="dropdown-divider"></li>
-              <li *ngIf="c.status != 'archived'">
-                <button class="dropdown-item text-danger" (click)="confirmArchive(c)">
-                  <i class="bi bi-archive"></i>
-                  {{ 'admin.courses.archive' | translate }}
-                </button>
-              </li>
-              <li>
-                <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
-                  <i class="bi bi-trash"></i>
-                  {{ 'common.delete' | translate }}
+              <li class="page-item" [class.disabled]="meta.page === meta.total_pages">
+                <button class="page-link" (click)="list_course(meta.total_pages)" aria-label="Last">
+                  <i class="bi bi-chevron-double-right"></i>
                 </button>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
       </div>
-    </div>
-
-    <!-- ============================================================
-         LIST VIEW
-         ============================================================ -->
-    <div class="courses-list" *ngIf="!ui_controls.is_loading && course.length > 0 && viewMode === 'list'">
-      <div class="list-header">
-        <div class="col-course">{{ 'admin.courses.col_course' | translate }}</div>
-        <div class="col-category">{{ 'admin.courses.col_category' | translate }}</div>
-        <div class="col-status">{{ 'admin.courses.col_status' | translate }}</div>
-        <div class="col-level">{{ 'admin.courses.level' | translate }}</div>
-        <div class="col-duration">{{ 'admin.courses.duration' | translate }}</div>
-        <div class="col-actions">{{ 'common.actions' | translate }}</div>
-      </div>
-      <div class="list-item" *ngFor="let c of course; let i = index">
-        <div class="col-course">
-          <div class="course-info">
-            <app-course-mini-card [title]="c.title" [index]="i"></app-course-mini-card>
-            <div class="course-details">
-              <h4 class="course-title-list">{{ c.title }}</h4>
-              <p class="course-desc-list">{{ c.description | slice:0:60 }}{{ (c.description?.length || 0) > 60 ? '...' : '' }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-category">
-          <span class="category-tag-small">{{ c.category_name }}</span>
-        </div>
-
-        <div class="col-status">
-          <span class="status-badge-list" [ngClass]="getStatusClass(c.status)">
-            <i [class]="getStatusIcon(c.status)"></i>
-            {{ getStatusLabel(c.status) }}
-          </span>
-        </div>
-
-        <div class="col-level">
-          <span class="level-text">{{ c.level || '-' }}</span>
-        </div>
-
-        <div class="col-duration">
-          <span class="duration-text">
-            <i class="bi bi-clock"></i>
-            {{ c.duration_minutes }}h
-          </span>
-        </div>
-
-        <div class="col-actions">
-          <div class="action-buttons-list">
-            <button class="btn-icon" (click)="manage_course(c.course_id, c.title)" title="{{ 'common.manage' | translate }}">
-              <i class="bi bi-sliders"></i>
-            </button>
-            <button class="btn-icon" (click)="edit_course(c.course_id, c.title)" title="{{ 'common.edit' | translate }}">
-              <i class="bi bi-pencil"></i>
-            </button>
-
-            <div class="dropdown">
-              <button class="btn-icon dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                <i class="bi bi-three-dots"></i>
-              </button>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                  <button (click)="insights.courseId = c.course_id; insights.courseTitle = c.title; showCourseInsights(c.course_id, c.title)" class="dropdown-item">
-                    <i class="bi bi-graph-up"></i>
-                    {{ 'admin.courses.insights' | translate }}
-                  </button>
-                </li>
-                <li>
-                  <button class="dropdown-item" (click)="duplicateCourse(c)">
-                    <i class="bi bi bi-copy"></i>
-                    {{ 'common.duplicate' | translate }}
-                  </button>
-                </li>
-                <li *ngIf="c.status === 'draft'">
-                  <button class="dropdown-item" (click)="confirmPublish(c)">
-                    <i class="bi bi-check-circle"></i>
-                    {{ 'admin.courses.publish' | translate }}
-                  </button>
-                </li>
-                <li *ngIf="c.status === 'published'">
-                  <button class="dropdown-item" (click)="confirmUnPublish(c)">
-                    <i class="bi bi-eye-slash"></i>
-                    {{ 'admin.courses.unpublish' | translate }}
-                  </button>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li *ngIf="c.status != 'archived'">
-                  <button class="dropdown-item" (click)="confirmArchive(c)">
-                    <i class="bi bi-archive"></i>
-                    {{ 'admin.courses.archive' | translate }}
-                  </button>
-                </li>
-                <li>
-                  <button class="dropdown-item text-danger" (click)="confirmDelete(c)">
-                    <i class="bi bi-trash"></i>
-                    {{ 'common.delete' | translate }}
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="pagination-wrapper" *ngIf="!ui_controls.is_loading && course.length > 0">
-      <div class="pagination-info">
-        {{ 'admin.courses.pagination_info' | translate:{ page: meta.page, totalPages: meta.total_pages, total: meta.total } }}
-      </div>
-
-      <div class="pagination-controls">
-        <select
-          class="form-select form-select-sm per-page-select"
-          [(ngModel)]="initial.per_page"
-          (change)="paginate()"
-        >
-          <option [ngValue]="4">{{ 'admin.courses.per_page' | translate:{ count: 4 } }}</option>
-          <option [ngValue]="5">{{ 'admin.courses.per_page' | translate:{ count: 5 } }}</option>
-          <option [ngValue]="10">{{ 'admin.courses.per_page' | translate:{ count: 10 } }}</option>
-          <option [ngValue]="25">{{ 'admin.courses.per_page' | translate:{ count: 25 } }}</option>
-          <option [ngValue]="50">{{ 'admin.courses.per_page' | translate:{ count: 50 } }}</option>
-        </select>
-
-        <nav aria-label="Course pagination">
-          <ul class="pagination">
-            <li class="page-item" [class.disabled]="initial.page === 1">
-              <button class="page-link" (click)="list_course(1)" aria-label="First">
-                <i class="bi bi-chevron-double-left"></i>
-              </button>
-            </li>
-            <li class="page-item" [class.disabled]="initial.page === 1">
-              <button class="page-link" (click)="list_course(initial.page - 1)" aria-label="Previous">
-                <i class="bi bi-chevron-left"></i>
-              </button>
-            </li>
-
-            <li class="page-item active">
-              <span class="page-link">{{ meta.page }}</span>
-            </li>
-
-            <li class="page-item" [class.disabled]="meta.page === meta.total_pages">
-              <button class="page-link" (click)="list_course(initial.page + 1)" aria-label="Next">
-                <i class="bi bi-chevron-right"></i>
-              </button>
-            </li>
-            <li class="page-item" [class.disabled]="meta.page === meta.total_pages">
-              <button class="page-link" (click)="list_course(meta.total_pages)" aria-label="Last">
-                <i class="bi bi-chevron-double-right"></i>
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-    </div>
+    </section>
   </div>
 </main>
 
@@ -458,10 +400,10 @@
       {{ 'admin.courses.delete_message_suffix' | translate }}
     </p>
     <div class="modal-actions">
-      <button class="btn btn-cancel" (click)="cancelDelete()">
+      <button class="btn btn-outline-secondary" (click)="cancelDelete()">
         {{ 'common.cancel' | translate }}
       </button>
-      <button type="button" class="btn btn-success"
+      <button type="button" class="btn btn-danger"
               (click)="executeDelete()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -477,7 +419,7 @@
      ============================================================ -->
 <div class="modal-overlay" *ngIf="showPublishModal" (click)="cancelPublish()">
   <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
-    <div class="modal-icon danger">
+    <div class="modal-icon brand">
       <i class="bi bi-check-all"></i>
     </div>
     <h3 class="modal-title">{{ 'admin.courses.publish_title' | translate }}</h3>
@@ -485,10 +427,10 @@
       {{ 'admin.courses.publish_message_prefix' | translate }} <strong>"{{ courseToPublish?.title }}"</strong>?
     </p>
     <div class="modal-actions">
-      <button class="btn btn-cancel" (click)="cancelPublish()">
+      <button class="btn btn-outline-secondary" (click)="cancelPublish()">
         {{ 'common.cancel' | translate }}
       </button>
-      <button type="button" class="btn btn-success"
+      <button type="button" class="btn btn-primary"
               (click)="executePublish()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -504,7 +446,7 @@
      ============================================================ -->
 <div class="modal-overlay" *ngIf="showUnPublishModal" (click)="cancelUnPublish()">
   <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
-    <div class="modal-icon danger">
+    <div class="modal-icon brand">
       <i class="bi bi-check-all"></i>
     </div>
     <h3 class="modal-title">{{ 'admin.courses.unpublish_title' | translate }}</h3>
@@ -512,10 +454,10 @@
       {{ 'admin.courses.unpublish_message_prefix' | translate }} <strong>"{{ courseToUnPublish?.title }}"</strong>?
     </p>
     <div class="modal-actions">
-      <button class="btn btn-cancel" (click)="cancelUnPublish()">
+      <button class="btn btn-outline-secondary" (click)="cancelUnPublish()">
         {{ 'common.cancel' | translate }}
       </button>
-      <button type="button" class="btn btn-success"
+      <button type="button" class="btn btn-primary"
               (click)="executeUnPublish()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -531,7 +473,7 @@
 ============================================================ -->
 <div class="modal-overlay" *ngIf="showArchiveModal" (click)="cancelArchive()">
   <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
-    <div class="modal-icon danger">
+    <div class="modal-icon brand">
       <i class="bi bi-check-all"></i>
     </div>
     <h3 class="modal-title">{{ 'admin.courses.archive_title' | translate }}</h3>
@@ -539,10 +481,10 @@
       {{ 'admin.courses.archive_message_prefix' | translate }} <strong>"{{ courseToArchive?.title }}"</strong>?
     </p>
     <div class="modal-actions">
-      <button class="btn btn-cancel" (click)="cancelArchive()">
+      <button class="btn btn-outline-secondary" (click)="cancelArchive()">
         {{ 'common.cancel' | translate }}
       </button>
-      <button type="button" class="btn btn-success"
+      <button type="button" class="btn btn-primary"
               (click)="executeArchive()"
               [disabled]="ui_controls.is_loading">
         <span *ngIf="ui_controls.is_loading" class="spinner-border spinner-border-sm me-2"></span>
@@ -555,7 +497,7 @@
 
 <ng-template let-observer  [tuiDialogOptions]="{label: duplicate.course_title, size: 'l'}" [(tuiDialog)]="openDuplicate">
   <!-- Course Duplicate Card -->
-  <div class="card border-0 shadow-sm">
+  <div class="card border-0 duplicate-card">
     <div class="card-header bg-transparent border-0 py-3">
       <div class="d-flex align-items-center">
         <div class="rounded-3 p-2 bg-primary bg-opacity-10 me-3">
@@ -710,7 +652,7 @@
       <div class="d-flex gap-2 justify-content-end">
         <button
           type="button"
-          class="btn btn-sm btn-dark"
+          class="btn btn-sm btn-outline-secondary"
           (click)="onPreview()"
           [disabled]="isLoading">
           <tui-icon icon="@tui.eye" class="me-2"></tui-icon>

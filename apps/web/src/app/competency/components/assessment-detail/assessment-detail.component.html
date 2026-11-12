@@ -4,19 +4,19 @@
 
 <ng-container *ngIf="!loading && assessment as a">
   <!-- Header -->
-  <div class="d-flex align-items-start gap-2 mb-3">
-    <button class="btn btn-sm btn-icon mt-1" (click)="back()"><tui-icon icon="@tui.arrow-left"></tui-icon></button>
-    <div class="flex-grow-1">
-      <h4 class="mb-0">{{ a.userName }}</h4>
-      <div class="text-muted">
+  <div class="ad-head">
+    <button type="button" class="ui-page-header__back" (click)="back()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
+    <div class="flex-grow-1 min-w-0">
+      <h2 class="ad-title">{{ a.userName }}</h2>
+      <div class="ui-muted small">
         {{ a.jobTitle }} · {{ a.functionName }} · {{ 'competency.common.cycle' | translate }} {{ a.cycle }}
       </div>
     </div>
-    <a class="btn btn-sm btn-outline-primary mt-1"
+    <a class="btn btn-sm btn-outline-secondary"
        [routerLink]="['/admin/competency/assessments', a.id, 'report']">
       <tui-icon icon="@tui.file-text"></tui-icon> {{ 'modules.report' | translate }}
     </a>
-    <span class="badge rounded-pill fs-6"
+    <span class="badge rounded-pill"
           [class.bg-secondary-subtle]="a.status === 'draft'"
           [class.text-secondary-emphasis]="a.status === 'draft'"
           [class.bg-info-subtle]="a.status === 'self_assessed'"
@@ -48,24 +48,18 @@
   </div>
 
   <!-- Summary cards -->
-  <div class="row g-3 mb-4">
-    <div class="col-4">
-      <div class="mini-card">
-        <div class="mini-label">{{ 'competency.common.readiness' | translate }}</div>
-        <div class="mini-value">{{ a.readinessPercent !== null ? (a.readinessPercent | number: '1.0-0') + '%' : '-' }}</div>
-      </div>
+  <div class="ui-kpi-grid ui-kpi-grid--3 mb-3">
+    <div class="ui-kpi">
+      <span class="ui-kpi__label">{{ 'competency.common.readiness' | translate }}</span>
+      <span class="ui-kpi__value">{{ a.readinessPercent !== null ? (a.readinessPercent | number: '1.0-0') + '%' : '-' }}</span>
     </div>
-    <div class="col-4">
-      <div class="mini-card">
-        <div class="mini-label">{{ 'competency.common.open_gaps' | translate }}</div>
-        <div class="mini-value text-danger">{{ a.gapCounts.minor + a.gapCounts.major + a.gapCounts.significant }}</div>
-      </div>
+    <div class="ui-kpi">
+      <span class="ui-kpi__label">{{ 'competency.common.open_gaps' | translate }}</span>
+      <span class="ui-kpi__value text-danger">{{ a.gapCounts.minor + a.gapCounts.major + a.gapCounts.significant }}</span>
     </div>
-    <div class="col-4">
-      <div class="mini-card">
-        <div class="mini-label">{{ 'competency.detail.est_to_close' | translate }}</div>
-        <div class="mini-value">{{ a.estimatedMonths }} {{ 'competency.common.mo' | translate }}</div>
-      </div>
+    <div class="ui-kpi">
+      <span class="ui-kpi__label">{{ 'competency.detail.est_to_close' | translate }}</span>
+      <span class="ui-kpi__value">{{ a.estimatedMonths }} {{ 'competency.common.mo' | translate }}</span>
     </div>
   </div>
 
@@ -94,7 +88,7 @@
   </div>
 
   <!-- Items -->
-  <div class="card border-0 shadow-sm">
+  <section class="ui-section ui-section--flush">
     <div class="table-responsive">
       <table class="table align-middle mb-0 items-table">
         <thead>
@@ -141,7 +135,7 @@
         </tbody>
       </table>
     </div>
-    <div class="card-footer bg-transparent" *ngIf="editMode !== 'none'">
+    <div class="ui-section__foot" *ngIf="editMode !== 'none'">
       <!-- The line manager's closing note, gathered with their levels before
            the assessment is finalised. -->
       <div *ngIf="editMode === 'line'" class="mb-2">
@@ -153,7 +147,7 @@
                   placeholder="{{ 'competency.detail.closing_note_placeholder' | translate }}"></textarea>
       </div>
       <div class="d-flex justify-content-end gap-2">
-        <button class="btn btn-light btn-sm" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
         <button class="btn btn-sm" [class.btn-primary]="editMode !== 'line'" [class.btn-success]="editMode === 'line'"
                 [disabled]="saving" (click)="submit()">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
@@ -161,21 +155,21 @@
         </button>
       </div>
     </div>
-  </div>
+  </section>
 
   <!-- Report notes - the qualitative side of the individual report -->
-  <div class="card border-0 shadow-sm mt-3">
-    <div class="card-header bg-transparent d-flex align-items-center justify-content-between">
+  <section class="ui-section">
+    <div class="ui-section__head">
       <div>
-        <h6 class="mb-0">{{ 'competency.detail.report_notes' | translate }}</h6>
-        <small class="text-muted">{{ 'competency.detail.report_notes_hint' | translate }}</small>
+        <h2 class="ui-section__title">{{ 'competency.detail.report_notes' | translate }}</h2>
+        <p class="ui-section__subtitle">{{ 'competency.detail.report_notes_hint' | translate }}</p>
       </div>
       <button class="btn btn-primary btn-sm" [disabled]="savingNarrative" (click)="saveNarrative()">
         <span *ngIf="savingNarrative" class="spinner-border spinner-border-sm me-1"></span>
         {{ 'competency.detail.save_notes' | translate }}
       </button>
     </div>
-    <div class="card-body">
+    <div class="ui-section__body">
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label small fw-semibold">{{ 'competency.detail.sme_comments' | translate }}</label>
@@ -204,5 +198,5 @@
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </ng-container>

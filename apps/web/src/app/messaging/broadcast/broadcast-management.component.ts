@@ -25,169 +25,129 @@ interface FormTargetCriteria {
   template: `
     <app-top></app-top>
 
-    <div class="broadcast-management">
+    <main class="main">
+    <div class="ui-page broadcast-management">
       <!-- Header -->
-      <div class="page-header mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h1 class="page-title mb-1">
-              <i class="bi bi-megaphone me-2"></i>{{ 'messaging.broadcast_messages' | translate }}
-            </h1>
-            <p class="text-muted mb-0">{{ 'messaging.broadcast_subtitle' | translate }}</p>
-          </div>
-          <button class="btn btn-primary" (click)="openNewBroadcastModal()">
-            <i class="bi bi-plus-lg me-2"></i>{{ 'messaging.new_broadcast' | translate }}
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-megaphone"></i></div>
+        <div class="ui-page-header__titles">
+          <h1>{{ 'messaging.broadcast_messages' | translate }}</h1>
+          <p>{{ 'messaging.broadcast_subtitle' | translate }}</p>
+        </div>
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-primary" (click)="openNewBroadcastModal()">
+            <i class="bi bi-plus-lg me-1"></i>{{ 'messaging.new_broadcast' | translate }}
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Stats Cards -->
-      <div class="row g-4 mb-4">
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-icon bg-primary-subtle">
-              <i class="bi bi-send text-primary"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.total_sent }}</div>
-              <div class="stat-label">{{ 'messaging.total_sent' | translate }}</div>
-            </div>
-          </div>
+      <div class="ui-kpi-grid ui-kpi-grid--4">
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-send"></i> {{ 'messaging.total_sent' | translate }}</span>
+          <span class="ui-kpi__value">{{ stats.total_sent }}</span>
         </div>
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-icon bg-info-subtle">
-              <i class="bi bi-people text-info"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.total_recipients }}</div>
-              <div class="stat-label">{{ 'messaging.total_recipients' | translate }}</div>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'messaging.total_recipients' | translate }}</span>
+          <span class="ui-kpi__value">{{ stats.total_recipients }}</span>
         </div>
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-icon bg-success-subtle">
-              <i class="bi bi-eye text-success"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.avg_read_rate }}%</div>
-              <div class="stat-label">{{ 'messaging.avg_read_rate' | translate }}</div>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-eye"></i> {{ 'messaging.avg_read_rate' | translate }}</span>
+          <span class="ui-kpi__value">{{ stats.avg_read_rate }}<small>%</small></span>
         </div>
-        <div class="col-md-3">
-          <div class="stat-card">
-            <div class="stat-icon bg-warning-subtle">
-              <i class="bi bi-clock text-warning"></i>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ stats.scheduled }}</div>
-              <div class="stat-label">{{ 'messaging.scheduled' | translate }}</div>
-            </div>
-          </div>
+        <div class="ui-kpi ui-kpi--warning">
+          <span class="ui-kpi__label"><i class="bi bi-clock"></i> {{ 'messaging.scheduled' | translate }}</span>
+          <span class="ui-kpi__value">{{ stats.scheduled }}</span>
         </div>
       </div>
 
       <!-- Tabs -->
-      <ul class="nav nav-pills mb-4">
-        <li class="nav-item">
-          <button class="nav-link" [class.active]="activeTab === 'sent'" (click)="activeTab = 'sent'">
-            <i class="bi bi-check2-circle me-2"></i>{{ 'messaging.tab_sent' | translate }}
-          </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link" [class.active]="activeTab === 'scheduled'" (click)="activeTab = 'scheduled'">
-            <i class="bi bi-clock me-2"></i>{{ 'messaging.scheduled' | translate }}
-            <span class="badge bg-warning text-dark ms-2" *ngIf="scheduledBroadcasts.length">
-              {{ scheduledBroadcasts.length }}
-            </span>
-          </button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link" [class.active]="activeTab === 'drafts'" (click)="activeTab = 'drafts'">
-            <i class="bi bi-file-earmark me-2"></i>{{ 'messaging.tab_drafts' | translate }}
-          </button>
-        </li>
-      </ul>
+      <nav class="ui-tabs bc-tabs" role="tablist">
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'sent'" [attr.aria-selected]="activeTab === 'sent'" (click)="activeTab = 'sent'">
+          <i class="bi bi-check2-circle"></i> {{ 'messaging.tab_sent' | translate }}
+        </button>
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'scheduled'" [attr.aria-selected]="activeTab === 'scheduled'" (click)="activeTab = 'scheduled'">
+          <i class="bi bi-clock"></i> {{ 'messaging.scheduled' | translate }}
+          <span class="ui-tab__count" *ngIf="scheduledBroadcasts.length">{{ scheduledBroadcasts.length }}</span>
+        </button>
+        <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'drafts'" [attr.aria-selected]="activeTab === 'drafts'" (click)="activeTab = 'drafts'">
+          <i class="bi bi-file-earmark"></i> {{ 'messaging.tab_drafts' | translate }}
+        </button>
+      </nav>
 
       <!-- Broadcasts List -->
-      <div class="card">
-        <div class="card-body p-0">
-          <div class="broadcast-list" *ngIf="getFilteredBroadcasts().length > 0; else emptyState">
-            <div class="broadcast-item" *ngFor="let broadcast of getFilteredBroadcasts(); trackBy: trackByBroadcastId">
+      <section class="ui-section">
+          <ul class="ui-list broadcast-list" *ngIf="getFilteredBroadcasts().length > 0; else emptyState">
+            <li class="broadcast-item" *ngFor="let broadcast of getFilteredBroadcasts(); trackBy: trackByBroadcastId">
               <div class="broadcast-priority" [ngClass]="getPriorityClass(broadcast.priority)">
                 <i class="bi" [ngClass]="getPriorityIcon(broadcast.priority)"></i>
               </div>
               <div class="broadcast-content flex-grow-1">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                  <h6 class="broadcast-title mb-0">{{ broadcast.title }}</h6>
-                  <span class="badge" [ngClass]="getStatusBadge(broadcast.status)">
-                    {{ broadcast.status | titlecase }}
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                  <h3 class="broadcast-title mb-0">{{ broadcast.title }}</h3>
+                  <span class="ui-pill" [ngClass]="'ui-pill--' + (broadcast.status === 'sent' ? 'success' : broadcast.status === 'scheduled' ? 'info' : broadcast.status === 'cancelled' ? 'danger' : 'neutral')">
+                    <span class="ui-pill__dot"></span>{{ broadcast.status | titlecase }}
                   </span>
                 </div>
-                <p class="broadcast-excerpt text-muted mb-2">{{ getExcerpt(broadcast.content) }}</p>
+                <p class="broadcast-excerpt ui-muted mb-2">{{ getExcerpt(broadcast.content) }}</p>
                 <div class="broadcast-meta">
-                  <span class="badge bg-light text-dark me-2">
-                    <i class="bi bi-bullseye me-1"></i>
+                  <span class="ui-pill ui-pill--neutral">
+                    <i class="bi bi-bullseye"></i>
                     {{ getTargetLabel(broadcast) }}
                   </span>
-                  <span class="text-muted small" *ngIf="broadcast.sent_at">
+                  <span class="ui-muted small" *ngIf="broadcast.sent_at">
                     <i class="bi bi-clock me-1"></i>
                     {{ 'messaging.sent_prefix' | translate }} {{ formatDateTime(broadcast.sent_at) }}
                   </span>
-                  <span class="text-muted small" *ngIf="broadcast.scheduled_at && broadcast.status === 'scheduled'">
+                  <span class="ui-muted small" *ngIf="broadcast.scheduled_at && broadcast.status === 'scheduled'">
                     <i class="bi bi-calendar me-1"></i>
                     {{ 'messaging.scheduled_for' | translate }} {{ formatDateTime(broadcast.scheduled_at) }}
                   </span>
                 </div>
               </div>
-              <div class="broadcast-stats text-center" *ngIf="broadcast.status === 'sent'">
+              <div class="broadcast-stats" *ngIf="broadcast.status === 'sent'">
                 <div class="stat-mini">
                   <div class="stat-value">{{ broadcast.read_count }}/{{ broadcast.recipients_count }}</div>
                   <div class="stat-label">{{ 'messaging.read_stat' | translate }}</div>
                 </div>
-                <div class="progress mt-2" style="height: 4px; width: 80px;">
-                  <div class="progress-bar bg-success" [style.width.%]="getReadPercentage(broadcast)"></div>
+                <div class="ui-bar mt-2" style="width: 80px;">
+                  <span [style.width.%]="getReadPercentage(broadcast)"></span>
                 </div>
               </div>
               <div class="broadcast-actions">
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-primary" (click)="viewBroadcast(broadcast)" [title]="'messaging.view_details' | translate">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <button class="btn btn-secondary" *ngIf="broadcast.status === 'draft'"
-                          (click)="editBroadcast(broadcast)" [title]="'common.edit' | translate">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button class="btn btn-success" *ngIf="broadcast.status === 'draft'"
-                          (click)="sendBroadcast(broadcast)" [title]="'messaging.send_now' | translate">
-                    <i class="bi bi-send"></i>
-                  </button>
-                  <button class="btn btn-outline-danger" *ngIf="broadcast.status !== 'sent'"
-                          (click)="deleteBroadcast(broadcast)" [title]="'common.delete' | translate">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewBroadcast(broadcast)" [title]="'messaging.view_details' | translate">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="broadcast.status === 'draft'"
+                        (click)="editBroadcast(broadcast)" [title]="'common.edit' | translate">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" *ngIf="broadcast.status === 'draft'"
+                        (click)="sendBroadcast(broadcast)" [title]="'messaging.send_now' | translate">
+                  <i class="bi bi-send"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" *ngIf="broadcast.status !== 'sent'"
+                        (click)="deleteBroadcast(broadcast)" [title]="'common.delete' | translate">
+                  <i class="bi bi-trash"></i>
+                </button>
               </div>
-            </div>
-          </div>
+            </li>
+          </ul>
           <ng-template #emptyState>
-            <div class="empty-state">
-              <i class="bi bi-megaphone display-4 text-muted"></i>
-              <h5 class="mt-3">{{ 'messaging.no_broadcasts' | translate }}</h5>
-              <p class="text-muted">
+            <div class="ui-state empty-state">
+              <span class="ui-state__icon"><i class="bi bi-megaphone"></i></span>
+              <h3>{{ 'messaging.no_broadcasts' | translate }}</h3>
+              <p>
                 {{ (activeTab === 'sent' ? 'messaging.no_sent' :
                 activeTab === 'scheduled' ? 'messaging.no_scheduled' :
                   'messaging.no_drafts') | translate }}
               </p>
-              <button class="btn btn-primary" (click)="openNewBroadcastModal()">
-                <i class="bi bi-plus-lg me-2"></i>{{ 'messaging.create_broadcast' | translate }}
+              <button type="button" class="btn btn-primary" (click)="openNewBroadcastModal()">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'messaging.create_broadcast' | translate }}
               </button>
             </div>
           </ng-template>
-        </div>
-      </div>
+      </section>
 
       <!-- New/Edit Broadcast Modal -->
       <div class="modal fade" [class.show]="showBroadcastModal" [style.display]="showBroadcastModal ? 'block' : 'none'">
@@ -334,11 +294,11 @@ interface FormTargetCriteria {
               </form>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeBroadcastModal()">{{ 'common.cancel' | translate }}</button>
-              <button class="btn btn-primary" (click)="saveDraft()" [disabled]="!isFormValid()">
+              <button type="button" class="btn btn-outline-secondary" (click)="closeBroadcastModal()">{{ 'common.cancel' | translate }}</button>
+              <button type="button" class="btn btn-outline-secondary" (click)="saveDraft()" [disabled]="!isFormValid()">
                 <i class="bi bi-file-earmark me-2"></i>{{ 'messaging.save_draft' | translate }}
               </button>
-              <button class="btn btn-primary" (click)="submitBroadcast()" [disabled]="!isFormValid()">
+              <button type="button" class="btn btn-primary" (click)="submitBroadcast()" [disabled]="!isFormValid()">
                 <i class="bi me-2" [ngClass]="scheduleEnabled ? 'bi-calendar-check' : 'bi-send'"></i>
                 {{ (scheduleEnabled ? 'messaging.schedule_action' : 'messaging.send_now') | translate }}
               </button>
@@ -411,159 +371,115 @@ interface FormTargetCriteria {
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-secondary" (click)="closeViewModal()">{{ 'common.close' | translate }}</button>
+              <button type="button" class="btn btn-outline-secondary" (click)="closeViewModal()">{{ 'common.close' | translate }}</button>
             </div>
           </div>
         </div>
       </div>
       <div class="modal-backdrop fade show" *ngIf="showViewModal" (click)="closeViewModal()"></div>
     </div>
+    </main>
   `,
   styles: [`
-    .page-title {
-      font-size: 1.75rem;
-      font-weight: 600;
-      color: #1a1a2e;
+    .bc-tabs { margin-bottom: 16px; }
 
-      i { color: #303234; }
+    .broadcast-list > li.broadcast-item {
+      gap: 14px;
+      padding: 14px 0;
     }
 
-    .stat-card {
-      background: #fff;
-      border-radius: 12px;
-      padding: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    }
-
-    .stat-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      i { font-size: 1.5rem; }
-    }
-
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      line-height: 1;
-    }
-
-    .stat-label {
-      font-size: 0.875rem;
-      color: #6c757d;
-    }
-
-    .nav-pills {
-      gap: 0.5rem;
-
-      .nav-link {
-        color: #6c757d;
-        border-radius: 8px;
-
-        &.active {
-          background: #303234;
-          color: #fff;
-        }
-      }
-    }
-
-    .broadcast-list {
-      .broadcast-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1.25rem;
-        border-bottom: 1px solid #f0f0f0;
-
-        &:last-child { border-bottom: none; }
-
-        &:hover { background: #f8f9fa; }
-      }
-    }
+    .broadcast-list > li.broadcast-item:first-child { padding-top: 0; }
 
     .broadcast-priority {
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
+      width: 38px;
+      height: 38px;
+      flex-shrink: 0;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-
-      &.priority-normal {
-        background: rgba(108, 117, 125, 0.15);
-        color: #6c757d;
-      }
-
-      &.priority-important {
-        background: rgba(255, 193, 7, 0.15);
-        color: #ffc107;
-      }
-
-      &.priority-urgent {
-        background: rgba(220, 53, 69, 0.15);
-        color: #dc3545;
-      }
     }
 
+    .broadcast-priority.priority-normal {
+      background: rgba(var(--ui-neutral-rgb, 108, 117, 125), 0.1);
+      color: var(--ui-neutral-text, #5b625c);
+    }
+
+    .broadcast-priority.priority-important {
+      background: rgba(var(--ui-warning-rgb, 178, 94, 9), 0.1);
+      color: var(--ui-warning-text, #8a4a07);
+    }
+
+    .broadcast-priority.priority-urgent {
+      background: rgba(var(--ui-danger-rgb, 192, 53, 43), 0.1);
+      color: var(--ui-danger-text, #a02a22);
+    }
+
+    .broadcast-content { min-width: 0; }
+
     .broadcast-title {
+      font-size: .9375rem;
       font-weight: 600;
-      color: #1a1a2e;
+      color: var(--ui-text);
     }
 
     .broadcast-excerpt {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    .stat-mini {
-      .stat-value {
-        font-size: 1rem;
-        font-weight: 600;
-      }
-      .stat-label {
-        font-size: 0.75rem;
-      }
+    .broadcast-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
+    .broadcast-stats { text-align: center; flex-shrink: 0; }
+
+    .stat-mini .stat-value {
+      font-size: .9375rem;
+      font-weight: 600;
+      color: var(--ui-text);
+    }
+
+    .stat-mini .stat-label {
+      font-size: 0.75rem;
+      color: var(--ui-text-muted);
+    }
+
+    .broadcast-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
     .detail-stat {
       text-align: center;
       padding: 1rem;
-      background: #f8f9fa;
-      border-radius: 8px;
-
-      .detail-stat-label {
-        font-size: 0.8125rem;
-        color: #6c757d;
-        margin-bottom: 0.25rem;
-      }
-
-      .detail-stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #1a1a2e;
-      }
+      background: var(--ui-surface-2, #f7f8f7);
+      border: 1px solid var(--ui-border, #e7e9e7);
+      border-radius: var(--ui-radius-card, 12px);
     }
 
-    .bg-primary-subtle { background: rgba(201, 162, 39, 0.15) !important; }
-    .bg-success-subtle { background: rgba(25, 135, 84, 0.15) !important; }
-    .bg-warning-subtle { background: rgba(255, 193, 7, 0.15) !important; }
-    .bg-info-subtle { background: rgba(13, 202, 240, 0.15) !important; }
+    .detail-stat .detail-stat-label {
+      font-size: 0.8125rem;
+      color: var(--ui-text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-stat .detail-stat-value {
+      font-size: 1.5rem;
+      font-weight: 650;
+      color: var(--ui-text);
+    }
+
+    @media (max-width: 767.98px) {
+      .broadcast-list > li.broadcast-item { flex-wrap: wrap; }
+    }
   `]
 })
 export class BroadcastManagementComponent implements OnInit, OnDestroy {

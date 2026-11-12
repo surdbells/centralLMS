@@ -1,10 +1,10 @@
 <div class="rv-page">
   <!-- Picker bar (not printed) -->
-  <div class="rv-bar no-print">
+  <section class="ui-section rv-bar no-print">
     <div class="rv-bar-inner">
       <div class="rv-heading">
-        <h1>{{ 'competency.viewer.title' | translate }}</h1>
-        <p>{{ 'competency.viewer.subtitle' | translate }}</p>
+        <h2 class="ui-section__title">{{ 'competency.viewer.title' | translate }}</h2>
+        <p class="ui-section__subtitle">{{ 'competency.viewer.subtitle' | translate }}</p>
       </div>
 
       <div class="rv-cycle">
@@ -63,12 +63,12 @@
         <i class="bi bi-printer"></i> {{ 'competency.report.print_pdf' | translate }}
       </button>
     </div>
-  </div>
+  </section>
 
   <!-- Report -->
   <div class="rv-report">
-    <div class="rv-placeholder no-print" *ngIf="!selected">
-      <i class="bi bi-file-earmark-person"></i>
+    <div class="ui-state rv-placeholder no-print" *ngIf="!selected">
+      <span class="ui-state__icon"><i class="bi bi-file-earmark-person"></i></span>
       <h3>{{ 'competency.viewer.none_chosen_title' | translate }}</h3>
       <p>{{ 'competency.viewer.none_chosen_text' | translate }}</p>
     </div>

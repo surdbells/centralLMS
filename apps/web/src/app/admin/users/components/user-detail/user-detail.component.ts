@@ -92,160 +92,187 @@ function onDay(value: string | null): string {
   imports: [CommonModule, RouterLink, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid">
+    <main class="main">
+      <div class="ui-page">
     <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
     <div *ngIf="user && !loading">
       <!-- Header -->
-      <div class="d-flex justify-content-between align-items-start mb-4">
-        <div class="d-flex gap-3 align-items-center">
-          <a routerLink="/admin/users" class="btn btn-sm btn-secondary"><i class="bi bi-arrow-left"></i></a>
-          <div class="avatar-lg" [style.background-color]="getColor(user.full_name)">{{ user.full_name.charAt(0) }}</div>
-          <div>
-            <h4 class="fw-bold mb-0">{{ user.full_name }}</h4>
-            <p class="text-muted mb-0">{{ user.email }}
-              <span class="badge ms-2" [class]="statusClass">{{ ('admin.users.status_' + user.status) | translate }}</span>
-            </p>
-            <div class="mt-1">
-              <span *ngFor="let r of user.roles" class="badge bg-primary-subtle text-primary me-1">{{ r.role_name }}</span>
-            </div>
+      <header class="ui-page-header">
+        <a routerLink="/admin/users" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
+        <div class="ui-page-header__icon user-initial" aria-hidden="true">{{ user.full_name.charAt(0) }}</div>
+        <div class="ui-page-header__titles">
+          <h1>{{ user.full_name }}</h1>
+          <p>{{ user.email }}</p>
+          <div class="header-pills">
+            <span class="ui-pill" [ngClass]="{
+                    'ui-pill--success': user.status === 'active',
+                    'ui-pill--neutral': user.status === 'invited',
+                    'ui-pill--warning': user.status === 'suspended',
+                    'ui-pill--danger': user.status === 'locked'
+                  }"><span class="ui-pill__dot"></span>{{ ('admin.users.status_' + user.status) | translate }}</span>
+            <span *ngFor="let r of user.roles" class="ui-pill ui-pill--brand">{{ r.role_name }}</span>
           </div>
         </div>
-        <div class="d-flex gap-2">
-          <a [routerLink]="['/admin/users', user.id, 'edit']" class="btn btn-sm btn-secondary"><i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}</a>
-          <button class="btn btn-sm" [class]="user.status === 'active' ? 'btn-secondary' : 'btn-success'"
+        <div class="ui-page-header__actions">
+          <a [routerLink]="['/admin/users', user.id, 'edit']" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil me-1"></i>{{ 'common.edit' | translate }}</a>
+          <button type="button" class="btn btn-sm" [ngClass]="user.status === 'active' ? 'btn-outline-secondary' : 'btn-primary'"
                   (click)="toggleStatus()">
-            <i class="bi" [class]="user.status === 'active' ? 'bi-pause-circle' : 'bi-check-circle'"></i>
+            <i class="bi me-1" [ngClass]="user.status === 'active' ? 'bi-pause-circle' : 'bi-check-circle'"></i>
             {{ user.status === 'active' ? ('admin.users.suspend' | translate) : ('admin.users.activate' | translate) }}
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Tabs -->
-      <ul class="nav nav-tabs mb-3">
-        <li class="nav-item" *ngFor="let tab of tabs">
-          <a class="nav-link" [class.active]="activeTab === tab.key" role="button" (click)="onTabChange(tab.key)">
-            <i class="bi me-1" [class]="tab.icon"></i>{{ tab.label | translate }}
-          </a>
-        </li>
-      </ul>
+      <nav class="ui-tabs" role="tablist">
+        <button type="button" role="tab" class="ui-tab" *ngFor="let tab of tabs"
+                [class.is-active]="activeTab === tab.key" [attr.aria-selected]="activeTab === tab.key"
+                (click)="onTabChange(tab.key)">
+          <i class="bi" [ngClass]="tab.icon"></i>{{ tab.label | translate }}
+        </button>
+      </nav>
 
       <!-- Profile Tab -->
-      <div *ngIf="activeTab === 'profile'" class="row g-4">
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-person me-2"></i>{{ 'admin.user_form.personal_info' | translate }}</div>
-            <div class="card-body">
-              <div class="row mb-2" *ngFor="let f of personalFields">
-                <div class="col-5 text-muted small">{{ f.label }}</div>
-                <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
-              </div>
+      <div *ngIf="activeTab === 'profile'" class="ui-row">
+        <div class="section-stack">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-person me-2"></i>{{ 'admin.user_form.personal_info' | translate }}</h2>
             </div>
-          </div>
+            <dl class="field-list">
+              <div class="field-row" *ngFor="let f of personalFields">
+                <dt>{{ f.label }}</dt><dd>{{ f.value || '-' }}</dd>
+              </div>
+            </dl>
+          </section>
         </div>
-        <div class="col-md-6">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-building me-2"></i>{{ 'admin.user_form.organization' | translate }}</div>
-            <div class="card-body">
-              <div class="row mb-2" *ngFor="let f of orgFields">
-                <div class="col-5 text-muted small">{{ f.label }}</div>
-                <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
-              </div>
+        <div class="section-stack">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-building me-2"></i>{{ 'admin.user_form.organization' | translate }}</h2>
             </div>
-          </div>
-          <div class="card border-0 shadow-sm mt-3" *ngIf="customFields.length">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-sliders me-2"></i>{{ 'admin.user_form.additional_info' | translate }}</div>
-            <div class="card-body">
-              <div class="row mb-2" *ngFor="let f of customFields">
-                <div class="col-5 text-muted small">{{ f.label }}</div>
-                <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+            <dl class="field-list">
+              <div class="field-row" *ngFor="let f of orgFields">
+                <dt>{{ f.label }}</dt><dd>{{ f.value || '-' }}</dd>
               </div>
+            </dl>
+          </section>
+          <section class="ui-section" *ngIf="customFields.length">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-sliders me-2"></i>{{ 'admin.user_form.additional_info' | translate }}</h2>
             </div>
-          </div>
-          <div class="card border-0 shadow-sm mt-3">
-            <div class="card-header bg-white fw-semibold"><i class="bi bi-clock me-2"></i>{{ 'admin.user_detail.account' | translate }}</div>
-            <div class="card-body">
-              <div class="row mb-2" *ngFor="let f of accountFields">
-                <div class="col-5 text-muted small">{{ f.label }}</div>
-                <div class="col-7 small fw-medium">{{ f.value || '-' }}</div>
+            <dl class="field-list">
+              <div class="field-row" *ngFor="let f of customFields">
+                <dt>{{ f.label }}</dt><dd>{{ f.value || '-' }}</dd>
               </div>
+            </dl>
+          </section>
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-clock me-2"></i>{{ 'admin.user_detail.account' | translate }}</h2>
             </div>
-          </div>
+            <dl class="field-list">
+              <div class="field-row" *ngFor="let f of accountFields">
+                <dt>{{ f.label }}</dt><dd>{{ f.value || '-' }}</dd>
+              </div>
+            </dl>
+          </section>
         </div>
       </div>
 
       <!-- Roles Tab -->
       <div *ngIf="activeTab === 'roles'">
-        <div class="row g-4">
-          <div class="col-md-6">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <span class="fw-semibold"><i class="bi bi-shield me-2"></i>{{ 'admin.user_detail.assigned_roles' | translate }}</span>
+        <div class="ui-row">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-shield me-2"></i>{{ 'admin.user_detail.assigned_roles' | translate }}</h2>
+              <div class="ui-section__actions">
                 <div class="dropdown" *ngIf="availableRoles.length">
-                  <button class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">{{ 'admin.users.assign_role' | translate }}</button>
-                  <ul class="dropdown-menu">
+                  <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">{{ 'admin.users.assign_role' | translate }}</button>
+                  <ul class="dropdown-menu dropdown-menu-end">
                     <li *ngFor="let r of availableRoles"><a class="dropdown-item" (click)="assignRole(r.role_id)">{{ r.role_name }}</a></li>
                   </ul>
                 </div>
               </div>
-              <ul class="list-group list-group-flush">
-                <li *ngFor="let r of user.roles" class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <span class="fw-semibold">{{ r.role_name }}</span>
-                    <span class="badge bg-light text-muted ms-2" *ngIf="r.is_system">{{ 'admin.user_detail.system' | translate }}</span>
-                    <br><small class="text-muted">{{ r.description }}</small>
-                  </div>
-                  <button class="btn btn-sm btn-outline-danger" (click)="removeRole(r.role_id)" title="{{ 'common.remove' | translate }}"><i class="bi bi-x"></i></button>
-                </li>
-                <li *ngIf="!user.roles.length" class="list-group-item text-muted text-center py-3">{{ 'admin.user_detail.no_roles' | translate }}</li>
-              </ul>
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white fw-semibold"><i class="bi bi-key me-2"></i>{{ 'admin.user_detail.effective_permissions' | translate:{ count: user.permissions.length } }}</div>
-              <div class="card-body" style="max-height:400px; overflow-y:auto">
-                <div *ngFor="let p of user.permissions" class="d-flex align-items-center gap-2 mb-1">
-                  <i class="bi bi-check-circle-fill text-success small"></i>
-                  <small>{{ p }}</small>
+            <ul class="ui-list" *ngIf="user.roles.length">
+              <li *ngFor="let r of user.roles" class="justify-content-between">
+                <div class="min-w-0">
+                  <span class="fw-semibold">{{ r.role_name }}</span>
+                  <span class="ui-pill ui-pill--neutral ms-2" *ngIf="r.is_system">{{ 'admin.user_detail.system' | translate }}</span>
+                  <br><small class="ui-muted">{{ r.description }}</small>
                 </div>
-                <p *ngIf="!user.permissions.length" class="text-muted text-center mb-0">{{ 'admin.user_detail.no_permissions' | translate }}</p>
-              </div>
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeRole(r.role_id)" title="{{ 'common.remove' | translate }}"><i class="bi bi-x"></i></button>
+              </li>
+            </ul>
+            <div *ngIf="!user.roles.length" class="ui-state">
+              <span class="ui-state__icon"><i class="bi bi-shield"></i></span>
+              <h3>{{ 'admin.user_detail.no_roles' | translate }}</h3>
             </div>
-          </div>
+          </section>
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title"><i class="bi bi-key me-2"></i>{{ 'admin.user_detail.effective_permissions' | translate:{ count: user.permissions.length } }}</h2>
+            </div>
+            <div class="perm-scroll">
+              <div *ngFor="let p of user.permissions" class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-check-circle-fill text-success small"></i>
+                <small>{{ p }}</small>
+              </div>
+              <p *ngIf="!user.permissions.length" class="ui-muted text-center mb-0">{{ 'admin.user_detail.no_permissions' | translate }}</p>
+            </div>
+          </section>
         </div>
       </div>
 
       <!-- Activity Tab -->
       <div *ngIf="activeTab === 'activity'">
         <div *ngIf="loadingActivity" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-        <div class="card border-0 shadow-sm" *ngIf="!loadingActivity">
+        <section class="ui-section ui-section--flush" *ngIf="!loadingActivity">
           <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-              <thead class="table-light">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
                 <tr><th>{{ 'admin.user_detail.col_time' | translate }}</th><th>{{ 'admin.audit.col_action' | translate }}</th><th>{{ 'admin.user_detail.col_details' | translate }}</th><th>{{ 'admin.user_detail.col_by' | translate }}</th><th>{{ 'admin.user_detail.col_ip' | translate }}</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let a of activities">
                   <td><small>{{ a.created_at | date:'short' }}</small></td>
                   <td><span class="badge" [class]="getActionBadge(a.action)">{{ a.action | titlecase }}</span></td>
-                  <td><small class="text-muted">{{ formatDetails(a.details) }}</small></td>
+                  <td><small class="ui-muted">{{ formatDetails(a.details) }}</small></td>
                   <td><small>{{ a.performed_by_name || ('admin.user_detail.system_actor' | translate) }}</small></td>
-                  <td><small class="text-muted">{{ a.ip_address || '-' }}</small></td>
+                  <td><small class="ui-muted">{{ a.ip_address || '-' }}</small></td>
                 </tr>
-                <tr *ngIf="!activities.length"><td colspan="5" class="text-center text-muted py-3">{{ 'admin.user_detail.no_activity' | translate }}</td></tr>
+                <tr *ngIf="!activities.length">
+                  <td colspan="5" class="p-3">
+                    <div class="ui-state">
+                      <span class="ui-state__icon"><i class="bi bi-clock-history"></i></span>
+                      <h3>{{ 'admin.user_detail.no_activity' | translate }}</h3>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
     </div>
       </div>
     </main>
   `,
   styles: [`
-    .avatar-lg { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:24px; flex-shrink:0; }
-    .nav-link { cursor:pointer; }
+    .user-initial { font-weight: 700; font-size: 1.15rem; text-transform: uppercase; }
+    .header-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .section-stack { min-width: 0; }
+    .section-stack > .ui-section:last-child { margin-bottom: 0; }
+    .field-list { margin: 0; }
+    .field-row { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 12px; padding: 8px 0;
+      border-bottom: 1px solid var(--ui-border); font-size: .8125rem; }
+    .field-row:first-child { padding-top: 0; }
+    .field-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .field-row dt { font-weight: 500; color: var(--ui-text-muted); }
+    .field-row dd { margin: 0; font-weight: 550; color: var(--ui-text); overflow-wrap: anywhere; }
+    .perm-scroll { max-height: 400px; overflow-y: auto; }
+    .min-w-0 { min-width: 0; }
   `]
 })
 export class UserDetailComponent implements OnInit, OnDestroy {

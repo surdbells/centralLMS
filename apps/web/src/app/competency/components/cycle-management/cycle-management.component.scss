@@ -1,10 +1,4 @@
-.cm {
-  max-width: 900px;
-}
-
-.cm-head {
-  margin-bottom: 1rem;
-}
+// Section, table wrap, pills and empty state come from the global UI kit.
 
 .cm-add {
   display: flex;
@@ -25,15 +19,14 @@
   }
 }
 
-.cm-loading,
-.cm-empty {
+.cm-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: .5rem;
   padding: 2.5rem 1rem;
-  color: #98a2ad;
+  color: var(--brand-primary);
 
   i {
     font-size: 1.75rem;
@@ -41,13 +34,6 @@
 }
 
 .cm-table {
-  th {
-    font-size: .8rem;
-    text-transform: uppercase;
-    letter-spacing: .02em;
-    color: #6b7683;
-  }
-
   .cm-status-col {
     width: 7rem;
   }

@@ -46,7 +46,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
           <div class="upload-zone" (click)="fileInput.click()" [class.drag-over]="dragOver"
                (dragover)="$event.preventDefault();dragOver=true" (dragleave)="dragOver=false"
                (drop)="$event.preventDefault();dragOver=false;onFileDrop($event)">
-            <tui-icon icon="@tui.upload-cloud" style="font-size:48px;color:#94a3b8"></tui-icon>
+            <tui-icon icon="@tui.upload-cloud" style="font-size:48px;color:var(--ui-text-subtle, #8d948e)"></tui-icon>
             <h3>Drop your file here</h3>
             <p>or click to browse</p>
             <span class="hint">CSV or Excel (.xlsx) files</span>
@@ -58,15 +58,15 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
             <button type="button" class="btn-close ms-auto" (click)="importError = null"></button>
           </div>
           <div class="file-info" *ngIf="selectedFile">
-            <tui-icon icon="@tui.file-text" style="font-size:20px;color:#6366f1"></tui-icon>
+            <tui-icon icon="@tui.file-text" style="font-size:20px;color:var(--brand-primary)"></tui-icon>
             <div class="file-det"><span class="fname">{{ selectedFile.name }}</span><span class="fsize">{{ formatSize(selectedFile.size) }}</span></div>
             <button class="btn-icon" (click)="selectedFile=null;parsedData=[];serverParse=false;importError=null"><tui-icon icon="@tui.x" style="font-size:14px"></tui-icon></button>
           </div>
           <div class="tpl-section">
             <h4>Need a template?</h4>
             <div class="tpl-btns">
-              <button class="btn btn-sm btn-outline" (click)="downloadTemplate('csv')"><tui-icon icon="@tui.download" style="font-size:14px"></tui-icon> CSV</button>
-              <button class="btn btn-sm btn-outline" (click)="downloadTemplate('xlsx')"><tui-icon icon="@tui.download" style="font-size:14px"></tui-icon> Excel</button>
+              <button class="btn btn-sm btn-outline-secondary" (click)="downloadTemplate('csv')"><tui-icon icon="@tui.download" style="font-size:14px"></tui-icon> CSV</button>
+              <button class="btn btn-sm btn-outline-secondary" (click)="downloadTemplate('xlsx')"><tui-icon icon="@tui.download" style="font-size:14px"></tui-icon> Excel</button>
             </div>
             <p class="tpl-info">Required: <strong>question_text, question_type, difficulty, points</strong><br/>
               Optional: options (pipe-separated), correct_answer, explanation, tags, hint</p>
@@ -80,7 +80,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
             <div class="map-row map-hdr"><span>Your Column</span><span></span><span>Maps To</span></div>
             <div *ngFor="let col of sourceColumns; let i=index" class="map-row">
               <span class="src-col">{{ col }}</span>
-              <tui-icon icon="@tui.arrow-right" style="font-size:14px;color:#94a3b8"></tui-icon>
+              <tui-icon icon="@tui.arrow-right" style="font-size:14px;color:var(--ui-text-subtle, #8d948e)"></tui-icon>
               <select class="fc" [(ngModel)]="columnMappings[i].target">
                 <option value="">-- Skip --</option>
                 <option *ngFor="let f of targetFields" [value]="f.value" [disabled]="isFieldMapped(f.value,i)">{{ f.label }}</option>
@@ -88,10 +88,10 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
             </div>
           </div>
           <div class="auto-msg" *ngIf="autoDetectedCount>0">
-            <tui-icon icon="@tui.check-circle" style="font-size:16px;color:#22c55e"></tui-icon> {{ autoDetectedCount }} auto-detected
+            <tui-icon icon="@tui.check-circle" style="font-size:16px;color:var(--ui-success, #2e7d4f)"></tui-icon> {{ autoDetectedCount }} auto-detected
           </div>
           <div class="map-warn" *ngIf="!hasRequiredMappings()">
-            <tui-icon icon="@tui.alert-triangle" style="font-size:16px;color:#f59e0b"></tui-icon> Required: question_text, question_type
+            <tui-icon icon="@tui.alert-triangle" style="font-size:16px;color:var(--ui-warning, #b25e09)"></tui-icon> Required: question_text, question_type
           </div>
         </div>
 
@@ -123,7 +123,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
               <thead><tr><th>St</th><th>#</th><th>Question</th><th>Type</th><th>Pts</th><th>Issues</th></tr></thead>
               <tbody>
                 <tr *ngFor="let r of validationResults.slice(0,50); trackBy:trackByRow" [class.row-ok]="r.valid" [class.row-err]="!r.valid">
-                  <td><tui-icon [icon]="r.valid?'@tui.check-circle':'@tui.alert-circle'" [style.color]="r.valid?'#22c55e':'#ef4444'" style="font-size:16px"></tui-icon></td>
+                  <td><tui-icon [icon]="r.valid?'@tui.check-circle':'@tui.alert-circle'" [style.color]="r.valid?'var(--ui-success, #2e7d4f)':'var(--ui-danger, #c0352b)'" style="font-size:16px"></tui-icon></td>
                   <td>{{ r.row }}</td>
                   <td>{{ trunc(r.data['question_text']||'',60) }}</td>
                   <td>{{ r.data['question_type']||'-' }}</td>
@@ -146,7 +146,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
           </div>
           <div class="result-center" *ngIf="!importing && importDone">
             <tui-icon [icon]="importStats.imported>0?'@tui.check-circle':'@tui.alert-circle'"
-                      [style.color]="importStats.imported>0?'#22c55e':'#ef4444'" style="font-size:48px"></tui-icon>
+                      [style.color]="importStats.imported>0?'var(--ui-success, #2e7d4f)':'var(--ui-danger, #c0352b)'" style="font-size:48px"></tui-icon>
             <h3>{{ importStats.imported>0 ? 'Import Complete' : 'Import Failed' }}</h3>
             <div class="result-stats">
               <div class="rs"><span class="rs-val">{{ importStats.total }}</span><span class="rs-lbl">Total Rows</span></div>
@@ -162,7 +162,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
 
         <!-- Footer -->
         <div class="import-footer">
-          <button class="btn btn-outline" (click)="currentStep>0 && !importing ? currentStep=currentStep-1 : close()">
+          <button class="btn btn-outline-secondary" (click)="currentStep>0 && !importing ? currentStep=currentStep-1 : close()">
             {{ currentStep===0 ? 'Cancel' : 'Back' }}
           </button>
           <button class="btn btn-primary" (click)="nextStep()" [disabled]="!canProceed()">
@@ -176,73 +176,69 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
     :host { display: block; }
     .import-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
     .import-modal { background: #fff; border-radius: 16px; width: 90%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; }
-    .import-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; }
-    .import-header h2 { font-size: 20px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; color: #0f172a; }
-    .btn-close { background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; } .btn-close:hover { color: #0f172a; }
-    .steps-bar { display: flex; padding: 16px 24px; gap: 8px; border-bottom: 1px solid #f1f5f9; }
+    .import-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--ui-border, #e7e9e7); }
+    .import-header h2 { font-size: 20px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; color: var(--ui-text, #1b1f1c); }
+    .btn-close { background: none; border: none; cursor: pointer; color: var(--ui-text-subtle, #8d948e); padding: 4px; } .btn-close:hover { color: var(--ui-text, #1b1f1c); }
+    .steps-bar { display: flex; padding: 16px 24px; gap: 8px; border-bottom: 1px solid var(--ui-surface-2, #f7f8f7); }
     .step { display: flex; align-items: center; gap: 8px; flex: 1; padding: 8px 12px; border-radius: 8px; cursor: default; }
-    .step.active { background: #eef2ff; }
+    .step.active { background: rgba(var(--brand-primary-rgb), .08); }
     .step.completed { cursor: pointer; }
-    .step-num { width: 26px; height: 26px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: #64748b; }
-    .step.active .step-num { background: #6366f1; color: #fff; }
-    .step.completed .step-num { background: #22c55e; color: #fff; }
-    .step-label { font-size: 13px; font-weight: 500; color: #64748b; }
-    .step.active .step-label { color: #4f46e5; font-weight: 600; }
-    .step-body { padding: 24px; overflow-y: auto; flex: 1; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; }
-    .btn-primary { background: #6366f1; color: #fff; } .btn-primary:hover { background: #4f46e5; } .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; } .btn-outline:hover { background: #f9fafb; }
-    .btn-sm { padding: 5px 10px; font-size: 13px; }
-    .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; color: #64748b; }
-    .upload-zone { border: 2px dashed #e2e8f0; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
-    .upload-zone:hover, .upload-zone.drag-over { border-color: #6366f1; background: #f5f3ff; }
-    .upload-zone h3 { margin: 12px 0 4px; color: #0f172a; font-size: 18px; }
-    .upload-zone p { margin: 0; color: #64748b; font-size: 14px; }
-    .hint { font-size: 12px; color: #94a3b8; }
-    .file-info { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 16px; }
+    .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--ui-border, #e7e9e7); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--ui-text-muted, #6a716b); }
+    .step.active .step-num { background: var(--brand-primary); color: #fff; }
+    .step.completed .step-num { background: var(--ui-success, #2e7d4f); color: #fff; }
+    .step-label { font-size: 13px; font-weight: 500; color: var(--ui-text-muted, #6a716b); }
+    .step.active .step-label { color: var(--brand-primary); font-weight: 600; }
+    .step-body { padding: 24px; overflow-y: auto; flex: 1; }
+    .btn-icon { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; color: var(--ui-text-muted, #6a716b); }
+    .upload-zone { border: 2px dashed var(--ui-border, #e7e9e7); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 16px; }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .04); }
+    .upload-zone h3 { margin: 12px 0 4px; color: var(--ui-text, #1b1f1c); font-size: 18px; }
+    .upload-zone p { margin: 0; color: var(--ui-text-muted, #6a716b); font-size: 14px; }
+    .hint { font-size: 12px; color: var(--ui-text-subtle, #8d948e); }
+    .file-info { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--ui-surface-2, #f7f8f7); border: 1px solid var(--ui-border, #e7e9e7); border-radius: 10px; margin-bottom: 16px; }
     .file-det { display: flex; flex-direction: column; flex: 1; }
-    .fname { font-weight: 600; color: #0f172a; font-size: 14px; }
-    .fsize { font-size: 12px; color: #94a3b8; }
-    .tpl-section { padding: 16px; background: #f8fafc; border-radius: 10px; }
-    .tpl-section h4 { margin: 0 0 10px; font-size: 15px; color: #0f172a; }
+    .fname { font-weight: 600; color: var(--ui-text, #1b1f1c); font-size: 14px; }
+    .fsize { font-size: 12px; color: var(--ui-text-subtle, #8d948e); }
+    .tpl-section { padding: 16px; background: var(--ui-surface-2, #f7f8f7); border-radius: 10px; }
+    .tpl-section h4 { margin: 0 0 10px; font-size: 15px; color: var(--ui-text, #1b1f1c); }
     .tpl-btns { display: flex; gap: 10px; margin-bottom: 10px; }
-    .tpl-info { font-size: 13px; color: #64748b; line-height: 1.5; margin: 0; }
-    .desc { font-size: 13px; color: #64748b; margin: -4px 0 16px; }
+    .tpl-info { font-size: 13px; color: var(--ui-text-muted, #6a716b); line-height: 1.5; margin: 0; }
+    .desc { font-size: 13px; color: var(--ui-text-muted, #6a716b); margin: -4px 0 16px; }
     .map-grid { display: flex; flex-direction: column; gap: 8px; }
     .map-row { display: grid; grid-template-columns: 1fr 30px 1fr; align-items: center; gap: 8px; padding: 8px; }
-    .map-hdr { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; }
-    .src-col { font-size: 14px; font-weight: 500; color: #0f172a; padding: 6px 10px; background: #f1f5f9; border-radius: 6px; }
-    .fc { width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
-    .fc:focus { border-color: #6366f1; outline: none; }
-    .auto-msg { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #f0fdf4; border-radius: 8px; margin-top: 12px; font-size: 14px; color: #065f46; }
-    .map-warn { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fffbeb; border-radius: 8px; margin-top: 12px; font-size: 14px; color: #92400e; }
+    .map-hdr { font-size: 12px; font-weight: 600; color: var(--ui-text-muted, #6a716b); text-transform: uppercase; padding-bottom: 4px; border-bottom: 1px solid var(--ui-border, #e7e9e7); }
+    .src-col { font-size: 14px; font-weight: 500; color: var(--ui-text, #1b1f1c); padding: 6px 10px; background: var(--ui-surface-2, #f7f8f7); border-radius: 6px; }
+    .fc { width: 100%; padding: 8px 12px; border: 1px solid var(--ui-border, #e7e9e7); border-radius: 8px; font-size: 14px; }
+    .fc:focus { border-color: var(--brand-primary); outline: none; }
+    .auto-msg { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(var(--ui-success-rgb), .08); border-radius: 8px; margin-top: 12px; font-size: 14px; color: var(--ui-success-text, #23643e); }
+    .map-warn { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(var(--ui-warning-rgb), .08); border-radius: 8px; margin-top: 12px; font-size: 14px; color: var(--ui-warning-text, #8f4b07); }
     .val-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
     .val-hdr h3 { margin: 0; font-size: 18px; }
     .val-stats { display: flex; gap: 12px; }
     .vs { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; }
-    .vs.ok { color: #22c55e; } .vs.err { color: #ef4444; } .vs.tot { color: #64748b; }
-    .import-settings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; padding: 14px; background: #f8fafc; border-radius: 10px; }
-    .fg { } .fl { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 4px; }
-    .ptable-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+    .vs.ok { color: var(--ui-success, #2e7d4f); } .vs.err { color: var(--ui-danger, #c0352b); } .vs.tot { color: var(--ui-text-muted, #6a716b); }
+    .import-settings { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; padding: 14px; background: var(--ui-surface-2, #f7f8f7); border-radius: 10px; }
+    .fg { } .fl { display: block; font-size: 13px; font-weight: 500; color: var(--ui-text, #1b1f1c); margin-bottom: 4px; }
+    .ptable-wrap { overflow-x: auto; border: 1px solid var(--ui-border, #e7e9e7); border-radius: 10px; }
     .ptable { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .ptable th { padding: 8px 12px; text-align: left; font-weight: 600; color: #64748b; background: #f8fafc; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
-    .ptable td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; }
-    .row-ok td { } .row-err td { background: #fef2f2; }
-    .err-txt { display: block; font-size: 11px; color: #ef4444; }
-    .more { font-size: 13px; color: #94a3b8; text-align: center; margin-top: 8px; }
+    .ptable th { padding: 8px 12px; text-align: left; font-weight: 600; color: var(--ui-text-muted, #6a716b); background: var(--ui-surface-2, #f7f8f7); border-bottom: 2px solid var(--ui-border, #e7e9e7); white-space: nowrap; }
+    .ptable td { padding: 8px 12px; border-bottom: 1px solid var(--ui-surface-2, #f7f8f7); }
+    .row-ok td { } .row-err td { background: rgba(var(--ui-danger-rgb), .06); }
+    .err-txt { display: block; font-size: 11px; color: var(--ui-danger, #c0352b); }
+    .more { font-size: 13px; color: var(--ui-text-subtle, #8d948e); text-align: center; margin-top: 8px; }
     .result-center { display: flex; flex-direction: column; align-items: center; padding: 30px 0; text-align: center; }
-    .result-center h3 { margin: 16px 0 8px; font-size: 20px; color: #0f172a; }
-    .result-center p { color: #64748b; margin: 0 0 16px; }
-    .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .result-center h3 { margin: 16px 0 8px; font-size: 20px; color: var(--ui-text, #1b1f1c); }
+    .result-center p { color: var(--ui-text-muted, #6a716b); margin: 0 0 16px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--ui-border, #e7e9e7); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .progress-bar { width: 300px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-    .progress-fill { height: 100%; background: #6366f1; border-radius: 4px; transition: width 0.3s; }
+    .progress-bar { width: 300px; height: 8px; background: var(--ui-border, #e7e9e7); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--brand-primary); border-radius: 4px; transition: width 0.3s; }
     .result-stats { display: flex; gap: 24px; margin-top: 16px; }
     .rs { text-align: center; }
-    .rs-val { display: block; font-size: 28px; font-weight: 700; color: #0f172a; }
-    .rs.ok .rs-val { color: #22c55e; } .rs.err .rs-val { color: #ef4444; }
-    .rs-lbl { font-size: 13px; color: #64748b; }
-    .import-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid #e2e8f0; }
+    .rs-val { display: block; font-size: 28px; font-weight: 700; color: var(--ui-text, #1b1f1c); }
+    .rs.ok .rs-val { color: var(--ui-success, #2e7d4f); } .rs.err .rs-val { color: var(--ui-danger, #c0352b); }
+    .rs-lbl { font-size: 13px; color: var(--ui-text-muted, #6a716b); }
+    .import-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--ui-border, #e7e9e7); }
     @media (max-width: 600px) { .import-settings { grid-template-columns: 1fr; } .steps-bar { flex-wrap: wrap; } }
   `]
 })

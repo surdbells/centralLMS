@@ -1,6 +1,6 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
+<main class="main">
+  <div class="ui-page">
   @if (loading()) {
   <div class="loading-container">
     <div class="spinner-border text-primary" role="status">
@@ -9,20 +9,26 @@
   </div>
 } @else {
   <div class="learning-path-form">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-2 small">
+        <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
+        <li class="breadcrumb-item active">{{ (mode === 'create' ? 'paths_admin.form.create_crumb' : 'paths_admin.edit') | translate }}</li>
+      </ol>
+    </nav>
+
     <!-- Header -->
-    <div class="page-header mb-4">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-1">
-              <li class="breadcrumb-item"><a routerLink="/admin/learning-paths">{{ 'paths.title' | translate }}</a></li>
-              <li class="breadcrumb-item active">{{ (mode === 'create' ? 'paths_admin.form.create_crumb' : 'paths_admin.edit') | translate }}</li>
-            </ol>
-          </nav>
-          <h1 class="h3 mb-0">{{ (mode === 'create' ? 'paths_admin.create_path' : 'paths_admin.form.edit_path') | translate }}</h1>
-        </div>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-secondary" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="cancel()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi" [class.bi-plus-square]="mode === 'create'" [class.bi-pencil-square]="mode !== 'create'"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ (mode === 'create' ? 'paths_admin.create_path' : 'paths_admin.form.edit_path') | translate }}</h1>
+        <p>{{ 'paths_admin.list.subtitle' | translate }}</p>
+      </div>
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-outline-secondary" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
           <button
             type="button"
             class="btn btn-primary"
@@ -35,13 +41,12 @@
             {{ (mode === 'create' ? 'paths_admin.form.create_continue' : 'paths_admin.form.save_changes') | translate }}
           </button>
         </div>
-      </div>
-    </div>
+    </header>
 
-    <div class="row">
+    <div class="row g-4">
       <!-- Sidebar Navigation -->
       <div class="col-lg-3">
-        <div class="nav-card sticky-top">
+        <div class="nav-card ui-section sticky-top">
           <nav class="nav flex-column">
             <a
               class="nav-link"
@@ -87,11 +92,11 @@
         <form [formGroup]="form">
           <!-- Basic Information -->
           @if (activeTab() === 'basic') {
-            <div class="card form-section">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths_admin.form.basic_info' | translate }}</h5>
+            <div class="ui-section form-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths_admin.form.basic_info' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div class="form-section__body">
                 <div class="mb-3">
                   <label class="form-label">{{ 'paths_admin.form.title_label' | translate }} <span class="text-danger">*</span></label>
                   <input
@@ -211,11 +216,11 @@
 
           <!-- Structure & Flow -->
           @if (activeTab() === 'structure') {
-            <div class="card form-section">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths_admin.form.structure_flow' | translate }}</h5>
+            <div class="ui-section form-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths_admin.form.structure_flow' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div class="form-section__body">
                 <div class="mb-4">
                   <label class="form-label">{{ 'paths_admin.path_type' | translate }}</label>
                   <div class="path-type-options">
@@ -300,11 +305,11 @@
 
           <!-- Completion & Rewards -->
           @if (activeTab() === 'completion') {
-            <div class="card form-section">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths_admin.form.completion_rewards' | translate }}</h5>
+            <div class="ui-section form-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths_admin.form.completion_rewards' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div class="form-section__body">
                 <div class="mb-4">
                   <label class="form-label">{{ 'paths_admin.form.completion_criteria' | translate }}</label>
                   <div class="completion-type-options">
@@ -418,11 +423,11 @@
 
           <!-- Access & Enrollment -->
           @if (activeTab() === 'access') {
-            <div class="card form-section">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths_admin.form.access_enrollment' | translate }}</h5>
+            <div class="ui-section form-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths_admin.form.access_enrollment' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div class="form-section__body">
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">{{ 'paths_admin.visibility' | translate }}</label>
@@ -518,11 +523,11 @@
 
           <!-- Meta & SEO -->
           @if (activeTab() === 'meta') {
-            <div class="card form-section">
-              <div class="card-header">
-                <h5 class="mb-0">{{ 'paths_admin.form.meta_seo' | translate }}</h5>
+            <div class="ui-section form-section">
+              <div class="ui-section__head">
+                <h2 class="ui-section__title">{{ 'paths_admin.form.meta_seo' | translate }}</h2>
               </div>
-              <div class="card-body">
+              <div class="form-section__body">
                 <!-- Tags -->
                 <div class="mb-4">
                   <label class="form-label">{{ 'paths.tags' | translate }}</label>
@@ -535,15 +540,15 @@
                       placeholder="{{ 'paths_admin.form.add_tag_ph' | translate }}"
                       (keyup.enter)="addTag()"
                     >
-                    <button class="btn btn-secondary" type="button" (click)="addTag()">
+                    <button class="btn btn-outline-secondary" type="button" (click)="addTag()">
                       <i class="bi bi-plus-lg"></i>
                     </button>
                   </div>
                   <div class="tags-list">
                     @for (tag of form.value.tags; track $index) {
-                      <span class="badge bg-secondary me-1 mb-1">
+                      <span class="ui-pill ui-pill--brand me-1 mb-1">
                         {{ tag }}
-                        <button type="button" class="btn-close btn-close-white ms-1" (click)="removeTag($index)"></button>
+                        <button type="button" class="btn-close ms-1" (click)="removeTag($index)"></button>
                       </span>
                     }
                   </div>
@@ -561,7 +566,7 @@
                       placeholder="{{ 'paths_admin.form.add_objective_ph' | translate }}"
                       (keyup.enter)="addObjective()"
                     >
-                    <button class="btn btn-secondary" type="button" (click)="addObjective()">
+                    <button class="btn btn-outline-secondary" type="button" (click)="addObjective()">
                       <i class="bi bi-plus-lg"></i>
                     </button>
                   </div>
@@ -582,8 +587,8 @@
         </form>
 
         <!-- Footer Actions -->
-        <div class="form-footer mt-4">
-          <button type="button" class="btn btn-secondary" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
+        <div class="form-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="cancel()">{{ 'common.cancel' | translate }}</button>
           <button
             type="button"
             class="btn btn-primary"

@@ -3886,5 +3886,18 @@
   "course_player.seek": "Position de lecture",
   "course_player.volume": "Volume",
   "course_player.thread_count": "{{count}} discussions",
-  "course_player.thread_count_one": "{{count}} discussion"
+  "course_player.thread_count_one": "{{count}} discussion",
+  "learner_dash.greeting": "Bon retour, {{name}}",
+  "learner_dash.yet_to_attempt": "Pas encore commencés",
+  "learner_dash.avg_completion": "Achèvement moyen",
+  "admin.courses.page_subtitle": "Créez, publiez et gérez votre catalogue de cours.",
+  "admin.course_content.page_subtitle": "Faites glisser les modules et les leçons pour les réorganiser.",
+  "review.page_subtitle": "Approuvez ou rejetez les avis des apprenants avant leur publication.",
+  "admin.roles.subtitle": "Définissez ce que chaque rôle peut voir et faire",
+  "certificates.subtitle": "Les certificats que vous avez obtenus, prêts à être ouverts.",
+  "live.skills.subtitle": "Associez les compétences que chaque programme de formation en direct développe.",
+  "reports.saved_subtitle": "Les rapports que vous avez enregistrés, avec leurs filtres, prêts à être relancés",
+  "reports.scheduled_subtitle": "Rapports envoyés automatiquement par e-mail chaque jour, chaque semaine ou chaque mois",
+  "reports.manager_subtitle": "Inscriptions, achèvements et formations en retard de votre équipe",
+  "messaging.page_subtitle": "Messages directs, groupes et canaux au même endroit"
 }

@@ -85,52 +85,51 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
   providers: [DecimalPipe],
   template: `
     <app-admintop></app-admintop>
-    <main class="main px-lg-6">
-      <div class="container-fluid">
-    <div class="report-viewer">
-      <!-- Breadcrumb -->
-      <nav class="mb-3">
-        <ol class="breadcrumb small mb-0">
-          <li class="breadcrumb-item"><a routerLink="/admin/reports">{{ 'nav.reports' | translate }}</a></li>
-          <li class="breadcrumb-item"><a routerLink="/admin/reports/catalog"
-                                         [queryParams]="{category: reportItem?.category}">
-            {{ formatKey(reportItem?.category || '') }}
-          </a></li>
-          <li class="breadcrumb-item active">{{ report?.report_name || reportItem?.name }}</li>
-        </ol>
-      </nav>
+    <main class="main">
+      <div class="ui-page report-viewer">
+        <!-- Breadcrumb -->
+        <nav class="rv-crumbs">
+          <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item"><a routerLink="/admin/reports">{{ 'nav.reports' | translate }}</a></li>
+            <li class="breadcrumb-item"><a routerLink="/admin/reports/catalog"
+                                           [queryParams]="{category: reportItem?.category}">
+              {{ formatKey(reportItem?.category || '') }}
+            </a></li>
+            <li class="breadcrumb-item active">{{ report?.report_name || reportItem?.name }}</li>
+          </ol>
+        </nav>
 
-      <!-- Header -->
-      <div class="d-flex justify-content-between align-items-start mb-4">
-        <div>
-          <h4 class="fw-bold mb-1">{{ report?.report_name || reportItem?.name || ('common.loading' | translate) }}</h4>
-          <p class="text-muted mb-0 small">{{ report?.description || reportItem?.description }}</p>
-        </div>
-        <div class="d-flex gap-2">
-          <app-report-export [reportKey]="reportKey" [filters]="currentFilters"
-                             *ngIf="reportItem?.exportable"></app-report-export>
-          <button class="btn btn-sm btn-primary" (click)="saveReport()" [title]="'common.save' | translate">
-            <i class="bi bi-bookmark me-1"></i>{{ 'common.save' | translate }}
-          </button>
-          <button class="btn btn-sm btn-secondary" (click)="refreshReport()" [title]="'common.refresh' | translate">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-      </div>
+        <!-- Header -->
+        <header class="ui-page-header">
+          <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-file-earmark-bar-graph"></i></div>
+          <div class="ui-page-header__titles">
+            <h1>{{ report?.report_name || reportItem?.name || ('common.loading' | translate) }}</h1>
+            <p>{{ report?.description || reportItem?.description }}</p>
+          </div>
+          <div class="ui-page-header__actions">
+            <button type="button" class="btn btn-outline-secondary" (click)="refreshReport()" [title]="'common.refresh' | translate" [attr.aria-label]="'common.refresh' | translate">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <app-report-export [reportKey]="reportKey" [filters]="currentFilters" btnClass="btn-outline-secondary"
+                               *ngIf="reportItem?.exportable"></app-report-export>
+            <button type="button" class="btn btn-primary" (click)="saveReport()" [title]="'common.save' | translate">
+              <i class="bi bi-bookmark me-1"></i>{{ 'common.save' | translate }}
+            </button>
+          </div>
+        </header>
 
-      <!-- ═══════ PARAMETER PICKER ═══════ -->
-      <div class="card border-0 shadow-sm mb-4" *ngIf="paramPickerType">
-        <div class="card-body">
+        <!-- ═══════ PARAMETER PICKER ═══════ -->
+        <section class="ui-section" *ngIf="paramPickerType">
           <div class="row g-3 align-items-end">
             <ng-container *ngIf="paramPickerType === 'learner'">
               <div class="col-md-5">
                 <label class="form-label small fw-semibold">{{ 'reports.search_learner' | translate }}</label>
-                <input type="text" class="form-control form-control-sm" placeholder="{{ 'reports.type_name_email' | translate }}"
+                <input type="text" class="form-control" placeholder="{{ 'reports.type_name_email' | translate }}"
                        [(ngModel)]="pickerSearch" (input)="onPickerSearch()">
               </div>
               <div class="col-md-5" *ngIf="pickerOptions.length">
                 <label class="form-label small fw-semibold">{{ 'reports.select_learner' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
+                <select class="form-select" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
                   <option [ngValue]="null">{{ 'reports.choose_learner' | translate }}</option>
                   <option *ngFor="let u of pickerOptions" [ngValue]="u.id || u.user_id">
                     {{ u.first_name || '' }} {{ u.last_name || '' }} ({{ u.email }})
@@ -141,7 +140,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
             <ng-container *ngIf="paramPickerType === 'assessment'">
               <div class="col-md-8">
                 <label class="form-label small fw-semibold">{{ 'reports.select_assessment' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
+                <select class="form-select" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
                   <option [ngValue]="null">{{ 'reports.choose_assessment' | translate }}</option>
                   <option *ngFor="let a of pickerOptions" [ngValue]="a.id || a.assessment_id">{{ a.title || a.name }}</option>
                 </select>
@@ -150,164 +149,162 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
             <ng-container *ngIf="paramPickerType === 'course'">
               <div class="col-md-8">
                 <label class="form-label small fw-semibold">{{ 'reports.select_course' | translate }}</label>
-                <select class="form-select form-select-sm" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
+                <select class="form-select" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
                   <option [ngValue]="null">{{ 'reports.choose_course' | translate }}</option>
                   <option *ngFor="let c of pickerOptions" [ngValue]="c.id || c.course_id">{{ c.title }}</option>
                 </select>
               </div>
             </ng-container>
             <div class="col-md-2">
-              <button class="btn btn-sm btn-primary w-100" (click)="loadReport()" [disabled]="!pickerSelectedId">
+              <button type="button" class="btn btn-primary w-100" (click)="loadReport()" [disabled]="!pickerSelectedId">
                 <i class="bi bi-play-fill me-1"></i>{{ 'reports.run' | translate }}
               </button>
             </div>
           </div>
+        </section>
+
+        <!-- Standard Filters -->
+        <app-report-filters *ngIf="!paramPickerType" [reportItem]="reportItem" [initialFilters]="currentFilters"
+                            (filtersChanged)="onFiltersChanged($event)"></app-report-filters>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="ui-state">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-3">{{ 'reports.generating' | translate }}</p>
         </div>
-      </div>
 
-      <!-- Standard Filters -->
-      <app-report-filters *ngIf="!paramPickerType" [reportItem]="reportItem" [initialFilters]="currentFilters"
-                          (filtersChanged)="onFiltersChanged($event)"></app-report-filters>
+        <!-- Error -->
+        <div *ngIf="error" class="ui-state">
+          <span class="ui-state__icon rv-danger"><i class="bi bi-exclamation-triangle"></i></span>
+          <p class="mt-3">{{ error }}</p>
+          <button type="button" class="btn btn-sm btn-outline-danger" (click)="refreshReport()">{{ 'common.retry' | translate }}</button>
+        </div>
 
-      <!-- Loading -->
-      <div *ngIf="loading" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">{{ 'reports.generating' | translate }}</p>
-      </div>
+        <!-- ═══════ REPORT CONTENT ═══════ -->
+        <div *ngIf="report && !loading && !error">
 
-      <!-- Error -->
-      <div *ngIf="error" class="alert alert-danger">
-        <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
-        <button class="btn btn-sm btn-outline-danger ms-2" (click)="refreshReport()">{{ 'common.retry' | translate }}</button>
-      </div>
-
-      <!-- ═══════ REPORT CONTENT ═══════ -->
-      <div *ngIf="report && !loading && !error">
-
-        <!-- Summary Cards -->
-        <div class="row g-3 mb-4" *ngIf="summaryCards.length">
-          <div *ngFor="let card of summaryCards" class="col-sm-6 col-md-4 col-lg-3">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body text-center py-3">
-                <p class="text-muted small mb-1">{{ card.label }}</p>
-                <h4 class="fw-bold mb-0" [class]="'text-' + card.color">{{ card.display }}</h4>
-              </div>
+          <!-- Summary Cards -->
+          <div class="ui-kpi-grid" *ngIf="summaryCards.length">
+            <div *ngFor="let card of summaryCards" class="ui-kpi" [ngClass]="'ui-kpi--' + (card.color === 'primary' ? 'brand' : card.color)">
+              <span class="ui-kpi__label">{{ card.label }}</span>
+              <span class="ui-kpi__value">{{ card.display }}</span>
             </div>
           </div>
-        </div>
 
-        <!-- User Profile -->
-        <div class="card border-0 shadow-sm mb-4" *ngIf="report.user">
-          <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-person-circle me-2"></i>{{ 'reports.learner_profile' | translate }}</h6>
+          <!-- User Profile -->
+          <section class="ui-section" *ngIf="report.user">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title"><i class="bi bi-person-circle me-2"></i>{{ 'reports.learner_profile' | translate }}</h2></div>
+            </div>
             <div class="row g-3">
-              <div class="col-md-3"><span class="text-muted small d-block">{{ 'common.name' | translate }}</span><strong>{{ report.user.full_name }}</strong></div>
-              <div class="col-md-3"><span class="text-muted small d-block">{{ 'reports.email' | translate }}</span><strong>{{ report.user.email }}</strong></div>
-              <div class="col-md-3"><span class="text-muted small d-block">{{ 'reports.department' | translate }}</span><strong>{{ report.user.department }}</strong></div>
-              <div class="col-md-3"><span class="text-muted small d-block">{{ 'reports.job_title' | translate }}</span><strong>{{ report.user.job_title }}</strong></div>
+              <div class="col-md-3"><span class="ui-muted small d-block">{{ 'common.name' | translate }}</span><strong>{{ report.user.full_name }}</strong></div>
+              <div class="col-md-3"><span class="ui-muted small d-block">{{ 'reports.email' | translate }}</span><strong>{{ report.user.email }}</strong></div>
+              <div class="col-md-3"><span class="ui-muted small d-block">{{ 'reports.department' | translate }}</span><strong>{{ report.user.department }}</strong></div>
+              <div class="col-md-3"><span class="ui-muted small d-block">{{ 'reports.job_title' | translate }}</span><strong>{{ report.user.job_title }}</strong></div>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <!-- Chart -->
-        <div class="mb-4" *ngIf="chartData">
-          <app-report-chart [data]="chartData" [chartType]="report.chart_type || 'bar'"
+          <!-- Chart -->
+          <app-report-chart *ngIf="chartData" [data]="chartData" [chartType]="report.chart_type || 'bar'"
                             [reportKey]="reportKey" [allowTypeChange]="true"></app-report-chart>
-        </div>
 
-        <!-- Multi-section tables -->
-        <ng-container *ngIf="sections.length">
-          <div *ngFor="let section of sections" class="mb-4">
-            <app-report-table [data]="section.data" [title]="section.title"
+          <!-- Multi-section tables -->
+          <ng-container *ngIf="sections.length">
+            <app-report-table *ngFor="let section of sections" [data]="section.data" [title]="section.title"
                               [searchable]="true" [sortable]="true"
                               [drilldownColumns]="section.drilldownCols"
                               (cellClick)="onDrilldownClick($event, section)"></app-report-table>
-          </div>
-        </ng-container>
+          </ng-container>
 
-        <!-- Single data table -->
-        <app-report-table *ngIf="!sections.length && tableData?.length"
-                          [data]="tableData" [meta]="report.meta"
-                          [customColumns]="tableColumns"
-                          [title]="''" [searchable]="true" [sortable]="true"
-                          [drilldownColumns]="tableDrilldownCols"
-                          (cellClick)="onDrilldownClick($event)"
-                          (pageChange)="onPageChange($event)"></app-report-table>
+          <!-- Single data table -->
+          <app-report-table *ngIf="!sections.length && tableData?.length"
+                            [data]="tableData" [meta]="report.meta"
+                            [customColumns]="tableColumns"
+                            [title]="''" [searchable]="true" [sortable]="true"
+                            [drilldownColumns]="tableDrilldownCols"
+                            (cellClick)="onDrilldownClick($event)"
+                            (pageChange)="onPageChange($event)"></app-report-table>
 
-        <!-- ═══════ DRILLDOWN PANEL ═══════ -->
-        <div *ngIf="drilldown.visible" class="card my-5 border-0 shadow mb-4 drilldown-panel" id="drilldownPanel">
-          <div class="card-header bg-primary bg-opacity-10 border-0 d-flex justify-content-between align-items-center py-2">
-            <div>
-              <h6 class="mb-0 fw-semibold text-primary">
-                <i class="bi bi-funnel me-1"></i>{{ drilldown.title }}
-              </h6>
-              <small class="text-muted">{{ drilldown.subtitle }}</small>
+          <!-- ═══════ DRILLDOWN PANEL ═══════ -->
+          <section *ngIf="drilldown.visible" class="ui-section drilldown-panel" id="drilldownPanel">
+            <div class="ui-section__head">
+              <div>
+                <h2 class="ui-section__title">
+                  <i class="bi bi-funnel me-1"></i>{{ drilldown.title }}
+                </h2>
+                <p class="ui-section__subtitle">{{ drilldown.subtitle }}</p>
+              </div>
+              <div class="ui-section__actions">
+                <div class="spinner-border spinner-border-sm text-primary" *ngIf="drilldown.loading"></div>
+                <app-report-export *ngIf="drilldown.data.length"
+                                   [data]="drilldown.data" [title]="drilldown.title"
+                                   btnClass="btn-outline-secondary"></app-report-export>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="closeDrilldown()" [attr.aria-label]="'common.close' | translate">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
             </div>
-            <div class="d-flex gap-2 align-items-center">
-              <div class="spinner-border spinner-border-sm text-primary" *ngIf="drilldown.loading"></div>
-              <app-report-export *ngIf="drilldown.data.length"
-                                 [data]="drilldown.data" [title]="drilldown.title"
-                                 btnClass="btn-primary"></app-report-export>
-              <button class="btn btn-sm btn-secondary" (click)="closeDrilldown()">
-                <i class="bi bi-x-lg"></i>
-              </button>
+            <div *ngIf="drilldown.data.length">
+              <app-report-table [data]="drilldown.data" [title]="''"
+                                [searchable]="true" [sortable]="true" [pageSize]="10"></app-report-table>
             </div>
-          </div>
-          <div class="card-body p-0" *ngIf="drilldown.data.length">
-            <app-report-table [data]="drilldown.data" [title]="''"
-                              [searchable]="true" [sortable]="true" [pageSize]="10"></app-report-table>
-          </div>
-          <div class="card-body text-center text-muted py-4" *ngIf="!drilldown.data.length && !drilldown.loading">
-            <i class="bi bi-inbox d-block fs-3 mb-2"></i>{{ 'reports.no_learners_found' | translate }}
-          </div>
-        </div>
+            <div class="ui-state" *ngIf="!drilldown.data.length && !drilldown.loading">
+              <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
+              <p>{{ 'reports.no_learners_found' | translate }}</p>
+            </div>
+          </section>
 
-        <!-- Badges -->
-        <div class="card border-0 shadow-sm mb-4" *ngIf="report.badges?.length">
-          <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-award me-2"></i>{{ 'reports.badges_count' | translate:{ count: report.badges.length } }}</h6>
-            <div class="d-flex flex-wrap gap-2">
-              <span *ngFor="let b of report.badges" class="badge bg-warning-subtle text-warning px-3 py-2" style="font-size:.8rem">
-                <i class="bi bi-award me-1"></i>{{ b.badge_name }}
+          <!-- Badges -->
+          <section class="ui-section" *ngIf="report.badges?.length">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title"><i class="bi bi-award me-2"></i>{{ 'reports.badges_count' | translate:{ count: report.badges.length } }}</h2></div>
+            </div>
+            <div class="ui-insights">
+              <span *ngFor="let b of report.badges" class="ui-pill ui-pill--warning">
+                <i class="bi bi-award"></i>{{ b.badge_name }}
               </span>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <!-- Certificates -->
-        <div class="card border-0 shadow-sm mb-4" *ngIf="report.certificates?.length">
-          <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-patch-check me-2"></i>{{ 'report.tab_certificates' | translate }}</h6>
-            <app-report-table [data]="report.certificates" [title]="''" [sortable]="true"></app-report-table>
-          </div>
-        </div>
-
-        <!-- Risk Breakdown -->
-        <div class="card border-0 shadow-sm mb-4" *ngIf="report.risk_breakdown">
-          <div class="card-body">
-            <h6 class="fw-semibold mb-3"><i class="bi bi-shield-exclamation me-2"></i>{{ 'reports.risk_breakdown' | translate }}</h6>
-            <div class="d-flex gap-3 flex-wrap">
-              <span class="badge bg-danger px-3 py-2">{{ 'reports.risk_critical' | translate }} {{ report.risk_breakdown.critical }}</span>
-              <span class="badge bg-warning px-3 py-2">{{ 'reports.risk_high' | translate }} {{ report.risk_breakdown.high }}</span>
-              <span class="badge bg-info px-3 py-2">{{ 'reports.risk_medium' | translate }} {{ report.risk_breakdown.medium }}</span>
-              <span class="badge bg-secondary px-3 py-2">{{ 'reports.risk_low' | translate }} {{ report.risk_breakdown.low }}</span>
+          <!-- Certificates -->
+          <section class="ui-section" *ngIf="report.certificates?.length">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title"><i class="bi bi-patch-check me-2"></i>{{ 'report.tab_certificates' | translate }}</h2></div>
             </div>
+            <app-report-table [data]="report.certificates" [title]="''" [sortable]="true"></app-report-table>
+          </section>
+
+          <!-- Risk Breakdown -->
+          <section class="ui-section" *ngIf="report.risk_breakdown">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title"><i class="bi bi-shield-exclamation me-2"></i>{{ 'reports.risk_breakdown' | translate }}</h2></div>
+            </div>
+            <div class="ui-insights">
+              <span class="ui-pill ui-pill--danger"><span class="ui-pill__dot"></span>{{ 'reports.risk_critical' | translate }} {{ report.risk_breakdown.critical }}</span>
+              <span class="ui-pill ui-pill--warning"><span class="ui-pill__dot"></span>{{ 'reports.risk_high' | translate }} {{ report.risk_breakdown.high }}</span>
+              <span class="ui-pill ui-pill--info"><span class="ui-pill__dot"></span>{{ 'reports.risk_medium' | translate }} {{ report.risk_breakdown.medium }}</span>
+              <span class="ui-pill ui-pill--neutral"><span class="ui-pill__dot"></span>{{ 'reports.risk_low' | translate }} {{ report.risk_breakdown.low }}</span>
+            </div>
+          </section>
+
+          <!-- Empty state -->
+          <div *ngIf="!sections.length && !tableData?.length && !report.user && !summaryCards.length" class="ui-state">
+            <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
+            <p>{{ 'reports.no_data_filters' | translate }}</p>
           </div>
         </div>
-
-        <!-- Empty state -->
-        <div *ngIf="!sections.length && !tableData?.length && !report.user && !summaryCards.length"
-             class="text-center py-5 text-muted">
-          <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-          <p>{{ 'reports.no_data_filters' | translate }}</p>
-        </div>
-      </div>
-    </div>
       </div>
     </main>
   `,
   styles: [`
-    .drilldown-panel { border-left: 3px solid var(--bs-primary) !important; }
+    .rv-crumbs { margin-bottom: 10px; }
+    .rv-crumbs a { color: var(--ui-text-muted); text-decoration: none; }
+    .rv-crumbs a:hover { color: var(--brand-primary); }
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .drilldown-panel { border-left: 3px solid var(--brand-primary); scroll-margin-top: 80px; }
+    .rv-danger { color: var(--ui-danger, #c0352b); background: rgba(var(--ui-danger-rgb), .08); border-color: rgba(var(--ui-danger-rgb), .2); }
+    app-report-table { display: block; margin-bottom: 20px; }
+    .ui-section app-report-table { margin-bottom: 0; }
   `]
 })
 export class ReportViewerComponent implements OnInit, OnDestroy {

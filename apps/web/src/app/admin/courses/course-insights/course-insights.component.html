@@ -5,7 +5,7 @@
   already on screen behind it, and a second copy would sit over the first.
 -->
 <app-admintop *ngIf="!isDialog"></app-admintop>
-<div class="container-fluid p-4">
+<div class="ui-page insights-page" [class.insights-page--dialog]="isDialog">
   <!-- Loading State -->
   <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
     <div class="text-center">
@@ -17,12 +17,12 @@
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error && !isLoading" class="text-center py-5">
-    <tui-icon class="fs-1 text-danger mb-3" icon="@tui.alert-triangle"></tui-icon>
-    <h4>{{ 'admin.insights.error_title' | translate }}</h4>
-    <p class="text-muted">{{ error }}</p>
-    <button class="btn btn-primary" (click)="refreshData()">
-      <tui-icon icon="@tui.refresh-cw" class="me-2"></tui-icon>{{ 'admin.insights.try_again' | translate }}
+  <div *ngIf="error && !isLoading" class="ui-state">
+    <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+    <h3>{{ 'admin.insights.error_title' | translate }}</h3>
+    <p>{{ error }}</p>
+    <button type="button" class="btn btn-primary" (click)="refreshData()">
+      <i class="bi bi-arrow-clockwise me-1"></i>{{ 'admin.insights.try_again' | translate }}
     </button>
   </div>
 
@@ -30,28 +30,21 @@
   <ng-container *ngIf="insights && !isLoading && !error">
 
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-start mb-4">
-      <div>
-        <div class="d-flex gap-2 mb-2">
-          <span class="badge" [ngClass]="{
-            'bg-success': insights.course.difficulty_level === 'Beginner',
-            'bg-warning text-dark': insights.course.difficulty_level === 'Intermediate',
-            'bg-danger': insights.course.difficulty_level === 'Advanced'
-          }">{{ insights.course.difficulty_level }}</span>
-          <span class="badge bg-secondary">{{ insights.course.category }}</span>
-        </div>
-        <h2 class="fw-bold mb-2">{{ insights.course.title }}</h2>
-        <div class="d-flex gap-3 text-muted small">
-          <span><tui-icon icon="@tui.layout-grid" class="me-1"></tui-icon>{{ 'admin.insights.n_modules' | translate:{ count: insights.course.total_modules } }}</span>
-          <span><tui-icon icon="@tui.circle-play" class="me-1"></tui-icon>{{ 'admin.insights.n_lessons' | translate:{ count: insights.course.total_lessons } }}</span>
-          <span><tui-icon icon="@tui.clock" class="me-1"></tui-icon>{{ formatDuration(insights.course.estimated_duration || 0) }}</span>
+    <header class="ui-page-header">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-graph-up"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ insights.course.title }}</h1>
+        <p class="insights-meta">
+          <span><i class="bi bi-grid me-1"></i>{{ 'admin.insights.n_modules' | translate:{ count: insights.course.total_modules } }}</span>
+          <span><i class="bi bi-play-circle me-1"></i>{{ 'admin.insights.n_lessons' | translate:{ count: insights.course.total_lessons } }}</span>
+          <span><i class="bi bi-clock me-1"></i>{{ formatDuration(insights.course.estimated_duration || 0) }}</span>
           <span *ngIf="insights.overview.course_rating > 0">
-            <tui-icon icon="@tui.star" class="me-1 text-warning"></tui-icon>
+            <i class="bi bi-star-fill me-1 text-warning"></i>
             {{ insights.overview.course_rating.toFixed(1) }} ({{ 'admin.insights.n_reviews' | translate:{ count: insights.overview.total_reviews } }})
           </span>
-        </div>
+        </p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="ui-page-header__actions">
         <select class="form-select form-select-sm" [(ngModel)]="filter.date_range" (change)="onFilterChange()" style="width: auto;">
           <option value="last_7_days">{{ 'admin.insights.last_7_days' | translate }}</option>
           <option value="last_30_days">{{ 'admin.insights.last_30_days' | translate }}</option>
@@ -60,8 +53,8 @@
           <option value="all_time">{{ 'admin.insights.all_time' | translate }}</option>
         </select>
         <div class="dropdown">
-          <button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <tui-icon icon="@tui.download" class="me-1"></tui-icon>{{ 'admin.insights.export' | translate }}
+          <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-download me-1"></i>{{ 'admin.insights.export' | translate }}
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToPDF()"><tui-icon icon="@tui.file-text" class="me-2"></tui-icon>{{ 'admin.insights.pdf_report' | translate }}</a></li>
@@ -69,146 +62,80 @@
             <li><a class="dropdown-item" href="javascript:void(0)" (click)="exportToCSV()"><tui-icon icon="@tui.file" class="me-2"></tui-icon>{{ 'admin.insights.csv' | translate }}</a></li>
           </ul>
         </div>
-        <button class="btn btn-dark btn-sm" (click)="refreshData()" title="{{ 'common.refresh' | translate }}">
-          <tui-icon icon="@tui.refresh-cw"></tui-icon>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="refreshData()" title="{{ 'common.refresh' | translate }}" [attr.aria-label]="'common.refresh' | translate">
+          <i class="bi bi-arrow-clockwise"></i>
         </button>
         <!-- Only in the dialog: reached by its own route there is nothing to close. -->
-        <button *ngIf="isDialog" class="btn btn-outline-secondary btn-sm" (click)="close()" title="{{ 'common.close' | translate }}">
-          <tui-icon icon="@tui.x"></tui-icon>
+        <button type="button" *ngIf="isDialog" class="btn btn-outline-secondary btn-sm" (click)="close()" title="{{ 'common.close' | translate }}" [attr.aria-label]="'common.close' | translate">
+          <i class="bi bi-x-lg"></i>
         </button>
       </div>
+    </header>
+
+    <div class="ui-insights">
+      <span class="ui-pill" [ngClass]="{
+        'ui-pill--success': insights.course.difficulty_level === 'Beginner',
+        'ui-pill--warning': insights.course.difficulty_level === 'Intermediate',
+        'ui-pill--danger': insights.course.difficulty_level === 'Advanced'
+      }"><span class="ui-pill__dot"></span>{{ insights.course.difficulty_level }}</span>
+      <span class="ui-pill ui-pill--neutral">{{ insights.course.category }}</span>
     </div>
 
     <!-- Stats Cards -->
-    <div class="row g-3 mb-4">
-      <!-- Total Enrolled -->
-      <div class="col-6 col-md-4 col-lg-2">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <div class="rounded-3 p-2 bg-primary bg-opacity-10 me-2">
-                <tui-icon icon="@tui.users" class="text-primary"></tui-icon>
-              </div>
-            </div>
-            <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.total_enrolled) }}</h3>
-            <p class="text-muted small mb-1">{{ 'admin.enrollees.total_enrolled' | translate }}</p>
-            <small [ngClass]="insights.enrollment.growth_rate >= 0 ? 'text-success' : 'text-danger'">
-              <tui-icon [icon]="insights.enrollment.growth_rate >= 0 ? '@tui.trending-up' : '@tui.trending-down'"></tui-icon>
-              {{ formatPercentage(Math.abs(insights.enrollment.growth_rate)) }}
-            </small>
-          </div>
-        </div>
+    <div class="ui-kpi-grid ui-kpi-grid--6 insights-kpis">
+      <div class="ui-kpi ui-kpi--brand">
+        <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'admin.enrollees.total_enrolled' | translate }}</span>
+        <span class="ui-kpi__value">{{ formatNumber(insights.overview.total_enrolled) }}</span>
+        <span class="ui-kpi__sub" [ngClass]="insights.enrollment.growth_rate >= 0 ? 'ui-kpi__sub--up' : 'ui-kpi__sub--down'">
+          <i class="bi" [ngClass]="insights.enrollment.growth_rate >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'"></i>
+          {{ formatPercentage(Math.abs(insights.enrollment.growth_rate)) }}
+        </span>
       </div>
-
-      <!-- Completion Rate -->
-      <div class="col-6 col-md-4 col-lg-2">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <div class="rounded-3 p-2 bg-success bg-opacity-10 me-2">
-                <tui-icon icon="@tui.trophy" class="text-success"></tui-icon>
-              </div>
-            </div>
-            <h3 class="fw-bold mb-1">{{ formatPercentage(insights.completion.completion_rate) }}</h3>
-            <p class="text-muted small mb-1">{{ 'admin.insights.completion_rate' | translate }}</p>
-            <small class="text-muted">{{ 'admin.insights.n_completed' | translate:{ count: insights.overview.completed_count } }}</small>
-          </div>
-        </div>
+      <div class="ui-kpi ui-kpi--success">
+        <span class="ui-kpi__label"><i class="bi bi-trophy"></i> {{ 'admin.insights.completion_rate' | translate }}</span>
+        <span class="ui-kpi__value">{{ formatPercentage(insights.completion.completion_rate) }}</span>
+        <span class="ui-kpi__sub">{{ 'admin.insights.n_completed' | translate:{ count: insights.overview.completed_count } }}</span>
       </div>
-
-      <!-- Average Score -->
-      <div class="col-6 col-md-4 col-lg-2">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <div class="rounded-3 p-2 bg-info bg-opacity-10 me-2">
-                <tui-icon icon="@tui.target" class="text-info"></tui-icon>
-              </div>
-            </div>
-            <h3 class="fw-bold mb-1">{{ insights.overview.average_score?.toFixed(1) || 0 }}%</h3>
-            <p class="text-muted small mb-1">{{ 'admin.insights.average_score' | translate }}</p>
-            <small class="text-muted">{{ 'admin.insights.pass_rate_suffix' | translate:{ rate: formatPercentage(insights.assessments.pass_rate) } }}</small>
-          </div>
-        </div>
+      <div class="ui-kpi ui-kpi--info">
+        <span class="ui-kpi__label"><i class="bi bi-bullseye"></i> {{ 'admin.insights.average_score' | translate }}</span>
+        <span class="ui-kpi__value">{{ insights.overview.average_score?.toFixed(1) || 0 }}<small>%</small></span>
+        <span class="ui-kpi__sub">{{ 'admin.insights.pass_rate_suffix' | translate:{ rate: formatPercentage(insights.assessments.pass_rate) } }}</span>
       </div>
-
-      <!-- Active Learners -->
-      <div class="col-6 col-md-4 col-lg-2">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <div class="rounded-3 p-2 bg-warning bg-opacity-10 me-2">
-                <tui-icon icon="@tui.zap" class="text-warning"></tui-icon>
-              </div>
-            </div>
-            <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.active_learners) }}</h3>
-            <p class="text-muted small mb-1">{{ 'admin.insights.active_learners' | translate }}</p>
-            <small class="text-muted">{{ 'admin.insights.n_in_progress' | translate:{ count: insights.overview.in_progress_count } }}</small>
-          </div>
-        </div>
+      <div class="ui-kpi ui-kpi--warning">
+        <span class="ui-kpi__label"><i class="bi bi-lightning-charge"></i> {{ 'admin.insights.active_learners' | translate }}</span>
+        <span class="ui-kpi__value">{{ formatNumber(insights.overview.active_learners) }}</span>
+        <span class="ui-kpi__sub">{{ 'admin.insights.n_in_progress' | translate:{ count: insights.overview.in_progress_count } }}</span>
       </div>
-
-      <!-- Avg Time Spent -->
-      <div class="col-6 col-md-4 col-lg-2">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <div class="rounded-3 p-2 bg-secondary bg-opacity-10 me-2">
-                <tui-icon icon="@tui.clock" class="text-secondary"></tui-icon>
-              </div>
-            </div>
-            <h3 class="fw-bold mb-1">{{ formatDuration(insights.overview.average_time_spent) }}</h3>
-            <p class="text-muted small mb-1">{{ 'admin.insights.avg_time_spent' | translate }}</p>
-            <small class="text-muted">{{ 'admin.insights.per_learner' | translate }}</small>
-          </div>
-        </div>
+      <div class="ui-kpi">
+        <span class="ui-kpi__label"><i class="bi bi-clock"></i> {{ 'admin.insights.avg_time_spent' | translate }}</span>
+        <span class="ui-kpi__value">{{ formatDuration(insights.overview.average_time_spent) }}</span>
+        <span class="ui-kpi__sub">{{ 'admin.insights.per_learner' | translate }}</span>
       </div>
-
-      <!-- Certificates -->
-      <div class="col-6 col-md-4 col-lg-2">
-        <div class="card h-100 border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <div class="rounded-3 p-2 bg-danger bg-opacity-10 me-2">
-                <tui-icon icon="@tui.award" class="text-danger"></tui-icon>
-              </div>
-            </div>
-            <h3 class="fw-bold mb-1">{{ formatNumber(insights.overview.total_certificates_issued) }}</h3>
-            <p class="text-muted small mb-1">{{ 'admin.insights.certificates' | translate }}</p>
-            <small class="text-muted">{{ 'admin.insights.issued' | translate }}</small>
-          </div>
-        </div>
+      <div class="ui-kpi ui-kpi--danger">
+        <span class="ui-kpi__label"><i class="bi bi-award"></i> {{ 'admin.insights.certificates' | translate }}</span>
+        <span class="ui-kpi__value">{{ formatNumber(insights.overview.total_certificates_issued) }}</span>
+        <span class="ui-kpi__sub">{{ 'admin.insights.issued' | translate }}</span>
       </div>
     </div>
 
     <!-- Tab Navigation -->
-    <ul class="nav nav-pills mb-4 bg-light rounded-3 p-2">
-      <li class="nav-item me-3">
-        <button class="nav-link" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
-          <tui-icon icon="@tui.bar-chart-2" class="me-2"></tui-icon>{{ 'admin.insights.tab_overview' | translate }}
-        </button>
-      </li>
-      <li class="nav-item me-3">
-        <button class="nav-link" [class.active]="activeTab === 'learners'" (click)="setActiveTab('learners')">
-          <tui-icon icon="@tui.users" class="me-2"></tui-icon>{{ 'admin.insights.tab_learners' | translate }}
-        </button>
-      </li>
-      <li class="nav-item me-3">
-        <button class="nav-link" [class.active]="activeTab === 'content'" (click)="setActiveTab('content')">
-          <tui-icon icon="@tui.book-open" class="me-2"></tui-icon>{{ 'admin.insights.tab_content' | translate }}
-        </button>
-      </li>
-      <li class="nav-item me-3">
-        <button class="nav-link" [class.active]="activeTab === 'assessments'" (click)="setActiveTab('assessments')">
-          <tui-icon icon="@tui.clipboard-list" class="me-2"></tui-icon>{{ 'admin.insights.tab_assessments' | translate }}
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" [class.active]="activeTab === 'leaderboard'" (click)="setActiveTab('leaderboard')">
-          <tui-icon icon="@tui.award" class="me-2"></tui-icon>{{ 'admin.insights.tab_leaderboard' | translate }}
-        </button>
-      </li>
-    </ul>
+    <nav class="ui-tabs insights-tabs" role="tablist">
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'overview'" [attr.aria-selected]="activeTab === 'overview'" (click)="setActiveTab('overview')">
+        <i class="bi bi-bar-chart"></i>{{ 'admin.insights.tab_overview' | translate }}
+      </button>
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'learners'" [attr.aria-selected]="activeTab === 'learners'" (click)="setActiveTab('learners')">
+        <i class="bi bi-people"></i>{{ 'admin.insights.tab_learners' | translate }}
+      </button>
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'content'" [attr.aria-selected]="activeTab === 'content'" (click)="setActiveTab('content')">
+        <i class="bi bi-book"></i>{{ 'admin.insights.tab_content' | translate }}
+      </button>
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'assessments'" [attr.aria-selected]="activeTab === 'assessments'" (click)="setActiveTab('assessments')">
+        <i class="bi bi-clipboard-check"></i>{{ 'admin.insights.tab_assessments' | translate }}
+      </button>
+      <button type="button" role="tab" class="ui-tab" [class.is-active]="activeTab === 'leaderboard'" [attr.aria-selected]="activeTab === 'leaderboard'" (click)="setActiveTab('leaderboard')">
+        <i class="bi bi-award"></i>{{ 'admin.insights.tab_leaderboard' | translate }}
+      </button>
+    </nav>
 
     <!-- Tab Content -->
     <div class="tab-content">
@@ -219,9 +146,9 @@
 
           <!-- Enrollment Trends -->
           <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><tui-icon icon="@tui.trending-up" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.enrollment_trends' | translate }}</h5>
+            <div class="card border-0 insight-card h-100">
+              <div class="card-header insight-card__head d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.trending-up" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.enrollment_trends' | translate }}</h5>
                 <div class="d-flex gap-3 small">
                   <span><span class="badge bg-primary me-1">&nbsp;</span>{{ 'admin.insights.enrollments' | translate }}</span>
                   <span><span class="badge bg-success me-1">&nbsp;</span>{{ 'admin.insights.completions' | translate }}</span>
@@ -243,9 +170,9 @@
 
           <!-- Completion Funnel -->
           <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.filter" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.completion_funnel' | translate }}</h5>
+            <div class="card border-0 insight-card h-100">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.filter" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.completion_funnel' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="funnel-container">
@@ -272,7 +199,7 @@
                   </div>
                   <div class="funnel-stage mb-2">
                     <div class="progress" style="height: 30px;">
-                      <div class="progress-bar" style="background-color: #fd7e14;" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.almost_done, insights.completion.completion_funnel.enrolled)">
+                      <div class="progress-bar" style="background-color: var(--ui-warning);" [style.width.%]="getFunnelPercentage(insights.completion.completion_funnel.almost_done, insights.completion.completion_funnel.enrolled)">
                         {{ 'admin.insights.funnel_almost' | translate }}: {{ insights.completion.completion_funnel.almost_done }}
                       </div>
                     </div>
@@ -291,9 +218,9 @@
 
           <!-- Enrollment by Source -->
           <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.enrollment_by_source' | translate }}</h5>
+            <div class="card border-0 insight-card h-100">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.pie-chart" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.enrollment_by_source' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let source of insights.enrollment.by_source" class="mb-3">
@@ -311,9 +238,9 @@
 
           <!-- Enrollment by Department -->
           <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.building" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.by_department' | translate }}</h5>
+            <div class="card border-0 insight-card h-100">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.building" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.by_department' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let dept of insights.enrollment.by_department" class="mb-3">
@@ -336,9 +263,9 @@
                engaged" rather than "this was never measured".
           -->
           <div class="col-md-6" *ngIf="insights.engagement">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.activity" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.engagement' | translate }}</h5>
+            <div class="card border-0 insight-card h-100">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.activity" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.engagement' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="text-center mb-4">
@@ -365,9 +292,9 @@
 
           <!-- Peak Activity - the same missing session data. -->
           <div class="col-md-6" *ngIf="insights.engagement">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.clock" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.peak_activity' | translate }}</h5>
+            <div class="card border-0 insight-card h-100">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.clock" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.peak_activity' | translate }}</h5>
               </div>
               <div class="card-body">
                 <h6 class="text-muted mb-2">{{ 'admin.insights.peak_hours' | translate }}</h6>
@@ -407,9 +334,9 @@
 
           <!-- Top Performers -->
           <div class="col-lg-6">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.award" class="me-2 text-success"></tui-icon>{{ 'admin.insights.top_performers' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.award" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.top_performers' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -446,9 +373,9 @@
 
           <!-- Recent Completions -->
           <div class="col-lg-6">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.circle-check" class="me-2 text-success"></tui-icon>{{ 'admin.insights.recent_completions' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.circle-check" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.recent_completions' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -479,9 +406,9 @@
 
           <!-- At Risk Learners -->
           <div class="col-lg-6">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.triangle-alert" class="me-2 text-danger"></tui-icon>{{ 'admin.insights.at_risk_learners' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.triangle-alert" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.at_risk_learners' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -524,9 +451,9 @@
 
           <!-- Learner Segments -->
           <div class="col-lg-6">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.pie-chart" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.learner_segments' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.pie-chart" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.learner_segments' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let segment of insights.learners.learner_segments" class="mb-3">
@@ -557,9 +484,9 @@
 
           <!-- Module Analytics -->
           <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.folder" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.module_performance' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.folder" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.module_performance' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="accordion accordion-flush" id="modulesAccordion">
@@ -625,9 +552,9 @@
                `learning_sessions` the engagement panel needs.
           -->
           <div class="col-lg-4" *ngIf="insights.engagement">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.mouse-pointer" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.interactions' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.mouse-pointer" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.interactions' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let interaction of insights.engagement.content_interactions" class="d-flex align-items-center mb-3">
@@ -653,9 +580,9 @@
 
           <!-- Assessment Summary -->
           <div class="col-12">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.clipboard-check" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.assessment_summary' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.clipboard-check" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.assessment_summary' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="row text-center mb-4">
@@ -682,9 +609,9 @@
 
           <!-- Score Distribution -->
           <div class="col-12">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.bar-chart" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.score_distribution' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.bar-chart" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.score_distribution' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div class="d-flex align-items-end justify-content-around" style="height: 200px;">
@@ -721,9 +648,9 @@
 
           <!-- Assessment List -->
           <div class="col-12">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.list" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.assessment_performance' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.list" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.assessment_performance' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="table-responsive">
@@ -770,9 +697,9 @@
 
           <!-- Challenging Questions -->
           <div class="col-12" *ngIf="insights.assessments.question_analytics?.length">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.help-circle" class="me-2 text-warning"></tui-icon>{{ 'admin.insights.challenging_questions' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.help-circle" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.challenging_questions' | translate }}</h5>
               </div>
               <div class="card-body">
                 <div *ngFor="let question of insights.assessments.question_analytics.slice(0, 5)" class="border-bottom py-3">
@@ -940,9 +867,9 @@
 
           <!-- Remaining Leaderboard (4th place onwards) -->
           <div class="col-6 offset-3" *ngIf="insights.learners.top_performers.length > 3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-transparent border-0">
-                <h5 class="mb-0"><tui-icon icon="@tui.users" class="me-2 text-primary"></tui-icon>{{ 'admin.insights.other_performers' | translate }}</h5>
+            <div class="card border-0 insight-card">
+              <div class="card-header insight-card__head">
+                <h5 class="mb-0 ui-section__title"><tui-icon icon="@tui.users" class="me-2 insight-card__icon"></tui-icon>{{ 'admin.insights.other_performers' | translate }}</h5>
               </div>
               <div class="card-body p-0">
                 <div class="list-group list-group-flush">
@@ -972,7 +899,7 @@
 
           <!-- Empty State -->
           <div class="col-12" *ngIf="!insights.learners.top_performers?.length">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 insight-card">
               <div class="card-body text-center py-5">
                 <tui-icon icon="@tui.award" class="fs-1 text-muted mb-3"></tui-icon>
                 <h5 class="text-muted">{{ 'admin.insights.no_completions' | translate }}</h5>

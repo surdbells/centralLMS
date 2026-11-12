@@ -1,29 +1,28 @@
 <!-- learning-path-enrollment/learning-path-enrollments.component.html -->
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-<div class="enrollment-container">
+<main class="main">
+<div class="ui-page enrollment-container">
   <!-- Page Header -->
-  <div class="page-header mb-4">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h1 class="h3 mb-1">{{ 'paths_admin.enroll.title' | translate }}</h1>
-        <p class="text-muted mb-0">{{ 'paths_admin.enroll.subtitle' | translate }}</p>
-      </div>
-      <div class="d-flex gap-3" *ngIf="stats && selectedPath">
-        <div class="stat-badge">
-          <span class="stat-value">{{ stats.total_enrolled }}</span>
-          <span class="stat-label">{{ 'paths_admin.assign.total_enrolled' | translate }}</span>
-        </div>
-        <div class="stat-badge">
-          <span class="stat-value">{{ stats.active }}</span>
-          <span class="stat-label">{{ 'paths_admin.enroll.active' | translate }}</span>
-        </div>
-        <div class="stat-badge">
-          <span class="stat-value">{{ stats.completed }}</span>
-          <span class="stat-label">{{ 'paths_admin.completed' | translate }}</span>
-        </div>
-      </div>
+  <header class="ui-page-header">
+    <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-person-plus"></i></div>
+    <div class="ui-page-header__titles">
+      <h1>{{ 'paths_admin.enroll.title' | translate }}</h1>
+      <p>{{ 'paths_admin.enroll.subtitle' | translate }}</p>
+    </div>
+  </header>
+
+  <div class="ui-kpi-grid ui-kpi-grid--3 mb-4" *ngIf="stats && selectedPath">
+    <div class="ui-kpi ui-kpi--brand">
+      <span class="ui-kpi__label"><i class="bi bi-people"></i> {{ 'paths_admin.assign.total_enrolled' | translate }}</span>
+      <span class="ui-kpi__value">{{ stats.total_enrolled }}</span>
+    </div>
+    <div class="ui-kpi ui-kpi--info">
+      <span class="ui-kpi__label"><i class="bi bi-play-circle"></i> {{ 'paths_admin.enroll.active' | translate }}</span>
+      <span class="ui-kpi__value">{{ stats.active }}</span>
+    </div>
+    <div class="ui-kpi ui-kpi--success">
+      <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> {{ 'paths_admin.completed' | translate }}</span>
+      <span class="ui-kpi__value">{{ stats.completed }}</span>
     </div>
   </div>
 
@@ -32,93 +31,90 @@
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
     </div>
-    <p class="mt-3 text-muted">{{ 'paths_admin.enroll.loading_data' | translate }}</p>
+    <p class="mt-3 ui-muted">{{ 'paths_admin.enroll.loading_data' | translate }}</p>
   </div>
 
   <ng-container *ngIf="!loading">
     <!-- Step 1: Select Learning Path -->
-    <div class="card shadow-sm" *ngIf="showPathSelector">
-      <div class="card-header bg-white border-bottom">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h5 class="card-title mb-1">
-              <span class="step-number">1</span>
-              {{ 'paths_admin.enroll.select_path' | translate }}
-            </h5>
-            <p class="text-muted mb-0 small">{{ 'paths_admin.enroll.select_path_hint' | translate }}</p>
-          </div>
-          <div class="search-box">
+    <section class="ui-section" *ngIf="showPathSelector">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title">
+            <span class="step-number">1</span>
+            {{ 'paths_admin.enroll.select_path' | translate }}
+          </h2>
+          <p class="ui-section__subtitle">{{ 'paths_admin.enroll.select_path_hint' | translate }}</p>
+        </div>
+        <div class="ui-section__actions">
+          <label class="ui-search">
             <i class="bi bi-search"></i>
             <input
-              type="text"
-              class="form-control"
+              type="search"
               placeholder="{{ 'paths.search_placeholder' | translate }}"
               [(ngModel)]="pathSearch"
             >
-          </div>
+          </label>
         </div>
       </div>
-      <div class="card-body p-0">
-        <div class="path-grid">
-          <ng-container *ngIf="filterPaths().length > 0; else noPathsTemplate">
-            <div
-              *ngFor="let path of filterPaths()"
-              class="path-card"
-              [class.disabled]="path.status !== 'published'"
-              (click)="path.status === 'published' && selectPath(path)"
-            >
-              <div class="path-thumbnail">
-                <img *ngIf="path.thumbnail_url" [src]="path.thumbnail_url" [alt]="path.title">
-                <div *ngIf="!path.thumbnail_url" class="path-thumbnail-placeholder">
-                  <i class="bi bi-signpost-split"></i>
-                </div>
-                <span class="path-badge skill-level" [ngClass]="getSkillLevelBadge(path.skill_level)">
-                  {{ path.skill_level | titlecase }}
+      <div class="path-grid">
+        <ng-container *ngIf="filterPaths().length > 0; else noPathsTemplate">
+          <div
+            *ngFor="let path of filterPaths()"
+            class="path-card"
+            [class.disabled]="path.status !== 'published'"
+            (click)="path.status === 'published' && selectPath(path)"
+          >
+            <div class="path-thumbnail">
+              <img *ngIf="path.thumbnail_url" [src]="path.thumbnail_url" [alt]="path.title">
+              <div *ngIf="!path.thumbnail_url" class="path-thumbnail-placeholder">
+                <i class="bi bi-signpost-split"></i>
+              </div>
+              <span class="path-badge skill-level" [ngClass]="getSkillLevelBadge(path.skill_level)">
+                {{ path.skill_level | titlecase }}
+              </span>
+            </div>
+            <div class="path-info">
+              <h6 class="path-title">{{ path.title }}</h6>
+              <p class="path-description">{{ path.short_description }}</p>
+              <div class="path-meta">
+                <span class="meta-item">
+                  <i class="bi bi-collection"></i>
+                  {{ 'paths.items_count' | translate:{ count: path.total_items } }}
+                </span>
+                <span class="meta-item">
+                  <i class="bi bi-clock"></i>
+                  {{ formatDuration(path.estimated_duration_hours) }}
+                </span>
+                <span class="meta-item">
+                  <i class="bi bi-people"></i>
+                  {{ 'paths.enrolled_count' | translate:{ count: path.total_enrollments } }}
                 </span>
               </div>
-              <div class="path-info">
-                <h6 class="path-title">{{ path.title }}</h6>
-                <p class="path-description">{{ path.short_description }}</p>
-                <div class="path-meta">
-                  <span class="meta-item">
-                    <i class="bi bi-collection"></i>
-                    {{ 'paths.items_count' | translate:{ count: path.total_items } }}
-                  </span>
-                  <span class="meta-item">
-                    <i class="bi bi-clock"></i>
-                    {{ formatDuration(path.estimated_duration_hours) }}
-                  </span>
-                  <span class="meta-item">
-                    <i class="bi bi-people"></i>
-                    {{ 'paths.enrolled_count' | translate:{ count: path.total_enrollments } }}
-                  </span>
-                </div>
-                <span *ngIf="path.status !== 'published'" class="badge bg-secondary mt-2">{{ path.status | titlecase }}</span>
-                <span *ngIf="path.is_mandatory" class="badge bg-danger mt-2 ms-1">{{ 'paths.mandatory' | translate }}</span>
-              </div>
+              <span *ngIf="path.status !== 'published'" class="badge bg-secondary mt-2">{{ path.status | titlecase }}</span>
+              <span *ngIf="path.is_mandatory" class="badge bg-danger mt-2 ms-1">{{ 'paths.mandatory' | translate }}</span>
             </div>
-          </ng-container>
-          <ng-template #noPathsTemplate>
-            <div class="empty-state">
-              <i class="bi bi-signpost-split"></i>
-              <p>{{ 'paths_admin.enroll.no_paths' | translate }}</p>
-            </div>
-          </ng-template>
-        </div>
+          </div>
+        </ng-container>
+        <ng-template #noPathsTemplate>
+          <div class="ui-state empty-state">
+            <span class="ui-state__icon"><i class="bi bi-signpost-split"></i></span>
+            <p>{{ 'paths_admin.enroll.no_paths' | translate }}</p>
+          </div>
+        </ng-template>
       </div>
-    </div>
+    </section>
 
     <!-- Step 2: Configure Enrollment -->
     <ng-container *ngIf="!showPathSelector && selectedPath">
-      <div class="selected-path-banner mb-4">
-        <div class="d-flex align-items-center gap-3">
+      <section class="ui-section selected-path-banner">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
           <div class="path-thumb-small">
             <img *ngIf="selectedPath.thumbnail_url" [src]="selectedPath.thumbnail_url" [alt]="selectedPath.title">
             <i *ngIf="!selectedPath.thumbnail_url" class="bi bi-signpost-split"></i>
           </div>
           <div class="flex-grow-1">
             <h5 class="mb-1">{{ selectedPath.title }}</h5>
-            <div class="d-flex gap-3 text-muted small">
+            <div class="d-flex flex-wrap align-items-center gap-3 ui-muted small">
               <span><i class="bi bi-collection me-1"></i>{{ 'paths.items_count' | translate:{ count: selectedPath.total_items } }}</span>
               <span><i class="bi bi-clock me-1"></i>{{ formatDuration(selectedPath.estimated_duration_hours) }}</span>
               <span class="badge" [ngClass]="getSkillLevelBadge(selectedPath.skill_level)">
@@ -129,48 +125,48 @@
               </span>
             </div>
           </div>
-          <button class="btn btn-secondary btn-sm" (click)="changePath()">
+          <button class="btn btn-outline-secondary btn-sm" (click)="changePath()">
             <i class="bi bi-arrow-left me-1"></i>{{ 'paths_admin.enroll.change_path' | translate }}
           </button>
         </div>
-      </div>
+      </section>
 
-      <div class="row">
+      <div class="row g-4">
         <!-- Left Column: Enrollment Configuration -->
         <div class="col-lg-8">
-          <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white">
-              <h5 class="card-title mb-0">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">
                 <span class="step-number">2</span>
                 {{ 'paths_admin.enroll.select_users' | translate }}
-              </h5>
+              </h2>
             </div>
-            <div class="card-body">
+            <div>
               <!-- Enrollment Type Selection -->
               <div class="enrollment-type-selector mb-4">
                 <label class="form-label fw-semibold">{{ 'paths_admin.enroll.method' | translate }}</label>
                 <div class="btn-group w-100" role="group">
                   <input type="radio" class="btn-check" id="type-users" value="users"
                          [(ngModel)]="enrollmentType" (change)="onEnrollmentTypeChange()">
-                  <label class="btn btn-primary" for="type-users">
+                  <label class="btn btn-outline-secondary" for="type-users">
                     <i class="bi bi-person-check me-2"></i>{{ 'paths_admin.enroll.individual_users' | translate }}
                   </label>
 
                   <input type="radio" class="btn-check" id="type-department" value="department"
                          [(ngModel)]="enrollmentType" (change)="onEnrollmentTypeChange()">
-                  <label class="btn btn-primary" for="type-department">
+                  <label class="btn btn-outline-secondary" for="type-department">
                     <i class="bi bi-building me-2"></i>{{ 'paths_admin.by_department' | translate }}
                   </label>
 
                   <input type="radio" class="btn-check" id="type-team" value="team"
                          [(ngModel)]="enrollmentType" (change)="onEnrollmentTypeChange()">
-                  <label class="btn btn-primary" for="type-team">
+                  <label class="btn btn-outline-secondary" for="type-team">
                     <i class="bi bi-people me-2"></i>{{ 'paths_admin.by_team' | translate }}
                   </label>
 
                   <input type="radio" class="btn-check" id="type-branch" value="branch"
                          [(ngModel)]="enrollmentType" (change)="onEnrollmentTypeChange()">
-                  <label class="btn btn-primary" for="type-branch">
+                  <label class="btn btn-outline-secondary" for="type-branch">
                     <i class="bi bi-geo-alt me-2"></i>{{ 'paths_admin.by_branch' | translate }}
                   </label>
                 </div>
@@ -179,14 +175,14 @@
               <!-- Department Selection -->
               <div class="selection-section" *ngIf="enrollmentType === 'department'">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.select_department' | translate }}</label>
-                <select class="form-select form-select-lg" [(ngModel)]="selectedDepartmentId">
+                <select class="form-select" [(ngModel)]="selectedDepartmentId">
                   <option [ngValue]="null">{{ 'paths_admin.assign.choose_department' | translate }}</option>
                   <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
                     {{ dept.department_name }} ({{ 'paths_admin.assign.users_count' | translate:{ count: dept.user_count } }})
                   </option>
                 </select>
                 <div class="selection-preview mt-3" *ngIf="selectedDepartmentId">
-                  <i class="bi bi-info-circle text-info"></i>
+                  <i class="bi bi-info-circle"></i>
                   <span>{{ 'paths_admin.enroll.dept_info' | translate:{ count: getDepartmentUserCount() } }}</span>
                 </div>
               </div>
@@ -194,14 +190,14 @@
               <!-- Team Selection -->
               <div class="selection-section" *ngIf="enrollmentType === 'team'">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.select_team' | translate }}</label>
-                <select class="form-select form-select-lg" [(ngModel)]="selectedTeamId">
+                <select class="form-select" [(ngModel)]="selectedTeamId">
                   <option [ngValue]="null">{{ 'paths_admin.assign.choose_team' | translate }}</option>
                   <option *ngFor="let team of teams" [ngValue]="team.team_id">
                     {{ team.team_name }} ({{ 'paths_admin.assign.users_count' | translate:{ count: team.user_count } }})
                   </option>
                 </select>
                 <div class="selection-preview mt-3" *ngIf="selectedTeamId">
-                  <i class="bi bi-info-circle text-info"></i>
+                  <i class="bi bi-info-circle"></i>
                   <span>{{ 'paths_admin.enroll.team_info' | translate:{ count: getTeamUserCount() } }}</span>
                 </div>
               </div>
@@ -209,14 +205,14 @@
               <!-- Branch Selection -->
               <div class="selection-section" *ngIf="enrollmentType === 'branch'">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.select_branch' | translate }}</label>
-                <select class="form-select form-select-lg" [(ngModel)]="selectedBranchId">
+                <select class="form-select" [(ngModel)]="selectedBranchId">
                   <option [ngValue]="null">{{ 'paths_admin.assign.choose_branch' | translate }}</option>
                   <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
                     {{ branch.branch_name }} - {{ branch.city }}, {{ branch.country }} ({{ 'paths_admin.assign.users_count' | translate:{ count: branch.user_count } }})
                   </option>
                 </select>
                 <div class="selection-preview mt-3" *ngIf="selectedBranchId">
-                  <i class="bi bi-info-circle text-info"></i>
+                  <i class="bi bi-info-circle"></i>
                   <span>{{ 'paths_admin.enroll.branch_info' | translate:{ count: getBranchUserCount() } }}</span>
                 </div>
               </div>
@@ -224,56 +220,51 @@
               <!-- Individual User Selection -->
               <div class="user-selection-section" *ngIf="enrollmentType === 'users'">
                 <!-- Filters -->
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label small text-muted">{{ 'paths_admin.assign.filter_department' | translate }}</label>
-                    <select class="form-select" [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()">
+                <div class="ui-toolbar">
+                  <div class="ui-filters">
+                    <select class="form-select" [attr.aria-label]="'paths_admin.assign.filter_department' | translate" [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()">
                       <option [ngValue]="null">{{ 'paths_admin.assign.all_departments' | translate }}</option>
                       <option *ngFor="let dept of departments" [ngValue]="dept.department_id">{{ dept.department_name }}</option>
                     </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small text-muted">{{ 'paths_admin.assign.filter_team' | translate }}</label>
-                    <select class="form-select" [(ngModel)]="selectedTeamId" (change)="onTeamChange()">
+                    <select class="form-select" [attr.aria-label]="'paths_admin.assign.filter_team' | translate" [(ngModel)]="selectedTeamId" (change)="onTeamChange()">
                       <option [ngValue]="null">{{ 'paths_admin.assign.all_teams' | translate }}</option>
                       <option *ngFor="let team of teams" [ngValue]="team.team_id">{{ team.team_name }}</option>
                     </select>
                   </div>
-                </div>
 
-                <!-- Search -->
-                <div class="search-box mb-3">
-                  <i class="bi bi-search"></i>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="{{ 'paths_admin.assign.search_users' | translate }}"
-                    [(ngModel)]="userSearch"
-                    (ngModelChange)="onUserSearchChange()"
-                  >
+                  <!-- Search -->
+                  <label class="ui-search">
+                    <i class="bi bi-search"></i>
+                    <input
+                      type="search"
+                      placeholder="{{ 'paths_admin.assign.search_users' | translate }}"
+                      [(ngModel)]="userSearch"
+                      (ngModelChange)="onUserSearchChange()"
+                    >
+                  </label>
                 </div>
 
                 <!-- User List -->
                 <div class="user-list-container">
                   <div class="text-center py-4" *ngIf="loadingUsers">
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <span class="ms-2 text-muted">{{ 'paths_admin.assign.loading_users' | translate }}</span>
+                    <span class="ms-2 ui-muted">{{ 'paths_admin.assign.loading_users' | translate }}</span>
                   </div>
 
-                  <div class="empty-state py-4" *ngIf="!loadingUsers && users.length === 0">
-                    <i class="bi bi-people"></i>
-                    <p>{{ 'paths_admin.enroll.no_users' | translate }}</p>
-                    <small class="text-muted">{{ 'paths_admin.enroll.no_users_hint' | translate }}</small>
+                  <div class="ui-state empty-state m-3" *ngIf="!loadingUsers && users.length === 0">
+                    <span class="ui-state__icon"><i class="bi bi-people"></i></span>
+                    <h3>{{ 'paths_admin.enroll.no_users' | translate }}</h3>
+                    <p>{{ 'paths_admin.enroll.no_users_hint' | translate }}</p>
                   </div>
 
                   <ng-container *ngIf="!loadingUsers && users.length > 0">
-                    <div class="d-flex justify-content-between align-items-center p-4 mb-2">
-                      <span class="text-muted small">{{ 'paths_admin.enroll.users_available' | translate:{ count: users.length } }}</span>
-                      <div class="btn-group btn-group-sm">
-                        <button class="btn btn-secondary" (click)="selectAllUsers()">
+                    <div class="user-list-head">
+                      <span class="ui-muted small">{{ 'paths_admin.enroll.users_available' | translate:{ count: users.length } }}</span>
+                      <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" (click)="selectAllUsers()">
                           {{ 'paths_admin.assign.select_all' | translate }}
                         </button>
-                        <button class="btn btn-secondary" (click)="deselectAllUsers()">
+                        <button class="btn btn-sm btn-outline-secondary" (click)="deselectAllUsers()">
                           {{ 'paths_admin.clear' | translate }}
                         </button>
                       </div>
@@ -297,7 +288,7 @@
                           <div class="user-email">{{ user.email }}</div>
                         </div>
                         <div class="user-meta">
-                          <span *ngIf="user.department_name" class="badge bg-black text-white">{{ user.department_name }}</span>
+                          <span *ngIf="user.department_name" class="ui-pill ui-pill--neutral">{{ user.department_name }}</span>
                         </div>
                       </div>
                     </div>
@@ -305,26 +296,26 @@
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
 
         <!-- Right Column: Options & Summary -->
         <div class="col-lg-4">
           <!-- Enrollment Options -->
-          <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white">
-              <h5 class="card-title mb-0">
+          <section class="ui-section">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">
                 <span class="step-number">3</span>
                 {{ 'paths_admin.enroll.options' | translate }}
-              </h5>
+              </h2>
             </div>
-            <div class="card-body">
+            <div>
               <!-- Mandatory Toggle -->
               <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" id="isMandatory" [(ngModel)]="isMandatory">
                 <label class="form-check-label" for="isMandatory">
                   <strong>{{ 'paths_admin.enroll.mandatory' | translate }}</strong>
-                  <small class="d-block text-muted">{{ 'paths_admin.enroll.mandatory_hint' | translate }}</small>
+                  <small class="d-block ui-muted">{{ 'paths_admin.enroll.mandatory_hint' | translate }}</small>
                 </label>
               </div>
 
@@ -337,7 +328,7 @@
                   [(ngModel)]="dueDate"
                   [min]="getMinDueDate()"
                 >
-                <small class="text-muted">{{ 'paths_admin.enroll.due_date_hint' | translate }}</small>
+                <small class="ui-muted">{{ 'paths_admin.enroll.due_date_hint' | translate }}</small>
               </div>
 
               <!-- Priority -->
@@ -356,21 +347,23 @@
                 <input class="form-check-input" type="checkbox" id="notifyUsers" [(ngModel)]="notifyUsers">
                 <label class="form-check-label" for="notifyUsers">
                   <strong>{{ 'paths_admin.enroll.send_notification' | translate }}</strong>
-                  <small class="d-block text-muted">{{ 'paths_admin.enroll.send_notification_hint' | translate }}</small>
+                  <small class="d-block ui-muted">{{ 'paths_admin.enroll.send_notification_hint' | translate }}</small>
                 </label>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Selected Users Summary -->
-          <div class="card shadow-sm mb-4" *ngIf="enrollmentType === 'users' && selectedUsers.length > 0">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-              <h6 class="mb-0">{{ 'paths_admin.enroll.selected_users' | translate:{ count: selectedUsers.length } }}</h6>
-              <button class="btn btn-sm btn-link text-danger p-0" (click)="deselectAllUsers()">
-                {{ 'paths_admin.enroll.clear_all' | translate }}
-              </button>
+          <section class="ui-section ui-section--flush" *ngIf="enrollmentType === 'users' && selectedUsers.length > 0">
+            <div class="ui-section__head">
+              <h2 class="ui-section__title">{{ 'paths_admin.enroll.selected_users' | translate:{ count: selectedUsers.length } }}</h2>
+              <div class="ui-section__actions">
+                <button class="btn btn-sm btn-link text-danger p-0" (click)="deselectAllUsers()">
+                  {{ 'paths_admin.enroll.clear_all' | translate }}
+                </button>
+              </div>
             </div>
-            <div class="card-body p-0">
+            <div>
               <div class="selected-users-list">
                 <div *ngFor="let user of selectedUsers" class="selected-user-item">
                   <div class="user-avatar small">
@@ -384,12 +377,12 @@
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- Action Summary -->
-          <div class="card shadow-sm action-card">
-            <div class="card-body">
-              <h6 class="mb-3">{{ 'paths_admin.enroll.summary' | translate }}</h6>
+          <section class="ui-section action-card">
+            <div>
+              <h2 class="ui-section__title mb-3">{{ 'paths_admin.enroll.summary' | translate }}</h2>
               <div class="summary-item">
                 <span class="label">{{ 'paths_admin.assign.learning_path_label' | translate }}</span>
                 <span class="value">{{ selectedPath.title }}</span>
@@ -418,7 +411,7 @@
               </div>
 
               <button
-                class="btn btn-primary w-100 btn-lg"
+                class="btn btn-primary w-100"
                 [disabled]="!canPreview() || loadingPreview"
                 (click)="previewEnrollment()"
               >
@@ -432,7 +425,7 @@
                 </ng-container>
               </button>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </ng-container>
@@ -512,7 +505,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closePreviewModal()">
+          <button type="button" class="btn btn-outline-secondary" (click)="closePreviewModal()">
             {{ 'common.cancel' | translate }}
           </button>
           <button
@@ -626,7 +619,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeResultModal()">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeResultModal()">
             {{ 'common.close' | translate }}
           </button>
           <button type="button" class="btn btn-primary" (click)="startNewEnrollment()">
@@ -637,5 +630,4 @@
     </div>
   </div>
 </ng-container>
-  </div>
 </main>

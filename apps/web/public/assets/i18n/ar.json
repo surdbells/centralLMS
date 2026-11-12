@@ -3886,5 +3886,18 @@
   "course_player.seek": "موضع التشغيل",
   "course_player.volume": "مستوى الصوت",
   "course_player.thread_count": "{{count}} مواضيع",
-  "course_player.thread_count_one": "موضوع واحد"
+  "course_player.thread_count_one": "موضوع واحد",
+  "learner_dash.greeting": "مرحبًا بعودتك، {{name}}",
+  "learner_dash.yet_to_attempt": "لم تبدأ بعد",
+  "learner_dash.avg_completion": "متوسط الإنجاز",
+  "admin.courses.page_subtitle": "أنشئ كتالوج الدورات وانشره وأدِره.",
+  "admin.course_content.page_subtitle": "اسحب الوحدات والدروس لإعادة ترتيبها.",
+  "review.page_subtitle": "وافق على تقييمات المتعلمين أو ارفضها قبل نشرها.",
+  "admin.roles.subtitle": "حدّد ما يمكن لكل دور رؤيته والقيام به",
+  "certificates.subtitle": "الشهادات التي حصلت عليها، جاهزة للفتح.",
+  "live.skills.subtitle": "اربط المهارات والكفاءات التي يطورها كل برنامج تدريب مباشر.",
+  "reports.saved_subtitle": "التقارير التي حفظتها مع عوامل التصفية الخاصة بها، جاهزة لإعادة التشغيل",
+  "reports.scheduled_subtitle": "تقارير تُرسل تلقائيًا عبر البريد الإلكتروني يوميًا أو أسبوعيًا أو شهريًا",
+  "reports.manager_subtitle": "تسجيلات فريقك وإتماماته والتدريبات المتأخرة",
+  "messaging.page_subtitle": "الرسائل المباشرة والمجموعات والقنوات في مكان واحد"
 }

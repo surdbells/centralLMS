@@ -1,267 +1,192 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12">
-        <div class="content-dashboard">
-          <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between mb-4 gap-3">
-            <div class="row align-items-center">
-              <div (click)="goBack()" role="button" class="col-auto">
-                <div class="avatar text-center avatar-md rounded text-primary-emphasis">
-                  <i class="fs-5">
-                    <tui-icon icon="@tui.chevron-left" />
-                  </i>
-                </div>
-              </div>
-              <div class="col">
-                <h1 class="fs-4 mb-0">{{ 'admin.media.title' | translate }}</h1>
-              </div>
-            </div>
-            <div class="header-actions">
+<main class="main">
+  <div class="ui-page media-page">
+    <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-collection-play"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'admin.media.title' | translate }}</h1>
+        <p>{{ 'admin.media.manager_subtitle' | translate }}</p>
+      </div>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-outline-secondary" *ngIf="!ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = false; storageStatistics(); list_media()" title="{{ 'common.refresh' | translate }}">
+          <i class="bi bi-arrow-clockwise"></i> {{ 'common.refresh' | translate }}
+        </button>
+        <button type="button" class="btn btn-primary" *ngIf="!ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = true">
+          <i class="bi bi-upload"></i> {{ 'admin.media.upload' | translate }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" *ngIf="ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = false; storageStatistics(); list_media()" title="{{ 'common.close' | translate }}">
+          <i class="bi bi-x-lg"></i> {{ 'common.close' | translate }}
+        </button>
+      </div>
+    </header>
 
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-              <button class="btn btn-refresh" *ngIf="!ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = true">
-                <i class="bi bi-upload"></i> <span class="ps-4">{{ 'admin.media.upload' | translate }}</span>
-              </button>
-              <button class="btn btn-refresh" *ngIf="!ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = false; storageStatistics(); list_media()" title="{{ 'common.refresh' | translate }}">
-                <i class="bi bi-arrow-clockwise"></i> <span class="ps-4">{{ 'common.refresh' | translate }}</span>
-              </button>
-              <button class="btn btn-danger btn-refresh" *ngIf="ui_controls.viewing_upload" (click)="ui_controls.viewing_upload = false; storageStatistics(); list_media()" title="{{ 'common.close' | translate }}">
-                <i class="bi bi-x"></i> <span class="ps-4">{{ 'common.close' | translate }}</span>
-              </button>
-            </div>
-          </div>
-
-        </div>
+    <!-- Storage + per-type counts -->
+    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="ui-kpi-grid ui-kpi-grid--5 media-kpis">
+      <div class="ui-kpi ui-kpi--brand">
+        <span class="ui-kpi__label"><i class="bi bi-hdd"></i> {{ 'admin.media.storage_usage' | translate }}</span>
+        <span class="ui-kpi__value media-storage">
+          {{ formatFileSize(statistics?.bytesUsed ?? 0) }}
+          <small>{{ 'admin.media.of' | translate }} {{ statistics?.limitBytes === null ? ('admin.media.unlimited' | translate) : formatFileSize(statistics?.limitBytes ?? 0) }}</small>
+        </span>
+        <span class="ui-kpi__sub">{{ 'admin.media.total_files' | translate:{ count: statistics?.total ?? 0 } }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--info">
+        <span class="ui-kpi__label"><i class="bi bi-camera-video"></i> {{ 'admin.media.videos' | translate }}</span>
+        <span class="ui-kpi__value">{{ countOf('video') }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--brand">
+        <span class="ui-kpi__label"><i class="bi bi-music-note-beamed"></i> {{ 'admin.media.audio' | translate }}</span>
+        <span class="ui-kpi__value">{{ countOf('audio') }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--danger">
+        <span class="ui-kpi__label"><i class="bi bi-file-earmark-pdf"></i> {{ 'admin.media.pdfs' | translate }}</span>
+        <span class="ui-kpi__value">{{ countOf('pdf') }}</span>
+      </div>
+      <div class="ui-kpi ui-kpi--success">
+        <span class="ui-kpi__label"><i class="bi bi-box-seam"></i> {{ 'admin.media.scorm' | translate }}</span>
+        <span class="ui-kpi__value">{{ countOf('scorm') }}</span>
       </div>
     </div>
-    <!-- Optional quick stats row (mirrors reference feel) -->
-    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="row g-3 mb-4">
-      <div class="col-sm-6 col-md-4">
-        <div class="card h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <div>{{ 'admin.media.storage_usage' | translate }}</div>
-                <div class="fw-bold fs-5 mt-1"><span class="progress-percentage unlimited">{{ formatFileSize(statistics?.bytesUsed ?? 0) }}</span> {{ 'admin.media.of' | translate }} <span class="progress-percentage unlimited">{{statistics?.limitBytes === null ? ('admin.media.unlimited' | translate) : formatFileSize(statistics?.limitBytes ?? 0)}}</span>  </div>
-              </div>
-              <div class="text-primary align-self-center">
-                <tui-icon class="fs-1"  icon="@tui.server"></tui-icon>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer p-3 text-center">
-            <div class="text-primary small">{{ 'admin.media.total_files' | translate:{ count: statistics?.total ?? 0 } }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-2">
-        <div class="card h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <div>{{ 'admin.media.videos' | translate }}</div>
-                <div class="fw-bold fs-5 mt-1">{{ 'admin.media.files_lower' | translate:{ count: countOf('video') } }}</div>
-              </div>
-              <div class="text-primary align-self-center">
-                <tui-icon class="fs-1"  icon="@tui.video"></tui-icon>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer p-3 text-center">
-            <div class="text-primary small">{{ 'admin.media.files_upper' | translate:{ count: countOf('video') } }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-2">
-        <div class="card h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <div>{{ 'admin.media.audio' | translate }}</div>
-                <div class="fw-bold fs-5 mt-1">{{ 'admin.media.files_lower' | translate:{ count: countOf('audio') } }}</div>
-              </div>
-              <div class="text-primary align-self-center">
-                <tui-icon class="fs-1"  icon="@tui.file-music"></tui-icon>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer p-3 text-center">
-            <div class="text-primary small">{{ 'admin.media.files_upper' | translate:{ count: countOf('audio') } }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-2">
-        <div class="card h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <div>{{ 'admin.media.pdfs' | translate }}</div>
-                <div class="fw-bold fs-5 mt-1">{{ 'admin.media.files_lower' | translate:{ count: countOf('pdf') } }}</div>
-              </div>
-              <div class="text-primary align-self-center">
-                <tui-icon class="fs-1"  icon="@tui.files"></tui-icon>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer p-3 text-center">
-            <div class="text-primary small">{{ 'admin.media.files_upper' | translate:{ count: countOf('pdf') } }}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-6 col-md-2">
-        <div class="card h-100">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <div>{{ 'admin.media.scorm' | translate }}</div>
-                <div class="fw-bold fs-5 mt-1">{{ 'admin.media.files_lower' | translate:{ count: countOf('scorm') } }}</div>
-              </div>
-              <div class="text-primary align-self-center">
-                <tui-icon class="fs-1" icon="@tui.package-2"></tui-icon>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer p-3 text-center">
-            <div class="text-primary small">{{ 'admin.media.files_upper' | translate:{ count: countOf('scorm') } }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div *ngIf="ui_controls.viewing_upload" class="row">
-      <div class="col-12">
-        <div class="content-dashboard">
-          <div class="card">
-            <div class="card-body">
-              <div class="media-manager">
-                <div class="header">
-                  <h2>{{ 'admin.media.manager_title' | translate }}</h2>
-                  <p>{{ 'admin.media.manager_subtitle' | translate }}</p>
-                </div>
-                <app-media-upload
-                  [multiple]="true"
-                  [maxFiles]="10"
-                  (uploadComplete)="onFileUploaded($event)"
-                  (uploadError)="onUploadError($event)"
-                  (allUploadsComplete)="onAllUploadsComplete($event)">
-                </app-media-upload>
-                <div class="uploaded-files" *ngIf="uploadedFiles.length > 0">
-                  <div class="section-header">
-                    <h3>{{ 'admin.media.uploaded_files' | translate:{ count: uploadedFiles.length } }}</h3>
-                    <button class="btn-clear" (click)="clearUploadedFiles()">
-                      <i class="bi bi-trash3"></i>
-                      {{ 'admin.media.clear_all' | translate }}
-                    </button>
-                  </div>
 
-                  <div class="files-grid">
-                    <div class="file-card" *ngFor="let file of uploadedFiles; let i = index">
-                      <div class="file-icon">
-                        <i [class]='"bi " + iconFor(file.kind)'></i>
-                      </div>
-                      <div class="file-details">
-                        <h4 class="file-title">{{ file.title }}</h4>
-                        <div class="file-meta">
-                          <span class="type-badge">{{ labelFor(file.kind) }}</span>
-                          <span class="file-size">{{ formatFileSize(file.fileSize) }}</span>
-                          <span class="version" *ngIf="file.versionNumber > 1">
-                            v{{ file.versionNumber }}
-                          </span>
-                        </div>
+    <!-- Upload -->
+    <section *ngIf="ui_controls.viewing_upload" class="ui-section media-manager">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title">{{ 'admin.media.manager_title' | translate }}</h2>
+          <p class="ui-section__subtitle">{{ 'admin.media.manager_subtitle' | translate }}</p>
+        </div>
+      </div>
+      <app-media-upload
+        [multiple]="true"
+        [maxFiles]="10"
+        (uploadComplete)="onFileUploaded($event)"
+        (uploadError)="onUploadError($event)"
+        (allUploadsComplete)="onAllUploadsComplete($event)">
+      </app-media-upload>
+      <div class="uploaded-files" *ngIf="uploadedFiles.length > 0">
+        <div class="section-header">
+          <h3>{{ 'admin.media.uploaded_files' | translate:{ count: uploadedFiles.length } }}</h3>
+          <button type="button" class="btn btn-sm btn-outline-secondary btn-clear" (click)="clearUploadedFiles()">
+            <i class="bi bi-trash3"></i>
+            {{ 'admin.media.clear_all' | translate }}
+          </button>
+        </div>
 
-                        <!-- Media specific info -->
-                        <div class="media-info">
-                        <span *ngIf="file.duration">
-                          <i class="bi bi-clock"></i> {{ file.duration }}
-                        </span>
-                          <span *ngIf="file.width && file.height">
-                          <i class="bi bi-aspect-ratio"></i> {{ file.width }}&times;{{ file.height }}
-                        </span>
-                          <span *ngIf="file.pageCount">
-                          <i class="bi bi-file-text"></i> {{ 'admin.media.n_pages' | translate:{ count: file.pageCount } }}
-                        </span>
-                        </div>
-                      </div>
-                      <div class="file-actions">
-                        <a role="button" (click)="openFile(file)" class="btn-action" title="{{ 'common.view' | translate }}">
-                          <i class="bi bi-eye"></i>
-                        </a>
-                        <button class="btn-action danger" (click)="removeUploadedFile(i)" title="{{ 'common.remove' | translate }}">
-                          <i class="bi bi-x-lg"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <div class="files-grid">
+          <div class="file-card" *ngFor="let file of uploadedFiles; let i = index">
+            <div class="file-icon">
+              <i [class]='"bi " + iconFor(file.kind)'></i>
+            </div>
+            <div class="file-details">
+              <h4 class="file-title">{{ file.title }}</h4>
+              <div class="file-meta">
+                <span class="ui-pill ui-pill--brand type-badge">{{ labelFor(file.kind) }}</span>
+                <span class="file-size">{{ formatFileSize(file.fileSize) }}</span>
+                <span class="version" *ngIf="file.versionNumber > 1">
+                  v{{ file.versionNumber }}
+                </span>
               </div>
+
+              <!-- Media specific info -->
+              <div class="media-info">
+                <span *ngIf="file.duration">
+                  <i class="bi bi-clock"></i> {{ file.duration }}
+                </span>
+                <span *ngIf="file.width && file.height">
+                  <i class="bi bi-aspect-ratio"></i> {{ file.width }}&times;{{ file.height }}
+                </span>
+                <span *ngIf="file.pageCount">
+                  <i class="bi bi-file-text"></i> {{ 'admin.media.n_pages' | translate:{ count: file.pageCount } }}
+                </span>
+              </div>
+            </div>
+            <div class="file-actions">
+              <a role="button" (click)="openFile(file)" class="btn-action" title="{{ 'common.view' | translate }}">
+                <i class="bi bi-eye"></i>
+              </a>
+              <button type="button" class="btn-action danger" (click)="removeUploadedFile(i)" title="{{ 'common.remove' | translate }}">
+                <i class="bi bi-x-lg"></i>
+              </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
-    <!-- Content table -->
+    </section>
+
+    <!-- Loading -->
     <div *ngIf="ui_controls.is_loading" class="text-center my-5">
       <tui-loader class="p-5" />
     </div>
-    <!-- Filters + search -->
-    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="row mb-5 align-items-center">
-      <div class="col-md-2 mb-2 mb-md-0">
-        <select [(ngModel)]="kind" (change)="list_media()" class="form-select form-select-sm">
-          <option value="">{{ 'admin.media.every_type' | translate }}</option>
-          <option [value]="'video'">{{ 'admin.media.type_video' | translate }}</option>
-          <option [value]="'audio'">{{ 'admin.media.type_audio' | translate }}</option>
-          <option [value]="'scorm'">{{ 'admin.media.type_scorm_package' | translate }}</option>
-          <option [value]="'pdf'">{{ 'admin.media.type_pdf' | translate }}</option>
-          <option [value]="'image'">{{ 'admin.media.type_image' | translate }}</option>
-          <option [value]="'document'">{{ 'admin.media.type_document' | translate }}</option>
-        </select>
+
+    <!-- Library -->
+    <section *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="ui-section ui-section--flush media-library">
+      <div class="ui-section__head">
+        <div>
+          <h2 class="ui-section__title">{{ 'admin.media.total_files' | translate:{ count: statistics?.total ?? 0 } }}</h2>
+        </div>
+        <div class="ui-section__actions">
+          <select [(ngModel)]="kind" (change)="list_media()" class="form-select form-select-sm media-kind-select">
+            <option value="">{{ 'admin.media.every_type' | translate }}</option>
+            <option [value]="'video'">{{ 'admin.media.type_video' | translate }}</option>
+            <option [value]="'audio'">{{ 'admin.media.type_audio' | translate }}</option>
+            <option [value]="'scorm'">{{ 'admin.media.type_scorm_package' | translate }}</option>
+            <option [value]="'pdf'">{{ 'admin.media.type_pdf' | translate }}</option>
+            <option [value]="'image'">{{ 'admin.media.type_image' | translate }}</option>
+            <option [value]="'document'">{{ 'admin.media.type_document' | translate }}</option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div style="min-height: 300px" *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="table-responsive shadow-sm rounded-3">
-      <table class="table table-bordered table-hover align-middle mb-0">
-        <thead class="bg-dark">
-        <tr>
-          <th>{{ 'admin.media.col_title' | translate }}</th>
-          <th>{{ 'admin.media.col_type' | translate }}</th>
-          <th>{{ 'admin.media.col_size' | translate }}</th>
-          <th>{{ 'admin.media.col_version' | translate }}</th>
-          <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr role="button" *ngFor="let mL of mediaList; let i = index">
-          <td>{{mL.title}}</td>
-          <td>{{ labelFor(mL.kind) }}</td>
-          <td>{{ formatFileSize(mL.fileSize) }}</td>
-          <td>{{ mL.versionLabel ?? ('v' + mL.versionNumber) }}</td>
-          <td>
 
-            <div class="dropdown">
-              <button class="btn w-100 btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                {{ 'common.actions' | translate }}
-              </button>
-              <ul class="dropdown-menu">
-                @if(mL.kind === 'scorm'){
-                  <li><a class="dropdown-item" role="link" (click)="openPreview(mL)">{{ 'common.manage' | translate }}</a></li>
-                } @else {
-                  <li><a class="dropdown-item" role="link" (click)="openPreview(mL)">{{ 'common.manage' | translate }}</a></li>
-                }
-                <li><a class="dropdown-item" role="link" (click)="confirmDelete(mL.id, mL.title)">{{ 'common.delete' | translate }}</a></li>
+      <div class="table-responsive media-table">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+          <tr>
+            <th>{{ 'admin.media.col_title' | translate }}</th>
+            <th>{{ 'admin.media.col_type' | translate }}</th>
+            <th>{{ 'admin.media.col_size' | translate }}</th>
+            <th>{{ 'admin.media.col_version' | translate }}</th>
+            <th class="text-end"><span class="visually-hidden">{{ 'common.actions' | translate }}</span></th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr role="button" *ngFor="let mL of mediaList; let i = index">
+            <td class="fw-medium">{{mL.title}}</td>
+            <td><span class="ui-pill ui-pill--neutral">{{ labelFor(mL.kind) }}</span></td>
+            <td class="ui-num">{{ formatFileSize(mL.fileSize) }}</td>
+            <td class="ui-num">{{ mL.versionLabel ?? ('v' + mL.versionNumber) }}</td>
+            <td class="text-end">
+              <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  {{ 'common.actions' | translate }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  @if(mL.kind === 'scorm'){
+                    <li><a class="dropdown-item" role="link" (click)="openPreview(mL)">{{ 'common.manage' | translate }}</a></li>
+                  } @else {
+                    <li><a class="dropdown-item" role="link" (click)="openPreview(mL)">{{ 'common.manage' | translate }}</a></li>
+                  }
+                  <li><a class="dropdown-item text-danger" role="link" (click)="confirmDelete(mL.id, mL.title)">{{ 'common.delete' | translate }}</a></li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="mediaList.length === 0">
+            <td colspan="8" class="p-3">
+              <div class="ui-state">
+                <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
+                <p>{{ 'admin.media.no_media' | translate }}</p>
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
 
-              </ul>
-            </div>
-          </td>
-        </tr>
-        <tr *ngIf="mediaList.length === 0">
-          <td colspan="8" class="text-center text-muted py-4">{{ 'admin.media.no_media' | translate }}</td>
-        </tr>
-        </tbody>
-      </table>
-    </div>
-    <div *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="card card-body my-5 shadow-sm border-0 rounded-3">
-      <div class="d-flex align-items-center justify-content-between">
-        <div class="small text-muted">{{ 'admin.media.showing_pages' | translate:{ page: meta.page, totalPages: meta.totalPages } }}</div>
+      <div class="media-pagination">
+        <div class="ui-result-count mb-0">{{ 'admin.media.showing_pages' | translate:{ page: meta.page, totalPages: meta.totalPages } }}</div>
         <div class="d-flex gap-2 align-items-center">
           <select class="form-select form-select-sm" style="width:80px" [(ngModel)]="meta.perPage" (change)="paginate()">
             <option [ngValue]="5">5</option>
@@ -278,7 +203,7 @@
           </nav>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <ng-template #deleteDialog let-observer>
@@ -293,12 +218,11 @@
     </div>
 
     <div class="d-flex gap-2 justify-content-end">
+      <button type="button" class="btn btn-outline-secondary" (click)="observer.next(false); observer.complete();">
+        {{ 'common.cancel' | translate }}
+      </button>
       <button type="button" class="btn btn-danger" (click)="observer.next(true); observer.complete();">
         {{ 'common.delete' | translate }}
-      </button>
-
-      <button type="button" class="btn btn-secondary" (click)="observer.next(false); observer.complete();">
-        {{ 'common.cancel' | translate }}
       </button>
     </div>
   </ng-template>

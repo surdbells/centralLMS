@@ -53,52 +53,53 @@ interface SkillProgress { name: string; score: number; max: number; percentage: 
   template: `
     <app-top></app-top>
     <main class="main">
-            <div class="container-fluid py-4">
-                <div class="dashboard-container">
+    <div class="ui-page dashboard-container">
       <!-- Welcome Header -->
-      <div class="dash-header">
-        <div class="welcome">
+      <header class="ui-page-header">
+        <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clipboard-data"></i></div>
+        <div class="ui-page-header__titles">
           <h1>{{ greeting }}</h1>
           <p>Track your assessment progress and performance.</p>
         </div>
-        <div class="header-actions">
-          <button class="btn btn-primary" (click)="router.navigate(['/learner/assessments/catalog'])">
-            <tui-icon icon="@tui.search" style="font-size:16px"></tui-icon> Browse Catalog
+        <div class="ui-page-header__actions">
+          <button type="button" class="btn btn-primary" (click)="router.navigate(['/learner/assessments/catalog'])">
+            <i class="bi bi-search"></i> Browse Catalog
           </button>
         </div>
-      </div>
+      </header>
 
       <!-- Stats Cards -->
-      <div class="stats-row" *ngIf="stats">
-        <div class="stat-card" (click)="router.navigate(['/learner/assessments/history'])">
-          <div class="sc-icon blue"><tui-icon icon="@tui.file-text" style="font-size:22px"></tui-icon></div>
-          <div class="sc-data"><span class="sc-val">{{ stats.completed }}</span><span class="sc-label">Completed</span></div>
+      <div class="ui-kpi-grid ui-kpi-grid--5" *ngIf="stats">
+        <button type="button" class="ui-kpi ui-kpi--brand" (click)="router.navigate(['/learner/assessments/history'])">
+          <span class="ui-kpi__label"><i class="bi bi-file-earmark-check"></i> Completed</span>
+          <span class="ui-kpi__value">{{ stats.completed }}</span>
+        </button>
+        <div class="ui-kpi ui-kpi--success">
+          <span class="ui-kpi__label"><i class="bi bi-check-circle"></i> Passed</span>
+          <span class="ui-kpi__value">{{ stats.passed }}</span>
         </div>
-        <div class="stat-card">
-          <div class="sc-icon green"><tui-icon icon="@tui.check-circle" style="font-size:22px"></tui-icon></div>
-          <div class="sc-data"><span class="sc-val">{{ stats.passed }}</span><span class="sc-label">Passed</span></div>
+        <div class="ui-kpi ui-kpi--info">
+          <span class="ui-kpi__label"><i class="bi bi-graph-up"></i> Avg Score</span>
+          <span class="ui-kpi__value">{{ stats.avg_score | number:'1.0-0' }}<small>%</small></span>
+          <div class="ui-progress"><div class="ui-bar"><span [style.width.%]="stats.avg_score"></span></div></div>
         </div>
-        <div class="stat-card">
-          <div class="sc-icon purple"><tui-icon icon="@tui.trending-up" style="font-size:22px"></tui-icon></div>
-          <div class="sc-data"><span class="sc-val">{{ stats.avg_score | number:'1.0-0' }}%</span><span class="sc-label">Avg Score</span></div>
+        <div class="ui-kpi ui-kpi--warning">
+          <span class="ui-kpi__label"><i class="bi bi-award"></i> Certificates</span>
+          <span class="ui-kpi__value">{{ stats.certificates_earned }}</span>
         </div>
-        <div class="stat-card">
-          <div class="sc-icon amber"><tui-icon icon="@tui.award" style="font-size:22px"></tui-icon></div>
-          <div class="sc-data"><span class="sc-val">{{ stats.certificates_earned }}</span><span class="sc-label">Certificates</span></div>
-        </div>
-        <div class="stat-card">
-          <div class="sc-icon teal"><tui-icon icon="@tui.star" style="font-size:22px"></tui-icon></div>
-          <div class="sc-data"><span class="sc-val">{{ stats.total_points_earned }}</span><span class="sc-label">Points</span></div>
+        <div class="ui-kpi ui-kpi--brand">
+          <span class="ui-kpi__label"><i class="bi bi-star"></i> Points</span>
+          <span class="ui-kpi__value">{{ stats.total_points_earned }}</span>
         </div>
       </div>
 
       <!-- Completion Ring + Rank -->
       <div class="overview-row" *ngIf="stats">
-        <div class="ring-card">
+        <section class="ui-section ring-card">
           <div class="ring-wrapper">
             <svg viewBox="0 0 120 120" class="ring-svg">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" stroke-width="10"/>
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#6366f1" stroke-width="10"
+              <circle cx="60" cy="60" r="52" fill="none" class="ring-track" stroke-width="10"/>
+              <circle cx="60" cy="60" r="52" fill="none" class="ring-fill" stroke-width="10"
                       stroke-linecap="round" [attr.stroke-dasharray]="ringDash"
                       [attr.stroke-dashoffset]="ringOffset" transform="rotate(-90 60 60)"/>
             </svg>
@@ -108,241 +109,206 @@ interface SkillProgress { name: string; score: number; max: number; percentage: 
             </div>
           </div>
           <div class="ring-details">
-            <div class="rd-item"><span class="rd-dot pass"></span> Passed: {{ stats.passed }}</div>
-            <div class="rd-item"><span class="rd-dot fail"></span> Failed: {{ stats.failed }}</div>
-            <div class="rd-item"><span class="rd-dot prog"></span> In Progress: {{ stats.in_progress }}</div>
+            <span class="ui-pill ui-pill--success"><span class="ui-pill__dot"></span> Passed: {{ stats.passed }}</span>
+            <span class="ui-pill ui-pill--danger"><span class="ui-pill__dot"></span> Failed: {{ stats.failed }}</span>
+            <span class="ui-pill ui-pill--warning"><span class="ui-pill__dot"></span> In Progress: {{ stats.in_progress }}</span>
           </div>
-        </div>
-        <div class="rank-card" *ngIf="stats.ranking">
+        </section>
+        <section class="ui-section rank-card" *ngIf="stats.ranking">
           <div class="rank-badge">
-            <tui-icon icon="@tui.trophy" style="font-size:28px;color:#f59e0b"></tui-icon>
+            <span class="ui-state__icon"><i class="bi bi-trophy"></i></span>
             <span class="rank-num">#{{ stats.ranking }}</span>
           </div>
           <p>of {{ stats.total_learners }} learners</p>
-          <div class="streak-row" *ngIf="stats.streak_days">
-            <tui-icon icon="@tui.zap" style="font-size:16px;color:#f59e0b"></tui-icon>
+          <span class="ui-pill ui-pill--warning streak-row" *ngIf="stats.streak_days">
+            <i class="bi bi-lightning-charge"></i>
             {{ stats.streak_days }}-day streak
-          </div>
-        </div>
+          </span>
+        </section>
       </div>
 
-      <div class="two-col">
+      <div class="ui-row">
         <!-- Active / In-Progress -->
-        <div class="dash-section">
-          <div class="ds-header">
-            <h2><tui-icon icon="@tui.circle-play" style="font-size:20px;color:#f59e0b"></tui-icon> In Progress</h2>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">In Progress</h2><p class="ui-section__subtitle">Pick up where you left off</p></div>
           </div>
           <div class="active-list" *ngIf="activeAssessments.length > 0">
             <div *ngFor="let a of activeAssessments" class="active-card" (click)="resumeAttempt(a)">
               <div class="act-top">
-                <span class="type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
-                <span class="act-proctored" *ngIf="a.proctoring_level!=='none'">
-                  <tui-icon icon="@tui.shield" style="font-size:12px"></tui-icon></span>
+                <span class="ui-pill ui-pill--brand type-badge" *ngIf="a.assessment_type" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
+                <span class="act-proctored" *ngIf="a.proctoring_level && a.proctoring_level!=='none'" title="Proctored">
+                  <i class="bi bi-shield-check"></i></span>
               </div>
               <h4>{{ a.title }}</h4>
               <div class="act-progress">
-                <div class="prog-bar"><div class="prog-fill" [style.width.%]="a.progress_percent"></div></div>
+                <div class="ui-progress">
+                  <div class="ui-bar"><span [style.width.%]="a.progress_percent"></span></div>
+                </div>
                 <span>{{ a.questions_answered }}/{{ a.total_questions }} · {{ a.progress_percent }}%</span>
               </div>
               <div class="act-footer">
                 <span class="act-time" *ngIf="a.time_remaining_seconds">
-                  <tui-icon icon="@tui.clock" style="font-size:13px"></tui-icon> {{ formatDuration(a.time_remaining_seconds) }} left
+                  <i class="bi bi-clock"></i> {{ formatDuration(a.time_remaining_seconds) }} left
                 </span>
-                <button class="btn btn-primary btn-sm">Resume</button>
+                <button type="button" class="btn btn-primary btn-sm ms-auto">Resume</button>
               </div>
             </div>
           </div>
-          <div class="empty-mini" *ngIf="activeAssessments.length===0">
-            <tui-icon icon="@tui.check-circle" style="font-size:24px;color:#22c55e"></tui-icon>
+          <div class="ui-state ui-state--compact" *ngIf="activeAssessments.length===0">
+            <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
             <p>No assessments in progress</p>
           </div>
-        </div>
+        </section>
 
         <!-- Upcoming / Assigned -->
-        <div class="dash-section">
-          <div class="ds-header">
-            <h2><tui-icon icon="@tui.calendar" style="font-size:20px;color:#6366f1"></tui-icon> Upcoming</h2>
+        <section class="ui-section">
+          <div class="ui-section__head">
+            <div><h2 class="ui-section__title">Upcoming</h2><p class="ui-section__subtitle">Assessments assigned to you</p></div>
           </div>
-          <div class="upcoming-list" *ngIf="upcomingAssessments.length > 0">
-            <div *ngFor="let a of upcomingAssessments" class="upcoming-item" (click)="openAssessment(a.assessment_id)">
+          <ul class="ui-list upcoming-list" *ngIf="upcomingAssessments.length > 0">
+            <li *ngFor="let a of upcomingAssessments" class="upcoming-item" (click)="openAssessment(a.assessment_id)">
               <div class="upc-left">
-                <span class="type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
+                <span class="ui-pill ui-pill--brand type-badge" [attr.data-type]="a.assessment_type">{{ a.assessment_type }}</span>
                 <div class="upc-info">
                   <h4>{{ a.title }}</h4>
                   <span class="upc-cat">{{ a.category_name }}</span>
                 </div>
               </div>
               <div class="upc-right">
-                <span class="upc-mandatory" *ngIf="a.is_mandatory"><tui-icon icon="@tui.alert-circle" style="font-size:14px;color:#ef4444"></tui-icon></span>
-                <span class="upc-due" *ngIf="a.due_date">Due {{ formatDate(a.due_date) }}</span>
+                <span class="ui-pill ui-pill--danger" *ngIf="a.is_mandatory" title="Mandatory"><i class="bi bi-exclamation-circle"></i></span>
+                <span class="ui-pill ui-pill--warning" *ngIf="a.due_date">Due {{ formatDate(a.due_date) }}</span>
                 <span class="upc-meta">{{ a.total_questions }}q · {{ a.time_limit_minutes }}m</span>
               </div>
-            </div>
-          </div>
-          <div class="empty-mini" *ngIf="upcomingAssessments.length===0">
-            <tui-icon icon="@tui.inbox" style="font-size:24px;color:#94a3b8"></tui-icon>
+            </li>
+          </ul>
+          <div class="ui-state ui-state--compact" *ngIf="upcomingAssessments.length===0">
+            <span class="ui-state__icon"><i class="bi bi-inbox"></i></span>
             <p>No upcoming assessments</p>
           </div>
-        </div>
+        </section>
       </div>
 
       <!-- Recent Results -->
-      <div class="dash-section full-width">
-        <div class="ds-header">
-          <h2><tui-icon icon="@tui.bar-chart-2" style="font-size:20px;color:#22c55e"></tui-icon> Recent Results</h2>
-          <button class="btn btn-ghost btn-sm" (click)="router.navigate(['/learner/assessments/history'])">View All</button>
-        </div>
-        <div class="results-grid" *ngIf="recentResults.length > 0">
-          <div *ngFor="let r of recentResults" class="result-card" (click)="viewResult(r)">
-            <div class="rc-top">
-              <span class="type-badge" [attr.data-type]="r.assessment_type">{{ r.assessment_type }}</span>
-              <span class="rc-date">{{ formatDate(r.completed_at) }}</span>
-            </div>
-            <h4>{{ r.title }}</h4>
-            <div class="rc-score">
-              <div class="score-ring-sm" [class.pass]="r.passed" [class.fail]="!r.passed">
-                <span>{{ r.percentage | number:'1.0-0' }}%</span>
-              </div>
-              <div class="rc-grade">
-                <span class="grade-letter" [class.pass]="r.passed" [class.fail]="!r.passed">{{ r.grade }}</span>
-                <span class="rc-detail">{{ r.score }}/{{ r.max_score }}</span>
-              </div>
-            </div>
-            <div class="rc-footer">
-              <span class="rc-status" [class.pass]="r.passed" [class.fail]="!r.passed">{{ r.passed ? 'Passed' : 'Failed' }}</span>
-              <tui-icon *ngIf="r.certificate_id" icon="@tui.award" style="font-size:16px;color:#f59e0b" title="Certificate earned"></tui-icon>
-            </div>
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">Recent Results</h2><p class="ui-section__subtitle">Your latest scored attempts</p></div>
+          <div class="ui-section__actions">
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="router.navigate(['/learner/assessments/history'])">View All</button>
           </div>
         </div>
-        <div class="empty-mini" *ngIf="recentResults.length===0">
-          <tui-icon icon="@tui.clipboard" style="font-size:24px;color:#94a3b8"></tui-icon>
+        <div class="ui-grid results-grid" *ngIf="recentResults.length > 0">
+          <article *ngFor="let r of recentResults" class="ui-card result-card" (click)="viewResult(r)">
+            <div class="ui-card__body">
+              <div class="rc-top">
+                <span class="ui-pill ui-pill--brand type-badge" *ngIf="r.assessment_type" [attr.data-type]="r.assessment_type">{{ r.assessment_type }}</span>
+                <span class="rc-date">{{ formatDate(r.completed_at) }}</span>
+              </div>
+              <h4 class="ui-card__title">{{ r.title }}</h4>
+              <div class="rc-score">
+                <div class="score-ring-sm" [class.pass]="r.passed" [class.fail]="!r.passed">
+                  <span>{{ r.percentage | number:'1.0-0' }}%</span>
+                </div>
+                <div class="rc-grade">
+                  <span class="grade-letter" [class.pass]="r.passed" [class.fail]="!r.passed">{{ r.grade }}</span>
+                  <span class="rc-detail">{{ r.score }}/{{ r.max_score }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="ui-card__footer">
+              <span class="ui-pill" [class.ui-pill--success]="r.passed" [class.ui-pill--danger]="!r.passed"><span class="ui-pill__dot"></span>{{ r.passed ? 'Passed' : 'Failed' }}</span>
+              <i *ngIf="r.certificate_id" class="bi bi-award cert-icon" title="Certificate earned"></i>
+            </div>
+          </article>
+        </div>
+        <div class="ui-state ui-state--compact" *ngIf="recentResults.length===0">
+          <span class="ui-state__icon"><i class="bi bi-clipboard"></i></span>
           <p>No results yet. Start an assessment to see your performance here.</p>
         </div>
-      </div>
+      </section>
 
       <!-- Skills Progress -->
-      <div class="dash-section full-width" *ngIf="skillProgress.length > 0">
-        <div class="ds-header"><h2><tui-icon icon="@tui.target" style="font-size:20px;color:#8b5cf6"></tui-icon> Skill Progress</h2></div>
+      <section class="ui-section" *ngIf="skillProgress.length > 0">
+        <div class="ui-section__head"><div><h2 class="ui-section__title">Skill Progress</h2></div></div>
         <div class="skills-grid">
           <div *ngFor="let s of skillProgress" class="skill-bar-row">
             <span class="sk-name">{{ s.name }}</span>
-            <div class="sk-bar"><div class="sk-fill" [style.width.%]="s.percentage" [class.high]="s.percentage>=80" [class.mid]="s.percentage>=50 && s.percentage<80" [class.low]="s.percentage<50"></div></div>
-            <span class="sk-val">{{ s.percentage | number:'1.0-0' }}%</span>
+            <div class="ui-bar sk-bar"><span class="sk-fill" [style.width.%]="s.percentage" [class.high]="s.percentage>=80" [class.mid]="s.percentage>=50 && s.percentage<80" [class.low]="s.percentage<50"></span></div>
+            <span class="ui-pct sk-val">{{ s.percentage | number:'1.0-0' }}%</span>
           </div>
         </div>
-      </div>
+      </section>
     </div>
-            </div>
     </main>
   `,
   styles: [`
     :host { display: block; }
-    .dashboard-container { margin: 0 auto; padding: 24px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
-    .welcome h1 { font-size: 26px; font-weight: 800; color: #0f172a; margin: 0; }
-    .welcome p { color: #64748b; margin: 4px 0 0; font-size: 14px; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; }
-    .btn-primary { background: #6366f1; color: #fff; } .btn-primary:hover { background: #4f46e5; }
-    .btn-outline { background: #fff; color: #374151; border: 1px solid #d1d5db; }
-    .btn-ghost { background: none; color: #6366f1; } .btn-ghost:hover { text-decoration: underline; }
-    .btn-sm { padding: 5px 12px; font-size: 13px; }
 
-    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
-    .stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s; }
-    .stat-card:hover { border-color: #a5b4fc; box-shadow: 0 2px 8px rgba(99,102,241,0.08); }
-    .sc-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .sc-icon.blue { background: #eef2ff; color: #6366f1; }
-    .sc-icon.green { background: #f0fdf4; color: #22c55e; }
-    .sc-icon.purple { background: #f5f3ff; color: #8b5cf6; }
-    .sc-icon.amber { background: #fffbeb; color: #f59e0b; }
-    .sc-icon.teal { background: #f0fdfa; color: #14b8a6; }
-    .sc-val { display: block; font-size: 22px; font-weight: 700; color: #0f172a; }
-    .sc-label { font-size: 12px; color: #64748b; }
+    .ui-kpi-grid { margin-bottom: 20px; }
+    .ui-state--compact { padding: 28px 16px; }
+    .ui-state--compact p { margin: 10px 0 0; }
 
-    .overview-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
-    .ring-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; display: flex; align-items: center; gap: 28px; }
+    .overview-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .overview-row > .ui-section { margin-bottom: 0; }
+    .ring-card { display: flex; align-items: center; gap: 28px; }
     .ring-wrapper { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
     .ring-svg { width: 100%; height: 100%; }
+    .ring-track { stroke: var(--ui-surface-2); }
+    .ring-fill { stroke: var(--brand-primary); transition: stroke-dashoffset .5s ease; }
     .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .ring-val { font-size: 24px; font-weight: 800; color: #0f172a; }
-    .ring-lbl { font-size: 11px; color: #64748b; }
-    .ring-details { display: flex; flex-direction: column; gap: 8px; }
-    .rd-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #334155; }
-    .rd-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .rd-dot.pass { background: #22c55e; } .rd-dot.fail { background: #ef4444; } .rd-dot.prog { background: #f59e0b; }
-    .rank-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .rank-badge { display: flex; align-items: center; gap: 8px; }
-    .rank-num { font-size: 32px; font-weight: 800; color: #0f172a; }
-    .rank-card p { color: #64748b; font-size: 14px; margin: 4px 0 0; }
-    .streak-row { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #f59e0b; font-weight: 600; margin-top: 10px; }
+    .ring-val { font-size: 1.5rem; font-weight: 700; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+    .ring-lbl { font-size: .6875rem; color: var(--ui-text-muted); }
+    .ring-details { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .rank-card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .rank-badge { display: flex; align-items: center; gap: 12px; }
+    .rank-num { font-size: 1.75rem; font-weight: 700; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+    .rank-card p { color: var(--ui-text-muted); font-size: .875rem; margin: 6px 0 0; }
+    .streak-row { margin-top: 10px; }
 
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-    .dash-section { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; }
-    .dash-section.full-width { margin-bottom: 20px; }
-    .ds-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .ds-header h2 { font-size: 16px; font-weight: 600; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 8px; }
-
-    .type-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-    .type-badge[data-type="quiz"] { background: #dbeafe; color: #1e40af; }
-    .type-badge[data-type="exam"] { background: #fef2f2; color: #991b1b; }
-    .type-badge[data-type="practice"] { background: #d1fae5; color: #065f46; }
-    .type-badge[data-type="survey"] { background: #fef3c7; color: #92400e; }
+    .type-badge { text-transform: uppercase; letter-spacing: .03em; font-size: .6875rem; height: 22px; }
 
     .active-list { display: flex; flex-direction: column; gap: 10px; }
-    .active-card { padding: 14px; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
-    .active-card:hover { border-color: #a5b4fc; }
+    .active-card { padding: 14px 16px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); cursor: pointer; transition: border-color .15s ease; }
+    .active-card:hover { border-color: rgba(var(--brand-primary-rgb), .45); }
     .act-top { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-    .act-proctored { color: #6366f1; }
-    .active-card h4 { margin: 0 0 8px; font-size: 14px; font-weight: 600; color: #0f172a; }
-    .act-progress { margin-bottom: 8px; }
-    .prog-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
-    .prog-fill { height: 100%; background: #6366f1; border-radius: 3px; transition: width 0.3s; }
-    .act-progress span { font-size: 12px; color: #64748b; }
-    .act-footer { display: flex; align-items: center; justify-content: space-between; }
-    .act-time { font-size: 12px; color: #f59e0b; display: flex; align-items: center; gap: 4px; }
+    .act-top:empty { display: none; }
+    .act-proctored { color: var(--brand-primary); }
+    .active-card h4 { margin: 0 0 8px; font-size: .875rem; font-weight: 600; color: var(--ui-text); }
+    .act-progress { margin-bottom: 10px; }
+    .act-progress .ui-progress { margin-bottom: 4px; }
+    .act-progress > span { font-size: .75rem; color: var(--ui-text-muted); font-variant-numeric: tabular-nums; }
+    .act-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .act-time { font-size: .75rem; color: var(--ui-warning-text); display: flex; align-items: center; gap: 4px; }
 
-    .upcoming-list { display: flex; flex-direction: column; gap: 8px; }
-    .upcoming-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; gap: 10px; }
-    .upcoming-item:hover { border-color: #a5b4fc; }
+    .upcoming-item { justify-content: space-between; cursor: pointer; }
+    .upcoming-item:hover h4 { color: var(--brand-primary); }
     .upc-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-    .upc-info h4 { margin: 0; font-size: 14px; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .upc-cat { font-size: 12px; color: #64748b; }
+    .upc-info { min-width: 0; }
+    .upc-info h4 { margin: 0; font-size: .875rem; font-weight: 600; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s ease; }
+    .upc-cat { font-size: .75rem; color: var(--ui-text-muted); }
     .upc-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-    .upc-due { font-size: 12px; color: #f59e0b; font-weight: 500; }
-    .upc-meta { font-size: 12px; color: #94a3b8; }
+    .upc-meta { font-size: .75rem; color: var(--ui-text-subtle); }
 
-    .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-    .result-card { padding: 16px; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer; transition: all 0.15s; }
-    .result-card:hover { border-color: #a5b4fc; }
-    .rc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .rc-date { font-size: 12px; color: #94a3b8; }
-    .result-card h4 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: #0f172a; line-height: 1.3; }
-    .rc-score { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .score-ring-sm { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; }
-    .score-ring-sm.pass { background: #f0fdf4; color: #15803d; border: 3px solid #22c55e; }
-    .score-ring-sm.fail { background: #fef2f2; color: #dc2626; border: 3px solid #ef4444; }
-    .grade-letter { font-size: 22px; font-weight: 800; display: block; }
-    .grade-letter.pass { color: #22c55e; } .grade-letter.fail { color: #ef4444; }
-    .rc-detail { font-size: 12px; color: #64748b; }
-    .rc-footer { display: flex; align-items: center; justify-content: space-between; }
-    .rc-status { font-size: 13px; font-weight: 600; }
-    .rc-status.pass { color: #22c55e; } .rc-status.fail { color: #ef4444; }
+    .result-card { cursor: pointer; }
+    .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .rc-date { font-size: .75rem; color: var(--ui-text-subtle); margin-left: auto; }
+    .rc-score { display: flex; align-items: center; gap: 12px; }
+    .score-ring-sm { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .875rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .score-ring-sm.pass { background: rgba(var(--ui-success-rgb), .08); color: var(--ui-success-text); border: 3px solid var(--ui-success); }
+    .score-ring-sm.fail { background: rgba(var(--ui-danger-rgb), .08); color: var(--ui-danger-text); border: 3px solid var(--ui-danger); }
+    .grade-letter { font-size: 1.25rem; font-weight: 700; display: block; }
+    .grade-letter.pass { color: var(--ui-success); } .grade-letter.fail { color: var(--ui-danger); }
+    .rc-detail { font-size: .75rem; color: var(--ui-text-muted); font-variant-numeric: tabular-nums; }
+    .cert-icon { font-size: 1rem; color: var(--brand-primary); }
 
     .skills-grid { display: flex; flex-direction: column; gap: 12px; }
     .skill-bar-row { display: flex; align-items: center; gap: 12px; }
-    .sk-name { font-size: 14px; font-weight: 500; color: #334155; width: 140px; flex-shrink: 0; }
-    .sk-bar { flex: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
-    .sk-fill { height: 100%; border-radius: 5px; transition: width 0.5s; }
-    .sk-fill.high { background: #22c55e; } .sk-fill.mid { background: #f59e0b; } .sk-fill.low { background: #ef4444; }
-    .sk-val { font-size: 14px; font-weight: 600; color: #334155; width: 50px; text-align: right; }
+    .sk-name { font-size: .8125rem; font-weight: 550; color: var(--ui-text); width: 140px; flex-shrink: 0; }
+    .ui-bar > .sk-fill.high { background: var(--ui-success); } .ui-bar > .sk-fill.mid { background: var(--ui-warning); } .ui-bar > .sk-fill.low { background: var(--ui-danger); }
 
-    .empty-mini { text-align: center; padding: 24px; }
-    .empty-mini p { font-size: 13px; color: #94a3b8; margin: 8px 0 0; }
-
-    @media (max-width: 768px) {
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
-      .overview-row, .two-col { grid-template-columns: 1fr; }
-      .results-grid { grid-template-columns: 1fr; }
+    @media (max-width: 767.98px) {
+      .overview-row { grid-template-columns: 1fr; }
+      .ring-card { flex-direction: column; align-items: flex-start; }
     }
   `]
 })

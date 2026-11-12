@@ -1,40 +1,38 @@
 <app-admintop></app-admintop>
-<main class="main px-lg-6">
-  <div class="container-fluid">
+<main class="main">
+  <div class="ui-page">
 
-    <!-- The way back, and the way this screen used to be dismissed. -->
-    <div class="mb-3">
-      <button class="btn btn-link p-0 text-decoration-none" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i>{{ 'live.common.back_to_live_training' | translate }}
+    <header class="ui-page-header">
+      <!-- The way back, and the way this screen used to be dismissed. -->
+      <button type="button" class="ui-page-header__back" (click)="goBack()"
+              [attr.aria-label]="'live.common.back_to_live_training' | translate"
+              [title]="'live.common.back_to_live_training' | translate">
+        <i class="bi bi-chevron-left"></i>
       </button>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-      <div>
-        <h1 class="page-title mb-1">
-          <i class="bi bi-camera-video me-2"></i>
-          {{ (isEditMode ? 'live.form.edit_title' : 'live.form.new_title') | translate }}
-        </h1>
-        <p class="text-muted mb-0">
-          {{ 'live.form.subtitle' | translate }}
-        </p>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-camera-video"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ (isEditMode ? 'live.form.edit_title' : 'live.form.new_title') | translate }}</h1>
+        <p>{{ 'live.form.subtitle' | translate }}</p>
       </div>
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-secondary" (click)="goBack()">{{ 'common.cancel' | translate }}</button>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-outline-secondary" (click)="goBack()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveTraining()"
                 [disabled]="saving || !editingTraining.title">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
           {{ (isEditMode ? 'live.form.save_changes' : 'live.form.create_training') | translate }}
         </button>
       </div>
-    </div>
+    </header>
 
     <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
 
-    <div class="card border-0 shadow-sm" *ngIf="!loading">
-      <div class="card-body">
-        <div class="row g-4">
-          <!-- Basic Info -->
+    <ng-container *ngIf="!loading">
+      <!-- Basic Info -->
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">{{ 'live.admin.training_details' | translate }}</h2></div>
+        </div>
+        <div class="row g-3">
           <div class="col-12">
             <label class="form-label">{{ 'live.common.title_label' | translate }} <span class="text-danger">*</span></label>
             <input type="text" class="form-control" [(ngModel)]="editingTraining.title"
@@ -60,15 +58,21 @@
                    placeholder="{{ 'live.form.capacity_placeholder' | translate }}">
           </div>
           <div class="col-md-6">
-            <div class="form-check mt-4">
+            <div class="form-check">
               <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.allow_waitlist" id="allowWaitlist">
               <label class="form-check-label" for="allowWaitlist">{{ 'live.form.allow_waitlist' | translate }}</label>
             </div>
           </div>
+        </div>
+      </section>
 
-          <!-- Certification -->
+      <!-- Certification -->
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">{{ 'live.admin.certification_settings' | translate }}</h2></div>
+        </div>
+        <div class="row g-3">
           <div class="col-12">
-            <hr>
             <div class="form-check">
               <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.certification_enabled" id="certEnabled">
               <label class="form-check-label fw-medium" for="certEnabled">{{ 'live.form.enable_certification' | translate }}</label>
@@ -80,51 +84,53 @@
                    min="0" max="100">
           </div>
           <div class="col-md-6" *ngIf="editingTraining.certification_enabled">
-            <div class="form-check mt-4">
+            <div class="form-check mt-md-4 pt-md-2">
               <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.auto_issue_certificate" id="autoIssue">
               <label class="form-check-label" for="autoIssue">{{ 'live.form.auto_issue' | translate }}</label>
             </div>
           </div>
+        </div>
+      </section>
 
-          <!-- Reminders -->
-          <div class="col-12">
-            <hr>
-            <label class="form-label fw-medium">{{ 'live.common.reminders' | translate }}</label>
-            <div class="d-flex gap-4 flex-wrap">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_24h" id="r24h">
-                <label class="form-check-label" for="r24h">{{ 'live.common.reminder_24h' | translate }}</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_1h" id="r1h">
-                <label class="form-check-label" for="r1h">{{ 'live.common.reminder_1h' | translate }}</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_15m" id="r15m">
-                <label class="form-check-label" for="r15m">{{ 'live.common.reminder_15m' | translate }}</label>
-              </div>
-            </div>
+      <!-- Reminders -->
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">{{ 'live.common.reminders' | translate }}</h2></div>
+        </div>
+        <div class="d-flex gap-4 flex-wrap mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_24h" id="r24h">
+            <label class="form-check-label" for="r24h">{{ 'live.common.reminder_24h' | translate }}</label>
           </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_1h" id="r1h">
+            <label class="form-check-label" for="r1h">{{ 'live.common.reminder_1h' | translate }}</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" [(ngModel)]="editingTraining.reminder_15m" id="r15m">
+            <label class="form-check-label" for="r15m">{{ 'live.common.reminder_15m' | translate }}</label>
+          </div>
+        </div>
 
-          <!-- Reminder Channels -->
-          <div class="col-12">
-            <label class="form-label">{{ 'live.form.notification_channels' | translate }}</label>
-            <div class="d-flex gap-3 flex-wrap">
-              <div class="form-check" *ngFor="let channel of reminderChannels">
-                <input class="form-check-input" type="checkbox"
-                       [checked]="hasReminderChannel(channel)"
-                       (change)="toggleReminderChannel(channel)"
-                       [id]="'channel_' + channel">
-                <label class="form-check-label" [for]="'channel_' + channel">{{ channel | titlecase }}</label>
-              </div>
-            </div>
+        <!-- Reminder Channels -->
+        <label class="form-label">{{ 'live.form.notification_channels' | translate }}</label>
+        <div class="d-flex gap-3 flex-wrap">
+          <div class="form-check" *ngFor="let channel of reminderChannels">
+            <input class="form-check-input" type="checkbox"
+                   [checked]="hasReminderChannel(channel)"
+                   (change)="toggleReminderChannel(channel)"
+                   [id]="'channel_' + channel">
+            <label class="form-check-label" [for]="'channel_' + channel">{{ channel | titlecase }}</label>
           </div>
+        </div>
+      </section>
 
-          <!-- Attendance Settings -->
-          <div class="col-12">
-            <hr>
-            <label class="form-label fw-medium">{{ 'live.form.attendance_settings' | translate }}</label>
-          </div>
+      <!-- Attendance Settings -->
+      <section class="ui-section">
+        <div class="ui-section__head">
+          <div><h2 class="ui-section__title">{{ 'live.form.attendance_settings' | translate }}</h2></div>
+        </div>
+        <div class="row g-3">
           <div class="col-md-4">
             <label class="form-label">{{ 'live.form.qr_grace' | translate }}</label>
             <input type="number" class="form-control" [(ngModel)]="editingTraining.qr_grace_period_minutes">
@@ -138,18 +144,19 @@
             <input type="number" class="form-control" [(ngModel)]="editingTraining.min_virtual_duration_minutes">
           </div>
         </div>
-      </div>
-      <div class="card-footer bg-transparent d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-secondary" (click)="goBack()">{{ 'common.cancel' | translate }}</button>
+      </section>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary" (click)="goBack()">{{ 'common.cancel' | translate }}</button>
         <button type="button" class="btn btn-primary" (click)="saveTraining()"
                 [disabled]="saving || !editingTraining.title">
           <span *ngIf="saving" class="spinner-border spinner-border-sm me-2"></span>
           {{ (isEditMode ? 'live.form.save_changes' : 'live.form.create_training') | translate }}
         </button>
       </div>
-    </div>
+    </ng-container>
 
-    <div class="text-center py-5" *ngIf="loading">
+    <div class="ui-state" *ngIf="loading">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
       </div>
