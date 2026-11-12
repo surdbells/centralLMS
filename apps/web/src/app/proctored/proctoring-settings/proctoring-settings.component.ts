@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -84,7 +85,7 @@ interface ProctoringConfig {
 @Component({
   selector: 'app-proctoring-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -631,10 +632,7 @@ interface ProctoringConfig {
       </div>
 
       <!-- Loading -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading settings...</p>
-      </div>
+      <app-skeleton *ngIf="loading" variant="form" [rows]="6"></app-skeleton>
     </div>
     </main>
   `,
@@ -704,7 +702,6 @@ interface ProctoringConfig {
     .summary-stats { font-size: 0.8125rem; }
     .stat-row { display: flex; justify-content: space-between; padding: 0.25rem 0; }
 
-    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     @media (max-width: 992px) {
       .settings-layout { grid-template-columns: 1fr; }

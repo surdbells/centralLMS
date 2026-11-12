@@ -7,11 +7,12 @@ import { TuiIcon } from '@taiga-ui/core';
 import { Router } from '@angular/router';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learner-dashboard',
   standalone: true,
-  imports: [CommonModule, ReportChartComponent, TopComponent, TuiIcon, TranslatePipe],
+  imports: [CommonModule, ReportChartComponent, TopComponent, TuiIcon, TranslatePipe, SkeletonComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -28,10 +29,10 @@ import { I18nService } from '../../../i18n.service';
         </header>
 
         <!-- Loading -->
-        <div *ngIf="loading" class="ui-state">
-          <div class="spinner-border text-primary"></div>
-          <p class="mt-3">{{ 'reports.loading_dashboard' | translate }}</p>
-        </div>
+        <ng-container *ngIf="loading">
+          <app-skeleton variant="kpis" [count]="4"></app-skeleton>
+          <app-skeleton variant="block" height="300px"></app-skeleton>
+        </ng-container>
 
         <div *ngIf="!loading" class="learner-dashboard">
           <!-- KPI Row 1: Core stats -->
@@ -85,7 +86,7 @@ import { I18nService } from '../../../i18n.service';
 
           <!-- Enrolled Courses Tab -->
           <div *ngIf="activeTab === 'courses'">
-            <div *ngIf="loadingCourses" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <app-skeleton *ngIf="loadingCourses" variant="table" [rows]="6" [cols]="7"></app-skeleton>
             <section class="ui-section ui-section--flush" *ngIf="!loadingCourses">
               <div class="table-responsive">
                 <table class="table table-hover mb-0">
@@ -140,7 +141,7 @@ import { I18nService } from '../../../i18n.service';
 
           <!-- Assessments Tab -->
           <div *ngIf="activeTab === 'assessments'">
-            <div *ngIf="loadingAssessments" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <app-skeleton *ngIf="loadingAssessments" variant="table" [rows]="6" [cols]="6"></app-skeleton>
             <section class="ui-section ui-section--flush" *ngIf="!loadingAssessments">
               <div class="table-responsive">
                 <table class="table table-hover mb-0">
@@ -175,7 +176,7 @@ import { I18nService } from '../../../i18n.service';
 
           <!-- Achievements Tab -->
           <div *ngIf="activeTab === 'achievements'">
-            <div *ngIf="loadingAchievements" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <app-skeleton *ngIf="loadingAchievements" variant="list" [rows]="5"></app-skeleton>
             <div *ngIf="!loadingAchievements">
               <div class="ui-row">
                 <!-- Certificates -->
@@ -234,7 +235,7 @@ import { I18nService } from '../../../i18n.service';
 
           <!-- Compliance Tab -->
           <div *ngIf="activeTab === 'compliance'">
-            <div *ngIf="loadingCompliance" class="ui-state"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            <app-skeleton *ngIf="loadingCompliance" variant="table" [rows]="6" [cols]="5"></app-skeleton>
             <section class="ui-section ui-section--flush" *ngIf="!loadingCompliance">
               <div class="table-responsive">
                 <table class="table table-hover mb-0">

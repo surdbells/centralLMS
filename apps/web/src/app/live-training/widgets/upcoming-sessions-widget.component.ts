@@ -8,11 +8,12 @@ import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, TrainingSession } from '../live-training.service';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-upcoming-sessions-widget',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslatePipe],
+  imports: [CommonModule, RouterModule, TranslatePipe, SkeletonComponent],
   template: `
     <div class="upcoming-sessions-widget">
       <div class="widget-header">
@@ -27,9 +28,7 @@ import { I18nService } from '../../i18n.service';
 
       <div class="widget-body">
         <!-- Loading -->
-        <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-        </div>
+        <app-skeleton *ngIf="loading" variant="list" [rows]="3"></app-skeleton>
 
         <!-- Sessions List -->
         <div *ngIf="!loading && sessions.length > 0" class="sessions-list">

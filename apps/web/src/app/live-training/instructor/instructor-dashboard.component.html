@@ -299,8 +299,7 @@
                   <td>
                     <div class="d-flex align-items-center gap-2">
                       <div class="ui-avatar">
-                        <img [src]="record.profile_image" *ngIf="record.profile_image" alt="">
-                        <span *ngIf="!record.profile_image">{{ getInitials(record.first_name, record.last_name) }}</span>
+                        <app-avatar [src]="record.profile_image" [name]="(record.first_name || '') + ' ' + (record.last_name || '')"></app-avatar>
                       </div>
                       <div>
                         <strong>{{ record.first_name }} {{ record.last_name }}</strong>
@@ -455,7 +454,7 @@
               <div class="list-group-item d-flex align-items-center gap-3"
                    *ngFor="let instructor of sessionInstructors; trackBy: trackByInstructorId">
                 <div class="ui-avatar">
-                  <span>{{ getInitials(instructor.first_name, instructor.last_name) }}</span>
+                  <app-avatar [src]="instructor.profile_image" [name]="(instructor.first_name || '') + ' ' + (instructor.last_name || '')"></app-avatar>
                 </div>
                 <div class="flex-grow-1">
                   <div class="fw-medium">{{ instructor.first_name }} {{ instructor.last_name }}</div>

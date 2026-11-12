@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -14,6 +14,7 @@ import {
 } from '../../../services/skills.service';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -27,7 +28,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-learner-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, SkeletonComponent],
   templateUrl: './learner-skills.component.html',
   styleUrls: ['./learner-skills.component.scss'],
 })
@@ -35,6 +36,7 @@ export class LearnerSkillsComponent implements OnInit, OnDestroy {
   private readonly skillsService = inject(SkillsService);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
+  private readonly location = inject(Location);
   private readonly destroy$ = new Subject<void>();
 
   mine: LearnerSkills = { held: [], inProgress: [], byCategory: [], totals: { held: 0, inProgress: 0 } };
@@ -56,6 +58,15 @@ export class LearnerSkillsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** Header back button: the previous page, or /account when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+    void this.router.navigate(['/account']);
   }
 
   loadData(): void {

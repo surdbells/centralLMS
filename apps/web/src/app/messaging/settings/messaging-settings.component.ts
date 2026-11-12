@@ -1,7 +1,8 @@
 // messaging/settings/messaging-settings.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -11,11 +12,12 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
 
 @Component({
   selector: 'app-messaging-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe, AvatarComponent],
   template: `
     <app-top></app-top>
 
@@ -23,6 +25,7 @@ import { HotToastService } from '@ngneat/hot-toast';
     <div class="ui-page messaging-settings">
       <!-- Header -->
       <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-gear"></i></div>
         <div class="ui-page-header__titles">
           <h1>{{ 'messaging.settings_title' | translate }}</h1>
@@ -174,10 +177,7 @@ import { HotToastService } from '@ngneat/hot-toast';
             <li class="blocked-item" *ngFor="let user of blockedUsers">
               <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
                 <span class="ui-avatar avatar">
-                  <img [src]="user.profile_image" *ngIf="user.profile_image" class="avatar-img">
-                  <span class="avatar-initials" *ngIf="!user.profile_image">
-                    {{ getInitials(user.first_name, user.last_name) }}
-                  </span>
+                  <app-avatar [src]="user.profile_image" [name]="(user.first_name || '') + ' ' + (user.last_name || '')"></app-avatar>
                 </span>
                 <div class="min-w-0">
                   <strong>{{ user.first_name }} {{ user.last_name }}</strong>
@@ -246,21 +246,6 @@ import { HotToastService } from '@ngneat/hot-toast';
       flex-shrink: 0;
     }
 
-    .avatar .avatar-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .avatar .avatar-initials {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-    }
-
     .blocked-item { justify-content: space-between; }
 
     .save-indicator {
@@ -295,6 +280,8 @@ import { HotToastService } from '@ngneat/hot-toast';
   `]
 })
 export class MessagingSettingsComponent implements OnInit, OnDestroy {
+  private readonly backLocation = inject(Location);
+  private readonly navRouter = inject(Router);
   private destroy$ = new Subject<void>();
 
   settings: MessagingSettings = {
@@ -315,6 +302,15 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   private saveTimeout: any;
 
   constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService, private toast: HotToastService) {}
+
+  /** Header back button: the previous page, or /messaging when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.backLocation.back();
+      return;
+    }
+    void this.navRouter.navigate(['/messaging']);
+  }
 
   ngOnInit(): void {
     this.loadSettings();

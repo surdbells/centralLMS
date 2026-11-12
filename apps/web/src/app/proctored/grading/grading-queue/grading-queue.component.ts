@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
@@ -69,7 +70,7 @@ interface GraderOption {
 @Component({
   selector: 'app-grading-queue',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -367,9 +368,8 @@ interface GraderOption {
         </div>
 
         <!-- Loading State -->
-        <div class="loading-state" *ngIf="loading">
-          <div class="spinner-border text-primary"></div>
-          <p>Loading grading queue...</p>
+        <div class="table-skeleton" *ngIf="loading">
+          <app-skeleton variant="table" [rows]="8" [cols]="10"></app-skeleton>
         </div>
       </section>
 
@@ -546,7 +546,7 @@ interface GraderOption {
 
     /* Empty & Loading */
     .empty-state { margin: 22px; }
-    .loading-state { text-align: center; padding: 3rem; border-top: 1px solid var(--ui-border, #e7e9e7); color: var(--ui-text-muted, #6a716b); }
+    .table-skeleton { padding: 16px 22px 22px; border-top: 1px solid var(--ui-border, #e7e9e7); }
 
     /* Modals */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);

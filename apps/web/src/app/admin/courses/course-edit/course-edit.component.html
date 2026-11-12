@@ -16,7 +16,7 @@
       </div>
     </header>
 
-    <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    <section *ngIf="loading" class="ui-section"><app-skeleton variant="form" [rows]="6" /></section>
 
     <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
       <i class="bi bi-exclamation-triangle me-2 mt-1"></i>

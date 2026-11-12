@@ -57,12 +57,7 @@
   </div>
 
   <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-    <p class="mt-2 text-muted">{{ 'admin.course_content.loading' | translate }}</p>
-  </div>
+  <app-skeleton *ngIf="loading" variant="list" [rows]="4" />
 
   <!-- Empty State -->
   <div class="ui-state" *ngIf="!loading && modules.length === 0">
@@ -326,10 +321,7 @@ QUESTION MANAGER MODAL
             </button>
           </div>
           <!-- Loading -->
-          <div class="text-center py-4" *ngIf="loadingQuestions">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">{{ 'admin.course_content.loading_questions' | translate }}</p>
-          </div>
+          <app-skeleton *ngIf="loadingQuestions" variant="list" [rows]="4" />
           <!-- Empty State -->
           <div class="empty-state py-4" *ngIf="!loadingQuestions && questions.length === 0">
             <i class="bi bi-inbox"></i>

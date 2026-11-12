@@ -13,11 +13,13 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learning-path-reviews',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent],
   templateUrl: `learning-path-reviews.component.html`,
   styleUrls: [`learning-path-reviews.component.scss`]
 })

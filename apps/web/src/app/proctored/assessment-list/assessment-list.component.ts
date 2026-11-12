@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, forkJoin, of, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -64,7 +65,7 @@ interface Category {
 @Component({
   selector: 'app-assessment-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -338,10 +339,8 @@ interface Category {
         </div>
 
         <!-- Loading -->
-        <div class="loading-state" *ngIf="loading">
-          <div class="spinner-border text-secondary"></div>
-          <p class="ui-muted">Loading assessments...</p>
-        </div>
+        <app-skeleton *ngIf="loading && viewMode === 'grid'" variant="cards" [count]="6"></app-skeleton>
+        <app-skeleton *ngIf="loading && viewMode !== 'grid'" variant="table" [rows]="8" [cols]="10"></app-skeleton>
       </section>
 
       <!-- Delete Confirm Modal -->
@@ -448,8 +447,6 @@ interface Category {
     .pagination-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--ui-border); }
     .pagination-controls { display: flex; align-items: center; gap: 6px; }
     .page-info { font-size: .8125rem; color: var(--ui-text-muted); min-width: 100px; text-align: center; font-variant-numeric: tabular-nums; }
-
-    .loading-state { text-align: center; padding: 3rem; }
 
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(16, 24, 18, .4); z-index: 1050;

@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiIcon } from '@taiga-ui/core';
 import { TUI_CONFIRM } from '@taiga-ui/kit';
 import { TuiResponsiveDialogService } from '@taiga-ui/addon-mobile';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -18,6 +18,7 @@ import {
 } from '../../services/lookups.service';
 import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 
 // ---------------------------------------------------------------------------
@@ -106,7 +107,7 @@ interface Category {
 @Component({
   selector: 'app-dictionary',
   standalone: true,
-  imports: [DatePipe, FormsModule, CommonModule, SideComponent, TopComponent, TuiIcon, TuiLoader, AdmintopComponent, TranslatePipe],
+  imports: [DatePipe, FormsModule, CommonModule, SideComponent, TopComponent, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './dictionary.component.html',
   styleUrl: './dictionary.component.css',
 })

@@ -15,26 +15,14 @@
   color: var(--ui-text);
 }
 
-/* ------------------------------------------------------------------ header */
-.ld-header-avatar {
-  overflow: hidden;
-  font-size: .9375rem;
-  font-weight: 650;
-  letter-spacing: .02em;
-}
-
-.ld-header-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.profile-meta span { white-space: nowrap; }
-
 /* ------------------------------------------------------------ states */
-.ld-loading { gap: 10px; }
-.ld-loading p { margin: 0; }
-.ld-spinner { color: var(--brand-primary); }
+/* Loading placeholders, shaped like the hero and the activity chart. */
+.ld-sk-profile { justify-content: flex-start; }
+.ld-sk-profile::before { display: none; }
+.ld-sk-avatar { width: 72px; height: 72px; border-radius: 50%; }
+.ld-sk-label { width: 60%; height: 10px; }
+.ld-sk-value { width: 56px; height: 28px; margin-top: 4px; }
+.ld-sk-chart { height: 200px; margin-top: 16px; border-radius: var(--ui-radius-card); }
 
 .ld-state-danger {
   border-color: rgba(var(--ui-danger-rgb), .25);
@@ -47,15 +35,224 @@
 .ld-state-sm .ui-state__icon { width: 40px; height: 40px; font-size: 1.05rem; }
 .ld-state-sm p { margin: 10px 0 0; font-size: .8125rem; }
 
-/* ------------------------------------------------------------------ KPIs */
-.ld-kpis { margin-bottom: 12px; }
+/* ------------------------------------------- hero: profile card + KPIs
+ * One grid. The profile card takes the left column across both rows and the
+ * six KPI cards fill a 3 x 2 block on the right, so both sides end level.
+ * Below 1100px the card goes full width on top with the KPIs 3 to a row;
+ * below 640px the KPIs go 2 to a row. */
+.ld-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  gap: 12px;
+  margin-bottom: 12px;
+}
 
-.ld-level { grid-column: span 2; }
+.ld-hero > .ui-kpi { justify-content: center; }
 
-.ld-level-points { font-size: 1.5rem; }
+.ld-profile {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  /* A whisper of the brand along the top edge, fading into the white card. */
+  background:
+    linear-gradient(180deg, rgba(var(--brand-primary-rgb), .06) 0, rgba(var(--brand-primary-rgb), 0) 96px),
+    var(--ui-surface);
+  box-shadow: var(--ui-shadow-xs);
+  overflow: hidden;
+  container: ld-profile / inline-size;
+}
 
-@media (max-width: 575.98px) {
-  .ld-level { grid-column: auto; }
+/* A thin brand rule along the card's left edge ties it to the accent. */
+.ld-profile::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--brand-primary);
+}
+
+/* Avatar on the left; name and the "My Profile" button across the top of the
+ * right-hand side, the labelled details beneath the name. */
+.ld-profile__top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "avatar head  action"
+    "avatar facts facts";
+  align-items: start;
+  column-gap: 16px;
+}
+
+.ld-profile__avatar { grid-area: avatar; }
+.ld-profile__head { grid-area: head; min-width: 0; }
+.ld-profile__action { grid-area: action; }
+.ld-profile__facts { grid-area: facts; }
+
+.ld-profile__avatar {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(var(--brand-primary-rgb), .12);
+  color: var(--brand-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px var(--ui-surface), 0 0 0 4px rgba(var(--brand-primary-rgb), .28);
+}
+
+.ld-profile__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ld-profile__name {
+  margin: 2px 0 0;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--ui-text);
+  overflow-wrap: anywhere;
+}
+
+.ld-profile__dept {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: .8125rem;
+  color: var(--ui-text-muted);
+  min-width: 0;
+}
+
+.ld-profile__dept i { color: var(--ui-text-subtle); font-size: .8rem; }
+
+.ld-profile__facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
+  row-gap: 7px;
+  margin: 14px 0 0;
+  font-size: .8125rem;
+}
+
+/* Each row's label and value land in the dl's two columns. */
+.ld-profile__fact { display: contents; }
+
+.ld-profile__fact dt {
+  font-weight: 500;
+  color: var(--ui-text-muted);
+}
+
+.ld-profile__fact dt::after { content: ':'; }
+
+.ld-profile__fact dd {
+  margin: 0;
+  min-width: 0;
+  font-weight: 650;
+  color: var(--ui-text);
+  overflow-wrap: anywhere;
+}
+
+.ld-profile__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ld-profile__status--yes { color: var(--ui-success-text); }
+.ld-profile__status--no { color: var(--ui-danger-text); }
+
+.ld-profile__action {
+  white-space: nowrap;
+  background: var(--ui-surface);
+}
+
+.ld-profile__action i { color: var(--brand-primary); }
+
+/* Level and points, compactly at the foot of the card. */
+.ld-profile__level {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.ld-profile__level-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: .75rem;
+  color: var(--ui-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ld-profile__points strong {
+  font-size: .875rem;
+  font-weight: 700;
+  color: var(--ui-text);
+}
+
+.ld-profile__to-next { margin-left: auto; }
+.ld-profile__to-next strong { color: var(--brand-primary); font-weight: 700; }
+
+.ld-profile__bar { flex: none; width: 100%; }
+
+@media (max-width: 1099.98px) {
+  .ld-hero {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: none;
+  }
+
+  .ld-profile {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .ld-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* When the card itself is narrow (a phone, or a tight desktop column) the
+   avatar and button share the first line and the name and details run the
+   card's full width beneath them, rather than squeezing into a sliver. */
+@container ld-profile (max-width: 359.98px) {
+  .ld-profile__top {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar action"
+      "head   head"
+      "facts  facts";
+    row-gap: 12px;
+  }
+
+  .ld-profile__avatar { width: 60px; height: 60px; font-size: 1.2rem; }
+
+  .ld-profile__action { justify-self: end; align-self: center; }
+
+  .ld-profile__to-next { margin-left: 0; flex-basis: 100%; }
+}
+
+@media (max-width: 479.98px) {
+  .ld-profile { padding: 16px; }
 }
 
 /* ------------------------------------------------------------ layout */

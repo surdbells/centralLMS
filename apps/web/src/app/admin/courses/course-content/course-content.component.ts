@@ -25,6 +25,7 @@ import {
 } from '../../../services/course-resources.service';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
@@ -121,7 +122,7 @@ export interface MediaFile {
 @Component({
   selector: 'app-course-content',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './course-content.component.html',
   styleUrls: ['./course-content.component.scss'],
 })

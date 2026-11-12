@@ -7,6 +7,7 @@
 
 import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, of, takeUntil, interval } from 'rxjs';
@@ -35,7 +36,7 @@ interface PlayerSection {
 @Component({
   selector: 'app-assessment-player',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, QuestionRendererComponent, ProctoringMonitorComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, QuestionRendererComponent, ProctoringMonitorComponent, SkeletonComponent],
   template: `
     <div class="player-container" *ngIf="attempt">
       <!-- Top Bar -->
@@ -190,8 +191,11 @@ interface PlayerSection {
     </div>
 
     <!-- Loading State -->
-    <div class="loading" *ngIf="!attempt && !loadError">
-      <div class="spinner"></div><p>Loading assessment...</p>
+    <div class="player-skeleton" *ngIf="!attempt && !loadError">
+      <app-skeleton variant="block" height="56px"></app-skeleton>
+      <div class="player-skeleton__body">
+        <app-skeleton variant="detail" height="260px"></app-skeleton>
+      </div>
     </div>
     <div class="error-state" *ngIf="loadError">
       <tui-icon icon="@tui.alert-circle" style="font-size:48px;color:#ef4444"></tui-icon>
@@ -201,9 +205,9 @@ interface PlayerSection {
   styles: [`
     :host { display: block; }
     .player-container { height: 100vh; display: flex; flex-direction: column; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; }
-    .loading, .error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #64748b; }
-    .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: #64748b; }
+    .player-skeleton { min-height: 100vh; background: #f8fafc; }
+    .player-skeleton__body { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
     .error-state h2 { margin: 16px 0 8px; color: #0f172a; }
 
     /* Top Bar */

@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -117,7 +118,7 @@ interface QuickFeedback {
 @Component({
   selector: 'app-grading-interface',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -418,10 +419,7 @@ interface QuickFeedback {
     </div>
 
     <!-- Loading -->
-    <div class="ui-state loading-state" *ngIf="loading">
-      <div class="spinner-border text-primary"></div>
-      <p>Loading grading details...</p>
-    </div>
+    <app-skeleton *ngIf="loading" variant="detail" height="320px"></app-skeleton>
     </div>
     </main>
   `,
@@ -539,9 +537,6 @@ interface QuickFeedback {
     .grading-submit { position: sticky; bottom: 0; background: var(--ui-surface, #fff); padding: 0.75rem 0; }
     .submit-secondary { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
     .submit-secondary .btn { flex: 1; }
-
-    /* Loading */
-    .loading-state { min-height: 40vh; justify-content: center; }
 
     /* Responsive */
     @media (max-width: 992px) {

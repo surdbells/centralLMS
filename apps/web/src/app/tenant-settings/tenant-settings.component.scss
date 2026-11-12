@@ -15,10 +15,11 @@
 }
 
 // Loading State
-.loading-state {
-  gap: 10px;
-
-  p { margin: 0; }
+.loading-nav {
+  padding: 16px 18px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
 }
 
 // Main Content Layout

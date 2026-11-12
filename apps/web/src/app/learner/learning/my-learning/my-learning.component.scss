@@ -810,21 +810,6 @@ button.kpi-card {
 // BROWSE COURSES VIEW
 // ==========================================
 
-.loading-state {
-  display: flex;
-  justify-content: center;
-  padding: 4rem;
-}
-
-.loading-courses {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  padding: 3rem;
-  color: $text-muted;
-}
-
 .filters-bar {
   display: flex;
   gap: 12px;

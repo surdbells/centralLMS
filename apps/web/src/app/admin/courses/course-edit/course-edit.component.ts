@@ -16,6 +16,7 @@ import { UsersService, type UserOption } from '../../../services/users.service';
 import { ApiError } from '../../../core/api';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -33,7 +34,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-course-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './course-edit.component.html',
 })
 export class CourseEditComponent implements OnInit, OnDestroy {

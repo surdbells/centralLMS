@@ -17,6 +17,7 @@ import { CoursesService, type Course as ApiCourse } from '../../../services/cour
 import { LookupsService } from '../../../services/lookups.service';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 type Tab = 'skills' | 'categories' | 'analytics';
 type AnalyticsTab = 'overview' | 'top-skills' | 'skill-gaps' | 'course-skills' | 'user-lookup';
@@ -153,7 +154,7 @@ export interface AssignmentRow {
 @Component({
   selector: 'app-admin-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, SkeletonComponent],
   templateUrl: './admin-skills.component.html',
   styleUrls: ['./admin-skills.component.scss'],
 })

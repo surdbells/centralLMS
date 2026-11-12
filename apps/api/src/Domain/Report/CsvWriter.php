@@ -38,6 +38,18 @@ final readonly class CsvWriter
             return self::BOM . $this->fromTotals($result);
         }
 
+        return $this->writeTable($columns, $result->rows);
+    }
+
+    /**
+     * Columns and rows as a CSV — for a result that is not a catalogue report,
+     * such as one from the custom report builder — with the same defences.
+     *
+     * @param list<ReportColumn>         $columns
+     * @param list<array<string, mixed>> $rows
+     */
+    public function writeTable(array $columns, array $rows): string
+    {
         $out = fopen('php://temp', 'r+');
 
         if ($out === false) {
@@ -49,7 +61,7 @@ final readonly class CsvWriter
             $columns,
         ), escape: '');
 
-        foreach ($result->rows as $row) {
+        foreach ($rows as $row) {
             $line = [];
 
             foreach ($columns as $column) {
@@ -75,9 +87,17 @@ final readonly class CsvWriter
      */
     public function filename(ReportDefinition $definition, \DateTimeImmutable $at): string
     {
-        $slug = strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', $definition->name));
+        return $this->filenameFor($definition->name, $at);
+    }
 
-        return sprintf('%s-%s.csv', trim($slug, '-'), $at->format('Y-m-d'));
+    /**
+     * The same, for a report known only by its name.
+     */
+    public function filenameFor(string $name, \DateTimeImmutable $at): string
+    {
+        $slug = trim(strtolower((string) preg_replace('/[^A-Za-z0-9]+/', '-', $name)), '-');
+
+        return sprintf('%s-%s.csv', $slug === '' ? 'report' : $slug, $at->format('Y-m-d'));
     }
 
     private function fromTotals(ReportResult $result): string

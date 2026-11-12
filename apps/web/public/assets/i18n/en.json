@@ -3899,5 +3899,10 @@
   "reports.saved_subtitle": "Reports you bookmarked, with their filters, ready to run again",
   "reports.scheduled_subtitle": "Reports emailed automatically on a daily, weekly or monthly schedule",
   "reports.manager_subtitle": "Your team's enrolments, completions and overdue training",
-  "messaging.page_subtitle": "Direct messages, groups and channels in one place"
+  "messaging.page_subtitle": "Direct messages, groups and channels in one place",
+  "learner_dash.time_in_system": "Total time in system",
+  "learner_dash.joined": "Joined",
+  "reports.sources_failed": "Couldn't load the data sources.",
+  "reports.no_sources": "No data sources are available to you.",
+  "reports.record_count": "Record count"
 }

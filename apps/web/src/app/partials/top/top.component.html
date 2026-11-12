@@ -166,9 +166,7 @@
           <hr class="dropdown-divider m-0">
           <!-- Notifications List -->
           <div class="notifications-list">
-            <div *ngIf="ui_controls.is_loading" class="text-center py-4">
-              <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            </div>
+            <div *ngIf="ui_controls.is_loading" class="px-3 py-1"><app-skeleton variant="list" [rows]="4"></app-skeleton></div>
             <div *ngIf="!ui_controls.is_loading && notifications?.length === 0" class="text-center py-4 text-muted">
               <span class="material-symbols-outlined d-block mb-2" style="font-size: 2rem;">notifications_off</span>
               <small>{{ 'notifications.empty' | translate }}</small>

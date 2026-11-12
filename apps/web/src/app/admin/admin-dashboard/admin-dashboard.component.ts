@@ -8,6 +8,7 @@ import { takeUntil } from 'rxjs/operators';
 import { DashboardsService, type AdminDashboard } from '../../services/dashboards.service';
 import { ApiClient, ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /* The shapes this screen's template already reads. Each is filled in one
  * place — `adapt()` below — so the markup keeps the names it was written
@@ -123,7 +124,7 @@ export interface DashboardData {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, TranslatePipe, SkeletonComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css'],
 })

@@ -98,10 +98,8 @@
           </thead>
           <tbody>
           <tr *ngIf="loading">
-            <td colspan="8" class="text-center py-5">
-              <div class="spinner-border spinner-border-sm text-primary" role="status">
-                <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-              </div>
+            <td colspan="8" class="p-3">
+              <app-skeleton variant="lines" [rows]="6" />
             </td>
           </tr>
           <tr *ngIf="!loading && filteredSkills.length === 0">
@@ -253,11 +251,7 @@
       <div class="ui-section__head">
         <div><h2 class="ui-section__title">{{ 'admin_skills.adoption_stats' | translate }}</h2></div>
       </div>
-      <div *ngIf="loading" class="text-center py-5">
-        <div class="spinner-border spinner-border-sm text-primary" role="status">
-          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-        </div>
-      </div>
+      <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="9" />
       <div class="table-responsive" *ngIf="!loading && skillStats.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
@@ -348,9 +342,7 @@
             <h2 class="ui-section__title"><i class="bi bi-trophy me-2 skills-title-icon"></i>{{ 'admin_skills.top_10_skills' | translate }}</h2>
           </div>
         </div>
-        <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-        </div>
+        <app-skeleton *ngIf="loading" variant="list" [rows]="5" />
         <div *ngIf="!loading && topSkills.length > 0">
           <div class="top-skill-item" *ngFor="let skill of topSkills; let i = index">
             <div class="top-skill-rank" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
@@ -412,9 +404,7 @@
           <p class="ui-section__subtitle">{{ 'admin_skills.gap_subtitle' | translate }}</p>
         </div>
       </div>
-      <div *ngIf="loading" class="text-center py-5">
-        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-      </div>
+      <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="7" />
       <div class="table-responsive" *ngIf="!loading && skillGaps.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
@@ -509,10 +499,7 @@
         </div>
       </div>
 
-      <div *ngIf="coursesLoading" class="text-center py-4">
-        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-        <p class="mt-2 ui-muted small">{{ 'admin_skills.loading_courses' | translate }}</p>
-      </div>
+      <app-skeleton *ngIf="coursesLoading" variant="list" [rows]="5" />
 
       <div class="course-grid" *ngIf="!coursesLoading && courses.length > 0">
         <div class="course-skill-card" *ngFor="let course of courses">
@@ -555,10 +542,7 @@
               <i class="bi bi-x"></i>
             </button>
           </div>
-          <div *ngIf="usersLoading" class="text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <span class="ms-2">{{ 'admin_skills.loading_users' | translate }}</span>
-          </div>
+          <app-skeleton *ngIf="usersLoading" variant="list" [rows]="4" />
           <div class="user-select-list" *ngIf="!usersLoading && filteredUsers.length > 0">
             <div class="user-select-item"
                  *ngFor="let user of filteredUsers"
@@ -595,9 +579,9 @@
       </div>
 
       <!-- Loading State -->
-      <div *ngIf="userLookupLoading" class="text-center py-5">
-        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-        <p class="mt-2 ui-muted small">{{ 'admin_skills.loading_skill_data' | translate }}</p>
+      <div *ngIf="userLookupLoading">
+        <app-skeleton variant="kpis" [count]="3" />
+        <app-skeleton variant="list" [rows]="4" />
       </div>
 
       <!-- User Skills Results -->

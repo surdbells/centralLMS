@@ -20,6 +20,8 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import {RouterLink} from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { ApiError } from '../../core/api';
@@ -27,7 +29,7 @@ import { ApiError } from '../../core/api';
 @Component({
   selector: 'app-admin-live-training',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, RouterLink, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, RouterLink, TranslatePipe, SkeletonComponent, AvatarComponent],
   templateUrl: './admin-live-training.component.html',
   styleUrls: ['./admin-live-training.component.scss']
 })
@@ -746,9 +748,21 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     return new Date(datetime).toLocaleString();
   }
 
+  /**
+   * Header back button. Inside a training it returns to the list; on the
+   * list itself it leaves the page (previous page, or the admin dashboard
+   * when there is no history).
+   */
   goBack(): void {
-    this.activeTab = 'list';
-    this.selectedTraining = null;
+    if (this.activeTab !== 'list') {
+      this.activeTab = 'list';
+      this.selectedTraining = null;
+      return;
+    }
+    // From the list, always to the admin dashboard: the sub-pages (form,
+    // reports, instructor, integrations…) return here by pushing this route,
+    // so history.back() would bounce between them and the list forever.
+    void this.router.navigate(['/administration']);
   }
 
   trackByTrainingId(index: number, item: LiveTraining): string {

@@ -1,37 +1,30 @@
 <!-- Learner home dashboard — built from the global UI kit (styles.scss). -->
 <div class="learner-dashboard">
 
-  <!-- ==================== PAGE HEADER ==================== -->
-  <header class="ui-page-header">
-    <div class="ui-page-header__icon ld-header-avatar" aria-hidden="true">
-      <ng-container *ngIf="dashboard; else headerIcon">
-        <img *ngIf="dashboard.user.avatar_url && !avatarFailed" [appAuthImg]="dashboard.user.avatar_url" (appAuthImgError)="avatarFailed = $event" [alt]="dashboard.user.full_name">
-        <span *ngIf="!dashboard.user.avatar_url || avatarFailed" class="avatar-initials">{{ getInitials(dashboard.user.full_name) }}</span>
-      </ng-container>
-      <ng-template #headerIcon><i class="bi bi-house-door"></i></ng-template>
-    </div>
-    <div class="ui-page-header__titles">
-      <h1 *ngIf="dashboard">{{ 'learner_dash.greeting' | translate:{ name: dashboard.user.full_name } }}</h1>
-      <h1 *ngIf="!dashboard">{{ 'nav.dashboard' | translate }}</h1>
-      <p *ngIf="dashboard" class="profile-meta">
-        <span *ngIf="dashboard.user.job_title">{{ dashboard.user.job_title }}</span>
-        <span *ngIf="dashboard.user.job_title && dashboard.user.department"> • </span>
-        <span *ngIf="dashboard.user.department">{{ dashboard.user.department }}</span>
-        <span *ngIf="!dashboard.user.job_title && !dashboard.user.department">{{ 'learner_dash.learner_role' | translate }}</span>
-      </p>
-    </div>
-    <div class="ui-page-header__actions" *ngIf="dashboard">
-      <a routerLink="/mysettings" class="btn btn-outline-secondary">
-        <i class="bi bi-gear"></i> {{ 'nav.settings' | translate }}
-      </a>
-    </div>
-  </header>
+  <!-- No page header: the profile card at the top of the content is the
+       page's heading (the learner's name is its h1). Until it loads, the
+       heading is the page's name, kept for screen readers. -->
+  <h1 *ngIf="!dashboard" class="visually-hidden">{{ 'nav.dashboard' | translate }}</h1>
 
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="ui-state ld-loading" role="status">
-    <span class="spinner-border spinner-border-sm ld-spinner" aria-hidden="true"></span>
-    <p>{{ 'learner_dash.loading' | translate }}</p>
-  </div>
+  <ng-container *ngIf="isLoading">
+    <!-- Shaped like the hero: profile card on the left, six KPIs beside it,
+         then the activity chart. -->
+    <div class="ld-hero">
+      <section class="ld-profile ld-sk-profile">
+        <span class="ui-skeleton ld-sk-avatar" aria-hidden="true"></span>
+        <app-skeleton variant="lines" [rows]="4"></app-skeleton>
+      </section>
+      <div class="ui-kpi" *ngFor="let k of [0, 1, 2, 3, 4, 5]" aria-hidden="true">
+        <span class="ui-skeleton ld-sk-label"></span>
+        <span class="ui-skeleton ld-sk-value"></span>
+      </div>
+    </div>
+    <section class="ui-section" aria-hidden="true">
+      <span class="ui-skeleton ld-sk-label"></span>
+      <span class="ui-skeleton ld-sk-chart"></span>
+    </section>
+  </ng-container>
 
   <!-- Error State -->
   <div *ngIf="error && !isLoading" class="ui-state">
@@ -49,20 +42,77 @@
   <!-- Main Content -->
   <ng-container *ngIf="!isLoading && dashboard">
 
-    <!-- ==================== KPIs ==================== -->
-    <div class="ui-kpi-grid ld-kpis">
-      <!-- Level -->
-      <div class="ui-kpi ui-kpi--brand ld-level">
-        <span class="ui-kpi__label"><i class="bi bi-trophy"></i> {{ getLevelName(dashboard.overview.total_points) }}</span>
-        <span class="ui-kpi__value ld-level-points" *ngIf="hasNextLevel">{{ dashboard.overview.total_points }}<small> / {{ getNextLevelTarget(dashboard.overview.total_points) }}</small></span>
-        <span class="ui-kpi__value ld-level-points" *ngIf="!hasNextLevel">{{ 'learner_dash.points_count' | translate:{ count: dashboard.overview.total_points } }}</span>
-        <div class="ui-progress">
-          <div class="ui-bar"><span [style.width.%]="getLevelProgress(dashboard.overview.total_points)"></span></div>
+    <!-- ==================== HERO: profile card + six KPIs ====================
+         One grid: the profile card fills the left column across both rows,
+         the six KPIs sit 3 x 2 to its right, so both sides end level. -->
+    <div class="ld-hero">
+
+      <!-- Profile -->
+      <section class="ld-profile" aria-labelledby="ld-profile-name">
+        <div class="ld-profile__top">
+          <div class="ld-profile__avatar" aria-hidden="true">
+            <img *ngIf="dashboard.user.avatar_url && !avatarFailed" [appAuthImg]="dashboard.user.avatar_url" (appAuthImgError)="avatarFailed = $event" alt="">
+            <span *ngIf="!dashboard.user.avatar_url || avatarFailed">{{ getInitials(dashboard.user.full_name) }}</span>
+          </div>
+
+          <div class="ld-profile__head">
+            <h1 id="ld-profile-name" class="ld-profile__name">{{ dashboard.user.full_name }}</h1>
+            <p class="ld-profile__dept" *ngIf="dashboard.user.department">
+              <i class="bi bi-building" aria-hidden="true"></i> {{ dashboard.user.department }}
+            </p>
+          </div>
+
+          <a routerLink="/mysettings" class="btn btn-sm btn-outline-secondary ld-profile__action">
+            <i class="bi bi-person-gear" aria-hidden="true"></i> {{ 'user_menu.my_profile' | translate }}
+          </a>
+
+          <dl class="ld-profile__facts">
+            <div class="ld-profile__fact">
+              <dt>{{ 'live.common.role' | translate }}</dt>
+              <dd>{{ dashboard.user.job_title || ('learner_dash.learner_role' | translate) }}</dd>
+            </div>
+            <div class="ld-profile__fact">
+              <dt>{{ 'learner_dash.time_in_system' | translate }}</dt>
+              <dd>{{ timeInSystem }}</dd>
+            </div>
+            <div class="ld-profile__fact">
+              <dt>{{ 'common.active' | translate }}</dt>
+              <dd>
+                <ng-container [ngSwitch]="isAccountActive">
+                  <span *ngSwitchCase="true" class="ld-profile__status ld-profile__status--yes"><span class="ui-pill__dot"></span>{{ 'common.yes' | translate }}</span>
+                  <span *ngSwitchCase="false" class="ld-profile__status ld-profile__status--no"><span class="ui-pill__dot"></span>{{ 'common.no' | translate }}</span>
+                  <span *ngSwitchDefault>—</span>
+                </ng-container>
+              </dd>
+            </div>
+            <div class="ld-profile__fact">
+              <dt>{{ 'learner_dash.joined' | translate }}</dt>
+              <dd>{{ joinedOn }}</dd>
+            </div>
+          </dl>
         </div>
-        <span class="ui-kpi__sub" *ngIf="hasNextLevel">
-          <strong>{{ getPointsToNextLevel(dashboard.overview.total_points) }}</strong> {{ 'learner_dash.to_next_level' | translate }}
-        </span>
-      </div>
+
+        <!-- Level and points, compact, at the foot of the card -->
+        <div class="ld-profile__level">
+          <div class="ld-profile__level-row">
+            <span class="ui-pill ui-pill--brand"><i class="bi bi-trophy" aria-hidden="true"></i> {{ getLevelName(dashboard.overview.total_points) }}</span>
+            <span class="ld-profile__points" *ngIf="hasNextLevel">
+              <strong>{{ dashboard.overview.total_points }}</strong> / {{ getNextLevelTarget(dashboard.overview.total_points) }}
+            </span>
+            <span class="ld-profile__points" *ngIf="!hasNextLevel">
+              <strong>{{ 'learner_dash.points_count' | translate:{ count: dashboard.overview.total_points } }}</strong>
+            </span>
+            <span class="ld-profile__to-next" *ngIf="hasNextLevel">
+              <strong>{{ getPointsToNextLevel(dashboard.overview.total_points) }}</strong> {{ 'learner_dash.to_next_level' | translate }}
+            </span>
+          </div>
+          <div class="ui-bar ld-profile__bar" role="progressbar"
+               [attr.aria-valuenow]="getLevelProgress(dashboard.overview.total_points)" aria-valuemin="0" aria-valuemax="100"
+               [attr.aria-label]="getLevelName(dashboard.overview.total_points)">
+            <span [style.width.%]="getLevelProgress(dashboard.overview.total_points)"></span>
+          </div>
+        </div>
+      </section>
 
       <!-- Number of courses assigned -->
       <div class="ui-kpi">
@@ -85,13 +135,13 @@
       <!-- Number of courses yet to attempt -->
       <div class="ui-kpi">
         <span class="ui-kpi__label"><i class="bi bi-bookmark"></i> {{ 'learner_dash.yet_to_attempt' | translate }}</span>
-        <span class="ui-kpi__value">0</span>
+        <span class="ui-kpi__value">{{ dashboard.overview.courses_not_started }}</span>
       </div>
 
       <!-- Average Course Completion % -->
       <div class="ui-kpi ui-kpi--brand">
         <span class="ui-kpi__label"><i class="bi bi-graph-up"></i> {{ 'learner_dash.avg_completion' | translate }}</span>
-        <span class="ui-kpi__value">0<small>%</small></span>
+        <span class="ui-kpi__value">{{ dashboard.overview.avg_completion }}<small>%</small></span>
       </div>
 
       <!-- Days in Training Stat -->

@@ -84,10 +84,10 @@
         </div>
       </div>
 
-      <div class="loading-state" *ngIf="ui_controls.is_loading">
-        <tui-loader class="loader-custom" />
-        <p class="ui-muted">{{ 'admin.courses.loading' | translate }}</p>
-      </div>
+      <ng-container *ngIf="ui_controls.is_loading">
+        <app-skeleton *ngIf="viewMode === 'grid'" variant="cards" [count]="6" />
+        <app-skeleton *ngIf="viewMode !== 'grid'" variant="table" [rows]="6" [cols]="6" />
+      </ng-container>
 
       <div class="ui-state" *ngIf="!ui_controls.is_loading && course.length === 0">
         <span class="ui-state__icon"><i class="bi bi-folder2-open"></i></span>

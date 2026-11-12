@@ -11,14 +11,6 @@ $border-color: var(--ui-border);
 $bg-light: var(--ui-surface-2);
 $card-shadow-hover: 0 6px 20px rgba(16, 24, 18, .06);
 
-// Loading Container
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-}
-
 // Main Builder Layout
 .learning-path-builder {
   display: grid;

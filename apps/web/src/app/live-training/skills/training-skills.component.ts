@@ -14,6 +14,7 @@ import {
 } from '../live-training.interfaces';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -21,7 +22,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 @Component({
   selector: 'app-training-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './training-skills.component.html',
   styleUrls: ['./training-skills.component.scss']
 })

@@ -19,20 +19,6 @@
   }
 }
 
-.cm-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: .5rem;
-  padding: 2.5rem 1rem;
-  color: var(--brand-primary);
-
-  i {
-    font-size: 1.75rem;
-  }
-}
-
 .cm-table {
   .cm-status-col {
     width: 7rem;

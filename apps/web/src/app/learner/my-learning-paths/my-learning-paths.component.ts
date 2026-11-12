@@ -5,11 +5,12 @@ import { Subject, takeUntil } from 'rxjs';
 import { LearningPathService } from '../../services/learning-path.service';
 import { LearningPathEnrollment, SKILL_LEVELS } from '../../interfaces/learning-path.interfaces';
 import { TopComponent } from '../../partials/top/top.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-my-learning-paths',
   standalone: true,
-  imports: [CommonModule, RouterModule, TopComponent],
+  imports: [CommonModule, RouterModule, TopComponent, SkeletonComponent],
   template: `
     <app-top></app-top>
 
@@ -70,9 +71,7 @@ import { TopComponent } from '../../partials/top/top.component';
       </nav>
 
       @if (loading()) {
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
+        <app-skeleton variant="cards" [count]="6"></app-skeleton>
       } @else if (filteredEnrollments().length === 0) {
         <div class="ui-state empty-state">
           <span class="ui-state__icon"><i class="bi bi-signpost-split"></i></span>

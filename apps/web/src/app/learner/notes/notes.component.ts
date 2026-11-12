@@ -4,12 +4,13 @@ import { Router } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiIcon } from '@taiga-ui/core';
 import { Subject, takeUntil } from 'rxjs';
 import { ApiError, type PageMeta } from '../../core/api';
 import { NotesService, type Note } from '../../services/notes.service';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 export type { Note };
 
@@ -34,7 +35,7 @@ export type { Note };
     CommonModule,
     FormsModule,
     TuiIcon,
-    TuiLoader,
+    SkeletonComponent,
     TranslatePipe,
   ],
   templateUrl: './notes.component.html',

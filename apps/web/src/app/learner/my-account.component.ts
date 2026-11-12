@@ -14,6 +14,7 @@ import { ApiError, AuthImgDirective } from '../core/api';
 import { TopComponent } from '../partials/top/top.component';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ConfirmDialogService } from '../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
 
 /* The shapes this screen's template already reads. */
 
@@ -67,7 +68,7 @@ export interface LoginRecord {
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TopComponent, TuiIcon, AuthImgDirective],
+  imports: [CommonModule, FormsModule, RouterLink, TopComponent, TuiIcon, AuthImgDirective, SkeletonComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -84,7 +85,7 @@ export interface LoginRecord {
         </header>
         <div class="my-account">
 
-      <div *ngIf="loading" class="text-center py-5"><div class="spinner-border acct-spinner"></div></div>
+      <app-skeleton *ngIf="loading" variant="detail"></app-skeleton>
 
       <div *ngIf="profile && !loading">
         <!-- Profile summary -->
@@ -320,7 +321,7 @@ export interface LoginRecord {
               <section class="ui-section">
                 <div class="ui-section__head"><h2 class="ui-section__title">Recent Login Activity</h2></div>
                 <div class="acct-flush">
-                  <div *ngIf="loadingHistory" class="text-center py-3"><div class="spinner-border spinner-border-sm acct-spinner"></div></div>
+                  <div *ngIf="loadingHistory" class="acct-sk"><app-skeleton variant="list" [rows]="4"></app-skeleton></div>
                   <div class="list-group list-group-flush acct-history" *ngIf="!loadingHistory">
                     <div *ngFor="let h of loginHistory" class="list-group-item py-2">
                       <div class="d-flex justify-content-between align-items-start">
@@ -425,7 +426,7 @@ export interface LoginRecord {
     .avatar-letter { color: #fff; font-size: 28px; font-weight: 700; }
     .avatar-cam { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
     .acct-name { font-size: 1.05rem; font-weight: 650; margin: 0; color: var(--ui-text); }
-    .acct-spinner { color: var(--brand-primary); }
+    .acct-sk { padding: 4px 22px; }
     .acct-flush { margin: 0 -22px -22px; border-top: 1px solid var(--ui-border); }
     .acct-history .list-group-item { padding-left: 22px; padding-right: 22px; }
     .min-w-0 { min-width: 0; }

@@ -156,10 +156,8 @@
       </div>
     </ng-container>
 
-    <div class="ui-state" *ngIf="loading">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-      </div>
-    </div>
+    <section class="ui-section" *ngIf="loading">
+      <app-skeleton variant="form" [rows]="8"></app-skeleton>
+    </section>
   </div>
 </main>

@@ -2,6 +2,7 @@
 
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -18,13 +19,12 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-quiz',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, SkeletonComponent],
   template: `
     <div class="quiz-container">
       <!-- Loading State -->
-      <div class="quiz-loading" *ngIf="loading">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p>{{ 'quiz.loading' | translate }}</p>
+      <div class="quiz-skeleton" *ngIf="loading">
+        <app-skeleton variant="detail" height="96px"></app-skeleton>
       </div>
 
       <!-- Error State -->
@@ -369,7 +369,9 @@ import { I18nService } from '../../../i18n.service';
       background: #f8f9fa;
     }
 
-    .quiz-loading, .quiz-error, .quiz-locked {
+    .quiz-skeleton { padding: 1.5rem 0; }
+
+    .quiz-error, .quiz-locked {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -378,13 +380,13 @@ import { I18nService } from '../../../i18n.service';
       text-align: center;
     }
 
-    .quiz-loading i, .quiz-error i, .quiz-locked i {
+    .quiz-error i, .quiz-locked i {
       font-size: 3rem;
       margin-bottom: 1rem;
       color: #6c757d;
     }
 
-    .quiz-loading p, .quiz-error p, .quiz-locked p {
+    .quiz-error p, .quiz-locked p {
       color: #6c757d;
       margin-bottom: 1rem;
     }

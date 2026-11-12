@@ -8,6 +8,7 @@ import { MediaService, type MediaItem, type MediaKind } from '../../../services/
 import { HotToastService } from '@ngneat/hot-toast';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 export interface MediaPreviewData {
@@ -35,7 +36,7 @@ export interface MediaPreviewData {
   selector: 'app-media-preview-component',
   templateUrl: './media-preview.component.html',
   styleUrls: ['./media-preview.component.css'],
-  imports: [CommonModule, MediaUploadComponent, TranslatePipe],
+  imports: [CommonModule, MediaUploadComponent, TranslatePipe, SkeletonComponent],
   standalone: true,
 })
 export class MediaPreviewDialogComponent {

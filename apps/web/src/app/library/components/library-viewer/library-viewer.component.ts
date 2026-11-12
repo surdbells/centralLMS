@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
 import { LibraryService, type LibraryItem } from '../../library.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 /**
  * Shows one library item inline, and does what can be done to keep it from
@@ -21,7 +22,7 @@ import { TranslatePipe } from '../../../translate.pipe';
 @Component({
   selector: 'app-library-viewer',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, SkeletonComponent],
   templateUrl: './library-viewer.component.html',
   styleUrl: './library-viewer.component.scss',
 })

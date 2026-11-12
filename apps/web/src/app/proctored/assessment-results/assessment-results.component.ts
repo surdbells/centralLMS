@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -118,7 +119,7 @@ interface AttemptTimeline {
 @Component({
   selector: 'app-assessment-results',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
   template: `
     <app-top></app-top>
 
@@ -127,12 +128,7 @@ interface AttemptTimeline {
     <!-- ==========================================
          LOADING STATE
          ========================================== -->
-    <div class="loading-container" *ngIf="loading">
-      <div class="spinner-border text-secondary" role="status">
-        <span class="visually-hidden">Loading results...</span>
-      </div>
-      <p class="mt-3 ui-muted">Loading your results...</p>
-    </div>
+    <app-skeleton *ngIf="loading" variant="page"></app-skeleton>
 
     <!-- ==========================================
          ERROR STATE
@@ -503,10 +499,7 @@ interface AttemptTimeline {
         </div>
 
         <!-- Loading Questions -->
-        <div class="text-center py-4" *ngIf="loadingQuestions">
-          <div class="spinner-border spinner-border-sm text-primary"></div>
-          <span class="ms-2 text-muted">Loading question details...</span>
-        </div>
+        <app-skeleton *ngIf="loadingQuestions" variant="list" [rows]="5"></app-skeleton>
 
         <!-- Question List -->
         <div class="question-review-list" *ngIf="!loadingQuestions">
@@ -747,10 +740,7 @@ interface AttemptTimeline {
         <div class="ui-section__head">
           <div><h2 class="ui-section__title">Timeline</h2><p class="ui-section__subtitle">Everything that happened during the attempt</p></div>
         </div>
-        <div class="text-center py-4" *ngIf="loadingTimeline">
-          <div class="spinner-border spinner-border-sm text-secondary"></div>
-          <span class="ms-2 ui-muted">Loading timeline...</span>
-        </div>
+        <app-skeleton *ngIf="loadingTimeline" variant="list" [rows]="6"></app-skeleton>
 
         <div class="timeline-container" *ngIf="!loadingTimeline">
           <div class="timeline-item" *ngFor="let event of timeline"
@@ -778,9 +768,6 @@ interface AttemptTimeline {
   `,
   styles: [`
     :host { display: block; }
-
-    /* Loading & Error */
-    .loading-container { text-align: center; padding: 3rem 1rem; }
 
     /* Breadcrumb + header */
     .results-crumbs { margin-bottom: 10px; }

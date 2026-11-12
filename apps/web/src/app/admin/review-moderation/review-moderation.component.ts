@@ -6,8 +6,10 @@ import { LearningPathService } from '../../services/learning-path.service';
 import { LearningPathReview } from '../../interfaces/learning-path.interfaces';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
 
 /**
  * Every review waiting to be checked, across every path.
@@ -20,7 +22,7 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
 @Component({
   selector: 'app-review-moderation',
   standalone: true,
-  imports: [CommonModule, RouterModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
   templateUrl: './review-moderation.component.html',
   styleUrls: ['./review-moderation.component.scss']
 })

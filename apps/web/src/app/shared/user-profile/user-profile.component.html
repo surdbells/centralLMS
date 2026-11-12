@@ -25,7 +25,7 @@
           <img id="profilePreview" src="{{user_single.avatar}}" alt="{{ 'profile.picture_preview' | translate }}" class="profile-avatar" />
           <div class="flex-grow-1">
             <label for="profileUpload" class="form-label">{{ 'profile.picture' | translate }}</label>
-            <input [(ngModel)]="user_single.avatar" name="avatar" (change)="select_avatar($event)" class="form-control" type="file" id="profileUpload" accept="image/*" />
+            <input [(ngModel)]="user_single.avatar" name="avatar" (change)="select_avatar($event)" [disabled]="ui_controls.is_saving" class="form-control" type="file" id="profileUpload" accept="image/*" />
           </div>
         </form>
 
@@ -52,10 +52,13 @@
         </div>
 
         <div class="profile-footer">
-          <button (click)="update_changes()" class="btn btn-primary" type="button">{{ 'common.save_changes' | translate }}</button>
+          <button (click)="update_changes()" class="btn btn-primary" type="button" [disabled]="ui_controls.is_saving">
+            <span *ngIf="ui_controls.is_saving" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            {{ 'common.save_changes' | translate }}
+          </button>
         </div>
       </section>
-      <tui-loader *ngIf="ui_controls.is_loading" />
+      <section *ngIf="ui_controls.is_loading" class="ui-section"><app-skeleton variant="form" [rows]="5"></app-skeleton></section>
     </div>
   </div>
 </main>

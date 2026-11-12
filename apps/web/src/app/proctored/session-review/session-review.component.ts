@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
@@ -88,7 +89,7 @@ interface SystemCheckResult {
 @Component({
   selector: 'app-session-review',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -282,9 +283,8 @@ interface SystemCheckResult {
           <p>{{ searchTerm || filterStatus ? 'Try adjusting your filters' : 'No proctoring sessions recorded yet' }}</p>
         </div>
 
-        <div class="loading-state" *ngIf="loading">
-          <div class="spinner-border text-primary"></div>
-          <p>Loading sessions...</p>
+        <div class="table-skeleton" *ngIf="loading">
+          <app-skeleton variant="table" [rows]="8" [cols]="9"></app-skeleton>
         </div>
       </section>
 
@@ -506,7 +506,7 @@ interface SystemCheckResult {
     .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
 
     .empty-state { margin: 0 22px 22px; }
-    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); border-top: 1px solid var(--ui-border, #e7e9e7); }
+    .table-skeleton { padding: 16px 22px 22px; border-top: 1px solid var(--ui-border, #e7e9e7); }
 
     /* Modal */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1050;

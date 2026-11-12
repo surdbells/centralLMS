@@ -9,6 +9,7 @@ import { UsersService, type User } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
+import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
 
 /**
  * Who did what.
@@ -25,7 +26,7 @@ import { TranslatePipe } from '../../../../translate.pipe';
 @Component({
   selector: 'app-user-activity-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './user-activity-log.component.html',
   styles: [`
     .mono { font-family: var(--bs-font-monospace); font-size: .75rem; }

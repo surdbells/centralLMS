@@ -303,8 +303,7 @@
       }
     }
 
-    .empty-state,
-    .loading-state {
+    .empty-state {
       padding: 2rem;
       text-align: center;
       color: #6c757d;
@@ -314,6 +313,10 @@
         display: block;
         margin-bottom: 0.5rem;
       }
+    }
+
+    .loading-skeleton {
+      padding: 0.25rem 1rem;
     }
   }
 }

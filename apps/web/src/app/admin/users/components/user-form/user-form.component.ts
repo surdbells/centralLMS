@@ -15,6 +15,7 @@ import { I18nService } from '../../../../i18n.service';
 import { HotToastService } from '@ngneat/hot-toast';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
+import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
 
 /* The shapes this screen's template already reads. */
 
@@ -57,7 +58,7 @@ export interface UserFormData {
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -70,7 +71,7 @@ export interface UserFormData {
         </div>
       </header>
 
-      <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+      <section *ngIf="loading" class="ui-section"><app-skeleton variant="form" [rows]="6"></app-skeleton></section>
 
       <div class="alert alert-danger" *ngIf="error"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
 

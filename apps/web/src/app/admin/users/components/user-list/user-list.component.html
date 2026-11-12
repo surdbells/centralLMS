@@ -93,7 +93,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngIf="loading"><td colspan="8" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>
+              <tr *ngIf="loading"><td colspan="8" class="p-3"><app-skeleton variant="table" [rows]="6" [cols]="7"></app-skeleton></td></tr>
               <tr *ngIf="!loading && !users.length">
                 <td colspan="8" class="p-3">
                   <div class="ui-state">

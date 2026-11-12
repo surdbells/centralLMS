@@ -10,6 +10,7 @@ import { AuditService } from '../../../../services/audit.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
+import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../../i18n.service';
 import { ConfirmDialogService } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -89,12 +90,12 @@ function onDay(value: string | null): string {
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
       <div class="ui-page">
-    <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    <app-skeleton *ngIf="loading" variant="detail"></app-skeleton>
     <div *ngIf="user && !loading">
       <!-- Header -->
       <header class="ui-page-header">
@@ -227,7 +228,7 @@ function onDay(value: string | null): string {
 
       <!-- Activity Tab -->
       <div *ngIf="activeTab === 'activity'">
-        <div *ngIf="loadingActivity" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        <section *ngIf="loadingActivity" class="ui-section"><app-skeleton variant="table" [rows]="6" [cols]="5"></app-skeleton></section>
         <section class="ui-section ui-section--flush" *ngIf="!loadingActivity">
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">

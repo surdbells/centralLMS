@@ -13,11 +13,12 @@ import {
 import {TopComponent} from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learning-path-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-catalog.component.html',
   styleUrls: ['./learning-path-catalog.component.scss']
 })

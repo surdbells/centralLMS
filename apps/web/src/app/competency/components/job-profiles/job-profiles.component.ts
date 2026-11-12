@@ -10,6 +10,7 @@ import {
   type ProficiencyLevel,
 } from '../../competency.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /** One row being built in the requirement editor. */
@@ -30,7 +31,7 @@ interface RequirementDraft {
 @Component({
   selector: 'app-job-profiles',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, TranslatePipe, SkeletonComponent],
   templateUrl: './job-profiles.component.html',
   styleUrl: './job-profiles.component.scss',
 })

@@ -23,6 +23,7 @@ import { StarRatingComponent } from '../../../shared/star-rating/star-rating.com
 import { CourseReviewsService } from '../../../services/course-reviews.service';
 import { LearningPlansService, type PlanCompletion } from '../../../services/learning-plans.service';
 import { AnalyticsService, type MyEngagement } from '../../../services/analytics.service';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 type TabType = 'overview' | 'courses' | 'activity' | 'quizzes' | 'certificates';
 type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
@@ -30,7 +31,7 @@ type ActivityPeriod = 'daily' | 'weekly' | 'monthly';
 @Component({
   selector: 'app-learner-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, StarRatingComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, StarRatingComponent, SkeletonComponent],
   templateUrl: './learner-report.component.html',
   styleUrls: ['./learner-report.component.scss']
 })

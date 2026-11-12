@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, forkJoin, of, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -72,7 +73,7 @@ interface FilterState {
 @Component({
   selector: 'app-question-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -227,9 +228,8 @@ interface FilterState {
         </div>
 
         <!-- Loading -->
-        <div class="loading-container" *ngIf="loading">
-          <div class="spinner"></div>
-          <p>Loading questions...</p>
+        <div class="table-skeleton" *ngIf="loading">
+          <app-skeleton variant="table" [rows]="8" [cols]="10"></app-skeleton>
         </div>
 
         <!-- Empty State -->
@@ -538,9 +538,7 @@ interface FilterState {
     .bulk-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
     /* Loading */
-    .loading-container { display: flex; flex-direction: column; align-items: center; padding: 60px 0; color: var(--ui-text-muted, #6a716b); border-top: 1px solid var(--ui-border, #e7e9e7); }
-    .spinner { width: 32px; height: 32px; border: 3px solid var(--ui-border, #e7e9e7); border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .table-skeleton { padding: 16px 22px 22px; border-top: 1px solid var(--ui-border, #e7e9e7); }
 
     /* Empty */
     .empty-state { margin: 0 22px 22px; }

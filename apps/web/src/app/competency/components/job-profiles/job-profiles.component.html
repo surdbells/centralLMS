@@ -16,9 +16,7 @@
   </button>
 </div>
 
-<div *ngIf="loading" class="text-center py-5 text-muted">
-  <div class="spinner-border text-primary" role="status"></div>
-</div>
+<app-skeleton *ngIf="loading" variant="list" [rows]="5" />
 
 <div *ngIf="!loading && !profiles.length" class="ui-state">
   <span class="ui-state__icon"><tui-icon icon="@tui.briefcase"></tui-icon></span>
@@ -50,9 +48,7 @@
       </div>
     </div>
     <div class="profile-body" *ngIf="expandedId === p.id">
-      <div *ngIf="expandedLoading" class="text-center py-3 text-muted">
-        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-      </div>
+      <app-skeleton *ngIf="expandedLoading" variant="table" [rows]="4" [cols]="3" />
       <ng-container *ngIf="!expandedLoading && expandedProfile as detail">
         <p class="text-muted small" *ngIf="detail.description">{{ detail.description }}</p>
         <table class="table table-sm align-middle mb-0">

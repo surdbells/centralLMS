@@ -52,7 +52,7 @@
 /* Mega menu: the module launcher lays its items out in a grid, matching the
    admin top bar rather than a tall single-column list. */
 .dropdown-menu-modules {
-  width: min(760px, calc(100vw - 2rem));
+  width: min(880px, calc(100vw - 2rem));
   padding: 0.5rem 0.75rem 0.75rem;
   border: 1px solid var(--ui-border, #e7e9e7);
   border-radius: 12px;
@@ -61,7 +61,8 @@
 
 .dropdown-menu-modules.show {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* The learner has five modules: one row of five, never a lone fifth tile. */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.25rem;
 }
 

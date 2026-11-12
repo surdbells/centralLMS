@@ -95,7 +95,8 @@
   padding: 4px;
 }
 
-.rv-loading,
+.rv-loading { padding: 10px; }
+
 .rv-empty {
   padding: 1rem;
   color: var(--ui-text-muted);

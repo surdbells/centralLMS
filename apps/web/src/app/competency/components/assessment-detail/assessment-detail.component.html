@@ -1,5 +1,7 @@
-<div *ngIf="loading" class="text-center py-5 text-muted">
-  <div class="spinner-border text-primary" role="status"></div>
+<div *ngIf="loading">
+  <app-skeleton variant="lines" [rows]="2" />
+  <app-skeleton variant="kpis" [count]="3" />
+  <app-skeleton variant="table" [rows]="6" [cols]="5" />
 </div>
 
 <ng-container *ngIf="!loading && assessment as a">

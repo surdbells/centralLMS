@@ -16,12 +16,14 @@ import {
 import {TuiDialog, TuiIcon} from '@taiga-ui/core';
 import { TopComponent } from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { I18nService } from '../../i18n.service';
 
 @Component({
   selector: 'app-learner-live-training',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiDialog, TuiIcon, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiDialog, TuiIcon, TopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
   templateUrl: './learner-live-training.component.html',
   styleUrls: ['./learner-live-training.component.scss']
 })
@@ -212,10 +214,20 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Header back button. Inside a sub-view it returns to the live-training
+   * dashboard; on the dashboard itself it goes to the learner dashboard.
+   */
   goBack(): void {
-    this.activeTab = 'dashboard';
-    this.selectedTraining = null;
-    this.learnerProgress = null;
+    if (this.activeTab !== 'dashboard') {
+      this.activeTab = 'dashboard';
+      this.selectedTraining = null;
+      this.learnerProgress = null;
+      return;
+    }
+    // A fixed route, never history: the entry behind this page can be a live
+    // room URL, which would rejoin the class on arrival.
+    void this.router.navigate(['/account']);
   }
 
   // ==========================================

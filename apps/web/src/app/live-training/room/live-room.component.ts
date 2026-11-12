@@ -348,7 +348,7 @@ export class LiveRoomComponent implements OnInit, OnDestroy {
   }
 
   backToTraining(): void {
-    void this.router.navigate(['/live-training']);
+    void this.router.navigate(['/live-training'], { replaceUrl: true });
   }
 
   // --- signalling handlers ------------------------------------------------

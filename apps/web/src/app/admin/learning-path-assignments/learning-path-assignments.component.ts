@@ -16,6 +16,7 @@ import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
 import { LearningPathEnrollmentService } from '../../services/learning-path-enrollment.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import type {
   Branch,
   Department,
@@ -76,7 +77,7 @@ type AssignmentType = 'department' | 'team' | 'branch' | 'users';
 @Component({
   selector: 'app-learning-path-assignments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-assignments.component.html',
   styleUrls: ['./learning-path-assignments.component.scss']
 })

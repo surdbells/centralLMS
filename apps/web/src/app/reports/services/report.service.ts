@@ -1,11 +1,11 @@
 // reports/services/report.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { Observable, forkJoin, of } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import {
   ReportResponse, ReportCatalogItem, ReportCategory, ReportFilters,
-  SavedReport, ScheduledReport, CustomReportConfig,
+  SavedReport, ScheduledReport,
 } from '../models/report.models';
 import { ApiClient, Endpoints, type QueryParams } from '../../core/api';
 
@@ -215,56 +215,289 @@ export class ReportService {
 
   /* ═══════ CUSTOM REPORT BUILDER ═══════ */
   //
-  // There is no ad-hoc query builder behind these. The legacy answered
-  // `action=custom-*` out of a table of saved SQL fragments that no migration
-  // brought across, and building one is a piece of work in its own right.
-  // Each says so rather than resolving to nothing and leaving a screen that
-  // looks like it is still loading.
+  // These were stubs — `getCustomSources()` returned `of([])` — from the move
+  // off the legacy `action=custom-*` endpoint until the API grew
+  // `/reports/custom/…`, which is why the builder's "Data Source" list held
+  // nothing but its placeholder. Failures now reach the caller, so a screen
+  // can say a source list failed to load instead of looking empty.
 
-  getCustomSources(): Observable<any[]> {
-    return of([]);
+  /** The data sources the builder offers, for its first dropdown. */
+  getCustomSources(): Observable<CustomSourceSummary[]> {
+    return this.api.get<CustomSourceSummary[]>(CUSTOM.sources);
   }
 
-  getCustomColumns(_source: string): Observable<any> {
-    return of({ columns: [], filters: [], groupings: [] });
+  /** One source's columns, groupings and filters. */
+  getCustomColumns(source: string): Observable<CustomSourceSchema> {
+    return this.api.get<CustomSourceSchema>(CUSTOM.schema(source));
   }
 
-  buildCustomReport(_config: CustomReportConfig): Observable<ReportResponse> {
-    return notBuilt();
+  buildCustomReport(config: CustomBuilderConfig): Observable<CustomReportResponse> {
+    return this.api
+      .post<CustomRunPayload>(CUSTOM.run, toApiConfig(config))
+      .pipe(map(toCustomReportResponse));
   }
 
-  saveCustomReport(_name: string, _description: string, _config: CustomReportConfig): Observable<never> {
-    return notBuilt();
+  saveCustomReport(name: string, description: string, config: CustomBuilderConfig): Observable<SavedCustomReport> {
+    return this.api
+      .post<SavedCustomPayload>(CUSTOM.saved, { name, description, config: toApiConfig(config) })
+      .pipe(map(toSavedCustomReport));
   }
 
   updateCustomReport(
-    _id: string | number,
-    _name: string,
-    _description: string,
-    _config: CustomReportConfig,
-  ): Observable<never> {
-    return notBuilt();
+    id: string | number,
+    name: string,
+    description: string,
+    config: CustomBuilderConfig,
+  ): Observable<SavedCustomReport> {
+    return this.api
+      .put<SavedCustomPayload>(CUSTOM.item(String(id)), { name, description, config: toApiConfig(config) })
+      .pipe(map(toSavedCustomReport));
   }
 
-  getCustomReportsList(): Observable<any[]> {
-    return of([]);
+  getCustomReportsList(): Observable<SavedCustomReport[]> {
+    return this.api
+      .get<SavedCustomPayload[]>(CUSTOM.saved)
+      .pipe(map((items) => (items ?? []).map(toSavedCustomReport)));
   }
 
-  runSavedCustomReport(_id: string | number, _overrides: Record<string, unknown> = {}): Observable<ReportResponse> {
-    return notBuilt();
+  runSavedCustomReport(id: string | number): Observable<CustomReportResponse> {
+    return this.api
+      .get<CustomRunPayload>(CUSTOM.runSaved(String(id)))
+      .pipe(map(toCustomReportResponse));
   }
 
-  deleteCustomReport(_id: string | number): Observable<never> {
-    return notBuilt();
+  deleteCustomReport(id: string | number): Observable<void> {
+    return this.api.delete<void>(CUSTOM.item(String(id)));
   }
 
-  duplicateCustomReport(_id: string | number): Observable<never> {
-    return notBuilt();
+  duplicateCustomReport(id: string | number): Observable<SavedCustomReport> {
+    return this.api
+      .post<SavedCustomPayload>(CUSTOM.duplicate(String(id)))
+      .pipe(map(toSavedCustomReport));
   }
 
-  exportCustomReport(_id: string | number, _format = 'csv'): Observable<never> {
-    return notBuilt();
+  /**
+   * A saved custom report as a file.
+   *
+   * CSV whatever the format asked for, as with {@link exportReport}: it is
+   * what the server writes, and every spreadsheet opens it.
+   */
+  exportCustomReport(id: string | number, _format = 'csv'): Observable<Blob> {
+    return this.api.download(CUSTOM.export(String(id)));
   }
+}
+
+// ---------------------------------------------------------------------------
+// Custom report builder
+// ---------------------------------------------------------------------------
+
+/**
+ * The builder's API paths.
+ *
+ * Kept beside the only service that calls them; they belong in
+ * `Endpoints.reports` alongside the rest when that registry is next touched.
+ */
+const CUSTOM = {
+  sources: '/reports/custom/sources',
+  schema: (source: string) => `/reports/custom/sources/${encodeURIComponent(source)}`,
+  run: '/reports/custom/run',
+  saved: '/reports/custom/saved',
+  item: (id: string) => `/reports/custom/saved/${id}`,
+  duplicate: (id: string) => `/reports/custom/saved/${id}/duplicate`,
+  runSaved: (id: string) => `/reports/custom/saved/${id}/run`,
+  export: (id: string) => `/reports/custom/saved/${id}/export`,
+} as const;
+
+export interface CustomSourceSummary {
+  key: string;
+  label: string;
+  description: string;
+  namesPeople: boolean;
+}
+
+export interface CustomColumnDef {
+  key: string;
+  label: string;
+  type: string;
+  /** How a grouped report summarises it, or null when it is left out of one. */
+  aggregate: 'avg' | 'sum' | 'min' | 'max' | null;
+}
+
+export interface CustomFilterDef {
+  key: string;
+  label: string;
+  type: 'date' | 'lookup' | 'course' | 'select';
+  /** For a `lookup`: department, team, branch or category. */
+  lookupKind?: string;
+  options?: Array<{ value: string; label: string }>;
+}
+
+export interface CustomSourceSchema extends CustomSourceSummary {
+  columns: CustomColumnDef[];
+  groupings: Array<{ key: string; label: string }>;
+  filters: CustomFilterDef[];
+  defaultColumns: string[];
+}
+
+/** The builder's own state, in the snake_case its template binds. */
+export interface CustomBuilderConfig {
+  source: string;
+  columns: string[];
+  group_by?: string;
+  sort_by?: string;
+  sort_dir?: 'asc' | 'desc';
+  per_page?: number;
+  /** The legacy name for `per_page`, still read from older saved configs. */
+  limit?: number;
+  filters: Record<string, string>;
+}
+
+/** A built report, in the shape the chart and table components take. */
+export interface CustomReportResponse extends ReportResponse {
+  report_key: string;
+  columns: Array<{ key: string; label: string; type: string }>;
+  note?: string;
+  matching: number;
+  shown: number;
+  config: CustomBuilderConfig;
+  saved?: SavedCustomReport;
+}
+
+export interface SavedCustomReport {
+  id: string;
+  name: string;
+  description: string | null;
+  source: string;
+  source_label: string;
+  config: CustomBuilderConfig;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface ApiCustomConfig {
+  source: string;
+  columns: string[];
+  groupBy: string | null;
+  sortBy: string | null;
+  sortDirection: 'asc' | 'desc';
+  perPage: number;
+  filters: Record<string, string>;
+}
+
+interface CustomRunPayload {
+  report: { key: string; name: string; description: string; shape: string };
+  columns: Array<{ key: string; label: string; type: string }>;
+  rows: Array<Record<string, unknown>>;
+  totals: { matching?: number; shown?: number };
+  series: Array<{ label: string; value: number }>;
+  config: ApiCustomConfig;
+  note?: string;
+  saved?: SavedCustomPayload;
+}
+
+interface SavedCustomPayload {
+  id: string;
+  name: string;
+  description: string | null;
+  source: string;
+  sourceLabel?: string;
+  config: Partial<ApiCustomConfig>;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+function toApiConfig(config: CustomBuilderConfig): ApiCustomConfig {
+  const filters: Record<string, string> = {};
+
+  // Blank filters are dropped rather than sent: the API refuses a filter it
+  // does not know, and "any department" is the absence of one.
+  for (const [key, value] of Object.entries(config.filters ?? {})) {
+    if (value !== null && value !== undefined && String(value).trim() !== '') {
+      filters[key] = String(value);
+    }
+  }
+
+  return {
+    source: config.source,
+    columns: [...(config.columns ?? [])],
+    groupBy: config.group_by || null,
+    sortBy: config.sort_by || null,
+    sortDirection: config.sort_dir === 'desc' ? 'desc' : 'asc',
+    perPage: Number(config.per_page ?? config.limit ?? 50) || 50,
+    filters,
+  };
+}
+
+function fromApiConfig(config: Partial<ApiCustomConfig> | null | undefined, source = ''): CustomBuilderConfig {
+  const filters: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(config?.filters ?? {})) {
+    filters[key] = String(value ?? '');
+  }
+
+  return {
+    source: config?.source ?? source,
+    columns: Array.isArray(config?.columns) ? [...config!.columns] : [],
+    group_by: config?.groupBy ?? '',
+    sort_by: config?.sortBy ?? '',
+    sort_dir: config?.sortDirection === 'desc' ? 'desc' : 'asc',
+    per_page: Number(config?.perPage ?? 50) || 50,
+    filters,
+  };
+}
+
+const NUMERIC_TYPES = new Set(['number', 'percent', 'duration']);
+
+/**
+ * A built report in the shape the chart and table are written against.
+ *
+ * The chart is told which column is the label and which are the values,
+ * rather than left to guess from key names it was written for other reports:
+ * a grouped report draws its groups by row count (plus up to two summaries),
+ * an ungrouped one its first text column against its numeric columns. With
+ * no numeric column there is nothing to draw, and no `chart_config` says so.
+ */
+function toCustomReportResponse(payload: CustomRunPayload): CustomReportResponse {
+  const columns = payload.columns ?? [];
+  const rows = payload.rows ?? [];
+  const grouped = !!payload.config?.groupBy;
+
+  const label = grouped
+    ? payload.config.groupBy!
+    : columns.find((c) => !NUMERIC_TYPES.has(c.type) && c.type !== 'date')?.key;
+  const values = columns
+    .filter((c) => NUMERIC_TYPES.has(c.type) && c.key !== label)
+    .map((c) => c.key)
+    .slice(0, 3);
+
+  return {
+    report_name: payload.report?.name ?? '',
+    report_key: payload.report?.key ?? 'custom',
+    description: payload.report?.description,
+    chart_type: payload.report?.shape,
+    chart_config: label && values.length ? { x_axis: label, y_axes: values } : undefined,
+    columns,
+    data: rows,
+    summary: payload.totals ?? {},
+    matching: Number(payload.totals?.matching ?? rows.length),
+    shown: Number(payload.totals?.shown ?? rows.length),
+    note: payload.note,
+    config: fromApiConfig(payload.config),
+    saved: payload.saved ? toSavedCustomReport(payload.saved) : undefined,
+  };
+}
+
+function toSavedCustomReport(payload: SavedCustomPayload): SavedCustomReport {
+  return {
+    id: payload.id,
+    name: payload.name,
+    description: payload.description,
+    source: payload.source,
+    source_label: payload.sourceLabel ?? payload.source,
+    config: fromApiConfig(payload.config, payload.source),
+    created_at: payload.createdAt,
+    updated_at: payload.updatedAt,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -457,10 +690,4 @@ function splitRecipients(recipients: string | string[] | undefined): string[] {
     .split(/[,;\s]+/)
     .map((address) => address.trim())
     .filter((address) => address !== '');
-}
-
-function notBuilt(): Observable<never> {
-  return new Observable((subscriber) => {
-    subscriber.error(new Error('Building a report from scratch is not available yet.'));
-  });
 }

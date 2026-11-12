@@ -34,7 +34,7 @@
 
   <!-- The cycles -->
   @if (loading()) {
-    <div class="cm-loading"><div class="spinner-border" role="status"></div></div>
+    <app-skeleton class="mb-3" variant="table" [rows]="4" [cols]="4" />
   } @else if (!cycles().length) {
     <div class="ui-state">
       <span class="ui-state__icon"><i class="bi bi-calendar3"></i></span>

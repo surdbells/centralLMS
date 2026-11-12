@@ -7,6 +7,7 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 import { LiveTrainingService, type LiveTraining } from '../live-training.service';
 import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /**
  * Setting up a live training programme.
@@ -23,7 +24,7 @@ import { TranslatePipe } from '../../translate.pipe';
 @Component({
   selector: 'app-training-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './training-form.component.html',
 })
 export class TrainingFormComponent implements OnInit, OnDestroy {

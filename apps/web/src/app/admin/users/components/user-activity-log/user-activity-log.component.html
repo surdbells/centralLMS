@@ -69,7 +69,7 @@
           </thead>
           <tbody>
           <tr *ngIf="loading">
-            <td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td>
+            <td colspan="7" class="p-3"><app-skeleton variant="table" [rows]="8" [cols]="6"></app-skeleton></td>
           </tr>
           <tr *ngIf="!loading && !events.length">
             <td colspan="7" class="p-3">

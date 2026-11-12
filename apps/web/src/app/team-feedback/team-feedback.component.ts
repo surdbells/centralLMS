@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../translate.pipe';
 import { StarRatingComponent } from '../shared/star-rating/star-rating.component';
 import { BehaviourFeedbackService, type TeamFeedbackRow } from '../services/behaviour-feedback.service';
+import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
 
 interface ReportGroup {
   userId: string;
@@ -20,7 +21,7 @@ interface ReportGroup {
 @Component({
   selector: 'app-team-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, StarRatingComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, StarRatingComponent, SkeletonComponent],
   templateUrl: './team-feedback.component.html',
   styleUrls: ['./team-feedback.component.scss'],
 })

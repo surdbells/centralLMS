@@ -6,6 +6,7 @@ import { IndividualReportComponent } from '../individual-report/individual-repor
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 import { CompetencyService, type CompetencyAssessment } from '../../competency.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /** One person the viewer can pull a report for. */
@@ -29,7 +30,7 @@ interface ReportSubjectRow {
 @Component({
   selector: 'app-report-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, IndividualReportComponent, CycleSelectComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, IndividualReportComponent, CycleSelectComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './report-viewer.component.html',
   styleUrl: './report-viewer.component.scss',
 })

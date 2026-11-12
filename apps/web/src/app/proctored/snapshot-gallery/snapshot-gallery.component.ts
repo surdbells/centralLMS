@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -62,7 +63,7 @@ interface SnapshotSessionInfo {
 @Component({
   selector: 'app-snapshot-gallery',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -232,10 +233,8 @@ interface SnapshotSessionInfo {
           <h3>{{ filterMode !== 'all' ? 'No matching snapshots' : 'No snapshots captured' }}</h3>
           <p *ngIf="filterMode !== 'all'">Try showing all snapshots</p>
         </div>
-        <div class="loading-state" *ngIf="loading">
-          <div class="spinner-border text-primary"></div>
-          <p>Loading snapshots...</p>
-        </div>
+        <app-skeleton *ngIf="loading && viewMode === 'grid'" variant="cards" [count]="8"></app-skeleton>
+        <app-skeleton *ngIf="loading && viewMode !== 'grid'" variant="list" [rows]="6"></app-skeleton>
       </section>
 
       <!-- ==========================================
@@ -372,7 +371,6 @@ interface SnapshotSessionInfo {
     .pagination-controls { display: flex; align-items: center; gap: 0.5rem; }
     .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
 
-    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     /* LIGHTBOX (dark media viewer, intentionally kept dark) */
     .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 1060;

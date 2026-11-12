@@ -10,6 +10,7 @@ import {
   type ProficiencyLevel,
 } from '../../competency.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 import { SessionStore } from '../../../core/auth/session.store';
 
@@ -27,7 +28,7 @@ type EditMode = 'none' | 'self' | 'review' | 'line';
 @Component({
   selector: 'app-assessment-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe, SkeletonComponent],
   templateUrl: './assessment-detail.component.html',
   styleUrl: './assessment-detail.component.scss',
 })

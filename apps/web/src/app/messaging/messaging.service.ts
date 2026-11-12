@@ -68,6 +68,8 @@ export interface Participant {
   last_name: string;
   email: string;
   profile_image: string | null;
+  /** The avatar path toParticipant maps from the API's `avatarUrl`. */
+  avatar?: string | null;
   online_status?: 'online' | 'away' | 'offline';
   last_active_at?: string;
 }
@@ -980,7 +982,9 @@ function toConversation(c: ConversationPayload, viewerId: string): Conversation 
     // in it — it knows who is asking. The participant is a fallback for
     // a group with no title.
     display_name: c['title'] ?? other?.['name'] ?? 'Conversation',
-    display_avatar: other?.['avatarUrl'] ?? null,
+    // Only a direct conversation wears the other person's photo; a group or
+    // channel keeps its own icon rather than looking like a DM with one member.
+    display_avatar: (c['kind'] ?? 'direct') === 'direct' ? (other?.['avatarUrl'] ?? null) : null,
     // The names the conversation list binds to. It reads the preview off
     // the conversation rather than the message, so the three fields it
     // wants are filled from the one the API sends.

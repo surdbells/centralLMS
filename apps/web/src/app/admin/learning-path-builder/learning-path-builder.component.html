@@ -2,11 +2,7 @@
 <main class="main">
   <div class="ui-page">
       <!-- Loading State -->
-      <div class="loading-container" *ngIf="loading">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-        </div>
-      </div>
+      <app-skeleton *ngIf="loading" variant="page" [count]="4"></app-skeleton>
 
       <!-- Header -->
       <header class="ui-page-header" *ngIf="!loading && path">
@@ -519,10 +515,7 @@
                 </div>
 
                 <!-- Loading -->
-                <div class="text-center py-4" *ngIf="loadingCourses">
-                  <div class="spinner-border text-primary" role="status"></div>
-                  <p class="mt-2 text-muted">{{ 'paths_admin.builder.loading_courses' | translate }}</p>
-                </div>
+                <app-skeleton *ngIf="loadingCourses" variant="list" [rows]="5"></app-skeleton>
 
                 <!-- Empty State -->
                 <div class="empty-modal-state" *ngIf="!loadingCourses && filteredCourses.length === 0">
@@ -583,10 +576,7 @@
                 </div>
 
                 <!-- Loading -->
-                <div class="text-center py-4" *ngIf="loadingAssessments">
-                  <div class="spinner-border text-primary" role="status"></div>
-                  <p class="mt-2 text-muted">{{ 'paths_admin.builder.loading_assessments' | translate }}</p>
-                </div>
+                <app-skeleton *ngIf="loadingAssessments" variant="list" [rows]="5"></app-skeleton>
 
                 <!-- Empty State -->
                 <div class="empty-modal-state" *ngIf="!loadingAssessments && filteredAssessments.length === 0">

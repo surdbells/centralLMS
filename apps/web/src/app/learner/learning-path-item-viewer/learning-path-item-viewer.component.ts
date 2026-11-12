@@ -11,20 +11,19 @@ import {
 } from '../../interfaces/learning-path.interfaces';
 import { TopComponent } from '../../partials/top/top.component';
 import { HotToastService } from '@ngneat/hot-toast';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learning-path-item-viewer',
   standalone: true,
-  imports: [CommonModule, RouterModule, TopComponent],
+  imports: [CommonModule, RouterModule, TopComponent, SkeletonComponent],
   template: `
     <app-top></app-top>
 
     <main class="main">
     <div class="ui-page item-viewer">
       @if (loading()) {
-        <div class="loading-container">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
+        <app-skeleton variant="detail" height="320px"></app-skeleton>
       } @else if (item()) {
         <!-- Breadcrumb -->
         <nav aria-label="breadcrumb">
@@ -259,13 +258,6 @@ import { HotToastService } from '@ngneat/hot-toast';
       gap: 0.5rem;
       font-size: 0.8125rem;
       color: var(--ui-text-muted);
-    }
-
-    .loading-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 400px;
     }
   `]
 })

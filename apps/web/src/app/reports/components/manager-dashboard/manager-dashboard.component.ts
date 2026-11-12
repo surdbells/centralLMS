@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule, DecimalPipe, Location } from '@angular/common';
+import { RouterLink, Router } from '@angular/router';
 import { ReportService } from '../../services/report.service';
 import { ReportChartComponent } from '../report-chart/report-chart.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
@@ -16,6 +16,7 @@ import {I18nService} from '../../../i18n.service';
     <main class="main">
       <div class="ui-page manager-dashboard">
         <header class="ui-page-header">
+          <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
           <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-people"></i></div>
           <div class="ui-page-header__titles">
             <h1>{{ 'reports.manager_dashboard' | translate }}</h1>
@@ -81,12 +82,23 @@ import {I18nService} from '../../../i18n.service';
   `
 })
 export class ManagerDashboardComponent implements OnInit {
+  private readonly backLocation = inject(Location);
+  private readonly navRouter = inject(Router);
   kpis: any[] = [];
   teamMembers: any[] = [];
   actionItems: any[] = [];
   teamData: any = null;
 
   constructor(private svc: ReportService, private i18n: I18nService) {}
+
+  /** Header back button: the previous page, or /admin/reports when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.backLocation.back();
+      return;
+    }
+    void this.navRouter.navigate(['/admin/reports']);
+  }
 
   ngOnInit(): void {
     this.svc.runReport('manager_team_dashboard', {}).subscribe(res => {

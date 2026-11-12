@@ -14,6 +14,7 @@ import {
 } from '../services/video-integration.service';
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { ApiError } from '../../core/api';
@@ -37,7 +38,7 @@ interface TestMeetingForm {
 @Component({
   selector: 'app-integrations-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './integrations-settings.component.html',
   styleUrls: ['./integrations-settings.component.scss']
 

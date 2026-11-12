@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ApiClient, AuthImgDirective } from '../../../core/api';
 import { BrandingService } from '../../../core/branding.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
@@ -50,6 +51,7 @@ export interface Notifications {
     TuiIcon,
     AuthImgDirective,
     TranslatePipe,
+    SkeletonComponent,
   ],
   templateUrl: './admintop.component.html',
   styleUrl: './admintop.component.css',

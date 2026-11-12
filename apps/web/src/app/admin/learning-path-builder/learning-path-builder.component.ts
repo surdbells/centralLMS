@@ -22,6 +22,7 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 // Course and Assessment interfaces
 interface Course {
@@ -51,7 +52,7 @@ interface Assessment {
 @Component({
   selector: 'app-learning-path-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DragDropModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterModule, DragDropModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-builder.component.html',
   styleUrls: ['./learning-path-builder.component.scss']
 })

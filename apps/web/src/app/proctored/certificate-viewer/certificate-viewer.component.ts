@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -29,7 +30,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
 @Component({
   selector: 'app-certificate-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
   template: `
     <app-top></app-top>
 
@@ -69,10 +70,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
         </div>
 
         <!-- Loading -->
-        <div class="text-center py-5" *ngIf="loading">
-          <div class="spinner-border text-secondary"></div>
-          <p class="mt-2 ui-muted">Loading certificates...</p>
-        </div>
+        <app-skeleton *ngIf="loading" variant="cards" [count]="6"></app-skeleton>
 
         <!-- Certificate Grid -->
         <div class="ui-grid certificates-grid" *ngIf="!loading">
@@ -170,10 +168,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
         </div>
       </header>
 
-      <div class="text-center py-5" *ngIf="loadingDetail">
-        <div class="spinner-border text-secondary"></div>
-        <p class="mt-2 ui-muted">Loading certificate...</p>
-      </div>
+      <app-skeleton *ngIf="loadingDetail" variant="detail" height="420px"></app-skeleton>
 
       <div class="certificate-detail-wrapper" *ngIf="!loadingDetail && selectedCertificate">
 
@@ -191,9 +186,8 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
         <!-- Certificate Preview (server-rendered, isolated) -->
         <section class="ui-section preview-section">
           <div class="certificate-preview-card">
-            <div class="text-center py-5 w-100" *ngIf="!previewDoc">
-              <div class="spinner-border spinner-border-sm text-secondary"></div>
-              <span class="ms-2 ui-muted">Rendering certificate...</span>
+            <div class="cert-preview-skeleton" *ngIf="!previewDoc">
+              <app-skeleton variant="block" height="100%"></app-skeleton>
             </div>
             <iframe *ngIf="previewDoc" class="cert-preview-frame" [srcdoc]="previewDoc"
                     title="Certificate preview" sandbox="allow-same-origin"></iframe>
@@ -341,6 +335,8 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
     }
 
     .cert-preview-frame { width: 100%; height: 100%; border: 0; display: block; }
+    .cert-preview-skeleton { width: 100%; height: 100%; }
+    .cert-preview-skeleton app-skeleton { height: 100%; }
 
     .details-table { font-size: .8125rem; }
     .details-table td { vertical-align: middle; }

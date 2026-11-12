@@ -35,7 +35,7 @@
         </div>
 
         <div class="rv-menu" *ngIf="open">
-          <div class="rv-loading" *ngIf="loading">{{ 'competency.viewer.loading' | translate }}</div>
+          <app-skeleton class="rv-loading" *ngIf="loading" variant="lines" [rows]="4" />
           <div class="rv-empty" *ngIf="!loading && filtered.length === 0">
             <ng-container *ngIf="search.trim()">{{ 'competency.viewer.no_match' | translate: { search: search } }}</ng-container>
             <ng-container *ngIf="!search.trim()">

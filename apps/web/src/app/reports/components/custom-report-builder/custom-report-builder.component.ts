@@ -2,19 +2,34 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ReportService } from '../../services/report.service';
+import { catchError, of } from 'rxjs';
+import {
+  ReportService,
+  CustomBuilderConfig,
+  CustomColumnDef,
+  CustomFilterDef,
+  CustomReportResponse,
+  CustomSourceSchema,
+  CustomSourceSummary,
+  SavedCustomReport,
+} from '../../services/report.service';
 import { ReportChartComponent } from '../report-chart/report-chart.component';
-import { ReportTableComponent } from '../report-table/report-table.component';
+import { ReportTableComponent, TableColumn } from '../report-table/report-table.component';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { ApiError } from '../../../core/api';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+
+interface LookupOption { id: string; name: string; }
+interface SortOption { key: string; label: string; }
 
 @Component({
   selector: 'app-custom-report-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, AdmintopComponent, TranslatePipe, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -42,6 +57,12 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
 
         <!-- ═══════ TAB: BUILDER ═══════ -->
         <div *ngIf="activeTab === 'build'">
+          <!-- The source list failed to load: say so, rather than an empty dropdown -->
+          <div *ngIf="sourcesError" class="alert alert-danger d-flex justify-content-between align-items-center gap-2">
+            <span><i class="bi bi-exclamation-triangle me-2"></i>{{ sourcesError }}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="loadSources()">{{ 'common.retry' | translate }}</button>
+          </div>
+
           <!-- Config Panel -->
           <section class="ui-section">
             <!-- Editing indicator -->
@@ -53,11 +74,13 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
               <div class="col-md-6 col-xl-3">
                 <!-- Data Source -->
                 <div class="mb-3">
-                  <label class="form-label fw-semibold small">{{ 'reports.data_source' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="config.source" (change)="onSourceChange()">
+                  <label class="form-label fw-semibold small" for="crb-source">{{ 'reports.data_source' | translate }}</label>
+                  <select id="crb-source" class="form-select" [(ngModel)]="config.source" (ngModelChange)="onSourceChange()" [disabled]="sourcesLoading">
                     <option value="">{{ 'reports.select_source' | translate }}</option>
                     <option *ngFor="let s of sources" [value]="s.key">{{ s.label }}</option>
                   </select>
+                  <div class="form-text" *ngIf="sourceDescription">{{ sourceDescription }}</div>
+                  <div class="form-text" *ngIf="!sourcesLoading && !sourcesError && !sources.length">{{ 'reports.no_sources' | translate }}</div>
                 </div>
               </div>
               <div class="col-md-6 col-xl-3">
@@ -73,15 +96,15 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
                   </div>
                   <div class="d-flex gap-2 mt-1">
                     <button type="button" class="btn btn-link btn-sm p-0 small" (click)="selectAllColumns()">{{ 'reports.select_all' | translate }}</button>
-                    <button type="button" class="btn btn-link btn-sm p-0 small ui-muted" (click)="config.columns = []">{{ 'common.clear' | translate }}</button>
+                    <button type="button" class="btn btn-link btn-sm p-0 small ui-muted" (click)="config.columns = []; resetSortIfStale()">{{ 'common.clear' | translate }}</button>
                   </div>
                 </div>
               </div>
               <div class="col-md-6 col-xl-3">
                 <!-- Group By -->
                 <div class="mb-3" *ngIf="availableGroupings.length">
-                  <label class="form-label fw-semibold small">{{ 'reports.group_by' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="config.group_by">
+                  <label class="form-label fw-semibold small" for="crb-group">{{ 'reports.group_by' | translate }}</label>
+                  <select id="crb-group" class="form-select" [(ngModel)]="config.group_by" (ngModelChange)="resetSortIfStale()">
                     <option value="">{{ 'reports.no_grouping' | translate }}</option>
                     <option *ngFor="let g of availableGroupings" [value]="g.key">{{ g.label }}</option>
                   </select>
@@ -89,14 +112,14 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
               </div>
               <div class="col-md-6 col-xl-3">
                 <!-- Sort -->
-                <div class="mb-3" *ngIf="config.columns.length">
-                  <label class="form-label fw-semibold small">{{ 'reports.sort_by' | translate }}</label>
+                <div class="mb-3" *ngIf="sortOptions.length">
+                  <label class="form-label fw-semibold small" for="crb-sort">{{ 'reports.sort_by' | translate }}</label>
                   <div class="d-flex gap-2">
-                    <select class="form-select" [(ngModel)]="config.sort_by">
+                    <select id="crb-sort" class="form-select" [(ngModel)]="config.sort_by">
                       <option value="">{{ 'reports.default_sort' | translate }}</option>
-                      <option *ngFor="let col of config.columns" [value]="col">{{ formatKey(col) }}</option>
+                      <option *ngFor="let o of sortOptions" [value]="o.key">{{ o.label }}</option>
                     </select>
-                    <select class="form-select" [(ngModel)]="config.sort_dir" style="width:90px">
+                    <select class="form-select" [(ngModel)]="config.sort_dir" style="width:90px" [attr.aria-label]="'reports.sort_by' | translate">
                       <option value="asc">ASC</option>
                       <option value="desc">DESC</option>
                     </select>
@@ -104,8 +127,8 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
                 </div>
                 <!-- Limit -->
                 <div class="mb-3">
-                  <label class="form-label fw-semibold small">{{ 'reports.limit' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="config.per_page">
+                  <label class="form-label fw-semibold small" for="crb-limit">{{ 'reports.limit' | translate }}</label>
+                  <select id="crb-limit" class="form-select" [(ngModel)]="config.per_page">
                     <option [ngValue]="25">25</option>
                     <option [ngValue]="50">50</option>
                     <option [ngValue]="100">100</option>
@@ -128,15 +151,47 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
             </div>
           </section>
 
+          <!-- Filters: whatever the chosen source can be narrowed by -->
+          <section class="ui-section" *ngIf="availableFilters.length">
+            <div class="ui-section__head">
+              <div><h2 class="ui-section__title"><i class="bi bi-funnel me-2"></i>{{ 'reports.filters' | translate }}</h2></div>
+              <div class="ui-section__actions" *ngIf="hasFilters">
+                <button type="button" class="btn btn-link btn-sm p-0" (click)="clearFilters()">{{ 'paths.clear_filters' | translate }}</button>
+              </div>
+            </div>
+            <div class="row g-3">
+              <div class="col-sm-6 col-lg-3" *ngFor="let f of availableFilters">
+                <label class="form-label fw-semibold small" [for]="'flt_'+f.key">{{ f.label }}</label>
+                <ng-container [ngSwitch]="f.type">
+                  <input *ngSwitchCase="'date'" type="date" class="form-control" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
+                  <select *ngSwitchCase="'lookup'" class="form-select" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
+                    <option value="">{{ 'common.all' | translate }}</option>
+                    <option *ngFor="let o of lookupOptions[f.lookupKind || ''] || []" [value]="o.id">{{ o.name }}</option>
+                  </select>
+                  <select *ngSwitchCase="'course'" class="form-select" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
+                    <option value="">{{ 'reports.all_courses' | translate }}</option>
+                    <option *ngFor="let o of courseOptions" [value]="o.id">{{ o.name }}</option>
+                  </select>
+                  <select *ngSwitchDefault class="form-select" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
+                    <option value="">{{ 'common.all' | translate }}</option>
+                    <option *ngFor="let o of f.options || []" [value]="o.value">{{ o.label }}</option>
+                  </select>
+                </ng-container>
+              </div>
+            </div>
+          </section>
+
           <!-- Results -->
-          <div *ngIf="building" class="ui-state">
-            <div class="spinner-border text-primary"></div>
-            <p class="mt-3">{{ 'reports.building' | translate }}</p>
-          </div>
+          <app-skeleton *ngIf="building" variant="table" [rows]="6"
+                        [cols]="config.columns.length > 6 ? 6 : (config.columns.length || 5)"></app-skeleton>
           <div *ngIf="error" class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
           <div *ngIf="result && !building">
-            <app-report-chart [data]="result" chartType="bar" [allowTypeChange]="true" class="d-block"></app-report-chart>
-            <app-report-table [data]="result.data || result" [title]="'reports.results' | translate" [sortable]="true" [searchable]="true"></app-report-table>
+            <p class="small ui-muted mb-2">
+              {{ 'learning.showing_count' | translate:{ shown: result.shown, total: result.matching } }}
+              <span *ngIf="result.note"> · {{ result.note }}</span>
+            </p>
+            <app-report-chart *ngIf="result.chart_config && result.data.length" [data]="result" chartType="bar" [allowTypeChange]="true" class="d-block"></app-report-chart>
+            <app-report-table [data]="result.data" [customColumns]="resultColumns" [title]="'reports.results' | translate" [sortable]="true" [searchable]="true"></app-report-table>
           </div>
           <div *ngIf="!result && !building && !error" class="ui-state">
             <span class="ui-state__icon"><i class="bi bi-tools"></i></span>
@@ -147,9 +202,14 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
 
         <!-- ═══════ TAB: SAVED REPORTS ═══════ -->
         <div *ngIf="activeTab === 'saved'">
-          <div *ngIf="loadingSaved" class="ui-state"><div class="spinner-border text-primary"></div></div>
+          <app-skeleton *ngIf="loadingSaved" variant="cards" [count]="3"></app-skeleton>
 
-          <div *ngIf="!loadingSaved && !savedReports.length" class="ui-state">
+          <div *ngIf="savedError && !loadingSaved" class="alert alert-danger d-flex justify-content-between align-items-center gap-2">
+            <span><i class="bi bi-exclamation-triangle me-2"></i>{{ savedError }}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="loadSavedReports()">{{ 'common.retry' | translate }}</button>
+          </div>
+
+          <div *ngIf="!loadingSaved && !savedError && !savedReports.length" class="ui-state">
             <span class="ui-state__icon"><i class="bi bi-collection"></i></span>
             <p>{{ 'reports.no_custom_saved' | translate }}</p>
           </div>
@@ -170,7 +230,6 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
                       <li><hr class="dropdown-divider"></li>
                       <li><a class="dropdown-item" role="button" (click)="exportSaved(r, 'csv')"><i class="bi bi-filetype-csv me-2"></i>{{ 'reports.export_csv' | translate }}</a></li>
                       <li><a class="dropdown-item" role="button" (click)="exportSaved(r, 'xlsx')"><i class="bi bi-file-earmark-excel me-2"></i>{{ 'reports.export_excel' | translate }}</a></li>
-                      <li><a class="dropdown-item" role="button" (click)="exportSaved(r, 'pdf')"><i class="bi bi-file-earmark-pdf me-2"></i>{{ 'reports.export_pdf' | translate }}</a></li>
                       <li><hr class="dropdown-divider"></li>
                       <li><a class="dropdown-item text-danger" role="button" (click)="deleteSaved(r)"><i class="bi bi-trash me-2"></i>{{ 'common.delete' | translate }}</a></li>
                     </ul>
@@ -178,9 +237,9 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
                 </div>
                 <p class="ui-card__meta mb-0" *ngIf="r.description">{{ r.description }}</p>
                 <div class="d-flex flex-wrap gap-1">
-                  <span class="ui-pill ui-pill--brand crb-tag">{{ r.source || r.config?.source }}</span>
+                  <span class="ui-pill ui-pill--brand crb-tag">{{ r.source_label }}</span>
                   <span class="ui-pill ui-pill--neutral crb-tag">
-                    {{ 'reports.columns_count' | translate:{ count: (r.config?.columns?.length || 0) } }}
+                    {{ 'reports.columns_count' | translate:{ count: (r.config.columns.length || 0) } }}
                   </span>
                 </div>
                 <p class="ui-card__meta mb-0" *ngIf="r.created_at">{{ 'reports.created_prefix' | translate }} {{ r.created_at | date:'mediumDate' }}</p>
@@ -194,17 +253,25 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
           </div>
 
           <!-- Run result for saved report -->
-          <div *ngIf="savedResult" class="mt-4">
+          <div *ngIf="savedResultName" class="mt-4">
             <div class="ui-section__head">
               <div><h2 class="ui-section__title"><i class="bi bi-bar-chart me-2"></i>{{ savedResultName }}</h2></div>
               <div class="ui-section__actions">
-                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="savedResult = null">
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="closeSavedResult()">
                   <i class="bi bi-x-lg me-1"></i>{{ 'common.close' | translate }}
                 </button>
               </div>
             </div>
-            <app-report-chart [data]="savedResult" chartType="bar" [allowTypeChange]="true" class="d-block"></app-report-chart>
-            <app-report-table [data]="savedResult.data || savedResult" [title]="''" [sortable]="true" [searchable]="true"></app-report-table>
+            <app-skeleton *ngIf="runningSaved" variant="table" [rows]="6" [cols]="5"></app-skeleton>
+            <div *ngIf="savedRunError" class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ savedRunError }}</div>
+            <ng-container *ngIf="savedResult && !runningSaved">
+              <p class="small ui-muted mb-2">
+                {{ 'learning.showing_count' | translate:{ shown: savedResult.shown, total: savedResult.matching } }}
+                <span *ngIf="savedResult.note"> · {{ savedResult.note }}</span>
+              </p>
+              <app-report-chart *ngIf="savedResult.chart_config && savedResult.data.length" [data]="savedResult" chartType="bar" [allowTypeChange]="true" class="d-block"></app-report-chart>
+              <app-report-table [data]="savedResult.data" [customColumns]="savedResultColumns" [title]="''" [sortable]="true" [searchable]="true"></app-report-table>
+            </ng-container>
           </div>
         </div>
 
@@ -214,18 +281,19 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
             <div class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title">{{ (editingReport ? 'reports.update_custom_report' : 'reports.save_custom_report') | translate }}</h5>
-                <button type="button" class="btn-close" (click)="showSaveDialog = false"></button>
+                <button type="button" class="btn-close" (click)="showSaveDialog = false" [attr.aria-label]="'common.close' | translate"></button>
               </div>
               <div class="modal-body">
                 <div class="mb-3">
-                  <label class="form-label small fw-semibold">{{ 'reports.report_name' | translate }}</label>
-                  <input type="text" class="form-control" [(ngModel)]="saveName" placeholder="{{ 'reports.report_name_ph' | translate }}">
+                  <label class="form-label small fw-semibold" for="crb-save-name">{{ 'reports.report_name' | translate }}</label>
+                  <input id="crb-save-name" type="text" class="form-control" [(ngModel)]="saveName" placeholder="{{ 'reports.report_name_ph' | translate }}" maxlength="255">
                 </div>
                 <div class="mb-3">
-                  <label class="form-label small fw-semibold">{{ 'reports.description_optional' | translate }}</label>
-                  <textarea class="form-control" rows="2" [(ngModel)]="saveDescription"
+                  <label class="form-label small fw-semibold" for="crb-save-desc">{{ 'reports.description_optional' | translate }}</label>
+                  <textarea id="crb-save-desc" class="form-control" rows="2" [(ngModel)]="saveDescription"
                             placeholder="{{ 'reports.description_ph' | translate }}"></textarea>
                 </div>
+                <div *ngIf="saveError" class="alert alert-danger small py-2 mb-0">{{ saveError }}</div>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-sm btn-outline-secondary" (click)="showSaveDialog = false">{{ 'common.cancel' | translate }}</button>
@@ -257,64 +325,217 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
 export class CustomReportBuilderComponent implements OnInit {
   activeTab: 'build' | 'saved' = 'build';
 
-  // Builder state
-  sources: any[] = [];
-  availableColumns: any[] = [];
-  availableGroupings: any[] = [];
-  config: any = { source: '', columns: [], group_by: '', sort_by: '', sort_dir: 'asc', per_page: 50, filters: {} };
-  result: any = null;
+  // Sources
+  sources: CustomSourceSummary[] = [];
+  sourcesLoading = false;
+  sourcesError = '';
+
+  // Builder state — everything below the source dropdown comes from the
+  // chosen source's schema.
+  schema: CustomSourceSchema | null = null;
+  availableColumns: CustomColumnDef[] = [];
+  availableGroupings: Array<{ key: string; label: string }> = [];
+  availableFilters: CustomFilterDef[] = [];
+  lookupOptions: Record<string, LookupOption[]> = {};
+  courseOptions: LookupOption[] = [];
+  config: CustomBuilderConfig = emptyConfig();
+  result: CustomReportResponse | null = null;
+  resultColumns: TableColumn[] | undefined;
   building = false;
   error = '';
 
   // Saved reports state
-  savedReports: any[] = [];
+  savedReports: SavedCustomReport[] = [];
   loadingSaved = false;
-  savedResult: any = null;
+  savedError = '';
+  savedResult: CustomReportResponse | null = null;
+  savedResultColumns: TableColumn[] | undefined;
   savedResultName = '';
+  runningSaved = false;
+  savedRunError = '';
 
   // Save/edit dialog state
   showSaveDialog = false;
   saveName = '';
   saveDescription = '';
   saving = false;
-  editingReport: any = null;
+  saveError = '';
+  editingReport: SavedCustomReport | null = null;
+
+  private lookupsRequested = false;
+  private coursesRequested = false;
+  /** Guards against a slow schema response for a source no longer chosen. */
+  private schemaFor = '';
 
   constructor(private svc: ReportService, private i18n: I18nService, private toast: HotToastService, private dialog: ConfirmDialogService) {}
 
   ngOnInit(): void {
-    this.svc.getCustomSources().subscribe(s => this.sources = s);
+    this.loadSources();
+  }
+
+  /* ═══════ SOURCES & SCHEMA ═══════ */
+
+  loadSources(): void {
+    this.sourcesLoading = true;
+    this.sourcesError = '';
+    this.svc.getCustomSources().subscribe({
+      next: (sources) => { this.sources = sources ?? []; this.sourcesLoading = false; },
+      error: (e) => {
+        this.sources = [];
+        this.sourcesLoading = false;
+        this.sourcesError = this.errorMessage(e, 'reports.sources_failed');
+      },
+    });
+  }
+
+  get sourceDescription(): string {
+    return this.sources.find((s) => s.key === this.config.source)?.description ?? '';
+  }
+
+  get hasFilters(): boolean {
+    return Object.values(this.config.filters).some((v) => v !== '' && v !== null && v !== undefined);
+  }
+
+  /**
+   * What the report can be sorted by, with the labels people chose from.
+   *
+   * Grouped: the group, its row count, and the chosen columns that have a
+   * summary. Ungrouped: the chosen columns.
+   */
+  get sortOptions(): SortOption[] {
+    const chosen = this.availableColumns.filter((c) => this.config.columns.includes(c.key));
+
+    if (!this.config.group_by) {
+      return chosen.map((c) => ({ key: c.key, label: c.label }));
+    }
+
+    const group = this.availableGroupings.find((g) => g.key === this.config.group_by);
+
+    return [
+      ...(group ? [{ key: group.key, label: group.label }] : []),
+      { key: 'records', label: this.i18n.t('reports.record_count') },
+      ...chosen.filter((c) => c.aggregate !== null).map((c) => ({ key: c.key, label: c.label })),
+    ];
+  }
+
+  onSourceChange(): void {
+    this.result = null;
+    this.resultColumns = undefined;
+    this.error = '';
+    this.config = { ...emptyConfig(), source: this.config.source, per_page: this.config.per_page };
+    this.loadSchema(true);
+  }
+
+  /**
+   * Fetches the chosen source's columns, groupings and filters.
+   *
+   * `fresh` ticks the source's default columns and clears the filters; an
+   * edit keeps the saved report's own.
+   */
+  private loadSchema(fresh: boolean): void {
+    this.schema = null;
+    this.availableColumns = [];
+    this.availableGroupings = [];
+    this.availableFilters = [];
+
+    const source = this.config.source;
+    this.schemaFor = source;
+
+    if (!source) return;
+
+    this.svc.getCustomColumns(source).subscribe({
+      next: (schema) => {
+        if (this.schemaFor !== source) return;
+
+        this.schema = schema;
+        this.availableColumns = schema.columns ?? [];
+        this.availableGroupings = schema.groupings ?? [];
+        this.availableFilters = schema.filters ?? [];
+
+        const known = new Set(this.availableColumns.map((c) => c.key));
+
+        this.config.columns = fresh
+          ? (schema.defaultColumns ?? []).filter((k) => known.has(k))
+          : this.config.columns.filter((k) => known.has(k));
+
+        // Every filter control starts bound to a value, so a select shows its
+        // "All" option rather than a blank.
+        const filters: Record<string, string> = {};
+        for (const f of this.availableFilters) {
+          filters[f.key] = fresh ? '' : (this.config.filters[f.key] ?? '');
+        }
+        this.config.filters = filters;
+
+        this.resetSortIfStale();
+        this.loadFilterOptions();
+      },
+      error: (e) => {
+        if (this.schemaFor !== source) return;
+        this.error = this.errorMessage(e, 'reports.load_failed');
+      },
+    });
+  }
+
+  /** The departments, teams, courses… a filter dropdown lists, fetched once. */
+  private loadFilterOptions(): void {
+    if (!this.lookupsRequested && this.availableFilters.some((f) => f.type === 'lookup')) {
+      this.lookupsRequested = true;
+      this.svc.getAllFilters().pipe(catchError(() => of(null))).subscribe((all) => {
+        if (!all) { this.lookupsRequested = false; return; }
+        this.lookupOptions = {
+          department: toOptions(all.departments),
+          team: toOptions(all.teams),
+          branch: toOptions(all.branches),
+          category: toOptions(all.categories),
+        };
+      });
+    }
+
+    if (!this.coursesRequested && this.availableFilters.some((f) => f.type === 'course')) {
+      this.coursesRequested = true;
+      this.svc.getCourses().pipe(catchError(() => of(null))).subscribe((courses) => {
+        if (!courses) { this.coursesRequested = false; return; }
+        this.courseOptions = (courses ?? [])
+          .map((c: any) => ({ id: String(c.id), name: String(c.title ?? c.name ?? '') }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+      });
+    }
   }
 
   /* ═══════ BUILDER ═══════ */
-
-  onSourceChange(): void {
-    this.availableColumns = [];
-    this.availableGroupings = [];
-    this.config.columns = [];
-    this.result = null;
-    if (!this.config.source) return;
-    this.svc.getCustomColumns(this.config.source).subscribe((res: any) => {
-      this.availableColumns = res.columns || res || [];
-      this.availableGroupings = res.groupings || [];
-    });
-  }
 
   toggleColumn(key: string): void {
     const idx = this.config.columns.indexOf(key);
     if (idx >= 0) this.config.columns.splice(idx, 1);
     else this.config.columns.push(key);
+    this.resetSortIfStale();
   }
 
   selectAllColumns(): void {
-    this.config.columns = this.availableColumns.map((c: any) => c.key);
+    this.config.columns = this.availableColumns.map((c) => c.key);
+  }
+
+  clearFilters(): void {
+    for (const key of Object.keys(this.config.filters)) this.config.filters[key] = '';
+  }
+
+  /** A sort on a column no longer shown would be ignored by the server; say so here too. */
+  resetSortIfStale(): void {
+    if (this.config.sort_by && !this.sortOptions.some((o) => o.key === this.config.sort_by)) {
+      this.config.sort_by = '';
+    }
   }
 
   run(): void {
     this.building = true;
     this.error = '';
     this.svc.buildCustomReport(this.config).subscribe({
-      next: r => { this.result = r; this.building = false; },
-      error: e => { this.error = e?.error?.message || e?.error?.error || this.i18n.t('reports.build_failed'); this.building = false; }
+      next: (r) => {
+        this.result = r;
+        this.resultColumns = toTableColumns(r.columns);
+        this.building = false;
+      },
+      error: (e) => { this.error = this.errorMessage(e, 'reports.build_failed'); this.building = false; },
     });
   }
 
@@ -323,24 +544,31 @@ export class CustomReportBuilderComponent implements OnInit {
   openSaveDialog(): void {
     this.saveName = this.editingReport?.name || '';
     this.saveDescription = this.editingReport?.description || '';
+    this.saveError = '';
     this.showSaveDialog = true;
   }
 
   confirmSave(): void {
     if (!this.saveName.trim()) return;
     this.saving = true;
+    this.saveError = '';
 
     const obs = this.editingReport
-      ? this.svc.updateCustomReport(this.editingReport.id, this.saveName, this.saveDescription, this.config)
-      : this.svc.saveCustomReport(this.saveName, this.saveDescription, this.config);
+      ? this.svc.updateCustomReport(this.editingReport.id, this.saveName.trim(), this.saveDescription, this.config)
+      : this.svc.saveCustomReport(this.saveName.trim(), this.saveDescription, this.config);
 
     obs.subscribe({
-      next: () => {
+      next: (saved) => {
         this.saving = false;
         this.showSaveDialog = false;
+        if (this.editingReport) this.editingReport = saved;
+        this.toast.success(this.i18n.t('reports.save_success'));
         this.loadSavedReports();
       },
-      error: () => { this.saving = false; }
+      error: (e) => {
+        this.saving = false;
+        this.saveError = this.errorMessage(e, 'reports.save_failed');
+      },
     });
   }
 
@@ -348,87 +576,150 @@ export class CustomReportBuilderComponent implements OnInit {
 
   loadSavedReports(): void {
     this.loadingSaved = true;
-    this.svc.getCustomReportsList().subscribe(list => {
-      this.savedReports = list;
-      this.loadingSaved = false;
+    this.savedError = '';
+    this.svc.getCustomReportsList().subscribe({
+      next: (list) => {
+        this.savedReports = list;
+        this.loadingSaved = false;
+      },
+      error: (e) => {
+        this.loadingSaved = false;
+        this.savedError = this.errorMessage(e, 'reports.load_failed');
+      },
     });
   }
 
-  runSaved(report: any): void {
+  runSaved(report: SavedCustomReport): void {
     this.savedResultName = report.name;
     this.savedResult = null;
+    this.savedRunError = '';
+    this.runningSaved = true;
     this.svc.runSavedCustomReport(report.id).subscribe({
-      next: r => this.savedResult = r,
-      error: () => this.savedResult = { data: [], error: this.i18n.t('reports.run_failed') }
+      next: (r) => {
+        this.savedResult = r;
+        this.savedResultColumns = toTableColumns(r.columns);
+        this.runningSaved = false;
+      },
+      error: (e) => {
+        this.runningSaved = false;
+        this.savedRunError = this.errorMessage(e, 'reports.run_failed');
+      },
     });
   }
 
-  editSaved(report: any): void {
+  closeSavedResult(): void {
+    this.savedResult = null;
+    this.savedResultName = '';
+    this.savedRunError = '';
+  }
+
+  editSaved(report: SavedCustomReport): void {
     this.editingReport = report;
     this.activeTab = 'build';
 
-    // Load config into builder
-    const cfg = report.config || {};
+    const cfg = report.config;
     this.config = {
       source: cfg.source || report.source || '',
-      columns: cfg.columns || [],
+      columns: [...(cfg.columns ?? [])],
       group_by: cfg.group_by || '',
       sort_by: cfg.sort_by || '',
-      sort_dir: cfg.sort_dir || 'asc',
-      limit: cfg.limit || 50,
-      filters: cfg.filters || {}
+      sort_dir: cfg.sort_dir === 'desc' ? 'desc' : 'asc',
+      per_page: cfg.per_page || cfg.limit || 50,
+      filters: { ...(cfg.filters ?? {}) },
     };
 
-    // Re-fetch columns for this source
-    if (this.config.source) {
-      this.svc.getCustomColumns(this.config.source).subscribe((res: any) => {
-        this.availableColumns = res.columns || res || [];
-        this.availableGroupings = res.groupings || [];
-      });
-    }
-
     this.result = null;
+    this.resultColumns = undefined;
+    this.error = '';
+    // Re-fetch the source's schema, keeping the saved columns and filters.
+    this.loadSchema(false);
   }
 
   clearEdit(): void {
     this.editingReport = null;
-    this.config = { source: '', columns: [], group_by: '', sort_by: '', sort_dir: 'asc', limit: 50, filters: {} };
+    this.config = emptyConfig();
+    this.schemaFor = '';
+    this.schema = null;
     this.availableColumns = [];
     this.availableGroupings = [];
+    this.availableFilters = [];
     this.result = null;
+    this.resultColumns = undefined;
+    this.error = '';
   }
 
-  duplicateSaved(report: any): void {
+  duplicateSaved(report: SavedCustomReport): void {
     this.svc.duplicateCustomReport(report.id).subscribe({
       next: () => this.loadSavedReports(),
-      error: () => this.toast.error(this.i18n.t('reports.duplicate_failed'))
+      error: (e) => this.toast.error(this.errorMessage(e, 'reports.duplicate_failed')),
     });
   }
 
-  exportSaved(report: any, format: string): void {
-    this.svc.exportCustomReport(report.id, format).subscribe({
+  exportSaved(report: SavedCustomReport, _format: string): void {
+    this.svc.exportCustomReport(report.id).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${report.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${format}`;
+        // The server writes CSV whichever item was clicked; name it so.
+        a.download = `${report.name.replace(/[^\w-]+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
       },
-      error: () => this.toast.error(this.i18n.t('reports.export_failed'))
+      error: (e) => this.toast.error(this.errorMessage(e, 'reports.export_failed')),
     });
   }
 
-  async deleteSaved(report: any): Promise<void> {
+  async deleteSaved(report: SavedCustomReport): Promise<void> {
     if (!(await this.dialog.confirm(this.i18n.t('reports.confirm_delete_undone', { name: report.name }), { type: 'danger' }))) return;
     this.svc.deleteCustomReport(report.id).subscribe({
       next: () => {
         this.savedReports = this.savedReports.filter(r => r.id !== report.id);
         if (this.editingReport?.id === report.id) this.clearEdit();
       },
-      error: () => this.toast.error(this.i18n.t('reports.delete_failed'))
+      error: (e) => this.toast.error(this.errorMessage(e, 'reports.delete_failed')),
     });
   }
 
-  formatKey(k: string): string { return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+  /**
+   * The server's own words where it has some — "Choose at least one
+   * column.", "You already keep a custom report called …" — and the
+   * translated fallback where it does not.
+   */
+  private errorMessage(e: unknown, fallbackKey: string): string {
+    if (e instanceof ApiError) {
+      const first = Object.values(e.violations)[0]?.[0];
+      if (first) return first;
+      if (e.isConflict || e.isNotFound || e.isForbidden) return e.message;
+    }
+    return this.i18n.t(fallbackKey);
+  }
+}
+
+function emptyConfig(): CustomBuilderConfig {
+  return { source: '', columns: [], group_by: '', sort_by: '', sort_dir: 'asc', per_page: 50, filters: {} };
+}
+
+function toOptions(items: unknown): LookupOption[] {
+  return (Array.isArray(items) ? items : [])
+    .map((i: any) => ({ id: String(i?.id ?? ''), name: String(i?.name ?? '') }))
+    .filter((o) => o.id !== '');
+}
+
+/**
+ * The API's column types as the table draws them — a percentage as a bar,
+ * seconds as "1h 30m", a status as a badge — with the API's labels.
+ */
+function toTableColumns(columns: Array<{ key: string; label: string; type?: string }> | undefined): TableColumn[] | undefined {
+  if (!Array.isArray(columns) || columns.length === 0) return undefined;
+
+  const drawnAs: Record<string, TableColumn['type']> = {
+    number: 'number',
+    percent: 'progress',
+    date: 'date',
+    status: 'badge',
+    duration: 'duration',
+  };
+
+  return columns.map((c) => ({ key: c.key, label: c.label, type: drawnAs[c.type ?? ''] ?? 'text' }));
 }

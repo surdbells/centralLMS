@@ -20,12 +20,13 @@
 </header>
 
 <!-- Loading State -->
-<div *ngIf="isLoading" class="ui-state dash-state">
-  <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+<ng-container *ngIf="isLoading">
+  <app-skeleton variant="kpis" [count]="6"></app-skeleton>
+  <div class="dash-layout">
+    <section class="ui-section dash-col"><app-skeleton variant="table" [rows]="6" [cols]="4"></app-skeleton></section>
+    <section class="ui-section dash-col"><app-skeleton variant="list" [rows]="5"></app-skeleton></section>
   </div>
-  <p class="mt-3">{{ 'admin_dash.loading' | translate }}</p>
-</div>
+</ng-container>
 
 <!-- Error State -->
 <div *ngIf="!isLoading && error" class="ui-state dash-state">

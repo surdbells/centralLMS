@@ -14,6 +14,7 @@ import {
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 interface Option {
   id: string;
@@ -31,7 +32,7 @@ interface Option {
 @Component({
   selector: 'app-library-manage',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, LibraryViewerComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, LibraryViewerComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './library-manage.component.html',
   styleUrl: './library-manage.component.scss',
 })

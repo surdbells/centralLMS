@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
@@ -53,7 +54,7 @@ interface ViolationType {
 @Component({
   selector: 'app-violation-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -197,10 +198,7 @@ interface ViolationType {
           <span class="ui-state__icon"><i class="bi bi-check-circle"></i></span>
           <h3>{{ hasFilters() ? 'No Matching Violations' : 'No Violations Recorded' }}</h3>
         </div>
-        <div class="loading-state" *ngIf="loading">
-          <div class="spinner-border text-primary"></div>
-          <p>Loading violations...</p>
-        </div>
+        <app-skeleton *ngIf="loading" variant="list" [rows]="6"></app-skeleton>
       </section>
 
       <!-- ==========================================
@@ -308,7 +306,6 @@ interface ViolationType {
     .pagination-controls { display: flex; align-items: center; gap: 0.5rem; }
     .page-info { font-size: 0.8125rem; color: var(--ui-text-muted, #6a716b); }
 
-    .loading-state { text-align: center; padding: 2rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Modals */
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1050;

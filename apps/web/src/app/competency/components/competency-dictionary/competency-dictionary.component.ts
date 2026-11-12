@@ -8,6 +8,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ApiClient, Endpoints } from '../../../core/api';
 import { RichHtmlEditorComponent } from '../../../shared/rich-html-editor/rich-html-editor.component';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 import {
   CompetencyService,
@@ -33,7 +34,7 @@ interface FunctionGroup {
 @Component({
   selector: 'app-competency-dictionary',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RichHtmlEditorComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, RichHtmlEditorComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './competency-dictionary.component.html',
   styleUrl: './competency-dictionary.component.scss',
 })

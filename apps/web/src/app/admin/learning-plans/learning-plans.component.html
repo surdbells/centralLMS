@@ -26,7 +26,7 @@
 
     <div class="lp-cols">
       <section class="ui-section ui-section--flush plan-list">
-        <div class="lp-loading" *ngIf="loading"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+        <div class="lp-loading" *ngIf="loading"><app-skeleton variant="list" [rows]="5"></app-skeleton></div>
         <div class="plan-row" *ngFor="let plan of plans"
              [class.active]="selected?.id === plan.id" (click)="select(plan)">
           <div class="pr-main">

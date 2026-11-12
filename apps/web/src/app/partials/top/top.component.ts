@@ -13,6 +13,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ApiClient, AuthImgDirective } from '../../core/api';
 import { BrandingService } from '../../core/branding.service';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
@@ -40,7 +41,7 @@ export interface Notifications {
 @Component({
   selector: 'app-top',
   standalone: true,
-  imports: [CommonModule, RouterLink, LanguageSwitcherComponent, TuiIcon, RouterLinkActive, AuthImgDirective, TranslatePipe],
+  imports: [CommonModule, RouterLink, LanguageSwitcherComponent, TuiIcon, RouterLinkActive, AuthImgDirective, TranslatePipe, SkeletonComponent],
   templateUrl: './top.component.html',
   styleUrl: './top.component.css',
 })

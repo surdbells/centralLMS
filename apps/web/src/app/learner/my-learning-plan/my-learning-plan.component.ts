@@ -10,6 +10,7 @@ import {
   type PlanCompletion,
   type PlanItemStatus,
 } from '../../services/learning-plans.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /**
  * The learner's own Learning Plan: year tabs (2025 / 2026 / 2027 …), each with
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'app-my-learning-plan',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, SkeletonComponent],
   templateUrl: './my-learning-plan.component.html',
   styleUrls: ['./my-learning-plan.component.scss'],
 })

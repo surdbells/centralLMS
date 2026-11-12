@@ -38,9 +38,14 @@
       </div>
     </div>
 
-    <tui-loader *ngIf="ui_controls.is_loading" />
+    <!-- First load: placeholders shaped like the notes. A refresh keeps the notes on screen, dimmed. -->
+    <section class="ui-section" *ngIf="ui_controls.is_loading && notes.length === 0">
+      <app-skeleton variant="list" [rows]="4"></app-skeleton>
+    </section>
 
-    <section class="ui-section note-card" *ngFor="let note of notes">
+    <section class="ui-section note-card" *ngFor="let note of notes"
+             [style.opacity]="ui_controls.is_loading ? 0.6 : null"
+             [style.pointer-events]="ui_controls.is_loading ? 'none' : null">
       <div class="d-flex justify-content-between align-items-start gap-3">
         <div class="flex-grow-1">
           <h2 class="ui-section__title mb-1">

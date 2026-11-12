@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiIcon } from '@taiga-ui/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { TopComponent } from '../../partials/top/top.component';
@@ -13,6 +13,7 @@ import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /**
  * Everything that has been sent to the signed-in person.
@@ -28,7 +29,7 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, TopComponent, TuiIcon, TuiLoader, TranslatePipe],
+  imports: [CommonModule, TopComponent, TuiIcon, SkeletonComponent, TranslatePipe],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css',
 })

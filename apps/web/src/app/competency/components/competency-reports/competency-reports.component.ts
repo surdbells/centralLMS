@@ -7,6 +7,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { ReportViewerComponent } from '../report-viewer/report-viewer.component';
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 import {
   CompetencyService,
@@ -42,7 +43,7 @@ interface ReportTab {
 @Component({
   selector: 'app-competency-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, ReportViewerComponent, CycleSelectComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, ReportViewerComponent, CycleSelectComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './competency-reports.component.html',
   styleUrl: './competency-reports.component.scss',
 })

@@ -7,6 +7,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -34,7 +35,7 @@ interface QuestionAnalytics {
 @Component({
   selector: 'app-assessment-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -190,7 +191,7 @@ interface QuestionAnalytics {
         </section>
       </div>
 
-      <div class="loading" *ngIf="loading"><div class="spinner-border text-secondary" role="status"></div></div>
+      <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="activeTab==='questions' ? 8 : 10"></app-skeleton>
     </div>
     </main>
   `,
@@ -223,7 +224,6 @@ interface QuestionAnalytics {
     .pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 22px; border-top: 1px solid var(--ui-border); }
     .pg-info { font-size: .8125rem; color: var(--ui-text-muted); font-variant-numeric: tabular-nums; }
 
-    .loading { display: flex; justify-content: center; padding: 40px; }
   `]
 })
 export class AssessmentReportsComponent implements OnInit, OnDestroy {

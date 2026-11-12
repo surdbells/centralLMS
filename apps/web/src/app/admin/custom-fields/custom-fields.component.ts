@@ -16,6 +16,7 @@ import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /** The draft a tenant's custom field is edited as. */
 interface FieldDraft {
@@ -30,7 +31,7 @@ interface FieldDraft {
 @Component({
   selector: 'app-custom-fields',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -48,7 +49,11 @@ interface FieldDraft {
             </div>
           </header>
 
-          <div *ngIf="loading" class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+          <div *ngIf="loading" class="row g-4">
+            <div class="col-lg-7">
+              <section class="ui-section mb-0"><app-skeleton variant="list" [rows]="5"></app-skeleton></section>
+            </div>
+          </div>
 
           <div class="alert alert-danger" *ngIf="error"><i class="bi bi-exclamation-triangle me-2"></i>{{ error }}</div>
 

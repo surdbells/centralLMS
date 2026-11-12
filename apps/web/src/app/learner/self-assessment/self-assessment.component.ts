@@ -11,6 +11,7 @@ import {
   type LevelSubmission,
   type ProficiencyLevel,
 } from '../../competency/competency.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /**
  * The employee's own side of a competency assessment.
@@ -24,7 +25,7 @@ import {
 @Component({
   selector: 'app-self-assessment',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './self-assessment.component.html',
   styleUrl: './self-assessment.component.scss',
 })

@@ -109,11 +109,11 @@
 
   <!-- Loading State -->
   @if (loading()) {
-    <div class="text-center py-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-      </div>
-    </div>
+    @if (viewMode() === 'grid') {
+      <app-skeleton variant="cards" [count]="6"></app-skeleton>
+    } @else {
+      <app-skeleton variant="table" [rows]="8" [cols]="10"></app-skeleton>
+    }
   } @else {
     <!-- Empty State -->
     @if (paths().length === 0) {

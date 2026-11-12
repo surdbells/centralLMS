@@ -18,6 +18,8 @@ import { CertificatesService } from '../../services/certificates.service';
 import { ApiClient, ApiError, AuthImgDirective } from '../../core/api';
 import { MyCompetencyComponent } from '../../learner/my-competency/my-competency.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { I18nService } from '../../i18n.service';
 import { HotToastService } from '@ngneat/hot-toast';
 
 /* The shapes this screen's template already reads. Each is filled in one
@@ -31,12 +33,24 @@ export interface UserProfile {
   job_title: string;
   department: string;
   joined_date: string | null;
+  /** The account's status as the API holds it ('active', 'suspended' …); null when not sent. */
+  status: string | null;
 }
 
 export interface Overview {
   courses_enrolled: number;
   courses_completed: number;
   courses_in_progress: number;
+  /** Enrolments not yet opened, as the API counted them. */
+  courses_not_started: number;
+  /**
+   * The mean progress across every course held, completed ones counting as
+   * 100. Distinct from `overall_progress`, which is courses finished out of
+   * courses held.
+   */
+  avg_completion: number;
+  /** Every second recorded against the learner's enrolments. */
+  total_learning_seconds: number;
   total_learning_hours: number;
   hours_this_week: number;
   total_certificates: number;
@@ -201,7 +215,7 @@ export interface DashboardData {
 @Component({
   selector: 'app-learner-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, AuthImgDirective, TranslatePipe, MyCompetencyComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, AuthImgDirective, TranslatePipe, MyCompetencyComponent, SkeletonComponent],
   templateUrl: './learner-dashboard.component.html',
   styleUrls: ['./learner-dashboard.component.css'],
 })
@@ -214,6 +228,7 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   private readonly api = inject(ApiClient);
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
+  private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
 
   isLoading = true;
@@ -320,7 +335,7 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   private adapt(
     d: LearnerDashboard,
     profile: {
-      fullName: string; avatarUrl: string | null; createdAt: string | null;
+      fullName: string; avatarUrl: string | null; createdAt: string | null; status?: string | null;
       placement?: { jobTitleName: string | null; departmentName: string | null } | null;
     },
     skills: { held: Array<{ name: string; coursesCompleted: number; coursesAvailable: number;
@@ -349,12 +364,16 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
         job_title: profile.placement?.jobTitleName ?? '',
         department: profile.placement?.departmentName ?? '',
         joined_date: profile.createdAt,
+        status: profile.status ?? null,
       },
 
       overview: {
         courses_enrolled: d.overview.enrolled,
         courses_completed: d.overview.completed,
         courses_in_progress: d.overview.inProgress,
+        courses_not_started: d.overview.notStarted,
+        avg_completion: this.averageCompletion(d),
+        total_learning_seconds: d.overview.secondsSpent,
         total_learning_hours: Math.round(d.overview.secondsSpent / 360) / 10,
         hours_this_week: this.hoursIn(d, 7),
         total_certificates: d.overview.certificates,
@@ -476,6 +495,29 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
       minutes: Math.round(day.seconds / 60),
       hours: Math.round(day.seconds / 360) / 10,
     }));
+  }
+
+  /**
+   * The mean progress across the courses held.
+   *
+   * Read from the enrolments the dashboard already carries. A completed
+   * course counts as 100 whatever its stored percentage says, so a course
+   * finished before progress was tracked does not drag the mean down.
+   */
+  private averageCompletion(d: LearnerDashboard): number {
+    const held = [
+      ...d.courses.completed.map(() => 100),
+      ...d.courses.inProgress.map((e) => e.progressPercentage),
+      ...d.courses.notStarted.map((e) => e.progressPercentage),
+    ];
+
+    if (held.length === 0) {
+      return 0;
+    }
+
+    const sum = held.reduce((total, p) => total + Math.min(100, Math.max(0, p ?? 0)), 0);
+
+    return Math.round(sum / held.length);
   }
 
   /** Hours spent over the last `days` of the window in hand. */
@@ -683,6 +725,45 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
     const since = new Date(joined).getTime();
 
     return Math.max(0, Math.ceil((Date.now() - since) / 86_400_000));
+  }
+
+  // --- the profile card -----------------------------------------------------
+
+  /**
+   * Whether the account is active, or null when the profile did not say —
+   * which renders as a dash rather than a guess.
+   */
+  get isAccountActive(): boolean | null {
+    const status = this.dashboard?.user.status ?? null;
+
+    return status === null ? null : status === 'active';
+  }
+
+  /** Total recorded learning time, as "12h 30m" ("0m" for none). */
+  get timeInSystem(): string {
+    const seconds = this.dashboard?.overview.total_learning_seconds ?? 0;
+
+    return this.formatActivityTime(Math.round(seconds / 60));
+  }
+
+  /** The join date written out in full, e.g. "28 October 2026"; a dash when unknown. */
+  get joinedOn(): string {
+    const joined = this.dashboard?.user.joined_date ?? null;
+    const date = joined === null || joined === '' ? null : new Date(joined);
+
+    if (date === null || Number.isNaN(date.getTime())) {
+      return '—';
+    }
+
+    // Day-month-year in every language the app speaks, with Latin digits in
+    // Arabic too, since the layout stays left-to-right.
+    const locales: Record<string, string> = { en: 'en-GB', fr: 'fr-FR', ar: 'ar-u-nu-latn' };
+
+    return date.toLocaleDateString(locales[this.i18n.lang] ?? 'en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   }
 
   formatActivityTime(minutes: number): string {

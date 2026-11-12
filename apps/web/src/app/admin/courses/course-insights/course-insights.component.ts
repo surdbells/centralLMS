@@ -14,7 +14,9 @@ import { ReportsService, type ReportResult, type ReportRow } from '../../../serv
 import { AssessmentsService } from '../../../services/assessments.service';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 
 
 /*
@@ -222,7 +224,7 @@ interface CourseInsightsData {
 @Component({
   selector: 'app-course-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
   templateUrl: './course-insights.component.html',
   styleUrls: ['./course-insights.component.css'],
 })

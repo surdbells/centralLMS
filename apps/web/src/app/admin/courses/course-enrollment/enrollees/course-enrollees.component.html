@@ -26,12 +26,7 @@
   </div>
 
   <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-    <p>{{ 'admin.enrollees.loading_courses' | translate }}</p>
-  </div>
+  <app-skeleton *ngIf="loading" variant="list" [rows]="5" />
 
   <!-- Course Selection -->
   <div class="course-selector-section" *ngIf="!loading && showCourseSelector">
@@ -169,10 +164,7 @@
 
     <!-- Enrollees Table -->
     <section class="ui-section ui-section--flush table-card">
-      <div class="table-loading" *ngIf="loadingEnrollees">
-        <div class="spinner-border spinner-border-sm"></div>
-        <span>{{ 'admin.enrollees.loading_enrollees' | translate }}</span>
-      </div>
+      <app-skeleton *ngIf="loadingEnrollees" class="table-skeleton" variant="table" [rows]="6" [cols]="8" />
 
       <div class="table-responsive" *ngIf="!loadingEnrollees">
         <table class="table table-hover">
@@ -309,10 +301,8 @@
           <!-- Available Users -->
           <div class="users-list-panel">
             <h5>{{ 'admin.enroll.available_users' | translate }}</h5>
-            <div class="users-list" [class.loading]="loadingUnenrolled">
-              <div class="loading-overlay" *ngIf="loadingUnenrolled">
-                <div class="spinner-border spinner-border-sm"></div>
-              </div>
+            <div class="users-list" [class.loading]="loadingUnenrolled && unenrolledUsers.length > 0">
+              <app-skeleton *ngIf="loadingUnenrolled && unenrolledUsers.length === 0" class="list-skeleton" variant="list" [rows]="5" />
 
               <div class="user-item"
                    *ngFor="let user of unenrolledUsers"

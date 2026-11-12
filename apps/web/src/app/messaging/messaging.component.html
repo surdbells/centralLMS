@@ -3,6 +3,7 @@
 <main class="main">
   <div class="ui-page messaging-page">
     <header class="ui-page-header">
+      <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
       <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-chat-dots"></i></div>
       <div class="ui-page-header__titles">
         <h1>{{ 'nav.messages' | translate }}</h1>
@@ -38,10 +39,7 @@
 
     <!-- Conversations List -->
     <div class="conversations-list">
-      <div *ngIf="loading" class="loading-state">
-        <div class="spinner-border spinner-border-sm text-primary"></div>
-        <span>{{ 'common.loading' | translate }}</span>
-      </div>
+      <app-skeleton *ngIf="loading" class="conversations-skeleton" variant="list" [rows]="6"></app-skeleton>
 
       <div *ngIf="!loading && filteredConversations.length === 0" class="ui-state empty-state">
         <span class="ui-state__icon"><i class="bi bi-chat-left-text"></i></span>
@@ -60,9 +58,9 @@
 
         <!-- Avatar -->
         <div class="conversation-avatar">
-          <img *ngIf="getConversationAvatar(conv)" [src]="'data:image/png;base64,'+getConversationAvatar(conv)" [alt]="getConversationName(conv)">
-          <div *ngIf="!getConversationAvatar(conv)" class="avatar-placeholder" [class]="'type-' + conv.type">
-            <span *ngIf="conv.type === 'direct'">{{ getInitials(getConversationName(conv)) }}</span>
+          <app-avatar *ngIf="conv.type === 'direct' || getConversationAvatar(conv)"
+                      [src]="getConversationAvatar(conv)" [name]="getConversationName(conv)" [size]="48"></app-avatar>
+          <div *ngIf="conv.type !== 'direct' && !getConversationAvatar(conv)" class="avatar-placeholder" [class]="'type-' + conv.type">
             <i *ngIf="conv.type === 'group'" class="bi bi-people"></i>
             <i *ngIf="conv.type === 'channel'" class="bi bi-hash"></i>
           </div>
@@ -120,9 +118,9 @@
 
         <div class="chat-header-info" (click)="toggleParticipants()">
           <div class="chat-avatar">
-            <img *ngIf="getConversationAvatar(activeConversation)" [src]="'data:image/png;base64,'+getConversationAvatar(activeConversation)">
-            <div *ngIf="!getConversationAvatar(activeConversation)" class="avatar-placeholder" [class]="'type-' + activeConversation.type">
-              <span *ngIf="activeConversation.type === 'direct'">{{ getInitials(getConversationName(activeConversation)) }}</span>
+            <app-avatar *ngIf="activeConversation.type === 'direct' || getConversationAvatar(activeConversation)"
+                        [src]="getConversationAvatar(activeConversation)" [name]="getConversationName(activeConversation)" [size]="40"></app-avatar>
+            <div *ngIf="activeConversation.type !== 'direct' && !getConversationAvatar(activeConversation)" class="avatar-placeholder" [class]="'type-' + activeConversation.type">
               <i *ngIf="activeConversation.type === 'group'" class="bi bi-people"></i>
               <i *ngIf="activeConversation.type === 'channel'" class="bi bi-hash"></i>
             </div>
@@ -169,9 +167,7 @@
       <!-- Messages Area -->
       <div class="messages-area" #messagesContainer (scroll)="onMessagesScroll($event)">
         <!-- Loading More -->
-        <div class="loading-more" *ngIf="loadingMoreMessages">
-          <div class="spinner-border spinner-border-sm"></div>
-        </div>
+        <app-skeleton *ngIf="loadingMoreMessages" variant="list" [rows]="2"></app-skeleton>
 
         <!-- Messages -->
         <ng-container *ngFor="let message of messages; let i = index; trackBy: trackByMessageId">
@@ -196,10 +192,7 @@
 
             <!-- Avatar -->
             <div class="message-avatar" *ngIf="!isOwnMessage(message) && !shouldGroupMessage(i)">
-              <img *ngIf="message.sender_avatar" [src]="'data:image/png;base64,'+message.sender_avatar">
-              <div *ngIf="!message.sender_avatar" class="avatar-placeholder">
-                {{ getInitials(message.sender_first_name + ' ' + message.sender_last_name) }}
-              </div>
+              <app-avatar [src]="message.sender_avatar" [name]="message.sender_first_name + ' ' + message.sender_last_name" [size]="32"></app-avatar>
             </div>
 
             <div class="message-content-wrapper">
@@ -281,9 +274,7 @@
         </ng-container>
 
         <!-- Loading Messages -->
-        <div class="loading-messages" *ngIf="loadingMessages">
-          <div class="spinner-border text-primary"></div>
-        </div>
+        <app-skeleton *ngIf="loadingMessages" variant="list" [rows]="5"></app-skeleton>
 
         <!-- Empty State -->
         <div class="empty-messages" *ngIf="!loadingMessages && messages.length === 0">
@@ -382,10 +373,7 @@
     <div class="participants-list">
       <div class="participant-item" *ngFor="let participant of participants; trackBy: trackByParticipantId">
         <div class="participant-avatar">
-          <img *ngIf="participant.profile_image" [src]="'data:image/png;base64,'+participant.profile_image">
-          <div *ngIf="!participant.profile_image" class="avatar-placeholder">
-            {{ getInitials(participant.first_name + ' ' + participant.last_name) }}
-          </div>
+          <app-avatar [src]="participant.avatar || participant.profile_image" [name]="participant.first_name + ' ' + participant.last_name" [size]="36"></app-avatar>
           <span class="online-indicator" [class]="getOnlineStatusClass(participant.online_status)"></span>
         </div>
         <div class="participant-info">
@@ -504,8 +492,7 @@
         <div class="user-search-results" *ngIf="userSearchResults.length > 0">
           <div class="user-result" *ngFor="let user of userSearchResults" (click)="selectUser(user)">
             <div class="user-avatar">
-              <img *ngIf="user.profile_image" [src]="'data:image/png;base64,'+user.profile_image">
-              <div *ngIf="!user.profile_image" class="avatar-placeholder">{{ getInitials(user.first_name + ' ' + user.last_name) }}</div>
+              <app-avatar [src]="user.avatarUrl || user.profile_image" [name]="user.first_name + ' ' + user.last_name" [size]="36"></app-avatar>
             </div>
             <div class="user-info">
               <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
@@ -552,8 +539,7 @@
              [class.selected]="forwardTargets.includes(conv.conversation_id)"
              (click)="toggleForwardTarget(conv.conversation_id)">
           <div class="target-avatar">
-            <img *ngIf="getConversationAvatar(conv)" [src]="'data:image/png;base64,'+getConversationAvatar(conv)">
-            <div *ngIf="!getConversationAvatar(conv)" class="avatar-placeholder">{{ getInitials(getConversationName(conv)) }}</div>
+            <app-avatar [src]="getConversationAvatar(conv)" [name]="getConversationName(conv)" [size]="36"></app-avatar>
           </div>
           <span class="target-name">{{ getConversationName(conv) }}</span>
           <i class="bi bi-check-circle-fill" *ngIf="forwardTargets.includes(conv.conversation_id)"></i>
@@ -664,8 +650,7 @@
       <div class="user-search-results" *ngIf="newParticipantSearchResults.length > 0">
         <div class="user-result" *ngFor="let user of newParticipantSearchResults" (click)="selectNewParticipant(user)">
           <div class="user-avatar">
-            <img *ngIf="user.profile_image" [src]="'data:image/png;base64,'+user.profile_image">
-            <div *ngIf="!user.profile_image" class="avatar-placeholder">{{ getInitials(user.first_name + ' ' + user.last_name) }}</div>
+            <app-avatar [src]="user.avatarUrl || user.profile_image" [name]="user.first_name + ' ' + user.last_name" [size]="36"></app-avatar>
           </div>
           <div class="user-info">
             <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
@@ -741,10 +726,7 @@
       </button>
     </div>
     <div class="modal-body">
-      <div *ngIf="loadingReadReceipts" class="text-center py-4">
-        <div class="spinner-border spinner-border-sm"></div>
-        <span class="ms-2">{{ 'common.loading' | translate }}</span>
-      </div>
+      <app-skeleton *ngIf="loadingReadReceipts" variant="list" [rows]="3"></app-skeleton>
       <div *ngIf="!loadingReadReceipts && readReceipts.length === 0" class="text-center text-muted py-4">
         <i class="bi bi-eye-slash d-block mb-2" style="font-size: 2rem;"></i>
         {{ 'messaging.no_reads' | translate }}
@@ -752,8 +734,7 @@
       <div class="read-receipts-list" *ngIf="!loadingReadReceipts && readReceipts.length > 0">
         <div class="receipt-item" *ngFor="let receipt of readReceipts">
           <div class="receipt-avatar">
-            <img *ngIf="receipt.profile_image" [src]="'data:image/png;base64,'+receipt.profile_image">
-            <div *ngIf="!receipt.profile_image" class="avatar-placeholder">{{ getInitials(receipt.first_name + ' ' + receipt.last_name) }}</div>
+            <app-avatar [src]="receipt.profile_image" [name]="receipt.first_name + ' ' + receipt.last_name" [size]="36"></app-avatar>
           </div>
           <div class="receipt-info">
             <span class="receipt-name">{{ receipt.first_name }} {{ receipt.last_name }}</span>
@@ -808,9 +789,7 @@
 
       <!-- Search Results -->
       <div class="search-results">
-        <div *ngIf="searchingMessages" class="text-center py-4">
-          <div class="spinner-border"></div>
-        </div>
+        <app-skeleton *ngIf="searchingMessages" variant="list" [rows]="3"></app-skeleton>
         <div *ngIf="!searchingMessages && messageSearchResults.length === 0 && messageSearchQuery" class="text-center text-muted py-4">
           <i class="bi bi-search d-block mb-2" style="font-size: 2rem;"></i>
           {{ 'messaging.no_messages_found' | translate }}
@@ -843,8 +822,7 @@
     <div class="modal-body" *ngIf="userToBlock">
       <div class="text-center mb-3">
         <div class="user-avatar-lg mx-auto mb-2">
-          <img *ngIf="userToBlock.profile_image" [src]="'data:image/png;base64,'+userToBlock.profile_image">
-          <div *ngIf="!userToBlock.profile_image" class="avatar-placeholder">{{ getInitials(userToBlock.first_name + ' ' + userToBlock.last_name) }}</div>
+          <app-avatar [src]="userToBlock.avatar || userToBlock.profile_image" [name]="userToBlock.first_name + ' ' + userToBlock.last_name" [size]="64"></app-avatar>
         </div>
         <h5>{{ userToBlock.first_name }} {{ userToBlock.last_name }}</h5>
       </div>
@@ -878,9 +856,7 @@
       </button>
     </div>
     <div class="modal-body">
-      <div *ngIf="loadingBroadcast" class="text-center py-4">
-        <div class="spinner-border"></div>
-      </div>
+      <app-skeleton *ngIf="loadingBroadcast" variant="detail" height="120px"></app-skeleton>
       <div *ngIf="!loadingBroadcast && selectedBroadcast">
         <div class="broadcast-detail-header mb-3">
           <span class="badge me-2" [ngClass]="{
@@ -926,16 +902,11 @@
       </button>
     </div>
     <div class="modal-body">
-      <div *ngIf="loadingMessageDetail" class="text-center py-4">
-        <div class="spinner-border"></div>
-      </div>
+      <app-skeleton *ngIf="loadingMessageDetail" variant="detail" height="120px"></app-skeleton>
       <div *ngIf="!loadingMessageDetail && selectedMessageDetail">
         <div class="message-detail-sender mb-3 d-flex align-items-center">
           <div class="message-avatar me-3">
-            <img *ngIf="selectedMessageDetail.sender_avatar" [src]="'data:image/png;base64,'+selectedMessageDetail.sender_avatar">
-            <div *ngIf="!selectedMessageDetail.sender_avatar" class="avatar-placeholder">
-              {{ getInitials(selectedMessageDetail.sender_first_name + ' ' + selectedMessageDetail.sender_last_name) }}
-            </div>
+            <app-avatar [src]="selectedMessageDetail.sender_avatar" [name]="selectedMessageDetail.sender_first_name + ' ' + selectedMessageDetail.sender_last_name" [size]="48"></app-avatar>
           </div>
           <div>
             <strong>{{ selectedMessageDetail.sender_first_name }} {{ selectedMessageDetail.sender_last_name }}</strong>

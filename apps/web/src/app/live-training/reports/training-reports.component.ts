@@ -12,6 +12,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { Router } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { I18nService } from '../../i18n.service';
 
 interface ReportData {
@@ -35,7 +36,7 @@ interface DateRange {
 @Component({
   selector: 'app-training-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent],
   templateUrl: './training-reports.component.html',
   styleUrls: ['./training-reports.component.scss']
 })

@@ -11,6 +11,7 @@ import {
 } from '../../competency.service';
 import { CompetencyRadarComponent } from './competency-radar.component';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -26,7 +27,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-individual-report',
   standalone: true,
-  imports: [CommonModule, CompetencyRadarComponent, TranslatePipe],
+  imports: [CommonModule, CompetencyRadarComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './individual-report.component.html',
   styleUrl: './individual-report.component.scss',
 })

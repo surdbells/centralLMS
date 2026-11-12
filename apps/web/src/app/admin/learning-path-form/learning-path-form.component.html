@@ -2,11 +2,9 @@
 <main class="main">
   <div class="ui-page">
   @if (loading()) {
-  <div class="loading-container">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-  </div>
+  <section class="ui-section">
+    <app-skeleton variant="form" [rows]="6"></app-skeleton>
+  </section>
 } @else {
   <div class="learning-path-form">
     <!-- Breadcrumb -->

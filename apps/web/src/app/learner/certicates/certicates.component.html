@@ -77,6 +77,6 @@
       </article>
     </div>
 
-    <tui-loader *ngIf="ui_controls.is_loading" />
+    <app-skeleton *ngIf="ui_controls.is_loading" variant="cards" [count]="6"></app-skeleton>
   </div>
 </main>

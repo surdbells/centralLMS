@@ -36,8 +36,8 @@
 
       <div class="alert alert-danger mx-3" *ngIf="error">{{ error }}</div>
 
-      <div class="text-center py-5" *ngIf="loading">
-        <tui-loader />
+      <div class="notif-list notif-skeleton" *ngIf="loading">
+        <app-skeleton variant="list" [rows]="6"></app-skeleton>
       </div>
 
       <div class="notif-list" *ngIf="!loading">

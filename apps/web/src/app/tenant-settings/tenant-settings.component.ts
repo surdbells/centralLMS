@@ -7,6 +7,7 @@ import { catchError, takeUntil } from 'rxjs/operators';
 import { AdmintopComponent } from '../partials/top/admintop/admintop.component';
 import { RichHtmlEditorComponent } from '../shared/rich-html-editor/rich-html-editor.component';
 import { TranslatePipe } from '../translate.pipe';
+import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
 import { I18nService } from '../i18n.service';
 import { ConfirmDialogService } from '../shared/components/confirmation-dialog/confirmation-dialog.component';
 import {
@@ -57,7 +58,7 @@ export interface SettingsTab {
 @Component({
   selector: 'app-tenant-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, RichHtmlEditorComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, RichHtmlEditorComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './tenant-settings.component.html',
   styleUrls: ['./tenant-settings.component.scss'],
 })

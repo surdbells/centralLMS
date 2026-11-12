@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
@@ -38,7 +39,7 @@ interface SectionQuestion {
 @Component({
   selector: 'app-section-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -230,9 +231,7 @@ interface SectionQuestion {
       </div>
 
       <!-- Loading -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner"></div>
-      </div>
+      <app-skeleton *ngIf="loading" variant="list" [rows]="4"></app-skeleton>
     </div>
     </main>
   `,
@@ -379,13 +378,6 @@ interface SectionQuestion {
       padding: 12px; border-radius: var(--ui-radius-ctl, 8px); color: var(--ui-warning-text, #8f4b07); font-size: 13px;
     }
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-
-    .loading-state { display: flex; justify-content: center; padding: 40px; }
-    .spinner {
-      width: 32px; height: 32px; border: 3px solid var(--ui-border, #e7e9e7);
-      border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
       .sq-difficulty { display: none; }

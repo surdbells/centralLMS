@@ -117,9 +117,10 @@
     </section>
 
     <!-- Loading -->
-    <div *ngIf="ui_controls.is_loading" class="text-center my-5">
-      <tui-loader class="p-5" />
-    </div>
+    <ng-container *ngIf="ui_controls.is_loading">
+      <app-skeleton variant="kpis" [count]="5" />
+      <app-skeleton variant="table" [rows]="6" [cols]="5" />
+    </ng-container>
 
     <!-- Library -->
     <section *ngIf="!ui_controls.is_loading && !ui_controls.viewing_upload" class="ui-section ui-section--flush media-library">

@@ -17,6 +17,7 @@ import { SessionStore } from '../../../../core/auth/session.store';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
+import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../../i18n.service';
 import { ConfirmDialogService } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -95,7 +96,7 @@ export interface UserFilters {
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './user-list.component.html',
   styles: [`
     .users-table-section > .ui-toolbar { padding: 16px 22px 0; }

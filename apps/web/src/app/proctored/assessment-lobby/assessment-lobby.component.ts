@@ -7,6 +7,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, forkJoin, of, takeUntil } from 'rxjs';
@@ -46,13 +47,11 @@ interface SystemCheck {
 @Component({
   selector: 'app-assessment-lobby',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, SkeletonComponent],
   template: `
     <div class="lobby-container">
       <!-- Loading -->
-      <div class="loading" *ngIf="loading">
-        <div class="spinner"></div><p>Loading assessment...</p>
-      </div>
+      <app-skeleton *ngIf="loading" variant="detail" height="220px"></app-skeleton>
 
       <!-- Error -->
       <div class="error-card" *ngIf="error">
@@ -207,8 +206,6 @@ interface SystemCheck {
   styles: [`
     :host { display: block; }
     .lobby-container { max-width: 800px; margin: 0 auto; padding: 24px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    .loading { display: flex; flex-direction: column; align-items: center; padding: 80px 0; color: #64748b; }
-    .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
     .spinner-sm { width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-card { text-align: center; padding: 60px 20px; }

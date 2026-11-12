@@ -30,9 +30,7 @@
 
   <div class="mc-body">
     <!-- Loading -->
-    <div *ngIf="loading" class="mc-empty">
-      <div class="spinner-border text-primary" role="status"></div>
-    </div>
+    <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="2" />
 
     <!-- Nothing assigned / no assessment for this cycle -->
     <div *ngIf="!loading && !selected" class="mc-empty">

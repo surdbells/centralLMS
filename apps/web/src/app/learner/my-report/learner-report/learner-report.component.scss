@@ -13,19 +13,6 @@
 
 .tab-content { display: block; }
 
-// Loading
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .75rem;
-  padding: 3rem;
-  color: var(--ui-text-muted);
-  font-size: .875rem;
-
-  .spinner-border { color: var(--brand-primary); }
-}
-
 // ==========================================
 // OVERVIEW COLUMNS
 // ==========================================

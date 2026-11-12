@@ -19,10 +19,7 @@
     </div>
 
     @if (loading()) {
-      <div class="text-center py-5 ui-muted">
-        <div class="spinner-border lib-spinner" role="status"></div>
-        <div class="mt-2">{{ 'common.loading' | translate }}</div>
-      </div>
+      <app-skeleton variant="cards" [count]="8"></app-skeleton>
     } @else if (items().length === 0) {
       <div class="ui-state">
         <span class="ui-state__icon"><i class="bi bi-collection"></i></span>

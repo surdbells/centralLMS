@@ -7,14 +7,7 @@
 <app-admintop *ngIf="!isDialog"></app-admintop>
 <div class="ui-page insights-page" [class.insights-page--dialog]="isDialog">
   <!-- Loading State -->
-  <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
-    <div class="text-center">
-      <div class="spinner-border text-primary mb-3" role="status">
-        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-      </div>
-      <p class="text-muted">{{ 'admin.insights.loading' | translate }}</p>
-    </div>
-  </div>
+  <app-skeleton *ngIf="isLoading" variant="page" [count]="4" />
 
   <!-- Error State -->
   <div *ngIf="error && !isLoading" class="ui-state">
@@ -878,10 +871,7 @@
                       <span class="badge rounded-pill bg-black text-white">#{{ learner.rank }}</span>
                     </div>
                     <div class="flex-shrink-0 me-3">
-                      <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        <img *ngIf="learner.avatar_url" [src]="'data:image/png;base64,'+learner.avatar_url" [alt]="learner.full_name" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
-                        <span *ngIf="!learner.avatar_url" class="text-primary fw-bold">{{ learner.full_name?.charAt(0) }}</span>
-                      </div>
+                      <app-avatar [src]="learner.avatar_url" [name]="learner.full_name" [size]="40"></app-avatar>
                     </div>
                     <div class="flex-grow-1">
                       <h6 class="mb-0">{{ learner.full_name }}</h6>

@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TuiDialog, TuiDialogService, TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiDialog, TuiDialogService, TuiIcon } from '@taiga-ui/core';
 import { PolymorpheusComponent } from '@taiga-ui/polymorpheus';
 import { CourseInsightsComponent } from './course-insights/course-insights.component';
 import { Subject, forkJoin, of } from 'rxjs';
@@ -20,6 +20,7 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 import { CourseCardComponent } from '../../course-card.component';
 import { CourseMiniCardComponent } from '../../course-mini-card.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 
 /**
@@ -76,8 +77,8 @@ interface PreviewData {
     CommonModule,
     FormsModule,
     TuiIcon,
-    TuiLoader,
     TuiDialog,
+    SkeletonComponent,
     AdmintopComponent,
     CourseCardComponent,
     CourseMiniCardComponent,

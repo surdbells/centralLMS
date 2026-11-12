@@ -1,12 +1,5 @@
 // Page chrome (header, KPIs, sections, pills, bars) comes from the global UI kit
 // in styles.scss. Only the path viewer's own pieces live here.
-.loading-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-}
-
 .learning-path-viewer {
   // Header extras
   .path-header-badges {

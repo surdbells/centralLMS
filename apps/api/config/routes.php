@@ -112,6 +112,7 @@ use Central\Api\Application\Action\Enrollment\MyEnrollmentsAction;
 use Central\Api\Application\Action\Enrollment\RecordProgressAction;
 use Central\Api\Application\Action\Enrollment\SelfEnrollAction;
 use Central\Api\Application\Action\Enrollment\UnenrollAction;
+use Central\Api\Application\Action\Report\CustomReportAction;
 use Central\Api\Application\Action\Report\RunReportAction;
 use Central\Api\Application\Action\Report\SavedReportAction;
 use Central\Api\Application\Action\Gamification\GamificationAction;
@@ -1333,6 +1334,30 @@ return static function (App $app): void {
             $secure->group('/reports', function (RouteCollectorProxy $r) use ($uuid): void {
                 $r->get('', [RunReportAction::class, 'catalogue'])->setName('reports.catalogue');
                 $r->get('/learners', [RunReportAction::class, 'learners'])->setName('reports.learners');
+
+                // The custom report builder. Declared before `{key}` with the
+                // others; `custom` is not a report key either.
+                $r->group('/custom', function (RouteCollectorProxy $cr) use ($uuid): void {
+                    $cr->get('/sources', [CustomReportAction::class, 'sources'])
+                        ->setName('reports.custom.sources');
+                    $cr->get('/sources/{source:[a-z_]+}', [CustomReportAction::class, 'schema'])
+                        ->setName('reports.custom.schema');
+                    $cr->post('/run', [CustomReportAction::class, 'run'])->setName('reports.custom.run');
+
+                    $cr->get('/saved', [CustomReportAction::class, 'list'])->setName('reports.custom.saved.list');
+                    $cr->post('/saved', [CustomReportAction::class, 'create'])
+                        ->setName('reports.custom.saved.create');
+                    $cr->put('/saved/{id:' . $uuid . '}', [CustomReportAction::class, 'update'])
+                        ->setName('reports.custom.saved.update');
+                    $cr->delete('/saved/{id:' . $uuid . '}', [CustomReportAction::class, 'delete'])
+                        ->setName('reports.custom.saved.delete');
+                    $cr->post('/saved/{id:' . $uuid . '}/duplicate', [CustomReportAction::class, 'duplicate'])
+                        ->setName('reports.custom.saved.duplicate');
+                    $cr->get('/saved/{id:' . $uuid . '}/run', [CustomReportAction::class, 'runSaved'])
+                        ->setName('reports.custom.saved.run');
+                    $cr->get('/saved/{id:' . $uuid . '}/export', [CustomReportAction::class, 'exportSaved'])
+                        ->setName('reports.custom.saved.export');
+                });
 
                 $r->group('/saved', function (RouteCollectorProxy $sv) use ($uuid): void {
                     $sv->get('', [SavedReportAction::class, 'list'])->setName('reports.saved.list');

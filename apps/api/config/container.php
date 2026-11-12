@@ -75,8 +75,12 @@ use Central\Api\Domain\Report\CsvWriter;
 use Central\Api\Domain\Report\ReportCatalogue;
 use Central\Api\Domain\Report\ReportRepository;
 use Central\Api\Domain\Report\SavedReportRepository;
+use Central\Api\Domain\Report\CustomReportRepository;
+use Central\Api\Domain\Report\SavedCustomReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalReportRepository;
 use Central\Api\Infrastructure\Persistence\DbalSavedReportRepository;
+use Central\Api\Infrastructure\Persistence\DbalCustomReportRepository;
+use Central\Api\Infrastructure\Persistence\DbalSavedCustomReportRepository;
 use Central\Api\Application\Gamification\Awarder;
 use Central\Api\Domain\Gamification\GamificationRepository;
 use Central\Api\Infrastructure\Persistence\DbalGamificationRepository;
@@ -840,6 +844,16 @@ return [
 
     SavedReportRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalSavedReportRepository($c->get(Connection::class)),
+    ),
+
+    // The custom report builder: its data sources, and the reports people
+    // save from it.
+    CustomReportRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalCustomReportRepository($c->get(Connection::class)),
+    ),
+
+    SavedCustomReportRepository::class => factory(
+        static fn (ContainerInterface $c) => new DbalSavedCustomReportRepository($c->get(Connection::class)),
     ),
     GamificationRepository::class => factory(
         static fn (ContainerInterface $c) => new DbalGamificationRepository($c->get(Connection::class)),

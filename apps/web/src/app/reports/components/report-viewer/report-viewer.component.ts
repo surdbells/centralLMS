@@ -1,7 +1,7 @@
 // reports/components/report-viewer/report-viewer.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { CommonModule, DecimalPipe, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -16,6 +16,7 @@ import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 // ── Drilldown column definitions ──
 // Maps column names → the status filter to send to drilldown_learner_list
@@ -81,7 +82,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
 @Component({
   selector: 'app-report-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, ReportFiltersComponent, ReportExportComponent, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, ReportFiltersComponent, ReportExportComponent, AdmintopComponent, TranslatePipe, SkeletonComponent],
   providers: [DecimalPipe],
   template: `
     <app-admintop></app-admintop>
@@ -101,6 +102,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
 
         <!-- Header -->
         <header class="ui-page-header">
+          <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
           <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-file-earmark-bar-graph"></i></div>
           <div class="ui-page-header__titles">
             <h1>{{ report?.report_name || reportItem?.name || ('common.loading' | translate) }}</h1>
@@ -168,10 +170,10 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
                             (filtersChanged)="onFiltersChanged($event)"></app-report-filters>
 
         <!-- Loading -->
-        <div *ngIf="loading" class="ui-state">
-          <div class="spinner-border text-primary" role="status"></div>
-          <p class="mt-3">{{ 'reports.generating' | translate }}</p>
-        </div>
+        <ng-container *ngIf="loading">
+          <app-skeleton variant="kpis" [count]="4"></app-skeleton>
+          <app-skeleton variant="table" [rows]="8" [cols]="5"></app-skeleton>
+        </ng-container>
 
         <!-- Error -->
         <div *ngIf="error" class="ui-state">
@@ -235,7 +237,6 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
                 <p class="ui-section__subtitle">{{ drilldown.subtitle }}</p>
               </div>
               <div class="ui-section__actions">
-                <div class="spinner-border spinner-border-sm text-primary" *ngIf="drilldown.loading"></div>
                 <app-report-export *ngIf="drilldown.data.length"
                                    [data]="drilldown.data" [title]="drilldown.title"
                                    btnClass="btn-outline-secondary"></app-report-export>
@@ -244,6 +245,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
                 </button>
               </div>
             </div>
+            <app-skeleton *ngIf="drilldown.loading" variant="table" [rows]="5" [cols]="4"></app-skeleton>
             <div *ngIf="drilldown.data.length">
               <app-report-table [data]="drilldown.data" [title]="''"
                                 [searchable]="true" [sortable]="true" [pageSize]="10"></app-report-table>
@@ -308,6 +310,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
   `]
 })
 export class ReportViewerComponent implements OnInit, OnDestroy {
+  private readonly backLocation = inject(Location);
   reportKey = '';
   reportItem?: ReportCatalogItem;
   report: any = null;
@@ -354,6 +357,15 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
     private toast: HotToastService,
     private dialog: ConfirmDialogService
   ) {}
+
+  /** Header back button: the previous page, or /admin/reports when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.backLocation.back();
+      return;
+    }
+    void this.router.navigate(['/admin/reports']);
+  }
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe(params => {

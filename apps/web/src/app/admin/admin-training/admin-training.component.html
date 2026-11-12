@@ -1,11 +1,3 @@
-<app-admintop></app-admintop>
-<main class="main">
-  <!-- The live-training admin below renders its own page header; this
-       page only adds the way back. -->
-  <div class="admin-training-back">
-    <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate">
-      <i class="bi bi-chevron-left"></i>
-    </button>
-  </div>
-  <app-admin-live-training></app-admin-live-training>
-</main>
+<!-- The live-training admin renders its own top bar, page header and back
+     button; wrapping it in another top bar / <main> drew everything twice. -->
+<app-admin-live-training></app-admin-live-training>

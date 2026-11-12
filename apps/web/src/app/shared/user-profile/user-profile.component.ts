@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { TopComponent } from '../../partials/top/top.component';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiIcon } from '@taiga-ui/core';
 import { Router } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CommonModule } from '@angular/common';
@@ -10,6 +10,7 @@ import { ApiError } from '../../core/api';
 import { MyProfileService } from '../../services/my-profile.service';
 import type { User } from '../../services/users.service';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 
 /**
@@ -40,7 +41,7 @@ import { I18nService } from '../../i18n.service';
     CommonModule,
     FormsModule,
     TuiIcon,
-    TuiLoader,
+    SkeletonComponent,
     TranslatePipe,
   ],
   templateUrl: './user-profile.component.html',
@@ -56,6 +57,9 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   ui_controls = {
     is_loading: false,
+    // Saving keeps the form on screen (the button shows progress); only the
+    // first load shows the skeleton.
+    is_saving: false,
   };
 
   /** What the form shows, in the names the template already uses. */
@@ -107,7 +111,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   }
 
   update_changes(): void {
-    this.ui_controls.is_loading = true;
+    this.ui_controls.is_saving = true;
 
     this.profile
       .update({
@@ -121,11 +125,11 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (user) => {
           this.user_single = adapt(user);
-          this.ui_controls.is_loading = false;
+          this.ui_controls.is_saving = false;
           this.success_notification(this.i18n.t('profile.toast_saved'));
         },
         error: (error: ApiError) => {
-          this.ui_controls.is_loading = false;
+          this.ui_controls.is_saving = false;
           this.error_notification(error.message);
         },
       });
@@ -146,7 +150,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.ui_controls.is_loading = true;
+    this.ui_controls.is_saving = true;
 
     this.profile
       .uploadAvatar(file)
@@ -154,11 +158,11 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (user) => {
           this.user_single = adapt(user);
-          this.ui_controls.is_loading = false;
+          this.ui_controls.is_saving = false;
           this.success_notification(this.i18n.t('profile.toast_picture_updated'));
         },
         error: (error: ApiError) => {
-          this.ui_controls.is_loading = false;
+          this.ui_controls.is_saving = false;
           this.error_notification(error.message);
         },
       });

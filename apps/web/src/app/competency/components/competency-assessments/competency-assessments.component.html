@@ -19,9 +19,7 @@
   </button>
 </div>
 
-<div *ngIf="loading" class="text-center py-5 text-muted">
-  <div class="spinner-border text-primary" role="status"></div>
-</div>
+<app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="6" />
 
 <div *ngIf="!loading && !assessments.length" class="ui-state">
   <span class="ui-state__icon"><tui-icon icon="@tui.clipboard-check"></tui-icon></span>

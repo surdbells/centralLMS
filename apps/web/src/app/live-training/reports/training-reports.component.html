@@ -199,8 +199,7 @@
           <div class="instructor-item" *ngFor="let instructor of topInstructors; let i = index">
             <div class="rank-badge" [ngClass]="getRankClass(i + 1)">{{ i + 1 }}</div>
             <div class="ui-avatar">
-              <img [src]="instructor.avatar" *ngIf="instructor.avatar" alt="">
-              <span *ngIf="!instructor.avatar">{{ getInitials(instructor.name) }}</span>
+              <app-avatar [src]="instructor.avatar" [name]="instructor.name"></app-avatar>
             </div>
             <div class="instructor-info flex-grow-1">
               <strong>{{ instructor.name }}</strong>

@@ -1,6 +1,6 @@
 import { Component, OnDestroy, inject } from '@angular/core';
 import { TopComponent } from '../../partials/top/top.component';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiIcon } from '@taiga-ui/core';
 import { Router } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CommonModule } from '@angular/common';
@@ -37,7 +37,6 @@ import { I18nService } from '../../i18n.service';
     CommonModule,
     FormsModule,
     TuiIcon,
-    TuiLoader,
     TranslatePipe,
   ],
   templateUrl: './user-security.component.html',
@@ -53,7 +52,8 @@ export class UserSecurityComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   ui_controls = {
-    is_loading: false,
+    // Changing the password is a save: the form stays, the button shows progress.
+    is_saving: false,
   };
 
   /**
@@ -102,7 +102,7 @@ export class UserSecurityComponent implements OnDestroy {
       return;
     }
 
-    this.ui_controls.is_loading = true;
+    this.ui_controls.is_saving = true;
 
     this.users
       .setPassword(
@@ -113,7 +113,7 @@ export class UserSecurityComponent implements OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          this.ui_controls.is_loading = false;
+          this.ui_controls.is_saving = false;
           this.update_password = { current_password: '', password: '', confirm_password: '' };
           this.success_notification(this.i18n.t('security.toast_password_changed'));
         },
@@ -121,7 +121,7 @@ export class UserSecurityComponent implements OnDestroy {
           // The old screen had a branch for `response_code === 200` and one
           // for 400, and nothing at all for a wrong current password or a
           // password the policy rejects — so those failed in silence.
-          this.ui_controls.is_loading = false;
+          this.ui_controls.is_saving = false;
           this.error_notification(error.message);
         },
       });

@@ -13,7 +13,7 @@
     </header>
 
     <div class="security-col" data-bs-spy="scroll" data-bs-target="#accountNav" data-bs-smooth-scroll="true" tabindex="0">
-      <section *ngIf="!ui_controls.is_loading" class="ui-section" id="visibility">
+      <section class="ui-section" id="visibility">
         <div class="ui-section__head">
           <div>
             <h2 class="ui-section__title">{{ 'security.two_step_title' | translate }}</h2>
@@ -36,7 +36,7 @@
         </div>
       </section>
 
-      <section *ngIf="!ui_controls.is_loading" class="ui-section" id="password">
+      <section class="ui-section" id="password">
         <div class="ui-section__head">
           <div>
             <h2 class="ui-section__title">{{ 'security.change_password_title' | translate }}</h2>
@@ -58,10 +58,12 @@
           </div>
         </div>
         <div class="security-footer">
-          <button (click)="password_change()" class="btn btn-primary" type="button">{{ 'common.save_changes' | translate }}</button>
+          <button (click)="password_change()" class="btn btn-primary" type="button" [disabled]="ui_controls.is_saving">
+            <span *ngIf="ui_controls.is_saving" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            {{ 'common.save_changes' | translate }}
+          </button>
         </div>
       </section>
-      <tui-loader *ngIf="ui_controls.is_loading" />
     </div>
   </div>
 </main>

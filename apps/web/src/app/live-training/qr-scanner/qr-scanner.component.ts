@@ -1,7 +1,8 @@
 // live-training/qr-scanner/qr-scanner.component.ts
 
-import { Component, OnInit, OnDestroy, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, ViewEncapsulation, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { CommonModule, Location } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, CheckInResult } from '../live-training.service';
@@ -23,6 +24,7 @@ declare var Html5Qrcode: any;
     <div class="ui-page qr-scanner-page">
       <!-- Scanner Header -->
       <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-qr-code-scan"></i></div>
         <div class="ui-page-header__titles">
           <h1>{{ 'live.qr.title' | translate }}</h1>
@@ -200,6 +202,8 @@ declare var Html5Qrcode: any;
   `]
 })
 export class QrScannerComponent implements OnInit, OnDestroy {
+  private readonly backLocation = inject(Location);
+  private readonly navRouter = inject(Router);
   private destroy$ = new Subject<void>();
   private html5QrCode: any;
 
@@ -213,6 +217,16 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   result: { success: boolean; message?: string; data?: CheckInResult } | null = null;
 
   constructor(private liveTrainingService: LiveTrainingService, private i18n: I18nService) {}
+
+  /** Header back button: the previous page, or /mytraining when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    this.stopScanning();
+    if (window.history.length > 1) {
+      this.backLocation.back();
+      return;
+    }
+    void this.navRouter.navigate(['/mytraining']);
+  }
 
   ngOnInit(): void {
     // Load Html5Qrcode library if not already loaded

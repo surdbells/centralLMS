@@ -7,7 +7,7 @@
     </div>
   </header>
 
-  <div class="tf-state" *ngIf="loading"><div class="spinner-border tf-spinner"></div></div>
+  <section class="ui-section" *ngIf="loading"><app-skeleton variant="list" [rows]="4"></app-skeleton></section>
   <div class="ui-state" *ngIf="failed && !loading">
     <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
     <p>{{ 'feedback.failed' | translate }}</p>

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { ApiClient, Endpoints } from '../../core/api';
 import { UsersService } from '../../services/users.service';
 import {
@@ -24,7 +25,7 @@ interface CourseOption { id: string; title: string; }
 @Component({
   selector: 'app-learning-plans',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-plans.component.html',
   styleUrls: ['./learning-plans.component.scss'],
 })

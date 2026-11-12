@@ -2,6 +2,7 @@
 
 import { Component, ElementRef, OnInit, OnDestroy, HostListener, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -20,6 +21,7 @@ import {
 import { ScormAdapterService, scormSnapshot, toScormState } from '../../services/scorm-adapter.service';
 import { QuizComponent } from '../quiz/quiz.component';
 import { CourseDiscussionComponent } from '../course-discussion/course-discussion.component';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import {
   CourseResourcesService,
   type CourseResource,
@@ -36,7 +38,7 @@ const NARROW_QUERY = '(max-width: 1100px)';
 @Component({
   selector: 'app-course-player',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, QuizComponent, TranslatePipe, CourseDiscussionComponent],
+  imports: [CommonModule, FormsModule, RouterModule, QuizComponent, TranslatePipe, CourseDiscussionComponent, AvatarComponent, SkeletonComponent],
   templateUrl: './course-player.component.html',
   styleUrls: ['./course-player.component.scss']
 })

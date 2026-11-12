@@ -2,11 +2,7 @@
 <main class="main">
   <div class="ui-page">
 @if (loading()) {
-  <div class="loading-container">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-  </div>
+  <app-skeleton variant="page" [count]="4"></app-skeleton>
 } @else if (path()) {
   <div class="learning-path-detail">
     <!-- Breadcrumb -->

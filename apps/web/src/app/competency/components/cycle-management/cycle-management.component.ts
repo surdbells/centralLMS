@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HotToastService } from '@ngneat/hot-toast';
 import { LookupsService, type Lookup } from '../../../services/lookups.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -19,7 +20,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-cycle-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, SkeletonComponent],
   templateUrl: './cycle-management.component.html',
   styleUrl: './cycle-management.component.scss',
 })

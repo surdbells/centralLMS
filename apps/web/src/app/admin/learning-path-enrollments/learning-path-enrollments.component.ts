@@ -22,13 +22,14 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 
 @Component({
   selector: 'app-learning-path-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-enrollments.component.html',
   styleUrls: ['./learning-path-enrollments.component.scss']
 })

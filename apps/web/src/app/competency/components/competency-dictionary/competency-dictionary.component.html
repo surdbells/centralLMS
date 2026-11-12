@@ -43,9 +43,7 @@
 </div>
 
 <!-- Loading -->
-<div *ngIf="loading" class="text-center py-5 text-muted">
-  <div class="spinner-border text-primary" role="status"></div>
-</div>
+<app-skeleton *ngIf="loading" variant="cards" [count]="6" />
 
 <!-- Empty -->
 <div *ngIf="!loading && !groups.length" class="ui-state">

@@ -6,9 +6,7 @@
     </div>
   </div>
 
-  <div class="lp-state" *ngIf="loading">
-    <div class="spinner-border lp-spinner"></div>
-  </div>
+  <app-skeleton *ngIf="loading" variant="list" [rows]="5"></app-skeleton>
   <div class="ui-state" *ngIf="failed && !loading">
     <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
     <p>{{ 'plan.failed' | translate }}</p>

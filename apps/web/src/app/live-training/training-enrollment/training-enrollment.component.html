@@ -17,12 +17,7 @@
       </div>
     </header>
 
-    <div class="ui-state" *ngIf="loading">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-      </div>
-      <p class="mt-3">{{ 'live.enroll.loading' | translate }}</p>
-    </div>
+    <app-skeleton *ngIf="loading" [variant]="showTrainingSelector ? 'cards' : 'detail'" [count]="6"></app-skeleton>
 
     <div class="enrollment-content" *ngIf="!loading">
 
@@ -230,10 +225,8 @@
                            (input)="onUserSearchChange()">
                   </div>
 
-                  <div class="user-list" [class.loading]="loadingUsers">
-                    <div class="loading-overlay" *ngIf="loadingUsers">
-                      <div class="spinner-border spinner-border-sm"></div>
-                    </div>
+                  <div class="user-list" [class.loading]="loadingUsers && users.length > 0">
+                    <app-skeleton *ngIf="loadingUsers && users.length === 0" class="d-block px-3" variant="list" [rows]="5"></app-skeleton>
 
                     <div class="user-item"
                          *ngFor="let user of users"
@@ -337,7 +330,7 @@
 
             <div class="alert alert-info py-2" *ngIf="ruleMessage">{{ ruleMessage }}</div>
 
-            <div class="text-muted small" *ngIf="loadingRules">{{ 'live.enroll.loading_rules' | translate }}</div>
+            <app-skeleton *ngIf="loadingRules" variant="table" [rows]="2" [cols]="3"></app-skeleton>
 
             <div class="table-responsive" *ngIf="!loadingRules && rules.length > 0">
               <table class="table table-sm align-middle mb-0">

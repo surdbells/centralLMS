@@ -26,10 +26,7 @@
 
 <!-- Loading -->
 @if (loading() && active() !== 'individual') {
-  <div class="text-center py-5 text-muted">
-    <div class="spinner-border text-primary" role="status"></div>
-    <div class="mt-2">{{ 'competency.reports.reading' | translate }}</div>
-  </div>
+  <app-skeleton variant="table" [rows]="6" [cols]="5" />
 }
 
 <!-- ================= READINESS ================= -->

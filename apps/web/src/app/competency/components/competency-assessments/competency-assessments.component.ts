@@ -14,6 +14,7 @@ import {
 import { UsersService, type User } from '../../../services/users.service';
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -27,7 +28,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-competency-assessments',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './competency-assessments.component.html',
   styleUrl: './competency-assessments.component.scss',
 })

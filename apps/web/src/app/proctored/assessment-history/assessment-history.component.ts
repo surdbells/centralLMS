@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -72,7 +73,7 @@ interface PaginationInfo {
 @Component({
   selector: 'app-assessment-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -177,10 +178,7 @@ interface PaginationInfo {
           <!-- ==========================================
                LOADING
                ========================================== -->
-          <div class="text-center py-5" *ngIf="loading">
-            <div class="spinner-border text-secondary"></div>
-            <p class="mt-2 ui-muted">Loading history...</p>
-          </div>
+          <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="8"></app-skeleton>
 
           <!-- ==========================================
                HISTORY TABLE

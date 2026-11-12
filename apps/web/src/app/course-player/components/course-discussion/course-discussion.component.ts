@@ -15,6 +15,7 @@ import { SessionStore } from '../../../core/auth/session.store';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { RichHtmlEditorComponent } from '../../../shared/rich-html-editor/rich-html-editor.component';
+import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 /**
@@ -29,7 +30,7 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
 @Component({
   selector: 'app-course-discussion',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, RichHtmlEditorComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, RichHtmlEditorComponent, AvatarComponent],
   templateUrl: './course-discussion.component.html',
   styleUrl: './course-discussion.component.scss',
 })
@@ -90,11 +91,6 @@ export class CourseDiscussionComponent implements OnInit, OnDestroy {
         },
         error: () => { this.discussion = []; this.discussionLoaded = true; },
       });
-  }
-
-  /** Initial for an avatar with no picture. */
-  initial(name: string | null | undefined): string {
-    return (name || '?').trim().charAt(0).toUpperCase() || '?';
   }
 
   submitDiscussionPost(): void {

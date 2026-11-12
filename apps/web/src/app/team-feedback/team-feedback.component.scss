@@ -2,9 +2,6 @@
 // so it keeps a little side inset of its own.
 :host { display: block; padding: 0 16px; }
 
-.tf-state { text-align: center; padding: 48px 0; }
-.tf-spinner { color: var(--brand-primary); }
-
 .course-rows > li { display: block; padding: 12px 0; }
 .course-rows > li:first-child { padding-top: 0; }
 

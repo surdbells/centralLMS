@@ -1,7 +1,8 @@
 // messaging/messaging.component.ts
 
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener, inject } from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
@@ -22,11 +23,13 @@ import {TranslatePipe} from '../translate.pipe';
 import {I18nService} from '../i18n.service';
 import {ConfirmDialogService} from '../shared/components/confirmation-dialog/confirmation-dialog.component';
 import {HotToastService} from '@ngneat/hot-toast';
+import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
+import { AvatarComponent } from '../shared/avatar/avatar.component';
 
 @Component({
   selector: 'app-messaging',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
   templateUrl: './messaging.component.html',
   styleUrls: ['./messaging.component.scss']
 })
@@ -152,6 +155,9 @@ export class MessagingComponent implements OnInit, OnDestroy {
   // Broadcast Detail
   selectedBroadcast: Broadcast | null = null;
   loadingBroadcast = false;
+
+  private readonly location = inject(Location);
+  private readonly router = inject(Router);
 
   constructor(
     public messagingService: MessagingService,
@@ -1025,6 +1031,22 @@ export class MessagingComponent implements OnInit, OnDestroy {
   // ==========================================
   // NAVIGATION
   // ==========================================
+
+  /**
+   * Header back button: the previous page, or — when there is no history
+   * (fresh tab / deep link) — the dashboard of the side the user is on.
+   * Messaging is shared by learners and admins; the top bars record which
+   * side was entered last in sessionStorage 'IS_CURRENT'.
+   */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+    let side: string | null = null;
+    try { side = sessionStorage.getItem('IS_CURRENT'); } catch { /* storage blocked */ }
+    void this.router.navigate([side === 'superadmin' ? '/administration' : '/account']);
+  }
 
   goBackToList(): void {
     this.showConversationList = true;

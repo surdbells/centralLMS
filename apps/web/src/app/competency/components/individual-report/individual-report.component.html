@@ -1,6 +1,4 @@
-<div class="ir-loading" *ngIf="loading">
-  <div class="spinner-border" role="status"></div>
-</div>
+<app-skeleton *ngIf="loading" variant="detail" height="320px" />
 
 <div class="ir-missing" *ngIf="!loading && !report">
   <p>{{ 'competency.report.not_found' | translate }}</p>

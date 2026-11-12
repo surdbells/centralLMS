@@ -1431,10 +1431,15 @@ button.ui-kpi:focus-visible, a.ui-kpi:focus-visible { outline: 2px solid rgba(va
 .ui-toolbar .form-select,
 .ui-toolbar .form-control { width: auto; min-width: 150px; }
 
+/* A 300px flex basis suits a toolbar row; but as a flex item of a COLUMN
+   container (the Messages sidebar) that basis becomes its HEIGHT — it rendered
+   300px tall with the icon floating mid-air. Capping the height to the control
+   height fixes every context without reflowing the row layouts. */
 .ui-search {
   position: relative;
   flex: 0 1 300px;
   min-width: 200px;
+  max-height: var(--ui-ctl-h);
   margin: 0;
 }
 
@@ -1672,15 +1677,21 @@ button.ui-kpi:focus-visible, a.ui-kpi:focus-visible { outline: 2px solid rgba(va
   font-size: 1.25rem;
 }
 
+/* The shimmer from the My Learning page — the app's one loading treatment.
+   Content loads behind a skeleton shaped like it (see <app-skeleton>, which
+   wraps these blocks); spinners are kept only inside buttons. */
 .ui-skeleton {
   display: block;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--ui-surface-2) 25%, #eef0ee 50%, var(--ui-surface-2) 75%);
+  background: linear-gradient(90deg, var(--ui-surface-2) 0%, #eceeec 50%, var(--ui-surface-2) 100%);
   background-size: 200% 100%;
   animation: ui-shimmer 1.4s ease-in-out infinite;
 }
 
-@keyframes ui-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes ui-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ui-skeleton { animation: none; }

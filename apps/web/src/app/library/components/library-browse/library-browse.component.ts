@@ -7,6 +7,7 @@ import { LibraryViewerComponent } from '../library-viewer/library-viewer.compone
 import { LibraryService, type LibraryItem, type LibraryKind } from '../../library.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 /**
  * The digital library, as a learner sees it: the files shared with them.
@@ -18,7 +19,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-library-browse',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent, LibraryViewerComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TopComponent, LibraryViewerComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './library-browse.component.html',
   styleUrl: './library-browse.component.scss',
 })

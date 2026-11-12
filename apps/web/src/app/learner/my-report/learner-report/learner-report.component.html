@@ -37,9 +37,10 @@
   </nav>
 
   <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner-border text-primary"></div>
-  </div>
+  <ng-container *ngIf="loading">
+    <app-skeleton variant="kpis" [count]="4"></app-skeleton>
+    <app-skeleton variant="block" height="260px"></app-skeleton>
+  </ng-container>
 
   <!-- ==========================================
        OVERVIEW TAB
@@ -260,10 +261,7 @@
        COURSES TAB
        ========================================== -->
   <div class="tab-content" *ngIf="activeTab === 'courses'">
-    <div class="loading-state" *ngIf="loadingCourses">
-      <div class="spinner-border spinner-border-sm"></div>
-      <span>{{ 'report.loading_courses' | translate }}</span>
-    </div>
+    <app-skeleton *ngIf="loadingCourses" variant="list" [rows]="5"></app-skeleton>
 
     <div class="course-progress-list" *ngIf="!loadingCourses">
       <div class="course-progress-item" *ngFor="let course of courseProgress"
@@ -361,10 +359,7 @@
       </div>
     </div>
 
-    <div class="loading-state" *ngIf="loadingActivity">
-      <div class="spinner-border spinner-border-sm"></div>
-      <span>{{ 'report.loading_activity' | translate }}</span>
-    </div>
+    <app-skeleton *ngIf="loadingActivity" variant="block" height="240px"></app-skeleton>
 
     <!-- Daily Activity Chart -->
     <section class="ui-section activity-chart-card" *ngIf="!loadingActivity && activityPeriod === 'daily'">
@@ -456,10 +451,7 @@
        QUIZZES TAB
        ========================================== -->
   <div class="tab-content" *ngIf="activeTab === 'quizzes'">
-    <div class="loading-state" *ngIf="loadingQuizzes">
-      <div class="spinner-border spinner-border-sm"></div>
-      <span>{{ 'report.loading_quizzes' | translate }}</span>
-    </div>
+    <app-skeleton *ngIf="loadingQuizzes" variant="list" [rows]="5"></app-skeleton>
 
     <div class="quizzes-list" *ngIf="!loadingQuizzes">
       <div class="quiz-item" *ngFor="let quiz of quizAttempts" [class.passed]="quiz.passed" [class.failed]="!quiz.passed">
@@ -497,10 +489,7 @@
        CERTIFICATES TAB
        ========================================== -->
   <div class="tab-content" *ngIf="activeTab === 'certificates'">
-    <div class="loading-state" *ngIf="loadingCertificates">
-      <div class="spinner-border spinner-border-sm"></div>
-      <span>{{ 'report.loading_certificates' | translate }}</span>
-    </div>
+    <app-skeleton *ngIf="loadingCertificates" variant="cards" [count]="3"></app-skeleton>
 
     <div class="certificates-grid" *ngIf="!loadingCertificates">
       <div class="certificate-card" *ngFor="let cert of certificates" [ngClass]="cert.status">

@@ -17,11 +17,12 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learning-path-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-detail.component.html',
   styleUrls: ['./learning-path-detail.component.scss']
 })

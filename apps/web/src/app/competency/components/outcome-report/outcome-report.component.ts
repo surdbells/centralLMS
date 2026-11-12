@@ -6,6 +6,7 @@ import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CompetencyService, type OutcomeReport } from '../../competency.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -17,7 +18,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-outcome-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe, SkeletonComponent],
   templateUrl: './outcome-report.component.html',
   styleUrl: './outcome-report.component.scss',
 })

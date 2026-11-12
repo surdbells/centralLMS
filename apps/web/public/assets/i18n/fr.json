@@ -3899,5 +3899,10 @@
   "reports.saved_subtitle": "Les rapports que vous avez enregistrés, avec leurs filtres, prêts à être relancés",
   "reports.scheduled_subtitle": "Rapports envoyés automatiquement par e-mail chaque jour, chaque semaine ou chaque mois",
   "reports.manager_subtitle": "Inscriptions, achèvements et formations en retard de votre équipe",
-  "messaging.page_subtitle": "Messages directs, groupes et canaux au même endroit"
+  "messaging.page_subtitle": "Messages directs, groupes et canaux au même endroit",
+  "learner_dash.time_in_system": "Temps total dans le système",
+  "learner_dash.joined": "Inscrit le",
+  "reports.sources_failed": "Impossible de charger les sources de données.",
+  "reports.no_sources": "Aucune source de données ne vous est disponible.",
+  "reports.record_count": "Nombre d'enregistrements"
 }

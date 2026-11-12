@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { BillingService, type Billing, type Invoice } from '../../services/billing.service';
 import { TenantService, type Tenant } from '../../services/tenant.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /**
  * The organisation's billing, for its administrator.
@@ -17,7 +18,7 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
 @Component({
   selector: 'app-billing',
   standalone: true,
-  imports: [CommonModule, AdmintopComponent],
+  imports: [CommonModule, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -42,9 +43,11 @@ import { TenantService, type Tenant } from '../../services/tenant.service';
         }
 
         @if (loading()) {
-          <div class="ui-state">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+          <div class="ui-row billing-row">
+            <section class="ui-section"><app-skeleton variant="detail" height="40px" /></section>
+            <section class="ui-section"><app-skeleton variant="lines" [rows]="5" /></section>
           </div>
+          <app-skeleton variant="table" [rows]="5" [cols]="7" />
         } @else if (error()) {
           <div class="ui-state">
             <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>

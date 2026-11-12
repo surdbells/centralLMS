@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { SideComponent } from '../../partials/side/side.component';
 import { TopComponent } from '../../partials/top/top.component';
-import { TuiButton, TuiDialogService, TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiButton, TuiDialogService, TuiIcon } from '@taiga-ui/core';
 import { Router } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { CommonModule } from '@angular/common';
@@ -18,6 +18,7 @@ import { PolymorpheusComponent } from '@taiga-ui/polymorpheus';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { ApiError, type PageMeta } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 
 /**
@@ -50,7 +51,7 @@ import { I18nService } from '../../i18n.service';
     CommonModule,
     FormsModule,
     MediaUploadComponent,
-    TuiLoader,
+    SkeletonComponent,
     AdmintopComponent,
     TuiButton,
     TranslatePipe,

@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, forkJoin, takeUntil, interval } from 'rxjs';
@@ -101,7 +102,7 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
 @Component({
   selector: 'app-assessment-preview',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -546,10 +547,7 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
     </div>
 
     <!-- Loading State -->
-    <div class="loading-container" *ngIf="loading">
-      <div class="spinner"></div>
-      <p>Loading assessment preview...</p>
-    </div>
+    <app-skeleton *ngIf="loading" variant="detail" height="240px"></app-skeleton>
     </div>
     </main>
   `,
@@ -885,14 +883,6 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
       text-align: left;
     }
     .results-actions { display: flex; gap: 12px; justify-content: center; }
-
-    /* Loading */
-    .loading-container { display: flex; flex-direction: column; align-items: center; padding: 80px; }
-    .spinner {
-      width: 40px; height: 40px; border: 3px solid var(--ui-border);
-      border-top-color: var(--brand-primary); border-radius: 50%; animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Responsive */
     @media (max-width: 768px) {

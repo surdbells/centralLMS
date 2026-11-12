@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { TuiIcon, TuiLoader } from '@taiga-ui/core';
+import { TuiIcon } from '@taiga-ui/core';
 import { HotToastService } from '@ngneat/hot-toast';
 import { Subject, takeUntil } from 'rxjs';
 import { AsideComponent } from '../../partials/aside/aside.component';
@@ -11,6 +11,7 @@ import { TopComponent } from '../../partials/top/top.component';
 import { CertificatesService, type Certificate } from '../../services/certificates.service';
 import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /**
  * The certificates somebody has earned.
@@ -34,7 +35,7 @@ import { TranslatePipe } from '../../translate.pipe';
     SideComponent,
     TopComponent,
     TuiIcon,
-    TuiLoader,
+    SkeletonComponent,
     TranslatePipe,
   ],
   templateUrl: './certicates.component.html',

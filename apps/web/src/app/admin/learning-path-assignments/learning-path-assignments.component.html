@@ -26,11 +26,7 @@
       </header>
 
       <!-- Assignments List -->
-      <div class="text-center py-5" *ngIf="loading">
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-        </div>
-      </div>
+      <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="7"></app-skeleton>
 
       <div class="ui-state" *ngIf="!loading && assignments.length === 0">
         <span class="ui-state__icon"><i class="bi bi-person-plus"></i></span>
@@ -313,9 +309,8 @@
                   <p>{{ 'paths_admin.assign.no_users' | translate }}</p>
                 </div>
 
-                <div class="loading-state" *ngIf="loadingUsers">
-                  <div class="spinner-border spinner-border-sm" role="status"></div>
-                  <span>{{ 'paths_admin.assign.loading_users' | translate }}</span>
+                <div class="loading-skeleton" *ngIf="loadingUsers">
+                  <app-skeleton variant="list" [rows]="5"></app-skeleton>
                 </div>
               </div>
             </div>
@@ -561,9 +556,10 @@
         </div>
 
         <div class="modal-body">
-          <div class="text-center py-4" *ngIf="loadingStats">
-            <div class="spinner-border text-primary" role="status"></div>
-          </div>
+          <ng-container *ngIf="loadingStats">
+            <app-skeleton variant="kpis" [count]="4"></app-skeleton>
+            <app-skeleton variant="lines" [rows]="2"></app-skeleton>
+          </ng-container>
 
           <div *ngIf="!loadingStats && assignmentStats">
             <div class="row g-3 mb-4">

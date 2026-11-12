@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -60,7 +61,7 @@ interface RubricFormData {
 @Component({
   selector: 'app-rubric-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -319,10 +320,7 @@ interface RubricFormData {
       </div>
 
       <!-- Loading -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner-border text-primary"></div>
-        <p>Loading rubric...</p>
-      </div>
+      <app-skeleton *ngIf="loading" variant="form" [rows]="6"></app-skeleton>
     </div>
     </main>
   `,
@@ -396,7 +394,6 @@ interface RubricFormData {
     .validation-list { margin: 0; padding-left: 1.25rem; }
     .validation-list li { font-size: 0.8125rem; color: var(--ui-warning-text, #8f4b07); margin-bottom: 0.25rem; }
 
-    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     @media (max-width: 992px) {
       .form-layout { grid-template-columns: 1fr; }

@@ -7,6 +7,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -39,7 +40,7 @@ interface Category { id: string; name: string; count: number; }
 @Component({
   selector: 'app-assessment-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -118,7 +119,8 @@ interface Category { id: string; name: string; count: number; }
         </div>
 
         <!-- Loading -->
-        <div class="loading" *ngIf="loading"><div class="spinner-border text-secondary" role="status"></div></div>
+        <app-skeleton *ngIf="loading && viewMode==='grid'" variant="cards" [count]="6"></app-skeleton>
+        <app-skeleton *ngIf="loading && viewMode!=='grid'" variant="list" [rows]="6"></app-skeleton>
 
         <!-- Grid View -->
         <div class="ui-grid catalog-grid" *ngIf="!loading && viewMode==='grid'">
@@ -230,8 +232,6 @@ interface Category { id: string; name: string; count: number; }
     .vt + .vt { border-left: 1px solid var(--ui-border); }
     .vt:hover { color: var(--ui-text); }
     .vt.active { background: rgba(var(--brand-primary-rgb), .08); color: var(--brand-primary); }
-
-    .loading { display: flex; justify-content: center; padding: 60px 0; }
 
     /* Grid cards */
     .assess-card { cursor: pointer; }

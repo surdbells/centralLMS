@@ -24,9 +24,7 @@
     </header>
 
     @if (loading()) {
-      <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-      </div>
+      <section class="ui-section review-card"><app-skeleton variant="list" [rows]="4" /></section>
     } @else if (reviews().length === 0) {
       <div class="ui-state">
         <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
@@ -39,11 +37,7 @@
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="d-flex">
                   <div class="reviewer-avatar me-3">
-                    @if (review.profile_image_url) {
-                      <img [src]="review.profile_image_url" alt="">
-                    } @else {
-                      {{ (review.first_name || '?').charAt(0) }}
-                    }
+                    <app-avatar [src]="review.profile_image_url" [name]="(review.first_name || '') + ' ' + (review.last_name || '')"></app-avatar>
                   </div>
                   <div>
                     <strong>{{ review.first_name }} {{ review.last_name }}</strong>

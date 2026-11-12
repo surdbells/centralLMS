@@ -21,11 +21,12 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learning-path-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-viewer.component.html',
   styleUrls: ['./learning-path-viewer.component.scss']
 })

@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
@@ -56,7 +57,7 @@ interface RubricPreview extends RubricListItem {
 @Component({
   selector: 'app-rubric-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -186,10 +187,7 @@ interface RubricPreview extends RubricListItem {
         </div>
 
         <!-- Loading -->
-        <div class="loading-state" *ngIf="loading">
-          <div class="spinner-border text-primary"></div>
-          <p>Loading rubrics...</p>
-        </div>
+        <app-skeleton *ngIf="loading" variant="cards" [count]="6"></app-skeleton>
       </section>
 
       <!-- ==========================================
@@ -313,7 +311,6 @@ interface RubricPreview extends RubricListItem {
     .rubric-author { font-size: 0.75rem; color: var(--ui-text-muted, #6a716b); }
     .rubric-actions { display: flex; gap: 0.25rem; }
 
-    .loading-state { text-align: center; padding: 3rem; color: var(--ui-text-muted, #6a716b); }
 
     /* Modals */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1050;

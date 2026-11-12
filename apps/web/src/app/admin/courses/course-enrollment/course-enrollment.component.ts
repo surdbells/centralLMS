@@ -12,6 +12,7 @@ import { LookupsService } from '../../../services/lookups.service';
 import { EnrollmentsService } from '../../../services/enrollments.service';
 import { ApiClient, ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
 
 /* The shapes this screen's template already reads. */
@@ -88,7 +89,7 @@ export interface EnrollmentResult {
 @Component({
   selector: 'app-course-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './course-enrollment.component.html',
   styleUrls: ['./course-enrollment.component.scss'],
 })

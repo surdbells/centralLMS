@@ -3,20 +3,25 @@
 <div class="cp-page">
   <!-- Loading: a skeleton of the shell, so nothing jumps when the course lands. -->
   <div *ngIf="loading" class="cp-skeleton" aria-busy="true">
-    <span class="visually-hidden">{{ 'course_player.loading_course' | translate }}</span>
-    <div class="cp-sk-topbar"><span class="cp-sk w-30"></span><span class="cp-sk w-12 ms-auto"></span></div>
+    <div class="cp-sk-topbar" aria-hidden="true">
+      <span class="ui-skeleton cp-sk w-30"></span><span class="ui-skeleton cp-sk w-12 ms-auto"></span>
+    </div>
     <div class="cp-sk-body">
+      <!-- Sidebar: course title, progress card, then the lesson outline. -->
       <div class="cp-sk-side">
-        <span class="cp-sk h-lg w-70"></span>
-        <span class="cp-sk h-card"></span>
-        <span class="cp-sk w-90" *ngFor="let r of [1,2,3,4,5,6,7]"></span>
+        <span class="ui-skeleton cp-sk h-lg w-70" aria-hidden="true"></span>
+        <span class="ui-skeleton cp-sk h-card" aria-hidden="true"></span>
+        <app-skeleton variant="list" [rows]="7"></app-skeleton>
       </div>
+      <!-- Stage: the media area, then the lesson header below it. -->
       <div class="cp-sk-stage">
-        <span class="cp-sk cp-sk-media"></span>
-        <div class="cp-sk-below">
-          <span class="cp-sk w-20"></span>
-          <span class="cp-sk h-lg w-50"></span>
-          <span class="cp-sk w-70"></span>
+        <div class="cp-sk-media">
+          <app-skeleton variant="block" height="100%"></app-skeleton>
+        </div>
+        <div class="cp-sk-below" aria-hidden="true">
+          <span class="ui-skeleton cp-sk w-20"></span>
+          <span class="ui-skeleton cp-sk h-lg w-50"></span>
+          <span class="ui-skeleton cp-sk w-70"></span>
         </div>
       </div>
     </div>
@@ -195,8 +200,7 @@
               </div>
               <div class="cp-learner" *ngFor="let mate of classmates">
                 <span class="cp-avatar">
-                  <img *ngIf="mate.avatarUrl" [src]="mate.avatarUrl" [alt]="mate.name">
-                  <span *ngIf="!mate.avatarUrl">{{ (mate.name || '?').charAt(0) }}</span>
+                  <app-avatar [src]="mate.avatarUrl" [name]="mate.name"></app-avatar>
                 </span>
                 <span class="cp-learner-text">
                   <span class="cp-learner-name">{{ mate.name }}</span>

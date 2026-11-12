@@ -18,11 +18,12 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-learning-path-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-form.component.html',
   styleUrls: ['./learning-path-form.component.scss']
 })

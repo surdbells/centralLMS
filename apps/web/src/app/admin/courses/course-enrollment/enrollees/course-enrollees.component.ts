@@ -15,6 +15,7 @@ import { UsersService } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
+import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../../i18n.service';
 
 /** A course, in the shape this screen's template already reads. */
@@ -67,7 +68,7 @@ export interface UnenrolledUser {
 @Component({
   selector: 'app-course-enrollees',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './course-enrollees.component.html',
   styleUrls: ['./course-enrollees.component.scss'],
 })

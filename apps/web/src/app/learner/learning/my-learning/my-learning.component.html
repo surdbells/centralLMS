@@ -298,10 +298,7 @@
       </div>
 
       <!-- Loading -->
-      <div class="loading-courses" *ngIf="loadingCourses">
-        <div class="spinner-border spinner-border-sm"></div>
-        <span>{{ 'learning.loading_courses' | translate }}</span>
-      </div>
+      <app-skeleton *ngIf="loadingCourses" variant="cards" [count]="6"></app-skeleton>
 
       <!-- Available Courses Grid -->
       <div class="available-courses-grid" *ngIf="!loadingCourses">
@@ -339,9 +336,7 @@
          ========================================== -->
     <div class="course-detail-view" *ngIf="viewMode === 'course-detail'">
       <!-- Loading -->
-      <div class="loading-state" *ngIf="loadingDetails">
-        <div class="spinner-border text-primary"></div>
-      </div>
+      <app-skeleton *ngIf="loadingDetails" variant="detail" height="240px"></app-skeleton>
 
       <div class="course-detail" *ngIf="!loadingDetails && courseDetails">
         <!-- Course Header -->

@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { ReportService } from '../../services/report.service';
@@ -16,6 +16,7 @@ import {TranslatePipe} from '../../../translate.pipe';
     <main class="main">
       <div class="ui-page report-catalog">
         <header class="ui-page-header">
+          <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
           <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-grid-3x3-gap"></i></div>
           <div class="ui-page-header__titles">
             <h1>{{ 'reports.catalog_title' | translate }}</h1>
@@ -109,6 +110,8 @@ import {TranslatePipe} from '../../../translate.pipe';
   `]
 })
 export class ReportCatalogComponent implements OnInit {
+  private readonly backLocation = inject(Location);
+  private readonly navRouter = inject(Router);
   allReports: ReportCatalogItem[] = [];
   filteredReports: ReportCatalogItem[] = [];
   categories: ReportCategory[] = [];
@@ -117,6 +120,15 @@ export class ReportCatalogComponent implements OnInit {
   viewMode: 'grid' | 'list' = 'grid';
 
   constructor(private reportService: ReportService, private route: ActivatedRoute) {}
+
+  /** Header back button: the previous page, or /admin/reports when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.backLocation.back();
+      return;
+    }
+    void this.navRouter.navigate(['/admin/reports']);
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(p => {

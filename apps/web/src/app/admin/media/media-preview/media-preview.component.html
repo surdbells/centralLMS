@@ -156,7 +156,7 @@
             </td>
           </tr>
           <tr *ngIf="loadingVersions">
-            <td colspan="5" class="text-center text-muted py-4">{{ 'admin.media_preview.loading_history' | translate }}</td>
+            <td colspan="5" class="py-3"><app-skeleton variant="lines" [rows]="3" /></td>
           </tr>
           <tr *ngIf="!loadingVersions && versions.length === 0">
             <td colspan="5" class="text-center text-muted py-4">

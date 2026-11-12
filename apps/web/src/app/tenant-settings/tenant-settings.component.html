@@ -11,11 +11,13 @@
   </div>
 
   <!-- Loading State -->
-  <div class="ui-state loading-state" *ngIf="loading">
-    <div class="spinner-border spinner-border-sm text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+  <div class="settings-content" *ngIf="loading">
+    <div class="settings-sidebar">
+      <div class="loading-nav"><app-skeleton variant="lines" [rows]="6"></app-skeleton></div>
     </div>
-    <p>{{ 'tenant.loading_settings' | translate }}</p>
+    <div class="settings-panel">
+      <section class="ui-section"><app-skeleton variant="form" [rows]="5"></app-skeleton></section>
+    </div>
   </div>
 
   <div class="settings-content" *ngIf="!loading && tenant">

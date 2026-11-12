@@ -1,7 +1,8 @@
 // messaging/saved/saved-messages.component.ts
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -22,6 +23,7 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
     <div class="ui-page saved-messages">
       <!-- Header -->
       <header class="ui-page-header">
+        <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-bookmark-star"></i></div>
         <div class="ui-page-header__titles">
           <h1>{{ 'messaging.saved_messages' | translate }}</h1>
@@ -181,6 +183,8 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
   `]
 })
 export class SavedMessagesComponent implements OnInit, OnDestroy {
+  private readonly backLocation = inject(Location);
+  private readonly navRouter = inject(Router);
   private destroy$ = new Subject<void>();
 
   savedMessages: SavedMessage[] = [];
@@ -197,6 +201,15 @@ export class SavedMessagesComponent implements OnInit, OnDestroy {
   editingNote = '';
 
   constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService) {}
+
+  /** Header back button: the previous page, or /messaging when there is no history (fresh tab / deep link). */
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.backLocation.back();
+      return;
+    }
+    void this.navRouter.navigate(['/messaging']);
+  }
 
   ngOnInit(): void {
     this.loadSavedMessages();

@@ -7,6 +7,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LiveTrainingService, TrainingSession } from '../live-training.service';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 interface AttendanceStats {
   total_sessions: number;
@@ -21,7 +22,7 @@ interface AttendanceStats {
 @Component({
   selector: 'app-attendance-widget',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslatePipe],
+  imports: [CommonModule, RouterModule, TranslatePipe, SkeletonComponent],
   template: `
     <div class="attendance-widget">
       <div class="widget-header">
@@ -36,9 +37,7 @@ interface AttendanceStats {
 
       <div class="widget-body">
         <!-- Loading -->
-        <div *ngIf="loading" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-        </div>
+        <app-skeleton *ngIf="loading" variant="block" height="200px"></app-skeleton>
 
         <!-- Stats -->
         <div *ngIf="!loading && stats" class="attendance-stats">

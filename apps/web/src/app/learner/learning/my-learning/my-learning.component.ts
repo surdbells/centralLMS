@@ -19,6 +19,7 @@ import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { MyCompetencyComponent } from '../../my-competency/my-competency.component';
 import { MyLearningPlanComponent } from '../../my-learning-plan/my-learning-plan.component';
+import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 
 /**
  * The full list of enrolments used to live in a separate 'all-courses' view
@@ -40,7 +41,7 @@ const STATUS_RANK: Record<EnrolledCourse['status'], number> = {
 @Component({
   selector: 'app-my-learning',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, MyCompetencyComponent, MyLearningPlanComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, MyCompetencyComponent, MyLearningPlanComponent, SkeletonComponent],
   templateUrl: './my-learning.component.html',
   styleUrls: ['./my-learning.component.scss']
 })

@@ -46,8 +46,7 @@
     <article class="cp-post" *ngFor="let post of visibleDiscussion"
              [class.cp-post-pinned]="post.isPinned" [class.cp-post-answered]="post.answered">
       <span class="cp-avatar">
-        <img *ngIf="post.authorAvatar" [src]="post.authorAvatar" [alt]="post.authorName">
-        <span *ngIf="!post.authorAvatar">{{ initial(post.authorName) }}</span>
+        <app-avatar [src]="post.authorAvatar" [name]="post.authorName"></app-avatar>
       </span>
 
       <div class="cp-post-main">
@@ -151,8 +150,7 @@
         <div class="cp-replies" *ngIf="post.replies?.length">
           <div class="cp-reply" *ngFor="let reply of post.replies" [class.cp-reply-answer]="reply.isAnswer">
             <span class="cp-avatar sm">
-              <img *ngIf="reply.authorAvatar" [src]="reply.authorAvatar" [alt]="reply.authorName">
-              <span *ngIf="!reply.authorAvatar">{{ initial(reply.authorName) }}</span>
+              <app-avatar [src]="reply.authorAvatar" [name]="reply.authorName"></app-avatar>
             </span>
             <div class="cp-reply-text">
               <div class="cp-reply-head">

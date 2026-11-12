@@ -27,12 +27,9 @@
   </div>
 
   <!-- Loading State -->
-  <div class="text-center py-5" *ngIf="loading">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-    <p class="mt-3 ui-muted">{{ 'paths_admin.enroll.loading_data' | translate }}</p>
-  </div>
+  <section class="ui-section" *ngIf="loading">
+    <app-skeleton variant="cards" [count]="6"></app-skeleton>
+  </section>
 
   <ng-container *ngIf="!loading">
     <!-- Step 1: Select Learning Path -->
@@ -246,9 +243,8 @@
 
                 <!-- User List -->
                 <div class="user-list-container">
-                  <div class="text-center py-4" *ngIf="loadingUsers">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                    <span class="ms-2 ui-muted">{{ 'paths_admin.assign.loading_users' | translate }}</span>
+                  <div class="px-3 py-1" *ngIf="loadingUsers">
+                    <app-skeleton variant="list" [rows]="5"></app-skeleton>
                   </div>
 
                   <div class="ui-state empty-state m-3" *ngIf="!loadingUsers && users.length === 0">

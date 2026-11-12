@@ -6,7 +6,7 @@
 <div class="ui-page learner-live-training">
   <!-- Header -->
   <header class="ui-page-header">
-    <button type="button" class="ui-page-header__back" *ngIf="activeTab !== 'dashboard'" (click)="goBack()"
+    <button type="button" class="ui-page-header__back" (click)="goBack()"
             [attr.aria-label]="(activeTab === 'progress' ? 'live.learner.back_to_dashboard' : 'common.back') | translate"
             [title]="(activeTab === 'progress' ? 'live.learner.back_to_dashboard' : 'common.back') | translate">
       <i class="bi bi-chevron-left"></i>
@@ -164,9 +164,7 @@
           </div>
         </div>
       </div>
-      <div class="text-center py-4" *ngIf="loading">
-        <div class="spinner-border text-primary" role="status"></div>
-      </div>
+      <app-skeleton class="d-block px-3 py-2" *ngIf="loading" variant="list" [rows]="4"></app-skeleton>
     </section>
 
     <!-- My Enrollments -->
@@ -496,7 +494,7 @@
           <div class="d-flex flex-wrap gap-2">
             <div *ngFor="let instructor of selectedSession.instructors" class="instructor-badge">
               <div class="ui-avatar instructor-avatar me-2">
-                <span>{{ instructor.first_name?.charAt(0) }}{{ instructor.last_name?.charAt(0) }}</span>
+                <app-avatar [src]="instructor.profile_image" [name]="(instructor.first_name || '') + ' ' + (instructor.last_name || '')"></app-avatar>
               </div>
               <span>{{ instructor.first_name }} {{ instructor.last_name }}</span>
               <span class="badge bg-info ms-1" *ngIf="instructor.role === 'primary'">{{ 'live.learner.lead' | translate }}</span>

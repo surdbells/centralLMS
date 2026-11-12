@@ -73,9 +73,9 @@
       </div>
 
       @if (loading()) {
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary" role="status"></div>
-        </div>
+        <section class="ui-section">
+          <app-skeleton variant="list" [rows]="4"></app-skeleton>
+        </section>
       } @else if (reviews().length === 0) {
         <div class="ui-state">
           <span class="ui-state__icon"><i class="bi bi-chat-left-text"></i></span>
@@ -88,11 +88,7 @@
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div class="d-flex align-items-center gap-3">
                   <div class="ui-avatar reviewer-avatar">
-                    @if (review.profile_image_url) {
-                      <img [src]="review.profile_image_url" [alt]="review.first_name">
-                    } @else {
-                      <span>{{ review.first_name?.[0] }}{{ review.last_name?.[0] }}</span>
-                    }
+                    <app-avatar [src]="review.profile_image_url" [name]="(review.first_name || '') + ' ' + (review.last_name || '')"></app-avatar>
                   </div>
                   <div>
                     <div class="fw-semibold">{{ review.first_name }} {{ review.last_name }}</div>

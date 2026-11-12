@@ -3899,5 +3899,10 @@
   "reports.saved_subtitle": "التقارير التي حفظتها مع عوامل التصفية الخاصة بها، جاهزة لإعادة التشغيل",
   "reports.scheduled_subtitle": "تقارير تُرسل تلقائيًا عبر البريد الإلكتروني يوميًا أو أسبوعيًا أو شهريًا",
   "reports.manager_subtitle": "تسجيلات فريقك وإتماماته والتدريبات المتأخرة",
-  "messaging.page_subtitle": "الرسائل المباشرة والمجموعات والقنوات في مكان واحد"
+  "messaging.page_subtitle": "الرسائل المباشرة والمجموعات والقنوات في مكان واحد",
+  "learner_dash.time_in_system": "إجمالي الوقت في النظام",
+  "learner_dash.joined": "تاريخ الانضمام",
+  "reports.sources_failed": "تعذّر تحميل مصادر البيانات.",
+  "reports.no_sources": "لا توجد مصادر بيانات متاحة لك.",
+  "reports.record_count": "عدد السجلات"
 }

@@ -3,6 +3,7 @@
 <div class="learner-skills-container">
   <!-- Header -->
   <header class="ui-page-header">
+    <button type="button" class="ui-page-header__back" (click)="goBack()" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></button>
     <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-stars"></i></div>
     <div class="ui-page-header__titles">
       <h1>{{ 'skills.my_skills' | translate }}</h1>
@@ -61,12 +62,10 @@
   </nav>
 
   <!-- Loading State -->
-  <div *ngIf="loading" class="text-center py-5">
-    <div class="spinner-border skills-spinner" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-    <p class="text-muted mt-3">{{ 'skills.loading_skills' | translate }}</p>
-  </div>
+  <ng-container *ngIf="loading">
+    <app-skeleton *ngIf="viewMode === 'grid'" variant="kpis" [count]="4" />
+    <app-skeleton *ngIf="viewMode !== 'grid'" variant="list" [rows]="6" />
+  </ng-container>
 
   <!-- ==================== ACQUIRED SKILLS TAB ==================== -->
   <div *ngIf="!loading && activeTab === 'acquired'">

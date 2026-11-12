@@ -9,6 +9,7 @@ import {
 } from '../../competency/competency.service';
 import { CycleSelectComponent } from '../../competency/components/cycle-select/cycle-select.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 
 /** The learner's own view of the competency exercise, cycle by cycle. */
 type Tab = 'profile' | 'last' | 'self' | 'sme' | 'line';
@@ -25,7 +26,7 @@ type Tab = 'profile' | 'last' | 'self' | 'sme' | 'line';
 @Component({
   selector: 'app-my-competency',
   standalone: true,
-  imports: [CommonModule, FormsModule, CycleSelectComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, CycleSelectComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './my-competency.component.html',
   styleUrl: './my-competency.component.scss',
 })

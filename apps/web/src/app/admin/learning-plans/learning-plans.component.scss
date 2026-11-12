@@ -10,7 +10,7 @@
   > .ui-section { margin-bottom: 0; } }
 @media (max-width: 860px) { .lp-cols { grid-template-columns: 1fr; } }
 
-.lp-loading { padding: 20px; text-align: center; }
+.lp-loading { padding: 4px 18px; }
 .lp-empty { padding: 16px; }
 
 .plan-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;

@@ -6,6 +6,7 @@ import { forkJoin } from 'rxjs';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { StarRatingComponent } from '../../shared/star-rating/star-rating.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import {
   AnalyticsService,
   type EngagementAnalytics,
@@ -26,7 +27,7 @@ type Part = 'completed' | 'inProgress' | 'yetToAttempt';
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, StarRatingComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, StarRatingComponent, SkeletonComponent],
   templateUrl: './analytics.component.html',
   styleUrls: ['./analytics.component.scss'],
 })

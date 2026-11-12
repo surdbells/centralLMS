@@ -18,10 +18,13 @@
     </div>
   </header>
 
-  <div class="ui-state" *ngIf="loading">
-    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-    <p class="mt-2">{{ 'analytics.loading' | translate }}</p>
-  </div>
+  <ng-container *ngIf="loading">
+    <app-skeleton variant="kpis" [count]="7"></app-skeleton>
+    <div class="chart-row">
+      <app-skeleton variant="block" height="220px"></app-skeleton>
+      <app-skeleton variant="block" height="220px"></app-skeleton>
+    </div>
+  </ng-container>
 
   <div class="ui-state" *ngIf="failed && !loading">
     <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>

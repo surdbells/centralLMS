@@ -18,12 +18,7 @@
     <button type="button" class="btn-close float-end" (click)="error = ''"></button>
   </div>
 
-  <div class="loading-state" *ngIf="loading">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
-    </div>
-    <p>{{ 'admin.enroll.loading' | translate }}</p>
-  </div>
+  <app-skeleton *ngIf="loading" variant="cards" [count]="6" />
   <div class="enrollment-content" *ngIf="!loading">
 
     <!-- Step 1: Course Selection -->
@@ -226,10 +221,8 @@
                 </div>
               </div>
 
-              <div class="user-list" [class.loading]="loadingUsers">
-                <div class="loading-overlay" *ngIf="loadingUsers">
-                  <div class="spinner-border spinner-border-sm"></div>
-                </div>
+              <div class="user-list" [class.loading]="loadingUsers && users.length > 0">
+                <app-skeleton *ngIf="loadingUsers && users.length === 0" class="list-skeleton" variant="list" [rows]="5" />
 
                 <div class="user-item"
                      *ngFor="let user of users"
