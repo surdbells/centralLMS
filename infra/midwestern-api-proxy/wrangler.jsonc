@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "midwestern-api-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-12",
+  "observability": { "enabled": true },
+
+  // Custom domain is OFF for now: it can only attach if the hostname is on a
+  // Cloudflare zone in this account, and midwesternog.com's DNS is external.
+  // Deploying with no route serves the Worker on *.workers.dev, which is all
+  // that's needed to TEST the VPC link to the private API. Re-enable this once
+  // the front-door decision is made (agency hostname, or Cloudflare for SaaS).
+  /*
+  "routes": [
+    {
+      "pattern": "api-midwesternlearning.midwesternog.com",
+      "custom_domain": true,
+      "zone_name": "api-midwesternlearning.midwesternog.com"
+    }
+  ],
+  */
+
+  "vpc_services": [
+    { "binding": "VPC_SERVICE", "service_id": "01a1cedc-e2af-7053-a3d4-40eedc8b6f00", "remote": true }
+  ],
+
+  "vars": {
+    // Must equal the hostname your infra contact binds the VPC service to
+    // (the server_name nginx expects on the box — for vhost + TLS/SNI).
+    "ORIGIN_HOST": "api-midwesternlearning.midwesternog.com"
+    // Leave ALLOW_ORIGIN unset while the Worker runs on the API's OWN hostname.
+  }
+}

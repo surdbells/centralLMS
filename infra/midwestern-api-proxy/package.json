@@ -1,0 +1,13 @@
+{
+  "name": "midwestern-api-proxy",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4",
+    "@cloudflare/workers-types": "^5"
+  }
+}
