@@ -524,9 +524,15 @@ export class LearningPathService {
     return notAvailable('Another learner’s path progress');
   }
 
-  /** Opening an item is not recorded separately; completing it is. */
-  startItem(_pathId: string, _itemId: string): Observable<LearningPathItemProgress> {
-    return notAvailable('Marking a path item as started');
+  /**
+   * Opening an item is not recorded separately: the API has no "start"
+   * endpoint and records progress when the item is completed
+   * (`POST /me/paths/{id}/items/{itemId}/complete`). Resolve immediately so
+   * callers (the path viewer's row click, the item viewer's auto-start) go on
+   * to open the item instead of failing silently.
+   */
+  startItem(_pathId: string, _itemId: string): Observable<void> {
+    return of(undefined);
   }
 
   completeItem(pathId: string, itemId: string, score?: number): Observable<{

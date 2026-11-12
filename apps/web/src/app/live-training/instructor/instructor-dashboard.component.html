@@ -72,7 +72,18 @@
     </nav>
 
     <!-- Today's Sessions -->
-    <div *ngIf="activeTab === 'today'">
+    <app-skeleton class="d-block" *ngIf="loading && activeTab !== 'attendance'" variant="list" [rows]="4"></app-skeleton>
+
+    <div class="ui-state" *ngIf="!loading && loadError && activeTab !== 'attendance'">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <h3>{{ 'live.instructor.load_error_title' | translate }}</h3>
+      <p>{{ 'live.instructor.load_error_text' | translate }}</p>
+      <button type="button" class="btn btn-primary" (click)="refreshData()">
+        <i class="bi bi-arrow-clockwise me-1"></i>{{ 'common.retry' | translate }}
+      </button>
+    </div>
+
+    <div *ngIf="!loading && !loadError && activeTab === 'today'">
       <section class="ui-section ui-section--flush" *ngIf="todaySessions.length > 0; else noToday">
         <div class="session-list">
           <div class="session-item" *ngFor="let session of todaySessions; trackBy: trackBySessionId">
@@ -129,7 +140,7 @@
     </div>
 
     <!-- Upcoming Sessions -->
-    <div *ngIf="activeTab === 'upcoming'">
+    <div *ngIf="!loading && !loadError && activeTab === 'upcoming'">
       <section class="ui-section ui-section--flush" *ngIf="upcomingSessions.length > 0; else noUpcoming">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -187,7 +198,7 @@
     </div>
 
     <!-- Past Sessions -->
-    <div *ngIf="activeTab === 'past'">
+    <div *ngIf="!loading && !loadError && activeTab === 'past'">
       <section class="ui-section ui-section--flush" *ngIf="pastSessions.length > 0; else noPast">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -282,8 +293,17 @@
           </div>
 
           <!-- Attendance List -->
-          <div class="ui-table-wrap">
-            <div class="table-responsive">
+          <app-skeleton class="d-block" *ngIf="attendanceLoading" variant="table" [rows]="5" [cols]="5"></app-skeleton>
+          <div class="ui-state" *ngIf="!attendanceLoading && attendanceError">
+            <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+            <h3>{{ 'live.instructor.attendance_load_error' | translate }}</h3>
+            <p>{{ 'live.instructor.load_error_text' | translate }}</p>
+            <button type="button" class="btn btn-primary" (click)="loadAttendance()">
+              <i class="bi bi-arrow-clockwise me-1"></i>{{ 'common.retry' | translate }}
+            </button>
+          </div>
+          <div class="ui-table-wrap" *ngIf="!attendanceLoading && !attendanceError">
+            <div class="table-responsive" *ngIf="attendanceRecords.length">
               <table class="table align-middle mb-0">
                 <thead>
                 <tr>
@@ -356,10 +376,15 @@
                 </tbody>
               </table>
             </div>
+            <div class="ui-state m-3" *ngIf="!attendanceRecords.length">
+              <span class="ui-state__icon"><i class="bi bi-people"></i></span>
+              <h3>{{ 'live.instructor.no_attendance_title' | translate }}</h3>
+              <p>{{ 'live.instructor.no_attendance_text' | translate }}</p>
+            </div>
           </div>
 
           <!-- Lock Attendance Button -->
-          <div class="text-end mt-3" *ngIf="!selectedSessionForAttendance?.attendance_locked">
+          <div class="text-end mt-3" *ngIf="!selectedSessionForAttendance?.attendance_locked && !attendanceLoading && !attendanceError && attendanceRecords.length">
             <button class="btn btn-outline-secondary" (click)="lockAttendance()">
               <i class="bi bi-lock me-1"></i>{{ 'live.common.lock_attendance' | translate }}
             </button>
@@ -367,6 +392,7 @@
         </div>
         <div class="ui-state" *ngIf="!selectedSessionForAttendance">
           <span class="ui-state__icon"><i class="bi bi-clipboard2"></i></span>
+          <h3>{{ 'live.instructor.select_a_session' | translate }}</h3>
           <p>{{ 'live.instructor.select_to_view' | translate }}</p>
         </div>
       </section>
@@ -467,9 +493,10 @@
               </div>
             </div>
           </div>
-          <div class="text-center py-4 text-muted" *ngIf="sessionInstructors.length === 0">
-            <i class="bi bi-person-x display-4 d-block mb-2"></i>
-            {{ 'live.common.no_instructors' | translate }}
+          <div class="ui-state" *ngIf="sessionInstructors.length === 0">
+            <span class="ui-state__icon"><i class="bi bi-person-x"></i></span>
+            <h3>{{ 'live.common.no_instructors' | translate }}</h3>
+            <p>{{ 'live.common.no_instructors_text' | translate }}</p>
           </div>
         </div>
         <div class="modal-footer">

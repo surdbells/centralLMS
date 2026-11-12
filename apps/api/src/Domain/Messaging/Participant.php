@@ -66,6 +66,9 @@ final readonly class Participant
             'avatarUrl' => $this->avatarUrl,
             'role'      => $this->role,
             'isActive'  => $this->isActive(),
+            // Null when they have turned read receipts off, as well as when
+            // they have not read anything yet.
+            'lastReadAt' => $this->lastReadAt?->format(\DateTimeInterface::ATOM),
             'joinedAt'  => $this->joinedAt?->format(\DateTimeInterface::ATOM),
             'leftAt'    => $this->leftAt?->format(\DateTimeInterface::ATOM),
         ];

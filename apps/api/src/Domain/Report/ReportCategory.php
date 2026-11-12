@@ -84,6 +84,19 @@ enum ReportCategory: string
     }
 
     /**
+     * Whether the category belongs in the browsable report catalogue.
+     *
+     * "My learning" is a learner reading their own records. Those reports stay
+     * runnable by key — the learner dashboard draws on them — but the catalogue
+     * is the administrator's browser over other people's data, and not every
+     * reader of it holds admin rights.
+     */
+    public function isCatalogued(): bool
+    {
+        return $this !== self::Learner;
+    }
+
+    /**
      * @return list<string>
      */
     public static function values(): array

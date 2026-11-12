@@ -239,7 +239,7 @@
               <span class="nav-label">{{ 'nav.settings' | translate }}</span>
             </a>
           </li>
-          <li class="nav-item" role="none" *ngIf="user_session.can_billing">
+          <li class="nav-item" role="none" *ngIf="user_session.can_billing && billingEnabled()">
             <a routerLink="/admin/billing" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
                class="nav-link" role="menuitem">
               <tui-icon class="nav-icon" icon="@tui.credit-card"></tui-icon>

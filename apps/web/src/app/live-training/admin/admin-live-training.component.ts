@@ -1,7 +1,7 @@
 // live-training/admin/admin-live-training.component.ts
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
@@ -35,6 +35,7 @@ import { ApiError } from '../../core/api';
 })
 export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly i18n = inject(I18nService);
   private readonly videoIntegrations = inject(VideoIntegrationService);
   private readonly toast = inject(HotToastService);
@@ -77,6 +78,12 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
 
   // Session Management
   selectedSession: TrainingSession | null = null;
+  /** Session named in the URL (`admin/:trainingId/session/:sessionId`): opened on the Sessions tab and highlighted. */
+  highlightSessionId: string | null = null;
+  /** Session id still waiting for its training's details to load before the Sessions tab opens. */
+  private pendingSessionId: string | null = null;
+  /** True when the open training came from the URL, so "back" navigates rather than just resetting state. */
+  private openedFromRoute = false;
   settingUpVideo: string | null = null;
   qrCodeData: { qr_token: string; expires_at: string } | null = null;
 
@@ -142,6 +149,52 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadTrainings();
     this.loadIntegrations();
+
+    // `admin/:trainingId` and `admin/:trainingId/session/:sessionId` render
+    // this same component (e.g. the instructor dashboard's "View details" /
+    // "Open session"), so open what the URL names, and follow param changes
+    // because Angular reuses the instance between those routes.
+    this.route.paramMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(params => this.applyRouteParams(params));
+  }
+
+  private applyRouteParams(params: ParamMap): void {
+    const trainingId = params.get('trainingId');
+    const sessionId = params.get('sessionId');
+
+    if (!trainingId) {
+      // Navigated back to the bare list route: drop any open training.
+      if (this.openedFromRoute) {
+        this.openedFromRoute = false;
+        this.pendingSessionId = null;
+        this.highlightSessionId = null;
+        this.activeTab = 'list';
+        this.selectedTraining = null;
+      }
+      return;
+    }
+
+    this.openedFromRoute = true;
+    this.highlightSessionId = sessionId;
+    if (this.selectedTraining?.training_id === trainingId && this.activeTab !== 'list' && !this.loading) {
+      // Same training already open — only the session changed.
+      if (sessionId) {
+        this.activeTab = 'sessions';
+        this.scrollToHighlightedSession();
+      }
+      return;
+    }
+    this.pendingSessionId = sessionId;
+    this.loadTrainingDetails({ training_id: trainingId } as LiveTraining);
+  }
+
+  private scrollToHighlightedSession(): void {
+    const id = this.highlightSessionId;
+    if (!id) return;
+    setTimeout(() => {
+      document.getElementById('session-row-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   ngOnDestroy(): void {
@@ -190,11 +243,24 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
           this.enrollments = data.enrollments;
           this.analytics = data.analytics;
           this.activeTab = 'details';
+          if (this.pendingSessionId) {
+            this.activeTab = 'sessions';
+            this.pendingSessionId = null;
+            this.scrollToHighlightedSession();
+          }
           this.loading = false;
         },
         error: err => {
           console.error('Error loading training details:', err);
           this.loading = false;
+          if (this.activeTab === 'list') {
+            // A deep link to a training that failed to load (missing, no
+            // access): stay on the list rather than half-open it.
+            this.selectedTraining = null;
+            this.pendingSessionId = null;
+            this.highlightSessionId = null;
+            this.toast.error(this.i18n.t('live.admin.training_load_failed'));
+          }
         }
       });
   }
@@ -334,6 +400,10 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
             this.loadTrainings();
             this.activeTab = 'list';
             this.selectedTraining = null;
+            // Deleted the training the URL names: leave its deep link.
+            if (this.openedFromRoute) {
+              void this.router.navigate(['/live-training/admin']);
+            }
           } else {
             this.loadTrainingDetails(this.selectedTraining!);
           }
@@ -551,12 +621,23 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
           this.saving = false;
           this.closeEnrollModal();
           this.loadTrainingDetails(this.selectedTraining!);
-          // Show results
-          console.log(`Enrolled: ${result.success.length}, Failed: ${result.failed.length}`);
+          const counts = {
+            enrolled: result.enrolled_count,
+            waitlisted: result.waitlisted_count,
+            skipped: result.skipped_count,
+            failed: result.failed_count,
+          };
+          if (result.failed_count > 0) {
+            this.toast.warning(this.i18n.t('live.admin.bulk_enroll_partial', counts), { duration: 8000 });
+          } else {
+            this.toast.success(this.i18n.t('live.admin.bulk_enroll_done', counts));
+          }
         },
-        error: err => {
-          console.error('Error enrolling:', err);
+        error: (err: unknown) => {
           this.saving = false;
+          this.toast.error(
+            `${this.i18n.t('live.enroll.enroll_failed')}: ${err instanceof ApiError ? err.message : this.i18n.t('common.error_generic')}`,
+          );
         }
       });
   }
@@ -755,6 +836,13 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
    */
   goBack(): void {
     if (this.activeTab !== 'list') {
+      if (this.openedFromRoute) {
+        // Opened from a URL: go to the list route so the address bar matches
+        // (applyRouteParams resets the view when the params clear).
+        void this.router.navigate(['/live-training/admin']);
+        return;
+      }
+      this.highlightSessionId = null;
       this.activeTab = 'list';
       this.selectedTraining = null;
       return;

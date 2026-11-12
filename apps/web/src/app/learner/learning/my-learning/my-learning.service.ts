@@ -1,8 +1,8 @@
 // my-learning/my-learning.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { Observable, forkJoin, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { ApiClient, Endpoints } from '../../../core/api';
 import { DashboardsService } from '../../../services/dashboards.service';
 import {
@@ -122,6 +122,11 @@ export interface CourseDetails {
   objectives: string | null;
   category_name: string | null;
   is_overdue: boolean;
+  /**
+   * False for a catalogue course the learner has not joined yet: the outline
+   * is there to read, but there is no enrolment or progress behind it.
+   */
+  is_enrolled: boolean;
   modules: CourseModule[];
   certificate?: Certificate;
 }
@@ -250,7 +255,12 @@ export class MyLearningService {
   getCourseDetails(courseId: string): Observable<CourseDetails> {
     return forkJoin({
       outline: this.api.get<OutlinePayload>(Endpoints.courses.outline(courseId)),
-      mine: this.api.get<MyProgressPayload>(Endpoints.me.course(courseId)),
+      // A 404 here means "not enrolled", not "no such course": a catalogue
+      // course (opened from Browse or a recommendation) still has an outline
+      // worth reading, so it is shown without progress rather than failing.
+      mine: this.api.get<MyProgressPayload>(Endpoints.me.course(courseId)).pipe(
+        catchError((err: { status?: number }) => err?.status === 404 ? of(null) : throwError(() => err)),
+      ),
     }).pipe(map(({ outline, mine }) => toCourseDetails(outline, mine)));
   }
 
@@ -415,11 +425,11 @@ function toCompleted(e: ApiEnrollment): CompletedCourse {
   };
 }
 
-function toCourseDetails(outline: OutlinePayload, mine: MyProgressPayload): CourseDetails {
+function toCourseDetails(outline: OutlinePayload, mine: MyProgressPayload | null): CourseDetails {
   const course = outline.course ?? {};
-  const enrollment = mine.enrollment ?? {};
+  const enrollment = mine?.enrollment ?? {};
   // Keyed by lesson id, which is the point of it — see MyCourseProgressAction.
-  const progress = new Map<string, Record<string, any>>(Object.entries(mine.lessons ?? {}));
+  const progress = new Map<string, Record<string, any>>(Object.entries(mine?.lessons ?? {}));
 
   return {
     enrollment_id: String(enrollment['id'] ?? ''),
@@ -440,6 +450,7 @@ function toCourseDetails(outline: OutlinePayload, mine: MyProgressPayload): Cour
     objectives: course['objectives'] ?? null,
     category_name: course['categoryName'] ?? null,
     is_overdue: Boolean(enrollment['isOverdue']),
+    is_enrolled: mine !== null,
     modules: (outline.modules ?? []).map((m) => ({
       module_id: String(m['id']),
       title: String(m['title'] ?? ''),

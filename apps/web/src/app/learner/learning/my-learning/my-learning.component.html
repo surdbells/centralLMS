@@ -324,9 +324,10 @@
         </div>
 
         <!-- Empty State -->
-        <div class="empty-state full-width" *ngIf="availableCourses.length === 0">
-          <i class="bi bi-search"></i>
-          <p>{{ 'learning.no_available' | translate }}</p>
+        <div class="ui-state full-width" *ngIf="availableCourses.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-search"></i></span>
+          <h3>{{ 'learning.no_available' | translate }}</h3>
+          <p>{{ 'learning.no_available_text' | translate }}</p>
         </div>
       </div>
     </div>
@@ -346,7 +347,7 @@
           </div>
           <div class="header-info">
             <div class="header-badges">
-              <span class="badge status" [ngClass]="getStatusClass(courseDetails.status)">
+              <span class="badge status" *ngIf="courseDetails.is_enrolled" [ngClass]="getStatusClass(courseDetails.status)">
                 {{ getStatusLabel(courseDetails.status) }}
               </span>
               <span class="badge mandatory" *ngIf="courseDetails.is_mandatory">{{ 'learning.mandatory' | translate }}</span>
@@ -364,13 +365,19 @@
             </div>
 
             <!-- Progress Bar -->
-            <div class="detail-progress" *ngIf="courseDetails.status !== 'completed'">
+            <div class="detail-progress" *ngIf="courseDetails.is_enrolled && courseDetails.status !== 'completed'">
               <div class="bar"><span [style.width.%]="courseDetails.progress_percentage"></span></div>
               <span class="pct-label">{{ courseDetails.progress_percentage | number:'1.0-0' }}% {{ 'learning.complete' | translate }}</span>
             </div>
 
             <!-- Action Buttons -->
-            <div class="detail-actions">
+            <!-- A catalogue course (not enrolled yet) offers enrolment, not the player. -->
+            <div class="detail-actions" *ngIf="!courseDetails.is_enrolled">
+              <button type="button" class="btn-cta btn-lg-cta" (click)="enrollFromDetails(courseDetails)" [disabled]="processing">
+                <i class="bi bi-plus-lg"></i> {{ 'learning.enroll_now' | translate }}
+              </button>
+            </div>
+            <div class="detail-actions" *ngIf="courseDetails.is_enrolled">
               <a class="btn-cta btn-lg-cta" *ngIf="courseDetails.status === 'not_started'"
                  [routerLink]="['/player', courseDetails.course_id]">
                 <i class="bi bi-play-fill"></i> {{ 'learning.start_learning' | translate }}
@@ -403,7 +410,12 @@
           <div class="content-section">
             <h3><i class="bi bi-list-ul"></i> {{ 'learning.course_content' | translate }}</h3>
 
-            <div class="modules-list">
+            <div class="ui-state" *ngIf="!courseDetails.modules?.length">
+              <span class="ui-state__icon"><i class="bi bi-journal-x"></i></span>
+              <h3>{{ 'learning.no_content_title' | translate }}</h3>
+              <p>{{ 'learning.no_content_text' | translate }}</p>
+            </div>
+            <div class="modules-list" *ngIf="courseDetails.modules?.length">
               <div class="module-item" *ngFor="let module of courseDetails.modules; let i = index">
                 <div class="module-header" (click)="toggleModule(module.module_id)">
                   <div class="module-info">
@@ -423,7 +435,7 @@
                 <div class="lessons-list" *ngIf="isModuleExpanded(module.module_id)">
                   <div class="lesson-item" *ngFor="let lesson of module.lessons"
                        [class.completed]="lesson.is_completed"
-                       (click)="playCourse(courseDetails.course_id)">
+                       (click)="courseDetails.is_enrolled && playCourse(courseDetails.course_id)">
                     <div class="lesson-status">
                       <i class="bi bi-check-circle-fill" *ngIf="lesson.is_completed"></i>
                       <i [class]="'bi ' + getLessonTypeIcon(lesson.lesson_type)" *ngIf="!lesson.is_completed"></i>

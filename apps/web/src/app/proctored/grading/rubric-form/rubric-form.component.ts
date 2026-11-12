@@ -674,7 +674,7 @@ export class RubricFormComponent implements OnInit, OnDestroy {
     return errors;
   }
 
-  goBack(): void { this.router.navigate(['/admin/rubrics']); }
+  goBack(): void { this.router.navigate(['/admin/grading/rubrics']); }
 }
 
 // ---------------------------------------------------------------------------

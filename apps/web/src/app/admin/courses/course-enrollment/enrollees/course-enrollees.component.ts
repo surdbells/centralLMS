@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TuiIcon } from '@taiga-ui/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import {
@@ -68,7 +68,7 @@ export interface UnenrolledUser {
 @Component({
   selector: 'app-course-enrollees',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './course-enrollees.component.html',
   styleUrls: ['./course-enrollees.component.scss'],
 })

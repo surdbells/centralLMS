@@ -28,6 +28,7 @@ import {competencyRoutes} from './competency/competency.routes';
 import {libraryRoutes} from './library/library.routes';
 import {billingRoutes} from './admin/billing/billing.routes';
 import {authGuard} from './core/auth/auth.guard';
+import {billingEnabledGuard} from './services/billing-enabled.guard';
 export const routes: Routes = [
   ...learningPathRoutes,
   ...proctoredAssessmentRoutes,
@@ -78,8 +79,11 @@ export const routes: Routes = [
     title: 'Reset password'
   },
   {
+    // The SaaS marketing/pricing page. Only where billing is on; a
+    // single-tenant install sends the visitor to sign-in, like the root does.
     path: 'home',
     component: LmsHomepageComponent,
+    canActivate: [billingEnabledGuard],
     title: ''
   },
   {

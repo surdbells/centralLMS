@@ -6,11 +6,13 @@ namespace Central\Api\Application\Action\Saas;
 
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Application\Saas\BillingAvailability;
 use Central\Api\Application\Saas\Payment\PaymentGatewayError;
 use Central\Api\Application\Saas\Payment\PaymentService;
 use Central\Api\Domain\Authz\AuthenticatedUser;
 use Central\Api\Domain\Authz\Permission;
 use Central\Api\Domain\Exception\AccessDenied;
+use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Saas\Invoice;
 use Central\Api\Domain\Saas\InvoiceRepository;
@@ -35,19 +37,14 @@ final class BillingAction
         private readonly InvoiceRepository $invoices,
         private readonly PlanRepository $plans,
         private readonly PaymentService $payments,
+        private readonly BillingAvailability $availability,
     ) {
     }
 
     public function show(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $caller = AuthenticationMiddleware::require($request);
-        $caller->mustHave(Permission::BillingManage);
-
-        if ($caller->tenantId === null) {
-            throw new AccessDenied(Permission::BillingManage->value);
-        }
-
-        $tenantId = $caller->tenantId;
+        $caller = $this->requireBilling($request);
+        $tenantId = $caller->tenantId ?? '';
         $sub = $this->subscriptions->findByTenant($tenantId);
         $plan = $sub?->planId !== null ? $this->plans->find($sub->planId) : null;
 
@@ -111,8 +108,19 @@ final class BillingAction
         ]);
     }
 
+    /**
+     * The signed-in organisation administrator, on a deployment that bills.
+     *
+     * A dedicated single-tenant install has no billing at all, so every
+     * billing endpoint answers as though it did not exist rather than show an
+     * empty plan or start a payment against a gateway that is not configured.
+     */
     private function requireBilling(ServerRequestInterface $request): AuthenticatedUser
     {
+        if (!$this->availability->enabled) {
+            throw new EntityNotFound('Billing', 'deployment');
+        }
+
         $caller = AuthenticationMiddleware::require($request);
         $caller->mustHave(Permission::BillingManage);
 

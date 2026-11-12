@@ -52,7 +52,7 @@ import {I18nService} from '../../../i18n.service';
 
         <!-- Team Chart -->
         <section class="ui-section" *ngIf="teamData">
-          <app-report-chart [data]="teamData" chartType="bar" [title]="'reports.team_compliance' | translate" [allowTypeChange]="true"></app-report-chart>
+          <app-report-chart [data]="teamData" chartType="doughnut" [title]="'reports.team_compliance' | translate" [allowTypeChange]="true"></app-report-chart>
         </section>
 
         <!-- Team Table -->
@@ -66,6 +66,9 @@ import {I18nService} from '../../../i18n.service';
                 <tr><th class="ps-4">{{ 'common.name' | translate }}</th><th>{{ 'report.enrolled' | translate }}</th><th>{{ 'report.completed' | translate }}</th><th>{{ 'reports.overdue' | translate }}</th><th class="pe-4">{{ 'common.status' | translate }}</th></tr>
               </thead>
               <tbody>
+                <tr *ngIf="!teamMembers.length">
+                  <td colspan="5" class="ps-4 py-4 text-center ui-muted">{{ 'reports.no_team_members' | translate }}</td>
+                </tr>
                 <tr *ngFor="let m of teamMembers">
                   <td class="ps-4 fw-medium">{{ m.learner_name }}</td>
                   <td>{{ m.total_enrolled }}</td>
@@ -101,8 +104,11 @@ export class ManagerDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.svc.runReport('manager_team_dashboard', {}).subscribe(res => {
-      const d = res.data || [];
+    // The API answers in camelCase (learner, enrolments, inProgress,
+    // completionRate, daysOverdue …); rows are mapped to the names this
+    // template reads.
+    this.svc.runReport('manager_team_dashboard', { per_page: 500 }).subscribe(res => {
+      const d = ((res.data || []) as any[]).map(m => this.toMember(m));
       this.teamMembers = d;
       const totEnr = d.reduce((s: number, m: any) => s + (m.total_enrolled || 0), 0);
       const totComp = d.reduce((s: number, m: any) => s + (m.completed || 0), 0);
@@ -115,8 +121,49 @@ export class ManagerDashboardComponent implements OnInit {
       ];
     });
     this.svc.runReport('manager_action_required', {}).subscribe(res => {
-      this.actionItems = (res.data || []).filter((i: any) => i.type === 'overdue' || i.days_overdue > 0);
+      this.actionItems = ((res.data || []) as any[])
+        .map(i => ({
+          learner_name: i.learner ?? i.learner_name ?? '',
+          course_name: i.course ?? i.course_name ?? i.title ?? '',
+          days_overdue: num(i.daysOverdue ?? i.days_overdue),
+        }))
+        .filter(i => i.days_overdue > 0);
     });
-    this.svc.runReport('manager_compliance_summary', {}).subscribe(res => this.teamData = res);
+    // A summary report: totals only, no rows — so the chart is drawn from
+    // them, as parts of the team's mandatory requirements.
+    this.svc.runReport('manager_compliance_summary', {}).subscribe(res => {
+      const t: any = res.summary || {};
+      const completed = num(t.completed);
+      const overdue = num(t.overdue);
+      const pending = Math.max(0, num(t.pending) - overdue);
+      this.teamData = {
+        data: [
+          { label: this.i18n.t('report.completed'), value: completed },
+          { label: this.i18n.t('common.pending'), value: pending },
+          { label: this.i18n.t('reports.overdue'), value: overdue },
+        ],
+      };
+    });
   }
+
+  private toMember(m: any): any {
+    const overdue = num(m.overdue);
+    const rate = num(m.completionRate ?? m.completion_rate);
+    const badge = overdue > 0 ? 'danger' : rate < 50 && num(m.enrolments) > 0 ? 'warning' : 'success';
+    return {
+      learner_name: m.learner ?? m.learner_name ?? '',
+      total_enrolled: num(m.enrolments ?? m.total_enrolled),
+      completed: num(m.completed),
+      in_progress: num(m.inProgress ?? m.in_progress),
+      overdue,
+      completion_rate: rate,
+      status_badge: badge,
+      status: this.i18n.t(badge === 'danger' ? 'reports.overdue' : badge === 'warning' ? 'reports.member_needs_attention' : 'reports.member_on_track'),
+    };
+  }
+}
+
+function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }

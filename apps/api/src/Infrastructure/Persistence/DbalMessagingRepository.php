@@ -535,12 +535,16 @@ final class DbalMessagingRepository implements MessagingRepository
     private function participantsFor(string $tenantId, array $ids): array
     {
         $rows = $this->connection->fetchAllAssociative(
+            // last_read_at is what read receipts are worked out from, so it
+            // is withheld for anybody who has turned read receipts off.
             "SELECT p.conversation_id, p.user_id, p.role, p.is_muted, p.is_pinned,
-                    p.last_read_at, p.joined_at, p.left_at,
+                    CASE WHEN COALESCE(mp.show_read_receipts, TRUE) THEN p.last_read_at END AS last_read_at,
+                    p.joined_at, p.left_at,
                     u.email, u.avatar_url,
                     NULLIF(btrim(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')), '') AS full_name
              FROM conversation_participants p
              JOIN users u ON u.id = p.user_id
+             LEFT JOIN messaging_preferences mp ON mp.user_id = p.user_id AND mp.tenant_id = p.tenant_id
              WHERE p.conversation_id IN (:ids) AND p.tenant_id = :tenant
              ORDER BY p.joined_at, p.user_id",
             ['ids' => $ids, 'tenant' => $tenantId],

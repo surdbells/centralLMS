@@ -8,7 +8,8 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../../translate.pipe';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { ApiError } from '../../../core/api';
@@ -57,7 +58,7 @@ interface RubricPreview extends RubricListItem {
 @Component({
   selector: 'app-rubric-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
 
@@ -65,6 +66,7 @@ interface RubricPreview extends RubricListItem {
     <div class="ui-page rubric-manager-container">
       <!-- Header -->
       <header class="ui-page-header">
+        <a routerLink="/admin/grading" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-list-check"></i></div>
         <div class="ui-page-header__titles">
           <h1>Rubric Manager</h1>
@@ -446,11 +448,11 @@ export class RubricManagerComponent implements OnInit, OnDestroy {
   // ==========================================
 
   createRubric(): void {
-    this.router.navigate(['/admin/rubrics', 'new']);
+    this.router.navigate(['/admin/grading/rubrics', 'create']);
   }
 
   editRubric(r: RubricListItem): void {
-    this.router.navigate(['/admin/rubrics', r.rubric_id, 'edit']);
+    this.router.navigate(['/admin/grading/rubrics', r.rubric_id, 'edit']);
   }
 
   cloneRubric(r: RubricListItem): void {

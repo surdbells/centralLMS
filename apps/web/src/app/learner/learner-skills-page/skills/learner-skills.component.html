@@ -269,9 +269,10 @@
         <button type="button" class="btn-close" (click)="closeCoursesModal()"></button>
       </div>
       <div class="modal-body">
-        <div *ngIf="skillCourses.length === 0" class="text-center py-4 text-muted">
-          <i class="bi bi-book display-4 d-block mb-2"></i>
-          {{ 'skills.no_courses_linked' | translate }}
+        <div *ngIf="skillCourses.length === 0" class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-book"></i></span>
+          <h3>{{ 'skills.no_courses_linked' | translate }}</h3>
+          <p>{{ 'skills.no_courses_linked_text' | translate }}</p>
         </div>
         <div class="course-list" *ngIf="skillCourses.length > 0">
           <div class="course-item" *ngFor="let course of skillCourses" (click)="goToCourse(course.courseId)">

@@ -13,6 +13,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import { Router } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
 import { AvatarComponent } from '../../shared/avatar/avatar.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 
 interface ReportData {
@@ -36,7 +37,7 @@ interface DateRange {
 @Component({
   selector: 'app-training-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent],
   templateUrl: './training-reports.component.html',
   styleUrls: ['./training-reports.component.scss']
 })
@@ -79,6 +80,9 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
   filteredReports: ReportData[] = [];
   searchTerm = '';
   filterStatus = '';
+  /** The trainings list is on its way / failed (distinct from "no trainings"). */
+  reportsLoading = true;
+  reportsError = false;
   sortColumn = 'title';
   sortDirection: 'asc' | 'desc' = 'asc';
 
@@ -147,12 +151,15 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
   }
 
   loadReports(): void {
+    this.reportsLoading = true;
+    this.reportsError = false;
     // Load trainings from API
     this.liveTrainingService.getTrainings()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: trainings => {
-          this.reports = trainings.map(t => ({
+          this.reportsLoading = false;
+          this.reports = (trainings ?? []).map(t => ({
             training_id: t.training_id,
             title: t.title,
             type: t.training_type,
@@ -169,8 +176,22 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
           // Load analytics for each training
           this.loadTrainingAnalytics();
         },
-        error: err => console.error('Error loading trainings:', err)
+        error: err => {
+          console.error('Error loading trainings:', err);
+          this.reports = [];
+          this.filteredReports = [];
+          this.typeDistribution = [];
+          this.reportsError = true;
+          this.reportsLoading = false;
+        }
       });
+  }
+
+  /** Clears the search and status filter (the "no matches" state's action). */
+  clearReportFilters(): void {
+    this.searchTerm = '';
+    this.filterStatus = '';
+    this.filterReports();
   }
 
   loadTrainingAnalytics(): void {

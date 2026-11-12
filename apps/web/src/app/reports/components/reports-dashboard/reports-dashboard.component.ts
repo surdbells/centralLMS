@@ -40,34 +40,38 @@ export class ReportsDashboardComponent implements OnInit {
   }
 
   private loadData(): void {
-    // Categories. "My learning" is the learner's own reports and belongs on
-    // the learner's screens; this admin catalogue is not where they are read.
-    this.reportService
-      .getCategories()
-      .subscribe(cats => (this.categories = cats.filter(c => c.key !== 'my_learning')));
+    // Categories. "My learning" (category `my`) never reaches this screen:
+    // the API leaves it out of the catalogue and ReportService filters it too.
+    this.reportService.getCategories().subscribe(cats => (this.categories = cats));
 
     // Total
     this.reportService.getCatalog().subscribe(items => {
       this.totalReports = items.length;
+      const catNames = new Map(this.categories.map(c => [c.key, c.name]));
       // Quick access: top reports from key categories
       const popular = ['enrollment_overview', 'completion_rates', 'compliance_summary', 'assessment_scores_overview',
         'learner_satisfaction_nps', 'training_effectiveness_index', 'manager_team_dashboard', 'content_freshness'];
       this.quickAccess = popular
         .map(key => items.find(i => i.key === key))
         .filter(Boolean)
-        .map(r => ({ ...r, catName: r!.category.replace(/_/g, ' ') }));
+        .map(r => ({ ...r, catName: catNames.get(r!.category) ?? r!.category.replace(/_/g, ' ') }));
     });
 
-    // KPIs
-    this.reportService.getDashboardSummary().subscribe(data => {
-      this.kpis = [
-        { label: this.i18n.t('reports.kpi_total_enrollments'), value: data.enrollment.total_enrollments || 0, icon: 'bi bi-person-plus', color: 'primary', trend: 'up', change: data.enrollment_change },
-        { label: this.i18n.t('reports.kpi_completion_rate'), value: (data.completion.completion_rate || 0) + '%', icon: 'bi bi-check-circle', color: 'success', trend: data.completion_trend, change: data.completion_change },
-        { label: this.i18n.t('reports.kpi_compliance_rate'), value: (data.compliance.compliance_rate || 0) + '%', icon: 'bi bi-shield-check', color: 'info', trend: data.compliance_trend, change: data.compliance_change },
-        { label: this.i18n.t('reports.kpi_active_learners'), value: data.assessment.unique_learners || 0, icon: 'bi bi-people', color: 'warning' },
-        { label: this.i18n.t('reports.kpi_avg_score'), value: (data.assessment.avg_score || 0) + '%', icon: 'bi bi-trophy', color: 'success' },
-        { label: this.i18n.t('reports.kpi_overdue'), value: data.overdue_count || 0, icon: 'bi bi-exclamation-triangle', color: 'danger' }
-      ];
+    // KPIs — executive_dashboard's totals, which the API names in camelCase
+    // (enrolments, completionRate, complianceRate, activeLast30, …).
+    this.reportService.getDashboardSummary().subscribe({
+      next: data => {
+        const n = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+        this.kpis = [
+          { label: this.i18n.t('reports.kpi_total_enrollments'), value: n(data?.enrolments), icon: 'bi bi-person-plus', color: 'primary' },
+          { label: this.i18n.t('reports.kpi_completion_rate'), value: n(data?.completionRate) + '%', icon: 'bi bi-check-circle', color: 'success' },
+          { label: this.i18n.t('reports.kpi_compliance_rate'), value: n(data?.complianceRate) + '%', icon: 'bi bi-shield-check', color: 'info' },
+          { label: this.i18n.t('reports.kpi_active_learners'), value: n(data?.activeLast30), icon: 'bi bi-people', color: 'warning' },
+          { label: this.i18n.t('reports.kpi_completions'), value: n(data?.completed), icon: 'bi bi-trophy', color: 'success' },
+          { label: this.i18n.t('reports.kpi_overdue'), value: n(data?.overdue), icon: 'bi bi-exclamation-triangle', color: 'danger' },
+        ];
+      },
+      error: () => (this.kpis = []),
     });
 
     // Saved
@@ -75,6 +79,6 @@ export class ReportsDashboardComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/administration']).then(r => console.log(r));
+    void this.router.navigate(['/administration']);
   }
 }

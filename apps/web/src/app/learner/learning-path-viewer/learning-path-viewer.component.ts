@@ -353,7 +353,9 @@ export class LearningPathViewerComponent implements OnInit, OnDestroy {
     // Navigate based on item type
     switch (item.item_type) {
       case 'course':
-        this.router.navigate(['/learner/courses', item.course_id], {
+        // The course player lives at /player/:courseId; the path/item ids ride
+        // along so the player (or a back link) can return to this path.
+        this.router.navigate(['/player', item.course_id], {
           queryParams: { learning_path: p.path_id, item: item.item_id }
         });
         break;

@@ -11,6 +11,8 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../translate.pipe';
 import { AssessmentsService } from '../../services/assessments.service';
 
 // ==========================================
@@ -54,7 +56,7 @@ interface ViolationType {
 @Component({
   selector: 'app-violation-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
 
@@ -62,6 +64,7 @@ interface ViolationType {
     <div class="ui-page violation-viewer-container">
       <!-- Header -->
       <header class="ui-page-header" *ngIf="!sessionMode">
+        <a routerLink="/admin/proctoring/sessions" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-exclamation-triangle"></i></div>
         <div class="ui-page-header__titles">
           <h1>Violation Viewer</h1>

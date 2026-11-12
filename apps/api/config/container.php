@@ -133,6 +133,7 @@ use Central\Api\Domain\Saas\SubscriptionRepository;
 use Central\Api\Domain\Saas\InvoiceRepository;
 use Central\Api\Domain\Saas\PaymentRepository;
 use Central\Api\Application\Saas\BillingService;
+use Central\Api\Application\Saas\BillingAvailability;
 use Central\Api\Application\Saas\Payment\PaymentGateway;
 use Central\Api\Application\Saas\Payment\PaymentService;
 use Central\Api\Infrastructure\Persistence\DbalPlanRepository;
@@ -445,7 +446,14 @@ return [
             $c->get(SettingCatalogue::class),
             $c->get(TenantRepository::class),
             (string) ($c->get('settings')['tenant']['default'] ?? ''),
+            $c->get(BillingAvailability::class)->enabled,
         ),
+    ),
+
+    // Whether this deployment bills its organisations (env BILLING_ENABLED,
+    // defaulting to whether Paystack is configured). Off on single-tenant.
+    BillingAvailability::class => factory(
+        static fn (ContainerInterface $c): BillingAvailability => BillingAvailability::fromSettings($c->get('settings')),
     ),
 
     GenerateOpenApiCommand::class => factory(

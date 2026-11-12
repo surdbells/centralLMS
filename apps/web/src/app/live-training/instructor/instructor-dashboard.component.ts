@@ -15,6 +15,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { AvatarComponent } from '../../shared/avatar/avatar.component';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
@@ -27,7 +28,7 @@ interface InstructorSession extends TrainingSession {
 @Component({
   selector: 'app-instructor-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent],
   templateUrl: './instructor-dashboard.component.html',
   styleUrls: ['./instructor-dashboard.component.scss']
 
@@ -54,6 +55,10 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
   // UI State
   activeTab: 'today' | 'upcoming' | 'past' | 'attendance' = 'today';
   loading = true;
+  /** The session list could not be loaded (shown as an error, not as "no sessions"). */
+  loadError = false;
+  attendanceLoading = false;
+  attendanceError = false;
   selectedSessionId = '';
   selectedSessionForAttendance: InstructorSession | null = null;
 
@@ -88,19 +93,21 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
   loadData(): void {
     this.loading = true;
+    this.loadError = false;
 
     // Load upcoming sessions for instructor
     this.liveTrainingService.getUpcomingSessions(50)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: sessions => {
-          this.allSessions = sessions as InstructorSession[];
+          this.allSessions = (sessions ?? []) as InstructorSession[];
           this.categorizeSessions();
           this.calculateStats();
           this.loading = false;
         },
         error: err => {
           console.error('Error loading sessions:', err);
+          this.loadError = true;
           this.loading = false;
         }
       });
@@ -145,12 +152,25 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
   // Session Actions
   openSession(session: InstructorSession): void {
-    // Navigate to session management view
-    console.log('Opening session:', session);
+    // In-app (Agora) classes run inside the LMS live room.
+    if (session.video_platform === 'agora' && session.session_type !== 'physical') {
+      void this.router.navigate(['/live-training/room', session.session_id]);
+      return;
+    }
+    // External platforms (Zoom / Meet / Teams) open their own meeting link;
+    // prefer the host link when the API supplies one.
+    const externalUrl = session.session_type !== 'physical' ? (session.host_url || session.join_url) : null;
+    if (externalUrl) {
+      window.open(externalUrl, '_blank', 'noopener');
+      return;
+    }
+    // Physical sessions (or a virtual one with no link yet) are run from the
+    // session management page: attendance, QR check-in, meeting status.
+    this.viewSessionDetails(session);
   }
 
   viewSessionDetails(session: InstructorSession): void {
-    console.log('Viewing session details:', session);
+    void this.router.navigate(['/live-training/admin', session.training_id, 'session', session.session_id]);
   }
 
   viewAttendance(session: InstructorSession): void {
@@ -177,11 +197,23 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
     this.selectedSessionForAttendance = sessionToLoad || null;
 
     if (sessionToLoad) {
+      this.attendanceLoading = true;
+      this.attendanceError = false;
       this.liveTrainingService.getSessionAttendance(sessionToLoad.session_id)
         .pipe(takeUntil(this.destroy$))
-        .subscribe(records => {
-          this.attendanceRecords = records;
-          this.calculateAttendanceSummary();
+        .subscribe({
+          next: records => {
+            this.attendanceRecords = records ?? [];
+            this.calculateAttendanceSummary();
+            this.attendanceLoading = false;
+          },
+          error: err => {
+            console.error('Error loading attendance:', err);
+            this.attendanceRecords = [];
+            this.calculateAttendanceSummary();
+            this.attendanceError = true;
+            this.attendanceLoading = false;
+          }
         });
     }
   }

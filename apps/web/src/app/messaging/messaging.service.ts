@@ -1,7 +1,7 @@
 // messaging/messaging.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, of, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, Subject, of, throwError, forkJoin, from, firstValueFrom } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { ApiClient, Endpoints } from '../core/api';
 import { SessionStore } from '../core/auth/session.store';
@@ -141,6 +141,19 @@ export interface ReadReceipt {
   first_name: string;
   last_name: string;
   profile_image: string | null;
+}
+
+/** What "Export my messages" downloads. */
+export interface MessagingExport {
+  exportedAt: string;
+  conversations: Array<{
+    id: string;
+    name: string;
+    type: string;
+    archived: boolean;
+    participants: string[];
+    messages: Array<{ sentAt: string; sender: string; content: string; edited: boolean }>;
+  }>;
 }
 
 export interface TypingUser {
@@ -338,6 +351,8 @@ export class MessagingService {
       .getPaged<ConversationPayload>(Endpoints.conversations.list, {
         search: filters?.search,
         kind: filters?.type,
+        // The inbox leaves archived conversations out unless asked for them.
+        archived: filters?.is_archived === 1 ? true : undefined,
         perPage: 100,
       })
       .pipe(
@@ -689,10 +704,45 @@ export class MessagingService {
       .pipe(map((rows) => rows.map(toSaved)));
   }
 
-  forwardMessage(_messageId: string, _conversationIds: string[]): Observable<void> {
-    return notAvailable('Forwarding a message');
+  /**
+   * Forwarding: the message's text is said again in each chosen conversation,
+   * by the person forwarding it — the same send that typing it would be, so
+   * blocks, archived conversations and membership are all still checked.
+   */
+  forwardMessage(messageId: string, conversationIds: string[]): Observable<void> {
+    const original = this.messagesSubject.getValue().find((m) => m.message_id === messageId);
+
+    if (original === undefined || original.content.trim() === '') {
+      return throwError(() => new Error('That message could not be found.'));
+    }
+
+    if (conversationIds.length === 0) {
+      return of(undefined);
+    }
+
+    const open = this.activeConversationSubject.getValue()?.conversation_id;
+
+    return forkJoin(conversationIds.map((conversationId) => this.api
+      .post<MessagePayload>(Endpoints.conversations.send(conversationId), {
+        content: original.content,
+        kind: 'text',
+      })
+      .pipe(
+        map(toMessage),
+        tap((message) => {
+          // Only the open conversation's messages are on screen.
+          if (conversationId === open) {
+            this.messagesSubject.next([...this.messagesSubject.getValue(), message]);
+            this.newMessage$.next(message);
+          }
+        }),
+      ))).pipe(map(() => undefined));
   }
 
+  /**
+   * Not built: there is no table for reports. The screen hides the action,
+   * so this is only reached if something calls it directly.
+   */
   reportMessage(_messageId: string, _reason: string): Observable<void> {
     return notAvailable('Reporting a message');
   }
@@ -709,8 +759,49 @@ export class MessagingService {
       .pipe(map((rows) => rows.map(toMessage)));
   }
 
-  getReadReceipts(_messageId: string): Observable<ReadReceipt[]> {
-    return notAvailable('Read receipts');
+  /**
+   * Who has read a message in the open conversation.
+   *
+   * Worked out from each participant's last-read time rather than a row per
+   * person per message: anybody who has read the conversation since the
+   * message was sent has read it. The API leaves the time out for people who
+   * have turned read receipts off, so they never appear here.
+   */
+  getReadReceipts(messageId: string): Observable<ReadReceipt[]> {
+    return this.inActive((conversationId) => {
+      const message = this.messagesSubject.getValue().find((m) => m.message_id === messageId);
+
+      if (message === undefined) {
+        return throwError(() => new Error('That message could not be found.'));
+      }
+
+      const sentAt = new Date(message.created_at).getTime();
+      const me = this.getCurrentUserId();
+
+      return this.api
+        .get<ConversationPayload>(Endpoints.conversations.show(conversationId))
+        .pipe(map((row) => ((row['participants'] ?? []) as Array<Record<string, any>>)
+          .filter((p) => {
+            const userId = String(p['userId'] ?? '');
+            const readAt = p['lastReadAt'] ? new Date(String(p['lastReadAt'])).getTime() : NaN;
+
+            return userId !== String(message.sender_id)
+              && userId !== me
+              && !Number.isNaN(readAt)
+              && readAt >= sentAt;
+          })
+          .map((p) => {
+            const [first, ...rest] = String(p['name'] ?? '').split(' ');
+
+            return {
+              user_id: String(p['userId']),
+              read_at: String(p['lastReadAt']),
+              first_name: first ?? '',
+              last_name: rest.join(' '),
+              profile_image: p['avatarUrl'] ?? null,
+            };
+          })));
+    });
   }
 
   /**
@@ -760,10 +851,25 @@ export class MessagingService {
     return this.api.get<BlockedUser[]>(Endpoints.messages.blocked);
   }
 
-  archiveConversation(_conversationId: string): Observable<void> {
-    return notAvailable('Archiving a conversation');
+  /**
+   * Archiving is the conversation's, not the caller's: it closes it to new
+   * messages for everybody, so the API lets only its owner or an admin do it.
+   */
+  archiveConversation(conversationId: string, archived = true): Observable<void> {
+    return this.api
+      .patch<ConversationPayload>(Endpoints.conversations.update(conversationId), { isArchived: archived })
+      .pipe(
+        tap(() => this.conversationsSubject.next(
+          this.conversationsSubject.getValue().filter((c) => c.conversation_id !== conversationId),
+        )),
+        map(() => undefined),
+      );
   }
 
+  /**
+   * Not built: the API has no route for changing a participant's role. The
+   * screen hides the action, so this is only reached if called directly.
+   */
   updateParticipantRole(
     _conversationId: string,
     _userId: string,
@@ -869,6 +975,127 @@ export class MessagingService {
         showReadReceipts: s['show_read_receipts'],
       })
       .pipe(map(toSettings));
+  }
+
+  // ==========================================
+  // BULK (settings page)
+  // ==========================================
+
+  /** Marks every conversation with something unread as read. Resolves to how many. */
+  markAllConversationsRead(): Observable<number> {
+    return from((async () => {
+      const unread = (await this.allConversations(false))
+        .filter((c) => Number(c['unreadCount'] ?? 0) > 0);
+
+      for (const c of unread) {
+        await firstValueFrom(this.api.post(Endpoints.conversations.read(c.id), {}));
+      }
+
+      this.getUnreadCounts().subscribe({ error: () => undefined });
+
+      return unread.length;
+    })());
+  }
+
+  /**
+   * Deletes the caller's unsent draft in every conversation they are in.
+   * Deleting a draft that is not there is a no-op on the server, so each
+   * conversation is simply asked; resolves to how many drafts there were.
+   */
+  clearAllDrafts(): Observable<number> {
+    return from((async () => {
+      const conversations = [
+        ...(await this.allConversations(false)),
+        ...(await this.allConversations(true)),
+      ];
+      let cleared = 0;
+
+      for (const c of conversations) {
+        const draft = await firstValueFrom(
+          this.api.get<{ content: string } | null>(Endpoints.conversations.draft(c.id)),
+        );
+
+        if (draft !== null && draft !== undefined && String(draft.content ?? '') !== '') {
+          await firstValueFrom(this.api.delete(Endpoints.conversations.draft(c.id)));
+          cleared++;
+        }
+      }
+
+      return cleared;
+    })());
+  }
+
+  /**
+   * Everything the caller can read in messaging, gathered for a download:
+   * each conversation they are in (archived ones too) with all its messages,
+   * oldest first. Nothing is changed.
+   */
+  exportMyMessages(): Observable<MessagingExport> {
+    return from((async () => {
+      const me = this.getCurrentUserId();
+      const conversations = [
+        ...(await this.allConversations(false)),
+        ...(await this.allConversations(true)),
+      ];
+      const out: MessagingExport = { exportedAt: new Date().toISOString(), conversations: [] };
+
+      for (const c of conversations) {
+        const messages: MessagePayload[] = [];
+
+        for (let page = 1; ; page++) {
+          const batch = await firstValueFrom(this.api.getPaged<MessagePayload>(
+            Endpoints.conversations.messages(c.id),
+            { page, perPage: 100 },
+          ));
+
+          messages.push(...batch.items);
+
+          if (batch.items.length === 0 || page >= (batch.meta?.totalPages ?? 1)) {
+            break;
+          }
+        }
+
+        const view = toConversation(c, me);
+
+        out.conversations.push({
+          id: c.id,
+          name: view.display_name ?? view.name ?? '',
+          type: view.type,
+          archived: view.is_archived,
+          participants: ((c['participants'] ?? []) as Array<Record<string, any>>)
+            .map((p) => String(p['name'] ?? p['email'] ?? '')),
+          messages: messages
+            .filter((m) => m['isDeleted'] !== true)
+            .map((m) => ({
+              sentAt: String(m['createdAt'] ?? ''),
+              sender: String(m['senderName'] ?? ''),
+              content: String(m['content'] ?? ''),
+              edited: m['isEdited'] === true,
+            }))
+            .sort((a, b) => a.sentAt.localeCompare(b.sentAt)),
+        });
+      }
+
+      return out;
+    })());
+  }
+
+  /** Every conversation in one inbox (live or archived), across all pages. */
+  private async allConversations(archived: boolean): Promise<ConversationPayload[]> {
+    const all: ConversationPayload[] = [];
+
+    for (let page = 1; ; page++) {
+      const batch = await firstValueFrom(this.api.getPaged<ConversationPayload>(
+        Endpoints.conversations.list,
+        { archived: archived ? true : undefined, page, perPage: 100 },
+      ));
+
+      all.push(...batch.items);
+
+      if (batch.items.length === 0 || page >= (batch.meta?.totalPages ?? 1)) {
+        return all;
+      }
+    }
   }
 
   /**

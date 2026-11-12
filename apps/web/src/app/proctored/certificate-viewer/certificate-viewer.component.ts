@@ -14,6 +14,8 @@ import { Subject, forkJoin, of, takeUntil } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { TopComponent } from '../../partials/top/top.component';
+import { TranslatePipe } from '../../translate.pipe';
+import { I18nService } from '../../i18n.service';
 import {
   CertificatesService,
   type Certificate,
@@ -30,7 +32,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
 @Component({
   selector: 'app-certificate-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent, TranslatePipe],
   template: `
     <app-top></app-top>
 
@@ -45,26 +47,26 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
       <header class="ui-page-header">
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-award"></i></div>
         <div class="ui-page-header__titles">
-          <h1>My Certificates</h1>
-          <p>{{ certificates.length }} certificate(s) earned</p>
+          <h1>{{ 'certViewer.title' | translate }}</h1>
+          <p>{{ 'certViewer.earned_count' | translate: { count: certificates.length } }}</p>
         </div>
       </header>
 
       <section class="ui-section">
         <div class="ui-toolbar">
           <div class="ui-filters">
-            <select class="form-select" aria-label="Status"
+            <select class="form-select" [attr.aria-label]="'common.status' | translate"
                     [(ngModel)]="statusFilter" (ngModelChange)="filterCertificates()">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="expired">Expired</option>
-              <option value="expiring_soon">Expiring Soon</option>
-              <option value="revoked">Revoked</option>
+              <option value="all">{{ 'certViewer.all_statuses' | translate }}</option>
+              <option value="active">{{ 'common.active' | translate }}</option>
+              <option value="expired">{{ 'certViewer.status_expired' | translate }}</option>
+              <option value="expiring_soon">{{ 'certViewer.status_expiring_soon' | translate }}</option>
+              <option value="revoked">{{ 'certViewer.status_revoked' | translate }}</option>
             </select>
           </div>
           <label class="ui-search">
             <i class="bi bi-search"></i>
-            <input type="search" placeholder="Search certificates..." aria-label="Search certificates"
+            <input type="search" [placeholder]="'certViewer.search_placeholder' | translate" [attr.aria-label]="'certViewer.search_placeholder' | translate"
                    [(ngModel)]="searchTerm" (ngModelChange)="filterCertificates()">
           </label>
         </div>
@@ -92,7 +94,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
               </div>
               <div class="cert-meta">
                 <div class="cert-meta-item">
-                  <span class="meta-label">Score</span>
+                  <span class="meta-label">{{ 'certificates.score' | translate }}</span>
                   <span class="meta-value" [class.text-success]="(cert.percentage ?? 0) >= 70"
                         [class.text-danger]="cert.percentage !== null && cert.percentage < 50">
                     <ng-container *ngIf="cert.percentage !== null">{{ cert.percentage | number:'1.0-0' }}%<span *ngIf="cert.grade"> ({{ cert.grade }})</span></ng-container>
@@ -100,17 +102,17 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
                   </span>
                 </div>
                 <div class="cert-meta-item">
-                  <span class="meta-label">Issued</span>
+                  <span class="meta-label">{{ 'certificates.issued' | translate }}</span>
                   <span class="meta-value">{{ formatDate(cert.issuedAt) }}</span>
                 </div>
                 <div class="cert-meta-item">
-                  <span class="meta-label">{{ cert.validUntil ? 'Expires' : 'Validity' }}</span>
+                  <span class="meta-label">{{ (cert.validUntil ? 'certViewer.expires' : 'certViewer.validity') | translate }}</span>
                   <span class="meta-value" [class.text-danger]="isExpired(cert)" [class.text-warning]="isExpiringSoon(cert)">
                     <ng-container *ngIf="cert.validUntil">
                       {{ formatDate(cert.validUntil) }}
-                      <small *ngIf="cert.daysRemaining && cert.daysRemaining > 0">({{ cert.daysRemaining }}d left)</small>
+                      <small *ngIf="cert.daysRemaining && cert.daysRemaining > 0">({{ 'certViewer.days_left' | translate: { days: cert.daysRemaining } }})</small>
                     </ng-container>
-                    <span *ngIf="!cert.validUntil" class="text-success">No Expiry</span>
+                    <span *ngIf="!cert.validUntil" class="text-success">{{ 'certViewer.no_expiry' | translate }}</span>
                   </span>
                 </div>
               </div>
@@ -118,11 +120,11 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
 
             <div class="ui-card__footer cert-card-footer">
               <button type="button" class="btn btn-sm btn-primary" (click)="viewCertificate(cert.id); $event.stopPropagation()">
-                <i class="bi bi-eye me-1"></i> View
+                <i class="bi bi-eye me-1"></i> {{ 'common.view' | translate }}
               </button>
               <button type="button" class="btn btn-sm btn-outline-secondary"
                       (click)="openForPrinting(cert.id); $event.stopPropagation()">
-                <i class="bi bi-download me-1"></i> Download
+                <i class="bi bi-download me-1"></i> {{ 'common.download' | translate }}
               </button>
             </div>
           </article>
@@ -130,10 +132,10 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
           <!-- Empty State -->
           <div class="ui-state full-width" *ngIf="filteredCertificates.length === 0 && !loading">
             <span class="ui-state__icon"><i class="bi bi-award"></i></span>
-            <h3 *ngIf="certificates.length === 0">No Certificates Yet</h3>
-            <h3 *ngIf="certificates.length > 0">No Matching Certificates</h3>
-            <p *ngIf="certificates.length === 0">Complete assessments to earn certificates!</p>
-            <p *ngIf="certificates.length > 0">Try adjusting your search or filter</p>
+            <h3 *ngIf="certificates.length === 0">{{ 'certViewer.empty_title' | translate }}</h3>
+            <h3 *ngIf="certificates.length > 0">{{ 'certViewer.no_match_title' | translate }}</h3>
+            <p *ngIf="certificates.length === 0">{{ 'certViewer.empty_text' | translate }}</p>
+            <p *ngIf="certificates.length > 0">{{ 'certViewer.no_match_text' | translate }}</p>
           </div>
         </div>
       </section>
@@ -144,26 +146,26 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
          ========================================== -->
     <ng-container *ngIf="viewMode === 'detail'">
       <header class="ui-page-header">
-        <button type="button" class="ui-page-header__back" (click)="backToList()" aria-label="Back to Certificates" title="Back to Certificates">
+        <button type="button" class="ui-page-header__back" (click)="backToList()" [attr.aria-label]="'certViewer.back_to_list' | translate" [title]="'certViewer.back_to_list' | translate">
           <i class="bi bi-chevron-left"></i>
         </button>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-award"></i></div>
         <div class="ui-page-header__titles">
-          <h1>{{ selectedCertificate?.title || 'Certificate' }}</h1>
+          <h1>{{ selectedCertificate?.title || ('learning.certificate' | translate) }}</h1>
           <p *ngIf="selectedCertificate">#{{ selectedCertificate.number }}</p>
         </div>
         <div class="ui-page-header__actions" *ngIf="!loadingDetail && selectedCertificate">
           <button type="button" class="btn btn-primary" (click)="openForPrinting(selectedCertificate.id)">
-            <i class="bi bi-download me-1"></i> Download PDF
+            <i class="bi bi-download me-1"></i> {{ 'certViewer.download_pdf' | translate }}
           </button>
           <button type="button" class="btn btn-outline-secondary" (click)="shareCertificate()">
-            <i class="bi bi-share me-1"></i> Share
+            <i class="bi bi-share me-1"></i> {{ 'certViewer.share' | translate }}
           </button>
           <button type="button" class="btn btn-outline-secondary" (click)="verifyCertificate()">
-            <i class="bi bi-shield-check me-1"></i> Verify
+            <i class="bi bi-shield-check me-1"></i> {{ 'certViewer.verify' | translate }}
           </button>
           <button type="button" class="btn btn-outline-secondary" (click)="openForPrinting(selectedCertificate.id)">
-            <i class="bi bi-printer me-1"></i> Print
+            <i class="bi bi-printer me-1"></i> {{ 'certViewer.print' | translate }}
           </button>
         </div>
       </header>
@@ -178,7 +180,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
           <div>
             <strong>{{ getDetailAlertTitle() }}</strong>
             <p class="mb-0 small" *ngIf="isExpiringSoon(selectedCertificate)">
-              Expires {{ formatDate(selectedCertificate.validUntil!) }} ({{ selectedCertificate.daysRemaining }}d left)
+              {{ 'certViewer.expires_on' | translate: { date: formatDate(selectedCertificate.validUntil!), days: selectedCertificate.daysRemaining } }}
             </p>
           </div>
         </div>
@@ -190,7 +192,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
               <app-skeleton variant="block" height="100%"></app-skeleton>
             </div>
             <iframe *ngIf="previewDoc" class="cert-preview-frame" [srcdoc]="previewDoc"
-                    title="Certificate preview" sandbox="allow-same-origin"></iframe>
+                    [title]="'certViewer.preview' | translate" sandbox="allow-same-origin"></iframe>
           </div>
         </section>
 
@@ -198,24 +200,24 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
         <!-- Details Table -->
         <section class="ui-section ui-section--flush">
           <div class="ui-section__head">
-            <div><h2 class="ui-section__title">Certificate Details</h2></div>
+            <div><h2 class="ui-section__title">{{ 'certViewer.details' | translate }}</h2></div>
           </div>
           <div class="ui-table-wrap">
             <table class="table table-sm details-table mb-0">
               <tbody>
-                <tr><td class="ui-muted" style="width:180px">Certificate Number</td><td><strong>{{ selectedCertificate.number }}</strong></td></tr>
-                <tr><td class="ui-muted">Verification Code</td><td><code class="user-select-all">{{ selectedCertificate.verificationCode }}</code>
-                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationCode)" aria-label="Copy"><i class="bi bi-copy"></i></button></td></tr>
-                <tr><td class="ui-muted">Assessment</td><td>{{ selectedCertificate.title }}</td></tr>
-                <tr><td class="ui-muted">Recipient</td><td>{{ selectedCertificate.learnerName }}</td></tr>
-                <tr *ngIf="selectedCertificate.percentage !== null"><td class="ui-muted">Score</td><td>{{ selectedCertificate.percentage | number:'1.0-0' }}%<span *ngIf="selectedCertificate.grade"> - {{ selectedCertificate.grade }}</span></td></tr>
-                <tr><td class="ui-muted">Issued</td><td>{{ formatDate(selectedCertificate.issuedAt) }}</td></tr>
-                <tr><td class="ui-muted">Expires</td><td><span *ngIf="selectedCertificate.validUntil">{{ formatDate(selectedCertificate.validUntil) }}</span><span *ngIf="!selectedCertificate.validUntil" class="text-success">No Expiry (Lifetime)</span></td></tr>
-                <tr><td class="ui-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(displayStatus(selectedCertificate))">{{ getStatusLabel(displayStatus(selectedCertificate)) }}</span></td></tr>
-                <tr><td class="ui-muted">Verified</td><td>{{ selectedCertificate.verificationCount }} time(s)</td></tr>
-                <tr><td class="ui-muted">Downloaded</td><td>{{ selectedCertificate.downloadCount }} time(s)</td></tr>
-                <tr *ngIf="selectedCertificate.verificationUrl"><td class="ui-muted">Verify URL</td><td><a [href]="selectedCertificate.verificationUrl" target="_blank" rel="noopener" class="text-break">{{ selectedCertificate.verificationUrl }}</a>
-                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationUrl)" aria-label="Copy"><i class="bi bi-copy"></i></button></td></tr>
+                <tr><td class="ui-muted" style="width:180px">{{ 'certViewer.cert_number' | translate }}</td><td><strong>{{ selectedCertificate.number }}</strong></td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.verification_code' | translate }}</td><td><code class="user-select-all">{{ selectedCertificate.verificationCode }}</code>
+                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationCode)" [attr.aria-label]="'certViewer.copy' | translate"><i class="bi bi-copy"></i></button></td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.awarded_for' | translate }}</td><td>{{ selectedCertificate.title }}</td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.recipient' | translate }}</td><td>{{ selectedCertificate.learnerName }}</td></tr>
+                <tr *ngIf="selectedCertificate.percentage !== null"><td class="ui-muted">{{ 'certificates.score' | translate }}</td><td>{{ selectedCertificate.percentage | number:'1.0-0' }}%<span *ngIf="selectedCertificate.grade"> - {{ selectedCertificate.grade }}</span></td></tr>
+                <tr><td class="ui-muted">{{ 'certificates.issued' | translate }}</td><td>{{ formatDate(selectedCertificate.issuedAt) }}</td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.expires' | translate }}</td><td><span *ngIf="selectedCertificate.validUntil">{{ formatDate(selectedCertificate.validUntil) }}</span><span *ngIf="!selectedCertificate.validUntil" class="text-success">{{ 'certViewer.no_expiry_lifetime' | translate }}</span></td></tr>
+                <tr><td class="ui-muted">{{ 'common.status' | translate }}</td><td><span class="badge" [ngClass]="getStatusBadgeClass(displayStatus(selectedCertificate))">{{ getStatusLabel(displayStatus(selectedCertificate)) }}</span></td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.verified' | translate }}</td><td>{{ 'certViewer.times' | translate: { count: selectedCertificate.verificationCount } }}</td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.downloaded' | translate }}</td><td>{{ 'certViewer.times' | translate: { count: selectedCertificate.downloadCount } }}</td></tr>
+                <tr *ngIf="selectedCertificate.verificationUrl"><td class="ui-muted">{{ 'certViewer.verify_url' | translate }}</td><td><a [href]="selectedCertificate.verificationUrl" target="_blank" rel="noopener" class="text-break">{{ selectedCertificate.verificationUrl }}</a>
+                  <button type="button" class="btn btn-sm btn-link p-0 ms-2" (click)="copyToClipboard(selectedCertificate.verificationUrl)" [attr.aria-label]="'certViewer.copy' | translate"><i class="bi bi-copy"></i></button></td></tr>
               </tbody>
             </table>
           </div>
@@ -224,7 +226,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
         <!-- Additional Information (custom data) -->
         <section class="ui-section ui-section--flush" *ngIf="customFields.length">
           <div class="ui-section__head">
-            <div><h2 class="ui-section__title">Additional Information</h2></div>
+            <div><h2 class="ui-section__title">{{ 'certViewer.additional_info' | translate }}</h2></div>
           </div>
           <div class="ui-table-wrap">
             <table class="table table-sm details-table mb-0">
@@ -243,9 +245,9 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
       <!-- Not Found -->
       <div class="ui-state" *ngIf="!loadingDetail && !selectedCertificate && detailError">
         <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
-        <h3>Certificate Not Found</h3>
+        <h3>{{ 'certViewer.not_found_title' | translate }}</h3>
         <p>{{ detailError }}</p>
-        <button type="button" class="btn btn-primary" (click)="backToList()">Back to Certificates</button>
+        <button type="button" class="btn btn-primary" (click)="backToList()">{{ 'certViewer.back_to_list' | translate }}</button>
       </div>
     </ng-container>
     </div>
@@ -254,13 +256,13 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
     <!-- Share Modal -->
     <div class="modal-overlay" *ngIf="showShareModal" (click)="showShareModal = false">
       <div class="modal-box" (click)="$event.stopPropagation()">
-        <div class="modal-hdr"><h6><i class="bi bi-share me-2"></i> Share Certificate</h6>
-          <button type="button" class="btn-close" (click)="showShareModal = false" aria-label="Close"></button></div>
+        <div class="modal-hdr"><h6><i class="bi bi-share me-2"></i> {{ 'certViewer.share_title' | translate }}</h6>
+          <button type="button" class="btn-close" (click)="showShareModal = false" [attr.aria-label]="'common.close' | translate"></button></div>
         <div class="modal-bdy">
           <div class="d-grid gap-2">
-            <button type="button" class="btn btn-primary" (click)="shareVia('linkedin')"><i class="bi bi-box-arrow-up-right me-2"></i> Share on LinkedIn</button>
-            <button type="button" class="btn btn-outline-secondary" (click)="shareVia('email')"><i class="bi bi-envelope me-2"></i> Share via Email</button>
-            <button type="button" class="btn btn-outline-secondary" (click)="shareVia('link')"><i class="bi bi-link-45deg me-2"></i> Copy Verification Link</button>
+            <button type="button" class="btn btn-primary" (click)="shareVia('linkedin')"><i class="bi bi-box-arrow-up-right me-2"></i> {{ 'certViewer.share_linkedin' | translate }}</button>
+            <button type="button" class="btn btn-outline-secondary" (click)="shareVia('email')"><i class="bi bi-envelope me-2"></i> {{ 'certViewer.share_email' | translate }}</button>
+            <button type="button" class="btn btn-outline-secondary" (click)="shareVia('link')"><i class="bi bi-link-45deg me-2"></i> {{ 'certViewer.copy_link' | translate }}</button>
           </div>
           <div class="alert alert-success mt-3" *ngIf="shareSuccess"><i class="bi bi-check2 me-1"></i> {{ shareSuccess }}</div>
         </div>
@@ -270,23 +272,23 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
     <!-- Verify Modal -->
     <div class="modal-overlay" *ngIf="showVerifyModal" (click)="showVerifyModal = false">
       <div class="modal-box" (click)="$event.stopPropagation()">
-        <div class="modal-hdr"><h6><i class="bi bi-shield-check me-2"></i> Verification</h6>
-          <button type="button" class="btn-close" (click)="showVerifyModal = false" aria-label="Close"></button></div>
+        <div class="modal-hdr"><h6><i class="bi bi-shield-check me-2"></i> {{ 'certViewer.verification' | translate }}</h6>
+          <button type="button" class="btn-close" (click)="showVerifyModal = false" [attr.aria-label]="'common.close' | translate"></button></div>
         <div class="modal-bdy">
-          <div class="text-center py-3" *ngIf="verifying"><div class="spinner-border spinner-border-sm text-secondary"></div><span class="ms-2">Verifying...</span></div>
+          <div class="text-center py-3" *ngIf="verifying"><div class="spinner-border spinner-border-sm text-secondary"></div><span class="ms-2">{{ 'certViewer.verifying' | translate }}</span></div>
           <div *ngIf="!verifying && verificationResult" class="text-center">
             <div class="mb-3" style="font-size: 3rem;">
               <tui-icon [icon]="verificationResult.isValid ? '@tui.check-circle' : '@tui.x-circle'"
                         [class.text-success]="verificationResult.isValid" [class.text-danger]="!verificationResult.isValid"></tui-icon>
             </div>
-            <h6>{{ verificationResult.isValid ? 'Certificate Verified!' : 'Verification Failed' }}</h6>
+            <h6>{{ (verificationResult.isValid ? 'certViewer.verified_ok' : 'certViewer.verify_failed') | translate }}</h6>
             <p class="ui-muted">{{ verificationResult.message }}</p>
             <div *ngIf="verificationResult.isValid" class="text-start mt-3 border-top pt-3">
               <table class="table table-sm"><tbody>
-                <tr><td class="ui-muted">Recipient</td><td>{{ verificationResult.learnerName }}</td></tr>
-                <tr><td class="ui-muted">Assessment</td><td>{{ verificationResult.title }}</td></tr>
-                <tr *ngIf="verificationResult.issuedAt"><td class="ui-muted">Issued</td><td>{{ formatDate(verificationResult.issuedAt) }}</td></tr>
-                <tr><td class="ui-muted">Status</td><td><span class="badge" [ngClass]="getStatusBadgeClass(verificationResult.status)">{{ verificationResult.statusLabel || getStatusLabel(verificationResult.status) }}</span></td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.recipient' | translate }}</td><td>{{ verificationResult.learnerName }}</td></tr>
+                <tr><td class="ui-muted">{{ 'certViewer.awarded_for' | translate }}</td><td>{{ verificationResult.title }}</td></tr>
+                <tr *ngIf="verificationResult.issuedAt"><td class="ui-muted">{{ 'certificates.issued' | translate }}</td><td>{{ formatDate(verificationResult.issuedAt) }}</td></tr>
+                <tr><td class="ui-muted">{{ 'common.status' | translate }}</td><td><span class="badge" [ngClass]="getStatusBadgeClass(verificationResult.status)">{{ verificationResult.statusLabel || getStatusLabel(verificationResult.status) }}</span></td></tr>
               </tbody></table>
             </div>
           </div>
@@ -359,6 +361,7 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private sanitizer = inject(DomSanitizer);
+  private i18n = inject(I18nService);
   private destroy$ = new Subject<void>();
 
   // State
@@ -440,7 +443,7 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
         this.loadingDetail = false;
       },
       error: () => {
-        this.detailError = 'Certificate not found';
+        this.detailError = this.i18n.t('certViewer.not_found');
         this.loadingDetail = false;
       }
     });
@@ -519,22 +522,24 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
     switch (platform) {
       case 'linkedin':
         window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
-        this.shareSuccess = 'Opening LinkedIn...';
+        this.shareSuccess = this.i18n.t('certViewer.opening_linkedin');
         break;
-      case 'email':
-        const subject = encodeURIComponent(`Certificate Verification - ${this.selectedCertificate.title}`);
+      case 'email': {
+        const cert = this.selectedCertificate;
+        const subject = encodeURIComponent(this.i18n.t('certViewer.email_subject', { title: cert.title }));
         const body = encodeURIComponent(
-          `I'd like to share my certificate for "${this.selectedCertificate.title}".\n\n` +
-          (this.selectedCertificate.percentage !== null ? `Score: ${this.selectedCertificate.percentage}%\n` : '') +
-          `Certificate #: ${this.selectedCertificate.number}\n` +
-          `Verify at: ${url}`
+          this.i18n.t('certViewer.email_intro', { title: cert.title }) + '\n\n' +
+          (cert.percentage !== null ? this.i18n.t('certViewer.email_score', { score: cert.percentage }) + '\n' : '') +
+          this.i18n.t('certViewer.email_number', { number: cert.number }) + '\n' +
+          this.i18n.t('certViewer.email_verify', { url })
         );
         window.open(`mailto:?subject=${subject}&body=${body}`);
-        this.shareSuccess = 'Opening email client...';
+        this.shareSuccess = this.i18n.t('certViewer.opening_email');
         break;
+      }
       case 'link':
         this.copyToClipboard(url);
-        this.shareSuccess = 'Verification link copied to clipboard!';
+        this.shareSuccess = this.i18n.t('certViewer.link_copied');
         break;
     }
   }
@@ -554,7 +559,7 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.verificationResult = {
-            found: false, isValid: false, message: 'Network error during verification',
+            found: false, isValid: false, message: this.i18n.t('certViewer.network_error'),
             number: null, learnerName: null, title: null, source: null,
             status: null, statusLabel: null, issuedAt: null, validUntil: null,
           };
@@ -600,7 +605,7 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
 
   formatDate(date: string | null): string {
     if (!date) return '-';
-    return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return new Date(date).toLocaleDateString(this.i18n.lang, { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   formatFieldName(name: string): string {
@@ -617,10 +622,11 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
 
   getStatusLabel(status: string | null): string {
     const map: { [key: string]: string } = {
-      'active': 'Active', 'expired': 'Expired', 'revoked': 'Revoked',
-      'superseded': 'Superseded', 'expiring_soon': 'Expiring Soon', 'pending': 'Pending'
+      'active': 'common.active', 'expired': 'certViewer.status_expired', 'revoked': 'certViewer.status_revoked',
+      'superseded': 'certViewer.status_superseded', 'expiring_soon': 'certViewer.status_expiring_soon', 'pending': 'common.pending'
     };
-    return map[status || ''] || status || '-';
+    const key = map[status || ''];
+    return key ? this.i18n.t(key) : (status || '-');
   }
 
   getDetailAlertClass(): string {
@@ -641,9 +647,9 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
 
   getDetailAlertTitle(): string {
     if (!this.selectedCertificate) return '';
-    if (this.isExpired(this.selectedCertificate)) return 'This certificate has expired';
-    if (this.isExpiringSoon(this.selectedCertificate)) return 'This certificate is expiring soon';
-    if (this.selectedCertificate.status === 'revoked') return 'This certificate has been revoked';
-    return 'This certificate is valid and active';
+    if (this.isExpired(this.selectedCertificate)) return this.i18n.t('certViewer.alert_expired');
+    if (this.isExpiringSoon(this.selectedCertificate)) return this.i18n.t('certViewer.alert_expiring');
+    if (this.selectedCertificate.status === 'revoked') return this.i18n.t('certViewer.alert_revoked');
+    return this.i18n.t('certViewer.alert_valid');
   }
 }

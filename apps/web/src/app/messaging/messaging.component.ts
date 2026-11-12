@@ -294,9 +294,15 @@ export class MessagingComponent implements OnInit, OnDestroy {
   // CONVERSATIONS
   // ==========================================
 
+  /**
+   * Reloads the inbox that matches the current filter: the archived list
+   * on the 'Archived' filter, the live inbox otherwise. Every refresh after
+   * an action (forward, pin, archive, block...) goes through here, so the
+   * list never swaps to the live inbox while 'Archived' is selected.
+   */
   loadConversations(): void {
     this.loading = true;
-    this.messagingService.getConversations()
+    this.messagingService.getConversations({ is_archived: this.conversationFilter === 'archived' ? 1 : 0 })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -434,15 +440,7 @@ export class MessagingComponent implements OnInit, OnDestroy {
   }
 
   onConversationFilterChange(): void {
-    if (this.conversationFilter === 'archived') {
-      this.messagingService.getConversations({ is_archived: 1 })
-        .pipe(takeUntil(this.destroy$))
-        .subscribe();
-    } else {
-      this.messagingService.getConversations({ is_archived: 0 })
-        .pipe(takeUntil(this.destroy$))
-        .subscribe();
-    }
+    this.loadConversations();
   }
 
   // ==========================================
@@ -661,9 +659,12 @@ export class MessagingComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.closeForwardModal();
+          this.toast.success(this.i18n.t('messaging.message_forwarded'));
+          // Their last message has changed.
+          this.loadConversations();
         },
         error: err => {
-          console.error('Error forwarding message:', err);
+          this.toast.error(err?.message || this.i18n.t('messaging.forward_failed'));
         }
       });
   }
@@ -915,18 +916,27 @@ export class MessagingComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Archives the open conversation, or brings it back if it already is. */
   async archiveConversation(): Promise<void> {
     if (!this.activeConversation) return;
-    if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_archive'), { type: 'warning' }))) return;
+    const archiving = !this.activeConversation.is_archived;
+    const question = archiving ? 'messaging.confirm_archive' : 'messaging.confirm_unarchive';
+    if (!(await this.dialog.confirm(this.i18n.t(question), { type: 'warning' }))) return;
 
-    this.messagingService.archiveConversation(this.activeConversation.conversation_id)
+    this.messagingService.archiveConversation(this.activeConversation.conversation_id, archiving)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
+          this.toast.success(this.i18n.t(archiving ? 'messaging.conversation_archived' : 'messaging.conversation_unarchived'));
           this.activeConversation = null;
+          this.messagingService.setActiveConversation(null);
           if (this.isMobile) {
             this.showConversationList = true;
           }
+          this.loadConversations();
+        },
+        error: err => {
+          this.toast.error(err?.message || this.i18n.t('messaging.archive_failed'));
         }
       });
   }
@@ -1404,8 +1414,8 @@ export class MessagingComponent implements OnInit, OnDestroy {
           this.loadingReadReceipts = false;
         },
         error: err => {
-          console.error('Error loading read receipts:', err);
           this.loadingReadReceipts = false;
+          this.toast.error(err?.message || this.i18n.t('messaging.read_receipts_failed'));
         }
       });
 

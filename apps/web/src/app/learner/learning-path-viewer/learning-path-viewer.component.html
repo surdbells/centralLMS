@@ -8,7 +8,7 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb">
       <ol class="breadcrumb mb-2 small">
-        <li class="breadcrumb-item"><a routerLink="/learner">{{ 'paths.breadcrumb_learning' | translate }}</a></li>
+        <li class="breadcrumb-item"><a routerLink="/learning">{{ 'paths.breadcrumb_learning' | translate }}</a></li>
         <li class="breadcrumb-item"><a routerLink="/learner/paths">{{ 'paths.breadcrumb_paths' | translate }}</a></li>
         <li class="breadcrumb-item active">{{ path()!.title }}</li>
       </ol>
@@ -120,6 +120,13 @@
               </h2>
             </div>
             <div class="content-card__body">
+              @if (progress() && progress()!.sections.length === 0 && progress()!.unsectioned_items.length === 0) {
+                <div class="ui-state">
+                  <span class="ui-state__icon"><i class="bi bi-list-check"></i></span>
+                  <h3>{{ 'paths.no_content' | translate }}</h3>
+                  <p>{{ 'paths.no_content_text' | translate }}</p>
+                </div>
+              }
               @if (progress()) {
                 <!-- Enrolled: Show with progress -->
                 @for (sectionData of progress()!.sections; track sectionData.section.section_id) {
@@ -407,7 +414,11 @@
               }
 
               @if (reviews().length === 0) {
-                <p class="text-muted mb-0">{{ 'paths.no_reviews' | translate }}</p>
+                <div class="ui-state">
+                  <span class="ui-state__icon"><i class="bi bi-chat-square-text"></i></span>
+                  <h3>{{ 'paths.no_reviews' | translate }}</h3>
+                  <p>{{ 'paths.no_reviews_text' | translate }}</p>
+                </div>
               } @else {
                 @for (review of reviews(); track review.review_id) {
                   <div class="border-bottom pb-3 mb-3">
@@ -495,7 +506,7 @@
                   <span>{{ 'paths.completed' | translate }}</span>
                 </div>
                 @if (path()!.certificate_enabled && enrollment()!.certificate_id) {
-                  <a [routerLink]="['/certificates', enrollment()!.certificate_id]" class="btn btn-success w-100 mb-3">
+                  <a [routerLink]="['/learner/assessments/certificates', enrollment()!.certificate_id]" class="btn btn-success w-100 mb-3">
                     <i class="bi bi-award me-2"></i>{{ 'paths.view_certificate' | translate }}
                   </a>
                 }

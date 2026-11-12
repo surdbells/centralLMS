@@ -15,6 +15,7 @@ import { BrandingService } from '../../../core/branding.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
+import { BillingService } from '../../../services/billing.service';
 
 /** One item in the bell dropdown, in the shape the template already reads. */
 export interface Notifications {
@@ -67,6 +68,13 @@ export class AdmintopComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(HotToastService);
   private readonly i18n = inject(I18nService);
+  private readonly billing = inject(BillingService);
+  /**
+   * Whether this deployment bills its organisations at all. A dedicated
+   * single-tenant install does not, so its Billing item is never shown — even
+   * to an administrator who holds `billing.manage`.
+   */
+  readonly billingEnabled = this.billing.enabled;
   private readonly destroy$ = new Subject<void>();
 
   notifications?: Notifications[];
@@ -132,6 +140,12 @@ export class AdmintopComponent implements OnInit, OnDestroy {
       is_learner: can('enrollment.self'),
       can_billing: can('billing.manage'),
     };
+
+    // Ask once whether this deployment bills at all; `billingEnabled` turns
+    // the Billing item on when it does.
+    if (this.user_session.can_billing) {
+      this.billing.availability().pipe(takeUntil(this.destroy$)).subscribe();
+    }
 
     // The name and picture come from the person's own record rather than
     // from a copy pasted into storage at sign-in, which went stale the moment

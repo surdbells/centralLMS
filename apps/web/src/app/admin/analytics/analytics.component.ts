@@ -166,19 +166,40 @@ export class AnalyticsComponent implements OnInit {
 
   // --- compliance three-way -------------------------------------------------
 
+  /**
+   * Whole-number shares that add up exactly (largest-remainder rounding), so
+   * the stacked bar never totals 99% or 101%.
+   */
   compliancePct(part: Part): number {
     const c = this.summary?.compliance;
-    return c && c.total > 0 ? Math.round((c[part] / c.total) * 100) : 0;
+    if (!c || !(c.total > 0)) {
+      return 0;
+    }
+    const parts: Part[] = ['completed', 'inProgress', 'yetToAttempt'];
+    const raw = parts.map((p) => ((c[p] ?? 0) / c.total) * 100);
+    const floors = raw.map(Math.floor);
+    const target = Math.round(raw.reduce((a, b) => a + b, 0));
+    let left = target - floors.reduce((a, b) => a + b, 0);
+    parts
+      .map((_, i) => i)
+      .sort((a, b) => (raw[b] - floors[b]) - (raw[a] - floors[a]))
+      .forEach((i) => {
+        if (left > 0) {
+          floors[i]++;
+          left--;
+        }
+      });
+    return floors[parts.indexOf(part)];
   }
 
   // --- satisfaction ---------------------------------------------------------
 
   satCount(star: number): number {
-    return this.summary?.satisfaction.distribution[star] ?? 0;
+    return this.summary?.satisfaction?.distribution?.[star] ?? 0;
   }
 
   private get satMax(): number {
-    const d = this.summary?.satisfaction.distribution;
+    const d = this.summary?.satisfaction?.distribution;
     return d ? Math.max(1, ...this.stars.map((s) => d[s] ?? 0)) : 1;
   }
 
@@ -189,11 +210,11 @@ export class AnalyticsComponent implements OnInit {
   // --- behaviour change (L3) ------------------------------------------------
 
   behCount(star: number): number {
-    return this.summary?.behaviour.distribution[star] ?? 0;
+    return this.summary?.behaviour?.distribution?.[star] ?? 0;
   }
 
   private get behMax(): number {
-    const d = this.summary?.behaviour.distribution;
+    const d = this.summary?.behaviour?.distribution;
     return d ? Math.max(1, ...this.stars.map((s) => d[s] ?? 0)) : 1;
   }
 

@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -31,12 +32,13 @@ interface FieldDraft {
 @Component({
   selector: 'app-custom-fields',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
         <div class="ui-page custom-fields">
           <header class="ui-page-header">
+            <a routerLink="/administration" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
             <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-sliders"></i></div>
             <div class="ui-page-header__titles">
               <h1>{{ 'admin.custom_fields.title' | translate }}</h1>

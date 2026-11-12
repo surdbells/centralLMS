@@ -104,7 +104,8 @@
         </ng-container>
         <div class="ui-state m-3" *ngIf="getTodaySessions().length === 0">
           <span class="ui-state__icon"><i class="bi bi-calendar-x"></i></span>
-          <p>{{ 'live.learner.no_today' | translate }}</p>
+          <h3>{{ 'live.learner.no_today' | translate }}</h3>
+          <p>{{ 'live.learner.no_today_text' | translate }}</p>
         </div>
       </div>
     </section>
@@ -157,7 +158,15 @@
               </div>
             </div>
           </div>
-          <div class="ui-state m-3" *ngIf="upcomingSessions.length === 0">
+          <div class="ui-state m-3" *ngIf="upcomingSessions.length === 0 && upcomingError">
+            <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+            <h3>{{ 'live.learner.upcoming_load_error' | translate }}</h3>
+            <p>{{ 'live.learner.upcoming_load_error_text' | translate }}</p>
+            <button type="button" class="btn btn-primary btn-sm" (click)="loadDashboardData()">
+              <i class="bi bi-arrow-clockwise me-1"></i>{{ 'common.retry' | translate }}
+            </button>
+          </div>
+          <div class="ui-state m-3" *ngIf="upcomingSessions.length === 0 && !upcomingError">
             <span class="ui-state__icon"><i class="bi bi-calendar-check"></i></span>
             <h3>{{ 'live.learner.no_upcoming' | translate }}</h3>
             <p>{{ 'live.learner.no_upcoming_text' | translate }}</p>
@@ -168,7 +177,7 @@
     </section>
 
     <!-- My Enrollments -->
-    <section class="ui-section ui-section--flush" *ngIf="enrolledTrainings.length > 0">
+    <section class="ui-section ui-section--flush">
       <div class="ui-section__head">
         <div>
           <h2 class="ui-section__title">
@@ -176,7 +185,21 @@
           </h2>
         </div>
       </div>
-      <div class="enrollment-list">
+      <app-skeleton class="d-block px-3 py-2" *ngIf="enrollmentsLoading" variant="list" [rows]="3"></app-skeleton>
+      <div class="ui-state m-3" *ngIf="!enrollmentsLoading && enrollmentsError">
+        <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+        <h3>{{ 'live.learner.enrollments_load_error' | translate }}</h3>
+        <p>{{ 'live.learner.upcoming_load_error_text' | translate }}</p>
+        <button type="button" class="btn btn-primary btn-sm" (click)="loadMyEnrollments()">
+          <i class="bi bi-arrow-clockwise me-1"></i>{{ 'common.retry' | translate }}
+        </button>
+      </div>
+      <div class="ui-state m-3" *ngIf="!enrollmentsLoading && !enrollmentsError && enrolledTrainings.length === 0">
+        <span class="ui-state__icon"><i class="bi bi-book"></i></span>
+        <h3>{{ 'live.learner.no_enrollments' | translate }}</h3>
+        <p>{{ 'live.learner.no_enrollments_text' | translate }}</p>
+      </div>
+      <div class="enrollment-list" *ngIf="!enrollmentsLoading && enrolledTrainings.length > 0">
         <div class="enrollment-item"
              *ngFor="let enrollment of enrolledTrainings; trackBy: trackByEnrollmentId">
           <div class="min-w-0">
@@ -204,7 +227,27 @@
 
   <!-- Upcoming Sessions View (its back button is the header's) -->
   <div *ngIf="activeTab === 'upcoming'">
-    <section class="ui-section ui-section--flush">
+    <app-skeleton class="d-block py-2" *ngIf="loading" variant="list" [rows]="5"></app-skeleton>
+
+    <div class="ui-state" *ngIf="!loading && upcomingError">
+      <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+      <h3>{{ 'live.learner.upcoming_load_error' | translate }}</h3>
+      <p>{{ 'live.learner.upcoming_load_error_text' | translate }}</p>
+      <button type="button" class="btn btn-primary" (click)="loadUpcomingSessions()">
+        <i class="bi bi-arrow-clockwise me-1"></i>{{ 'common.retry' | translate }}
+      </button>
+    </div>
+
+    <div class="ui-state" *ngIf="!loading && !upcomingError && upcomingSessions.length === 0">
+      <span class="ui-state__icon"><i class="bi bi-calendar-check"></i></span>
+      <h3>{{ 'live.learner.no_upcoming' | translate }}</h3>
+      <p>{{ 'live.learner.no_upcoming_full_text' | translate }}</p>
+      <button type="button" class="btn btn-outline-secondary" (click)="goBack()">
+        <i class="bi bi-chevron-left me-1"></i>{{ 'live.common.back_to_live_training' | translate }}
+      </button>
+    </div>
+
+    <section class="ui-section ui-section--flush" *ngIf="!loading && upcomingSessions.length > 0">
       <div class="session-list">
         <div class="session-item" *ngFor="let session of upcomingSessions; trackBy: trackBySessionId">
           <div class="session-date-box">
@@ -308,7 +351,7 @@
       <div class="ui-section__head">
         <div><h2 class="ui-section__title">{{ 'live.learner.session_details' | translate }}</h2></div>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive" *ngIf="learnerProgress.sessions?.length">
         <table class="table table-hover align-middle mb-0">
           <thead>
           <tr>
@@ -344,6 +387,11 @@
           </tr>
           </tbody>
         </table>
+      </div>
+      <div class="ui-state m-3" *ngIf="!learnerProgress.sessions?.length">
+        <span class="ui-state__icon"><i class="bi bi-calendar-x"></i></span>
+        <h3>{{ 'live.learner.no_sessions_scheduled' | translate }}</h3>
+        <p>{{ 'live.learner.no_sessions_scheduled_text' | translate }}</p>
       </div>
     </section>
   </div>

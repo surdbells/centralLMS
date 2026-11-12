@@ -2,7 +2,7 @@
 // UI kit; this file keeps the chart drawing and the per-section layouts.
 // Every accent is the tenant brand colour.
 
-// A lettered group whose KPIs/cards sit straight on the page.
+// A titled group whose KPIs/cards sit straight on the page.
 .an-group { margin-bottom: 8px; }
 
 .an-group__head,
@@ -20,7 +20,18 @@
   color: var(--ui-text);
 }
 
-.tag { height: 22px; padding: 0 8px; font-weight: 650; letter-spacing: .03em; }
+.an-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: .9375rem;
+  color: var(--brand-primary);
+  background: rgba(var(--brand-primary-rgb), .1);
+}
 
 .ui-kpi-grid { margin-bottom: 20px; }
 

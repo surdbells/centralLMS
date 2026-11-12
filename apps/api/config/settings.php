@@ -148,6 +148,20 @@ return [
         ],
     ],
 
+    /**
+     * Whether this deployment bills its organisations at all.
+     *
+     * The same code serves the multi-tenant SaaS (subscriptions, invoices,
+     * Paystack) and dedicated single-tenant client installs, where an
+     * organisation's "Billing" page makes no sense. `BILLING_ENABLED` decides;
+     * left unset it follows whether Paystack is configured, so a single-tenant
+     * install with no payment keys hides billing without any extra setting.
+     * The operator console is unaffected either way.
+     */
+    'saas' => [
+        'billing_enabled' => Env::bool('BILLING_ENABLED', (string) Env::get('PAYSTACK_SECRET_KEY', '') !== ''),
+    ],
+
     'storage' => [
         /**
          * Where uploaded files go.

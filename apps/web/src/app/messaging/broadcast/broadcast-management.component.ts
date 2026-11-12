@@ -11,6 +11,7 @@ import { TopComponent } from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
+import { HotToastService } from '@ngneat/hot-toast';
 
 // Interface for form target criteria (non-nullable arrays)
 interface FormTargetCriteria {
@@ -487,6 +488,7 @@ interface FormTargetCriteria {
 export class BroadcastManagementComponent implements OnInit, OnDestroy {
   private readonly backLocation = inject(Location);
   private readonly navRouter = inject(Router);
+  private readonly toast = inject(HotToastService);
   loading = false;
 
   /** What went wrong, if anything. Rendered rather than swallowed. */
@@ -805,8 +807,18 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
 
   async deleteBroadcast(broadcast: Broadcast): Promise<void> {
     if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_delete_broadcast'), { type: 'danger' }))) return;
-    // TODO: Implement delete
-    this.loadBroadcasts();
+
+    this.messagingService.deleteBroadcast(broadcast.broadcast_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toast.success(this.i18n.t('messaging.broadcast_deleted'));
+          this.loadBroadcasts();
+        },
+        error: (err: { message?: string }) => {
+          this.toast.error(err?.message || this.i18n.t('messaging.broadcast_delete_failed'));
+        },
+      });
   }
 
   // Helpers

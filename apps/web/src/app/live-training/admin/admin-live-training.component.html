@@ -279,7 +279,7 @@
               </button>
             </div>
           </div>
-          <div class="table-responsive">
+          <div class="table-responsive" *ngIf="sessions.length > 0">
             <table class="table table-hover align-middle mb-0">
               <thead>
               <tr>
@@ -293,7 +293,9 @@
               </tr>
               </thead>
               <tbody>
-              <tr *ngFor="let session of sessions; trackBy: trackBySessionId">
+              <tr *ngFor="let session of sessions; trackBy: trackBySessionId"
+                  [id]="'session-row-' + session.session_id"
+                  [class.is-highlighted]="session.session_id === highlightSessionId">
                 <td>{{ session.session_number }}</td>
                 <td>
                   <div class="fw-medium">{{ session.title }}</div>
@@ -361,14 +363,16 @@
                   </div>
                 </td>
               </tr>
-              <tr *ngIf="sessions.length === 0">
-                <td colspan="7" class="text-center py-5 ui-muted">
-                  <i class="bi bi-calendar-x d-block mb-2 empty-icon"></i>
-                  {{ 'live.admin.no_sessions' | translate }}
-                </td>
-              </tr>
               </tbody>
             </table>
+          </div>
+          <div class="ui-state m-3" *ngIf="sessions.length === 0">
+            <span class="ui-state__icon"><i class="bi bi-calendar-x"></i></span>
+            <h3>{{ 'live.admin.no_sessions' | translate }}</h3>
+            <p>{{ 'live.admin.no_sessions_text' | translate }}</p>
+            <button type="button" class="btn btn-primary" (click)="openNewSessionModal()">
+              <i class="bi bi-plus-lg me-1"></i>{{ 'live.admin.add_session' | translate }}
+            </button>
           </div>
         </section>
       </div>
@@ -384,7 +388,7 @@
               </button>
             </div>
           </div>
-          <div class="table-responsive">
+          <div class="table-responsive" *ngIf="enrollments.length > 0">
             <table class="table table-hover align-middle mb-0">
               <thead>
               <tr>
@@ -460,14 +464,16 @@
                   </button>
                 </td>
               </tr>
-              <tr *ngIf="enrollments.length === 0">
-                <td colspan="6" class="text-center py-5 ui-muted">
-                  <i class="bi bi-people d-block mb-2 empty-icon"></i>
-                  {{ 'live.admin.no_enrollments' | translate }}
-                </td>
-              </tr>
               </tbody>
             </table>
+          </div>
+          <div class="ui-state m-3" *ngIf="enrollments.length === 0">
+            <span class="ui-state__icon"><i class="bi bi-people"></i></span>
+            <h3>{{ 'live.admin.no_enrollments' | translate }}</h3>
+            <p>{{ 'live.admin.no_enrollments_text' | translate }}</p>
+            <button type="button" class="btn btn-primary" (click)="openEnrollModal()">
+              <i class="bi bi-person-plus me-1"></i>{{ 'live.admin.enroll_learners' | translate }}
+            </button>
           </div>
         </section>
       </div>
@@ -783,7 +789,12 @@
             <i class="bi bi-lock me-1"></i>{{ 'live.common.lock_attendance' | translate }}
           </button>
         </div>
-        <div class="table-responsive">
+        <div class="ui-state" *ngIf="attendance.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-people"></i></span>
+          <h3>{{ 'live.instructor.no_attendance_title' | translate }}</h3>
+          <p>{{ 'live.instructor.no_attendance_text' | translate }}</p>
+        </div>
+        <div class="table-responsive" *ngIf="attendance.length > 0">
           <table class="table table-sm">
             <thead>
             <tr>
@@ -1015,9 +1026,10 @@
             </tbody>
           </table>
         </div>
-        <div class="text-center py-4 text-muted" *ngIf="sessionInstructors.length === 0">
-          <i class="bi bi-person-x display-4 d-block mb-2"></i>
-          {{ 'live.common.no_instructors' | translate }}
+        <div class="ui-state" *ngIf="sessionInstructors.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-person-x"></i></span>
+          <h3>{{ 'live.common.no_instructors' | translate }}</h3>
+          <p>{{ 'live.common.no_instructors_text' | translate }}</p>
         </div>
       </div>
       <div class="modal-footer">

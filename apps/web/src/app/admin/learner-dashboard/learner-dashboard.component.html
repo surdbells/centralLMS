@@ -224,7 +224,7 @@
           <div class="ui-section__head">
             <div><h2 class="ui-section__title">{{ 'paths.continue_learning' | translate }}</h2></div>
             <div class="ui-section__actions">
-              <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('my-courses')">
+              <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('/learning')">
                 {{ 'common.view_all' | translate }} <i class="bi bi-arrow-right"></i>
               </a>
             </div>
@@ -264,7 +264,7 @@
             <span class="ui-state__icon"><i class="bi bi-book"></i></span>
             <h3>{{ 'learner_dash.no_courses_in_progress' | translate }}</h3>
             <p>{{ 'learner_dash.start_learning_hint' | translate }}</p>
-            <button type="button" class="btn btn-primary" (click)="navigateTo('learning')">{{ 'skills.browse_courses' | translate }}</button>
+            <button type="button" class="btn btn-primary" (click)="navigateTo('/learning')">{{ 'skills.browse_courses' | translate }}</button>
           </div>
         </section>
 
@@ -356,7 +356,7 @@
           <div class="ui-section__head">
             <div><h2 class="ui-section__title">{{ 'learner_dash.recommended' | translate }}</h2></div>
             <div class="ui-section__actions">
-              <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('catalog')">
+              <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('/learning', { view: 'browse' })">
                 {{ 'learner_dash.browse_all' | translate }} <i class="bi bi-arrow-right"></i>
               </a>
             </div>
@@ -490,7 +490,7 @@
           <div class="ui-section__head">
             <div><h2 class="ui-section__title">{{ 'learner_dash.recent_badges' | translate }}</h2></div>
             <div class="ui-section__actions">
-              <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('achievements')">
+              <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('/learner/reports', { tab: 'achievements' })">
                 {{ 'common.view_all' | translate }} <i class="bi bi-arrow-right"></i>
               </a>
             </div>
@@ -553,7 +553,7 @@
           </span>
         </div>
         <div class="ui-section__actions">
-          <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('certificates')">
+          <a href="javascript:void(0)" class="btn btn-sm btn-outline-secondary" (click)="navigateTo('/certificates')">
             {{ 'common.view_all' | translate }} <i class="bi bi-arrow-right"></i>
           </a>
         </div>

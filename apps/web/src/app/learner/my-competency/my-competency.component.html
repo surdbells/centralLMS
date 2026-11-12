@@ -33,16 +33,23 @@
     <app-skeleton *ngIf="loading" variant="table" [rows]="6" [cols]="2" />
 
     <!-- Nothing assigned / no assessment for this cycle -->
-    <div *ngIf="!loading && !selected" class="mc-empty">
-      <i class="bi bi-clipboard-x"></i>
+    <div *ngIf="!loading && !selected" class="ui-state">
+      <span class="ui-state__icon"><i class="bi bi-clipboard-x"></i></span>
+      <h3>{{ 'my_competency.none_title' | translate }}</h3>
       <p>{{ 'my_competency.none' | translate }}</p>
     </div>
 
     <ng-container *ngIf="!loading && selected as a">
+      <!-- An assessment whose role profile has no competencies yet -->
+      <div *ngIf="!a.items.length" class="ui-state">
+        <span class="ui-state__icon"><i class="bi bi-bullseye"></i></span>
+        <h3>{{ 'my_competency.no_items_title' | translate }}</h3>
+        <p>{{ 'my_competency.no_items_text' | translate }}</p>
+      </div>
       <!-- 1. Competency profile: the ideal the role is measured against -->
       <div *ngIf="activeTab === 'profile'" class="mc-pane">
         <p class="mc-pane-hint">{{ 'my_competency.profile_hint' | translate }}</p>
-        <div class="mc-table-wrap">
+        <div class="mc-table-wrap" *ngIf="a.items.length">
           <table class="mc-table">
             <thead>
               <tr>
@@ -84,7 +91,7 @@
             <div class="mc-stat-value">{{ a.estimatedMonths }} {{ 'competency.common.mo' | translate }}</div>
           </div>
         </div>
-        <div class="mc-table-wrap">
+        <div class="mc-table-wrap" *ngIf="a.items.length">
           <table class="mc-table">
             <thead>
               <tr>
@@ -121,7 +128,7 @@
             <i class="bi bi-pencil-square me-1"></i>{{ 'my_competency.self_cta' | translate }}
           </button>
         </div>
-        <div class="mc-table-wrap">
+        <div class="mc-table-wrap" *ngIf="a.items.length">
           <table class="mc-table">
             <thead>
               <tr>
@@ -148,7 +155,7 @@
         <p *ngIf="a.status === 'draft' || a.status === 'self_assessed'" class="mc-note">
           <i class="bi bi-hourglass-split me-1"></i>{{ 'my_competency.sme_pending' | translate }}
         </p>
-        <div class="mc-table-wrap">
+        <div class="mc-table-wrap" *ngIf="a.items.length">
           <table class="mc-table">
             <thead>
               <tr>
@@ -175,7 +182,7 @@
         <p *ngIf="a.status !== 'finalized'" class="mc-note">
           <i class="bi bi-hourglass-split me-1"></i>{{ 'my_competency.line_pending' | translate }}
         </p>
-        <div class="mc-table-wrap">
+        <div class="mc-table-wrap" *ngIf="a.items.length">
           <table class="mc-table">
             <thead>
               <tr>

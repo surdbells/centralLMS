@@ -159,7 +159,7 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
                   @if (enrollment.status === 'completed') {
                     <div class="d-flex gap-2 w-100">
                       @if (enrollment.certificate_id) {
-                        <a [routerLink]="['/certificates', enrollment.certificate_id]" class="btn btn-success btn-sm flex-fill">
+                        <a [routerLink]="['/learner/assessments/certificates', enrollment.certificate_id]" class="btn btn-success btn-sm flex-fill">
                           <i class="bi bi-award me-1"></i>Certificate
                         </a>
                       }

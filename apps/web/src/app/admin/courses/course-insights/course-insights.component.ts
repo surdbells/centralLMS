@@ -4,7 +4,7 @@ import { POLYMORPHEUS_CONTEXT } from '@taiga-ui/polymorpheus';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import type { TuiDialogContext } from '@taiga-ui/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { Subject, forkJoin, of } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
@@ -224,7 +224,7 @@ interface CourseInsightsData {
 @Component({
   selector: 'app-course-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
   templateUrl: './course-insights.component.html',
   styleUrls: ['./course-insights.component.css'],
 })

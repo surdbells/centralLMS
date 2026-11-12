@@ -183,9 +183,8 @@
                   <button class="btn btn-outline-secondary btn-sm me-2" (click)="copyToClipboard(testMeetingResult.join_url)">
                     <i class="bi bi-link-45deg me-1"></i>{{ 'live.integrations.copy_link' | translate }}
                   </button>
-                  <button class="btn btn-outline-danger btn-sm" (click)="deleteMeeting(testMeetingPlatform, testMeetingResult.id)">
-                    <i class="bi bi-trash me-1"></i>{{ 'live.common.delete' | translate }}
-                  </button>
+                  <!-- No Delete here: the API has no endpoint to cancel a meeting at
+                       the provider (VideoIntegrationService.deleteMeeting is a stub). -->
                 </div>
               </div>
             </div>

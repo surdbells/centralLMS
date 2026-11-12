@@ -9,7 +9,8 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../translate.pipe';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
@@ -35,13 +36,14 @@ interface QuestionAnalytics {
 @Component({
   selector: 'app-assessment-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
 
     <main class="main">
     <div class="ui-page reports-container">
       <header class="ui-page-header">
+        <a routerLink="/admin/assessments" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-bar-chart-line"></i></div>
         <div class="ui-page-header__titles">
           <h1>Assessment Reports</h1>

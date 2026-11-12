@@ -11,6 +11,7 @@ use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Report\CsvWriter;
 use Central\Api\Domain\Report\ReportCatalogue;
 use Central\Api\Domain\Report\ReportCategory;
+use Central\Api\Domain\Report\ReportDefinition;
 use Central\Api\Domain\Report\ReportRepository;
 use Central\Api\Support\Clock;
 use Psr\Http\Message\ResponseInterface;
@@ -53,7 +54,12 @@ final class RunReportAction extends ReportAction
                 ]);
         }
 
-        $available = $this->catalogue->availableTo($this->caller($request), $category);
+        // Learner self-service reports ("My learning") are read from the
+        // learner's own dashboard, not browsed here — see isCatalogued().
+        $available = array_values(array_filter(
+            $this->catalogue->availableTo($this->caller($request), $category),
+            static fn (ReportDefinition $definition): bool => $definition->category->isCatalogued(),
+        ));
         $grouped   = [];
 
         foreach ($available as $definition) {

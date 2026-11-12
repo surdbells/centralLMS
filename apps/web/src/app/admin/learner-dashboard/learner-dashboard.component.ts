@@ -572,16 +572,22 @@ export class LearnerDashboardComponent implements OnInit, OnDestroy {
   // Navigation
   // -------------------------------------------------------------------------
 
-  navigateTo(route: string): void {
-    void this.router.navigate(['/' + route]);
+  /**
+   * Opens another learner screen by its full path. The "View all" links used
+   * to pass bare words ('my-courses', 'catalog', 'achievements') that matched
+   * no route, so they did nothing.
+   */
+  navigateTo(path: string, queryParams?: Record<string, string>): void {
+    void this.router.navigate([path], queryParams ? { queryParams } : {});
   }
 
-  continueCourse(courseId: string): void {
-    void this.router.navigate(['/course', courseId, 'learn']);
-  }
-
+  /**
+   * A recommended course is one the learner is not enrolled on yet, so the
+   * player (which needs an enrolment) is the wrong place for it. My Learning's
+   * browse view is where they can read about it and enrol.
+   */
   viewCourse(courseId: string): void {
-    void this.router.navigate(['/course', courseId]);
+    void this.router.navigate(['/learning'], { queryParams: { view: 'browse', course: courseId } });
   }
 
   play_course(courseId: string): void {

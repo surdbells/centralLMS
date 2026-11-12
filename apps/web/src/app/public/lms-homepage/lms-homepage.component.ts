@@ -2,8 +2,8 @@
 
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 // ═══════════════════════════════════════════
 //  INTERFACES
@@ -24,17 +24,21 @@ interface ContentPackage {
   courses: number; assessments: number; certificates: number;
   price: string; tags: string[]; popular: boolean;
 }
-interface SignupForm {
-  company_name: string; admin_email: string; admin_first_name: string;
-  admin_last_name: string; password: string; confirm_password: string;
-  company_size: string; industry: string; phone: string;
-}
-interface WizardStep { key: string; label: string; icon: string; complete: boolean; }
-
+/**
+ * The SaaS marketing page at `/home`. Only reachable when this deployment
+ * bills its organisations (see billingEnabledGuard); a single-tenant install
+ * is sent to sign-in instead.
+ *
+ * Signing up is not done here. Every "start" button goes to the real,
+ * invite-code-gated onboarding flow on the public site (apps/public,
+ * `/onboarding`), which calls `POST /onboarding/register`. The wizard that
+ * used to live in this component only animated a progress bar and claimed
+ * the LMS was ready without ever calling the API.
+ */
 @Component({
   selector: 'app-lms-homepage',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './lms-homepage.component.html',
   styleUrls: ['./lms-homepage.component.scss']
 })
@@ -56,47 +60,14 @@ export class LmsHomepageComponent implements OnInit, OnDestroy, AfterViewInit {
     { value: 150, suffix: '+', label: 'Countries', current: 0 }
   ];
 
-  // ── Onboarding flow ──
-  showOnboarding = false;
-  onboardingStep = 1;
-  totalOnboardingSteps = 5;
-  onboardingLoading = false;
-  onboardingError = '';
-  onboardingSuccess = false;
-  provisioningProgress = 0;
-  provisioningMessages: string[] = [];
-  showPassword = false;
-  passwordStrength = 0;
-  emailValid = true;
-  emailTouched = false;
-  selectedPlanId: number | null = null;
+  // ── Where the calls to action go (the public site, apps/public) ──
+  /** The real self-service sign-up: operator-issued code, then provisioning. */
+  readonly siteUrl = environment.publicSiteUrl;
+  readonly onboardingUrl = `${environment.publicSiteUrl}/onboarding`;
+  readonly demoUrl = `${environment.publicSiteUrl}/book-demo`;
+  readonly contactUrl = `${environment.publicSiteUrl}/contact`;
+
   billingCycle: 'monthly' | 'yearly' = 'monthly';
-  selectedPackages: string[] = [];
-
-  signupForm: SignupForm = {
-    company_name: '', admin_email: '', admin_first_name: '', admin_last_name: '',
-    password: '', confirm_password: '', company_size: '', industry: '', phone: ''
-  };
-
-  wizardSteps: WizardStep[] = [
-    { key: 'plan', label: 'Choose Plan', icon: 'bi-tag', complete: false },
-    { key: 'signup', label: 'Company Info', icon: 'bi-building', complete: false },
-    { key: 'content', label: 'Content Packs', icon: 'bi-collection', complete: false },
-    { key: 'review', label: 'Review', icon: 'bi-check-circle', complete: false },
-    { key: 'setup', label: 'Setup', icon: 'bi-rocket-takeoff', complete: false },
-  ];
-
-  companySizes = [
-    { value: '1-10', label: '1–10 employees' }, { value: '11-50', label: '11–50 employees' },
-    { value: '51-200', label: '51–200 employees' }, { value: '201-500', label: '201–500 employees' },
-    { value: '501-1000', label: '501–1,000 employees' }, { value: '1001+', label: '1,000+ employees' }
-  ];
-
-  industryOptions = [
-    'Corporate', 'Healthcare', 'Manufacturing', 'Finance & Banking', 'Retail & E-Commerce',
-    'Education', 'Professional Services', 'Logistics & Transportation', 'Oil & Gas',
-    'Technology', 'Hospitality', 'Government', 'Non-Profit', 'Other'
-  ];
 
   // ── Homepage data ──
 
@@ -172,8 +143,6 @@ export class LmsHomepageComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('marketplaceSection') marketplaceSection!: ElementRef;
   @ViewChild('platformTourSection') platformTourSection!: ElementRef;
 
-  constructor(private router: Router) {}
-
   ngOnInit(): void {
     this.featureInterval = setInterval(() => {
       this.activeFeature = (this.activeFeature + 1) % this.features.length;
@@ -246,145 +215,17 @@ export class LmsHomepageComponent implements OnInit, OnDestroy, AfterViewInit {
     this.mobileMenuOpen = false;
   }
 
-  // ═══════════════════════════════════════════
-  //  ONBOARDING FLOW
-  // ═══════════════════════════════════════════
-
-  openOnboarding(planId?: number): void {
-    this.showOnboarding = true;
-    this.onboardingStep = 1;
-    this.onboardingError = '';
-    this.onboardingSuccess = false;
-    this.provisioningProgress = 0;
-    this.provisioningMessages = [];
-    if (planId) { this.selectedPlanId = planId; this.wizardSteps[0].complete = true; this.onboardingStep = 2; }
-    document.body.style.overflow = 'hidden';
-  }
-
-  closeOnboarding(): void { this.showOnboarding = false; document.body.style.overflow = ''; }
-
-  nextStep(): void {
-    if (!this.validateCurrentStep()) return;
-    this.wizardSteps[this.onboardingStep - 1].complete = true;
-    if (this.onboardingStep < this.totalOnboardingSteps) this.onboardingStep++;
-  }
-
-  prevStep(): void { if (this.onboardingStep > 1) this.onboardingStep--; }
-
-  goToStep(step: number): void {
-    if (step <= this.onboardingStep || this.wizardSteps[step - 2]?.complete) this.onboardingStep = step;
-  }
-
-  validateCurrentStep(): boolean {
-    this.onboardingError = '';
-    switch (this.onboardingStep) {
-      case 1:
-        if (!this.selectedPlanId) { this.onboardingError = 'Please select a plan to continue.'; return false; }
-        return true;
-      case 2:
-        const f = this.signupForm;
-        if (!f.company_name.trim()) { this.onboardingError = 'Company name is required.'; return false; }
-        if (!f.admin_email.trim() || !this.isValidEmail(f.admin_email)) { this.onboardingError = 'A valid email address is required.'; return false; }
-        if (!f.admin_first_name.trim() || !f.admin_last_name.trim()) { this.onboardingError = 'First and last name are required.'; return false; }
-        if (!f.password || f.password.length < 8) { this.onboardingError = 'Password must be at least 8 characters.'; return false; }
-        if (f.password !== f.confirm_password) { this.onboardingError = 'Passwords do not match.'; return false; }
-        if (!f.company_size) { this.onboardingError = 'Please select your company size.'; return false; }
-        if (!f.industry) { this.onboardingError = 'Please select your industry.'; return false; }
-        return true;
-      case 3: return true; // Content packs optional
-      case 4: return true;
-      default: return true;
-    }
-  }
-
-  selectPlan(planId: number): void { this.selectedPlanId = planId; }
-  getSelectedPlan(): PricingPlan | null { return this.pricingPlans.find(p => p.plan_id === this.selectedPlanId) || null; }
-
-  togglePackage(id: string): void {
-    const idx = this.selectedPackages.indexOf(id);
-    idx >= 0 ? this.selectedPackages.splice(idx, 1) : this.selectedPackages.push(id);
-  }
-
-  isPackageSelected(id: string): boolean { return this.selectedPackages.includes(id); }
-  getSelectedPackages(): ContentPackage[] { return this.contentPackages.filter(p => this.selectedPackages.includes(p.id)); }
-
-  getContentPackagesTotal(): string {
-    const total = this.getSelectedPackages().reduce((s, p) => s + (parseInt(p.price.replace(/\D/g, ''), 10) || 0), 0);
-    return total > 0 ? `$${total}` : 'Included';
-  }
-
-  generateSubdomain(): string {
-    return this.signupForm.company_name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 30);
-  }
-
-  // ── Provisioning ──
-
-  startProvisioning(): void {
-    this.wizardSteps[3].complete = true;
-    this.onboardingStep = 5;
-    this.onboardingLoading = true;
-    this.provisioningProgress = 0;
-    this.provisioningMessages = [];
-
-    const steps = [
-      { msg: 'Creating your organization...', pct: 10 },
-      { msg: 'Setting up tenant database...', pct: 25 },
-      { msg: 'Configuring admin account...', pct: 40 },
-      { msg: 'Creating default departments & roles...', pct: 55 },
-      { msg: 'Setting up course categories...', pct: 65 },
-      { msg: 'Preparing branding placeholders...', pct: 75 },
-      { msg: 'Installing content packages...', pct: 85 },
-      { msg: 'Finalizing setup...', pct: 95 },
-      { msg: 'Your LMS is ready!', pct: 100 },
-    ];
-
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < steps.length) {
-        this.provisioningMessages.push(steps[i].msg);
-        this.provisioningProgress = steps[i].pct;
-        i++;
-      } else {
-        clearInterval(interval);
-        this.onboardingLoading = false;
-        this.onboardingSuccess = true;
-        this.wizardSteps[4].complete = true;
-      }
-    }, 800);
-
-    // TODO: Replace with actual HTTP call to provisioning API
-    // POST /api/tenants.php { action: 'provision', ...this.signupForm, plan_id, content_packages }
-  }
-
-  goToNewLMS(): void {
-    this.closeOnboarding();
-    this.router.navigate(['/login']);
-  }
-
-  // ── Validation helpers ──
-
-  isValidEmail(email: string): boolean { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
-
-  onEmailBlur(): void {
-    this.emailTouched = true;
-    this.emailValid = this.isValidEmail(this.signupForm.admin_email);
-  }
-
-  onPasswordInput(): void {
-    const pw = this.signupForm.password;
-    let s = 0;
-    if (pw.length >= 8) s++;
-    if (/[A-Z]/.test(pw)) s++;
-    if (/[0-9]/.test(pw)) s++;
-    if (/[^A-Za-z0-9]/.test(pw)) s++;
-    this.passwordStrength = s;
-  }
-
-  getPasswordStrengthLabel(): string { return ['', 'Weak', 'Fair', 'Good', 'Strong'][this.passwordStrength] || ''; }
-  getPasswordStrengthColor(): string { return ['', '#dc3545', '#fd7e14', '#ffc107', '#28a745'][this.passwordStrength] || ''; }
-
   getPlanPrice(plan: PricingPlan): string {
     if (plan.price === 'Custom') return 'Custom';
     return this.billingCycle === 'yearly' ? plan.yearlyPrice : plan.price;
+  }
+
+  /**
+   * Where a pricing card's button goes. The cards here are illustrative and
+   * their ids are not catalogue plan ids, so no plan is preselected: the
+   * onboarding flow lists the real catalogue (`GET /plans`) itself.
+   */
+  planHref(plan: PricingPlan): string {
+    return plan.price === 'Custom' ? this.contactUrl : this.onboardingUrl;
   }
 }

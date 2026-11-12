@@ -8,11 +8,12 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Subject, forkJoin, of, takeUntil } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { TranslatePipe } from '../../translate.pipe';
 import { AssessmentAdminService } from '../assessment-admin.service';
 import { AssessmentsService } from '../../services/assessments.service';
 import { CertificatesService } from '../../services/certificates.service';
@@ -35,13 +36,14 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
 @Component({
   selector: 'app-assessment-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
 
     <main class="main">
     <div class="ui-page admin-dash">
       <header class="ui-page-header">
+        <a routerLink="/administration" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-speedometer2"></i></div>
         <div class="ui-page-header__titles">
           <h1>Assessment Dashboard</h1>

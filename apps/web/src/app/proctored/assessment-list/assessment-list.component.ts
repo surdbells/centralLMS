@@ -8,7 +8,8 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../translate.pipe';
 import { Subject, forkJoin, of, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
@@ -65,7 +66,7 @@ interface Category {
 @Component({
   selector: 'app-assessment-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
 
@@ -73,6 +74,7 @@ interface Category {
     <div class="ui-page assessment-list-container">
       <!-- Header -->
       <header class="ui-page-header">
+        <a routerLink="/admin/assessments" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-clipboard-check"></i></div>
         <div class="ui-page-header__titles">
           <h1>Assessments</h1>

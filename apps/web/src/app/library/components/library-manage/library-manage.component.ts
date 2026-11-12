@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HotToastService } from '@ngneat/hot-toast';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import { ApiClient, Endpoints } from '../../../core/api';
@@ -32,7 +33,7 @@ interface Option {
 @Component({
   selector: 'app-library-manage',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, LibraryViewerComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, LibraryViewerComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './library-manage.component.html',
   styleUrl: './library-manage.component.scss',
 })

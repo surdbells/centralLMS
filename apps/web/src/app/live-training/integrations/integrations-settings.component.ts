@@ -384,43 +384,9 @@ export class IntegrationsSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Update meeting
-  updateMeeting(platformId: string, meetingId: string, updates: Partial<MeetingDetails>): void {
-    this.videoIntegrationService.updateMeeting(platformId, meetingId, updates)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: meeting => {
-          this.currentMeeting = meeting;
-          this.callbackSuccess = true;
-          this.callbackMessage = this.i18n.t('live.integrations.update_success');
-        },
-        error: err => {
-          this.callbackSuccess = false;
-          this.callbackMessage = this.i18n.t('live.integrations.update_failed', { error: err.message });
-        }
-      });
-  }
-
-  // Delete meeting
-  async deleteMeeting(platformId: string, meetingId: string): Promise<void> {
-    if (!(await this.dialog.confirm(this.i18n.t('live.integrations.delete_meeting_confirm'), { type: 'danger' }))) return;
-
-    this.videoIntegrationService.deleteMeeting(platformId, meetingId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.showMeetingDetailsModal = false;
-          this.currentMeeting = null;
-          this.testMeetingResult = null;
-          this.callbackSuccess = true;
-          this.callbackMessage = this.i18n.t('live.integrations.delete_success');
-        },
-        error: err => {
-          this.callbackSuccess = false;
-          this.callbackMessage = this.i18n.t('live.integrations.delete_failed', { error: err.message });
-        }
-      });
-  }
+  // Editing or cancelling a meeting at the provider is not offered: the API
+  // has no endpoint for either (see VideoIntegrationService.updateMeeting /
+  // deleteMeeting), so a button would be a guaranteed failure.
 
   closeMeetingDetailsModal(): void {
     this.showMeetingDetailsModal = false;

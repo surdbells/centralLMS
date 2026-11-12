@@ -42,6 +42,10 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   activeTab: 'dashboard' | 'trainings' | 'upcoming' | 'progress' | 'training-detail' | 'session-detail' = 'dashboard';
   loading = true;
   enrolling = false;
+  /** The full upcoming list failed to load (an error state, not "no sessions"). */
+  upcomingError = false;
+  enrollmentsLoading = true;
+  enrollmentsError = false;
 
   // QR Scanner
   showQRScanner = false;
@@ -73,30 +77,43 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
 
   loadDashboardData(): void {
     this.loading = true;
+    this.upcomingError = false;
 
     // Load upcoming sessions
     this.liveTrainingService.getUpcomingSessions(5)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
-          this.upcomingSessions = data;
+          this.upcomingSessions = data ?? [];
           this.loading = false;
         },
         error: err => {
           console.error('Error loading upcoming sessions:', err);
+          this.upcomingSessions = [];
+          this.upcomingError = true;
           this.loading = false;
         }
       });
 
-    // Load my enrollments
+    this.loadMyEnrollments();
+  }
+
+  /** The learner's live-training enrollments (its own loading/error state). */
+  loadMyEnrollments(): void {
+    this.enrollmentsLoading = true;
+    this.enrollmentsError = false;
     this.liveTrainingService.getMyEnrollments()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
-          this.enrolledTrainings = data;
+          this.enrolledTrainings = data ?? [];
+          this.enrollmentsLoading = false;
         },
         error: err => {
           console.error('Error loading enrollments:', err);
+          this.enrolledTrainings = [];
+          this.enrollmentsError = true;
+          this.enrollmentsLoading = false;
         }
       });
   }
@@ -120,18 +137,23 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
   }
 
   loadUpcomingSessions(): void {
+    // Open the view straight away so the learner sees a skeleton and then the
+    // list, an empty state or an error state - never a click that does nothing.
+    this.activeTab = 'upcoming';
     this.loading = true;
+    this.upcomingError = false;
 
     this.liveTrainingService.getUpcomingSessions(20)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: data => {
-          this.upcomingSessions = data;
-          this.activeTab = 'upcoming';
+          this.upcomingSessions = data ?? [];
           this.loading = false;
         },
         error: err => {
           console.error('Error loading sessions:', err);
+          this.upcomingSessions = [];
+          this.upcomingError = true;
           this.loading = false;
         }
       });
@@ -220,6 +242,10 @@ export class LearnerLiveTrainingComponent implements OnInit, OnDestroy {
    */
   goBack(): void {
     if (this.activeTab !== 'dashboard') {
+      // A failed full-list load left nothing to show on the dashboard either.
+      if (this.activeTab === 'upcoming' && this.upcomingError) {
+        this.loadDashboardData();
+      }
       this.activeTab = 'dashboard';
       this.selectedTraining = null;
       this.learnerProgress = null;

@@ -3,7 +3,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
@@ -113,15 +113,25 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // Expanded modules for course detail view
   expandedModules: Set<string | null> = new Set();
 
+  /**
+   * Where "back" leaves the course detail for: Browse when the detail was
+   * opened from there (or linked as `?view=browse&course=…`), else My courses.
+   */
+  private detailReturnTo: 'dashboard' | 'browse' = 'dashboard';
+  /** The last `?view=` / `?course=` pair acted on, so a repeat emission is ignored. */
+  private appliedQuery = '';
+
   constructor(
     private learningService: MyLearningService,
     private router: Router,
+    private route: ActivatedRoute,
     private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
     this.loadDashboard();
     this.setupSearch();
+    this.followQueryParams();
   }
 
   ngOnDestroy(): void {
@@ -144,6 +154,42 @@ export class MyLearningComponent implements OnInit, OnDestroy {
         this.loadAvailableCourses();
       }
     });
+  }
+
+  /**
+   * Deep links from the learner home: `?course=ID` opens that course's detail
+   * (enrolled or catalogue), `?view=browse` opens Browse. Followed rather than
+   * read once, because a link to /learning from /learning reuses this
+   * component. With neither, the default My courses view stays as it is.
+   */
+  private followQueryParams(): void {
+    this.route.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => this.applyQueryParams(params));
+  }
+
+  private applyQueryParams(params: ParamMap): void {
+    const courseId = (params.get('course') ?? '').trim();
+    const browse = params.get('view') === 'browse';
+    const key = `${browse ? 'browse' : ''}|${courseId}`;
+    if (key === this.appliedQuery) {
+      return;
+    }
+    this.appliedQuery = key;
+
+    this.selectTab('learning');
+    if (courseId) {
+      // Browse's lists are loaded too, so "back" has something to show.
+      if (browse && this.viewMode !== 'browse') {
+        this.showBrowseCourses();
+      }
+      this.detailReturnTo = browse ? 'browse' : 'dashboard';
+      this.viewCourseDetails(courseId, this.detailReturnTo);
+    } else if (browse) {
+      this.showBrowseCourses();
+    } else if (this.viewMode !== 'dashboard') {
+      this.resetToDashboard();
+    }
   }
 
   // ==========================================
@@ -382,9 +428,11 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // COURSE DETAIL VIEW
   // ==========================================
 
-  viewCourseDetails(courseId: string): void {
+  viewCourseDetails(courseId: string, returnTo: 'dashboard' | 'browse' = 'dashboard'): void {
+    this.detailReturnTo = returnTo;
     this.viewMode = 'course-detail';
     this.selectedCourseId = courseId;
+    this.courseDetails = null;
     this.loadingDetails = true;
     this.expandedModules.clear();
 
@@ -400,7 +448,7 @@ export class MyLearningComponent implements OnInit, OnDestroy {
           this.loadingDetails = false;
         },
         error: (err) => {
-          this.showError(err.error?.message || this.i18n.t('learning.load_details_failed'));
+          this.showError(err?.error?.message || err?.message || this.i18n.t('learning.load_details_failed'));
           this.loadingDetails = false;
         }
       });
@@ -409,6 +457,34 @@ export class MyLearningComponent implements OnInit, OnDestroy {
     this.learningService.updateLastAccessed(courseId)
       .pipe(takeUntil(this.destroy$))
       .subscribe();
+  }
+
+  /** Enrols from the detail of a catalogue course, then shows it as enrolled. */
+  enrollFromDetails(details: CourseDetails): void {
+    this.processing = true;
+
+    this.learningService.selfEnroll(details.course_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.processing = false;
+          if (!result.success) {
+            this.showError(result.message);
+            return;
+          }
+          this.showSuccess(this.i18n.t('learning.enrolled_in', { title: details.title }));
+          this.viewCourseDetails(details.course_id, this.detailReturnTo);
+          // The list behind "back" and the figures now include it.
+          this.loadEnrolledCourses();
+          this.learningService.getStats()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({ next: (stats) => this.stats = stats, error: () => undefined });
+        },
+        error: (err) => {
+          this.showError(err?.error?.message || err?.message || this.i18n.t('learning.enroll_failed'));
+          this.processing = false;
+        }
+      });
   }
 
   toggleModule(moduleId: string | null): void {
@@ -469,9 +545,13 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   }
 
   viewCertificate(certificateId: string): void {
-    // Navigate to certificate view
-    console.log(`View certificate: ${certificateId}`);
-    // this.router.navigate(['/certificates', certificateId]);
+    // The certificate viewer renders any issued certificate (course, path or
+    // assessment) from the certificates API; fall back to the list without an id.
+    if (!certificateId) {
+      void this.router.navigate(['/certificates']);
+      return;
+    }
+    void this.router.navigate(['/learner/assessments/certificates', certificateId]);
   }
 
   // ==========================================
@@ -479,10 +559,40 @@ export class MyLearningComponent implements OnInit, OnDestroy {
   // ==========================================
 
   goBack(): void {
-    // Both sub-views return to the dashboard, which is where the full list
-    // lives now. It reloads, so a course self-enrolled from Browse appears.
+    const linked = this.route.snapshot.queryParamMap;
+    const wasLinked = linked.has('course') || linked.has('view');
+
+    // A detail opened from Browse goes back to Browse.
+    if (this.viewMode === 'course-detail' && this.detailReturnTo === 'browse') {
+      this.courseDetails = null;
+      this.selectedCourseId = null;
+      this.detailReturnTo = 'dashboard';
+      if (wasLinked) {
+        // Drop `course` so a refresh does not reopen the detail; the
+        // parameter handler then sees plain `?view=browse`, already shown.
+        this.appliedQuery = 'browse|';
+        void this.router.navigate([], { relativeTo: this.route, queryParams: { view: 'browse' }, replaceUrl: true });
+      }
+      this.viewMode = 'browse';
+      return;
+    }
+
+    if (wasLinked) {
+      // The parameter handler sees no parameters and resets to the dashboard.
+      void this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+      return;
+    }
+    this.resetToDashboard();
+  }
+
+  /**
+   * Back to My courses, which is where the full list lives now. It reloads,
+   * so a course self-enrolled from Browse appears.
+   */
+  private resetToDashboard(): void {
     this.courseDetails = null;
     this.selectedCourseId = null;
+    this.detailReturnTo = 'dashboard';
     this.searchQuery = '';
     this.loadDashboard();
   }

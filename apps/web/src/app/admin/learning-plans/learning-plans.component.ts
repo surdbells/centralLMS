@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
@@ -25,7 +26,7 @@ interface CourseOption { id: string; title: string; }
 @Component({
   selector: 'app-learning-plans',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-plans.component.html',
   styleUrls: ['./learning-plans.component.scss'],
 })

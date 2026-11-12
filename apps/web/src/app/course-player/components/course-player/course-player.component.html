@@ -128,6 +128,10 @@
           <div class="cp-sidebar-scroll">
             <!-- PATH -->
             <div *ngIf="sidebarTab === 'path'" class="cp-modules">
+              <div class="cp-empty" *ngIf="!courseData.modules?.length">
+                <i class="bi bi-journal-x"></i>
+                <p>{{ 'learning.no_content_text' | translate }}</p>
+              </div>
               <div class="cp-module" *ngFor="let module of courseData.modules; let i = index"
                    [class.open]="isModuleOpen(module, i)">
                 <button class="cp-module-head" type="button" (click)="toggleModule(module.module_id)"

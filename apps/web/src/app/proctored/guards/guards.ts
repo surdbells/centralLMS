@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { CanActivate, CanDeactivate, Router, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { Observable } from 'rxjs';
 import { HotToastService } from '@ngneat/hot-toast';
+import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 // ==========================================
@@ -162,6 +163,8 @@ export class AdminGuard implements CanActivate {
 @Injectable({ providedIn: 'root' })
 export class TimeWindowGuard implements CanActivate {
   private router = inject(Router);
+  private toast = inject(HotToastService);
+  private i18n = inject(I18nService);
 
   canActivate(
     route: ActivatedRouteSnapshot,
@@ -171,18 +174,16 @@ export class TimeWindowGuard implements CanActivate {
     const endDate = route.data['endDate'] as Date;
     const now = new Date();
 
+    // There is no dedicated "not available" page; send the learner back to
+    // their assessments list and say why.
     if (startDate && now < startDate) {
-      // Assessment not yet available
-      return this.router.createUrlTree(['/assessment-not-available'], {
-        queryParams: { reason: 'not_started', startsAt: startDate.toISOString() }
-      });
+      this.toast.info(this.i18n.t('assessment.window.not_started', { date: startDate.toLocaleString(this.i18n.lang) }));
+      return this.router.createUrlTree(['/learner/assessments']);
     }
 
     if (endDate && now > endDate) {
-      // Assessment window has passed
-      return this.router.createUrlTree(['/assessment-not-available'], {
-        queryParams: { reason: 'ended', endedAt: endDate.toISOString() }
-      });
+      this.toast.warning(this.i18n.t('assessment.window.ended', { date: endDate.toLocaleString(this.i18n.lang) }));
+      return this.router.createUrlTree(['/learner/assessments']);
     }
 
     return true;

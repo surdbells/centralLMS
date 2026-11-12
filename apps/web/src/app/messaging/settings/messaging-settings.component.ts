@@ -33,14 +33,17 @@ import { AvatarComponent } from '../../shared/avatar/avatar.component';
         </div>
         <!-- Quick actions -->
         <div class="ui-page-header__actions" [attr.aria-label]="'messaging.quick_actions' | translate">
-          <button type="button" class="btn btn-outline-secondary" (click)="markAllAsRead()">
-            <i class="bi bi-check2-all me-1"></i>{{ 'messaging.mark_all_read' | translate }}
+          <button type="button" class="btn btn-outline-secondary" (click)="markAllAsRead()" [disabled]="busy !== null">
+            <span *ngIf="busy === 'read'" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            <i *ngIf="busy !== 'read'" class="bi bi-check2-all me-1"></i>{{ 'messaging.mark_all_read' | translate }}
           </button>
-          <button type="button" class="btn btn-outline-secondary" (click)="clearAllDrafts()">
-            <i class="bi bi-file-earmark-x me-1"></i>{{ 'messaging.clear_all_drafts' | translate }}
+          <button type="button" class="btn btn-outline-secondary" (click)="clearAllDrafts()" [disabled]="busy !== null">
+            <span *ngIf="busy === 'drafts'" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            <i *ngIf="busy !== 'drafts'" class="bi bi-file-earmark-x me-1"></i>{{ 'messaging.clear_all_drafts' | translate }}
           </button>
-          <button type="button" class="btn btn-primary" (click)="exportData()">
-            <i class="bi bi-download me-1"></i>{{ 'messaging.export_messages' | translate }}
+          <button type="button" class="btn btn-primary" (click)="exportData()" [disabled]="busy !== null">
+            <span *ngIf="busy === 'export'" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+            <i *ngIf="busy !== 'export'" class="bi bi-download me-1"></i>{{ 'messaging.export_messages' | translate }}
           </button>
         </div>
       </header>
@@ -299,6 +302,8 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   blockedUsers: BlockedUser[] = [];
   saving = false;
   saved = false;
+  /** Which quick action is running, so its button can show it and none run twice. */
+  busy: 'read' | 'drafts' | 'export' | null = null;
   private saveTimeout: any;
 
   constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService, private toast: HotToastService) {}
@@ -375,19 +380,74 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Builds the export in the browser and hands it over as a JSON download. */
   exportData(): void {
-    this.toast.success(this.i18n.t('messaging.export_alert'));
+    if (this.busy) return;
+    this.busy = 'export';
+
+    this.messagingService.exportMyMessages()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `messages-${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          this.busy = null;
+          this.toast.success(this.i18n.t('messaging.export_ready'));
+        },
+        error: (err: { message?: string }) => {
+          this.busy = null;
+          this.toast.error(err?.message || this.i18n.t('messaging.export_failed'));
+        },
+      });
   }
 
   async clearAllDrafts(): Promise<void> {
+    if (this.busy) return;
     if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_clear_drafts'), { type: 'danger' }))) return;
-    this.toast.success(this.i18n.t('messaging.drafts_cleared'));
+    this.busy = 'drafts';
+
+    this.messagingService.clearAllDrafts()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (count) => {
+          this.busy = null;
+          this.toast.success(count === 0
+            ? this.i18n.t('messaging.no_drafts_to_clear')
+            : this.i18n.t('messaging.drafts_cleared'));
+        },
+        error: (err: { message?: string }) => {
+          this.busy = null;
+          this.toast.error(err?.message || this.i18n.t('common.error_generic'));
+        },
+      });
   }
 
   async markAllAsRead(): Promise<void> {
+    if (this.busy) return;
     if (!(await this.dialog.confirm(this.i18n.t('messaging.confirm_mark_all')))) return;
-    // TODO: Implement bulk mark as read
-    this.toast.success(this.i18n.t('messaging.marked_all_read'));
+    this.busy = 'read';
+
+    this.messagingService.markAllConversationsRead()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (count) => {
+          this.busy = null;
+          this.toast.success(count === 0
+            ? this.i18n.t('messaging.nothing_unread')
+            : this.i18n.t('messaging.marked_all_read'));
+        },
+        error: (err: { message?: string }) => {
+          this.busy = null;
+          this.toast.error(err?.message || this.i18n.t('common.error_generic'));
+        },
+      });
   }
 
   getInitials(firstName: string, lastName: string): string {

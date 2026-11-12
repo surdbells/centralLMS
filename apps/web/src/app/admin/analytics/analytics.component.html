@@ -3,6 +3,7 @@
 <main class="main">
 <div class="ui-page analytics-wrap">
   <header class="ui-page-header">
+    <a routerLink="/administration" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
     <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></div>
     <div class="ui-page-header__titles">
       <h1>{{ 'analytics.title' | translate }}</h1>
@@ -33,9 +34,9 @@
 
   <ng-container *ngIf="!loading && !failed && engagement && summary">
 
-    <!-- ================= A · Participation & access ================= -->
+    <!-- ================= Participation & access ================= -->
     <div class="an-group">
-      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">A</span> {{ 'analytics.participation' | translate }}</h2>
+      <h2 class="an-group__head"><span class="an-icon" aria-hidden="true"><i class="bi bi-person-check"></i></span> {{ 'analytics.participation' | translate }}</h2>
 
       <div class="ui-kpi-grid">
         <div class="ui-kpi">
@@ -104,10 +105,10 @@
       </div>
     </div>
 
-    <!-- ================= B · Completion by org unit ================= -->
+    <!-- ================= Completion by org unit ================= -->
     <section class="ui-section" *ngIf="fields.length">
       <div class="ui-section__head">
-        <div><h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">B</span> {{ 'analytics.by_unit' | translate }}</h2></div>
+        <div><h2 class="ui-section__title an-title"><span class="an-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span> {{ 'analytics.by_unit' | translate }}</h2></div>
         <div class="ui-section__actions field-picker">
           <label>{{ 'analytics.slice_by' | translate }}</label>
           <select class="form-select form-select-sm" [ngModel]="selectedField" (ngModelChange)="onFieldChange($event)">
@@ -126,9 +127,9 @@
       </div>
     </section>
 
-    <!-- ================= C · Assessment ================= -->
+    <!-- ================= Assessment ================= -->
     <div class="an-group">
-      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">C</span> {{ 'analytics.assessment' | translate }}</h2>
+      <h2 class="an-group__head"><span class="an-icon" aria-hidden="true"><i class="bi bi-clipboard-check"></i></span> {{ 'analytics.assessment' | translate }}</h2>
       <div class="ui-kpi-grid ui-kpi-grid--3">
         <div class="ui-kpi ui-kpi--success">
           <span class="ui-kpi__label"><i class="bi bi-check2-circle"></i> {{ 'analytics.pass_rate' | translate }}</span>
@@ -146,9 +147,9 @@
       </div>
     </div>
 
-    <!-- ================= D · Engagement ================= -->
+    <!-- ================= Engagement ================= -->
     <div class="an-group">
-      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">D</span> {{ 'analytics.engagement_detail' | translate }}</h2>
+      <h2 class="an-group__head"><span class="an-icon" aria-hidden="true"><i class="bi bi-activity"></i></span> {{ 'analytics.engagement_detail' | translate }}</h2>
       <div class="ui-kpi-grid">
         <div class="ui-kpi">
           <span class="ui-kpi__label"><i class="bi bi-calendar-check"></i> {{ 'analytics.active_days' | translate }}</span>
@@ -177,10 +178,10 @@
       </div>
     </div>
 
-    <!-- ================= G · Compliance ================= -->
+    <!-- ================= Compliance ================= -->
     <section class="ui-section">
       <div class="ui-section__head">
-        <div><h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">G</span> {{ 'analytics.compliance' | translate }}</h2></div>
+        <div><h2 class="ui-section__title an-title"><span class="an-icon" aria-hidden="true"><i class="bi bi-shield-check"></i></span> {{ 'analytics.compliance' | translate }}</h2></div>
       </div>
       <div class="compliance-bar" *ngIf="summary.compliance.total > 0">
         <div class="seg done" [style.width.%]="compliancePct('completed')"></div>
@@ -198,9 +199,9 @@
       <p class="muted small mb-0 mt-2" *ngIf="summary.compliance.total === 0">{{ 'analytics.no_mandatory' | translate }}</p>
     </section>
 
-    <!-- ================= E · Satisfaction ================= -->
+    <!-- ================= Satisfaction ================= -->
     <div class="an-group">
-      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">E</span> {{ 'analytics.satisfaction' | translate }}</h2>
+      <h2 class="an-group__head"><span class="an-icon" aria-hidden="true"><i class="bi bi-emoji-smile"></i></span> {{ 'analytics.satisfaction' | translate }}</h2>
       <div class="chart-row chart-row--score">
         <section class="ui-section sat-score">
           <span class="sat-avg">{{ summary.satisfaction.average | number:'1.1-1' }}</span>
@@ -234,10 +235,10 @@
       </div>
     </div>
 
-    <!-- ================= F · Competency ================= -->
+    <!-- ================= Competency ================= -->
     <section class="ui-section">
       <div class="ui-section__head">
-        <div><h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">F</span> {{ 'analytics.competency' | translate }}</h2></div>
+        <div><h2 class="ui-section__title an-title"><span class="an-icon" aria-hidden="true"><i class="bi bi-bullseye"></i></span> {{ 'analytics.competency' | translate }}</h2></div>
       </div>
       <div class="compliance-bar" *ngIf="summary.competency.items > 0">
         <div class="seg done" [style.width.%]="summary.competency.rate"></div>
@@ -269,9 +270,9 @@
       </div>
     </section>
 
-    <!-- ================= H · Business impact ================= -->
+    <!-- ================= Business impact ================= -->
     <div class="an-group">
-      <h2 class="an-group__head"><span class="ui-pill ui-pill--brand tag">H</span> {{ 'analytics.impact' | translate }}</h2>
+      <h2 class="an-group__head"><span class="an-icon" aria-hidden="true"><i class="bi bi-graph-up-arrow"></i></span> {{ 'analytics.impact' | translate }}</h2>
       <div class="chart-row chart-row--score">
         <section class="ui-section sat-score">
           <span class="sat-avg">{{ summary.behaviour.average | number:'1.1-1' }}</span>
@@ -296,7 +297,7 @@
     <section class="ui-section">
       <div class="ui-section__head">
         <div>
-          <h2 class="ui-section__title an-title"><span class="ui-pill ui-pill--brand tag">B–H</span> {{ 'analytics.deeper' | translate }}</h2>
+          <h2 class="ui-section__title an-title"><span class="an-icon" aria-hidden="true"><i class="bi bi-layers"></i></span> {{ 'analytics.deeper' | translate }}</h2>
           <p class="ui-section__subtitle">{{ 'analytics.deeper_note' | translate }}</p>
         </div>
       </div>

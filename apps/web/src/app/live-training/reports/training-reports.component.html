@@ -89,7 +89,13 @@
         <div class="ui-section__head">
           <div><h2 class="ui-section__title">{{ 'live.reports.training_types' | translate }}</h2></div>
         </div>
-        <div class="type-distribution">
+        <app-skeleton class="d-block" *ngIf="reportsLoading" variant="lines" [rows]="3"></app-skeleton>
+        <div class="ui-state" *ngIf="!reportsLoading && typeDistribution.length === 0">
+          <span class="ui-state__icon"><i class="bi bi-pie-chart"></i></span>
+          <h3>{{ 'live.reports.no_types' | translate }}</h3>
+          <p>{{ 'live.reports.no_types_text' | translate }}</p>
+        </div>
+        <div class="type-distribution" *ngIf="!reportsLoading && typeDistribution.length > 0">
           <div class="type-item" *ngFor="let type of typeDistribution">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span>
@@ -125,7 +131,32 @@
           <option value="completed">{{ 'live.common.completed' | translate }}</option>
         </select>
       </div>
-      <div class="table-responsive">
+      <app-skeleton class="d-block" *ngIf="reportsLoading" variant="table" [rows]="5" [cols]="6"></app-skeleton>
+      <div class="ui-state m-3" *ngIf="!reportsLoading && reportsError">
+        <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+        <h3>{{ 'live.reports.load_error' | translate }}</h3>
+        <p>{{ 'live.instructor.load_error_text' | translate }}</p>
+        <button type="button" class="btn btn-primary" (click)="loadReports()">
+          <i class="bi bi-arrow-clockwise me-1"></i>{{ 'common.retry' | translate }}
+        </button>
+      </div>
+      <div class="ui-state m-3" *ngIf="!reportsLoading && !reportsError && reports.length === 0">
+        <span class="ui-state__icon"><i class="bi bi-bar-chart"></i></span>
+        <h3>{{ 'live.reports.no_trainings' | translate }}</h3>
+        <p>{{ 'live.reports.no_trainings_text' | translate }}</p>
+        <button type="button" class="btn btn-primary" (click)="goBack()">
+          <i class="bi bi-camera-video me-1"></i>{{ 'live.common.back_to_live_training' | translate }}
+        </button>
+      </div>
+      <div class="ui-state m-3" *ngIf="!reportsLoading && !reportsError && reports.length > 0 && filteredReports.length === 0">
+        <span class="ui-state__icon"><i class="bi bi-search"></i></span>
+        <h3>{{ 'live.reports.no_matches' | translate }}</h3>
+        <p>{{ 'live.reports.no_matches_text' | translate }}</p>
+        <button type="button" class="btn btn-outline-secondary" (click)="clearReportFilters()">
+          <i class="bi bi-x-lg me-1"></i>{{ 'live.reports.clear_filters' | translate }}
+        </button>
+      </div>
+      <div class="table-responsive" *ngIf="!reportsLoading && filteredReports.length > 0">
         <table class="table table-hover align-middle mb-0">
           <thead>
           <tr>
@@ -353,7 +384,12 @@
               <hr>
 
               <h6>{{ 'live.reports.session_wise' | translate }}</h6>
-              <div class="table-responsive">
+              <div class="ui-state" *ngIf="!selectedTrainingAnalytics.sessions?.length">
+                <span class="ui-state__icon"><i class="bi bi-calendar-x"></i></span>
+                <h3>{{ 'live.learner.no_sessions_scheduled' | translate }}</h3>
+                <p>{{ 'live.reports.no_session_data_text' | translate }}</p>
+              </div>
+              <div class="table-responsive" *ngIf="selectedTrainingAnalytics.sessions?.length">
                 <table class="table table-sm">
                   <thead>
                   <tr>

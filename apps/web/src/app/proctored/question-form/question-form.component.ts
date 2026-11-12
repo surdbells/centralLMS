@@ -17,7 +17,6 @@ import { AssessmentsService, type QuestionInput } from '../../services/assessmen
 import { AuthImgDirective } from '../../core/api';
 
 interface QuestionBank { id: string; name: string; }
-interface Category { id: string; name: string; }
 interface QuestionOption { id?: string; option_text: string; is_correct: boolean; feedback: string; order_position: number; }
 interface MatchPair { id?: string; premise: string; response: string; order_position: number; }
 interface OrderItem { id?: string; item_text: string; correct_position: number; }
@@ -303,10 +302,6 @@ interface QuestionForm {
               <select class="form-control" [(ngModel)]="form.bank_id">
                 <option [value]="null">-- Select --</option>
                 <option *ngFor="let b of banks" [value]="b.id">{{ b.name }}</option></select></div>
-            <div class="fg"><label class="form-label">Category</label>
-              <select class="form-control" [(ngModel)]="form.category_id">
-                <option [value]="null">None</option>
-                <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option></select></div>
             <div class="fg"><label class="form-label">Difficulty *</label>
               <div class="diff-sel">
                 <button class="db" [class.sel]="form.difficulty==='easy'" [class.easy]="form.difficulty==='easy'" (click)="form.difficulty='easy'">Easy</button>
@@ -469,7 +464,6 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   saving = false;
   uploadingImage = false;
   banks: QuestionBank[] = [];
-  categories: Category[] = [];
   existingTags: string[] = [];
   dragIdx = -1;
   toast = { show: false, message: '', type: 'success' as 'success'|'error' };
@@ -553,8 +547,8 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   }
 
   loadBanks(editId?: string | null): void {
-    // Categories have no endpoint on the new API, so that control stays empty.
-    this.categories = [];
+    // Questions are organised by bank and tags. The API has no question
+    // category, so the form does not offer a Category picker.
     this.existingTags = [];
     this.assessments.banks().pipe(takeUntil(this.destroy$)).subscribe({
       next: (page) => {

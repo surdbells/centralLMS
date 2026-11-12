@@ -216,6 +216,13 @@ export class VideoIntegrationService {
       .pipe(map((booked) => ({ ...toMeeting(booked), platform })));
   }
 
+  /*
+   * Not wired: the API (apps/api/config/routes.php) only books a meeting
+   * (POST /trainings/{id}/sessions/{sessionId}/meeting); it has no route to
+   * read, edit or cancel one at the provider. These stay as documented stubs
+   * that fail clearly, and no UI calls update/delete. Wire them here once
+   * such endpoints exist.
+   */
   getMeeting(_platform: string, _meetingId: string): Observable<MeetingDetails> {
     return notAvailable('Reading a meeting back from the provider');
   }

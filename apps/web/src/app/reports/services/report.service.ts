@@ -72,7 +72,16 @@ export class ReportService {
   private catalogue(): Observable<CatalogueResponse> {
     this.catalogCache$ ??= this.api
       .get<CatalogueResponse>(Endpoints.reports.catalogue)
-      .pipe(shareReplay(1));
+      .pipe(
+        // "My learning" (category `my`) is a learner's own records, read on the
+        // learner dashboard. The catalogue is the admin browser, so it is kept
+        // out even when an older API still lists it.
+        map((response) => ({
+          ...response,
+          categories: (response?.categories ?? []).filter((c) => !UNCATALOGUED.has(c.category)),
+        })),
+        shareReplay(1),
+      );
 
     return this.catalogCache$;
   }
@@ -573,7 +582,18 @@ const ICONS: Record<string, string> = {
   time: 'bi bi-clock-history',
   certificate: 'bi bi-award',
   executive: 'bi bi-graph-up-arrow',
+  gamification: 'bi bi-trophy',
+  path: 'bi bi-signpost-split',
+  ilt: 'bi bi-camera-video',
+  onboarding: 'bi bi-person-badge',
+  audit: 'bi bi-journal-check',
+  manager: 'bi bi-diagram-3',
+  cohort: 'bi bi-collection',
+  system: 'bi bi-hdd-stack',
 };
+
+/** Categories that exist on the API but are not browsed in the admin catalogue. */
+const UNCATALOGUED = new Set<string>(['my']);
 
 function toCatalogItem(report: CataloguedReport): ReportCatalogItem {
   return {

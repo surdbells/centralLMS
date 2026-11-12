@@ -1,10 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReportService } from '../../services/report.service';
 import { ReportChartComponent } from '../report-chart/report-chart.component';
 import { TopComponent } from '../../../partials/top/top.component';
 import { TuiIcon } from '@taiga-ui/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Observable, forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
@@ -153,7 +156,7 @@ import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
                     <td class="ps-4 fw-medium">{{ a.title || a.assessment_title }}</td>
                     <td><small class="ui-muted">{{ a.course_title || '-' }}</small></td>
                     <td>
-                        <span class="fw-semibold" [class]="a.score >= (a.pass_mark || 70) ? 'text-success' : 'text-danger'">
+                        <span class="fw-semibold" [class]="a.passed ? 'text-success' : a.score !== null ? 'text-danger' : 'ui-muted'">
                           {{ a.score !== null ? a.score + '%' : '-' }}
                         </span>
                     </td>
@@ -312,73 +315,86 @@ export class LearnerDashboardComponent implements OnInit {
   // Loaded flags to prevent re-fetching
   private loadedTabs = new Set<string>();
 
+  /**
+   * The tab asked for by `?tab=` (the learner home links to
+   * `?tab=achievements`). Held until the tabs exist, then applied once.
+   */
+  private requestedTab: string | null = null;
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
+
   // Chart data
   progressChartData: any = null;
   statusChartData: any = null;
 
   constructor(private svc: ReportService, private router: Router, private i18n: I18nService) {}
 
-  /** Extract actual data from report response.
-   *  runReport() does: { data: wrapper.result.data || [], ...wrapper.result }
-   *  - If PHP returned an object (summary): fields spread at top level → res.total_enrolled etc.
-   *  - If PHP returned an array (course list): ...spread gives { 0:{...}, 1:{...}, data:[] }
-   *    We detect this by checking for numeric keys.
+  /**
+   * Rows of a report, or [] when it failed.
+   *
+   * The "My learning" reports answer in camelCase (`course`, `progress`,
+   * `dueDate`, `submittedAt` …); every loader below maps them to the names
+   * this template reads, in one place.
    */
-  private extract(res: any): any {
-    if (!res) return null;
-    if (Array.isArray(res)) return res;
-
-    // Check if runReport spread an array → numeric keys present (0, 1, 2, ...)
-    const keys = Object.keys(res);
-    const hasNumericKeys = keys.some(k => /^\d+$/.test(k));
-    if (hasNumericKeys) {
-      // Reconstruct the array from numeric keys
-      return keys
-        .filter(k => /^\d+$/.test(k))
-        .sort((a, b) => +a - +b)
-        .map(k => res[k]);
-    }
-
-    // If data is a non-empty array, use it
-    if (Array.isArray(res.data) && res.data.length > 0) return res.data;
-
-    // For summary reports: useful fields are at top level (total_enrolled, completed, etc.)
-    return res;
+  private rows(key: string, filters: Record<string, any> = { per_page: 500 }): Observable<any[]> {
+    return this.svc.runReport(key, filters).pipe(
+      map(res => (Array.isArray(res?.data) ? res.data : [])),
+      catchError(() => of([])),
+    );
   }
 
   ngOnInit(): void {
     this.loading = true;
 
-    // 1. Load summary (flat KPI object)
-    // After runReport unwraps: { report_name, data:[], total_enrolled:9, completed:0, ... }
-    // The summary fields are spread at the top level via ...wrapper.result
-    this.svc.runReport('my_learning_summary', {}).subscribe({
-      next: res => {
-        // res has total_enrolled, completed, etc. at top level (spread from result)
-        const d: any = res;
-        this.summary = d;
-        this.buildKPIs(d);
-        this.buildStatusChart(d);
-        this.buildTabs(d);
-        this.loading = false;
+    // Same-route navigation (a new ?tab= on this page) reuses the component,
+    // so the parameter is followed rather than read once.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        this.requestedTab = params.get('tab');
+        this.applyRequestedTab();
+      });
 
-        // Auto-load courses tab
-        this.loadTabData('courses');
-      },
-      error: () => {
-        this.loading = false;
-        this.buildKPIs({});
-        this.buildTabs({});
-      }
-    });
+    forkJoin({
+      summary: this.svc.runReport('my_learning_summary', {}).pipe(
+        map(res => res?.summary ?? {}),
+        catchError(() => of({} as Record<string, any>)),
+      ),
+      time: this.svc.runReport('my_learning_time', {}).pipe(
+        map(res => res?.summary ?? {}),
+        catchError(() => of({} as Record<string, any>)),
+      ),
+      courses: this.rows('my_enrolled_courses'),
+      assessments: this.rows('my_assessment_results'),
+    }).subscribe(({ summary, time, courses, assessments }) => {
+      this.courses = courses.map(r => toCourse(r));
+      this.assessments = assessments.map(r => toAssessment(r));
+      this.loadedTabs.add('courses');
+      this.loadedTabs.add('assessments');
 
-    // 2. Load performance trend chart
-    this.svc.runReport('my_performance_trend', {}).subscribe({
-      next: (res: any) => {
-        const d = this.extract(res);
-        this.buildProgressChart(Array.isArray(d) ? d : []);
-      },
-      error: () => {} // Not critical - chart just won't show
+      const scored = this.assessments.filter(a => a.score !== null);
+      const d = {
+        total_enrolled: num(summary['enrolled'] ?? this.courses.length),
+        completed: num(summary['completed']),
+        in_progress: num(summary['inProgress']),
+        overdue: this.courses.filter(c => c.is_overdue).length,
+        avg_progress: this.courses.length
+          ? Math.round(this.courses.reduce((s, c) => s + c.progress_percentage, 0) / this.courses.length)
+          : 0,
+        avg_score: scored.length ? Math.round(scored.reduce((s, a) => s + a.score, 0) / scored.length) : 0,
+        total_learning_hours: num(time['totalHours']),
+        certificates: num(summary['certificates']),
+        badges: num(summary['badges']),
+        points: num(summary['points']),
+      };
+
+      this.summary = d;
+      this.buildKPIs(d);
+      this.buildStatusChart();
+      this.buildProgressChart();
+      this.buildTabs(d);
+      this.loading = false;
+      this.applyRequestedTab();
     });
   }
 
@@ -407,39 +423,57 @@ export class LearnerDashboardComponent implements OnInit {
   //  BUILD CHARTS
   // ═══════════════════════════════════════════
 
-  private buildStatusChart(d: any): void {
-    const completed = d.completed ?? 0;
-    const inProgress = d.in_progress ?? 0;
-    const notStarted = d.not_started ?? 0;
-    const overdue = d.overdue ?? 0;
+  /**
+   * Parts of a whole, from the course rows: an overdue course is counted as
+   * overdue rather than also as in progress, so the slices add up.
+   */
+  private buildStatusChart(): void {
+    let completed = 0, inProgress = 0, notStarted = 0, overdue = 0;
+    for (const c of this.courses) {
+      if (c.status === 'completed') completed++;
+      else if (c.is_overdue) overdue++;
+      else if (c.status === 'in_progress') inProgress++;
+      else if (c.status !== 'dropped') notStarted++;
+    }
 
-    if (completed + inProgress + notStarted + overdue === 0) return;
-
-    // report-chart extractChartData() checks for d.labels + d.datasets first (extractGeneric),
-    // but actually it goes through extractChartData → d.data (array) → extractGeneric.
-    // Safest: provide a data array with 'label' (matches labelCandidates) and 'count' (matches valueHints)
-    this.statusChartData = {
+    this.statusChartData = completed + inProgress + notStarted + overdue === 0 ? null : {
       data: [
-        { label: this.i18n.t('report.completed'), count: completed },
-        { label: this.i18n.t('report.in_progress'), count: inProgress },
-        { label: this.i18n.t('report.not_started'), count: notStarted },
-        { label: this.i18n.t('reports.overdue'), count: overdue },
-      ].filter(item => item.count > 0)
+        { label: this.i18n.t('report.completed'), value: completed },
+        { label: this.i18n.t('report.in_progress'), value: inProgress },
+        { label: this.i18n.t('report.not_started'), value: notStarted },
+        { label: this.i18n.t('reports.overdue'), value: overdue },
+      ].filter(item => item.value > 0),
     };
   }
 
-  private buildProgressChart(d: any): void {
-    // d is array of {month_key, label, avg_score, completions} from myPerformanceTrend
-    if (!d || !Array.isArray(d) || d.length === 0) return;
+  /**
+   * Month by month: the average assessment score when there are scores to
+   * average, otherwise the courses completed. One unit per chart — a
+   * percentage and a count on one axis flatten one of them.
+   */
+  private buildProgressChart(): void {
+    const scored = this.assessments.filter(a => a.score !== null && a.submitted_at);
+    const months = new Map<string, number[]>();
 
-    // Ensure numeric values (MySQL may return strings) and use field names
-    // that match report-chart's extractGeneric: 'label' (labelCandidates) + 'score'/'completions' (valueHints)
+    if (scored.length) {
+      for (const a of scored) bucket(months, a.submitted_at).push(a.score);
+    } else {
+      for (const c of this.courses) if (c.completed_at) bucket(months, c.completed_at).push(1);
+    }
+    if (!months.size) { this.progressChartData = null; return; }
+
+    const keys = [...months.keys()].sort().slice(-12);
+    const values = keys.map(k => {
+      const v = months.get(k)!;
+      return scored.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : v.length;
+    });
+
     this.progressChartData = {
-      data: d.map((r: any) => ({
-        label: r.label || r.month || r.period || '',
-        score: Number(r.avg_score ?? r.score ?? 0),
-        completions: Number(r.completions ?? r.courses_completed ?? r.completed ?? 0),
-      }))
+      labels: keys.map(k => monthLabel(k)),
+      datasets: [{
+        label: this.i18n.t(scored.length ? 'reports.avg_score' : 'reports.kpi_completions'),
+        data: values,
+      }],
     };
   }
 
@@ -450,10 +484,20 @@ export class LearnerDashboardComponent implements OnInit {
   private buildTabs(d: any): void {
     this.tabs = [
       { key: 'courses', label: this.i18n.t('reports.tab_my_courses'), icon: 'bi-book', badge: 'bg-primary', count: d.total_enrolled ?? null },
-      { key: 'assessments', label: this.i18n.t('reports.tab_assessments'), icon: 'bi-pencil-square', badge: 'bg-info', count: null },
+      { key: 'assessments', label: this.i18n.t('reports.tab_assessments'), icon: 'bi-pencil-square', badge: 'bg-info', count: this.assessments.length || null },
       { key: 'achievements', label: this.i18n.t('reports.tab_achievements'), icon: 'bi-trophy', badge: 'bg-warning', count: (d.certificates ?? 0) + (d.badges ?? 0) || null },
-      { key: 'compliance', label: this.i18n.t('reports.tab_compliance'), icon: 'bi-shield-check', badge: 'bg-danger', count: d.overdue ?? null },
+      { key: 'compliance', label: this.i18n.t('reports.tab_compliance'), icon: 'bi-shield-check', badge: 'bg-danger', count: d.overdue || null },
     ];
+  }
+
+  /** Switches to the `?tab=` tab once the tabs are built, if it names one. */
+  private applyRequestedTab(): void {
+    const wanted = this.requestedTab;
+    if (!wanted || this.tabs.length === 0) return;
+    this.requestedTab = null;
+    if (wanted !== this.activeTab && this.tabs.some(t => t.key === wanted)) {
+      this.switchTab(wanted);
+    }
   }
 
   switchTab(tab: string): void {
@@ -468,44 +512,55 @@ export class LearnerDashboardComponent implements OnInit {
     switch (tab) {
       case 'courses':
         this.loadingCourses = true;
-        this.svc.runReport('my_enrolled_courses', {}).subscribe({
-          next: (res: any) => { this.courses = this.extract(res) ?? []; this.loadingCourses = false; },
-          error: () => { this.loadingCourses = false; }
+        this.rows('my_enrolled_courses').subscribe(rows => {
+          this.courses = rows.map(r => toCourse(r));
+          this.loadingCourses = false;
         });
         break;
 
       case 'assessments':
         this.loadingAssessments = true;
-        this.svc.runReport('my_assessment_results', {}).subscribe({
-          next: (res: any) => { this.assessments = this.extract(res) ?? []; this.loadingAssessments = false; },
-          error: () => { this.loadingAssessments = false; }
+        this.rows('my_assessment_results').subscribe(rows => {
+          this.assessments = rows.map(r => toAssessment(r));
+          this.loadingAssessments = false;
         });
         break;
 
       case 'achievements':
         this.loadingAchievements = true;
-        let loaded = 0;
-        const checkDone = () => { loaded++; if (loaded >= 3) this.loadingAchievements = false; };
-
-        this.svc.runReport('my_completed_courses', {}).subscribe({
-          next: (res: any) => { this.certificates = (this.extract(res) ?? []).filter((c: any) => c.certificate_number); checkDone(); },
-          error: checkDone
-        });
-        this.svc.runReport('my_badges', {}).subscribe({
-          next: (res: any) => { this.badges = this.extract(res) ?? []; checkDone(); },
-          error: checkDone
-        });
-        this.svc.runReport('my_achievements_timeline', {}).subscribe({
-          next: (res: any) => { this.timeline = this.extract(res) ?? []; checkDone(); },
-          error: checkDone
+        forkJoin({
+          certificates: this.rows('my_certificates'),
+          badges: this.rows('my_badges'),
+        }).subscribe(({ certificates, badges }) => {
+          this.certificates = certificates.map(c => ({
+            title: c.title ?? '',
+            certificate_number: c.certificate ?? '',
+            issue_date: day(c.issuedAt),
+            issued_at: c.issuedAt ?? null,
+          }));
+          this.badges = badges.map(b => ({
+            name: b.badge ?? '',
+            description: humanise(b.type),
+            earned_at: day(b.earnedAt),
+            earned_raw: b.earnedAt ?? null,
+          }));
+          // The timeline is the three kinds of achievement, newest first.
+          this.timeline = [
+            ...this.courses.filter(c => c.completed_at).map(c => ({ type: 'course_completed', name: c.title, at: c.completed_raw })),
+            ...this.certificates.filter(c => c.issued_at).map(c => ({ type: 'certificate_earned', name: c.title, at: c.issued_at })),
+            ...this.badges.filter(b => b.earned_raw).map(b => ({ type: 'badge_earned', name: b.name, at: b.earned_raw })),
+          ]
+            .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+            .map(t => ({ type: t.type, name: t.name, achieved_at: day(t.at) }));
+          this.loadingAchievements = false;
         });
         break;
 
       case 'compliance':
         this.loadingCompliance = true;
-        this.svc.runReport('my_mandatory_training', {}).subscribe({
-          next: (res: any) => { this.complianceCourses = this.extract(res) ?? []; this.loadingCompliance = false; },
-          error: () => { this.loadingCompliance = false; }
+        this.rows('my_mandatory_training').subscribe(rows => {
+          this.complianceCourses = rows.map(r => toCourse(r));
+          this.loadingCompliance = false;
         });
         break;
     }
@@ -557,4 +612,70 @@ export class LearnerDashboardComponent implements OnInit {
   goBack(): void {
     this.router.navigate(['/account']);
   }
+}
+
+// ---------------------------------------------------------------------------
+// API rows → the names the template reads
+// ---------------------------------------------------------------------------
+
+function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** An ISO timestamp as its date, or null. */
+function day(v: unknown): string | null {
+  if (v === null || v === undefined || v === '') return null;
+  return String(v).slice(0, 10);
+}
+
+function humanise(v: unknown): string {
+  return String(v ?? '').replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase());
+}
+
+/** A course row from my_enrolled_courses / my_mandatory_training. */
+function toCourse(r: any): any {
+  const status = String(r?.status ?? '');
+  const due = day(r?.dueDate);
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    title: r?.course ?? r?.title ?? '',
+    category: r?.category ?? null,
+    status,
+    progress_percentage: Math.round(num(r?.progress)),
+    final_score: r?.score ?? null,
+    time_formatted: null,
+    due_date: due,
+    completed_at: day(r?.completedAt),
+    completed_raw: r?.completedAt ?? null,
+    is_overdue: status !== 'completed' && status !== 'dropped' && !!due && due < today,
+    is_mandatory: !!r?.mandatory,
+  };
+}
+
+/** An attempt row from my_assessment_results. */
+function toAssessment(r: any): any {
+  const raw = r?.score;
+  const score = raw === null || raw === undefined || raw === '' || !Number.isFinite(Number(raw)) ? null : Math.round(Number(raw) * 10) / 10;
+  return {
+    title: r?.assessment ?? r?.title ?? '',
+    course_title: r?.course ?? null,
+    score,
+    passed: String(r?.verdict ?? '').toLowerCase() === 'passed',
+    attempts: r?.attempt ?? null,
+    submitted_at: day(r?.submittedAt),
+  };
+}
+
+/** The month bucket ('YYYY-MM') a date falls in. */
+function bucket(months: Map<string, number[]>, date: string): number[] {
+  const key = String(date).slice(0, 7);
+  if (!months.has(key)) months.set(key, []);
+  return months.get(key)!;
+}
+
+function monthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  if (!y || !m) return key;
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
 }

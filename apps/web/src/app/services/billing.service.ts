@@ -1,5 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, catchError, map, of, shareReplay, tap } from 'rxjs';
 import { ApiClient, Endpoints } from '../core/api';
 
 // ---------------------------------------------------------------------------
@@ -73,6 +73,46 @@ export interface PaymentOutcome {
 @Injectable({ providedIn: 'root' })
 export class BillingService {
   private readonly api = inject(ApiClient);
+
+  /**
+   * Whether this deployment bills its organisations at all — `billingEnabled`
+   * from `GET /settings/public`. False on a dedicated single-tenant install,
+   * where the Billing page and its nav item are hidden. Starts false so
+   * nothing billing-shaped flashes up before the answer arrives.
+   */
+  readonly enabled = signal(false);
+
+  /** The settled answer, once the API has given one. */
+  private known: boolean | null = null;
+  private pending$: Observable<boolean> | null = null;
+
+  /**
+   * Resolves (once, then from memory) whether billing exists on this
+   * deployment. A failed lookup answers false for now but is not remembered,
+   * so the next caller asks again rather than hiding billing for the session.
+   */
+  availability(): Observable<boolean> {
+    if (this.known !== null) {
+      return of(this.known);
+    }
+
+    if (this.pending$ === null) {
+      this.pending$ = this.api.get<{ billingEnabled?: boolean }>(Endpoints.settings.public).pipe(
+        map((settings) => settings.billingEnabled === true),
+        tap((enabled) => {
+          this.known = enabled;
+          this.enabled.set(enabled);
+        }),
+        catchError(() => {
+          this.pending$ = null;
+          return of(false);
+        }),
+        shareReplay(1),
+      );
+    }
+
+    return this.pending$;
+  }
 
   show(): Observable<Billing> {
     return this.api.get<Billing>(Endpoints.billing.show);

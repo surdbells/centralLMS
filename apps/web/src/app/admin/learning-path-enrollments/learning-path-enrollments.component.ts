@@ -3,6 +3,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import {
@@ -29,7 +30,7 @@ type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 @Component({
   selector: 'app-learning-path-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './learning-path-enrollments.component.html',
   styleUrls: ['./learning-path-enrollments.component.scss']
 })

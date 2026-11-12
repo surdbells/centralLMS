@@ -13,6 +13,7 @@
 
       <!-- Header -->
       <header class="ui-page-header">
+        <a [routerLink]="['/admin/learning-paths', pathId]" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-person-plus"></i></div>
         <div class="ui-page-header__titles">
           <h1>{{ 'paths_admin.assignments' | translate }}</h1>

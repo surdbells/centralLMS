@@ -306,22 +306,22 @@
           </div>
         </div>
         <div class="quick-actions">
-          <button type="button" class="quick-action" (click)="navigateTo('courses')">
+          <button type="button" class="quick-action" (click)="navigateTo('/courses/create')">
             <span class="quick-action__icon"><i class="bi bi-plus-lg"></i></span>
             <span class="quick-action__label">{{ 'admin_dash.create_course' | translate }}</span>
             <i class="bi bi-chevron-right quick-action__chev"></i>
           </button>
-          <button type="button" class="quick-action" (click)="navigateTo('users')">
+          <button type="button" class="quick-action" (click)="navigateTo('/admin/users/create')">
             <span class="quick-action__icon"><i class="bi bi-person-plus"></i></span>
             <span class="quick-action__label">{{ 'admin_dash.add_users' | translate }}</span>
             <i class="bi bi-chevron-right quick-action__chev"></i>
           </button>
-          <button type="button" class="quick-action" (click)="navigateTo('reports')">
+          <button type="button" class="quick-action" (click)="navigateTo('/admin/reports')">
             <span class="quick-action__icon"><i class="bi bi-bar-chart-line"></i></span>
             <span class="quick-action__label">{{ 'admin_dash.view_reports' | translate }}</span>
             <i class="bi bi-chevron-right quick-action__chev"></i>
           </button>
-          <button type="button" class="quick-action" (click)="navigateTo('settings')">
+          <button type="button" class="quick-action" (click)="navigateTo('/settings')">
             <span class="quick-action__icon"><i class="bi bi-gear"></i></span>
             <span class="quick-action__label">{{ 'nav.settings' | translate }}</span>
             <i class="bi bi-chevron-right quick-action__chev"></i>
@@ -342,7 +342,7 @@
           <h2 class="ui-section__title">{{ 'admin_dash.recent_activity' | translate }}</h2>
         </div>
         <div class="ui-section__actions d-none">
-          <a href="javascript:void(0)" class="dash-link" (click)="navigateTo('activity')">{{ 'common.view_all' | translate }}</a>
+          <a href="javascript:void(0)" class="dash-link" (click)="navigateTo('/admin/analytics')">{{ 'common.view_all' | translate }}</a>
         </div>
       </div>
       <ul class="ui-list" *ngIf="dashboard.recent_activity?.length">
@@ -406,7 +406,7 @@
           <h2 class="ui-section__title">{{ 'admin_dash.upcoming_deadlines' | translate }}</h2>
         </div>
         <div class="ui-section__actions d-none">
-          <a href="javascript:void(0)" class="dash-link" (click)="navigateTo('deadlines')">{{ 'common.view_all' | translate }}</a>
+          <a href="javascript:void(0)" class="dash-link" (click)="navigateTo('/admin/reports/incomplete_courses')">{{ 'common.view_all' | translate }}</a>
         </div>
       </div>
       <ul class="ui-list" *ngIf="dashboard.upcoming_deadlines?.length">
@@ -442,7 +442,7 @@
         <h2 class="ui-section__title">{{ 'admin_dash.recent_completions' | translate }}</h2>
       </div>
       <div class="ui-section__actions d-none">
-        <a href="javascript:void(0)" class="dash-link" (click)="navigateTo('completions')">{{ 'common.view_all' | translate }}</a>
+        <a href="javascript:void(0)" class="dash-link" (click)="navigateTo('/admin/reports/enrollment_detail_list')">{{ 'common.view_all' | translate }}</a>
       </div>
     </div>
     <div class="table-responsive">

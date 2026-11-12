@@ -8,7 +8,8 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../translate.pipe';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
@@ -89,7 +90,7 @@ interface SystemCheckResult {
 @Component({
   selector: 'app-session-review',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
   template: `
     <app-admintop></app-admintop>
 
@@ -97,6 +98,7 @@ interface SystemCheckResult {
     <div class="ui-page session-review-container">
       <!-- Header -->
       <header class="ui-page-header">
+        <a routerLink="/administration" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
         <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-eye"></i></div>
         <div class="ui-page-header__titles">
           <h1>Proctoring Session Review</h1>

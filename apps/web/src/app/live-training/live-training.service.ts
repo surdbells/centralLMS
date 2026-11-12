@@ -280,6 +280,14 @@ export interface BulkEnrollResult {
   failed: Array<{ user_id: string; error: string }>;
 }
 
+/** What `POST /trainings/{id}/enrolments` reports back, as counts. */
+export interface TrainingAssignResult {
+  enrolled_count: number;
+  waitlisted_count: number;
+  skipped_count: number;
+  failed_count: number;
+}
+
 
 // ==========================================
 // SERVICE
@@ -436,18 +444,24 @@ export class LiveTrainingService {
     return request.pipe(map(() => ({ training_id, learner_id } as unknown as TrainingEnrollment)));
   }
 
-  bulkEnroll(training_id: string, learner_ids: string[]): Observable<BulkEnrollResult> {
+  bulkEnroll(training_id: string, learner_ids: string[]): Observable<TrainingAssignResult> {
     return this.api
-      .post<{ enrolled: number; waitlisted: number; alreadyEnrolled: number }>(
+      .post<{ enrolled?: number; waitlisted?: number; alreadyEnrolled?: number; notFound?: string[]; rejected?: number }>(
         Endpoints.trainings.assign(training_id),
         { userIds: learner_ids },
       )
-      .pipe(map((result) => ({
-        enrolled_count: result.enrolled,
-        waitlisted_count: result.waitlisted,
-        skipped_count: result.alreadyEnrolled,
-        failed_count: 0,
-      } as unknown as BulkEnrollResult)));
+      .pipe(map((result) => {
+        const notFound = Array.isArray(result?.notFound) ? result.notFound.length : 0;
+        const rejected = Number(result?.rejected ?? 0);
+        return {
+          enrolled_count: Number(result?.enrolled ?? 0),
+          waitlisted_count: Number(result?.waitlisted ?? 0),
+          skipped_count: Number(result?.alreadyEnrolled ?? 0),
+          // Not users in this tenant, or turned away because the programme is
+          // full with no waitlist to fall back on.
+          failed_count: notFound + rejected,
+        };
+      }));
   }
 
   cancelEnrollment(

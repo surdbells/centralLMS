@@ -61,6 +61,12 @@ final class TenantSettingsAction
          * token names the tenant.
          */
         private readonly string $defaultTenantId = '',
+        /**
+         * Whether this deployment bills its organisations (settings
+         * saas.billing_enabled). Off on a dedicated single-tenant install, so
+         * the web app hides its Billing page.
+         */
+        private readonly bool $billingEnabled = false,
     ) {
     }
 
@@ -218,6 +224,10 @@ final class TenantSettingsAction
                 ? RegistrationPolicy::from($settings->all())->isOpen
                 : false,
             'passwordPolicy' => PasswordPolicy::from($settings)->toArray(),
+            // A deployment-level switch, not a tenant setting: whether this
+            // install bills its organisations at all. False on a dedicated
+            // single-tenant deployment, where the Billing page is hidden.
+            'billingEnabled' => $this->billingEnabled,
         ]);
     }
 

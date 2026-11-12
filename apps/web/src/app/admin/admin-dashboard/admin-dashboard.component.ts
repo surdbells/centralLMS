@@ -304,8 +304,13 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   // Display
   // -------------------------------------------------------------------------
 
-  navigateTo(route: string): void {
-    void this.router.navigate(['/' + route]);
+  /**
+   * Opens one of the admin screens. Takes the full path: the quick actions and
+   * "View all" links used to pass bare words ('users', 'activity', ...) that
+   * were glued onto '/', and none of those routes existed.
+   */
+  navigateTo(path: string): void {
+    void this.router.navigateByUrl(path);
   }
 
   formatNumber(value: number | null): string {

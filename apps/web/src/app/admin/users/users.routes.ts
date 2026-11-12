@@ -14,6 +14,13 @@ import { permissionGuard } from './guards/role.guard';
  */
 export const usersRoutes: Routes = [
   {
+    // Where permissionGuard sends someone whose role lacks the permission.
+    path: 'unauthorized',
+    loadComponent: () =>
+      import('./components/access-denied/access-denied.component').then((m) => m.AccessDeniedComponent),
+    title: 'Access denied',
+  },
+  {
     path: 'admin/users',
     children: [
       {
