@@ -111,9 +111,7 @@
         <div><h2 class="ui-section__title an-title"><span class="an-icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></span> {{ 'analytics.by_unit' | translate }}</h2></div>
         <div class="ui-section__actions field-picker">
           <label>{{ 'analytics.slice_by' | translate }}</label>
-          <select class="form-select form-select-sm" [ngModel]="selectedField" (ngModelChange)="onFieldChange($event)">
-            <option *ngFor="let f of fields" [value]="f.key">{{ f.label }}</option>
-          </select>
+          <app-select size="sm" class="field-select" [options]="fields" bindLabel="label" bindValue="key" [ngModel]="selectedField" (ngModelChange)="onFieldChange($event)" />
         </div>
       </div>
       <div class="unit-rows">

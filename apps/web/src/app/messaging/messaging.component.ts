@@ -25,11 +25,12 @@ import {ConfirmDialogService} from '../shared/components/confirmation-dialog/con
 import {HotToastService} from '@ngneat/hot-toast';
 import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
 import { AvatarComponent } from '../shared/avatar/avatar.component';
+import { SelectComponent } from '../shared/select/select.component';
 
 @Component({
   selector: 'app-messaging',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TopComponent, TranslatePipe, SkeletonComponent, AvatarComponent, SelectComponent],
   templateUrl: './messaging.component.html',
   styleUrls: ['./messaging.component.scss']
 })
@@ -142,6 +143,11 @@ export class MessagingComponent implements OnInit, OnDestroy {
   // Participant Role
   selectedParticipant: Participant | null = null;
   selectedParticipantRole = 'member';
+  readonly participantRoleOpts = [
+    { value: 'member', label: 'messaging.role_member' },
+    { value: 'moderator', label: 'messaging.role_moderator' },
+    { value: 'admin', label: 'messaging.role_admin' },
+  ];
 
   // Block User
   userToBlock: Participant | null = null;

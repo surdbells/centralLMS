@@ -16,6 +16,7 @@ import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../../shared/select/select.component';
 import { I18nService } from '../../../../i18n.service';
 
 /** A course, in the shape this screen's template already reads. */
@@ -68,7 +69,7 @@ export interface UnenrolledUser {
 @Component({
   selector: 'app-course-enrollees',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './course-enrollees.component.html',
   styleUrls: ['./course-enrollees.component.scss'],
 })
@@ -104,6 +105,14 @@ export class CourseEnrolleesComponent implements OnInit, OnDestroy {
   } | null = null;
 
   statusFilter: EnrollmentStatus | '' = '';
+  /** Status filter rows; '' (the placeholder, "All") means no filter. */
+  readonly statusFilterOptions: ReadonlyArray<{ value: EnrollmentStatus | ''; label: string }> = [
+    { value: '', label: 'admin.enrollees.all_status' },
+    { value: 'not_started', label: 'admin.enrollees.status_not_started' },
+    { value: 'in_progress', label: 'admin.enrollees.status_in_progress' },
+    { value: 'completed', label: 'admin.enrollees.status_completed' },
+    { value: 'dropped', label: 'admin.enrollees.status_dropped' },
+  ];
 
   loading = true;
   loadingEnrollees = false;

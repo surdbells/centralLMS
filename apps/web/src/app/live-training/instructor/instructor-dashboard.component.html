@@ -263,12 +263,10 @@
             </h2>
           </div>
           <div class="ui-section__actions">
-            <select class="form-select" style="width: auto;" [(ngModel)]="selectedSessionId" (change)="loadAttendance()">
-              <option value="">{{ 'live.instructor.select_session' | translate }}</option>
-              <option *ngFor="let session of allSessions" [value]="session.session_id">
-                {{ session.title }} - {{ formatDate(session.session_date) }}
-              </option>
-            </select>
+            <app-select style="min-width: 260px;" [options]="sessionOpts" [value]="selectedSessionId"
+                        (selectionChange)="selectedSessionId = $event ?? ''; loadAttendance()"
+                        placeholder="{{ 'live.instructor.select_session' | translate }}" [clearable]="true"
+                        [ariaLabel]="'live.instructor.select_session' | translate" />
           </div>
         </div>
         <div *ngIf="selectedSessionForAttendance">

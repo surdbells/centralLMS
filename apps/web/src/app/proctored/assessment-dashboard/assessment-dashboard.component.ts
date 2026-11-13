@@ -14,6 +14,7 @@ import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SelectComponent } from '../../shared/select/select.component';
 import { AssessmentAdminService } from '../assessment-admin.service';
 import { AssessmentsService } from '../../services/assessments.service';
 import { CertificatesService } from '../../services/certificates.service';
@@ -36,7 +37,7 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
 @Component({
   selector: 'app-assessment-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -50,10 +51,7 @@ interface DifficultyBreakdown { difficulty: string; count: number; avg_score: nu
           <p>Overview of assessment performance and activity</p>
         </div>
         <div class="ui-page-header__actions">
-          <select class="form-select range-select" [(ngModel)]="dateRange" (change)="loadDashboard()" aria-label="Date range">
-            <option value="7d">Last 7 Days</option><option value="30d">Last 30 Days</option>
-            <option value="90d">Last 90 Days</option><option value="1y">Last Year</option>
-          </select>
+          <app-select style="width:170px" [options]="dateRangeOpts" [searchable]="false" [(ngModel)]="dateRange" (selectionChange)="loadDashboard()" ariaLabel="Date range" />
           <button type="button" class="btn btn-primary" (click)="router.navigate(['/admin/assessments/create'])">
             <i class="bi bi-plus-lg"></i> New Assessment
           </button>
@@ -306,6 +304,10 @@ export class AssessmentDashboardComponent implements OnInit, OnDestroy {
   recentActivity: RecentActivity[] = [];
   diffBreakdown: DifficultyBreakdown[] = [];
   dateRange = '30d';
+  readonly dateRangeOpts = [
+    { label: 'Last 7 Days', value: '7d' }, { label: 'Last 30 Days', value: '30d' },
+    { label: 'Last 90 Days', value: '90d' }, { label: 'Last Year', value: '1y' },
+  ];
 
   donutColors = ['var(--brand-primary)', 'var(--ui-success)', 'var(--ui-warning)', 'var(--ui-danger)', 'var(--ui-info)'];
   donutSegments: {dash: string; offset: string}[] = [];

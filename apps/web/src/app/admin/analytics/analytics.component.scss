@@ -93,7 +93,7 @@
 
 .field-picker { gap: 8px;
   label { font-size: .75rem; color: var(--ui-text-muted); font-weight: 600; white-space: nowrap; }
-  .form-select { max-width: 240px; } }
+  .form-select { max-width: 240px; } .field-select { width: 240px; max-width: 100%; } }
 .unit-rows { display: flex; flex-direction: column; gap: 8px; }
 .unit-row { display: grid; grid-template-columns: 180px 1fr 48px 60px; align-items: center; gap: 10px; font-size: .8125rem;
   .unit-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }

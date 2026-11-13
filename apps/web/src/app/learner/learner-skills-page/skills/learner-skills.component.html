@@ -71,13 +71,9 @@
   <div *ngIf="!loading && activeTab === 'acquired'">
     <!-- Filter -->
     <div class="ui-toolbar justify-content-end">
-      <select class="form-select" [(ngModel)]="selectedLevel">
-        <option value="">{{ 'skills.all_levels' | translate }}</option>
-        <option value="beginner">{{ 'skills.beginner' | translate }}</option>
-        <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
-        <option value="advanced">{{ 'skills.advanced' | translate }}</option>
-        <option value="expert">{{ 'skills.expert' | translate }}</option>
-      </select>
+      <app-select style="min-width: 180px; width: auto;" [options]="levelOpts" [translateLabels]="true"
+        [searchable]="false" placeholder="{{ 'skills.all_levels' | translate }}"
+        [ariaLabel]="'skills.all_levels' | translate" [(ngModel)]="selectedLevel" />
     </div>
 
     <!-- Empty State -->
@@ -190,13 +186,9 @@
   <div *ngIf="!loading && activeTab === 'all'">
     <!-- Filter -->
     <div class="ui-toolbar justify-content-end">
-      <select class="form-select" [(ngModel)]="selectedLevel">
-        <option value="">{{ 'skills.all_levels' | translate }}</option>
-        <option value="beginner">{{ 'skills.beginner' | translate }}</option>
-        <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
-        <option value="advanced">{{ 'skills.advanced' | translate }}</option>
-        <option value="expert">{{ 'skills.expert' | translate }}</option>
-      </select>
+      <app-select style="min-width: 180px; width: auto;" [options]="levelOpts" [translateLabels]="true"
+        [searchable]="false" placeholder="{{ 'skills.all_levels' | translate }}"
+        [ariaLabel]="'skills.all_levels' | translate" [(ngModel)]="selectedLevel" />
     </div>
 
     <div class="row g-3">

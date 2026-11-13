@@ -63,10 +63,9 @@
           <button class="btn btn-sm btn-outline-secondary" (click)="setStatus(plan, 'archived')">{{ 'plan.archive' | translate }}</button>
           <button class="btn btn-sm btn-outline-secondary" (click)="assignEveryone()">{{ 'plan.assign_everyone' | translate }}</button>
           <span class="assign-dept" *ngIf="departments.length">
-            <select class="form-select form-select-sm" [(ngModel)]="assignDept">
-              <option value="">{{ 'plan.pick_department' | translate }}</option>
-              <option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</option>
-            </select>
+            <app-select size="sm" class="dept-select" [options]="departments" bindLabel="name" bindValue="id" [clearable]="true"
+                        placeholder="{{ 'plan.pick_department' | translate }}"
+                        [ngModel]="assignDept" (ngModelChange)="assignDept = $event ?? ''" />
             <button class="btn btn-sm btn-outline-secondary" [disabled]="!assignDept" (click)="assignDepartment()">{{ 'plan.assign_dept' | translate }}</button>
           </span>
           <button class="btn btn-sm btn-outline-danger" (click)="removePlan(plan)">{{ 'common.delete' | translate }}</button>
@@ -100,10 +99,9 @@
         </ul>
 
         <div class="add-item">
-          <select class="form-select" [(ngModel)]="newItem.courseId">
-            <option value="">{{ 'plan.intervention_option' | translate }}</option>
-            <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
-          </select>
+          <app-select [options]="courses" bindLabel="title" bindValue="id" [clearable]="true"
+                      placeholder="{{ 'plan.intervention_option' | translate }}"
+                      [ngModel]="newItem.courseId" (ngModelChange)="newItem.courseId = $event ?? ''" />
           <input type="text" class="form-control" [(ngModel)]="newItem.title"
                  [placeholder]="'plan.item_title_placeholder' | translate">
           <label class="mand"><input type="checkbox" class="form-check-input mt-0" [(ngModel)]="newItem.isMandatory"> {{ 'plan.mandatory' | translate }}</label>

@@ -26,6 +26,7 @@ import {
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { I18nService } from '../../../i18n.service';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
@@ -122,7 +123,7 @@ export interface MediaFile {
 @Component({
   selector: 'app-course-content',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, DragDropModule, TuiIcon, TuiDialog, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './course-content.component.html',
   styleUrls: ['./course-content.component.scss'],
 })
@@ -147,6 +148,8 @@ export class CourseContentComponent implements OnInit, OnDestroy {
 
   mediaFiles: MediaFile[] = [];
   filteredMediaFiles: MediaFile[] = [];
+  /** Picker rows for the media library, rebuilt whenever the list loads. */
+  mediaOptions: Array<{ value: string; label: string }> = [];
   selectedMedia: MediaFile | null = null;
 
   loading = true;
@@ -521,6 +524,7 @@ export class CourseContentComponent implements OnInit, OnDestroy {
     if (kind === undefined) {
       this.mediaFiles = [];
       this.filteredMediaFiles = [];
+      this.mediaOptions = [];
 
       return;
     }
@@ -538,17 +542,19 @@ export class CourseContentComponent implements OnInit, OnDestroy {
             duration_seconds: item.durationSeconds,
           }));
           this.filteredMediaFiles = this.mediaFiles;
+          this.mediaOptions = this.mediaFiles.map((m) => ({ value: m.media_id, label: this.getMediaDisplayName(m) }));
           this.loadingMedia = false;
         },
         error: () => {
           this.mediaFiles = [];
           this.filteredMediaFiles = [];
+          this.mediaOptions = [];
           this.loadingMedia = false;
         },
       });
   }
 
-  onMediaSelect(mediaId: string): void {
+  onMediaSelect(mediaId: string | null): void {
     const item = this.mediaFiles.find((m) => m.media_id === mediaId) ?? null;
 
     this.selectedMedia = item;

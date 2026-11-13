@@ -19,6 +19,7 @@ import {
 import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 
 // ---------------------------------------------------------------------------
@@ -107,7 +108,7 @@ interface Category {
 @Component({
   selector: 'app-dictionary',
   standalone: true,
-  imports: [DatePipe, FormsModule, CommonModule, SideComponent, TopComponent, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [DatePipe, FormsModule, CommonModule, SideComponent, TopComponent, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './dictionary.component.html',
   styleUrl: './dictionary.component.css',
 })

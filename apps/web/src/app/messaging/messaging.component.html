@@ -699,11 +699,8 @@
       <p class="mb-3">{{ 'messaging.change_role_for' | translate }} <strong>{{ selectedParticipant.first_name }} {{ selectedParticipant.last_name }}</strong></p>
       <div class="form-group">
         <label class="form-label">{{ 'messaging.role' | translate }}</label>
-        <select class="form-select" [(ngModel)]="selectedParticipantRole">
-          <option value="member">{{ 'messaging.role_member' | translate }}</option>
-          <option value="moderator">{{ 'messaging.role_moderator' | translate }}</option>
-          <option value="admin">{{ 'messaging.role_admin' | translate }}</option>
-        </select>
+        <app-select [options]="participantRoleOpts" [translateLabels]="true" [searchable]="false"
+                    [ariaLabel]="'messaging.role' | translate" [(ngModel)]="selectedParticipantRole" />
       </div>
       <div class="role-permissions mt-3">
         <small class="text-muted">

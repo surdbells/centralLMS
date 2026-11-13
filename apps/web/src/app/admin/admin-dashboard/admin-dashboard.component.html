@@ -6,12 +6,8 @@
     <p>{{ 'admin_dash.welcome' | translate }}</p>
   </div>
   <div class="ui-page-header__actions">
-    <select class="form-select dash-period" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
-      <option value="7">{{ 'admin_dash.last_7_days' | translate }}</option>
-      <option value="30">{{ 'admin_dash.last_30_days' | translate }}</option>
-      <option value="90">{{ 'admin_dash.last_90_days' | translate }}</option>
-      <option value="365">{{ 'admin_dash.this_year' | translate }}</option>
-    </select>
+    <app-select class="dash-period" [options]="periodOpts" [translateLabels]="true" [searchable]="false"
+                [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()" />
     <button type="button" class="btn btn-outline-secondary dash-icon-btn" (click)="refreshDashboard()"
             [attr.aria-label]="'common.refresh' | translate" [attr.title]="'common.refresh' | translate">
       <i class="bi bi-arrow-clockwise"></i>

@@ -15,6 +15,7 @@ import { AssessmentsService } from '../../../services/assessments.service';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { I18nService } from '../../../i18n.service';
 import { AvatarComponent } from '../../../shared/avatar/avatar.component';
 
@@ -224,7 +225,7 @@ interface CourseInsightsData {
 @Component({
   selector: 'app-course-insights',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, AvatarComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, TranslatePipe, SkeletonComponent, AvatarComponent, SelectComponent],
   templateUrl: './course-insights.component.html',
   styleUrls: ['./course-insights.component.css'],
 })
@@ -258,6 +259,13 @@ export class CourseInsightsComponent implements OnInit, OnDestroy {
   activeTab: 'overview' | 'learners' | 'content' | 'assessments' | 'leaderboard' = 'overview';
 
   filter = { date_range: 'last_30_days', learner_status: 'all' };
+  readonly dateRangeOptions = [
+    { value: 'last_7_days', label: 'admin.insights.last_7_days' },
+    { value: 'last_30_days', label: 'admin.insights.last_30_days' },
+    { value: 'last_90_days', label: 'admin.insights.last_90_days' },
+    { value: 'this_year', label: 'admin.insights.this_year' },
+    { value: 'all_time', label: 'admin.insights.all_time' },
+  ];
 
   /** True when this is in a dialog, which is where the close button lives. */
   get isDialog(): boolean {

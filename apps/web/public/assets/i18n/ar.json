@@ -4237,5 +4237,12 @@
   "tenant.placeholder.brand_text_color": "لون النص فوق لون العلامة التجارية",
   "tenant.placeholder.certificate_number": "رقم الشهادة",
   "tenant.placeholder.percentage": "النتيجة (نسبة مئوية)",
-  "tenant.placeholder.reason": "السبب"
+  "tenant.placeholder.reason": "السبب",
+  "common.select.placeholder": "اختر…",
+  "common.select.search": "بحث…",
+  "common.select.no_results": "لا توجد نتائج مطابقة",
+  "common.select.empty": "لا توجد خيارات",
+  "common.select.select_all": "تحديد الكل",
+  "common.select.selected_count": "{{count}} محدد",
+  "common.select.clear_aria": "مسح التحديد"
 }

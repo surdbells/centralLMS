@@ -45,9 +45,8 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">{{ 'live.form.training_type' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingTraining.training_type">
-              <option *ngFor="let type of trainingTypes" [value]="type">{{ type | titlecase }}</option>
-            </select>
+            <app-select [options]="trainingTypeOpts" [searchable]="false" [(ngModel)]="editingTraining.training_type"
+                        [ariaLabel]="'live.form.training_type' | translate" />
           </div>
           <!-- Status is not set here: a new programme is always a draft, and
                publishing is a separate action (it needs a session first). The

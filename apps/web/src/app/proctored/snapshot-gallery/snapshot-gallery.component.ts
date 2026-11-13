@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -63,7 +64,7 @@ interface SnapshotSessionInfo {
 @Component({
   selector: 'app-snapshot-gallery',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -141,12 +142,7 @@ interface SnapshotSessionInfo {
               <tui-icon icon="@tui.users"></tui-icon> Multiple <span class="ui-filter__count">{{ multiFaceCount }}</span>
             </button>
           </div>
-          <select class="form-select" [(ngModel)]="sortOrder" (change)="applyFilter()">
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="confidence_asc">Confidence: Low → High</option>
-            <option value="confidence_desc">Confidence: High → Low</option>
-          </select>
+          <app-select style="width:210px" [options]="sortOpts" [searchable]="false" [(ngModel)]="sortOrder" (selectionChange)="applyFilter()" ariaLabel="Sort" />
         </div>
 
         <!-- GRID VIEW -->
@@ -425,6 +421,10 @@ export class SnapshotGalleryComponent implements OnInit, OnDestroy {
   viewMode: 'grid' | 'list' = 'grid';
   filterMode = 'all';
   sortOrder = 'oldest';
+  readonly sortOpts = [
+    { label: 'Newest First', value: 'newest' }, { label: 'Oldest First', value: 'oldest' },
+    { label: 'Confidence: Low → High', value: 'confidence_asc' }, { label: 'Confidence: High → Low', value: 'confidence_desc' },
+  ];
   page = 1;
   pageSize = 40;
 

@@ -14,9 +14,9 @@
         <p>{{ 'live.reports.subtitle' | translate }}</p>
       </div>
       <div class="ui-page-header__actions">
-        <select class="form-select date-range-select" [(ngModel)]="selectedDateRange" (change)="onDateRangeChange()">
-          <option *ngFor="let range of dateRanges" [ngValue]="range">{{ range.label }}</option>
-        </select>
+        <app-select class="date-range-select" [options]="dateRanges" [searchable]="false"
+                    [(ngModel)]="selectedDateRange" (ngModelChange)="onDateRangeChange()"
+                    [ariaLabel]="'live.reports.title' | translate" />
         <button class="btn btn-primary" (click)="exportReport()">
           <i class="bi bi-download me-1"></i>{{ 'live.common.export' | translate }}
         </button>
@@ -124,12 +124,11 @@
           <input type="search" placeholder="{{ 'live.common.search_trainings' | translate }}"
                  [(ngModel)]="searchTerm" (input)="filterReports()">
         </label>
-        <select class="form-select" [(ngModel)]="filterStatus" (change)="filterReports()">
-          <option value="">{{ 'live.reports.all_status' | translate }}</option>
-          <option value="published">{{ 'live.common.published' | translate }}</option>
-          <option value="ongoing">{{ 'live.common.ongoing' | translate }}</option>
-          <option value="completed">{{ 'live.common.completed' | translate }}</option>
-        </select>
+        <app-select class="status-filter-select" [options]="statusFilterOpts" [translateLabels]="true"
+                    [searchable]="false" [value]="filterStatus"
+                    (selectionChange)="filterStatus = $event ?? ''; filterReports()"
+                    placeholder="{{ 'live.reports.all_status' | translate }}" [clearable]="true"
+                    [ariaLabel]="'live.reports.all_status' | translate" />
       </div>
       <app-skeleton class="d-block" *ngIf="reportsLoading" variant="table" [rows]="5" [cols]="6"></app-skeleton>
       <div class="ui-state m-3" *ngIf="!reportsLoading && reportsError">

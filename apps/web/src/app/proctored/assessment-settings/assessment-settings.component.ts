@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import {
   AssessmentAdminService,
   type Assessment,
@@ -51,7 +52,7 @@ interface GradingScale { id: string; name: string; description: string; }
 @Component({
   selector: 'app-assessment-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -126,10 +127,7 @@ interface GradingScale { id: string; name: string; description: string; }
           </div>
           <div class="form-group">
             <label class="form-label">Grading Scale</label>
-            <select class="form-select" [(ngModel)]="settings.grading_scale_id">
-              <option [ngValue]="null">None (Pass/Fail only)</option>
-              <option *ngFor="let gs of gradingScales" [ngValue]="gs.id">{{ gs.name }}</option>
-            </select>
+            <app-select [options]="gradingScales" bindLabel="name" bindValue="id" placeholder="None (Pass/Fail only)" [clearable]="true" [(ngModel)]="settings.grading_scale_id" ariaLabel="Grading Scale" />
             <span class="help-text">Optional letter grade mapping</span>
           </div>
           <div class="form-group full-width">
@@ -171,20 +169,11 @@ interface GradingScale { id: string; name: string; description: string; }
         <div class="settings-grid">
           <div class="form-group">
             <label class="form-label">Questions Per Page</label>
-            <select class="form-select" [(ngModel)]="settings.questions_per_page">
-              <option [ngValue]="1">1 (one at a time)</option>
-              <option [ngValue]="5">5</option>
-              <option [ngValue]="10">10</option>
-              <option [ngValue]="0">All at once</option>
-            </select>
+            <app-select [options]="questionsPerPageOpts" [searchable]="false" [(ngModel)]="settings.questions_per_page" ariaLabel="Questions Per Page" />
           </div>
           <div class="form-group">
             <label class="form-label">Navigation Type</label>
-            <select class="form-select" [(ngModel)]="settings.navigation_type">
-              <option value="free">Free Navigation (jump to any question)</option>
-              <option value="linear">Linear (forward only)</option>
-              <option value="section">Section-based (free within sections)</option>
-            </select>
+            <app-select [options]="navigationOpts" [searchable]="false" [(ngModel)]="settings.navigation_type" ariaLabel="Navigation Type" />
           </div>
           <div class="form-group full-width">
             <div class="toggle-grid">
@@ -266,12 +255,7 @@ interface GradingScale { id: string; name: string; description: string; }
           </div>
           <div class="form-group" *ngIf="settings.show_results">
             <label class="form-label">Results Release</label>
-            <select class="form-select" [(ngModel)]="settings.results_release_type">
-              <option value="immediate">Immediately after submission</option>
-              <option value="after_close">After assessment closes</option>
-              <option value="manual">Manual release by admin</option>
-              <option value="date">On specific date</option>
-            </select>
+            <app-select [options]="releaseOpts" [searchable]="false" [(ngModel)]="settings.results_release_type" ariaLabel="Results Release" />
           </div>
           <div class="form-group" *ngIf="settings.show_results && settings.results_release_type === 'date'">
             <label class="form-label">Release Date</label>
@@ -449,6 +433,21 @@ export class AssessmentSettingsComponent implements OnInit, OnDestroy {
   // No listing endpoint exists for grading scales yet, so the picker only
   // offers "None"; the chosen id still round-trips on the assessment.
   gradingScales: GradingScale[] = [];
+  readonly questionsPerPageOpts = [
+    { label: '1 (one at a time)', value: 1 }, { label: '5', value: 5 },
+    { label: '10', value: 10 }, { label: 'All at once', value: 0 },
+  ];
+  readonly navigationOpts = [
+    { label: 'Free Navigation (jump to any question)', value: 'free' },
+    { label: 'Linear (forward only)', value: 'linear' },
+    { label: 'Section-based (free within sections)', value: 'section' },
+  ];
+  readonly releaseOpts = [
+    { label: 'Immediately after submission', value: 'immediate' },
+    { label: 'After assessment closes', value: 'after_close' },
+    { label: 'Manual release by admin', value: 'manual' },
+    { label: 'On specific date', value: 'date' },
+  ];
   hasTimeLimit = false;
   saving = false;
   showSaved = false;

@@ -14,6 +14,7 @@ import {
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
+import { SelectComponent } from '../../../../shared/select/select.component';
 
 type Step = 'choose' | 'check' | 'done';
 
@@ -32,7 +33,7 @@ type Step = 'choose' | 'check' | 'done';
 @Component({
   selector: 'app-user-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SelectComponent],
   templateUrl: './user-import.component.html',
   styles: [`
     .drop-zone { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 240px;
@@ -66,6 +67,10 @@ export class UserImportComponent implements OnDestroy {
   result: ImportResult | null = null;
 
   onExisting: ExistingPolicy = 'skip';
+  readonly existingPolicyOptions: ReadonlyArray<{ value: ExistingPolicy; label: string }> = [
+    { value: 'skip', label: 'admin.user_import.leave_alone' },
+    { value: 'update', label: 'admin.user_import.update_from_file' },
+  ];
   /** Rows with a problem are hidden by default once there are many of them. */
   showOnly: 'all' | 'error' | 'warning' = 'all';
 

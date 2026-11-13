@@ -22,6 +22,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { ApiError } from '../../../core/api';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 
 interface LookupOption { id: string; name: string; }
 interface SortOption { key: string; label: string; }
@@ -29,7 +30,7 @@ interface SortOption { key: string; label: string; }
 @Component({
   selector: 'app-custom-report-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -75,10 +76,10 @@ interface SortOption { key: string; label: string; }
                 <!-- Data Source -->
                 <div class="mb-3">
                   <label class="form-label fw-semibold small" for="crb-source">{{ 'reports.data_source' | translate }}</label>
-                  <select id="crb-source" class="form-select" [(ngModel)]="config.source" (ngModelChange)="onSourceChange()" [disabled]="sourcesLoading">
-                    <option value="">{{ 'reports.select_source' | translate }}</option>
-                    <option *ngFor="let s of sources" [value]="s.key">{{ s.label }}</option>
-                  </select>
+                  <app-select inputId="crb-source" [options]="sources" bindLabel="label" bindValue="key"
+                              [ngModel]="config.source" (ngModelChange)="config.source = $event ?? ''; onSourceChange()"
+                              [disabled]="sourcesLoading" [loading]="sourcesLoading"
+                              placeholder="{{ 'reports.select_source' | translate }}" />
                   <div class="form-text" *ngIf="sourceDescription">{{ sourceDescription }}</div>
                   <div class="form-text" *ngIf="!sourcesLoading && !sourcesError && !sources.length">{{ 'reports.no_sources' | translate }}</div>
                 </div>
@@ -104,10 +105,9 @@ interface SortOption { key: string; label: string; }
                 <!-- Group By -->
                 <div class="mb-3" *ngIf="availableGroupings.length">
                   <label class="form-label fw-semibold small" for="crb-group">{{ 'reports.group_by' | translate }}</label>
-                  <select id="crb-group" class="form-select" [(ngModel)]="config.group_by" (ngModelChange)="resetSortIfStale()">
-                    <option value="">{{ 'reports.no_grouping' | translate }}</option>
-                    <option *ngFor="let g of availableGroupings" [value]="g.key">{{ g.label }}</option>
-                  </select>
+                  <app-select inputId="crb-group" [options]="availableGroupings" bindLabel="label" bindValue="key"
+                              [ngModel]="config.group_by" (ngModelChange)="config.group_by = $event ?? ''; resetSortIfStale()"
+                              placeholder="{{ 'reports.no_grouping' | translate }}" [clearable]="true" />
                 </div>
               </div>
               <div class="col-md-6 col-xl-3">
@@ -115,25 +115,17 @@ interface SortOption { key: string; label: string; }
                 <div class="mb-3" *ngIf="sortOptions.length">
                   <label class="form-label fw-semibold small" for="crb-sort">{{ 'reports.sort_by' | translate }}</label>
                   <div class="d-flex gap-2">
-                    <select id="crb-sort" class="form-select" [(ngModel)]="config.sort_by">
-                      <option value="">{{ 'reports.default_sort' | translate }}</option>
-                      <option *ngFor="let o of sortOptions" [value]="o.key">{{ o.label }}</option>
-                    </select>
-                    <select class="form-select" [(ngModel)]="config.sort_dir" style="width:90px" [attr.aria-label]="'reports.sort_by' | translate">
-                      <option value="asc">ASC</option>
-                      <option value="desc">DESC</option>
-                    </select>
+                    <app-select inputId="crb-sort" class="flex-grow-1" style="min-width:0" [options]="sortOptionsList" bindLabel="label" bindValue="key"
+                                [ngModel]="config.sort_by" (ngModelChange)="config.sort_by = $event ?? ''"
+                                placeholder="{{ 'reports.default_sort' | translate }}" [clearable]="true" />
+                    <app-select [options]="sortDirOpts" [searchable]="false" [(ngModel)]="config.sort_dir"
+                                style="width:100px;flex:0 0 auto" [ariaLabel]="'reports.sort_by' | translate" />
                   </div>
                 </div>
                 <!-- Limit -->
                 <div class="mb-3">
                   <label class="form-label fw-semibold small" for="crb-limit">{{ 'reports.limit' | translate }}</label>
-                  <select id="crb-limit" class="form-select" [(ngModel)]="config.per_page">
-                    <option [ngValue]="25">25</option>
-                    <option [ngValue]="50">50</option>
-                    <option [ngValue]="100">100</option>
-                    <option [ngValue]="500">500</option>
-                  </select>
+                  <app-select inputId="crb-limit" [options]="limitOpts" [searchable]="false" [(ngModel)]="config.per_page" />
                 </div>
                 <!-- Actions -->
                 <div class="d-flex gap-2">
@@ -164,18 +156,15 @@ interface SortOption { key: string; label: string; }
                 <label class="form-label fw-semibold small" [for]="'flt_'+f.key">{{ f.label }}</label>
                 <ng-container [ngSwitch]="f.type">
                   <input *ngSwitchCase="'date'" type="date" class="form-control" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
-                  <select *ngSwitchCase="'lookup'" class="form-select" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
-                    <option value="">{{ 'common.all' | translate }}</option>
-                    <option *ngFor="let o of lookupOptions[f.lookupKind || ''] || []" [value]="o.id">{{ o.name }}</option>
-                  </select>
-                  <select *ngSwitchCase="'course'" class="form-select" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
-                    <option value="">{{ 'reports.all_courses' | translate }}</option>
-                    <option *ngFor="let o of courseOptions" [value]="o.id">{{ o.name }}</option>
-                  </select>
-                  <select *ngSwitchDefault class="form-select" [id]="'flt_'+f.key" [(ngModel)]="config.filters[f.key]">
-                    <option value="">{{ 'common.all' | translate }}</option>
-                    <option *ngFor="let o of f.options || []" [value]="o.value">{{ o.label }}</option>
-                  </select>
+                  <app-select *ngSwitchCase="'lookup'" [inputId]="'flt_'+f.key" [options]="lookupOptions[f.lookupKind || ''] || noOptions"
+                              bindLabel="name" bindValue="id" [clearable]="true" placeholder="{{ 'common.all' | translate }}"
+                              [ngModel]="config.filters[f.key]" (ngModelChange)="config.filters[f.key] = $event ?? ''" />
+                  <app-select *ngSwitchCase="'course'" [inputId]="'flt_'+f.key" [options]="courseOptions"
+                              bindLabel="name" bindValue="id" [clearable]="true" placeholder="{{ 'reports.all_courses' | translate }}"
+                              [ngModel]="config.filters[f.key]" (ngModelChange)="config.filters[f.key] = $event ?? ''" />
+                  <app-select *ngSwitchDefault [inputId]="'flt_'+f.key" [options]="f.options || noOptions"
+                              [clearable]="true" placeholder="{{ 'common.all' | translate }}"
+                              [ngModel]="config.filters[f.key]" (ngModelChange)="config.filters[f.key] = $event ?? ''" />
                 </ng-container>
               </div>
             </div>
@@ -325,6 +314,11 @@ interface SortOption { key: string; label: string; }
 export class CustomReportBuilderComponent implements OnInit {
   activeTab: 'build' | 'saved' = 'build';
 
+  readonly sortDirOpts = [{ value: 'asc', label: 'ASC' }, { value: 'desc', label: 'DESC' }] as const;
+  readonly limitOpts = [25, 50, 100, 500] as const;
+  readonly noOptions: readonly any[] = [];
+  private sortOptsCache: { key: string; cols: unknown; groups: unknown; list: SortOption[] } | null = null;
+
   // Sources
   sources: CustomSourceSummary[] = [];
   sourcesLoading = false;
@@ -416,6 +410,16 @@ export class CustomReportBuilderComponent implements OnInit {
       { key: 'records', label: this.i18n.t('reports.record_count') },
       ...chosen.filter((c) => c.aggregate !== null).map((c) => ({ key: c.key, label: c.label })),
     ];
+  }
+
+  /** sortOptions with a stable reference while its inputs are unchanged (for the select's [options]). */
+  get sortOptionsList(): SortOption[] {
+    const key = this.i18n.lang + '|' + this.config.group_by + '|' + this.config.columns.join(',');
+    const c = this.sortOptsCache;
+    if (c && c.key === key && c.cols === this.availableColumns && c.groups === this.availableGroupings) return c.list;
+    const list = this.sortOptions;
+    this.sortOptsCache = { key, cols: this.availableColumns, groups: this.availableGroupings, list };
+    return list;
   }
 
   onSourceChange(): void {

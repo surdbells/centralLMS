@@ -14,6 +14,7 @@ import { Router } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
 import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 
 interface ReportData {
@@ -37,7 +38,7 @@ interface DateRange {
 @Component({
   selector: 'app-training-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent, SelectComponent],
   templateUrl: './training-reports.component.html',
   styleUrls: ['./training-reports.component.scss']
 })
@@ -80,6 +81,11 @@ export class TrainingReportsComponent implements OnInit, OnDestroy {
   filteredReports: ReportData[] = [];
   searchTerm = '';
   filterStatus = '';
+  readonly statusFilterOpts = [
+    { value: 'published', label: 'live.common.published' },
+    { value: 'ongoing', label: 'live.common.ongoing' },
+    { value: 'completed', label: 'live.common.completed' },
+  ] as const;
   /** The trainings list is on its way / failed (distinct from "no trainings"). */
   reportsLoading = true;
   reportsError = false;

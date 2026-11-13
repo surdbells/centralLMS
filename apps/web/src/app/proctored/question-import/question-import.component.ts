@@ -11,6 +11,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { AssessmentsService } from '../../services/assessments.service';
 
 interface QuestionBank { id: string; name: string; }
@@ -22,7 +23,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
 @Component({
   selector: 'app-question-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -81,10 +82,7 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
             <div *ngFor="let col of sourceColumns; let i=index" class="map-row">
               <span class="src-col">{{ col }}</span>
               <tui-icon icon="@tui.arrow-right" style="font-size:14px;color:var(--ui-text-subtle, #8d948e)"></tui-icon>
-              <select class="fc" [(ngModel)]="columnMappings[i].target">
-                <option value="">-- Skip --</option>
-                <option *ngFor="let f of targetFields" [value]="f.value" [disabled]="isFieldMapped(f.value,i)">{{ f.label }}</option>
-              </select>
+              <app-select [options]="mappingOpts(i)" placeholder="-- Skip --" [(ngModel)]="columnMappings[i].target" [ariaLabel]="'Maps to: ' + col" />
             </div>
           </div>
           <div class="auto-msg" *ngIf="autoDetectedCount>0">
@@ -111,12 +109,11 @@ interface ImportStats { total: number; valid: number; invalid: number; imported:
           </div>
           <div class="import-settings">
             <div class="fg"><label class="fl">Target Bank *</label>
-              <select class="fc" [(ngModel)]="targetBankId"><option value="">-- Select --</option>
-                <option *ngFor="let b of banks" [value]="b.id">{{ b.name }}</option></select></div>
+              <app-select [options]="banks" bindLabel="name" bindValue="id" placeholder="-- Select --" [(ngModel)]="targetBankId" ariaLabel="Target Bank" /></div>
             <div class="fg"><label class="fl">Default Difficulty</label>
-              <select class="fc" [(ngModel)]="defaultDifficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
+              <app-select [options]="difficultyOpts" [searchable]="false" [(ngModel)]="defaultDifficulty" ariaLabel="Default Difficulty" /></div>
             <div class="fg"><label class="fl">On Error</label>
-              <select class="fc" [(ngModel)]="onError"><option value="skip">Skip invalid</option><option value="abort">Abort</option></select></div>
+              <app-select [options]="onErrorOpts" [searchable]="false" [(ngModel)]="onError" ariaLabel="On Error" /></div>
           </div>
           <div class="ptable-wrap">
             <table class="ptable">
@@ -284,6 +281,23 @@ export class QuestionImportComponent implements OnDestroy {
   targetBankId = '';
   defaultDifficulty = 'medium';
   onError = 'skip';
+  readonly difficultyOpts = [{ label: 'Easy', value: 'easy' }, { label: 'Medium', value: 'medium' }, { label: 'Hard', value: 'hard' }];
+  readonly onErrorOpts = [{ label: 'Skip invalid', value: 'skip' }, { label: 'Abort', value: 'abort' }];
+  private mappingOptsSig: string | null = null;
+  private mappingOptsRows: { label: string; value: string; disabled: boolean }[][] = [];
+
+  /** Per-row "Maps To" options; a field already mapped by another row is disabled. Cached until any mapping changes. */
+  mappingOpts(i: number): { label: string; value: string; disabled: boolean }[] {
+    const sig = this.columnMappings.length + ':' + this.columnMappings.map(m => m.target).join('\u0000');
+    if (sig !== this.mappingOptsSig) {
+      this.mappingOptsSig = sig;
+      this.mappingOptsRows = this.columnMappings.map((_, row) => [
+        { label: '-- Skip --', value: '', disabled: false },
+        ...this.targetFields.map(f => ({ label: f.label, value: f.value, disabled: this.isFieldMapped(f.value, row) })),
+      ]);
+    }
+    return this.mappingOptsRows[i] ?? [];
+  }
 
   // Step 4
   importing = false;

@@ -19,11 +19,12 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent, SelectOptionDirective, SelectLabelDirective } from '../../shared/select/select.component';
 
 @Component({
   selector: 'app-learning-path-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent, SelectOptionDirective, SelectLabelDirective],
   templateUrl: './learning-path-form.component.html',
   styleUrls: ['./learning-path-form.component.scss']
 })
@@ -67,23 +68,20 @@ export class LearningPathFormComponent implements OnInit, OnDestroy {
     ];
   }
 
-  get visibilityOptions(): { value: Visibility; label: string }[] {
-    return [
-      { value: 'public', label: this.i18n.t('paths_admin.form.vis_public') },
-      { value: 'private', label: this.i18n.t('paths_admin.form.vis_private') },
-      { value: 'restricted', label: this.i18n.t('paths_admin.form.vis_restricted') },
-      { value: 'enrolled_only', label: this.i18n.t('paths_admin.form.vis_enrolled_only') }
-    ];
-  }
-
-  get enrollmentTypes(): { value: EnrollmentType; label: string }[] {
-    return [
-      { value: 'open', label: this.i18n.t('paths_admin.form.et_open') },
-      { value: 'approval_required', label: this.i18n.t('paths_admin.form.et_approval') },
-      { value: 'invitation_only', label: this.i18n.t('paths_admin.form.et_invitation') },
-      { value: 'auto_enroll', label: this.i18n.t('paths_admin.form.et_auto') }
-    ];
-  }
+  /** Stable option lists for the <app-select> pickers (i18n keys, translateLabels). */
+  readonly visibilitySelectOpts: readonly { value: Visibility; label: string }[] = [
+    { value: 'public', label: 'paths_admin.form.vis_public' },
+    { value: 'private', label: 'paths_admin.form.vis_private' },
+    { value: 'restricted', label: 'paths_admin.form.vis_restricted' },
+    { value: 'enrolled_only', label: 'paths_admin.form.vis_enrolled_only' },
+  ];
+  readonly enrollmentTypeSelectOpts: readonly { value: EnrollmentType; label: string }[] = [
+    { value: 'open', label: 'paths_admin.form.et_open' },
+    { value: 'approval_required', label: 'paths_admin.form.et_approval' },
+    { value: 'invitation_only', label: 'paths_admin.form.et_invitation' },
+    { value: 'auto_enroll', label: 'paths_admin.form.et_auto' },
+  ];
+  readonly currencyOpts = ['USD', 'EUR', 'GBP', 'NGN'];
 
   // Tags input
   newTag = '';

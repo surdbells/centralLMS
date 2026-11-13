@@ -7,10 +7,8 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import {
   ControlValueAccessor,
-  FormsModule,
   NG_VALUE_ACCESSOR,
 } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -19,9 +17,14 @@ import { LookupsService } from '../../../services/lookups.service';
 import { SessionStore } from '../../../core/auth/session.store';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { SelectComponent, SelectFooterDirective } from '../../../shared/select/select.component';
+
+/** Stands in for the "all cycles" entry, whose public value is ''. */
+const ALL = '__all_cycles__';
 
 /**
- * A searchable cycle picker, backed by the managed cycle list.
+ * A searchable cycle picker, backed by the managed cycle list. Built on the
+ * shared <app-select>, with a footer action to quick-add the searched name.
  *
  * The cycle a report or a new assessment belongs to used to be free text or a
  * plain <select> over whatever cycles happened to exist. This offers the managed
@@ -35,7 +38,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-cycle-select',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [SelectComponent, SelectFooterDirective, TranslatePipe],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -44,66 +47,42 @@ import { I18nService } from '../../../i18n.service';
     },
   ],
   template: `
-    <div class="cs" [class.cs-sm]="size === 'sm'">
-      <input
-        type="text"
-        class="form-control cs-input"
-        [class.form-control-sm]="size === 'sm'"
-        [placeholder]="placeholder || ('competency.cycle_select.default_placeholder' | translate)"
-        [ngModel]="query()"
-        [disabled]="disabled"
-        (ngModelChange)="onQueryInput($event)"
-        (focus)="openMenu()"
-        (blur)="closeMenu()"
-        role="combobox"
-        [attr.aria-expanded]="open()"
-        aria-autocomplete="list" />
-
-      @if (open() && !disabled) {
-        <ul class="cs-menu" role="listbox">
-          @if (allowAll) {
-            <li class="cs-opt cs-all" role="option" (click)="chooseAll()">{{ allLabel }}</li>
-          }
-          @for (c of filtered(); track c) {
-            <li class="cs-opt" role="option" [class.cs-selected]="c === value" (click)="choose(c)">{{ c }}</li>
-          }
-          @if (!filtered().length && !canQuickAdd()) {
-            <li class="cs-empty">{{ 'competency.cycle_select.no_matching' | translate }}</li>
-          }
-          @if (canQuickAdd()) {
-            <li class="cs-opt cs-add" role="option" (click)="quickAdd()">
-              <i class="bi bi-plus-lg"></i> {{ 'competency.cycle_select.add_named' | translate: { name: query().trim() } }}
-              @if (creating()) { <span class="spinner-border spinner-border-sm ms-1"></span> }
-            </li>
-          }
-        </ul>
-      }
-    </div>
+    <app-select
+      class="cs"
+      [options]="options()"
+      [size]="size"
+      [disabled]="disabled"
+      [placeholder]="placeholder || ('competency.cycle_select.default_placeholder' | translate)"
+      [noResultsText]="'competency.cycle_select.no_matching' | translate"
+      [loading]="loading()"
+      [value]="innerValue()"
+      (selectionChange)="onPick($event)"
+      (searchChange)="query.set($event)"
+      (opened)="query.set('')"
+      (closed)="onTouched()">
+      <ng-template appSelectFooter let-close="close">
+        @if (canQuickAdd()) {
+          <button type="button" class="app-select-action" [disabled]="creating()" (click)="quickAdd(close)">
+            <i class="bi bi-plus-lg"></i>
+            <span>{{ 'competency.cycle_select.add_named' | translate: { name: query().trim() } }}</span>
+            @if (creating()) { <span class="spinner-border spinner-border-sm ms-auto"></span> }
+          </button>
+        }
+      </ng-template>
+    </app-select>
   `,
   styles: [`
-    .cs { position: relative; }
-    .cs-input { cursor: text; }
-    .cs-menu {
-      position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
-      margin: 0; padding: 4px; list-style: none;
-      max-height: 260px; overflow-y: auto;
-      background: var(--ui-surface, #fff); border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card);
-      box-shadow: var(--ui-shadow-pop);
-    }
-    .cs-opt { padding: 6px 10px; border-radius: var(--ui-radius-ctl); cursor: pointer; font-size: .875rem; color: var(--ui-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .cs-opt:hover { background: var(--ui-surface-2); }
-    .cs-selected { font-weight: 600; color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .08); }
-    .cs-all { color: var(--ui-text-muted); }
-    .cs-add { color: var(--brand-primary); }
-    .cs-empty { padding: 6px 10px; color: var(--ui-text-subtle); font-size: .8125rem; }
+    :host { display: block; min-width: 0; }
   `],
 })
 export class CycleSelectComponent implements ControlValueAccessor {
   /** Placeholder shown when nothing is chosen. Empty falls back to a translated default. */
   @Input() placeholder = '';
   /** Offer an explicit "all cycles" entry that clears the value. */
-  @Input() allowAll = false;
-  @Input() allLabel = 'All cycles';
+  @Input() set allowAll(v: boolean) { this._allowAll.set(v); }
+  get allowAll(): boolean { return this._allowAll(); }
+  @Input() set allLabel(v: string) { this._allLabel.set(v); }
+  get allLabel(): string { return this._allLabel(); }
   @Input() size: 'sm' | 'md' = 'md';
   @Input() disabled = false;
 
@@ -114,20 +93,29 @@ export class CycleSelectComponent implements ControlValueAccessor {
   private readonly i18n = inject(I18nService);
 
   /** The chosen cycle name; '' means none / all. */
-  value = '';
+  readonly value = signal('');
 
+  private readonly _allowAll = signal(false);
+  private readonly _allLabel = signal('All cycles');
   readonly cycles = signal<string[]>([]);
+  /** What the user has typed into the picker's search box. */
   readonly query = signal('');
-  readonly open = signal(false);
   readonly creating = signal(false);
+  readonly loading = signal(true);
 
   /** Quick-add is a convenience for whoever may manage the competency exercise. */
   readonly canManage = computed(() => this.session.can()('competency.manage'));
 
-  readonly filtered = computed(() => {
-    const q = this.query().trim().toLowerCase();
-    const all = this.cycles();
-    return q ? all.filter((c) => c.toLowerCase().includes(q)) : all;
+  /** The rows <app-select> shows: an optional "all" entry, then the cycles. */
+  readonly options = computed(() => {
+    const cycles = this.cycles().map((c) => ({ label: c, value: c }));
+    return this.allowAll ? [{ label: this.allLabel, value: ALL }, ...cycles] : cycles;
+  });
+
+  /** The value handed to <app-select>; '' maps to the "all" entry when offered. */
+  readonly innerValue = computed(() => {
+    const v = this.value();
+    return v ? v : this.allowAll ? ALL : null;
   });
 
   /** Whether the typed text is a name no cycle yet has, so it can be created. */
@@ -141,7 +129,7 @@ export class CycleSelectComponent implements ControlValueAccessor {
   });
 
   private onChange: (v: string) => void = () => {};
-  private onTouched: () => void = () => {};
+  onTouched: () => void = () => {};
 
   constructor() {
     this.reload();
@@ -154,46 +142,26 @@ export class CycleSelectComponent implements ControlValueAccessor {
       .subscribe({
         // Newest first, the way cycles have always been listed. Numeric so
         // "2026 H2" sorts above "2026 H1" and "9" below "10".
-        next: (rows) =>
+        next: (rows) => {
+          this.loading.set(false);
           this.cycles.set(
             rows
               .map((r) => r.name)
               .sort((a, b) => b.localeCompare(a, undefined, { numeric: true })),
-          ),
-        error: () => this.toast.error(this.i18n.t('competency.cycle_select.load_error')),
+          );
+        },
+        error: () => {
+          this.loading.set(false);
+          this.toast.error(this.i18n.t('competency.cycle_select.load_error'));
+        },
       });
   }
 
-  onQueryInput(text: string): void {
-    this.query.set(text);
-    this.open.set(true);
+  onPick(v: string | null): void {
+    this.setValue(!v || v === ALL ? '' : v);
   }
 
-  openMenu(): void {
-    this.open.set(true);
-  }
-
-  closeMenu(): void {
-    // A tick behind the blur so an option click registers first; then the box
-    // falls back to showing the chosen value rather than a half-typed search.
-    setTimeout(() => {
-      this.open.set(false);
-      this.query.set(this.value);
-      this.onTouched();
-    }, 150);
-  }
-
-  choose(name: string): void {
-    this.setValue(name);
-    this.open.set(false);
-  }
-
-  chooseAll(): void {
-    this.setValue('');
-    this.open.set(false);
-  }
-
-  quickAdd(): void {
+  quickAdd(close: () => void): void {
     const name = this.query().trim();
 
     if (!name || this.creating()) {
@@ -205,7 +173,8 @@ export class CycleSelectComponent implements ControlValueAccessor {
       next: (created) => {
         this.creating.set(false);
         this.reload();
-        this.choose(created.name);
+        this.setValue(created.name);
+        close();
         this.toast.success(this.i18n.t('competency.cycle_select.added', { name: created.name }));
       },
       error: () => {
@@ -216,16 +185,14 @@ export class CycleSelectComponent implements ControlValueAccessor {
   }
 
   private setValue(name: string): void {
-    this.value = name;
-    this.query.set(name);
+    this.value.set(name);
     this.onChange(name);
   }
 
   // --- ControlValueAccessor --------------------------------------------------
 
   writeValue(value: string | null): void {
-    this.value = value ?? '';
-    this.query.set(this.value);
+    this.value.set(value ?? '');
   }
 
   registerOnChange(fn: (v: string) => void): void {

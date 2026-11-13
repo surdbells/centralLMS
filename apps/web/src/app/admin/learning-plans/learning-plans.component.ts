@@ -6,6 +6,7 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { ApiClient, Endpoints } from '../../core/api';
 import { UsersService } from '../../services/users.service';
 import {
@@ -26,7 +27,7 @@ interface CourseOption { id: string; title: string; }
 @Component({
   selector: 'app-learning-plans',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './learning-plans.component.html',
   styleUrls: ['./learning-plans.component.scss'],
 })
@@ -58,7 +59,7 @@ export class LearningPlansComponent implements OnInit {
     this.loadPlans();
     this.loadCourses();
     this.api.get<{ id: string; name: string }[]>(Endpoints.lookups.active('department')).subscribe({
-      next: (rows) => (this.departments = rows),
+      next: (rows) => (this.departments = rows.map((r) => ({ ...r, id: String(r.id) }))),
       error: () => undefined,
     });
   }
@@ -75,7 +76,7 @@ export class LearningPlansComponent implements OnInit {
     this.api.get<{ items?: CourseOption[] } | CourseOption[]>(Endpoints.courses.list, { perPage: 500 }).subscribe({
       next: (res) => {
         const list = Array.isArray(res) ? res : (res.items ?? []);
-        this.courses = list.map((c) => ({ id: c.id, title: c.title }));
+        this.courses = list.map((c) => ({ id: String(c.id), title: c.title }));
       },
       error: () => undefined,
     });

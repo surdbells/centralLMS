@@ -23,6 +23,7 @@ import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 // Course and Assessment interfaces
 interface Course {
@@ -52,7 +53,7 @@ interface Assessment {
 @Component({
   selector: 'app-learning-path-builder',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DragDropModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DragDropModule, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './learning-path-builder.component.html',
   styleUrls: ['./learning-path-builder.component.scss']
 })
@@ -83,6 +84,13 @@ export class LearningPathBuilderComponent implements OnInit, OnDestroy {
   targetSectionId: string | null = null;
 
   // Section Form
+  readonly unlockTypeOpts = [
+    { value: 'none', label: 'paths_admin.builder.unlock_none' },
+    { value: 'previous_section', label: 'paths_admin.builder.unlock_previous' },
+    { value: 'all_previous', label: 'paths_admin.builder.unlock_all_previous' },
+    { value: 'admin_unlock', label: 'paths_admin.builder.unlock_admin' },
+  ] as const;
+
   sectionForm: Partial<SectionCreateRequest> = {
     title: '',
     description: '',

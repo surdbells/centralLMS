@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../translate.pipe';
@@ -71,7 +72,7 @@ interface GraderOption {
 @Component({
   selector: 'app-grading-queue',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -158,40 +159,16 @@ interface GraderOption {
           </div>
 
           <div class="ui-filters filter-group">
-            <select class="form-select" [(ngModel)]="filters.status" (change)="applyFilters()">
-              <option value="">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
-              <option value="graded">Graded</option>
-              <option value="overdue">Overdue</option>
-            </select>
+            <app-select style="width:150px" [options]="statusOpts" placeholder="All Status" [(ngModel)]="filters.status" (selectionChange)="applyFilters()" ariaLabel="Status" />
 
-            <select class="form-select" [(ngModel)]="filters.priority" (change)="applyFilters()">
-              <option value="">All Priority</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
+            <app-select style="width:150px" [options]="priorityOpts" placeholder="All Priority" [(ngModel)]="filters.priority" (selectionChange)="applyFilters()" ariaLabel="Priority" />
 
-            <select class="form-select" [(ngModel)]="filters.question_type" (change)="applyFilters()">
-              <option value="">All Question Types</option>
-              <option value="essay">Essay</option>
-              <option value="short_answer">Short Answer</option>
-              <option value="file_upload">File Upload</option>
-              <option value="fill_blank">Fill in Blank</option>
-            </select>
+            <app-select style="width:180px" [options]="questionTypeOpts" placeholder="All Question Types" [(ngModel)]="filters.question_type" (selectionChange)="applyFilters()" ariaLabel="Question type" />
 
-            <select class="form-select" [(ngModel)]="filters.assessment_id" (change)="applyFilters()">
-              <option value="">All Assessments</option>
-              <option *ngFor="let a of assessmentOptions" [value]="a.id">{{ a.title }}</option>
-            </select>
+            <app-select style="width:200px" [options]="assessmentOptions" bindLabel="title" bindValue="id" placeholder="All Assessments" [clearable]="true"
+                        [ngModel]="filters.assessment_id" (ngModelChange)="filters.assessment_id = $event ?? ''" (selectionChange)="applyFilters()" ariaLabel="Assessment" />
 
-            <select class="form-select" [(ngModel)]="filters.assigned_to" (change)="applyFilters()">
-              <option value="">All Graders</option>
-              <option value="me">Assigned to Me</option>
-              <option value="unassigned">Unassigned</option>
-              <option *ngFor="let g of graderOptions" [value]="g.user_id">{{ g.full_name }}</option>
-            </select>
+            <app-select style="width:180px" [options]="assigneeOpts" placeholder="All Graders" [(ngModel)]="filters.assigned_to" (selectionChange)="applyFilters()" ariaLabel="Grader" />
 
             <button class="btn btn-sm btn-outline-secondary" (click)="resetFilters()" *ngIf="hasActiveFilters()">
               <tui-icon icon="@tui.x"></tui-icon> Clear
@@ -360,11 +337,7 @@ interface GraderOption {
               </button>
             </div>
             <div class="page-size">
-              <select class="form-select form-select-sm" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
-                <option [value]="10">10</option>
-                <option [value]="25">25</option>
-                <option [value]="50">50</option>
-              </select>
+              <app-select size="sm" style="width:80px" [options]="pageSizeOpts" [searchable]="false" [(ngModel)]="pageSize" (selectionChange)="onPageSizeChange()" ariaLabel="Rows per page" />
             </div>
           </div>
         </div>
@@ -617,6 +590,25 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
   selectedItems: string[] = [];
   allSelected = false;
 
+  readonly pageSizeOpts = [10, 25, 50];
+  readonly statusOpts = [
+    { label: 'All Status', value: '' }, { label: 'Pending', value: 'pending' }, { label: 'In Progress', value: 'in_progress' },
+    { label: 'Graded', value: 'graded' }, { label: 'Overdue', value: 'overdue' },
+  ];
+  readonly priorityOpts = [
+    { label: 'All Priority', value: '' }, { label: 'High', value: 'high' },
+    { label: 'Medium', value: 'medium' }, { label: 'Low', value: 'low' },
+  ];
+  readonly questionTypeOpts = [
+    { label: 'All Question Types', value: '' }, { label: 'Essay', value: 'essay' },
+    { label: 'Short Answer', value: 'short_answer' }, { label: 'File Upload', value: 'file_upload' },
+    { label: 'Fill in Blank', value: 'fill_blank' },
+  ];
+  private readonly baseAssigneeOpts = [
+    { label: 'All Graders', value: '' }, { label: 'Assigned to Me', value: 'me' }, { label: 'Unassigned', value: 'unassigned' },
+  ];
+  assigneeOpts: { label: string; value: string }[] = [...this.baseAssigneeOpts];
+
   // Filters
   filters = {
     status: '',
@@ -638,6 +630,10 @@ export class GradingQueueComponent implements OnInit, OnDestroy {
     if (me) {
       this.graderOptions = [{ user_id: me, full_name: 'Me (assign to myself)', email: '', pending_count: 0 }];
     }
+    this.assigneeOpts = [
+      ...this.baseAssigneeOpts,
+      ...this.graderOptions.map(g => ({ label: g.full_name, value: g.user_id })),
+    ];
     this.loadQueue();
   }
 

@@ -296,10 +296,9 @@
             <div class="lib-batch-settings">
               <div class="lib-batch-settings__col">
                 <label class="form-label" for="lib-batch-category">{{ 'library.category' | translate }}</label>
-                <select id="lib-batch-category" class="form-select" [(ngModel)]="batch.categoryId">
-                  <option value="">{{ 'library.uncategorised' | translate }}</option>
-                  @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
-                </select>
+                <app-select inputId="lib-batch-category" [options]="categories()" bindLabel="name" bindValue="id"
+                            [ngModel]="batch.categoryId" (ngModelChange)="batch.categoryId = $event ?? ''"
+                            placeholder="{{ 'library.uncategorised' | translate }}" [clearable]="true" />
                 <div class="form-text">
                   {{ 'library.batch_category_hint' | translate }}
                   <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="showCategories.set(true)">{{ 'library.manage_categories' | translate }}</button>
@@ -367,10 +366,9 @@
                   placeholder="{{ 'library.optional_placeholder' | translate }}"></textarea>
 
         <label class="form-label" for="lib-edit-category">{{ 'library.category' | translate }}</label>
-        <select id="lib-edit-category" class="form-select mb-3" [(ngModel)]="form.categoryId">
-          <option value="">{{ 'library.uncategorised' | translate }}</option>
-          @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
-        </select>
+        <app-select class="mb-3" inputId="lib-edit-category" [options]="categories()" bindLabel="name" bindValue="id"
+                    [ngModel]="form.categoryId" (ngModelChange)="form.categoryId = $event ?? ''"
+                    placeholder="{{ 'library.uncategorised' | translate }}" [clearable]="true" />
 
         <app-library-audience-picker selectId="lib-edit-audience" [options]="audienceOptions()"
                                      [(targetType)]="form.targetType" [(targetIds)]="form.targetIds">

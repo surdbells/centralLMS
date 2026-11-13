@@ -17,6 +17,7 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
 import { HotToastService } from '@ngneat/hot-toast';
 import { LearningPathEnrollmentService } from '../../services/learning-path-enrollment.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent, SelectOptionDirective } from '../../shared/select/select.component';
 import type {
   Branch,
   Department,
@@ -77,7 +78,7 @@ type AssignmentType = 'department' | 'team' | 'branch' | 'users';
 @Component({
   selector: 'app-learning-path-assignments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent, SelectOptionDirective],
   templateUrl: './learning-path-assignments.component.html',
   styleUrls: ['./learning-path-assignments.component.scss']
 })
@@ -130,6 +131,12 @@ export class LearningPathAssignmentsComponent implements OnInit, OnDestroy {
   notifyUsers = true;
   sendReminder = true;
   priority: 'low' | 'normal' | 'high' | 'critical' = 'normal';
+  readonly priorityOpts = [
+    { value: 'low', label: 'paths_admin.priority_low' },
+    { value: 'normal', label: 'paths_admin.priority_normal' },
+    { value: 'high', label: 'paths_admin.priority_high' },
+    { value: 'critical', label: 'paths_admin.priority_critical' },
+  ] as const;
   assignmentNotes = '';
 
   // Search

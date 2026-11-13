@@ -6,10 +6,10 @@
       <input type="search" placeholder="{{ 'competency.assess.search_placeholder' | translate }}"
              [ngModel]="search" (ngModelChange)="onSearch($event)" />
     </label>
-    <select class="form-select w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
-      <option value="">{{ 'competency.assess.all_statuses' | translate }}</option>
-      <option *ngFor="let s of statuses" [value]="s.value">{{ s.label | translate }}</option>
-    </select>
+    <app-select class="ca-status-filter" [options]="statuses" [translateLabels]="true" [clearable]="true"
+                placeholder="{{ 'competency.assess.all_statuses' | translate }}"
+                [ariaLabel]="'competency.assess.th_status' | translate"
+                [value]="statusFilter" (selectionChange)="statusFilter = $event ?? ''; load()" />
     <app-cycle-select class="ca-cycle-filter" size="sm" [allowAll]="true" [allLabel]="'competency.common.all_cycles' | translate"
                       [placeholder]="'competency.common.all_cycles' | translate" [(ngModel)]="cycleFilter"
                       (ngModelChange)="load()"></app-cycle-select>
@@ -115,12 +115,9 @@
 
       <div class="mb-3">
         <label class="form-label">{{ 'competency.assess.job_profile_label' | translate }} <span class="text-danger">*</span></label>
-        <select class="form-select" [(ngModel)]="selectedProfileId">
-          <option value="">{{ 'competency.assess.choose_profile' | translate }}</option>
-          <option *ngFor="let p of profiles" [value]="p.id">
-            {{ p.jobTitle }} - {{ p.functionName }} ({{ p.competencyCount }})
-          </option>
-        </select>
+        <app-select [options]="profileOpts" placeholder="{{ 'competency.assess.choose_profile' | translate }}"
+                    [ariaLabel]="'competency.assess.job_profile_label' | translate"
+                    [(ngModel)]="selectedProfileId" />
         <small class="text-muted">{{ 'competency.assess.profiles_hint' | translate }}</small>
       </div>
 

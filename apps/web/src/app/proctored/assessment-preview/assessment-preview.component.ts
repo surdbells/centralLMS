@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, forkJoin, takeUntil, interval } from 'rxjs';
@@ -102,7 +103,7 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
 @Component({
   selector: 'app-assessment-preview',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -312,10 +313,7 @@ type PreviewScreen = 'instructions' | 'in-progress' | 'review' | 'results';
                 <div class="match-pair" *ngFor="let item of currentQuestion?.options; let i = index">
                   <span class="match-left">{{ item.left || item.premise }}</span>
                   <tui-icon icon="@tui.arrow-right" style="color:var(--ui-text-subtle)"></tui-icon>
-                  <select class="form-select" [ngModel]="getMatchAnswer(i)" (ngModelChange)="setMatchAnswer(i, $event)">
-                    <option value="">Select match...</option>
-                    <option *ngFor="let choice of getMatchChoices()" [value]="choice">{{ choice }}</option>
-                  </select>
+                  <app-select [options]="getMatchChoices()" placeholder="Select match..." [ngModel]="getMatchAnswer(i)" (ngModelChange)="setMatchAnswer(i, $event)" ariaLabel="Match" />
                 </div>
               </div>
 
@@ -1208,9 +1206,16 @@ export class AssessmentPreviewComponent implements OnInit, OnDestroy {
     this.currentQuestionState.answered = Object.values(this.currentQuestionState.answer).some((v: any) => !!v);
   }
 
+  private matchChoicesCache: { src: any[] | null; choices: string[] } = { src: null, choices: [] };
+
+  /** Right-hand match choices; cached per options array so the select gets a stable reference. */
   getMatchChoices(): string[] {
-    if (!this.currentQuestion?.options) return [];
-    return this.currentQuestion.options.map((o: any) => o.right || o.response || '');
+    const opts = this.currentQuestion?.options;
+    if (!opts) return [];
+    if (this.matchChoicesCache.src !== opts) {
+      this.matchChoicesCache = { src: opts, choices: opts.map((o: any) => o.right || o.response || '') };
+    }
+    return this.matchChoicesCache.choices;
   }
 
   getOrderItems(): any[] {

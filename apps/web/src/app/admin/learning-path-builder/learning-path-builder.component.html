@@ -378,12 +378,7 @@
                 </div>
                 <div class="mb-3">
                   <label class="form-label">{{ 'paths_admin.builder.unlock_req' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="sectionForm.unlock_type">
-                    <option value="none">{{ 'paths_admin.builder.unlock_none' | translate }}</option>
-                    <option value="previous_section">{{ 'paths_admin.builder.unlock_previous' | translate }}</option>
-                    <option value="all_previous">{{ 'paths_admin.builder.unlock_all_previous' | translate }}</option>
-                    <option value="admin_unlock">{{ 'paths_admin.builder.unlock_admin' | translate }}</option>
-                  </select>
+                  <app-select [options]="unlockTypeOpts" [translateLabels]="true" [searchable]="false" [(ngModel)]="sectionForm.unlock_type" />
                 </div>
               </div>
               <div class="modal-footer">

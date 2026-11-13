@@ -7,6 +7,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { CompetencyService, type OutcomeReport } from '../../competency.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -18,7 +19,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-outcome-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './outcome-report.component.html',
   styleUrl: './outcome-report.component.scss',
 })

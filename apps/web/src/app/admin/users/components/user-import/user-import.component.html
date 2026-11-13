@@ -151,10 +151,7 @@
           <div class="row g-3 align-items-end">
             <div class="col-md-5" *ngIf="preview.summary.existing">
               <label class="form-label small fw-semibold mb-1">{{ 'admin.user_import.people_already_here' | translate }}</label>
-              <select class="form-select" [(ngModel)]="onExisting">
-                <option value="skip">{{ 'admin.user_import.leave_alone' | translate }}</option>
-                <option value="update">{{ 'admin.user_import.update_from_file' | translate }}</option>
-              </select>
+              <app-select [(ngModel)]="onExisting" [options]="existingPolicyOptions" [translateLabels]="true" [searchable]="false" />
             </div>
             <div class="col text-end">
               <button type="button" class="btn btn-outline-secondary me-2" (click)="startOver()">{{ 'admin.user_import.choose_another' | translate }}</button>

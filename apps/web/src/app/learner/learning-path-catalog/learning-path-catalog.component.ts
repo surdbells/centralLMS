@@ -14,11 +14,12 @@ import {TopComponent} from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 @Component({
   selector: 'app-learning-path-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './learning-path-catalog.component.html',
   styleUrls: ['./learning-path-catalog.component.scss']
 })
@@ -42,6 +43,12 @@ export class LearningPathCatalogComponent implements OnInit, OnDestroy {
 
   // Reference data
   skillLevels = SKILL_LEVELS;
+  readonly sortOpts = [
+    { value: 'popular', label: 'paths.sort_popular' },
+    { value: 'rating', label: 'paths.sort_rating' },
+    { value: 'newest', label: 'paths.sort_newest' },
+    { value: 'duration', label: 'paths.sort_duration' },
+  ];
   categories = signal<any[]>([]);
 
   // Computed

@@ -44,21 +44,15 @@
                     (click)="filters.search=''; loadUsers()" [attr.aria-label]="'common.clear' | translate">
               <i class="bi bi-x-lg"></i>
             </button>
-            <select class="form-select" [(ngModel)]="filters.department_id" (change)="loadUsers()">
-              <option [ngValue]="undefined">{{ 'admin.enroll.all_departments' | translate }}</option>
-              <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filters.role_key" (change)="loadUsers()">
-              <option value="">{{ 'admin.users.all_roles' | translate }}</option>
-              <option *ngFor="let r of roles" [value]="r.role_key">{{ r.role_name }}</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filters.status" (change)="loadUsers()">
-              <option value="">{{ 'admin.users.all_status' | translate }}</option>
-              <option value="active">{{ 'admin.users.status_active' | translate }}</option>
-              <option value="inactive">{{ 'admin.users.status_inactive' | translate }}</option>
-              <option value="suspended">{{ 'admin.users.status_suspended' | translate }}</option>
-              <option value="locked">{{ 'admin.users.status_locked' | translate }}</option>
-            </select>
+            <app-select style="min-width:180px" [(ngModel)]="filters.department_id" (selectionChange)="loadUsers()"
+                        [options]="departments" bindLabel="department_name" bindValue="department_id" [clearable]="true"
+                        placeholder="{{ 'admin.enroll.all_departments' | translate }}" />
+            <app-select style="min-width:160px" [(ngModel)]="filters.role_key" (selectionChange)="loadUsers()"
+                        [options]="roles" bindLabel="role_name" bindValue="role_key" [clearable]="true"
+                        placeholder="{{ 'admin.users.all_roles' | translate }}" />
+            <app-select style="min-width:150px" [(ngModel)]="filters.status" (selectionChange)="loadUsers()"
+                        [options]="statusOptions" [translateLabels]="true" [searchable]="false" [clearable]="true"
+                        placeholder="{{ 'admin.users.all_status' | translate }}" />
             <button type="button" class="btn btn-sm btn-link text-muted" (click)="resetFilters()">{{ 'admin.courses.clear_filters' | translate }}</button>
           </div>
         </div>

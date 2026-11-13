@@ -16,6 +16,7 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import { TranslatePipe } from '../../translate.pipe';
 import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
@@ -28,7 +29,7 @@ interface InstructorSession extends TrainingSession {
 @Component({
   selector: 'app-instructor-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent, SelectComponent],
   templateUrl: './instructor-dashboard.component.html',
   styleUrls: ['./instructor-dashboard.component.scss']
 
@@ -42,6 +43,8 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
 
   // Data
   allSessions: InstructorSession[] = [];
+  /** Attendance-tab session picker (string ids, as the old native select emitted). */
+  sessionOpts: Array<{ value: string; label: string }> = [];
   todaySessions: InstructorSession[] = [];
   upcomingSessions: InstructorSession[] = [];
   pastSessions: InstructorSession[] = [];
@@ -101,6 +104,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
       .subscribe({
         next: sessions => {
           this.allSessions = (sessions ?? []) as InstructorSession[];
+          this.buildSessionOpts();
           this.categorizeSessions();
           this.calculateStats();
           this.loading = false;
@@ -178,6 +182,13 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
     this.selectedSessionForAttendance = session;
     this.activeTab = 'attendance';
     this.loadAttendance();
+  }
+
+  private buildSessionOpts(): void {
+    this.sessionOpts = this.allSessions.map(s => ({
+      value: s.session_id.toString(),
+      label: `${s.title} - ${this.formatDate(s.session_date)}`,
+    }));
   }
 
   loadAttendance(session?: InstructorSession): void {
@@ -399,6 +410,7 @@ export class InstructorDashboardComponent implements OnInit, OnDestroy {
           const idx = this.allSessions.findIndex(s => s.session_id === session_id);
           if (idx !== -1) {
             this.allSessions[idx] = instructorSession;
+            this.buildSessionOpts();
           }
           this.loading = false;
         },

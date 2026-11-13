@@ -24,7 +24,7 @@
   .pr-meta { font-size: .75rem; color: var(--ui-text-muted); } }
 
 .editor-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 16px; }
-.assign-dept { display: inline-flex; align-items: center; gap: 6px; .form-select { max-width: 180px; } }
+.assign-dept { display: inline-flex; align-items: center; gap: 6px; .form-select { max-width: 180px; } .dept-select { width: 200px; } }
 
 .assign-user { margin: 0 0 4px;
   label { font-size: .75rem; color: var(--ui-text-muted); font-weight: 600; display: block; margin-bottom: 6px; }

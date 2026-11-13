@@ -1,22 +1,22 @@
 // components/pagination/pagination.component.ts
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SelectComponent } from '../../select/select.component';
 
 @Component({
   selector: 'app-pagination',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, TranslatePipe, SelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="pagination-container" *ngIf="totalPages > 0">
       <!-- Page Size Selector -->
       <div class="page-size" *ngIf="showPageSize">
         <label>{{ 'shared.pagination.show' | translate }}</label>
-        <select class="form-select form-select-sm" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
-          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
-        </select>
+        <app-select size="sm" [options]="pageSizeOptions" [searchable]="false"
+                    [ariaLabel]="'shared.pagination.show' | translate"
+                    [value]="pageSize" (selectionChange)="onPageSizeChange($event)" />
         <span>{{ 'shared.pagination.entries' | translate }}</span>
       </div>
 
@@ -99,8 +99,8 @@ import { TranslatePipe } from '../../../translate.pipe';
       font-size: 0.8125rem;
       color: var(--ui-text-muted, #6a716b);
     }
-    .page-size select {
-      width: auto;
+    .page-size app-select {
+      width: 84px;
     }
 
     .page-info {
@@ -167,7 +167,6 @@ import { TranslatePipe } from '../../../translate.pipe';
     }
 
     /* Keep the page-size select and jump box at the same control height. */
-    .page-size select,
     .page-jump input {
       min-height: var(--ui-ctl-h, 36px);
       font-size: 0.8125rem;

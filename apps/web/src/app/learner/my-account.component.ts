@@ -15,6 +15,7 @@ import { TopComponent } from '../partials/top/top.component';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ConfirmDialogService } from '../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { SkeletonComponent } from '../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../shared/select/select.component';
 
 /* The shapes this screen's template already reads. */
 
@@ -68,7 +69,7 @@ export interface LoginRecord {
 @Component({
   selector: 'app-my-account',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TopComponent, TuiIcon, AuthImgDirective, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TopComponent, TuiIcon, AuthImgDirective, SkeletonComponent, SelectComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -186,31 +187,18 @@ export interface LoginRecord {
                     </div>
                     <div class="mb-3">
                       <label class="form-label small fw-semibold">Gender</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="profileForm.gender">
-                        <option value="">Prefer not to say</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                        <option value="undisclosed">Undisclosed</option>
-                      </select>
+                      <app-select size="sm" [options]="genderOpts" placeholder="Prefer not to say"
+                        ariaLabel="Gender" [(ngModel)]="profileForm.gender" />
                     </div>
                     <div class="mb-3">
                       <label class="form-label small fw-semibold">Language</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="profileForm.language">
-                        <option value="en">English</option>
-                        <option value="fr">French</option>
-                        <option value="ar">Arabic</option>
-                      </select>
+                      <app-select size="sm" [options]="languageOpts" [searchable]="false"
+                        ariaLabel="Language" [(ngModel)]="profileForm.language" />
                     </div>
                     <div class="mb-3">
                       <label class="form-label small fw-semibold">Preferred Learning Mode</label>
-                      <select class="form-select form-select-sm" [(ngModel)]="profileForm.preferred_learning_mode">
-                        <option value="">No preference</option>
-                        <option value="video">Video</option>
-                        <option value="audio">Audio</option>
-                        <option value="reading">Reading</option>
-                        <option value="interactive">Interactive</option>
-                      </select>
+                      <app-select size="sm" [options]="learningModeOpts" placeholder="No preference"
+                        ariaLabel="Preferred Learning Mode" [(ngModel)]="profileForm.preferred_learning_mode" />
                     </div>
                     <div class="d-flex gap-2">
                       <button class="btn btn-primary btn-sm" (click)="saveProfile()" [disabled]="savingProfile">
@@ -480,6 +468,25 @@ export class MyAccountComponent implements OnInit, OnDestroy {
 
   // Profile
   editingProfile = false;
+  readonly genderOpts = [
+    { value: '', label: 'Prefer not to say' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'other', label: 'Other' },
+    { value: 'undisclosed', label: 'Undisclosed' },
+  ];
+  readonly languageOpts = [
+    { value: 'en', label: 'English' },
+    { value: 'fr', label: 'French' },
+    { value: 'ar', label: 'Arabic' },
+  ];
+  readonly learningModeOpts = [
+    { value: '', label: 'No preference' },
+    { value: 'video', label: 'Video' },
+    { value: 'audio', label: 'Audio' },
+    { value: 'reading', label: 'Reading' },
+    { value: 'interactive', label: 'Interactive' },
+  ];
   profileForm: ProfileForm = {
     first_name: '',
     last_name: '',

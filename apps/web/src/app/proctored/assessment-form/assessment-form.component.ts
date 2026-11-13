@@ -12,6 +12,7 @@ import { Subject, forkJoin, takeUntil } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
 import { ApiClient, Endpoints } from '../../core/api';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import {
   AssessmentAdminService,
@@ -114,7 +115,7 @@ interface GradingScale { scale_id: string; name: string; }
 @Component({
   selector: 'app-assessment-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -225,32 +226,19 @@ interface GradingScale { scale_id: string; name: string; }
             </div>
             <div class="form-group">
               <label>Category</label>
-              <select class="form-select" [(ngModel)]="form.category_id">
-                <option [value]="null">No Category</option>
-                <option *ngFor="let c of categories" [value]="c.category_id">{{ c.name }}</option>
-              </select>
+              <app-select [options]="categories" bindLabel="name" bindValue="category_id" placeholder="No Category" [clearable]="true" [(ngModel)]="form.category_id" ariaLabel="Category" />
             </div>
             <div class="form-group">
               <label>Linked Course</label>
-              <select class="form-select" [(ngModel)]="form.course_id">
-                <option [value]="null">None</option>
-                <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
-              </select>
+              <app-select [options]="courses" bindLabel="title" bindValue="id" placeholder="None" [clearable]="true" [(ngModel)]="form.course_id" ariaLabel="Linked Course" />
             </div>
             <div class="form-group">
               <label>Linked Training</label>
-              <select class="form-select" [(ngModel)]="form.training_id">
-                <option [value]="null">None</option>
-                <option *ngFor="let t of trainings" [value]="t.id">{{ t.title }}</option>
-              </select>
+              <app-select [options]="trainings" bindLabel="title" bindValue="id" placeholder="None" [clearable]="true" [(ngModel)]="form.training_id" ariaLabel="Linked Training" />
             </div>
             <div class="form-group" *ngIf="isEdit">
               <label>Status</label>
-              <select class="form-select" [(ngModel)]="form.status">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="closed">Closed</option>
-              </select>
+              <app-select [options]="statusOpts" [searchable]="false" [(ngModel)]="form.status" ariaLabel="Status" />
             </div>
           </section>
         </div>
@@ -337,13 +325,9 @@ interface GradingScale { scale_id: string; name: string; }
                   <button class="btn btn-sm btn-ghost" (click)="moveQuestion(s, qi, 1)" [disabled]="qi === s.questions.length - 1">
                     <tui-icon icon="@tui.chevron-down"></tui-icon>
                   </button>
-                  <select class="form-select form-select-sm move-select" *ngIf="sections.length > 1"
-                          (change)="moveToSection(s, qi, $event)" title="Move to section">
-                    <option value="" selected disabled>Move...</option>
-                    <option *ngFor="let ts of sections; let tsi = index" [value]="tsi" [disabled]="tsi === si">
-                      {{ ts.title || 'Section ' + (tsi + 1) }}
-                    </option>
-                  </select>
+                  <app-select #mv class="move-select" size="sm" style="width:140px" *ngIf="sections.length > 1"
+                              [options]="moveOpts(si)" placeholder="Move..." [value]="null"
+                              (selectionChange)="moveToSection(s, qi, $event); mv.writeValue(null)" ariaLabel="Move to section" />
                   <button class="btn btn-sm btn-ghost text-danger" (click)="removeQuestion(s, qi)">
                     <tui-icon icon="@tui.x"></tui-icon>
                   </button>
@@ -400,18 +384,12 @@ interface GradingScale { scale_id: string; name: string; }
               <label>Passing Score</label>
               <div class="input-group">
                 <input type="number" class="form-control" [(ngModel)]="form.passing_score" min="0">
-                <select class="form-select" [(ngModel)]="form.passing_type" style="max-width: 130px;">
-                  <option value="percentage">Percentage</option>
-                  <option value="points">Points</option>
-                </select>
+                <app-select style="max-width: 130px;" [options]="passingTypeOpts" [searchable]="false" [(ngModel)]="form.passing_type" ariaLabel="Passing type" />
               </div>
             </div>
             <div class="form-group">
               <label>Grading Scale</label>
-              <select class="form-select" [(ngModel)]="form.grading_scale_id">
-                <option [value]="null">Default (A-F)</option>
-                <option *ngFor="let g of gradingScales" [value]="g.scale_id">{{ g.name }}</option>
-              </select>
+              <app-select [options]="gradingScales" bindLabel="name" bindValue="scale_id" placeholder="Default (A-F)" [clearable]="true" [(ngModel)]="form.grading_scale_id" ariaLabel="Grading Scale" />
             </div>
             <div class="toggle-row">
               <label>Negative Marking</label>
@@ -432,20 +410,11 @@ interface GradingScale { scale_id: string; name: string; }
             <h3 class="settings-title"><tui-icon icon="@tui.monitor"></tui-icon> Display</h3>
             <div class="form-group">
               <label>Questions Per Page</label>
-              <select class="form-select" [(ngModel)]="form.questions_per_page">
-                <option [value]="1">One at a time</option>
-                <option [value]="5">5 per page</option>
-                <option [value]="10">10 per page</option>
-                <option [value]="0">All on one page</option>
-              </select>
+              <app-select [options]="questionsPerPageOpts" [searchable]="false" [(ngModel)]="form.questions_per_page" ariaLabel="Questions Per Page" />
             </div>
             <div class="form-group">
               <label>Navigation</label>
-              <select class="form-select" [(ngModel)]="form.navigation_type">
-                <option value="free">Free navigation</option>
-                <option value="linear">Linear (no going back)</option>
-                <option value="section">Section-by-section</option>
-              </select>
+              <app-select [options]="navigationOpts" [searchable]="false" [(ngModel)]="form.navigation_type" ariaLabel="Navigation" />
             </div>
             <div class="toggle-row"><label>Shuffle Questions</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.shuffle_questions"></div>
             <div class="toggle-row"><label>Shuffle Options</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.shuffle_options"></div>
@@ -462,12 +431,7 @@ interface GradingScale { scale_id: string; name: string; }
             <div class="toggle-row"><label>Show Score</label><input type="checkbox" class="form-check-input" [(ngModel)]="form.show_score"></div>
             <div class="form-group">
               <label>Results Release</label>
-              <select class="form-select" [(ngModel)]="form.results_release_type">
-                <option value="immediate">Immediately</option>
-                <option value="after_close">After assessment closes</option>
-                <option value="manual">Manual release</option>
-                <option value="date">On specific date</option>
-              </select>
+              <app-select [options]="releaseOpts" [searchable]="false" [(ngModel)]="form.results_release_type" ariaLabel="Results Release" />
             </div>
             <div class="form-group" *ngIf="form.results_release_type === 'date'">
               <label>Release Date</label>
@@ -519,18 +483,10 @@ interface GradingScale { scale_id: string; name: string; }
         </div>
         <div class="ui-toolbar assign-toolbar">
           <div class="ui-filters assign-actions">
-            <select class="form-select" [(ngModel)]="newAssignment.assignment_type" aria-label="Assign to">
-              <option value="user">Individual User</option>
-              <option value="department">Department</option>
-              <option value="team">Team</option>
-              <option value="branch">Branch</option>
-              <option value="all">All Users</option>
-            </select>
-            <select class="form-select" [(ngModel)]="newAssignment.target_id" aria-label="Target"
-                    *ngIf="newAssignment.assignment_type !== 'all'">
-              <option value="">Select...</option>
-              <option *ngFor="let t of getAssignTargets()" [value]="t.id">{{ t.name }}</option>
-            </select>
+            <app-select style="width:180px" [options]="assignTypeOpts" [(ngModel)]="newAssignment.assignment_type" ariaLabel="Assign to" />
+            <app-select style="width:220px" [options]="getAssignTargets()" bindLabel="name" bindValue="id" placeholder="Select..."
+                        [(ngModel)]="newAssignment.target_id" ariaLabel="Target"
+                        *ngIf="newAssignment.assignment_type !== 'all'" />
             <input type="date" class="form-control" [(ngModel)]="newAssignment.due_date"
                    placeholder="Due date (optional)" aria-label="Due date (optional)">
             <button type="button" class="btn btn-primary" (click)="addAssignment()" [disabled]="!canAddAssignment">
@@ -570,24 +526,8 @@ interface GradingScale { scale_id: string; name: string; }
             <div class="picker-toolbar">
               <input type="text" class="form-control form-control-sm" placeholder="Search questions..."
                      [(ngModel)]="pickerSearch" (input)="searchQuestions()">
-              <select class="form-select form-select-sm" [(ngModel)]="pickerBank" (change)="searchQuestions()">
-                <option value="">Choose a bank…</option>
-                <option *ngFor="let b of banks" [value]="b.id">{{ b.name }} ({{ b.questionCount }})</option>
-              </select>
-              <select class="form-select form-select-sm" [(ngModel)]="pickerType" (change)="searchQuestions()">
-                <option value="">All Types</option>
-                <option value="multiple_choice">Multiple Choice</option>
-                <option value="multiple_response">Multiple Response</option>
-                <option value="true_false">True/False</option>
-                <option value="short_answer">Short Answer</option>
-                <option value="long_answer">Long Answer/Essay</option>
-                <option value="numeric">Numeric</option>
-                <option value="fill_blank">Fill in Blank</option>
-                <option value="matching">Matching</option>
-                <option value="ordering">Ordering</option>
-                <option value="file_upload">File Upload</option>
-                <option value="hotspot">Hotspot</option>
-              </select>
+              <app-select size="sm" style="width:200px" [options]="bankOpts" placeholder="Choose a bank…" [(ngModel)]="pickerBank" (selectionChange)="searchQuestions()" ariaLabel="Question bank" />
+              <app-select size="sm" style="width:180px" [options]="pickerTypeOpts" placeholder="All Types" [(ngModel)]="pickerType" (selectionChange)="searchQuestions()" ariaLabel="Question type" />
             </div>
             <div class="picker-list">
               <div class="picker-item" *ngFor="let q of availableQuestions" (click)="togglePickerQuestion(q)"
@@ -779,6 +719,58 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
   pickerBank = '';
   pickerType = '';
   availableQuestions: any[] = [];
+  bankOpts: { label: string; value: string }[] = [];
+  readonly pickerTypeOpts = [
+    { label: 'All Types', value: '' },
+    { label: 'Multiple Choice', value: 'multiple_choice' },
+    { label: 'Multiple Response', value: 'multiple_response' },
+    { label: 'True/False', value: 'true_false' },
+    { label: 'Short Answer', value: 'short_answer' },
+    { label: 'Long Answer/Essay', value: 'long_answer' },
+    { label: 'Numeric', value: 'numeric' },
+    { label: 'Fill in Blank', value: 'fill_blank' },
+    { label: 'Matching', value: 'matching' },
+    { label: 'Ordering', value: 'ordering' },
+    { label: 'File Upload', value: 'file_upload' },
+    { label: 'Hotspot', value: 'hotspot' },
+  ];
+  readonly statusOpts = [
+    { label: 'Draft', value: 'draft' }, { label: 'Published', value: 'published' }, { label: 'Closed', value: 'closed' },
+  ];
+  readonly passingTypeOpts = [{ label: 'Percentage', value: 'percentage' }, { label: 'Points', value: 'points' }];
+  readonly questionsPerPageOpts = [
+    { label: 'One at a time', value: 1 }, { label: '5 per page', value: 5 },
+    { label: '10 per page', value: 10 }, { label: 'All on one page', value: 0 },
+  ];
+  readonly navigationOpts = [
+    { label: 'Free navigation', value: 'free' },
+    { label: 'Linear (no going back)', value: 'linear' },
+    { label: 'Section-by-section', value: 'section' },
+  ];
+  readonly releaseOpts = [
+    { label: 'Immediately', value: 'immediate' },
+    { label: 'After assessment closes', value: 'after_close' },
+    { label: 'Manual release', value: 'manual' },
+    { label: 'On specific date', value: 'date' },
+  ];
+  readonly assignTypeOpts = [
+    { label: 'Individual User', value: 'user' }, { label: 'Department', value: 'department' },
+    { label: 'Team', value: 'team' }, { label: 'Branch', value: 'branch' }, { label: 'All Users', value: 'all' },
+  ];
+  private moveOptsCache = new Map<string, { label: string; value: number; disabled: boolean }[]>();
+  private moveOptsSig = '';
+
+  /** Section targets for the per-question "Move..." picker; cached per section index. */
+  moveOpts(si: number): { label: string; value: number; disabled: boolean }[] {
+    const sig = this.sections.map(x => x.title).join('\u0000') + '|' + this.sections.length;
+    if (sig !== this.moveOptsSig) { this.moveOptsSig = sig; this.moveOptsCache.clear(); }
+    let opts = this.moveOptsCache.get(String(si));
+    if (!opts) {
+      opts = this.sections.map((ts, tsi) => ({ label: ts.title || 'Section ' + (tsi + 1), value: tsi, disabled: tsi === si }));
+      this.moveOptsCache.set(String(si), opts);
+    }
+    return opts;
+  }
 
   // Assignments
   newAssignment = { assignment_type: 'user' as string, target_id: '', due_date: '' };
@@ -1032,7 +1024,7 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
     this.gradingScales = [];
     // Question banks, for the picker.
     this.api.banks().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (p) => { this.banks = p.items; }, error: () => undefined,
+      next: (p) => { this.banks = p.items; this.bankOpts = p.items.map(b => ({ label: `${b.name} (${b.questionCount})`, value: b.id })); }, error: () => undefined,
     });
     // Assignment targets — people and the groups.
     this.api.assignmentTargets().pipe(takeUntil(this.destroy$)).subscribe({
@@ -1194,8 +1186,9 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
     this.reorderQuestions(s);
   }
 
-  moveToSection(fromSection: Section, qIndex: number, event: Event): void {
-    const targetIdx = +(event.target as HTMLSelectElement).value;
+  moveToSection(fromSection: Section, qIndex: number, target: number | null): void {
+    if (target == null) return;
+    const targetIdx = +target;
     const targetSection = this.sections[targetIdx];
     if (!targetSection || targetSection.section_id === fromSection.section_id || !this.form.assessment_id) return;
 
@@ -1205,7 +1198,6 @@ export class AssessmentFormComponent implements OnInit, OnDestroy {
     this.api.setQuestionSection(this.form.assessment_id, q.question_id, targetSection.section_id || null)
       .pipe(takeUntil(this.destroy$)).subscribe();
 
-    (event.target as HTMLSelectElement).value = '';
   }
 
   updateQuestionPoints(q: SectionQuestion): void {

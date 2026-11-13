@@ -13,6 +13,7 @@ import {
 } from '../../competency.service';
 import { UsersService, type User } from '../../../services/users.service';
 import { CycleSelectComponent } from '../cycle-select/cycle-select.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
 import { I18nService } from '../../../i18n.service';
@@ -28,7 +29,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-competency-assessments',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, CycleSelectComponent, SelectComponent, TranslatePipe, SkeletonComponent],
   templateUrl: './competency-assessments.component.html',
   styleUrl: './competency-assessments.component.scss',
 })
@@ -63,6 +64,8 @@ export class CompetencyAssessmentsComponent implements OnInit {
   userResults: User[] = [];
   selectedUsers: User[] = [];
   profiles: JobCompetencyProfile[] = [];
+  /** Picker rows for the profile select, built once when the profiles load. */
+  profileOpts: Array<{ value: string; label: string }> = [];
   selectedProfileId = '';
   cycle = new Date().getFullYear().toString();
   private readonly userSearch$ = new Subject<string>();
@@ -119,7 +122,13 @@ export class CompetencyAssessmentsComponent implements OnInit {
     this.cycle = new Date().getFullYear().toString();
     if (!this.profiles.length) {
       this.competency.getProfiles({ perPage: 200 }).subscribe({
-        next: (paged) => (this.profiles = paged.items.filter((p) => p.competencyCount > 0)),
+        next: (paged) => {
+          this.profiles = paged.items.filter((p) => p.competencyCount > 0);
+          this.profileOpts = this.profiles.map((p) => ({
+            value: p.id,
+            label: `${p.jobTitle} - ${p.functionName} (${p.competencyCount})`,
+          }));
+        },
         error: () => undefined,
       });
     }

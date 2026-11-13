@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
@@ -66,7 +67,7 @@ interface Category {
 @Component({
   selector: 'app-assessment-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -127,33 +128,12 @@ interface Category {
                 <i class="bi bi-x-lg"></i>
               </button>
             </label>
-            <select class="form-select" [(ngModel)]="filters.type" (change)="loadAssessments()" aria-label="Type">
-              <option value="">All Types</option>
-              <option value="quiz">Quiz</option>
-              <option value="exam">Exam</option>
-              <option value="practice">Practice</option>
-              <option value="survey">Survey</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filters.proctoring" (change)="loadAssessments()" aria-label="Proctoring">
-              <option value="">All Proctoring</option>
-              <option value="none">None</option>
-              <option value="basic">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="advanced">Advanced</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filters.category_id" (change)="loadAssessments()" aria-label="Category">
-              <option value="">All Categories</option>
-              <option *ngFor="let c of categories" [value]="c.category_id">{{ c.name }} ({{ c.assessment_count }})</option>
-            </select>
+            <app-select style="width:150px" [options]="typeOpts" placeholder="All Types" [(ngModel)]="filters.type" (selectionChange)="loadAssessments()" ariaLabel="Type" />
+            <app-select style="width:160px" [options]="proctoringOpts" placeholder="All Proctoring" [(ngModel)]="filters.proctoring" (selectionChange)="loadAssessments()" ariaLabel="Proctoring" />
+            <app-select style="width:180px" [options]="categoryOpts" placeholder="All Categories" [(ngModel)]="filters.category_id" (selectionChange)="loadAssessments()" ariaLabel="Category" />
           </div>
           <div class="ui-filters">
-            <select class="form-select" [(ngModel)]="sortField" (change)="loadAssessments()" aria-label="Sort by">
-              <option value="updated_at">Last Updated</option>
-              <option value="created_at">Created</option>
-              <option value="title">Title</option>
-              <option value="total_attempts">Most Attempts</option>
-              <option value="pass_rate">Pass Rate</option>
-            </select>
+            <app-select style="width:160px" [options]="sortOpts" [(ngModel)]="sortField" (selectionChange)="loadAssessments()" ariaLabel="Sort by" />
             <button type="button" class="btn btn-outline-secondary icon-btn" (click)="toggleSortDir()" [attr.aria-label]="sortDir === 'desc' ? 'Descending' : 'Ascending'">
               <i class="bi" [class.bi-sort-down]="sortDir === 'desc'" [class.bi-sort-up]="sortDir !== 'desc'"></i>
             </button>
@@ -477,6 +457,20 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
   pageSize = 12;
   totalItems = 0;
   sortField = 'updated_at';
+  categoryOpts: { label: string; value: string }[] = [{ label: 'All Categories', value: '' }];
+  readonly typeOpts = [
+    { label: 'All Types', value: '' }, { label: 'Quiz', value: 'quiz' }, { label: 'Exam', value: 'exam' },
+    { label: 'Practice', value: 'practice' }, { label: 'Survey', value: 'survey' },
+  ];
+  readonly proctoringOpts = [
+    { label: 'All Proctoring', value: '' }, { label: 'None', value: 'none' }, { label: 'Basic', value: 'basic' },
+    { label: 'Standard', value: 'standard' }, { label: 'Advanced', value: 'advanced' },
+  ];
+  readonly sortOpts = [
+    { label: 'Last Updated', value: 'updated_at' }, { label: 'Created', value: 'created_at' },
+    { label: 'Title', value: 'title' }, { label: 'Most Attempts', value: 'total_attempts' },
+    { label: 'Pass Rate', value: 'pass_rate' },
+  ];
   sortDir = 'desc';
   openMenuId: string | null = null;
 
@@ -553,6 +547,10 @@ export class AssessmentListComponent implements OnInit, OnDestroy {
     // Assessment categories are not a resource on the new API yet; the filter
     // degrades to "All Categories" until one exists.
     this.categories = [];
+    this.categoryOpts = [
+      { label: 'All Categories', value: '' },
+      ...this.categories.map(c => ({ label: `${c.name} (${c.assessment_count})`, value: c.category_id })),
+    ];
   }
 
   /** Maps a REST row into the shape the template renders. */

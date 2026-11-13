@@ -15,6 +15,7 @@ import { TuiIcon } from '@taiga-ui/core';
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { AssessmentsService, type QuestionInput } from '../../services/assessments.service';
 import { AuthImgDirective } from '../../core/api';
+import { SelectComponent } from '../../shared/select/select.component';
 
 interface QuestionBank { id: string; name: string; }
 interface QuestionOption { id?: string; option_text: string; is_correct: boolean; feedback: string; order_position: number; }
@@ -38,7 +39,7 @@ interface QuestionForm {
 @Component({
   selector: 'app-question-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, AuthImgDirective],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, AuthImgDirective, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -161,7 +162,7 @@ interface QuestionForm {
             <h2 class="ui-section__title section-title">Essay Settings</h2>
             <div class="grid-2">
               <div class="fg"><label class="form-label">Max Word Count</label><input type="number" class="form-control" [(ngModel)]="form.max_length" min="10" /></div>
-              <div class="fg"><label class="form-label">Grading</label><select class="form-control"><option>Manual</option><option>Rubric-Based</option></select></div>
+              <div class="fg"><label class="form-label">Grading</label><app-select [options]="essayGradingOpts" [searchable]="false" [(ngModel)]="essayGrading" ariaLabel="Grading" /></div>
             </div>
             <div class="mt-12"><label class="form-label">Model Answer / Rubric:</label>
               <textarea class="form-textarea" rows="4" [(ngModel)]="form.sample_answer" placeholder="Grading criteria..."></textarea></div>
@@ -272,7 +273,7 @@ interface QuestionForm {
                 <h3>Areas (click image to add)</h3>
                 <div *ngFor="let a of form.hotspot_areas; let i=index" class="hs-row">
                   <input class="form-control fc-sm" [(ngModel)]="a.label" placeholder="Label" />
-                  <select class="form-control fc-sm" [(ngModel)]="a.shape"><option value="rect">Rect</option><option value="circle">Circle</option></select>
+                  <app-select size="sm" style="width:110px" [options]="shapeOpts" [searchable]="false" [(ngModel)]="a.shape" ariaLabel="Shape" />
                   <label class="cb-label"><input type="checkbox" [(ngModel)]="a.is_correct" /> Correct</label>
                   <button class="btn-icon btn-danger" (click)="form.hotspot_areas.splice(i,1)"><tui-icon icon="@tui.trash-2" style="font-size:14px"></tui-icon></button>
                 </div>
@@ -299,9 +300,7 @@ interface QuestionForm {
           <div class="ui-section side-card">
             <h3 class="ui-section__title sc-title">Settings</h3>
             <div class="fg"><label class="form-label">Bank *</label>
-              <select class="form-control" [(ngModel)]="form.bank_id">
-                <option [value]="null">-- Select --</option>
-                <option *ngFor="let b of banks" [value]="b.id">{{ b.name }}</option></select></div>
+              <app-select [options]="banks" bindLabel="name" bindValue="id" placeholder="-- Select --" [(ngModel)]="form.bank_id" ariaLabel="Bank" /></div>
             <div class="fg"><label class="form-label">Difficulty *</label>
               <div class="diff-sel">
                 <button class="db" [class.sel]="form.difficulty==='easy'" [class.easy]="form.difficulty==='easy'" (click)="form.difficulty='easy'">Easy</button>
@@ -311,7 +310,7 @@ interface QuestionForm {
             <div class="fg"><label class="form-label">Points *</label><input type="number" class="form-control" [(ngModel)]="form.points" min="1" max="100" /></div>
             <div class="fg"><label class="form-label">Time Limit (sec)</label><input type="number" class="form-control" [(ngModel)]="form.time_limit_seconds" min="0" placeholder="None" /></div>
             <div class="fg"><label class="form-label">Status</label>
-              <select class="form-control" [(ngModel)]="form.status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="archived">Archived</option></select></div>
+              <app-select [options]="statusOpts" [searchable]="false" [(ngModel)]="form.status" ariaLabel="Status" /></div>
           </div>
           <div class="ui-section side-card">
             <h3 class="ui-section__title sc-title">Tags</h3>
@@ -464,6 +463,12 @@ export class QuestionFormComponent implements OnInit, OnDestroy {
   saving = false;
   uploadingImage = false;
   banks: QuestionBank[] = [];
+  readonly essayGradingOpts = ['Manual', 'Rubric-Based'];
+  essayGrading = 'Manual';
+  readonly shapeOpts = [{ label: 'Rect', value: 'rect' }, { label: 'Circle', value: 'circle' }];
+  readonly statusOpts = [
+    { label: 'Active', value: 'active' }, { label: 'Inactive', value: 'inactive' }, { label: 'Archived', value: 'archived' },
+  ];
   existingTags: string[] = [];
   dragIdx = -1;
   toast = { show: false, message: '', type: 'success' as 'success'|'error' };

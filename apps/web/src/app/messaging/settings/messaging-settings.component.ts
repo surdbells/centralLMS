@@ -13,11 +13,12 @@ import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
 import { AvatarComponent } from '../../shared/avatar/avatar.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 @Component({
   selector: 'app-messaging-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe, AvatarComponent],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe, AvatarComponent, SelectComponent],
   template: `
     <app-top></app-top>
 
@@ -113,14 +114,10 @@ import { AvatarComponent } from '../../shared/avatar/avatar.component';
               <h3 class="setting-title">{{ 'messaging.email_digest' | translate }}</h3>
               <p class="setting-desc">{{ 'messaging.email_digest_desc' | translate }}</p>
             </div>
-            <select class="form-select" style="width: 150px;"
-                    [(ngModel)]="settings.email_digest_frequency" (change)="saveSettings()">
-              <option value="never">{{ 'messaging.freq_never' | translate }}</option>
-              <option value="instant">{{ 'messaging.freq_instant' | translate }}</option>
-              <option value="hourly">{{ 'messaging.freq_hourly' | translate }}</option>
-              <option value="daily">{{ 'messaging.freq_daily' | translate }}</option>
-              <option value="weekly">{{ 'messaging.freq_weekly' | translate }}</option>
-            </select>
+            <app-select style="width: 150px; flex: 0 0 auto;" [options]="digestFrequencyOpts"
+                        [translateLabels]="true" [searchable]="false"
+                        [ariaLabel]="'messaging.email_digest' | translate"
+                        [(ngModel)]="settings.email_digest_frequency" (selectionChange)="saveSettings()" />
           </div>
 
           <div class="setting-item">
@@ -287,6 +284,13 @@ export class MessagingSettingsComponent implements OnInit, OnDestroy {
   private readonly navRouter = inject(Router);
   private destroy$ = new Subject<void>();
 
+  readonly digestFrequencyOpts = [
+    { value: 'never', label: 'messaging.freq_never' },
+    { value: 'instant', label: 'messaging.freq_instant' },
+    { value: 'hourly', label: 'messaging.freq_hourly' },
+    { value: 'daily', label: 'messaging.freq_daily' },
+    { value: 'weekly', label: 'messaging.freq_weekly' },
+  ];
   settings: MessagingSettings = {
     allow_direct_messages: true,
     allow_group_invites: true,

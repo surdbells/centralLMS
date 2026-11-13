@@ -17,6 +17,7 @@ import {I18nService} from '../../../i18n.service';
 import { HotToastService } from '@ngneat/hot-toast';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 
 // ── Drilldown column definitions ──
 // Maps column names → the status filter to send to drilldown_learner_list
@@ -82,7 +83,7 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
 @Component({
   selector: 'app-report-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, ReportFiltersComponent, ReportExportComponent, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ReportChartComponent, ReportTableComponent, ReportFiltersComponent, ReportExportComponent, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   providers: [DecimalPipe],
   template: `
     <app-admintop></app-admintop>
@@ -131,30 +132,25 @@ const ORG_FILTER_MAP: { rowField: string; param: string }[] = [
               </div>
               <div class="col-md-5" *ngIf="pickerOptions.length">
                 <label class="form-label small fw-semibold">{{ 'reports.select_learner' | translate }}</label>
-                <select class="form-select" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
-                  <option [ngValue]="null">{{ 'reports.choose_learner' | translate }}</option>
-                  <option *ngFor="let u of pickerOptions" [ngValue]="u.id || u.user_id">
-                    {{ u.first_name || '' }} {{ u.last_name || '' }} ({{ u.email }})
-                  </option>
-                </select>
+                <app-select [options]="pickerOpts" [clearable]="true"
+                            placeholder="{{ 'reports.choose_learner' | translate }}" [ariaLabel]="'reports.select_learner' | translate"
+                            [(ngModel)]="pickerSelectedId" (ngModelChange)="onPickerSelect()" />
               </div>
             </ng-container>
             <ng-container *ngIf="paramPickerType === 'assessment'">
               <div class="col-md-8">
                 <label class="form-label small fw-semibold">{{ 'reports.select_assessment' | translate }}</label>
-                <select class="form-select" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
-                  <option [ngValue]="null">{{ 'reports.choose_assessment' | translate }}</option>
-                  <option *ngFor="let a of pickerOptions" [ngValue]="a.id || a.assessment_id">{{ a.title || a.name }}</option>
-                </select>
+                <app-select [options]="pickerOpts" [clearable]="true"
+                            placeholder="{{ 'reports.choose_assessment' | translate }}" [ariaLabel]="'reports.select_assessment' | translate"
+                            [(ngModel)]="pickerSelectedId" (ngModelChange)="onPickerSelect()" />
               </div>
             </ng-container>
             <ng-container *ngIf="paramPickerType === 'course'">
               <div class="col-md-8">
                 <label class="form-label small fw-semibold">{{ 'reports.select_course' | translate }}</label>
-                <select class="form-select" [(ngModel)]="pickerSelectedId" (change)="onPickerSelect()">
-                  <option [ngValue]="null">{{ 'reports.choose_course' | translate }}</option>
-                  <option *ngFor="let c of pickerOptions" [ngValue]="c.id || c.course_id">{{ c.title }}</option>
-                </select>
+                <app-select [options]="pickerOpts" [clearable]="true"
+                            placeholder="{{ 'reports.choose_course' | translate }}" [ariaLabel]="'reports.select_course' | translate"
+                            [(ngModel)]="pickerSelectedId" (ngModelChange)="onPickerSelect()" />
               </div>
             </ng-container>
             <div class="col-md-2">
@@ -342,6 +338,23 @@ export class ReportViewerComponent implements OnInit, OnDestroy {
   pickerSearch = '';
   pickerOptions: any[] = [];
   pickerSelectedId: number | null = null;
+  private pickerOptsCache: { src: any[]; type: string | null; list: Array<{ value: any; label: string }> } | null = null;
+
+  /** pickerOptions as select options for the current picker type, cached per source array. */
+  get pickerOpts(): Array<{ value: any; label: string }> {
+    const c = this.pickerOptsCache;
+    if (c && c.src === this.pickerOptions && c.type === this.paramPickerType) return c.list;
+    const type = this.paramPickerType;
+    const list = (this.pickerOptions ?? []).map((o: any) => {
+      if (type === 'learner') {
+        return { value: o.id || o.user_id, label: `${o.first_name || ''} ${o.last_name || ''} (${o.email})` };
+      }
+      if (type === 'assessment') return { value: o.id || o.assessment_id, label: String(o.title || o.name || '') };
+      return { value: o.id || o.course_id, label: String(o.title ?? '') };
+    });
+    this.pickerOptsCache = { src: this.pickerOptions, type, list };
+    return list;
+  }
   private searchSubject = new Subject<string>();
 
   private individualReports = ['individual_progress_report', 'individual_assessment_report', 'learner_transcript'];

@@ -8,6 +8,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -40,7 +41,7 @@ interface Category { id: string; name: string; count: number; }
 @Component({
   selector: 'app-assessment-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -98,19 +99,9 @@ interface Category { id: string; name: string; count: number; }
         </div>
         <div class="ui-toolbar filter-controls">
           <div class="ui-filters">
-            <select class="form-select" [(ngModel)]="filterCategory" (change)="applyFilters()" aria-label="Category">
-              <option value="">All Categories</option>
-              <option *ngFor="let c of categories" [value]="c.id">{{ c.name }} ({{ c.count }})</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filterType" (change)="applyFilters()" aria-label="Type">
-              <option value="">All Types</option>
-              <option value="quiz">Quiz</option><option value="exam">Exam</option>
-              <option value="assignment">Assignment</option><option value="survey">Survey</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filterDifficulty" (change)="applyFilters()" aria-label="Difficulty">
-              <option value="">Any Difficulty</option>
-              <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
-            </select>
+            <app-select style="width:200px" [options]="categoryOpts" placeholder="All Categories" [(ngModel)]="filterCategory" (selectionChange)="applyFilters()" ariaLabel="Category" />
+            <app-select style="width:160px" [options]="typeOpts" placeholder="All Types" [(ngModel)]="filterType" (selectionChange)="applyFilters()" ariaLabel="Type" />
+            <app-select style="width:170px" [options]="difficultyOpts" placeholder="Any Difficulty" [searchable]="false" [(ngModel)]="filterDifficulty" (selectionChange)="applyFilters()" ariaLabel="Difficulty" />
           </div>
           <div class="view-toggle" role="group" aria-label="View">
             <button type="button" class="vt" [class.active]="viewMode==='grid'" (click)="viewMode='grid'" aria-label="Grid view"><i class="bi bi-grid"></i></button>
@@ -291,6 +282,15 @@ export class AssessmentCatalogComponent implements OnInit, OnDestroy {
   filterCategory = '';
   filterType = '';
   filterDifficulty = '';
+  categoryOpts: { label: string; value: string }[] = [{ label: 'All Categories', value: '' }];
+  readonly typeOpts = [
+    { label: 'All Types', value: '' }, { label: 'Quiz', value: 'quiz' }, { label: 'Exam', value: 'exam' },
+    { label: 'Assignment', value: 'assignment' }, { label: 'Survey', value: 'survey' },
+  ];
+  readonly difficultyOpts = [
+    { label: 'Any Difficulty', value: '' }, { label: 'Beginner', value: 'beginner' },
+    { label: 'Intermediate', value: 'intermediate' }, { label: 'Advanced', value: 'advanced' },
+  ];
   viewMode: 'grid'|'list' = 'grid';
 
   currentPage = 1;
@@ -377,6 +377,10 @@ export class AssessmentCatalogComponent implements OnInit, OnDestroy {
       else map.set(a.category_id, { id: a.category_id, name: a.category_name || 'Uncategorised', count: 1 });
     }
     this.categories = Array.from(map.values()).sort((x, y) => x.name.localeCompare(y.name));
+    this.categoryOpts = [
+      { label: 'All Categories', value: '' },
+      ...this.categories.map(c => ({ label: `${c.name} (${c.count})`, value: c.id })),
+    ];
   }
 
   loadCategories(): void { /* categories are derived from the catalogue payload */ }

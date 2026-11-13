@@ -9,7 +9,7 @@
 :host { display: block; }
 
 /* --- header controls ------------------------------------------------------ */
-.dash-period { width: auto; min-width: 150px; }
+.dash-period { display: block; width: auto; min-width: 170px; }
 
 .dash-icon-btn {
   width: var(--ui-ctl-h, 36px);

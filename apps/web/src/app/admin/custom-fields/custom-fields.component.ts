@@ -18,6 +18,7 @@ import { ConfirmDialogService } from '../../shared/components/confirmation-dialo
 import { AdmintopComponent } from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 /** The draft a tenant's custom field is edited as. */
 interface FieldDraft {
@@ -32,7 +33,7 @@ interface FieldDraft {
 @Component({
   selector: 'app-custom-fields',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -119,13 +120,8 @@ interface FieldDraft {
                   </div>
                   <div class="mb-3">
                     <label class="form-label small fw-semibold">{{ 'admin.custom_fields.type' | translate }}</label>
-                    <select class="form-select" [(ngModel)]="draft.type" name="type" [disabled]="editingId !== null">
-                      <option value="text">{{ 'admin.custom_fields.type_text' | translate }}</option>
-                      <option value="number">{{ 'admin.custom_fields.type_number' | translate }}</option>
-                      <option value="date">{{ 'admin.custom_fields.type_date' | translate }}</option>
-                      <option value="dropdown">{{ 'admin.custom_fields.type_dropdown' | translate }}</option>
-                      <option value="boolean">{{ 'admin.custom_fields.type_boolean' | translate }}</option>
-                    </select>
+                    <app-select [(ngModel)]="draft.type" name="type" [disabled]="editingId !== null"
+                                [options]="typeOptions" [translateLabels]="true" [searchable]="false" />
                     <small class="ui-muted" *ngIf="editingId !== null">{{ 'admin.custom_fields.type_locked' | translate }}</small>
                   </div>
 
@@ -198,6 +194,13 @@ export class CustomFieldsComponent implements OnInit, OnDestroy {
 
   editing = false;
   editingId: string | null = null;
+  readonly typeOptions = [
+    { value: 'text', label: 'admin.custom_fields.type_text', icon: 'bi-fonts' },
+    { value: 'number', label: 'admin.custom_fields.type_number', icon: 'bi-123' },
+    { value: 'date', label: 'admin.custom_fields.type_date', icon: 'bi-calendar3' },
+    { value: 'dropdown', label: 'admin.custom_fields.type_dropdown', icon: 'bi-menu-button-wide' },
+    { value: 'boolean', label: 'admin.custom_fields.type_boolean', icon: 'bi-toggle-on' },
+  ];
   draft: FieldDraft = this.emptyDraft();
   saving = false;
   formError = '';

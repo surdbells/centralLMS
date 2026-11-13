@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
@@ -90,7 +91,7 @@ interface SystemCheckResult {
 @Component({
   selector: 'app-session-review',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -160,25 +161,9 @@ interface SystemCheckResult {
                    [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
           </div>
           <div class="ui-filters">
-            <select class="form-select" [(ngModel)]="filterLevel" (change)="applyFilters()">
-              <option value="">All Levels</option>
-              <option value="basic">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="advanced">Advanced</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filterTrustRange" (change)="applyFilters()">
-              <option value="">All Trust Scores</option>
-              <option value="high">High (80-100%)</option>
-              <option value="medium">Medium (50-79%)</option>
-              <option value="low">Low (0-49%)</option>
-            </select>
-            <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="trust_asc">Trust: Low to High</option>
-              <option value="trust_desc">Trust: High to Low</option>
-              <option value="violations">Most Violations</option>
-            </select>
+            <app-select style="width:150px" [options]="levelOpts" placeholder="All Levels" [(ngModel)]="filterLevel" (selectionChange)="applyFilters()" ariaLabel="Level" />
+            <app-select style="width:180px" [options]="trustOpts" placeholder="All Trust Scores" [(ngModel)]="filterTrustRange" (selectionChange)="applyFilters()" ariaLabel="Trust score" />
+            <app-select style="width:180px" [options]="sortOpts" [(ngModel)]="sortBy" (selectionChange)="applyFilters()" ariaLabel="Sort" />
           </div>
         </div>
 
@@ -594,6 +579,19 @@ export class SessionReviewComponent implements OnInit, OnDestroy {
   filterLevel = '';
   filterTrustRange = '';
   sortBy = 'newest';
+  readonly levelOpts = [
+    { label: 'All Levels', value: '' }, { label: 'Basic', value: 'basic' },
+    { label: 'Standard', value: 'standard' }, { label: 'Advanced', value: 'advanced' },
+  ];
+  readonly trustOpts = [
+    { label: 'All Trust Scores', value: '' }, { label: 'High (80-100%)', value: 'high' },
+    { label: 'Medium (50-79%)', value: 'medium' }, { label: 'Low (0-49%)', value: 'low' },
+  ];
+  readonly sortOpts = [
+    { label: 'Newest First', value: 'newest' }, { label: 'Oldest First', value: 'oldest' },
+    { label: 'Trust: Low to High', value: 'trust_asc' }, { label: 'Trust: High to Low', value: 'trust_desc' },
+    { label: 'Most Violations', value: 'violations' },
+  ];
   page = 1;
   pageSize = 15;
 

@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
@@ -74,7 +75,7 @@ interface FilterState {
 @Component({
   selector: 'app-question-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -165,26 +166,10 @@ interface FilterState {
             </button>
           </div>
           <div class="ui-filters">
-            <select class="form-select filter-select" [(ngModel)]="filters.bank_id" (change)="loadQuestions()">
-              <option value="">All Banks</option>
-              <option *ngFor="let b of banks" [value]="b.id">{{ b.name }} ({{ b.question_count }})</option>
-            </select>
-            <select class="form-select filter-select" [(ngModel)]="filters.question_type" (change)="loadQuestions()">
-              <option value="">All Types</option>
-              <option *ngFor="let t of questionTypes" [value]="t.value">{{ t.label }}</option>
-            </select>
-            <select class="form-select filter-select" [(ngModel)]="filters.difficulty" (change)="loadQuestions()">
-              <option value="">All Difficulty</option>
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-            <select class="form-select filter-select" [(ngModel)]="filters.status" (change)="loadQuestions()">
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="archived">Archived</option>
-            </select>
+            <app-select class="filter-select" style="width:180px" [options]="bankFilterOpts" placeholder="All Banks" [(ngModel)]="filters.bank_id" (selectionChange)="loadQuestions()" ariaLabel="Bank" />
+            <app-select class="filter-select" style="width:170px" [options]="typeFilterOpts" placeholder="All Types" [(ngModel)]="filters.question_type" (selectionChange)="loadQuestions()" ariaLabel="Type" />
+            <app-select class="filter-select" style="width:150px" [options]="difficultyFilterOpts" placeholder="All Difficulty" [(ngModel)]="filters.difficulty" (selectionChange)="loadQuestions()" ariaLabel="Difficulty" />
+            <app-select class="filter-select" style="width:150px" [options]="statusFilterOpts" placeholder="All Status" [(ngModel)]="filters.status" (selectionChange)="loadQuestions()" ariaLabel="Status" />
             <button class="btn btn-sm btn-outline-secondary" *ngIf="hasActiveFilters()" (click)="clearFilters()">
               <tui-icon icon="@tui.x" style="font-size:14px"></tui-icon> Clear
             </button>
@@ -345,11 +330,7 @@ interface FilterState {
               <tui-icon icon="@tui.chevrons-right" style="font-size:14px"></tui-icon>
             </button>
           </div>
-          <select class="form-select form-select-sm page-size-select" [(ngModel)]="pageSize" (change)="loadQuestions()">
-            <option [value]="20">20 per page</option>
-            <option [value]="50">50 per page</option>
-            <option [value]="100">100 per page</option>
-          </select>
+          <app-select class="page-size-select" size="sm" style="width:140px" [options]="pageSizeOpts" [searchable]="false" [(ngModel)]="pageSize" (selectionChange)="loadQuestions()" ariaLabel="Rows per page" />
         </div>
       </section>
 
@@ -397,10 +378,7 @@ interface FilterState {
           </div>
           <div class="modal-body">
             <label class="form-label">Select destination bank:</label>
-            <select class="form-control" [(ngModel)]="bulkMoveTargetBank">
-              <option value="">-- Select Bank --</option>
-              <option *ngFor="let b of banks" [value]="b.id">{{ b.name }}</option>
-            </select>
+            <app-select [options]="banks" bindLabel="name" bindValue="id" placeholder="-- Select Bank --" [(ngModel)]="bulkMoveTargetBank" ariaLabel="Destination bank" />
           </div>
           <div class="modal-footer">
             <button class="btn btn-outline-secondary" (click)="bulkMoveModal = false">Cancel</button>
@@ -709,6 +687,19 @@ export class QuestionListComponent implements OnInit, OnDestroy {
     { value: 'file_upload', label: 'File Upload' },
     { value: 'hotspot', label: 'Hotspot' }
   ];
+  readonly typeFilterOpts = [{ value: '', label: 'All Types' }, ...this.questionTypes];
+  readonly difficultyFilterOpts = [
+    { value: '', label: 'All Difficulty' }, { value: 'easy', label: 'Easy' },
+    { value: 'medium', label: 'Medium' }, { value: 'hard', label: 'Hard' },
+  ];
+  readonly statusFilterOpts = [
+    { value: '', label: 'All Status' }, { value: 'active', label: 'Active' },
+    { value: 'inactive', label: 'Inactive' }, { value: 'archived', label: 'Archived' },
+  ];
+  readonly pageSizeOpts = [
+    { value: 20, label: '20 per page' }, { value: 50, label: '50 per page' }, { value: 100, label: '100 per page' },
+  ];
+  bankFilterOpts: { label: string; value: string }[] = [{ label: 'All Banks', value: '' }];
 
   // Toast
   toast = { show: false, message: '', type: 'success' as 'success' | 'error' };
@@ -836,6 +827,10 @@ export class QuestionListComponent implements OnInit, OnDestroy {
           id: b.id, name: b.name, description: b.description ?? '',
           question_count: b.questionCount, status: 'active',
         }));
+        this.bankFilterOpts = [
+          { label: 'All Banks', value: '' },
+          ...this.banks.map(b => ({ label: `${b.name} (${b.question_count})`, value: b.id })),
+        ];
         this.loadStats();
         this.loadQuestions();
       }

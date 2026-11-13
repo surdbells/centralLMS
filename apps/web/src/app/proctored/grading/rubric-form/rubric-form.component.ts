@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -61,7 +62,7 @@ interface RubricFormData {
 @Component({
   selector: 'app-rubric-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -121,10 +122,7 @@ interface RubricFormData {
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Status</label>
-                  <select class="form-select" [(ngModel)]="form.status">
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                  </select>
+                  <app-select [options]="statusOpts" [searchable]="false" [(ngModel)]="form.status" ariaLabel="Status" />
                 </div>
               </div>
             </div>
@@ -403,6 +401,7 @@ interface RubricFormData {
 })
 export class RubricFormComponent implements OnInit, OnDestroy {
   private readonly assessments = inject(AssessmentsService);
+  readonly statusOpts = [{ label: 'Draft', value: 'draft' }, { label: 'Active', value: 'active' }];
 
   /** What went wrong, if anything. Rendered rather than swallowed. */
   error: string | null = null;

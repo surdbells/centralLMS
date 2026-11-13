@@ -2,7 +2,7 @@
 
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -25,11 +25,12 @@ import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { ApiError } from '../../core/api';
+import { SelectComponent } from '../../shared/select/select.component';
 
 @Component({
   selector: 'app-admin-live-training',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, RouterLink, TranslatePipe, SkeletonComponent, AvatarComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, RouterLink, TranslatePipe, SkeletonComponent, AvatarComponent, SelectComponent],
   templateUrl: './admin-live-training.component.html',
   styleUrls: ['./admin-live-training.component.scss']
 })
@@ -105,7 +106,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
   // Instructor Management
   showInstructorModal = false;
   sessionInstructors: SessionInstructor[] = [];
-  availableInstructors: Array<{user_id: string; first_name: string; last_name: string; email: string}> = [];
+  availableInstructors: Array<{user_id: string; first_name: string; last_name: string; email: string; label: string}> = [];
   newInstructorId: string | null = null;
   newInstructorRole = 'primary';
   newInstructorIsHost = false;
@@ -142,6 +143,20 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
     return labels[platform] ?? platform;
   }
   instructorRoles = ['primary', 'co_instructor', 'assistant'];
+
+  /** Option lists for the <app-select> pickers (labels match the old `titlecase` output). */
+  private static titleOpts(values: string[]): Array<{ value: string; label: string }> {
+    const tc = new TitleCasePipe();
+    return values.map(v => ({ value: v, label: tc.transform(v) }));
+  }
+  readonly trainingTypeOpts = AdminLiveTrainingComponent.titleOpts(this.trainingTypes);
+  readonly sessionStatusOpts = AdminLiveTrainingComponent.titleOpts(this.sessionStatuses);
+  readonly trainingStatusOpts = AdminLiveTrainingComponent.titleOpts(this.trainingStatuses);
+  readonly attendanceStatusOpts = AdminLiveTrainingComponent.titleOpts(this.attendanceStatuses);
+  readonly instructorRoleOpts = AdminLiveTrainingComponent.titleOpts(this.instructorRoles);
+  readonly videoPlatformOpts = this.videoPlatforms.map(p => ({ value: p, label: this.platformLabel(p) }));
+  /** Learner picker for the virtual-attendance modal, rebuilt when enrollments load. */
+  learnerOpts: Array<{ value: string; label: string }> = [];
   reminderChannels = ['email', 'in_app', 'sms', 'whatsapp'];
 
   constructor(private liveTrainingService: LiveTrainingService) {}
@@ -241,6 +256,7 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
           this.selectedTraining = data.training;
           this.sessions = data.sessions;
           this.enrollments = data.enrollments;
+          this.learnerOpts = this.enrollments.map(e => ({ value: e.user_id, label: `${e.first_name} ${e.last_name}` }));
           this.analytics = data.analytics;
           this.activeTab = 'details';
           if (this.pendingSessionId) {
@@ -598,7 +614,8 @@ export class AdminLiveTrainingComponent implements OnInit, OnDestroy {
       .subscribe({
         next: users => {
           this.availableInstructors = users
-            .map(u => ({ user_id: u.user_id, first_name: u.first_name, last_name: u.last_name, email: u.email }));
+            .map(u => ({ user_id: u.user_id, first_name: u.first_name, last_name: u.last_name, email: u.email,
+              label: `${u.first_name} ${u.last_name} (${u.email})` }));
         },
         error: err => console.error('Error loading instructors:', err)
       });

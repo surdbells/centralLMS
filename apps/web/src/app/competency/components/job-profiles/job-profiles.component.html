@@ -6,10 +6,10 @@
       <input type="search" placeholder="{{ 'competency.profiles.search_placeholder' | translate }}"
              [(ngModel)]="search" (keyup.enter)="load()" (search)="load()" />
     </label>
-    <select class="form-select w-auto" [(ngModel)]="functionFilter" (ngModelChange)="load()">
-      <option value="">{{ 'competency.profiles.all_functions' | translate }}</option>
-      <option *ngFor="let f of knownFunctions" [value]="f">{{ f }}</option>
-    </select>
+    <app-select style="min-width: 12rem; width: auto" [options]="knownFunctions" [clearable]="true"
+                placeholder="{{ 'competency.profiles.all_functions' | translate }}"
+                [ariaLabel]="'competency.profiles.all_functions' | translate"
+                [value]="functionFilter" (selectionChange)="functionFilter = $event ?? ''; load()" />
   </div>
   <button class="btn btn-primary" (click)="openNew()">
     <tui-icon icon="@tui.plus"></tui-icon> {{ 'competency.profiles.new_profile' | translate }}

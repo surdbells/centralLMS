@@ -39,13 +39,8 @@
         </p>
       </div>
       <div class="ui-page-header__actions">
-        <select class="form-select form-select-sm" [(ngModel)]="filter.date_range" (change)="onFilterChange()" style="width: auto;">
-          <option value="last_7_days">{{ 'admin.insights.last_7_days' | translate }}</option>
-          <option value="last_30_days">{{ 'admin.insights.last_30_days' | translate }}</option>
-          <option value="last_90_days">{{ 'admin.insights.last_90_days' | translate }}</option>
-          <option value="this_year">{{ 'admin.insights.this_year' | translate }}</option>
-          <option value="all_time">{{ 'admin.insights.all_time' | translate }}</option>
-        </select>
+        <app-select size="sm" style="min-width:170px" [options]="dateRangeOptions" [translateLabels]="true" [searchable]="false"
+                    [(ngModel)]="filter.date_range" (selectionChange)="onFilterChange()" />
         <div class="dropdown">
           <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
             <i class="bi bi-download me-1"></i>{{ 'admin.insights.export' | translate }}

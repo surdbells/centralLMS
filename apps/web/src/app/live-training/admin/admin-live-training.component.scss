@@ -5,9 +5,9 @@
 // is always the tenant brand colour. Only this screen's own pieces live here.
 
 // Toolbar filters sit at the kit's control height.
-.ui-toolbar .ui-filters .form-select {
+.ui-toolbar .ui-filters app-select {
   width: auto;
-  min-width: 150px;
+  min-width: 170px;
 }
 
 // Training Cards

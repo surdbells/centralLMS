@@ -25,10 +25,10 @@
     <!-- Which programme's skills to manage (the screen carries no context on its own) -->
     <div class="ui-toolbar">
       <label class="visually-hidden" for="skillsTrainingSelect">{{ 'nav.live_training' | translate }}</label>
-      <select id="skillsTrainingSelect" class="form-select skills-training-select" [(ngModel)]="trainingId" (ngModelChange)="onTrainingChange()">
-        <option [ngValue]="undefined">{{ 'live.admin.select_training' | translate }}</option>
-        <option *ngFor="let t of trainings" [value]="t.training_id">{{ t.title }}</option>
-      </select>
+      <app-select inputId="skillsTrainingSelect" class="skills-training-select" [options]="trainings"
+                  bindLabel="title" bindValue="training_id" [clearable]="true"
+                  [(ngModel)]="trainingId" (ngModelChange)="onTrainingChange()"
+                  placeholder="{{ 'live.admin.select_training' | translate }}" />
     </div>
 
     <!-- Nothing chosen yet -->
@@ -134,12 +134,10 @@
           <!-- Category Filter -->
           <div class="mb-3">
             <label class="form-label">{{ 'live.skills.filter_category' | translate }}</label>
-            <select class="form-select" [(ngModel)]="selectedCategory" (change)="searchSkills()">
-              <option [value]="null">{{ 'live.common.all_categories' | translate }}</option>
-              <option *ngFor="let category of skillCategories" [value]="category.category_id">
-                {{ category.category_name }}
-              </option>
-            </select>
+            <app-select [options]="skillCategories" bindLabel="category_name" bindValue="category_id"
+                        [(ngModel)]="selectedCategory" (ngModelChange)="searchSkills()"
+                        placeholder="{{ 'live.common.all_categories' | translate }}" [clearable]="true"
+                        [ariaLabel]="'live.skills.filter_category' | translate" />
           </div>
 
           <!-- Available Skills -->
@@ -174,12 +172,9 @@
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label">{{ 'live.skills.proficiency_level' | translate }}</label>
-                <select class="form-select" [(ngModel)]="proficiencyLevel">
-                  <option value="beginner">{{ 'skills.beginner' | translate }}</option>
-                  <option value="intermediate">{{ 'skills.intermediate' | translate }}</option>
-                  <option value="advanced">{{ 'skills.advanced' | translate }}</option>
-                  <option value="expert">{{ 'skills.expert' | translate }}</option>
-                </select>
+                <app-select [options]="proficiencyOpts" [translateLabels]="true" [searchable]="false"
+                            [(ngModel)]="proficiencyLevel"
+                            [ariaLabel]="'live.skills.proficiency_level' | translate" />
               </div>
 
               <div class="col-md-6 mb-3">

@@ -12,10 +12,9 @@
       <app-cycle-select *ngIf="cycle"
                         [ngModel]="cycle" (ngModelChange)="onCycleChange($event)"
                         size="sm"></app-cycle-select>
-      <select *ngIf="summaries.length > 1" class="form-select form-select-sm mc-profile"
-              [ngModel]="selected?.id" (ngModelChange)="open($event)">
-        <option *ngFor="let s of summaries" [value]="s.id">{{ s.jobTitle }}</option>
-      </select>
+      <app-select *ngIf="summaries.length > 1" class="mc-profile" size="sm"
+                  [options]="summaries" bindLabel="jobTitle" bindValue="id"
+                  [ngModel]="selected?.id" (ngModelChange)="open($event)" />
     </div>
   </div>
 

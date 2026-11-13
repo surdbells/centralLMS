@@ -166,10 +166,8 @@
             <ng-container *ngIf="s.type !== 'boolean'">
               <label class="form-label" [for]="s.key">{{ s.label }}</label>
 
-              <select class="form-select" [id]="s.key" *ngIf="s.type === 'choice'"
-                      [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event">
-                <option *ngFor="let choice of s.choices" [value]="choice">{{ choice }}</option>
-              </select>
+              <app-select [inputId]="s.key" *ngIf="s.type === 'choice'" [options]="s.choices"
+                          [ngModel]="asString(s.key)" (ngModelChange)="values[s.key] = $event" />
 
               <input class="form-control" [id]="s.key" type="number"
                      *ngIf="s.type === 'integer'"

@@ -10,6 +10,8 @@ import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../../shared/select/select.component';
+import { I18nService } from '../../../../i18n.service';
 
 /**
  * Who did what.
@@ -26,7 +28,7 @@ import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.componen
 @Component({
   selector: 'app-user-activity-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './user-activity-log.component.html',
   styles: [`
     .mono { font-family: var(--bs-font-monospace); font-size: .75rem; }
@@ -46,6 +48,7 @@ import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.componen
 export class UserActivityLogComponent implements OnInit, OnDestroy {
   private readonly auditService = inject(AuditService);
   private readonly usersService = inject(UsersService);
+  private readonly i18n = inject(I18nService);
 
   private readonly destroy$ = new Subject<void>();
   private readonly change$ = new Subject<void>();
@@ -53,6 +56,8 @@ export class UserActivityLogComponent implements OnInit, OnDestroy {
   events: AuditEvent[] = [];
   actions: string[] = [];
   people: User[] = [];
+  /** Action filter rows: whole modules first, then exact actions (grouped, pre-translated). */
+  actionOptions: Array<{ value: string; label: string; group: string }> = [];
 
   filters: AuditFilters = { page: 1, perPage: 25 };
   meta = { total: 0, page: 1, perPage: 25, totalPages: 0 };
@@ -77,11 +82,23 @@ export class UserActivityLogComponent implements OnInit, OnDestroy {
         next: ({ actions, people }) => {
           this.actions = actions;
           this.people = people.items;
+          this.buildActionOptions();
         },
         error: (error: ApiError) => (this.error = error.message),
       });
 
+    this.i18n.lang$.pipe(takeUntil(this.destroy$)).subscribe(() => this.buildActionOptions());
+
     this.load();
+  }
+
+  private buildActionOptions(): void {
+    const byModule = this.i18n.t('admin.audit.by_module');
+    const exactly = this.i18n.t('admin.audit.exactly');
+    this.actionOptions = [
+      ...this.actionModules.map((m) => ({ value: m, label: this.i18n.t('admin.audit.all_module', { module: m }), group: byModule })),
+      ...this.actions.map((a) => ({ value: a, label: a, group: exactly })),
+    ];
   }
 
   ngOnDestroy(): void {

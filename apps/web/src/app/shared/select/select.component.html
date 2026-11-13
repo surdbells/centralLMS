@@ -1,0 +1,179 @@
+<div class="as" cdkOverlayOrigin #origin="cdkOverlayOrigin"
+     [class.as--sm]="size === 'sm'"
+     [class.as--open]="isOpen()"
+     [class.as--invalid]="showInvalid"
+     [class.as--disabled]="isDisabled()"
+     [class.as--has-clear]="clearable && hasValue() && !isDisabled()">
+  <button #trigger
+          type="button"
+          class="as-trigger"
+          role="combobox"
+          aria-haspopup="listbox"
+          [attr.id]="inputId || uid"
+          [attr.aria-label]="ariaLabel"
+          [attr.aria-expanded]="isOpen()"
+          [attr.aria-controls]="isOpen() ? listboxId : null"
+          [attr.aria-activedescendant]="searchable ? null : activeId()"
+          [attr.aria-invalid]="showInvalid || null"
+          [attr.title]="displayLabel() || null"
+          [disabled]="isDisabled()"
+          (click)="toggle()"
+          (keydown)="onTriggerKeydown($event)"
+          (blur)="onTriggerBlur()">
+    @if (!hasValue()) {
+      <span class="as-placeholder">{{ resolvedPlaceholder }}</span>
+    } @else if (multiple) {
+      <span class="as-chips">
+        @for (c of chips(); track c.id) {
+          <span class="as-chip">{{ c.label }}</span>
+        }
+        @if (overflow() > 0) {
+          <span class="as-chip as-chip--more">+{{ overflow() }}</span>
+        }
+      </span>
+    } @else {
+      @if (selectedItems()[0]; as sel) {
+        @if (labelTpl) {
+          <span class="as-value">
+            <ng-container *ngTemplateOutlet="labelTpl.template; context: ctx(sel)"></ng-container>
+          </span>
+        } @else {
+          @if (sel.icon) { <i class="bi as-value-icon" [class]="sel.icon" aria-hidden="true"></i> }
+          <span class="as-value">{{ sel.label }}</span>
+        }
+      } @else if (isLoading() || !items().length || (value !== null && typeof value === 'object')) {
+        <!-- Options not loaded yet (or an unmatched object value): don't flash raw IDs. -->
+        <span class="as-placeholder">{{ resolvedPlaceholder }}</span>
+      } @else {
+        <!-- A primitive value no loaded option matches: keep it visible rather than blank. -->
+        <span class="as-value as-value--unknown">{{ value }}</span>
+      }
+    }
+    <i class="bi bi-chevron-down as-chevron" aria-hidden="true"></i>
+  </button>
+
+  @if (clearable && hasValue() && !isDisabled()) {
+    <button type="button" class="as-clear" tabindex="-1"
+            [attr.aria-label]="'common.select.clear_aria' | translate"
+            (click)="clear($event)">
+      <i class="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
+  }
+</div>
+
+<ng-template cdkConnectedOverlay
+             [cdkConnectedOverlayOrigin]="origin"
+             [cdkConnectedOverlayOpen]="isOpen()"
+             [cdkConnectedOverlayPositions]="positions"
+             [cdkConnectedOverlayWidth]="panelWidth()"
+             [cdkConnectedOverlayScrollStrategy]="scrollStrategy"
+             [cdkConnectedOverlayPush]="true"
+             [cdkConnectedOverlayViewportMargin]="8"
+             cdkConnectedOverlayPanelClass="app-select-pane"
+             (attach)="onAttach()"
+             (detach)="onDetach()"
+             (overlayOutsideClick)="onOutsideClick($event)">
+  <div class="as-panel" [class.as-panel--sm]="size === 'sm'" [class.as-panel--multi]="multiple">
+    @if (searchable) {
+      <div class="as-search">
+        <i class="bi bi-search as-search-icon" aria-hidden="true"></i>
+        <input #searchInput
+               type="text"
+               class="as-search-input"
+               autocomplete="off"
+               spellcheck="false"
+               role="combobox"
+               aria-autocomplete="list"
+               aria-expanded="true"
+               [attr.aria-controls]="listboxId"
+               [attr.aria-activedescendant]="activeId()"
+               [attr.aria-label]="searchPlaceholder || ('common.search' | translate)"
+               [placeholder]="searchPlaceholder || ('common.select.search' | translate)"
+               [value]="query()"
+               (input)="onSearchInput($any($event.target).value)"
+               (change)="$event.stopPropagation()"
+               (keydown)="onSearchKeydown($event)" />
+      </div>
+    }
+
+    <div #listbox class="as-list" role="listbox"
+         [attr.id]="listboxId"
+         [attr.aria-multiselectable]="multiple || null"
+         [attr.aria-labelledby]="inputId || uid">
+      @if (isLoading()) {
+        <div class="as-status">
+          <span class="spinner-border spinner-border-sm as-spinner" aria-hidden="true"></span>
+          {{ 'common.loading' | translate }}
+        </div>
+      } @else {
+        @for (row of rows(); track row.key) {
+          @if (row.kind === 'group') {
+            <div class="as-group" role="presentation">{{ row.label }}</div>
+          } @else {
+            <div class="as-opt"
+                 role="option"
+                 [attr.id]="row.item.id"
+                 [attr.aria-selected]="isSelected(row.item)"
+                 [attr.aria-disabled]="row.item.disabled || null"
+                 [class.as-opt--active]="row.index === activeIndex()"
+                 [class.as-opt--selected]="isSelected(row.item)"
+                 [class.as-opt--disabled]="row.item.disabled"
+                 (mousedown)="$event.preventDefault()"
+                 (mouseenter)="onRowHover(row.index, row.item)"
+                 (click)="pick(row.item)">
+              @if (multiple) {
+                <span class="as-check" [class.as-check--on]="isSelected(row.item)" aria-hidden="true">
+                  <i class="bi bi-check"></i>
+                </span>
+              }
+              @if (optionTpl) {
+                <span class="as-opt-body">
+                  <ng-container *ngTemplateOutlet="optionTpl.template; context: ctx(row.item)"></ng-container>
+                </span>
+              } @else {
+                @if (row.item.icon) { <i class="bi as-opt-icon" [class]="row.item.icon" aria-hidden="true"></i> }
+                <span class="as-opt-body">
+                  <span class="as-opt-label">@for (s of row.label; track $index) {@if (s.hit) {<mark>{{ s.text }}</mark>} @else {<span>{{ s.text }}</span>}}</span>
+                  @if (row.desc) {
+                    <span class="as-opt-desc">@for (s of row.desc; track $index) {@if (s.hit) {<mark>{{ s.text }}</mark>} @else {<span>{{ s.text }}</span>}}</span>
+                  }
+                </span>
+              }
+              @if (!multiple && isSelected(row.item)) {
+                <i class="bi bi-check2 as-tick" aria-hidden="true"></i>
+              }
+            </div>
+          }
+        } @empty {
+          <div class="as-status">
+            @if (query().trim()) {
+              {{ noResultsText || ('common.select.no_results' | translate) }}
+            } @else {
+              {{ emptyText || ('common.select.empty' | translate) }}
+            }
+          </div>
+        }
+      }
+    </div>
+
+    @if (footerTpl) {
+      <div class="as-extra" (mousedown)="$event.preventDefault()">
+        <ng-container *ngTemplateOutlet="footerTpl.template; context: footerCtx()"></ng-container>
+      </div>
+    }
+
+    @if (multiple && searchable && !isLoading() && navItems().length) {
+      <div class="as-foot">
+        <button type="button" class="as-foot-btn" (mousedown)="$event.preventDefault()"
+                [disabled]="allFilteredSelected()" (click)="selectAllFiltered()">
+          {{ 'common.select.select_all' | translate }}
+        </button>
+        <span class="as-foot-count">{{ 'common.select.selected_count' | translate: { count: selectedItems().length } }}</span>
+        <button type="button" class="as-foot-btn" (mousedown)="$event.preventDefault()"
+                [disabled]="!hasValue()" (click)="clearFiltered()">
+          {{ 'common.clear' | translate }}
+        </button>
+      </div>
+    }
+  </div>
+</ng-template>

@@ -173,12 +173,10 @@
               <!-- Department Selection -->
               <div class="selection-section" *ngIf="enrollmentType === 'department'">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.select_department' | translate }}</label>
-                <select class="form-select" [(ngModel)]="selectedDepartmentId">
-                  <option [ngValue]="null">{{ 'paths_admin.assign.choose_department' | translate }}</option>
-                  <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
-                    {{ dept.department_name }} ({{ 'paths_admin.assign.users_count' | translate:{ count: dept.user_count } }})
-                  </option>
-                </select>
+                <app-select [options]="departments" bindLabel="department_name" bindValue="department_id" [clearable]="true"
+                            placeholder="{{ 'paths_admin.assign.choose_department' | translate }}" [(ngModel)]="selectedDepartmentId">
+                  <ng-template appSelectOption let-d>{{ d.department_name }} <span class="text-muted">({{ 'paths_admin.assign.users_count' | translate:{ count: d.user_count } }})</span></ng-template>
+                </app-select>
                 <div class="selection-preview mt-3" *ngIf="selectedDepartmentId">
                   <i class="bi bi-info-circle"></i>
                   <span>{{ 'paths_admin.enroll.dept_info' | translate:{ count: getDepartmentUserCount() } }}</span>
@@ -188,12 +186,10 @@
               <!-- Team Selection -->
               <div class="selection-section" *ngIf="enrollmentType === 'team'">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.select_team' | translate }}</label>
-                <select class="form-select" [(ngModel)]="selectedTeamId">
-                  <option [ngValue]="null">{{ 'paths_admin.assign.choose_team' | translate }}</option>
-                  <option *ngFor="let team of teams" [ngValue]="team.team_id">
-                    {{ team.team_name }} ({{ 'paths_admin.assign.users_count' | translate:{ count: team.user_count } }})
-                  </option>
-                </select>
+                <app-select [options]="teams" bindLabel="team_name" bindValue="team_id" [clearable]="true"
+                            placeholder="{{ 'paths_admin.assign.choose_team' | translate }}" [(ngModel)]="selectedTeamId">
+                  <ng-template appSelectOption let-t>{{ t.team_name }} <span class="text-muted">({{ 'paths_admin.assign.users_count' | translate:{ count: t.user_count } }})</span></ng-template>
+                </app-select>
                 <div class="selection-preview mt-3" *ngIf="selectedTeamId">
                   <i class="bi bi-info-circle"></i>
                   <span>{{ 'paths_admin.enroll.team_info' | translate:{ count: getTeamUserCount() } }}</span>
@@ -203,12 +199,10 @@
               <!-- Branch Selection -->
               <div class="selection-section" *ngIf="enrollmentType === 'branch'">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.select_branch' | translate }}</label>
-                <select class="form-select" [(ngModel)]="selectedBranchId">
-                  <option [ngValue]="null">{{ 'paths_admin.assign.choose_branch' | translate }}</option>
-                  <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
-                    {{ branch.branch_name }} - {{ branch.city }}, {{ branch.country }} ({{ 'paths_admin.assign.users_count' | translate:{ count: branch.user_count } }})
-                  </option>
-                </select>
+                <app-select [options]="branches" bindLabel="branch_name" bindValue="branch_id" [clearable]="true"
+                            placeholder="{{ 'paths_admin.assign.choose_branch' | translate }}" [(ngModel)]="selectedBranchId">
+                  <ng-template appSelectOption let-b>{{ b.branch_name }} - {{ b.city }}, {{ b.country }} <span class="text-muted">({{ 'paths_admin.assign.users_count' | translate:{ count: b.user_count } }})</span></ng-template>
+                </app-select>
                 <div class="selection-preview mt-3" *ngIf="selectedBranchId">
                   <i class="bi bi-info-circle"></i>
                   <span>{{ 'paths_admin.enroll.branch_info' | translate:{ count: getBranchUserCount() } }}</span>
@@ -220,14 +214,12 @@
                 <!-- Filters -->
                 <div class="ui-toolbar">
                   <div class="ui-filters">
-                    <select class="form-select" [attr.aria-label]="'paths_admin.assign.filter_department' | translate" [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()">
-                      <option [ngValue]="null">{{ 'paths_admin.assign.all_departments' | translate }}</option>
-                      <option *ngFor="let dept of departments" [ngValue]="dept.department_id">{{ dept.department_name }}</option>
-                    </select>
-                    <select class="form-select" [attr.aria-label]="'paths_admin.assign.filter_team' | translate" [(ngModel)]="selectedTeamId" (change)="onTeamChange()">
-                      <option [ngValue]="null">{{ 'paths_admin.assign.all_teams' | translate }}</option>
-                      <option *ngFor="let team of teams" [ngValue]="team.team_id">{{ team.team_name }}</option>
-                    </select>
+                    <app-select style="min-width:180px" [options]="departments" bindLabel="department_name" bindValue="department_id" [clearable]="true"
+                                placeholder="{{ 'paths_admin.assign.all_departments' | translate }}" [ariaLabel]="'paths_admin.assign.filter_department' | translate"
+                                [(ngModel)]="selectedDepartmentId" (ngModelChange)="onDepartmentChange()" />
+                    <app-select style="min-width:180px" [options]="teams" bindLabel="team_name" bindValue="team_id" [clearable]="true"
+                                placeholder="{{ 'paths_admin.assign.all_teams' | translate }}" [ariaLabel]="'paths_admin.assign.filter_team' | translate"
+                                [(ngModel)]="selectedTeamId" (ngModelChange)="onTeamChange()" />
                   </div>
 
                   <!-- Search -->
@@ -331,12 +323,7 @@
               <!-- Priority -->
               <div class="mb-3">
                 <label class="form-label fw-semibold">{{ 'paths_admin.assign.priority' | translate }}</label>
-                <select class="form-select" [(ngModel)]="priority">
-                  <option value="low">{{ 'paths_admin.priority_low' | translate }}</option>
-                  <option value="normal">{{ 'paths_admin.priority_normal' | translate }}</option>
-                  <option value="high">{{ 'paths_admin.priority_high' | translate }}</option>
-                  <option value="critical">{{ 'paths_admin.priority_critical' | translate }}</option>
-                </select>
+                <app-select [options]="priorityOpts" [translateLabels]="true" [searchable]="false" [(ngModel)]="priority" />
               </div>
 
               <!-- Notification Toggle -->

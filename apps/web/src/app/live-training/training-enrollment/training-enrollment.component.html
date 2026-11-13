@@ -122,12 +122,14 @@
           <!-- Department Selection -->
           <div class="selection-panel" *ngIf="enrollmentType === 'department'">
             <label class="form-label">{{ 'live.enroll.select_department_label' | translate }}</label>
-            <select class="form-select form-select-lg" [(ngModel)]="selectedDepartmentId">
-              <option [ngValue]="null">{{ 'live.enroll.select_department_option' | translate }}</option>
-              <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
+            <app-select [options]="departments" bindLabel="department_name" bindValue="department_id"
+                        [(ngModel)]="selectedDepartmentId" [clearable]="true"
+                        placeholder="{{ 'live.enroll.select_department_option' | translate }}"
+                        [ariaLabel]="'live.enroll.select_department_label' | translate">
+              <ng-template appSelectOption let-dept>
                 {{ dept.department_name }} ({{ dept.user_count }} {{ 'live.common.users' | translate }})
-              </option>
-            </select>
+              </ng-template>
+            </app-select>
 
             <div class="selection-info" *ngIf="selectedDepartmentId">
               <i class="bi bi-info-circle"></i>
@@ -138,12 +140,14 @@
           <!-- Team Selection -->
           <div class="selection-panel" *ngIf="enrollmentType === 'team'">
             <label class="form-label">{{ 'live.enroll.select_team_label' | translate }}</label>
-            <select class="form-select form-select-lg" [(ngModel)]="selectedTeamId">
-              <option [ngValue]="null">{{ 'live.enroll.select_team_option' | translate }}</option>
-              <option *ngFor="let team of teams" [ngValue]="team.team_id">
+            <app-select [options]="teams" bindLabel="team_name" bindValue="team_id"
+                        [(ngModel)]="selectedTeamId" [clearable]="true"
+                        placeholder="{{ 'live.enroll.select_team_option' | translate }}"
+                        [ariaLabel]="'live.enroll.select_team_label' | translate">
+              <ng-template appSelectOption let-team>
                 {{ team.team_name }} ({{ team.user_count }} {{ 'live.common.users' | translate }})
-              </option>
-            </select>
+              </ng-template>
+            </app-select>
 
             <div class="selection-info" *ngIf="selectedTeamId">
               <i class="bi bi-info-circle"></i>
@@ -154,12 +158,14 @@
           <!-- Branch Selection -->
           <div class="selection-panel" *ngIf="enrollmentType === 'branch'">
             <label class="form-label">{{ 'live.enroll.select_branch_label' | translate }}</label>
-            <select class="form-select form-select-lg" [(ngModel)]="selectedBranchId">
-              <option [ngValue]="null">{{ 'live.enroll.select_branch_option' | translate }}</option>
-              <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
+            <app-select [options]="branches" bindLabel="branch_name" bindValue="branch_id"
+                        [(ngModel)]="selectedBranchId" [clearable]="true"
+                        placeholder="{{ 'live.enroll.select_branch_option' | translate }}"
+                        [ariaLabel]="'live.enroll.select_branch_label' | translate">
+              <ng-template appSelectOption let-branch>
                 {{ branch.branch_name }} - {{ branch.city }} ({{ branch.user_count }} {{ 'live.common.users' | translate }})
-              </option>
-            </select>
+              </ng-template>
+            </app-select>
 
             <div class="selection-info" *ngIf="selectedBranchId">
               <i class="bi bi-info-circle"></i>
@@ -172,36 +178,24 @@
             <div class="row g-3 mb-3">
               <div class="col-md-4">
                 <label class="form-label">{{ 'live.enroll.filter_department' | translate }}</label>
-                <select class="form-select"
-                        [(ngModel)]="selectedDepartmentId"
-                        (ngModelChange)="onDepartmentChange()">
-                  <option [ngValue]="null">{{ 'live.enroll.all_departments' | translate }}</option>
-                  <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
-                    {{ dept.department_name }}
-                  </option>
-                </select>
+                <app-select [options]="departments" bindLabel="department_name" bindValue="department_id"
+                            [(ngModel)]="selectedDepartmentId" (ngModelChange)="onDepartmentChange()"
+                            placeholder="{{ 'live.enroll.all_departments' | translate }}" [clearable]="true"
+                            [ariaLabel]="'live.enroll.filter_department' | translate" />
               </div>
               <div class="col-md-4">
                 <label class="form-label">{{ 'live.enroll.filter_team' | translate }}</label>
-                <select class="form-select"
-                        [(ngModel)]="selectedTeamId"
-                        (ngModelChange)="onTeamChange()">
-                  <option [ngValue]="null">{{ 'live.enroll.all_teams' | translate }}</option>
-                  <option *ngFor="let team of teams" [ngValue]="team.team_id">
-                    {{ team.team_name }}
-                  </option>
-                </select>
+                <app-select [options]="teams" bindLabel="team_name" bindValue="team_id"
+                            [(ngModel)]="selectedTeamId" (ngModelChange)="onTeamChange()"
+                            placeholder="{{ 'live.enroll.all_teams' | translate }}" [clearable]="true"
+                            [ariaLabel]="'live.enroll.filter_team' | translate" />
               </div>
               <div class="col-md-4">
                 <label class="form-label">{{ 'live.enroll.filter_branch' | translate }}</label>
-                <select class="form-select"
-                        [(ngModel)]="selectedBranchId"
-                        (ngModelChange)="onBranchChange()">
-                  <option [ngValue]="null">{{ 'live.enroll.all_branches' | translate }}</option>
-                  <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
-                    {{ branch.branch_name }}
-                  </option>
-                </select>
+                <app-select [options]="branches" bindLabel="branch_name" bindValue="branch_id"
+                            [(ngModel)]="selectedBranchId" (ngModelChange)="onBranchChange()"
+                            placeholder="{{ 'live.enroll.all_branches' | translate }}" [clearable]="true"
+                            [ariaLabel]="'live.enroll.filter_branch' | translate" />
               </div>
             </div>
 

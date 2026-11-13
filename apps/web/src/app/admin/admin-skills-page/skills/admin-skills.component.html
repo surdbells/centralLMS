@@ -57,16 +57,12 @@
       <!-- Filters -->
       <div class="ui-toolbar skills-toolbar">
         <div class="ui-filters">
-          <select class="form-select" [(ngModel)]="selectedCategoryId" (change)="onFilterChange()">
-            <option [ngValue]="null">{{ 'paths.all_categories' | translate }}</option>
-            <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
-              {{ cat.name }}
-            </option>
-          </select>
-          <select class="form-select" [(ngModel)]="selectedLevel" (change)="onFilterChange()">
-            <option value="">{{ 'skills.all_levels' | translate }}</option>
-            <option *ngFor="let lvl of levels" [value]="lvl">{{ lvl | titlecase }}</option>
-          </select>
+          <app-select style="min-width:180px" [options]="categories" bindLabel="name" bindValue="category_id" [clearable]="true"
+                      placeholder="{{ 'paths.all_categories' | translate }}"
+                      [(ngModel)]="selectedCategoryId" (ngModelChange)="onFilterChange()" />
+          <app-select style="min-width:160px" [options]="levelOpts" [searchable]="false" [clearable]="true"
+                      placeholder="{{ 'skills.all_levels' | translate }}"
+                      [ngModel]="selectedLevel" (ngModelChange)="selectedLevel = $event ?? ''; onFilterChange()" />
           <div class="form-check form-switch mb-0 ms-1">
             <input class="form-check-input" type="checkbox" id="showInactive"
                    [(ngModel)]="showInactive" (change)="onFilterChange()">
@@ -699,12 +695,8 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">{{ 'admin_skills.col_category' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingSkill.category_id">
-              <option [ngValue]="null">{{ 'admin_skills.no_category' | translate }}</option>
-              <option *ngFor="let cat of categories" [ngValue]="cat.category_id">
-                {{ cat.name }}
-              </option>
-            </select>
+            <app-select [options]="categories" bindLabel="name" bindValue="category_id" [clearable]="true"
+                        placeholder="{{ 'admin_skills.no_category' | translate }}" [(ngModel)]="editingSkill.category_id" />
           </div>
           <div class="col-12">
             <label class="form-label">{{ 'common.description' | translate }}</label>
@@ -713,17 +705,11 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">{{ 'paths.level' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingSkill.level">
-              <option *ngFor="let lvl of levels" [value]="lvl">{{ lvl | titlecase }}</option>
-            </select>
+            <app-select [options]="levelOpts" [searchable]="false" [(ngModel)]="editingSkill.level" />
           </div>
           <div class="col-md-4">
             <label class="form-label">{{ 'admin_skills.icon' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingSkill.icon">
-              <option *ngFor="let ico of iconOptions" [value]="ico">
-                {{ ico.replace('bi-', '') | titlecase }}
-              </option>
-            </select>
+            <app-select [options]="iconSelectOpts" iconKey="icon" [(ngModel)]="editingSkill.icon" />
           </div>
           <div class="col-md-4">
             <label class="form-label">{{ 'admin_skills.color' | translate }}</label>
@@ -957,20 +943,16 @@
             <div class="row g-3 align-items-end">
               <div class="col-md-5">
                 <label class="form-label" *ngIf="i === 0">{{ 'admin_skills.col_skill' | translate }}</label>
-                <select class="form-select" [(ngModel)]="assignment.skill_id">
-                  <option [value]="0">{{ 'admin_skills.select_skill_option' | translate }}</option>
-                  <option *ngFor="let skill of availableSkillsForCourse"
-                          [value]="skill.skill_id"
-                          [disabled]="isSkillAlreadyAssigned(skill.skill_id, i)">
-                    {{ skill.name }} ({{ skill.category_name || ('skills.uncategorized' | translate) }})
-                  </option>
-                </select>
+                <app-select [options]="courseSkillOpts[i]" bindLabel="name" bindValue="skill_id" [clearable]="true"
+                            placeholder="{{ 'admin_skills.select_skill_option' | translate }}"
+                            [ngModel]="assignment.skill_id"
+                            (ngModelChange)="assignment.skill_id = $event ?? ''; refreshCourseSkillOpts()">
+                  <ng-template appSelectOption let-s>{{ s.name }} <span class="text-muted">({{ s.category_name || ('skills.uncategorized' | translate) }})</span></ng-template>
+                </app-select>
               </div>
               <div class="col-md-3">
                 <label class="form-label" *ngIf="i === 0">{{ 'admin_skills.proficiency_level' | translate }}</label>
-                <select class="form-select" [(ngModel)]="assignment.proficiency_level">
-                  <option *ngFor="let level of levels" [value]="level">{{ level | titlecase }}</option>
-                </select>
+                <app-select [options]="levelOpts" [searchable]="false" [(ngModel)]="assignment.proficiency_level" />
               </div>
               <div class="col-md-3">
                 <label class="form-label" *ngIf="i === 0">{{ 'admin_skills.primary_skill' | translate }}</label>

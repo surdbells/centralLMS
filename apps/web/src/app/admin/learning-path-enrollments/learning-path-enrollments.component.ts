@@ -24,13 +24,14 @@ import {AdmintopComponent} from '../../partials/top/admintop/admintop.component'
 import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent, SelectOptionDirective } from '../../shared/select/select.component';
 
 type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 
 @Component({
   selector: 'app-learning-path-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent, SelectOptionDirective],
   templateUrl: './learning-path-enrollments.component.html',
   styleUrls: ['./learning-path-enrollments.component.scss']
 })
@@ -58,6 +59,12 @@ export class LearningPathEnrollmentComponent implements OnInit, OnDestroy {
   dueDate: string = '';
   notifyUsers = true;
   priority: 'low' | 'normal' | 'high' | 'critical' = 'normal';
+  readonly priorityOpts = [
+    { value: 'low', label: 'paths_admin.priority_low' },
+    { value: 'normal', label: 'paths_admin.priority_normal' },
+    { value: 'high', label: 'paths_admin.priority_high' },
+    { value: 'critical', label: 'paths_admin.priority_critical' },
+  ] as const;
 
   // Search
   userSearch = '';

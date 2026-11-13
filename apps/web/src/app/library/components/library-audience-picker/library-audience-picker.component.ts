@@ -1,7 +1,7 @@
 import { Component, input, model } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import type { AudienceType } from '../../library.service';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SelectComponent } from '../../../shared/select/select.component';
 
 export interface AudienceOption {
   id: string;
@@ -23,13 +23,12 @@ export interface AudienceOptions {
 @Component({
   selector: 'app-library-audience-picker',
   standalone: true,
-  imports: [FormsModule, TranslatePipe],
+  imports: [TranslatePipe, SelectComponent],
   template: `
     <label class="form-label required" [attr.for]="selectId()">{{ 'library.share_with' | translate }}</label>
-    <select class="form-select mb-2" [id]="selectId()" [disabled]="disabled()"
-            [ngModel]="targetType()" (ngModelChange)="onType($event)">
-      @for (t of targetTypes; track t.value) { <option [value]="t.value">{{ t.label | translate }}</option> }
-    </select>
+    <app-select class="mb-2" [inputId]="selectId()" [disabled]="disabled()"
+                [options]="targetTypes" [translateLabels]="true" [searchable]="false"
+                [value]="targetType()" (selectionChange)="$event !== targetType() && onType($event)" />
 
     @if (targetType() !== 'all') {
       @if (current().length === 0) {

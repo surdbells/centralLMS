@@ -154,24 +154,21 @@
           <div>
             <div class="mb-3">
               <label class="form-label small fw-semibold">{{ 'admin.course_edit.category' | translate }}</label>
-              <select class="form-select form-select-sm" name="categoryId" [(ngModel)]="form.categoryId">
-                <option [ngValue]="null">{{ 'admin.course_edit.not_set' | translate }}</option>
-                <option *ngFor="let c of categories; trackBy: trackById" [ngValue]="c.id">{{ c.name }}</option>
-              </select>
+              <app-select size="sm" name="categoryId" [(ngModel)]="form.categoryId"
+                          [options]="categories" bindLabel="name" bindValue="id" [clearable]="true"
+                          placeholder="{{ 'admin.course_edit.not_set' | translate }}" />
             </div>
             <div class="mb-3">
               <label class="form-label small fw-semibold">{{ 'admin.course_edit.level' | translate }}</label>
-              <select class="form-select form-select-sm" name="level" [(ngModel)]="form.level">
-                <option [ngValue]="null">{{ 'admin.course_edit.not_set' | translate }}</option>
-                <option *ngFor="let l of levels" [ngValue]="l">{{ l | titlecase }}</option>
-              </select>
+              <app-select size="sm" name="level" [(ngModel)]="form.level"
+                          [options]="levelOptions" [searchable]="false" [clearable]="true"
+                          placeholder="{{ 'admin.course_edit.not_set' | translate }}" />
             </div>
             <div class="mb-0">
               <label class="form-label small fw-semibold">{{ 'admin.course_edit.instructor' | translate }}</label>
-              <select class="form-select form-select-sm" name="instructorId" [(ngModel)]="form.instructorId">
-                <option [ngValue]="null">{{ 'admin.course_edit.unassigned' | translate }}</option>
-                <option *ngFor="let i of instructors; trackBy: trackById" [ngValue]="i.id">{{ i.fullName }}</option>
-              </select>
+              <app-select size="sm" name="instructorId" [(ngModel)]="form.instructorId"
+                          [options]="instructors" bindLabel="fullName" bindValue="id" [clearable]="true"
+                          placeholder="{{ 'admin.course_edit.unassigned' | translate }}" />
               <small class="text-muted">{{ 'admin.course_edit.instructor_hint' | translate }}</small>
             </div>
           </div>

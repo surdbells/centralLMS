@@ -15,11 +15,12 @@ import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { AvatarComponent } from '../../shared/avatar/avatar.component';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 @Component({
   selector: 'app-learning-path-reviews',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterModule, AdmintopComponent, TranslatePipe, AvatarComponent, SkeletonComponent, SelectComponent],
   templateUrl: `learning-path-reviews.component.html`,
   styleUrls: [`learning-path-reviews.component.scss`]
 })
@@ -37,6 +38,12 @@ export class LearningPathReviewsComponent implements OnInit, OnDestroy {
   totalPages = signal(1);
 
   statusFilter = '';
+  readonly statusFilterOpts = [
+    { value: 'pending', label: 'paths_admin.reviews_filter.pending' },
+    { value: 'approved', label: 'paths_admin.reviews_filter.approved' },
+    { value: 'rejected', label: 'paths_admin.reviews_filter.rejected' },
+    { value: 'flagged', label: 'paths_admin.reviews_filter.flagged' },
+  ] as const;
 
   // Response modal
   showResponseModal = signal(false);

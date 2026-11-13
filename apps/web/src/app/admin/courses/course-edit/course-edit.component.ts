@@ -17,6 +17,7 @@ import { ApiError } from '../../../core/api';
 import { AdmintopComponent } from '../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -34,7 +35,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-course-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './course-edit.component.html',
 })
 export class CourseEditComponent implements OnInit, OnDestroy {
@@ -81,6 +82,8 @@ export class CourseEditComponent implements OnInit, OnDestroy {
   violations: Record<string, string> = {};
 
   readonly levels: CourseLevel[] = ['beginner', 'intermediate', 'professional'];
+  /** Level picker rows, title-cased the way the old dropdown showed them. */
+  readonly levelOptions = this.levels.map((l) => ({ value: l, label: l.charAt(0).toUpperCase() + l.slice(1) }));
 
   ngOnInit(): void {
     this.courseId = this.route.snapshot.paramMap.get('id');

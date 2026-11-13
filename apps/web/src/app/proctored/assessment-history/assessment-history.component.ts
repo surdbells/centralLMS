@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -73,7 +74,7 @@ interface PaginationInfo {
 @Component({
   selector: 'app-assessment-history',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-top></app-top>
     <main class="main">
@@ -141,34 +142,10 @@ interface PaginationInfo {
                      [(ngModel)]="filters.search" (ngModelChange)="onFilterChange()">
             </label>
             <div class="ui-filters">
-              <select class="form-select" [(ngModel)]="filters.type" (ngModelChange)="onFilterChange()" aria-label="Type">
-                <option value="">All Types</option>
-                <option value="exam">Exam</option>
-                <option value="quiz">Quiz</option>
-                <option value="practice">Practice</option>
-                <option value="survey">Survey</option>
-                <option value="assignment">Assignment</option>
-              </select>
-              <select class="form-select" [(ngModel)]="filters.status" (ngModelChange)="onFilterChange()" aria-label="Status">
-                <option value="">All Status</option>
-                <option value="completed">Completed</option>
-                <option value="in_progress">In Progress</option>
-                <option value="submitted">Submitted</option>
-                <option value="abandoned">Abandoned</option>
-              </select>
-              <select class="form-select" [(ngModel)]="filters.result" (ngModelChange)="onFilterChange()" aria-label="Result">
-                <option value="">All Results</option>
-                <option value="passed">Passed</option>
-                <option value="failed">Failed</option>
-                <option value="pending">Pending Grading</option>
-              </select>
-              <select class="form-select" [(ngModel)]="filters.sort" (ngModelChange)="onFilterChange()" aria-label="Sort">
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="score_high">Highest Score</option>
-                <option value="score_low">Lowest Score</option>
-                <option value="title_az">Title A-Z</option>
-              </select>
+              <app-select style="width:150px" [options]="typeOpts" placeholder="All Types" [(ngModel)]="filters.type" (ngModelChange)="onFilterChange()" ariaLabel="Type" />
+              <app-select style="width:150px" [options]="statusOpts" placeholder="All Status" [(ngModel)]="filters.status" (ngModelChange)="onFilterChange()" ariaLabel="Status" />
+              <app-select style="width:160px" [options]="resultOpts" placeholder="All Results" [searchable]="false" [(ngModel)]="filters.result" (ngModelChange)="onFilterChange()" ariaLabel="Result" />
+              <app-select style="width:160px" [options]="sortOpts" [(ngModel)]="filters.sort" (ngModelChange)="onFilterChange()" ariaLabel="Sort" />
               <button type="button" class="btn btn-outline-secondary clear-btn" (click)="clearFilters()" title="Clear filters" aria-label="Clear filters">
                 <i class="bi bi-x-lg"></i>
               </button>
@@ -323,12 +300,8 @@ interface PaginationInfo {
                 </li>
               </ul>
             </nav>
-            <select class="form-select per-page" aria-label="Rows per page"
-                    [(ngModel)]="filters.perPage" (ngModelChange)="onFilterChange()">
-              <option [value]="10">10</option>
-              <option [value]="25">25</option>
-              <option [value]="50">50</option>
-            </select>
+            <app-select class="per-page" style="width:90px" [options]="perPageOpts" [searchable]="false" ariaLabel="Rows per page"
+                        [(ngModel)]="filters.perPage" (ngModelChange)="onFilterChange()" />
           </div>
         </section>
       </div>
@@ -391,6 +364,25 @@ export class AssessmentHistoryComponent implements OnInit, OnDestroy {
   pagination: PaginationInfo | null = null;
 
   // Filters
+  readonly typeOpts = [
+    { label: 'All Types', value: '' }, { label: 'Exam', value: 'exam' }, { label: 'Quiz', value: 'quiz' },
+    { label: 'Practice', value: 'practice' }, { label: 'Survey', value: 'survey' }, { label: 'Assignment', value: 'assignment' },
+  ];
+  readonly statusOpts = [
+    { label: 'All Status', value: '' }, { label: 'Completed', value: 'completed' }, { label: 'In Progress', value: 'in_progress' },
+    { label: 'Submitted', value: 'submitted' }, { label: 'Abandoned', value: 'abandoned' },
+  ];
+  readonly resultOpts = [
+    { label: 'All Results', value: '' }, { label: 'Passed', value: 'passed' },
+    { label: 'Failed', value: 'failed' }, { label: 'Pending Grading', value: 'pending' },
+  ];
+  readonly sortOpts = [
+    { label: 'Newest First', value: 'newest' }, { label: 'Oldest First', value: 'oldest' },
+    { label: 'Highest Score', value: 'score_high' }, { label: 'Lowest Score', value: 'score_low' },
+    { label: 'Title A-Z', value: 'title_az' },
+  ];
+  readonly perPageOpts = [10, 25, 50];
+
   filters = {
     search: '',
     type: '',

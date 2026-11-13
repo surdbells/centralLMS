@@ -290,10 +290,10 @@
                  [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()">
         </div>
         <div class="filter-group">
-          <select class="form-select" [(ngModel)]="selectedCategoryId" (ngModelChange)="onCategoryChange()">
-            <option [ngValue]="null">{{ 'learning.all_categories' | translate }}</option>
-            <option *ngFor="let cat of categories" [ngValue]="cat.category_id">{{ cat.category_name }}</option>
-          </select>
+          <app-select [options]="categories" bindLabel="category_name" bindValue="category_id"
+            placeholder="{{ 'learning.all_categories' | translate }}" [clearable]="true"
+            [ariaLabel]="'learning.all_categories' | translate"
+            [(ngModel)]="selectedCategoryId" (ngModelChange)="onCategoryChange()" />
         </div>
       </div>
 

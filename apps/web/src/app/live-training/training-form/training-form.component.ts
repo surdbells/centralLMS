@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, TitleCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -8,6 +8,7 @@ import { LiveTrainingService, type LiveTraining } from '../live-training.service
 import { ApiError } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 /**
  * Setting up a live training programme.
@@ -24,7 +25,7 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 @Component({
   selector: 'app-training-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './training-form.component.html',
 })
 export class TrainingFormComponent implements OnInit, OnDestroy {
@@ -64,6 +65,8 @@ export class TrainingFormComponent implements OnInit, OnDestroy {
   // The pickers, as the template names them.
   trainingTypes = ['physical', 'virtual', 'hybrid'];
   trainingStatuses = ['draft', 'published', 'ongoing', 'completed', 'cancelled'];
+  /** Training-type picker options (labels match the old `titlecase` output). */
+  readonly trainingTypeOpts = this.trainingTypes.map(v => ({ value: v, label: new TitleCasePipe().transform(v) }));
 
   /** How a reminder can reach somebody. The template lists these as boxes. */
   reminderChannels = ['email', 'in_app', 'sms', 'whatsapp'];

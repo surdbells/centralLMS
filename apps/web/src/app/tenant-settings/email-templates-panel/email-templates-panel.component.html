@@ -24,9 +24,9 @@
 
   <!-- The branded layout every email is wrapped in -->
   <div class="etp-brand" *ngIf="state !== 'error'">
-    <div class="etp-brand__preview" [style.background]="brandPrimary">
+    <div class="etp-brand__preview" [style.border-top-color]="brandPrimary">
       <img *ngIf="brandLogo; else nameMark" [src]="brandLogo" [alt]="brandName" class="etp-brand__logo">
-      <ng-template #nameMark><span class="etp-brand__name">{{ brandName || ('tenant.organisation' | translate) }}</span></ng-template>
+      <ng-template #nameMark><span class="etp-brand__name" [style.color]="brandPrimary">{{ brandName || ('tenant.organisation' | translate) }}</span></ng-template>
     </div>
     <div class="etp-brand__text">
       <strong>{{ 'tenant.email_branding' | translate }}</strong>

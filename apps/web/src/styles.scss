@@ -1752,3 +1752,13 @@ button.ui-kpi:focus-visible, a.ui-kpi:focus-visible { outline: 2px solid rgba(va
 
 /* Pages sit straight on the white canvas (no outer panel): each section is
    its own hairline card — see the UI kit above. */
+
+/* ---------------------------------------------------------------------------
+ * CDK overlays (<app-select> panels). The prebuilt CDK overlay CSS is loaded
+ * from angular.json; its container defaults to z-index 1000, which sits under
+ * Bootstrap modals (1055) and Taiga dialogs. Lift it so a select's panel opens
+ * above whatever surface its trigger lives in.
+ * ------------------------------------------------------------------------- */
+.cdk-overlay-container {
+  z-index: 2000;
+}

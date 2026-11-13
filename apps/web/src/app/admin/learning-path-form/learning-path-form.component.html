@@ -137,20 +137,12 @@
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">{{ 'paths_admin.form.category' | translate }}</label>
-                    <select class="form-select" formControlName="category_id">
-                      <option [ngValue]="null">{{ 'paths_admin.form.select_category' | translate }}</option>
-                      @for (category of categories(); track category.category_id) {
-                        <option [ngValue]="category.category_id">{{ category.name }}</option>
-                      }
-                    </select>
+                    <app-select formControlName="category_id" [options]="categories()" bindLabel="name" bindValue="category_id" [clearable]="true"
+                                placeholder="{{ 'paths_admin.form.select_category' | translate }}" />
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">{{ 'paths_admin.skill_level' | translate }}</label>
-                    <select class="form-select" formControlName="skill_level">
-                      @for (level of skillLevels; track level.value) {
-                        <option [value]="level.value">{{ level.label }}</option>
-                      }
-                    </select>
+                    <app-select formControlName="skill_level" [options]="skillLevels" [searchable]="false" />
                   </div>
                 </div>
 
@@ -371,12 +363,8 @@
                   <div class="row">
                     <div class="col-md-6 mb-3">
                       <label class="form-label">{{ 'paths_admin.form.cert_template' | translate }}</label>
-                      <select class="form-select" formControlName="certificate_template_id">
-                        <option [ngValue]="null">{{ 'paths_admin.form.select_template' | translate }}</option>
-                        @for (template of certificateTemplates(); track template.template_id) {
-                          <option [ngValue]="template.template_id">{{ template.name }}</option>
-                        }
-                      </select>
+                      <app-select formControlName="certificate_template_id" [options]="certificateTemplates()" bindLabel="name" bindValue="template_id" [clearable]="true"
+                                  placeholder="{{ 'paths_admin.form.select_template' | translate }}" />
                     </div>
                     <div class="col-md-6 mb-3">
                       <label class="form-label">{{ 'paths_admin.form.cert_validity' | translate }}</label>
@@ -407,12 +395,11 @@
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">{{ 'paths_admin.form.completion_badge' | translate }}</label>
-                    <select class="form-select" formControlName="badge_id">
-                      <option [ngValue]="null">{{ 'paths_admin.form.no_badge' | translate }}</option>
-                      @for (badge of badges(); track badge.badge_id) {
-                        <option [ngValue]="badge.badge_id">{{ badge.icon }} {{ badge.name }}</option>
-                      }
-                    </select>
+                    <app-select formControlName="badge_id" [options]="badges()" bindLabel="name" bindValue="badge_id" [clearable]="true"
+                                placeholder="{{ 'paths_admin.form.no_badge' | translate }}">
+                      <ng-template appSelectOption let-b>{{ b.icon }} {{ b.name }}</ng-template>
+                      <ng-template appSelectLabel let-b>{{ b.icon }} {{ b.name }}</ng-template>
+                    </app-select>
                   </div>
                 </div>
               </div>
@@ -429,19 +416,11 @@
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">{{ 'paths_admin.visibility' | translate }}</label>
-                    <select class="form-select" formControlName="visibility">
-                      @for (option of visibilityOptions; track option.value) {
-                        <option [value]="option.value">{{ option.label }}</option>
-                      }
-                    </select>
+                    <app-select formControlName="visibility" [options]="visibilitySelectOpts" [translateLabels]="true" [searchable]="false" />
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">{{ 'paths_admin.form.enrollment_type' | translate }}</label>
-                    <select class="form-select" formControlName="enrollment_type">
-                      @for (option of enrollmentTypes; track option.value) {
-                        <option [value]="option.value">{{ option.label }}</option>
-                      }
-                    </select>
+                    <app-select formControlName="enrollment_type" [options]="enrollmentTypeSelectOpts" [translateLabels]="true" [searchable]="false" />
                   </div>
                 </div>
 
@@ -506,12 +485,7 @@
                     </div>
                     <div class="col-md-4 mb-3">
                       <label class="form-label">{{ 'paths_admin.form.currency' | translate }}</label>
-                      <select class="form-select" formControlName="currency">
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="NGN">NGN</option>
-                      </select>
+                      <app-select formControlName="currency" [options]="currencyOpts" [searchable]="false" />
                     </div>
                   </div>
                 }

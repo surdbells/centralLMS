@@ -123,12 +123,13 @@
         <!-- Department Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'department'">
           <label class="form-label">{{ 'admin.enroll.select_department' | translate }}</label>
-          <select class="form-select" [(ngModel)]="selectedDepartmentId">
-            <option [ngValue]="null">{{ 'admin.enroll.select_department_option' | translate }}</option>
-            <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
-              {{ dept.department_name }} {{ 'admin.enroll.n_users' | translate:{ count: dept.user_count } }}
-            </option>
-          </select>
+          <app-select [(ngModel)]="selectedDepartmentId" [options]="departments"
+                      bindLabel="department_name" bindValue="department_id" [clearable]="true"
+                      placeholder="{{ 'admin.enroll.select_department_option' | translate }}">
+            <ng-template appSelectOption let-dept>
+              {{ dept.department_name }} <span class="text-muted">{{ 'admin.enroll.n_users' | translate:{ count: dept.user_count } }}</span>
+            </ng-template>
+          </app-select>
 
           <div class="selection-info" *ngIf="selectedDepartmentId">
             <i class="bi bi-info-circle"></i>
@@ -139,12 +140,13 @@
         <!-- Team Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'team'">
           <label class="form-label">{{ 'admin.enroll.select_team' | translate }}</label>
-          <select class="form-select" [(ngModel)]="selectedTeamId">
-            <option [ngValue]="null">{{ 'admin.enroll.select_team_option' | translate }}</option>
-            <option *ngFor="let team of teams" [ngValue]="team.team_id">
-              {{ team.team_name }} {{ 'admin.enroll.n_users' | translate:{ count: team.user_count } }}
-            </option>
-          </select>
+          <app-select [(ngModel)]="selectedTeamId" [options]="teams"
+                      bindLabel="team_name" bindValue="team_id" [clearable]="true"
+                      placeholder="{{ 'admin.enroll.select_team_option' | translate }}">
+            <ng-template appSelectOption let-team>
+              {{ team.team_name }} <span class="text-muted">{{ 'admin.enroll.n_users' | translate:{ count: team.user_count } }}</span>
+            </ng-template>
+          </app-select>
 
           <div class="selection-info" *ngIf="selectedTeamId">
             <i class="bi bi-info-circle"></i>
@@ -155,12 +157,13 @@
         <!-- Branch Selection -->
         <div class="selection-panel" *ngIf="enrollmentType === 'branch'">
           <label class="form-label">{{ 'admin.enroll.select_branch' | translate }}</label>
-          <select class="form-select" [(ngModel)]="selectedBranchId">
-            <option [ngValue]="null">{{ 'admin.enroll.select_branch_option' | translate }}</option>
-            <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
-              {{ branch.branch_name }} - {{ branch.city }} {{ 'admin.enroll.n_users' | translate:{ count: branch.user_count } }}
-            </option>
-          </select>
+          <app-select [(ngModel)]="selectedBranchId" [options]="branches"
+                      bindLabel="branch_name" bindValue="branch_id" [clearable]="true"
+                      placeholder="{{ 'admin.enroll.select_branch_option' | translate }}">
+            <ng-template appSelectOption let-branch>
+              {{ branch.branch_name }} - {{ branch.city }} <span class="text-muted">{{ 'admin.enroll.n_users' | translate:{ count: branch.user_count } }}</span>
+            </ng-template>
+          </app-select>
 
           <div class="selection-info" *ngIf="selectedBranchId">
             <i class="bi bi-info-circle"></i>
@@ -173,36 +176,24 @@
           <div class="row g-3 mb-3">
             <div class="col-md-4">
               <label class="form-label">{{ 'admin.enroll.filter_department' | translate }}</label>
-              <select class="form-select"
-                      [(ngModel)]="selectedDepartmentId"
-                      (ngModelChange)="onDepartmentChange()">
-                <option [ngValue]="null">{{ 'admin.enroll.all_departments' | translate }}</option>
-                <option *ngFor="let dept of departments" [ngValue]="dept.department_id">
-                  {{ dept.department_name }}
-                </option>
-              </select>
+              <app-select [(ngModel)]="selectedDepartmentId"
+                          (selectionChange)="onDepartmentChange()"
+                          [options]="departments" bindLabel="department_name" bindValue="department_id" [clearable]="true"
+                          placeholder="{{ 'admin.enroll.all_departments' | translate }}" />
             </div>
             <div class="col-md-4">
               <label class="form-label">{{ 'admin.enroll.filter_team' | translate }}</label>
-              <select class="form-select"
-                      [(ngModel)]="selectedTeamId"
-                      (ngModelChange)="onTeamChange()">
-                <option [ngValue]="null">{{ 'admin.enroll.all_teams' | translate }}</option>
-                <option *ngFor="let team of teams" [ngValue]="team.team_id">
-                  {{ team.team_name }}
-                </option>
-              </select>
+              <app-select [(ngModel)]="selectedTeamId"
+                          (selectionChange)="onTeamChange()"
+                          [options]="teams" bindLabel="team_name" bindValue="team_id" [clearable]="true"
+                          placeholder="{{ 'admin.enroll.all_teams' | translate }}" />
             </div>
             <div class="col-md-4">
               <label class="form-label">{{ 'admin.enroll.filter_branch' | translate }}</label>
-              <select class="form-select"
-                      [(ngModel)]="selectedBranchId"
-                      (ngModelChange)="onBranchChange()">
-                <option [ngValue]="null">{{ 'admin.enroll.all_branches' | translate }}</option>
-                <option *ngFor="let branch of branches" [ngValue]="branch.branch_id">
-                  {{ branch.branch_name }}
-                </option>
-              </select>
+              <app-select [(ngModel)]="selectedBranchId"
+                          (selectionChange)="onBranchChange()"
+                          [options]="branches" bindLabel="branch_name" bindValue="branch_id" [clearable]="true"
+                          placeholder="{{ 'admin.enroll.all_branches' | translate }}" />
             </div>
           </div>
 

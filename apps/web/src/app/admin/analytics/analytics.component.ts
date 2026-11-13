@@ -7,6 +7,7 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 import { TranslatePipe } from '../../translate.pipe';
 import { StarRatingComponent } from '../../shared/star-rating/star-rating.component';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import {
   AnalyticsService,
   type EngagementAnalytics,
@@ -27,7 +28,7 @@ type Part = 'completed' | 'inProgress' | 'yetToAttempt';
 @Component({
   selector: 'app-analytics',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, StarRatingComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, StarRatingComponent, SkeletonComponent, SelectComponent],
   templateUrl: './analytics.component.html',
   styleUrls: ['./analytics.component.scss'],
 })

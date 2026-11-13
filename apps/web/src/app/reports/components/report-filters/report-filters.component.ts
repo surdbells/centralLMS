@@ -5,11 +5,12 @@ import { ReportFilters, ReportCatalogItem } from '../../models/report.models';
 import { ReportService } from '../../services/report.service';
 import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
+import { SelectComponent } from '../../../shared/select/select.component';
 
 @Component({
   selector: 'app-report-filters',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe],
+  imports: [CommonModule, FormsModule, TranslatePipe, SelectComponent],
   template: `
     <div class="report-filters ui-section">
       <div>
@@ -40,79 +41,62 @@ import { I18nService } from '../../../i18n.service';
             <!-- Department -->
             <div class="col-md-3" *ngIf="showFilter('department')">
               <label class="form-label small ui-muted">{{ 'reports.department' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.department_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">{{ 'reports.all_departments' | translate }}</option>
-                <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.department_name }}</option>
-              </select>
+              <app-select [options]="departments" bindLabel="department_name" bindValue="id" [clearable]="true"
+                          placeholder="{{ 'reports.all_departments' | translate }}" [ariaLabel]="'reports.department' | translate"
+                          [ngModel]="filters.department_id" (ngModelChange)="filters.department_id = $event ?? undefined; emitFilters()" />
             </div>
 
             <!-- Branch -->
             <div class="col-md-3" *ngIf="showFilter('branch')">
               <label class="form-label small ui-muted">{{ 'reports.branch' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.branch_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">{{ 'reports.all_branches' | translate }}</option>
-                <option *ngFor="let b of branches" [ngValue]="b.id">{{ b.branch_name }}</option>
-              </select>
+              <app-select [options]="branches" bindLabel="branch_name" bindValue="id" [clearable]="true"
+                          placeholder="{{ 'reports.all_branches' | translate }}" [ariaLabel]="'reports.branch' | translate"
+                          [ngModel]="filters.branch_id" (ngModelChange)="filters.branch_id = $event ?? undefined; emitFilters()" />
             </div>
 
             <!-- Team -->
             <div class="col-md-3" *ngIf="showFilter('team')">
               <label class="form-label small ui-muted">{{ 'reports.team' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.team_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">{{ 'reports.all_teams' | translate }}</option>
-                <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.team_name }}</option>
-              </select>
+              <app-select [options]="teams" bindLabel="team_name" bindValue="id" [clearable]="true"
+                          placeholder="{{ 'reports.all_teams' | translate }}" [ariaLabel]="'reports.team' | translate"
+                          [ngModel]="filters.team_id" (ngModelChange)="filters.team_id = $event ?? undefined; emitFilters()" />
             </div>
 
             <!-- Course -->
             <div class="col-md-3" *ngIf="showFilter('course')">
               <label class="form-label small ui-muted">{{ 'reports.course' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.course_id" (change)="emitFilters()">
-                <option [ngValue]="undefined">{{ 'reports.all_courses' | translate }}</option>
-                <option *ngFor="let c of courses" [ngValue]="c.id || c.course_id">{{ c.title }}</option>
-              </select>
+              <app-select [options]="courseOpts" [clearable]="true"
+                          placeholder="{{ 'reports.all_courses' | translate }}" [ariaLabel]="'reports.course' | translate"
+                          [ngModel]="filters.course_id" (ngModelChange)="filters.course_id = $event ?? undefined; emitFilters()" />
             </div>
 
             <!-- Status -->
             <div class="col-md-3" *ngIf="showFilter('status')">
               <label class="form-label small ui-muted">{{ 'common.status' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.status" (change)="emitFilters()">
-                <option value="">{{ 'reports.all_statuses' | translate }}</option>
-                <option value="completed">{{ 'report.completed' | translate }}</option>
-                <option value="in_progress">{{ 'report.in_progress' | translate }}</option>
-                <option value="not_started">{{ 'report.not_started' | translate }}</option>
-                <option value="overdue">{{ 'reports.overdue' | translate }}</option>
-              </select>
+              <app-select [options]="statusOpts" [translateLabels]="true" [clearable]="true"
+                          placeholder="{{ 'reports.all_statuses' | translate }}" [ariaLabel]="'common.status' | translate"
+                          [ngModel]="filters.status" (ngModelChange)="filters.status = $event ?? ''; emitFilters()" />
             </div>
 
             <!-- Period -->
             <div class="col-md-3" *ngIf="showFilter('period')">
               <label class="form-label small ui-muted">{{ 'reports.period' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.period" (change)="emitFilters()">
-                <option value="month">{{ 'reports.period_monthly' | translate }}</option>
-                <option value="quarter">{{ 'reports.period_quarterly' | translate }}</option>
-                <option value="week">{{ 'reports.period_weekly' | translate }}</option>
-              </select>
+              <app-select [options]="periodOpts" [translateLabels]="true" [searchable]="false" [ariaLabel]="'reports.period' | translate"
+                          [(ngModel)]="filters.period" (ngModelChange)="emitFilters()" />
             </div>
 
             <!-- Group By / Breakdown -->
             <div class="col-md-3" *ngIf="showFilter('breakdown')">
               <label class="form-label small ui-muted">{{ 'reports.group_by' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.breakdown" (change)="emitFilters()">
-                <option value="department">{{ 'reports.department' | translate }}</option>
-                <option value="branch">{{ 'reports.branch' | translate }}</option>
-                <option value="team">{{ 'reports.team' | translate }}</option>
-              </select>
+              <app-select [options]="breakdownOpts" [translateLabels]="true" [searchable]="false" [ariaLabel]="'reports.group_by' | translate"
+                          [(ngModel)]="filters.breakdown" (ngModelChange)="emitFilters()" />
             </div>
 
             <!-- Per Page -->
             <div class="col-md-2" *ngIf="showFilter('per_page')">
               <label class="form-label small ui-muted">{{ 'reports.per_page' | translate }}</label>
-              <select class="form-select" [(ngModel)]="filters.per_page" (change)="emitFilters()">
-                <option [ngValue]="25">25</option>
-                <option [ngValue]="50">50</option>
-                <option [ngValue]="100">100</option>
-              </select>
+              <app-select [options]="perPageOpts" [searchable]="false" [ariaLabel]="'reports.per_page' | translate"
+                          [(ngModel)]="filters.per_page" (ngModelChange)="emitFilters()" />
             </div>
           </div>
 
@@ -142,6 +126,26 @@ export class ReportFiltersComponent implements OnInit {
   branches: any[] = [];
   teams: any[] = [];
   courses: any[] = [];
+  /** Courses as select options; a course's id may come as `id` or `course_id`. */
+  courseOpts: Array<{ value: any; label: string }> = [];
+
+  readonly statusOpts = [
+    { value: 'completed', label: 'report.completed' },
+    { value: 'in_progress', label: 'report.in_progress' },
+    { value: 'not_started', label: 'report.not_started' },
+    { value: 'overdue', label: 'reports.overdue' },
+  ] as const;
+  readonly periodOpts = [
+    { value: 'month', label: 'reports.period_monthly' },
+    { value: 'quarter', label: 'reports.period_quarterly' },
+    { value: 'week', label: 'reports.period_weekly' },
+  ] as const;
+  readonly breakdownOpts = [
+    { value: 'department', label: 'reports.department' },
+    { value: 'branch', label: 'reports.branch' },
+    { value: 'team', label: 'reports.team' },
+  ] as const;
+  readonly perPageOpts = [25, 50, 100] as const;
   activePreset = '';
 
   datePresets = [
@@ -220,6 +224,9 @@ export class ReportFiltersComponent implements OnInit {
       this.branches = data.branches || [];
       this.teams = data.teams || [];
     });
-    this.reportService.getCourses().subscribe(c => this.courses = c);
+    this.reportService.getCourses().subscribe(c => {
+      this.courses = c;
+      this.courseOpts = (c ?? []).map((x: any) => ({ value: x.id || x.course_id, label: x.title }));
+    });
   }
 }

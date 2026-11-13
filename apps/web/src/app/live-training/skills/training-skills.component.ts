@@ -15,6 +15,7 @@ import {
 import {AdmintopComponent} from '../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -22,7 +23,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 @Component({
   selector: 'app-training-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './training-skills.component.html',
   styleUrls: ['./training-skills.component.scss']
 })
@@ -50,6 +51,12 @@ export class TrainingSkillsComponent implements OnInit {
   selectedSkill: Skill | null = null;
   proficiencyLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert' = 'beginner';
   isRequired = true;
+  readonly proficiencyOpts = [
+    { value: 'beginner', label: 'skills.beginner' },
+    { value: 'intermediate', label: 'skills.intermediate' },
+    { value: 'advanced', label: 'skills.advanced' },
+    { value: 'expert', label: 'skills.expert' },
+  ] as const;
 
   // Search/Filter
   skillSearchQuery = '';

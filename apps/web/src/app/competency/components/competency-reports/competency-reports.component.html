@@ -38,10 +38,10 @@
       </div>
       <div class="d-flex align-items-center gap-2">
         <label class="text-muted small mb-0">{{ 'competency.reports.break_down_by' | translate }}</label>
-        <select class="form-select form-select-sm w-auto" [ngModel]="dimension()"
-                (ngModelChange)="onDimensionChange($event)">
-          @for (d of dimensions; track d.value) { <option [value]="d.value">{{ d.label | translate }}</option> }
-        </select>
+        <app-select size="sm" style="min-width: 11rem" [options]="dimensions" [translateLabels]="true"
+                    [searchable]="dimensions.length > 3" [value]="dimension()"
+                    [ariaLabel]="'competency.reports.break_down_by' | translate"
+                    (selectionChange)="onDimensionChange($event)" />
       </div>
     </div>
 

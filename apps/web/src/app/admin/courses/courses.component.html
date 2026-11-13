@@ -66,12 +66,9 @@
             </button>
           </label>
 
-          <select class="form-select" [(ngModel)]="initial.category_id" (change)="list_course()">
-            <option [ngValue]="null">{{ 'admin.courses.all_categories' | translate }}</option>
-            <option *ngFor="let c of category" [ngValue]="c.category_id">
-              {{ c.category_name }}
-            </option>
-          </select>
+          <app-select style="min-width:200px; width:auto" [options]="category" bindLabel="category_name" bindValue="category_id"
+                      [clearable]="true" placeholder="{{ 'admin.courses.all_categories' | translate }}"
+                      [(ngModel)]="initial.category_id" (selectionChange)="list_course()" />
 
           <div class="view-toggle" role="group">
             <button type="button" class="btn-view" [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="{{ 'admin.courses.grid_view' | translate }}">
@@ -339,17 +336,11 @@
         </div>
 
         <div class="pagination-controls">
-          <select
-            class="form-select form-select-sm per-page-select"
-            [(ngModel)]="initial.per_page"
-            (change)="paginate()"
-          >
-            <option [ngValue]="4">{{ 'admin.courses.per_page' | translate:{ count: 4 } }}</option>
-            <option [ngValue]="5">{{ 'admin.courses.per_page' | translate:{ count: 5 } }}</option>
-            <option [ngValue]="10">{{ 'admin.courses.per_page' | translate:{ count: 10 } }}</option>
-            <option [ngValue]="25">{{ 'admin.courses.per_page' | translate:{ count: 25 } }}</option>
-            <option [ngValue]="50">{{ 'admin.courses.per_page' | translate:{ count: 50 } }}</option>
-          </select>
+          <app-select size="sm" class="per-page-select" [options]="perPageOptions" [searchable]="false"
+                      [(ngModel)]="initial.per_page" (selectionChange)="paginate()">
+            <ng-template appSelectOption let-n>{{ 'admin.courses.per_page' | translate:{ count: n } }}</ng-template>
+            <ng-template appSelectLabel let-n>{{ 'admin.courses.per_page' | translate:{ count: n } }}</ng-template>
+          </app-select>
 
           <nav aria-label="Course pagination">
             <ul class="pagination pagination-sm mb-0">

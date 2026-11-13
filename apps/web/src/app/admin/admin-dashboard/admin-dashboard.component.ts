@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SelectComponent } from '../../shared/select/select.component';
 import { Router, RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { Subject } from 'rxjs';
@@ -124,7 +125,7 @@ export interface DashboardData {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, RouterLink, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css'],
 })
@@ -140,6 +141,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   /** One of the four the endpoint accepts. Anything else it rounds to 30. */
   selectedPeriod = '30';
+  readonly periodOpts = [
+    { value: '7', label: 'admin_dash.last_7_days' },
+    { value: '30', label: 'admin_dash.last_30_days' },
+    { value: '90', label: 'admin_dash.last_90_days' },
+    { value: '365', label: 'admin_dash.this_year' },
+  ] as const;
 
   /**
    * Which series the trend chart draws.

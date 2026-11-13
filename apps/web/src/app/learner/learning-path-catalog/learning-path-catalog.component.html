@@ -14,24 +14,17 @@
     <!-- Filters Bar -->
     <div class="ui-toolbar">
       <div class="ui-filters">
-        <select class="form-select" [(ngModel)]="skillFilter" (change)="onFilterChange()">
-          <option value="">{{ 'paths.all_levels' | translate }}</option>
-          @for (level of skillLevels; track level.value) {
-            <option [value]="level.value">{{ level.label }}</option>
-          }
-        </select>
-        <select class="form-select" [(ngModel)]="categoryFilter" (change)="onFilterChange()">
-          <option [ngValue]="null">{{ 'paths.all_categories' | translate }}</option>
-          @for (category of categories(); track category.category_id) {
-            <option [ngValue]="category.category_id">{{ category.name }}</option>
-          }
-        </select>
-        <select class="form-select" [(ngModel)]="sortBy" (change)="onFilterChange()">
-          <option value="popular">{{ 'paths.sort_popular' | translate }}</option>
-          <option value="rating">{{ 'paths.sort_rating' | translate }}</option>
-          <option value="newest">{{ 'paths.sort_newest' | translate }}</option>
-          <option value="duration">{{ 'paths.sort_duration' | translate }}</option>
-        </select>
+        <app-select style="min-width: 170px; width: auto;" [options]="skillLevels"
+          placeholder="{{ 'paths.all_levels' | translate }}" [clearable]="true"
+          [ariaLabel]="'paths.all_levels' | translate"
+          [ngModel]="skillFilter()" (ngModelChange)="skillFilter.set($event ?? ''); onFilterChange()" />
+        <app-select style="min-width: 180px; width: auto;" [options]="categories()" bindLabel="name" bindValue="category_id"
+          placeholder="{{ 'paths.all_categories' | translate }}" [clearable]="true"
+          [ariaLabel]="'paths.all_categories' | translate"
+          [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event); onFilterChange()" />
+        <app-select style="min-width: 170px; width: auto;" [options]="sortOpts" [translateLabels]="true"
+          [searchable]="false" [ariaLabel]="'reports.sort_by' | translate"
+          [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event); onFilterChange()" />
       </div>
 
       <!-- Search -->

@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { TuiIcon } from '@taiga-ui/core';
@@ -56,7 +57,7 @@ interface ViolationType {
 @Component({
   selector: 'app-violation-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -128,16 +129,8 @@ interface ViolationType {
                    [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
           </div>
           <div class="ui-filters">
-            <select class="form-select" [(ngModel)]="filterDismissed" (change)="applyFilters()">
-              <option value="">All</option>
-              <option value="active">Active</option>
-              <option value="dismissed">Dismissed</option>
-            </select>
-            <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
-              <option value="newest">Newest</option>
-              <option value="oldest">Oldest</option>
-              <option value="severity">Severity</option>
-            </select>
+            <app-select style="width:140px" [options]="dismissedOpts" placeholder="All" [searchable]="false" [(ngModel)]="filterDismissed" (selectionChange)="applyFilters()" ariaLabel="Status" />
+            <app-select style="width:140px" [options]="sortOpts" [searchable]="false" [(ngModel)]="sortBy" (selectionChange)="applyFilters()" ariaLabel="Sort" />
           </div>
         </div>
 
@@ -243,13 +236,7 @@ interface ViolationType {
             <p class="small">Dismissing: <strong>{{ formatType(dismissTarget.violation_type) }}</strong></p>
             <div class="mb-3">
               <label class="form-label">Reason</label>
-              <select class="form-select form-select-sm" [(ngModel)]="dismissReason">
-                <option value="false_positive">False Positive</option>
-                <option value="technical_issue">Technical Issue</option>
-                <option value="acceptable_behavior">Acceptable Behavior</option>
-                <option value="duplicate">Duplicate</option>
-                <option value="other">Other</option>
-              </select>
+              <app-select size="sm" [options]="dismissReasonOpts" [searchable]="false" [(ngModel)]="dismissReason" ariaLabel="Reason" />
             </div>
             <div class="mb-3" *ngIf="dismissReason === 'other'">
               <label class="form-label">Details</label>
@@ -345,6 +332,19 @@ export class ViolationViewerComponent implements OnInit, OnDestroy {
   filterType = '';
   filterDismissed = '';
   sortBy = 'newest';
+  readonly dismissedOpts = [
+    { label: 'All', value: '' }, { label: 'Active', value: 'active' }, { label: 'Dismissed', value: 'dismissed' },
+  ];
+  readonly sortOpts = [
+    { label: 'Newest', value: 'newest' }, { label: 'Oldest', value: 'oldest' }, { label: 'Severity', value: 'severity' },
+  ];
+  readonly dismissReasonOpts = [
+    { label: 'False Positive', value: 'false_positive' },
+    { label: 'Technical Issue', value: 'technical_issue' },
+    { label: 'Acceptable Behavior', value: 'acceptable_behavior' },
+    { label: 'Duplicate', value: 'duplicate' },
+    { label: 'Other', value: 'other' },
+  ];
   page = 1;
   pageSize = 20;
   selectedIds: string[] = [];

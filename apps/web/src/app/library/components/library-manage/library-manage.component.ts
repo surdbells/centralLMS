@@ -38,6 +38,7 @@ import { TranslatePipe } from '../../../translate.pipe';
 import { I18nService } from '../../../i18n.service';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 
 /**
  * Managing the digital library: what is shared, and sharing more.
@@ -61,6 +62,7 @@ import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
     LibraryCategoriesComponent,
     TranslatePipe,
     SkeletonComponent,
+    SelectComponent,
   ],
   templateUrl: './library-manage.component.html',
   styleUrl: './library-manage.component.scss',

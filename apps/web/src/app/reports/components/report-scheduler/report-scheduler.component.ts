@@ -7,12 +7,13 @@ import { ScheduledReport, ReportCatalogItem } from '../../models/report.models';
 import {AdmintopComponent} from '../../../partials/top/admintop/admintop.component';
 import {TranslatePipe} from '../../../translate.pipe';
 import {I18nService} from '../../../i18n.service';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { ConfirmDialogService } from '../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-report-scheduler',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -39,26 +40,19 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label small">{{ 'reports.report_label' | translate }}</label>
-              <select class="form-select" [(ngModel)]="newSchedule.report_key">
-                <option value="">{{ 'reports.select_report' | translate }}</option>
-                <option *ngFor="let r of reportOptions" [value]="r.key">{{ r.name }}</option>
-              </select>
+              <app-select [options]="reportOptions" bindLabel="name" bindValue="key"
+                          placeholder="{{ 'reports.select_report' | translate }}" [ariaLabel]="'reports.report_label' | translate"
+                          [(ngModel)]="newSchedule.report_key" />
             </div>
             <div class="col-md-2">
               <label class="form-label small">{{ 'reports.frequency' | translate }}</label>
-              <select class="form-select" [(ngModel)]="newSchedule.frequency">
-                <option value="daily">{{ 'reports.freq_daily' | translate }}</option>
-                <option value="weekly">{{ 'reports.freq_weekly' | translate }}</option>
-                <option value="monthly">{{ 'reports.freq_monthly' | translate }}</option>
-              </select>
+              <app-select [options]="frequencyOpts" [translateLabels]="true" [searchable]="false"
+                          [ariaLabel]="'reports.frequency' | translate" [(ngModel)]="newSchedule.frequency" />
             </div>
             <div class="col-md-2">
               <label class="form-label small">{{ 'reports.format' | translate }}</label>
-              <select class="form-select" [(ngModel)]="newSchedule.export_format">
-                <option value="csv">CSV</option>
-                <option value="xlsx">{{ 'reports.excel' | translate }}</option>
-                <option value="pdf">PDF</option>
-              </select>
+              <app-select [options]="formatOpts" [translateLabels]="true" [searchable]="false"
+                          [ariaLabel]="'reports.format' | translate" [(ngModel)]="newSchedule.export_format" />
             </div>
             <div class="col-md-4">
               <label class="form-label small">{{ 'reports.recipients_emails' | translate }}</label>
@@ -116,6 +110,17 @@ import { ConfirmDialogService } from '../../../shared/components/confirmation-di
 export class ReportSchedulerComponent implements OnInit {
   schedules: ScheduledReport[] = [];
   reportOptions: ReportCatalogItem[] = [];
+  readonly frequencyOpts = [
+    { value: 'daily', label: 'reports.freq_daily' },
+    { value: 'weekly', label: 'reports.freq_weekly' },
+    { value: 'monthly', label: 'reports.freq_monthly' },
+  ] as const;
+  /** CSV / PDF have no i18n key, so they fall through the translator unchanged. */
+  readonly formatOpts = [
+    { value: 'csv', label: 'CSV' },
+    { value: 'xlsx', label: 'reports.excel' },
+    { value: 'pdf', label: 'PDF' },
+  ] as const;
   showForm = false;
   newSchedule: Partial<ScheduledReport> = { frequency: 'weekly', export_format: 'csv', recipients: '' };
 

@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -85,7 +86,7 @@ interface ProctoringConfig {
 @Component({
   selector: 'app-proctoring-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -288,24 +289,14 @@ interface ProctoringConfig {
                   <span class="setting-label">Snapshot Interval</span>
                   <span class="setting-desc">Seconds between webcam captures</span>
                 </div>
-                <select class="form-select form-select-sm setting-input" [(ngModel)]="config.snapshot_interval_seconds">
-                  <option [ngValue]="15">Every 15s</option>
-                  <option [ngValue]="30">Every 30s</option>
-                  <option [ngValue]="60">Every 60s</option>
-                  <option [ngValue]="120">Every 2 min</option>
-                  <option [ngValue]="300">Every 5 min</option>
-                </select>
+                <app-select class="setting-input" size="sm" [options]="snapshotIntervalOpts" [searchable]="false" [(ngModel)]="config.snapshot_interval_seconds" ariaLabel="Snapshot Interval" />
               </div>
               <div class="setting-row" *ngIf="config.require_face_detection">
                 <div class="setting-info">
                   <span class="setting-label">Detection Sensitivity</span>
                   <span class="setting-desc">How strict face detection should be</span>
                 </div>
-                <select class="form-select form-select-sm setting-input" [(ngModel)]="config.face_detection_sensitivity">
-                  <option value="low">Low (lenient)</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High (strict)</option>
-                </select>
+                <app-select class="setting-input" size="sm" [options]="sensitivityOpts" [searchable]="false" [(ngModel)]="config.face_detection_sensitivity" ariaLabel="Detection Sensitivity" />
               </div>
             </div>
           </div>
@@ -342,11 +333,7 @@ interface ProctoringConfig {
                   <span class="setting-label">Recording Quality</span>
                   <span class="setting-desc">Higher quality = more storage</span>
                 </div>
-                <select class="form-select form-select-sm setting-input" [(ngModel)]="config.screen_recording_quality">
-                  <option value="low">Low (480p)</option>
-                  <option value="medium">Medium (720p)</option>
-                  <option value="high">High (1080p)</option>
-                </select>
+                <app-select class="setting-input" size="sm" [options]="recordingQualityOpts" [searchable]="false" [(ngModel)]="config.screen_recording_quality" ariaLabel="Recording Quality" />
               </div>
             </div>
           </div>
@@ -724,6 +711,17 @@ export class ProctoringSettingsComponent implements OnInit, OnDestroy {
   saveError: string | null = null;
   activePreset = '';
   presets: ProctoringPreset[] = [];
+
+  readonly snapshotIntervalOpts = [
+    { label: 'Every 15s', value: 15 }, { label: 'Every 30s', value: 30 }, { label: 'Every 60s', value: 60 },
+    { label: 'Every 2 min', value: 120 }, { label: 'Every 5 min', value: 300 },
+  ];
+  readonly sensitivityOpts = [
+    { label: 'Low (lenient)', value: 'low' }, { label: 'Medium', value: 'medium' }, { label: 'High (strict)', value: 'high' },
+  ];
+  readonly recordingQualityOpts = [
+    { label: 'Low (480p)', value: 'low' }, { label: 'Medium (720p)', value: 'medium' }, { label: 'High (1080p)', value: 'high' },
+  ];
 
   expandedSections: Record<string, boolean> = {
     browser: true, webcam: true, screen: false, id: false,

@@ -19,6 +19,7 @@ import { AdmintopComponent } from '../../partials/top/admintop/admintop.componen
 import { ApiError, type PageMeta } from '../../core/api';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 
 /**
@@ -55,6 +56,7 @@ import { I18nService } from '../../i18n.service';
     AdmintopComponent,
     TuiButton,
     TranslatePipe,
+    SelectComponent,
   ],
   templateUrl: './media.component.html',
   styleUrl: './media.component.css',
@@ -90,6 +92,16 @@ export class MediaComponent implements OnInit {
 
   /** The kind filter, empty for everything. */
   kind: MediaKind | '' = '';
+  readonly kindOptions: ReadonlyArray<{ value: MediaKind | ''; label: string }> = [
+    { value: '', label: 'admin.media.every_type' },
+    { value: 'video', label: 'admin.media.type_video' },
+    { value: 'audio', label: 'admin.media.type_audio' },
+    { value: 'scorm', label: 'admin.media.type_scorm_package' },
+    { value: 'pdf', label: 'admin.media.type_pdf' },
+    { value: 'image', label: 'admin.media.type_image' },
+    { value: 'document', label: 'admin.media.type_document' },
+  ];
+  readonly perPageOptions = [5, 10, 25, 50];
 
   ngOnInit(): void {
     this.storageStatistics();

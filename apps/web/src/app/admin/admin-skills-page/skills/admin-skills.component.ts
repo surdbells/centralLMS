@@ -18,6 +18,7 @@ import { LookupsService } from '../../../services/lookups.service';
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent, SelectOptionDirective } from '../../../shared/select/select.component';
 
 type Tab = 'skills' | 'categories' | 'analytics';
 type AnalyticsTab = 'overview' | 'top-skills' | 'skill-gaps' | 'course-skills' | 'user-lookup';
@@ -154,7 +155,7 @@ export interface AssignmentRow {
 @Component({
   selector: 'app-admin-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TranslatePipe, SkeletonComponent, SelectComponent, SelectOptionDirective],
   templateUrl: './admin-skills.component.html',
   styleUrls: ['./admin-skills.component.scss'],
 })
@@ -246,6 +247,19 @@ export class AdminSkillsComponent implements OnInit, OnDestroy {
     'bi-calculator', 'bi-globe', 'bi-book', 'bi-trophy', 'bi-rocket',
   ];
 
+  /** Option lists for the <app-select> pickers (labels title-cased, as before). */
+  readonly levelOpts = this.levels.map((l) => ({ value: l, label: l.charAt(0).toUpperCase() + l.slice(1) }));
+  readonly iconSelectOpts = this.iconOptions.map((ico) => {
+    const name = ico.replace('bi-', '');
+    return { value: ico, label: name.charAt(0).toUpperCase() + name.slice(1), icon: ico };
+  });
+
+  /**
+   * Per-row skill options in the course-skills modal: a skill already picked
+   * on another row is disabled. Rebuilt whenever the rows or a pick change.
+   */
+  courseSkillOpts: (SkillRow & { disabled: boolean })[][] = [];
+
   readonly colorPresets = [
     '#303234', '#c9a227', '#4e79a7', '#59a14f', '#e15759',
     '#f28e2b', '#76b7b2', '#b07aa1', '#9c755f', '#bab0ac',
@@ -332,6 +346,7 @@ export class AdminSkillsComponent implements OnInit, OnDestroy {
           }));
           this.filteredSkills = this.allSkills;
           this.availableSkillsForCourse = this.allSkills.filter((s) => s.is_active);
+          this.refreshCourseSkillOpts();
 
           this.loading = false;
         },
@@ -814,6 +829,7 @@ export class AdminSkillsComponent implements OnInit, OnDestroy {
             proficiency_level: cs.proficiency,
             is_primary: cs.isPrimary,
           }));
+          this.refreshCourseSkillOpts();
         },
         error: (error: ApiError) => (this.error = error.message),
       });
@@ -835,6 +851,7 @@ export class AdminSkillsComponent implements OnInit, OnDestroy {
         is_primary: this.courseSkillAssignments.length === 0,
       },
     ];
+    this.refreshCourseSkillOpts();
   }
 
   removeSkillFromCourse(index: number): void {
@@ -845,6 +862,7 @@ export class AdminSkillsComponent implements OnInit, OnDestroy {
     if (removed?.is_primary && this.courseSkillAssignments.length > 0) {
       this.courseSkillAssignments[0].is_primary = true;
     }
+    this.refreshCourseSkillOpts();
   }
 
   /** Exactly one skill is the main one, so setting it clears the rest. */
@@ -853,6 +871,12 @@ export class AdminSkillsComponent implements OnInit, OnDestroy {
       ...a,
       is_primary: i === index,
     }));
+  }
+
+  refreshCourseSkillOpts(): void {
+    this.courseSkillOpts = this.courseSkillAssignments.map((_, i) =>
+      this.availableSkillsForCourse.map((s) => ({ ...s, disabled: this.isSkillAlreadyAssigned(s.skill_id, i) })),
+    );
   }
 
   isSkillAlreadyAssigned(skillId: string, index: number): boolean {

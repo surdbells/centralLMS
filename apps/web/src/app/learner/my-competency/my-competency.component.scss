@@ -57,7 +57,7 @@
   align-items: center;
   gap: 0.5rem;
 }
-.mc-profile { max-width: 220px; }
+.mc-profile { max-width: 220px; min-width: 180px; }
 
 /* ---- tabs ---- */
 .mc-tabs {

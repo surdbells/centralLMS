@@ -645,23 +645,14 @@ LESSON MODAL
                 {{ 'admin.course_content.select_media' | translate }}
                 <span class="text-muted ms-1">{{ 'admin.course_content.from_media_library' | translate }}</span>
               </label>
-              <div class="input-group">
-          <span class="input-group-text">
-            <i class="bi" [class]="getContentTypeIcon(currentLesson.content_type)"></i>
-          </span>
-                <select class="form-select"
-                        [ngModel]="selectedMedia?.media_id || ''"
-                        (ngModelChange)="onMediaSelect($event)"
-                        [disabled]="loadingMedia">
-                  <option value="">{{ 'admin.course_content.select_media_option' | translate:{ type: (currentLesson.content_type | titlecase) } }}</option>
-                  <option *ngFor="let media of filteredMediaFiles" [value]="media.media_id">
-                    {{ getMediaDisplayName(media) }}
-                  </option>
-                </select>
-                <span class="input-group-text" *ngIf="loadingMedia">
-            <span class="spinner-border spinner-border-sm"></span>
-          </span>
-              </div>
+              <app-select [options]="mediaOptions"
+                          [value]="selectedMedia?.media_id ?? null"
+                          (selectionChange)="onMediaSelect($event)"
+                          [disabled]="loadingMedia"
+                          [loading]="loadingMedia"
+                          [clearable]="true"
+                          [placeholder]="'admin.course_content.select_media_option' | translate:{ type: (currentLesson.content_type | titlecase) }"
+                          [ariaLabel]="'admin.course_content.select_media' | translate" />
               <small class="text-muted" *ngIf="filteredMediaFiles.length === 0 && !loadingMedia">
                 {{ 'admin.course_content.no_media_files' | translate:{ type: currentLesson.content_type } }}
               </small>
@@ -785,11 +776,8 @@ ASSESSMENT MODAL
               <div class="col-md-4">
                 <div class="mb-3">
                   <label class="form-label">{{ 'admin.course_content.type_label' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="currentAssessment.assessment_type">
-                    <option *ngFor="let type of assessmentTypes" [value]="type.value">
-                      {{ type.label | translate }}
-                    </option>
-                  </select>
+                  <app-select [options]="assessmentTypes" iconKey="icon" [translateLabels]="true" [searchable]="false"
+                              [(ngModel)]="currentAssessment.assessment_type" />
                 </div>
               </div>
             </div>

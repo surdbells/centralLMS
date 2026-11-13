@@ -11,10 +11,9 @@
     </div>
     <div class="d-flex align-items-center gap-2" *ngIf="r.cycles.length">
       <label class="text-muted small mb-0">{{ 'competency.common.cycle' | translate }}</label>
-      <select class="form-select form-select-sm w-auto" [ngModel]="cycle"
-              (ngModelChange)="onCycleChange($event)">
-        <option *ngFor="let c of r.cycles" [value]="c">{{ c }}</option>
-      </select>
+      <app-select size="sm" style="min-width: 9rem" [options]="r.cycles" [value]="cycle"
+                  [ariaLabel]="'competency.common.cycle' | translate"
+                  (selectionChange)="onCycleChange($event)" />
     </div>
   </div>
 

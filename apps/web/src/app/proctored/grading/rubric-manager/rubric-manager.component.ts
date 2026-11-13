@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../translate.pipe';
@@ -58,7 +59,7 @@ interface RubricPreview extends RubricListItem {
 @Component({
   selector: 'app-rubric-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -115,24 +116,9 @@ interface RubricPreview extends RubricListItem {
                    [(ngModel)]="searchTerm" (ngModelChange)="onSearch()">
           </div>
           <div class="ui-filters">
-            <select class="form-select" [(ngModel)]="filterType" (change)="applyFilters()">
-              <option value="">All Types</option>
-              <option value="analytic">Analytic</option>
-              <option value="holistic">Holistic</option>
-              <option value="checklist">Checklist</option>
-            </select>
-            <select class="form-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-            </select>
-            <select class="form-select" [(ngModel)]="sortBy" (change)="applyFilters()">
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="name">Name A-Z</option>
-              <option value="most_used">Most Used</option>
-            </select>
+            <app-select style="width:150px" [options]="typeOpts" placeholder="All Types" [(ngModel)]="filterType" (selectionChange)="applyFilters()" ariaLabel="Type" />
+            <app-select style="width:150px" [options]="statusOpts" placeholder="All Status" [(ngModel)]="filterStatus" (selectionChange)="applyFilters()" ariaLabel="Status" />
+            <app-select style="width:160px" [options]="sortOpts" [(ngModel)]="sortBy" (selectionChange)="applyFilters()" ariaLabel="Sort" />
           </div>
         </div>
 
@@ -356,6 +342,18 @@ export class RubricManagerComponent implements OnInit, OnDestroy {
   filterType = '';
   filterStatus = '';
   sortBy = 'newest';
+  readonly typeOpts = [
+    { label: 'All Types', value: '' }, { label: 'Analytic', value: 'analytic' },
+    { label: 'Holistic', value: 'holistic' }, { label: 'Checklist', value: 'checklist' },
+  ];
+  readonly statusOpts = [
+    { label: 'All Status', value: '' }, { label: 'Active', value: 'active' },
+    { label: 'Draft', value: 'draft' }, { label: 'Archived', value: 'archived' },
+  ];
+  readonly sortOpts = [
+    { label: 'Newest First', value: 'newest' }, { label: 'Oldest First', value: 'oldest' },
+    { label: 'Name A-Z', value: 'name' }, { label: 'Most Used', value: 'most_used' },
+  ];
 
   // Modals
   showPreviewModal = false;

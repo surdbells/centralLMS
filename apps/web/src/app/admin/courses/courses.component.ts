@@ -21,6 +21,7 @@ import { CourseCardComponent } from '../../course-card.component';
 import { CourseMiniCardComponent } from '../../course-mini-card.component';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent, SelectLabelDirective, SelectOptionDirective } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 
 /**
@@ -83,6 +84,9 @@ interface PreviewData {
     CourseCardComponent,
     CourseMiniCardComponent,
     TranslatePipe,
+    SelectComponent,
+    SelectOptionDirective,
+    SelectLabelDirective,
   ],
   templateUrl: './courses.component.html',
   styleUrls: ['./courses.component.css'],
@@ -99,6 +103,7 @@ export class CourseComponent implements OnInit, OnDestroy {
 
   course: Course[] = [];
   category: Category[] = [];
+  readonly perPageOptions = [4, 5, 10, 25, 50];
 
   /** Counted by the server on every read. */
   statistics = { total: 0, draft: 0, published: 0, archived: 0 };

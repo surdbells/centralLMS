@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SelectComponent } from '../shared/select/select.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HotToastService } from '@ngneat/hot-toast';
 import { Question, QuestionOption, AnswerData, AttemptAnswer, getQuestionTypeLabel } from '../../../models/assessments.models';
@@ -8,7 +9,7 @@ import { Question, QuestionOption, AnswerData, AttemptAnswer, getQuestionTypeLab
 @Component({
   selector: 'app-question-display',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SelectComponent],
   template: `
     <div class="question-display" [class.disabled]="disabled">
       <!-- Question Header -->
@@ -162,14 +163,13 @@ import { Question, QuestionOption, AnswerData, AttemptAnswer, getQuestionTypeLab
                 <i class="bi bi-arrow-right"></i>
               </div>
               <div class="matching-right">
-                <select
-                  class="form-select"
+                <app-select
+                  [options]="getMatchOptions()"
+                  placeholder="-- Select --"
                   [value]="localAnswer.matches?.[option.id!] || ''"
-                  (change)="onMatchChange(option.id!, $event)"
-                  [disabled]="disabled">
-                  <option value="">-- Select --</option>
-                  <option *ngFor="let match of getMatchOptions()" [value]="match">{{ match }}</option>
-                </select>
+                  (selectionChange)="onMatchChange(option.id!, $event)"
+                  [disabled]="disabled"
+                  [ariaLabel]="option.option_text || 'Match'" />
               </div>
             </div>
           </div>
@@ -952,12 +952,19 @@ export class QuestionDisplayComponent implements OnChanges {
   }
 
   // Matching
+  private matchOptsCache: { src: unknown; opts: string[] } = { src: null, opts: [] };
+
+  /** Right-hand match choices; cached per options array so the select gets a stable reference. */
   getMatchOptions(): string[] {
-    return this.question.options?.map(o => o.match_text || '').filter(Boolean) || [];
+    const src = this.question.options;
+    if (this.matchOptsCache.src !== src) {
+      this.matchOptsCache = { src, opts: src?.map(o => o.match_text || '').filter(Boolean) || [] };
+    }
+    return this.matchOptsCache.opts;
   }
 
-  onMatchChange(optionId: number, event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
+  onMatchChange(optionId: number, picked: string | null): void {
+    const value = picked ?? '';
     if (!this.localAnswer.matches) {
       this.localAnswer.matches = {};
     }

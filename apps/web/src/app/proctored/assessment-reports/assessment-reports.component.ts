@@ -8,6 +8,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../translate.pipe';
@@ -36,7 +37,7 @@ interface QuestionAnalytics {
 @Component({
   selector: 'app-assessment-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TuiIcon, AdmintopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -73,22 +74,12 @@ interface QuestionAnalytics {
       <!-- Filters -->
       <div class="ui-toolbar">
         <div class="ui-filters">
-          <select class="form-select" [(ngModel)]="filterAssessment" (change)="onFilterChange()" aria-label="Assessment">
-            <option value="">All Assessments</option>
-            <option *ngFor="let a of assessments" [value]="a.id">{{ a.title }}</option>
-          </select>
-          <select class="form-select" [(ngModel)]="filterCategory" (change)="onFilterChange()" aria-label="Category">
-            <option value="">All Categories</option>
-            <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
-          </select>
-          <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()" aria-label="Status">
-            <option value="">All Statuses</option><option value="passed">Passed</option>
-            <option value="failed">Failed</option><option value="in_progress">In Progress</option>
-          </select>
-          <select class="form-select" [(ngModel)]="dateRange" (change)="onFilterChange()" aria-label="Date range">
-            <option value="7d">Last 7 Days</option><option value="30d">Last 30 Days</option>
-            <option value="90d">Last 90 Days</option><option value="all">All Time</option>
-          </select>
+          <app-select style="width:220px" [options]="assessments" bindLabel="title" bindValue="id" placeholder="All Assessments" [clearable]="true"
+                      [ngModel]="filterAssessment" (ngModelChange)="filterAssessment = $event ?? ''" (selectionChange)="onFilterChange()" ariaLabel="Assessment" />
+          <app-select style="width:180px" [options]="categories" bindLabel="name" bindValue="id" placeholder="All Categories" [clearable]="true"
+                      [ngModel]="filterCategory" (ngModelChange)="filterCategory = $event ?? ''" (selectionChange)="onFilterChange()" ariaLabel="Category" />
+          <app-select style="width:160px" [options]="statusOpts" placeholder="All Statuses" [searchable]="false" [(ngModel)]="filterStatus" (selectionChange)="onFilterChange()" ariaLabel="Status" />
+          <app-select style="width:160px" [options]="dateRangeOpts" [searchable]="false" [(ngModel)]="dateRange" (selectionChange)="onFilterChange()" ariaLabel="Date range" />
         </div>
       </div>
 
@@ -244,6 +235,14 @@ export class AssessmentReportsComponent implements OnInit, OnDestroy {
   filterCategory = '';
   filterStatus = '';
   dateRange = '30d';
+  readonly statusOpts = [
+    { label: 'All Statuses', value: '' }, { label: 'Passed', value: 'passed' },
+    { label: 'Failed', value: 'failed' }, { label: 'In Progress', value: 'in_progress' },
+  ];
+  readonly dateRangeOpts = [
+    { label: 'Last 7 Days', value: '7d' }, { label: 'Last 30 Days', value: '30d' },
+    { label: 'Last 90 Days', value: '90d' }, { label: 'All Time', value: 'all' },
+  ];
   sortField = 'learner_name';
   sortDir: 'asc'|'desc' = 'asc';
   page = 1;

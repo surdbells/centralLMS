@@ -15,6 +15,7 @@ import { catchError } from 'rxjs/operators';
 import { TuiIcon } from '@taiga-ui/core';
 import { TopComponent } from '../../partials/top/top.component';
 import { TranslatePipe } from '../../translate.pipe';
+import { SelectComponent } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 import {
   CertificatesService,
@@ -32,7 +33,7 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
 @Component({
   selector: 'app-certificate-viewer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TuiIcon, TopComponent, SkeletonComponent, TranslatePipe, SelectComponent],
   template: `
     <app-top></app-top>
 
@@ -55,14 +56,8 @@ type CertificateDetail = Certificate & { verificationUrl?: string };
       <section class="ui-section">
         <div class="ui-toolbar">
           <div class="ui-filters">
-            <select class="form-select" [attr.aria-label]="'common.status' | translate"
-                    [(ngModel)]="statusFilter" (ngModelChange)="filterCertificates()">
-              <option value="all">{{ 'certViewer.all_statuses' | translate }}</option>
-              <option value="active">{{ 'common.active' | translate }}</option>
-              <option value="expired">{{ 'certViewer.status_expired' | translate }}</option>
-              <option value="expiring_soon">{{ 'certViewer.status_expiring_soon' | translate }}</option>
-              <option value="revoked">{{ 'certViewer.status_revoked' | translate }}</option>
-            </select>
+            <app-select style="width:190px" [ariaLabel]="'common.status' | translate" [options]="statusOpts" [translateLabels]="true" [searchable]="false"
+                        [(ngModel)]="statusFilter" (ngModelChange)="filterCertificates()" />
           </div>
           <label class="ui-search">
             <i class="bi bi-search"></i>
@@ -378,6 +373,13 @@ export class CertificateViewerComponent implements OnInit, OnDestroy {
   // Filters
   searchTerm = '';
   statusFilter = 'all';
+  readonly statusOpts = [
+    { label: 'certViewer.all_statuses', value: 'all' },
+    { label: 'common.active', value: 'active' },
+    { label: 'certViewer.status_expired', value: 'expired' },
+    { label: 'certViewer.status_expiring_soon', value: 'expiring_soon' },
+    { label: 'certViewer.status_revoked', value: 'revoked' },
+  ];
 
   // Modals
   showShareModal = false;

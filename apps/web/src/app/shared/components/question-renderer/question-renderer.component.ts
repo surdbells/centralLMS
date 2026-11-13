@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 import { TranslatePipe } from '../../../translate.pipe';
+import { SelectComponent } from '../../select/select.component';
 
 export interface QuestionOption {
   option_id: number;
@@ -39,7 +40,7 @@ export interface Question {
 @Component({
   selector: 'app-question-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusBadgeComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, StatusBadgeComponent, TranslatePipe, SelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="question-container" [class.answered]="isAnswered" [class.flagged]="flagged">
@@ -146,10 +147,8 @@ export interface Question {
             <div *ngFor="let opt of question.options; let i = index" class="match-row">
               <div class="match-left">{{ opt.option_text }}</div>
               <span class="match-arrow">→</span>
-              <select class="form-select match-select" [disabled]="disabled" [value]="getMatch(i)" (change)="onMatch(i, $event)">
-                <option value="">{{ 'shared.question.select' | translate }}</option>
-                <option *ngFor="let r of matchRightOptions" [value]="r">{{ r }}</option>
-              </select>
+              <app-select class="match-select" [disabled]="disabled" [options]="matchRightOptions" placeholder="{{ 'shared.question.select' | translate }}"
+                          [value]="getMatch(i)" (selectionChange)="onMatch(i, $event)" [ariaLabel]="opt.option_text" />
             </div>
           </div>
         </ng-container>
@@ -274,8 +273,17 @@ export class QuestionRendererComponent {
     return typeof this.answer === 'string' && this.answer.trim() ? this.answer.trim().split(/\s+/).length : 0;
   }
 
+  private matchRightCache: { q: unknown; opts: string[] } = { q: null, opts: [] };
+
+  /** Right-hand match choices; cached per question so the select gets a stable array reference. */
   get matchRightOptions(): string[] {
-    return (this.question.correct_answer as any)?.rightOptions || (this.question.options || []).map(o => o.option_text);
+    if (this.matchRightCache.q !== this.question) {
+      this.matchRightCache = {
+        q: this.question,
+        opts: (this.question.correct_answer as any)?.rightOptions || (this.question.options || []).map(o => o.option_text),
+      };
+    }
+    return this.matchRightCache.opts;
   }
 
   get orderItems(): string[] {
@@ -309,8 +317,8 @@ export class QuestionRendererComponent {
 
   getMatch(i: number): string { return (this.answer as any)?.[i] || ''; }
 
-  onMatch(i: number, e: Event): void {
-    const val = (e.target as HTMLSelectElement).value;
+  onMatch(i: number, picked: string | null): void {
+    const val = picked ?? '';
     const curr = { ...(this.answer || {}) };
     curr[i] = val;
     this.answerChange.emit(curr);

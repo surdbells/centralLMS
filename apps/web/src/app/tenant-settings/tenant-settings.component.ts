@@ -16,6 +16,7 @@ import {
 } from '../services/settings.service';
 import { TenantService, type Tenant } from '../services/tenant.service';
 import { EmailTemplatesPanelComponent } from './email-templates-panel/email-templates-panel.component';
+import { SelectComponent } from '../shared/select/select.component';
 import { EmailTemplatesService } from '../services/email-templates.service';
 import {
   SsoService,
@@ -55,7 +56,7 @@ export interface SettingsTab {
 @Component({
   selector: 'app-tenant-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, EmailTemplatesPanelComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, EmailTemplatesPanelComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './tenant-settings.component.html',
   styleUrls: ['./tenant-settings.component.scss'],
 })

@@ -4237,5 +4237,12 @@
   "tenant.placeholder.brand_text_color": "Couleur du texte sur la couleur de la marque",
   "tenant.placeholder.certificate_number": "Numéro du certificat",
   "tenant.placeholder.percentage": "Score (pourcentage)",
-  "tenant.placeholder.reason": "Motif"
+  "tenant.placeholder.reason": "Motif",
+  "common.select.placeholder": "Sélectionner…",
+  "common.select.search": "Rechercher…",
+  "common.select.no_results": "Aucun résultat",
+  "common.select.empty": "Aucune option",
+  "common.select.select_all": "Tout sélectionner",
+  "common.select.selected_count": "{{count}} sélectionné(s)",
+  "common.select.clear_aria": "Effacer la sélection"
 }

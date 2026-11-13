@@ -7,6 +7,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
@@ -118,7 +119,7 @@ interface QuickFeedback {
 @Component({
   selector: 'app-grading-interface',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, TuiIcon, AdmintopComponent, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
 
@@ -364,12 +365,7 @@ interface QuickFeedback {
             </div>
             <div class="section-body" *ngIf="showAdjustment">
               <div class="adjustment-form">
-                <select class="form-select form-select-sm" [(ngModel)]="adjustment.type">
-                  <option value="">No Adjustment</option>
-                  <option value="bonus">Bonus Points</option>
-                  <option value="penalty">Penalty</option>
-                  <option value="override">Override Score</option>
-                </select>
+                <app-select size="sm" [options]="adjustmentTypeOpts" placeholder="No Adjustment" [searchable]="false" [(ngModel)]="adjustment.type" ariaLabel="Adjustment type" />
                 <input *ngIf="adjustment.type" type="number" class="form-control form-control-sm mt-1"
                        [(ngModel)]="adjustment.value" placeholder="Points" step="0.5">
                 <input *ngIf="adjustment.type" type="text" class="form-control form-control-sm mt-1"
@@ -576,6 +572,10 @@ export class GradingInterfaceComponent implements OnInit, OnDestroy {
   rubricScores: Record<number, { level_id: number; points: number }> = {};
   rubricComments: Record<number, string> = {};
   adjustment = { type: '', value: 0, reason: '' };
+  readonly adjustmentTypeOpts = [
+    { label: 'No Adjustment', value: '' }, { label: 'Bonus Points', value: 'bonus' },
+    { label: 'Penalty', value: 'penalty' }, { label: 'Override Score', value: 'override' },
+  ];
 
   // Comment
   newComment = { type: 'general', text: '' };

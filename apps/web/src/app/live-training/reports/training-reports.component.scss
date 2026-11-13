@@ -1,9 +1,10 @@
 // Page chrome (header, KPIs, sections, toolbar, pills) comes from the global
 // UI kit in styles.scss. Only the bespoke visualisations live here.
 
-.date-range-select {
+.date-range-select,
+.status-filter-select {
   width: auto;
-  min-width: 160px;
+  min-width: 180px;
 }
 
 // Trend chart takes two thirds, type distribution one third, on wide screens.

@@ -12,6 +12,7 @@ import { TranslatePipe } from '../../translate.pipe';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
+import { SelectComponent } from '../../shared/select/select.component';
 
 // Interface for form target criteria (non-nullable arrays)
 interface FormTargetCriteria {
@@ -23,7 +24,7 @@ interface FormTargetCriteria {
 @Component({
   selector: 'app-broadcast-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe],
+  imports: [CommonModule, FormsModule, TopComponent, TranslatePipe, SelectComponent],
   template: `
     <app-top></app-top>
 
@@ -188,11 +189,9 @@ interface FormTargetCriteria {
                   <div class="col-md-6">
                     <div class="mb-3">
                       <label class="form-label">{{ 'messaging.priority' | translate }}</label>
-                      <select class="form-select" [(ngModel)]="broadcastForm.priority" name="priority">
-                        <option value="normal">{{ 'messaging.priority_normal' | translate }}</option>
-                        <option value="important">{{ 'messaging.priority_important' | translate }}</option>
-                        <option value="urgent">{{ 'messaging.priority_urgent' | translate }}</option>
-                      </select>
+                      <app-select [options]="priorityOpts" [translateLabels]="true" [searchable]="false"
+                                  [ariaLabel]="'messaging.priority' | translate"
+                                  [(ngModel)]="broadcastForm.priority" name="priority" />
                     </div>
                   </div>
 
@@ -200,13 +199,10 @@ interface FormTargetCriteria {
                   <div class="col-md-6">
                     <div class="mb-3">
                       <label class="form-label">{{ 'messaging.target_audience' | translate }} *</label>
-                      <select class="form-select" [(ngModel)]="broadcastForm.target_type" name="target_type"
-                              (change)="onTargetTypeChange()">
-                        <option value="all">{{ 'messaging.target_all' | translate }}</option>
-                        <option value="role">{{ 'messaging.target_role' | translate }}</option>
-                        <option value="department">{{ 'messaging.target_department' | translate }}</option>
-                        <option value="course">{{ 'messaging.target_course_enrollment' | translate }}</option>
-                      </select>
+                      <app-select [options]="targetTypeOpts" [translateLabels]="true" [searchable]="false"
+                                  [ariaLabel]="'messaging.target_audience' | translate"
+                                  [(ngModel)]="broadcastForm.target_type" name="target_type"
+                                  (selectionChange)="onTargetTypeChange()" />
                     </div>
                   </div>
                 </div>
@@ -225,19 +221,19 @@ interface FormTargetCriteria {
 
                 <div class="mb-3" *ngIf="broadcastForm.target_type === 'department'">
                   <label class="form-label">{{ 'messaging.select_departments' | translate }}</label>
-                  <select class="form-select" multiple [ngModel]="getSelectedDepartments()"
-                          (ngModelChange)="setSelectedDepartments($event)" name="departments">
-                    <option *ngFor="let dept of availableDepartments" [value]="dept.id">{{ dept.name }}</option>
-                  </select>
+                  <app-select [multiple]="true" [options]="availableDepartments" bindLabel="name" bindValue="id"
+                              [ariaLabel]="'messaging.select_departments' | translate"
+                              [ngModel]="getSelectedDepartments()"
+                              (ngModelChange)="setSelectedDepartments($event)" name="departments" />
                 </div>
 
                 <div class="mb-3" *ngIf="broadcastForm.target_type === 'course'">
                   <label class="form-label">{{ 'messaging.select_course' | translate }}</label>
-                  <select class="form-select" [ngModel]="getSelectedCourseId()"
-                          (ngModelChange)="setSelectedCourseId($event)" name="course_id">
-                    <option value="">{{ 'messaging.select_course_ph' | translate }}</option>
-                    <option *ngFor="let course of availableCourses" [value]="course.id">{{ course.title }}</option>
-                  </select>
+                  <app-select [options]="availableCourses" bindLabel="title" bindValue="id"
+                              placeholder="{{ 'messaging.select_course_ph' | translate }}" [clearable]="true"
+                              [ariaLabel]="'messaging.select_course' | translate"
+                              [ngModel]="getSelectedCourseId()"
+                              (ngModelChange)="setSelectedCourseId($event)" name="course_id" />
                 </div>
 
                 <hr>
@@ -563,6 +559,17 @@ export class BroadcastManagementComponent implements OnInit, OnDestroy {
     { id: 1, title: 'Safety Training' },
     { id: 2, title: 'Leadership 101' },
     { id: 3, title: 'Technical Skills' }
+  ];
+  readonly priorityOpts = [
+    { value: 'normal', label: 'messaging.priority_normal' },
+    { value: 'important', label: 'messaging.priority_important' },
+    { value: 'urgent', label: 'messaging.priority_urgent' },
+  ];
+  readonly targetTypeOpts = [
+    { value: 'all', label: 'messaging.target_all' },
+    { value: 'role', label: 'messaging.target_role' },
+    { value: 'department', label: 'messaging.target_department' },
+    { value: 'course', label: 'messaging.target_course_enrollment' },
   ];
 
   constructor(private messagingService: MessagingService, private i18n: I18nService, private dialog: ConfirmDialogService) {}

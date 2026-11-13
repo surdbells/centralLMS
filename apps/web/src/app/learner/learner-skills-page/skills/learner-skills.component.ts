@@ -15,6 +15,7 @@ import {
 import { ApiError } from '../../../core/api';
 import { TranslatePipe } from '../../../translate.pipe';
 import { SkeletonComponent } from '../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../shared/select/select.component';
 import { I18nService } from '../../../i18n.service';
 
 /**
@@ -28,7 +29,7 @@ import { I18nService } from '../../../i18n.service';
 @Component({
   selector: 'app-learner-skills',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './learner-skills.component.html',
   styleUrls: ['./learner-skills.component.scss'],
 })
@@ -47,6 +48,13 @@ export class LearnerSkillsComponent implements OnInit, OnDestroy {
   error: string | null = null;
   viewMode: 'grid' | 'list' = 'grid';
   selectedLevel: Proficiency | '' = '';
+  readonly levelOpts = [
+    { value: '', label: 'skills.all_levels' },
+    { value: 'beginner', label: 'skills.beginner' },
+    { value: 'intermediate', label: 'skills.intermediate' },
+    { value: 'advanced', label: 'skills.advanced' },
+    { value: 'expert', label: 'skills.expert' },
+  ];
 
   showCoursesModal = false;
   selectedSkill: LearnerSkill | null = null;

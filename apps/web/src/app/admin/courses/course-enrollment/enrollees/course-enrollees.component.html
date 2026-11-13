@@ -125,15 +125,12 @@
       <div class="toolbar-left">
         <div class="filter-group">
           <label>{{ 'admin.enrollees.status_filter_label' | translate }}</label>
-          <select class="form-select form-select-sm"
-                  [(ngModel)]="statusFilter"
-                  (ngModelChange)="onStatusFilterChange()">
-            <option value="all">{{ 'admin.enrollees.all_status' | translate }}</option>
-            <option value="not_started">{{ 'admin.enrollees.status_not_started' | translate }}</option>
-            <option value="in_progress">{{ 'admin.enrollees.status_in_progress' | translate }}</option>
-            <option value="completed">{{ 'admin.enrollees.status_completed' | translate }}</option>
-            <option value="dropped">{{ 'admin.enrollees.status_dropped' | translate }}</option>
-          </select>
+          <app-select size="sm" style="min-width:180px"
+                      [options]="statusFilterOptions" [translateLabels]="true" [searchable]="false" [clearable]="true"
+                      placeholder="{{ 'admin.enrollees.all_status' | translate }}"
+                      [ariaLabel]="'admin.enrollees.status_filter_label' | translate"
+                      [value]="statusFilter"
+                      (selectionChange)="statusFilter = $event ?? ''; onStatusFilterChange()" />
         </div>
 
         <div class="selection-info" *ngIf="selectedCount > 0">

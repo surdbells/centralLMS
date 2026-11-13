@@ -22,12 +22,17 @@
     justify-content: center;
     padding: 8px 12px;
     overflow: hidden;
+    // Mirrors the email header: the logo on the white it was designed for,
+    // with the brand colour as a bar above it (never behind a coloured logo).
+    background: #ffffff;
+    border: 1px solid var(--ui-border);
+    border-top: 4px solid var(--brand-primary);
   }
 
   &__logo { max-width: 100%; max-height: 40px; object-fit: contain; }
 
   &__name {
-    color: #fff;
+    color: var(--brand-primary);
     font-weight: 650;
     font-size: .875rem;
     text-align: center;

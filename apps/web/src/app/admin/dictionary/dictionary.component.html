@@ -84,10 +84,8 @@
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">{{ 'dictionary.country' | translate }} *</label>
-                  <select class="form-select" name="country" [(ngModel)]="createBranch.country" required>
-                    <option value="" disabled selected>{{ 'dictionary.select_country' | translate }}</option>
-                    <option *ngFor="let c of countries" [value]="c">{{ c }}</option>
-                  </select>
+                  <app-select name="country" [(ngModel)]="createBranch.country" required [options]="countries"
+                              placeholder="{{ 'dictionary.select_country' | translate }}" />
                 </div>
               </div>
               <div class="mt-4 text-end">
@@ -132,10 +130,8 @@
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">{{ 'dictionary.country' | translate }} *</label>
-                  <select class="form-select" name="country" [(ngModel)]="singleBranch.country" required>
-                    <option value="" disabled selected>{{ 'dictionary.select_country' | translate }}</option>
-                    <option *ngFor="let c of countries" [value]="c">{{ c }}</option>
-                  </select>
+                  <app-select name="country" [(ngModel)]="singleBranch.country" required [options]="countries"
+                              placeholder="{{ 'dictionary.select_country' | translate }}" />
                 </div>
                 <div class="col-md-4">
                   <label class="form-label">{{ 'common.status' | translate }} *</label>

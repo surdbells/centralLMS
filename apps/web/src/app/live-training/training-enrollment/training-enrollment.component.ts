@@ -22,6 +22,7 @@ import { LiveTrainingService } from '../live-training.service';
 import type { EnrollmentRule } from '../live-training.interfaces';
 import { TranslatePipe } from '../../translate.pipe';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { SelectComponent, SelectOptionDirective } from '../../shared/select/select.component';
 import { I18nService } from '../../i18n.service';
 import { ConfirmDialogService } from '../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
@@ -30,7 +31,7 @@ type EnrollmentType = 'department' | 'team' | 'branch' | 'users';
 @Component({
   selector: 'app-training-enrollment',
   standalone: true,
-  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent, SelectOptionDirective],
   templateUrl: './training-enrollment.component.html',
   styleUrls: ['./training-enrollment.component.scss']
 })

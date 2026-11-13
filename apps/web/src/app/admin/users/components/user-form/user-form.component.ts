@@ -16,6 +16,7 @@ import { HotToastService } from '@ngneat/hot-toast';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../../shared/select/select.component';
 
 /* The shapes this screen's template already reads. */
 
@@ -58,7 +59,7 @@ export interface UserFormData {
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   template: `
     <app-admintop></app-admintop>
     <main class="main">
@@ -101,13 +102,9 @@ export interface UserFormData {
               <div class="row g-2">
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'admin.user_form.gender' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="form.gender" name="gender">
-                    <option value="">{{ 'admin.user_form.gender_unspecified' | translate }}</option>
-                    <option value="male">{{ 'admin.user_form.gender_male' | translate }}</option>
-                    <option value="female">{{ 'admin.user_form.gender_female' | translate }}</option>
-                    <option value="other">{{ 'admin.user_form.gender_other' | translate }}</option>
-                    <option value="undisclosed">{{ 'admin.user_form.gender_undisclosed' | translate }}</option>
-                  </select>
+                  <app-select [(ngModel)]="form.gender" name="gender" [options]="genderOptions"
+                              [translateLabels]="true" [searchable]="false"
+                              placeholder="{{ 'admin.user_form.gender_unspecified' | translate }}" />
                 </div>
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'admin.user_form.employee_id' | translate }}</label>
@@ -117,16 +114,13 @@ export interface UserFormData {
               <div class="row g-2">
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'common.language' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="form.language" name="language">
-                    <option value="en">{{ 'admin.user_form.lang_en' | translate }}</option><option value="fr">{{ 'admin.user_form.lang_fr' | translate }}</option><option value="ar">{{ 'admin.user_form.lang_ar' | translate }}</option>
-                  </select>
+                  <app-select [(ngModel)]="form.language" name="language" [options]="languageOptions"
+                              [translateLabels]="true" [searchable]="false" />
                 </div>
                 <div class="col-6 mb-3">
                   <label class="form-label small fw-semibold">{{ 'admin.user_form.learning_mode' | translate }}</label>
-                  <select class="form-select" [(ngModel)]="form.preferred_learning_mode" name="learning_mode">
-                    <option value="video">{{ 'admin.user_form.mode_video' | translate }}</option><option value="audio">{{ 'admin.user_form.mode_audio' | translate }}</option>
-                    <option value="reading">{{ 'admin.user_form.mode_reading' | translate }}</option><option value="interactive">{{ 'admin.user_form.mode_interactive' | translate }}</option>
-                  </select>
+                  <app-select [(ngModel)]="form.preferred_learning_mode" name="learning_mode" [options]="learningModeOptions"
+                              [translateLabels]="true" [searchable]="false" />
                 </div>
               </div>
               <div class="mb-0" *ngIf="!isEdit">
@@ -145,49 +139,38 @@ export interface UserFormData {
             </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.enrollees.col_department' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.department_id" name="department_id">
-                  <option *ngFor="let d of departments" [ngValue]="d.department_id">{{ d.department_name }}</option>
-                </select>
+                <app-select [(ngModel)]="form.department_id" name="department_id" [options]="departments"
+                            bindLabel="department_name" bindValue="department_id" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.branch' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.branch_id" name="branch_id">
-                  <option *ngFor="let b of branches" [ngValue]="b.branch_id">{{ b.branch_name }}</option>
-                </select>
+                <app-select [(ngModel)]="form.branch_id" name="branch_id" [options]="branches"
+                            bindLabel="branch_name" bindValue="branch_id" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.team' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.team_id" name="team_id">
-                  <option *ngFor="let t of teams" [ngValue]="t.team_id">{{ t.team_name }}</option>
-                </select>
+                <app-select [(ngModel)]="form.team_id" name="team_id" [options]="teams"
+                            bindLabel="team_name" bindValue="team_id" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_detail.job_title' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.job_title_id" name="job_title_id">
-                  <option [ngValue]="null">—</option>
-                  <option *ngFor="let j of jobTitles" [ngValue]="j.id">{{ j.name }}</option>
-                </select>
+                <app-select [(ngModel)]="form.job_title_id" name="job_title_id" [options]="jobTitles"
+                            bindLabel="name" bindValue="id" [clearable]="true" placeholder="—" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.job_grade' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.level_id" name="level_id">
-                  <option [ngValue]="null">—</option>
-                  <option *ngFor="let l of levels" [ngValue]="l.id">{{ l.name }}</option>
-                </select>
+                <app-select [(ngModel)]="form.level_id" name="level_id" [options]="levels"
+                            bindLabel="name" bindValue="id" [clearable]="true" placeholder="—" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_detail.manager' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.manager_id" name="manager_id">
-                  <option [ngValue]="null">—</option>
-                  <option *ngFor="let p of people" [ngValue]="p.id">{{ p.fullName }}</option>
-                </select>
+                <app-select [(ngModel)]="form.manager_id" name="manager_id" [options]="people"
+                            bindLabel="fullName" bindValue="id" [clearable]="true" placeholder="—" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.line_executive' | translate }}</label>
-                <select class="form-select" [(ngModel)]="form.line_executive_id" name="line_executive_id">
-                  <option [ngValue]="null">—</option>
-                  <option *ngFor="let p of people" [ngValue]="p.id">{{ p.fullName }}</option>
-                </select>
+                <app-select [(ngModel)]="form.line_executive_id" name="line_executive_id" [options]="people"
+                            bindLabel="fullName" bindValue="id" [clearable]="true" placeholder="—" />
               </div>
               <div class="mb-3">
                 <label class="form-label small fw-semibold">{{ 'admin.user_form.hire_date' | translate }}</label>
@@ -219,11 +202,8 @@ export interface UserFormData {
               <div class="mb-3 cf-field" *ngFor="let f of customFields">
                 <label class="form-label small fw-semibold">{{ f.label }}<span class="text-danger" *ngIf="f.required"> *</span></label>
                 <ng-container [ngSwitch]="f.type">
-                  <select *ngSwitchCase="'dropdown'" class="form-select"
-                          [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
-                    <option [ngValue]="null">—</option>
-                    <option *ngFor="let o of f.options" [ngValue]="o">{{ o }}</option>
-                  </select>
+                  <app-select *ngSwitchCase="'dropdown'" [options]="f.options" [clearable]="true" placeholder="—"
+                              [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key" />
                   <input *ngSwitchCase="'number'" type="number" class="form-control"
                          [(ngModel)]="customFieldValues[f.key]" [name]="'cf_' + f.key">
                   <input *ngSwitchCase="'date'" type="date" class="form-control"
@@ -381,6 +361,25 @@ export class UserFormComponent implements OnInit, OnDestroy {
   allProfiles: JobCompetencyProfile[] = [];
   selectedProfiles = new Set<string>();
   savingProfiles = false;
+
+  readonly genderOptions = [
+    { value: '', label: 'admin.user_form.gender_unspecified' },
+    { value: 'male', label: 'admin.user_form.gender_male' },
+    { value: 'female', label: 'admin.user_form.gender_female' },
+    { value: 'other', label: 'admin.user_form.gender_other' },
+    { value: 'undisclosed', label: 'admin.user_form.gender_undisclosed' },
+  ];
+  readonly languageOptions = [
+    { value: 'en', label: 'admin.user_form.lang_en' },
+    { value: 'fr', label: 'admin.user_form.lang_fr' },
+    { value: 'ar', label: 'admin.user_form.lang_ar' },
+  ];
+  readonly learningModeOptions = [
+    { value: 'video', label: 'admin.user_form.mode_video' },
+    { value: 'audio', label: 'admin.user_form.mode_audio' },
+    { value: 'reading', label: 'admin.user_form.mode_reading' },
+    { value: 'interactive', label: 'admin.user_form.mode_interactive' },
+  ];
 
   roles: Role[] = [];
   branches: OrgUnit[] = [];

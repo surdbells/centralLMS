@@ -61,18 +61,14 @@
             <input type="search" placeholder="{{ 'live.common.search_trainings' | translate }}"
                    [(ngModel)]="searchTerm" (input)="onSearchChange()">
           </label>
-          <select class="form-select" [(ngModel)]="filterStatus" (change)="onFilterChange()">
-            <option value="">{{ 'live.admin.all_statuses' | translate }}</option>
-            <option *ngFor="let status of trainingStatuses" [value]="status">
-              {{ status | titlecase }}
-            </option>
-          </select>
-          <select class="form-select" [(ngModel)]="filterType" (change)="onFilterChange()">
-            <option value="">{{ 'live.admin.all_types' | translate }}</option>
-            <option *ngFor="let type of trainingTypes" [value]="type">
-              {{ type | titlecase }}
-            </option>
-          </select>
+          <app-select [options]="trainingStatusOpts" [value]="filterStatus"
+                      (selectionChange)="filterStatus = $event ?? ''; onFilterChange()"
+                      placeholder="{{ 'live.admin.all_statuses' | translate }}" [clearable]="true"
+                      [ariaLabel]="'live.admin.all_statuses' | translate" />
+          <app-select [options]="trainingTypeOpts" [value]="filterType" [searchable]="false"
+                      (selectionChange)="filterType = $event ?? ''; onFilterChange()"
+                      placeholder="{{ 'live.admin.all_types' | translate }}" [clearable]="true"
+                      [ariaLabel]="'live.admin.all_types' | translate" />
         </div>
         <span class="ui-result-count mb-0">
           {{ 'live.admin.trainings_count' | translate:{ count: filteredTrainings.length } }}
@@ -676,9 +672,8 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">{{ 'live.common.type' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingSession.session_type">
-              <option *ngFor="let type of trainingTypes" [value]="type">{{ type | titlecase }}</option>
-            </select>
+            <app-select [options]="trainingTypeOpts" [searchable]="false" [(ngModel)]="editingSession.session_type"
+                        [ariaLabel]="'live.common.type' | translate" />
           </div>
           <div class="col-md-4">
             <label class="form-label">{{ 'live.common.date' | translate }} <span class="text-danger">*</span></label>
@@ -718,12 +713,9 @@
           </div>
           <div class="col-md-6" *ngIf="editingSession.session_type !== 'physical'">
             <label class="form-label">{{ 'live.common.platform' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingSession.video_platform">
-              <option [value]="null">{{ 'live.admin.select_platform' | translate }}</option>
-              <option *ngFor="let platform of videoPlatforms" [value]="platform">
-                {{ platformLabel(platform) }}
-              </option>
-            </select>
+            <app-select [options]="videoPlatformOpts" [(ngModel)]="editingSession.video_platform"
+                        placeholder="{{ 'live.admin.select_platform' | translate }}" [clearable]="true"
+                        [ariaLabel]="'live.common.platform' | translate" />
           </div>
 
           <!-- Session Options -->
@@ -746,9 +738,8 @@
           </div>
           <div class="col-md-6" *ngIf="isEditMode">
             <label class="form-label">{{ 'live.common.status' | translate }}</label>
-            <select class="form-select" [(ngModel)]="editingSession.status">
-              <option *ngFor="let status of sessionStatuses" [value]="status">{{ status | titlecase }}</option>
-            </select>
+            <app-select [options]="sessionStatusOpts" [(ngModel)]="editingSession.status"
+                        [ariaLabel]="'live.common.status' | translate" />
           </div>
         </div>
       </div>
@@ -843,9 +834,8 @@
           <h6>{{ 'live.admin.override_attendance' | translate }}</h6>
           <div class="row g-3">
             <div class="col-md-4">
-              <select class="form-select" [(ngModel)]="overrideStatus">
-                <option *ngFor="let status of attendanceStatuses" [value]="status">{{ status | titlecase }}</option>
-              </select>
+              <app-select [options]="attendanceStatusOpts" [searchable]="false" [(ngModel)]="overrideStatus"
+                          [ariaLabel]="'live.admin.override_attendance' | translate" />
             </div>
             <div class="col-md-5">
               <input type="text" class="form-control" [(ngModel)]="overrideReason" placeholder="{{ 'live.admin.reason_override' | translate }}">
@@ -954,20 +944,15 @@
             <div class="row g-3">
               <div class="col-md-5">
                 <label class="form-label">{{ 'live.admin.select_instructor' | translate }}</label>
-                <select class="form-select" [(ngModel)]="newInstructorId">
-                  <option [ngValue]="null">{{ 'live.admin.select_dash' | translate }}</option>
-                  <option *ngFor="let user of availableInstructors" [ngValue]="user.user_id">
-                    {{ user.first_name }} {{ user.last_name }} ({{ user.email }})
-                  </option>
-                </select>
+                <app-select [options]="availableInstructors" bindLabel="label" bindValue="user_id"
+                            [(ngModel)]="newInstructorId" [clearable]="true"
+                            placeholder="{{ 'live.admin.select_dash' | translate }}"
+                            [ariaLabel]="'live.admin.select_instructor' | translate" />
               </div>
               <div class="col-md-3">
                 <label class="form-label">{{ 'live.common.role' | translate }}</label>
-                <select class="form-select" [(ngModel)]="newInstructorRole">
-                  <option *ngFor="let role of instructorRoles" [value]="role">
-                    {{ role | titlecase }}
-                  </option>
-                </select>
+                <app-select [options]="instructorRoleOpts" [searchable]="false" [(ngModel)]="newInstructorRole"
+                            [ariaLabel]="'live.common.role' | translate" />
               </div>
               <div class="col-md-2">
                 <label class="form-label">{{ 'live.admin.is_host' | translate }}</label>
@@ -1096,12 +1081,9 @@
 
         <div class="mb-3">
           <label class="form-label">{{ 'live.common.learner' | translate }} <span class="text-danger">*</span></label>
-          <select class="form-select" [(ngModel)]="virtualAttendanceData.learner_id">
-            <option [ngValue]="0">{{ 'live.admin.select_learner' | translate }}</option>
-            <option *ngFor="let enrollment of enrollments" [ngValue]="enrollment.user_id">
-              {{ enrollment.first_name }} {{ enrollment.last_name }}
-            </option>
-          </select>
+          <app-select [options]="learnerOpts" [(ngModel)]="virtualAttendanceData.learner_id"
+                      placeholder="{{ 'live.admin.select_learner' | translate }}"
+                      [ariaLabel]="'live.common.learner' | translate" />
         </div>
 
         <div class="row g-3">

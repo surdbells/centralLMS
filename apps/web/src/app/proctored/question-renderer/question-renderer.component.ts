@@ -9,6 +9,7 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, injec
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TuiIcon } from '@taiga-ui/core';
+import { SelectComponent } from '../../shared/select/select.component';
 import { HotToastService } from '@ngneat/hot-toast';
 
 interface QuestionOption { id: string; option_text: string; order_position: number; image_url?: string; }
@@ -46,7 +47,7 @@ export interface QuestionAnswer {
 @Component({
   selector: 'app-question-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule, TuiIcon],
+  imports: [CommonModule, FormsModule, TuiIcon, SelectComponent],
   template: `
     <div class="qr-container" *ngIf="question">
       <!-- Question Header -->
@@ -143,10 +144,8 @@ export interface QuestionAnswer {
           <div *ngFor="let p of question.match_pairs; let i=index" class="match-row">
             <span class="match-premise">{{ p.premise }}</span>
             <tui-icon icon="@tui.arrow-right" style="font-size:14px;color:#94a3b8"></tui-icon>
-            <select class="match-select" [(ngModel)]="matchSelections[i]" (ngModelChange)="syncMatches()">
-              <option [ngValue]="null">-- Select --</option>
-              <option *ngFor="let r of shuffledResponses" [ngValue]="r.id">{{ r.text }}</option>
-            </select>
+            <app-select [options]="shuffledResponses" bindLabel="text" bindValue="id" placeholder="-- Select --" [clearable]="true"
+                        [(ngModel)]="matchSelections[i]" (ngModelChange)="syncMatches()" [ariaLabel]="'Match for ' + p.premise" />
           </div>
         </div>
       </div>

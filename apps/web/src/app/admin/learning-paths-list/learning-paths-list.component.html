@@ -53,19 +53,13 @@
         >
       </label>
 
-      <select class="form-select" [attr.aria-label]="'paths_admin.status' | translate" [(ngModel)]="statusFilter" (change)="onFilterChange()">
-        <option value="">{{ 'paths_admin.list.all_statuses' | translate }}</option>
-        @for (status of pathStatuses; track status.value) {
-          <option [value]="status.value">{{ status.label }}</option>
-        }
-      </select>
+      <app-select style="min-width:170px" [options]="pathStatuses" [clearable]="true"
+                  placeholder="{{ 'paths_admin.list.all_statuses' | translate }}" [ariaLabel]="'paths_admin.status' | translate"
+                  [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event ?? ''); onFilterChange()" />
 
-      <select class="form-select" [attr.aria-label]="'paths_admin.skill_level' | translate" [(ngModel)]="skillFilter" (change)="onFilterChange()">
-        <option value="">{{ 'paths.all_levels' | translate }}</option>
-        @for (level of skillLevels; track level.value) {
-          <option [value]="level.value">{{ level.label }}</option>
-        }
-      </select>
+      <app-select style="min-width:170px" [options]="skillLevels" [clearable]="true"
+                  placeholder="{{ 'paths.all_levels' | translate }}" [ariaLabel]="'paths_admin.skill_level' | translate"
+                  [ngModel]="skillFilter()" (ngModelChange)="skillFilter.set($event ?? ''); onFilterChange()" />
 
       @if (searchQuery() || statusFilter() || skillFilter()) {
         <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearFilters()">

@@ -63,13 +63,9 @@
       <!-- Filter -->
       <div class="ui-toolbar">
         <div class="ui-filters">
-          <select class="form-select" [(ngModel)]="statusFilter" (change)="filterChanged()">
-            <option value="">{{ 'paths_admin.reviews_filter.all' | translate }}</option>
-            <option value="pending">{{ 'paths_admin.reviews_filter.pending' | translate }}</option>
-            <option value="approved">{{ 'paths_admin.reviews_filter.approved' | translate }}</option>
-            <option value="rejected">{{ 'paths_admin.reviews_filter.rejected' | translate }}</option>
-            <option value="flagged">{{ 'paths_admin.reviews_filter.flagged' | translate }}</option>
-          </select>
+          <app-select [options]="statusFilterOpts" [translateLabels]="true" [searchable]="false" [clearable]="true"
+                      placeholder="{{ 'paths_admin.reviews_filter.all' | translate }}"
+                      [ngModel]="statusFilter" (ngModelChange)="statusFilter = $event ?? ''; filterChanged()" />
         </div>
       </div>
 

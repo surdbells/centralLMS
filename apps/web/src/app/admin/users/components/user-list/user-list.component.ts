@@ -18,6 +18,7 @@ import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { SkeletonComponent } from '../../../../shared/skeleton/skeleton.component';
+import { SelectComponent } from '../../../../shared/select/select.component';
 import { I18nService } from '../../../../i18n.service';
 import { ConfirmDialogService } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 import { HotToastService } from '@ngneat/hot-toast';
@@ -96,7 +97,7 @@ export interface UserFilters {
 @Component({
   selector: 'app-user-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
   templateUrl: './user-list.component.html',
   styles: [`
     .users-table-section > .ui-toolbar { padding: 16px 22px 0; }
@@ -137,6 +138,12 @@ export class UserListComponent implements OnInit, OnDestroy {
   stats: UserStats | null = null;
   roles: Role[] = [];
   departments: Department[] = [];
+  readonly statusOptions = [
+    { value: 'active', label: 'admin.users.status_active' },
+    { value: 'inactive', label: 'admin.users.status_inactive' },
+    { value: 'suspended', label: 'admin.users.status_suspended' },
+    { value: 'locked', label: 'admin.users.status_locked' },
+  ];
   loading = false;
 
   /** The set-a-password modal. Holds what is being typed, never what was generated. */

@@ -3,11 +3,12 @@
 import { Component, EventEmitter, Output, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SelectComponent } from './shared/select/select.component';
 
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SelectComponent],
   template: `
     <div class="qr-scanner-container">
       <!-- Scanner View -->
@@ -33,11 +34,7 @@ import { FormsModule } from '@angular/forms';
 
           <!-- Camera Selection -->
           <div class="mb-3" *ngIf="cameras.length > 1">
-            <select class="form-select" [(ngModel)]="selectedCamera" (change)="switchCamera()">
-              <option *ngFor="let camera of cameras; let i = index" [value]="camera.deviceId">
-                {{ camera.label || 'Camera ' + (i + 1) }}
-              </option>
-            </select>
+            <app-select [options]="cameraOpts" [(ngModel)]="selectedCamera" (selectionChange)="switchCamera()" ariaLabel="Camera" />
           </div>
 
           <div class="d-flex gap-2 justify-content-center">
@@ -216,6 +213,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
 
   cameras: MediaDeviceInfo[] = [];
   selectedCamera = '';
+  cameraOpts: { label: string; value: string }[] = [];
   manualMode = false;
   manualCode = '';
   error = '';
@@ -237,6 +235,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
       // Get available cameras
       const devices = await navigator.mediaDevices.enumerateDevices();
       this.cameras = devices.filter(d => d.kind === 'videoinput');
+      this.cameraOpts = this.cameras.map((c, i) => ({ label: c.label || 'Camera ' + (i + 1), value: c.deviceId }));
 
       if (this.cameras.length > 0) {
         this.selectedCamera = this.cameras[0].deviceId;

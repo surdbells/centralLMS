@@ -25,19 +25,12 @@
       <!-- Filters -->
       <div class="ui-toolbar audit-toolbar">
         <div class="ui-filters">
-          <select class="form-select" [(ngModel)]="filters.actorId" (change)="onFilterChange()">
-            <option [ngValue]="undefined">{{ 'admin.audit.anyone' | translate }}</option>
-            <option *ngFor="let p of people; trackBy: trackById" [ngValue]="p.id">{{ p.fullName }}</option>
-          </select>
-          <select class="form-select" [(ngModel)]="filters.action" (change)="onFilterChange()">
-            <option [ngValue]="undefined">{{ 'admin.audit.anything' | translate }}</option>
-            <optgroup label="{{ 'admin.audit.by_module' | translate }}">
-              <option *ngFor="let m of actionModules" [ngValue]="m">{{ 'admin.audit.all_module' | translate:{ module: m } }}</option>
-            </optgroup>
-            <optgroup label="{{ 'admin.audit.exactly' | translate }}">
-              <option *ngFor="let a of actions" [ngValue]="a">{{ a }}</option>
-            </optgroup>
-          </select>
+          <app-select style="min-width:180px" [options]="people" bindLabel="fullName" bindValue="id" [clearable]="true"
+                      placeholder="{{ 'admin.audit.anyone' | translate }}"
+                      [value]="filters.actorId" (selectionChange)="filters.actorId = $event ?? undefined; onFilterChange()" />
+          <app-select style="min-width:200px" [options]="actionOptions" groupBy="group" [clearable]="true"
+                      placeholder="{{ 'admin.audit.anything' | translate }}"
+                      [value]="filters.action" (selectionChange)="filters.action = $event ?? undefined; onFilterChange()" />
           <input type="date" class="form-control" [(ngModel)]="filters.from"
                  (change)="onFilterChange()" title="{{ 'admin.audit.from' | translate }}"
                  [attr.aria-label]="'admin.audit.from' | translate">
