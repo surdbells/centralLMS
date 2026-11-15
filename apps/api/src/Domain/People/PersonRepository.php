@@ -100,6 +100,25 @@ interface PersonRepository
     public function saveCustomFields(string $tenantId, string $id, array $values): bool;
 
     /**
+     * Everybody in the organisation, reduced to what a placement import
+     * compares against — one query instead of one per row of the workbook.
+     *
+     * Keyed by nothing: the importer indexes by lower(trim(email)) itself.
+     *
+     * @return list<array{id: string, email: string, name: string, status: string, employeeId: ?string, departmentId: ?string, jobTitleId: ?string, customFields: array<string, string|float|bool>}>
+     */
+    public function placementSnapshot(string $tenantId): array;
+
+    /**
+     * Writes the placement columns an import is allowed to touch, and nothing
+     * else. Keys outside `employee_id`, `department_id` and `job_title_id` are
+     * ignored, so a caller cannot widen what a spreadsheet may change.
+     *
+     * @param array<string, string> $columns column => new value
+     */
+    public function applyPlacement(string $tenantId, string $userId, array $columns): bool;
+
+    /**
      * The stored hash, for verifying somebody's current password.
      *
      * Returned rather than compared here so the hashing algorithm stays in one

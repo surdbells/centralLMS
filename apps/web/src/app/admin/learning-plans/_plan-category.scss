@@ -1,0 +1,18 @@
+// Category pill colours for learning-plan items, shared by the admin plan
+// editor, the Excel import wizard and the learner's own plan. Built on the UI
+// kit's .ui-pill; only the tint changes per category.
+.lp-cat {
+  --cat-rgb: 100, 116, 139;
+  background: rgba(var(--cat-rgb), .1);
+  color: rgb(var(--cat-rgb));
+  border-color: rgba(var(--cat-rgb), .22);
+  white-space: nowrap;
+
+  &[data-cat='functional']     { --cat-rgb: var(--brand-primary-rgb, 37, 99, 235); }
+  &[data-cat='conference']     { --cat-rgb: 14, 116, 144; }
+  &[data-cat='certification']  { --cat-rgb: 21, 128, 61; }
+  &[data-cat='behavioural']    { --cat-rgb: 180, 83, 9; }
+  &[data-cat='organisational'] { --cat-rgb: 71, 85, 105; }
+  &[data-cat='leadership']     { --cat-rgb: 126, 34, 206; }
+  &[data-cat='other']          { --cat-rgb: 100, 116, 139; }
+}

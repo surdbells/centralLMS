@@ -6,6 +6,7 @@ namespace Central\Api\Application\Action\LearningPlan;
 
 use Central\Api\Application\Http\Json;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
+use Central\Api\Domain\Exception\EntityNotFound;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\LearningPlan\LearningPlanRepository;
 use Psr\Http\Message\ResponseInterface;
@@ -50,6 +51,7 @@ final class MyLearningPlanAction
             throw ValidationFailed::fromArray(['date' => 'Use a YYYY-MM-DD date, or clear it.']);
         }
 
+        $this->mustOwn($caller->tenantId, $caller->id, $args['itemId'] ?? '');
         $this->plans->setSchedule((string) $caller->tenantId, (string) $caller->id, $args['itemId'] ?? '', $date);
 
         return Json::noContent($response);
@@ -65,8 +67,20 @@ final class MyLearningPlanAction
             throw ValidationFailed::fromArray(['status' => 'Unknown status.']);
         }
 
+        $this->mustOwn($caller->tenantId, $caller->id, $args['itemId'] ?? '');
         $this->plans->setItemStatus((string) $caller->tenantId, (string) $caller->id, $args['itemId'] ?? '', $status);
 
         return Json::noContent($response);
+    }
+
+    /**
+     * The item must be on a published plan the caller is on, and shared or
+     * theirs — otherwise it does not exist as far as they are concerned.
+     */
+    private function mustOwn(?string $tenantId, string $userId, string $itemId): void
+    {
+        if ($tenantId === null || !$this->plans->canTouchItem($tenantId, $userId, $itemId)) {
+            throw new EntityNotFound('Learning plan item', $itemId);
+        }
     }
 }

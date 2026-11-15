@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -9,10 +9,18 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { SelectComponent } from '../../shared/select/select.component';
 import { ApiClient, Endpoints } from '../../core/api';
 import { UsersService } from '../../services/users.service';
+import { AvatarComponent } from '../../shared/avatar/avatar.component';
+import { PlanImportComponent } from './plan-import/plan-import.component';
 import {
   LearningPlansService,
+  PLAN_CATEGORY_ORDER,
   type LearningPlan,
   type AdminPlanItem,
+  type PersonalItem,
+  type PersonalItemsPage,
+  type PersonalItemsPerson,
+  type PlanCategory,
+  type PlanItemStatus,
 } from '../../services/learning-plans.service';
 
 interface UserOption { id: string; fullName: string; email: string; }
@@ -27,11 +35,14 @@ interface CourseOption { id: string; title: string; }
 @Component({
   selector: 'app-learning-plans',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SkeletonComponent, SelectComponent,
+    AvatarComponent, PlanImportComponent,
+  ],
   templateUrl: './learning-plans.component.html',
   styleUrls: ['./learning-plans.component.scss'],
 })
-export class LearningPlansComponent implements OnInit {
+export class LearningPlansComponent implements OnInit, OnDestroy {
   private readonly svc = inject(LearningPlansService);
   private readonly api = inject(ApiClient);
   private readonly i18n = inject(I18nService);
@@ -54,6 +65,24 @@ export class LearningPlansComponent implements OnInit {
   selected: LearningPlan | null = null;
   items: AdminPlanItem[] = [];
   newItem: { title: string; courseId: string; isMandatory: boolean } = { title: '', courseId: '', isMandatory: false };
+
+  /** The Excel import wizard is open. */
+  importing = false;
+
+  // --- per-person items (imported plans) -------------------------------------
+
+  editorTab: 'shared' | 'personal' = 'shared';
+  memberOptions: { id: string; label: string }[] = [];
+  personFilter: string | null = null;
+  categoryFilter: PlanCategory | null = null;
+  personalQuery = '';
+  personalPage = 1;
+  readonly personalPerPage = 10;
+  personal: PersonalItemsPage | null = null;
+  personalLoading = false;
+  personalFailed = false;
+  private personalSeq = 0;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.loadPlans();
@@ -100,9 +129,207 @@ export class LearningPlansComponent implements OnInit {
   }
 
   select(plan: LearningPlan): void {
+    const changed = this.selected?.id !== plan.id;
     this.selected = plan;
     this.items = [];
     this.svc.items(plan.id).subscribe({ next: (items) => (this.items = items), error: () => undefined });
+
+    if (changed) {
+      this.personFilter = null;
+      this.categoryFilter = null;
+      this.personalQuery = '';
+      this.personalPage = 1;
+      this.personal = null;
+      this.categoryOptions = [];
+      this.memberOptions = [];
+      // An imported plan is mostly per-person items: open on those.
+      this.editorTab = (plan.personalItemCount ?? 0) > 0 && plan.itemCount === 0 ? 'personal' : 'shared';
+    }
+    if (this.editorTab === 'personal') {
+      this.loadPersonal();
+    }
+  }
+
+  // --- per-person items ---------------------------------------------------------
+
+  setEditorTab(tab: 'shared' | 'personal'): void {
+    this.editorTab = tab;
+    if (tab === 'personal' && this.personal === null && !this.personalLoading) {
+      this.loadPersonal();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.searchTimer) { clearTimeout(this.searchTimer); }
+  }
+
+  private loadMembers(planId: string): void {
+    this.svc.members(planId).subscribe({
+      next: (res) => {
+        if (this.selected?.id === planId) {
+          this.memberOptions = (res.items ?? []).map((m) => ({ id: String(m.id), label: m.name ? `${m.name} · ${m.email}` : m.email }));
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  loadPersonal(): void {
+    const plan = this.selected;
+    if (!plan) {
+      return;
+    }
+    if (this.memberOptions.length === 0) {
+      this.loadMembers(plan.id);
+    }
+    const seq = ++this.personalSeq;
+    this.personalLoading = true;
+    this.personalFailed = false;
+    this.svc.personalItems(plan.id, {
+      userId: this.personFilter,
+      category: this.categoryFilter,
+      q: this.personalQuery,
+      page: this.personalPage,
+      perPage: this.personalPerPage,
+    }).subscribe({
+      next: (page) => {
+        if (seq !== this.personalSeq) { return; }
+        this.personal = page;
+        this.buildCategoryOptions();
+        this.personalLoading = false;
+      },
+      error: () => {
+        if (seq !== this.personalSeq) { return; }
+        this.personalFailed = true;
+        this.personalLoading = false;
+      },
+    });
+  }
+
+  onPersonFilter(id: string | null): void {
+    this.personFilter = id || null;
+    this.personalPage = 1;
+    this.loadPersonal();
+  }
+
+  onCategoryFilter(cat: PlanCategory | null): void {
+    this.categoryFilter = cat || null;
+    this.personalPage = 1;
+    this.loadPersonal();
+  }
+
+  onPersonalQuery(q: string): void {
+    this.personalQuery = q;
+    if (this.searchTimer) { clearTimeout(this.searchTimer); }
+    this.searchTimer = setTimeout(() => {
+      this.personalPage = 1;
+      this.loadPersonal();
+    }, 300);
+  }
+
+  goPersonalPage(page: number): void {
+    if (page < 1 || page > this.personalPages || page === this.personalPage) {
+      return;
+    }
+    this.personalPage = page;
+    this.loadPersonal();
+  }
+
+  get personalPages(): number {
+    const p = this.personal;
+    return p ? Math.max(1, Math.ceil(p.total / (p.perPage || this.personalPerPage))) : 1;
+  }
+
+  /** Category picker options, labelled with the counts the server sent (kept stable for app-select). */
+  categoryOptions: { value: PlanCategory; label: string }[] = [];
+
+  private buildCategoryOptions(): void {
+    const counts = this.personal?.categories ?? {};
+    this.categoryOptions = PLAN_CATEGORY_ORDER
+      .filter((c) => counts[c] !== undefined || this.categoryFilter === c)
+      .map((c) => ({ value: c, label: `${this.i18n.t('plan.cat_' + c)} (${counts[c] ?? 0})` }));
+  }
+
+  statusPill(status: PlanItemStatus): string {
+    switch (status) {
+      case 'completed': return 'ui-pill--success';
+      case 'in_progress': return 'ui-pill--info';
+      case 'scheduled': return 'ui-pill--warning';
+      default: return 'ui-pill--neutral';
+    }
+  }
+
+  removePersonalItem(person: PersonalItemsPerson, item: PersonalItem): void {
+    const plan = this.selected;
+    if (!plan || !confirm(this.i18n.t('plan.confirm_delete_item', { title: item.title }))) {
+      return;
+    }
+    this.svc.deleteItem(plan.id, item.id).subscribe({
+      next: () => {
+        person.items = person.items.filter((i) => i.id !== item.id);
+        const page = this.personal;
+        if (page && item.category && page.categories[item.category] !== undefined) {
+          page.categories = { ...page.categories, [item.category]: Math.max(0, (page.categories[item.category] ?? 1) - 1) };
+          this.buildCategoryOptions();
+        }
+        if (page && person.items.length === 0) {
+          page.people = page.people.filter((p) => p !== person);
+          page.total = Math.max(0, page.total - 1);
+        }
+        const count = Math.max(0, (plan.personalItemCount ?? 1) - 1);
+        this.selected = { ...plan, personalItemCount: count };
+        this.plans = this.plans.map((p) => (p.id === plan.id ? { ...p, personalItemCount: count } : p));
+      },
+      error: () => (this.error = this.i18n.t('plan.save_failed')),
+    });
+  }
+
+  // --- Excel import ---------------------------------------------------------------
+
+  openImport(): void {
+    this.clear();
+    this.importing = true;
+  }
+
+  closeImport(): void {
+    this.importing = false;
+  }
+
+  /** The wizard wrote something: refresh counts (and the open editor). */
+  onImported(): void {
+    const openId = this.selected?.id ?? null;
+    this.svc.list().subscribe({
+      next: (plans) => {
+        this.plans = plans;
+        const again = openId ? plans.find((p) => p.id === openId) : undefined;
+        if (again) {
+          this.personal = null;
+          // Import may have added members: force the person filter to reload.
+          this.memberOptions = [];
+          this.select(again);
+        }
+      },
+      error: () => undefined,
+    });
+  }
+
+  /** "Open plan" from the wizard's result list. */
+  openImportedPlan(planId: string): void {
+    this.importing = false;
+    const show = (plans: LearningPlan[]): void => {
+      const plan = plans.find((p) => p.id === planId);
+      if (plan) {
+        this.select(plan);
+        if ((plan.personalItemCount ?? 0) > 0) {
+          this.setEditorTab('personal');
+        }
+      }
+    };
+    if (this.plans.some((p) => p.id === planId)) {
+      show(this.plans);
+    } else {
+      this.svc.list().subscribe({ next: (plans) => { this.plans = plans; show(plans); }, error: () => undefined });
+    }
   }
 
   closeEditor(): void {

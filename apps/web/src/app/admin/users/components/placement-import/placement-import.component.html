@@ -1,0 +1,203 @@
+<app-admintop></app-admintop>
+<main class="main">
+  <div class="ui-page">
+    <header class="ui-page-header">
+      <a routerLink="/admin/users" class="ui-page-header__back" [attr.aria-label]="'common.back' | translate"><i class="bi bi-chevron-left"></i></a>
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-diagram-3"></i></div>
+      <div class="ui-page-header__titles">
+        <h1>{{ 'people.placement.title' | translate }}</h1>
+        <p>{{ 'people.placement.subtitle' | translate }}</p>
+      </div>
+    </header>
+
+    <ol class="pl-steps">
+      <li [class.is-active]="step === 'upload'" [class.is-done]="step !== 'upload'"><span>1</span>{{ 'plan.import.step_upload' | translate }}</li>
+      <li [class.is-active]="step === 'review'" [class.is-done]="step === 'done'"><span>2</span>{{ 'plan.import.step_review' | translate }}</li>
+      <li [class.is-active]="step === 'done'"><span>3</span>{{ 'plan.import.step_done' | translate }}</li>
+    </ol>
+
+    <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+      <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+      <div class="flex-grow-1">{{ error }}</div>
+      <button type="button" class="btn-close" (click)="error = null"></button>
+    </div>
+
+    <!-- Step 1 — upload -->
+    <section class="ui-section" *ngIf="step === 'upload'">
+      <div class="drop-zone" [class.dragging]="dragging"
+           (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
+           (click)="!working && fileInput.click()">
+        <div *ngIf="!working">
+          <span class="ui-state__icon"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+          <p class="drop-zone__title">{{ 'plan.import.drop' | translate }}</p>
+          <small class="ui-muted" *ngIf="file">{{ file.name }}</small>
+        </div>
+        <div *ngIf="working">
+          <div class="spinner-border text-primary mb-2" role="status"></div>
+          <p class="mb-0 ui-muted">{{ 'plan.import.reading' | translate }}</p>
+        </div>
+      </div>
+      <input #fileInput type="file" class="d-none"
+             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+             (change)="onFileSelected($event)">
+    </section>
+
+    <!-- Step 2 — review -->
+    <ng-container *ngIf="step === 'review' && preview as pv">
+      <div class="pl-file">
+        <span class="ui-muted"><i class="bi bi-file-earmark-excel me-1"></i>{{ pv.file }}</span>
+        <span class="pl-sheet" *ngIf="sheetOptions.length > 1">
+          <label class="ui-muted small">{{ 'people.placement.sheet' | translate }}</label>
+          <app-select size="sm" [options]="sheetOptions" bindLabel="label" bindValue="value" [clearable]="false"
+                      [disabled]="working" [ngModel]="sheet" (ngModelChange)="onSheet($event)" />
+        </span>
+        <span class="ui-muted small" *ngIf="sheetOptions.length <= 1 && pv.sheet"><i class="bi bi-table me-1"></i>{{ pv.sheet }}</span>
+        <span class="spinner-border spinner-border-sm text-primary" *ngIf="working"></span>
+      </div>
+
+      <div class="ui-kpi-grid ui-kpi-grid--4">
+        <button type="button" class="ui-kpi ui-kpi--info" [class.is-active]="filter === 'changes'" (click)="filter = 'changes'">
+          <span class="ui-kpi__label"><i class="bi bi-pencil-square"></i> {{ 'people.placement.to_update' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.update }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--success" [class.is-active]="filter === 'all'" (click)="filter = 'all'">
+          <span class="ui-kpi__label"><i class="bi bi-check2"></i> {{ 'people.placement.unchanged' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.unchanged }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--warning" [class.is-active]="filter === 'unmatched'" (click)="filter = 'unmatched'">
+          <span class="ui-kpi__label"><i class="bi bi-person-x"></i> {{ 'people.placement.not_found' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.unmatched }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--danger" [class.is-active]="filter === 'error'" (click)="filter = 'error'">
+          <span class="ui-kpi__label"><i class="bi bi-x-octagon"></i> {{ 'people.placement.errors' | translate }}</span>
+          <span class="ui-kpi__value">{{ summary.error }}</span>
+        </button>
+      </div>
+
+      <section class="ui-section pl-create" *ngIf="willCreateAnything">
+        <div class="ui-section__head">
+          <h2 class="ui-section__title"><i class="bi bi-stars me-2"></i>{{ 'people.placement.will_create' | translate }}</h2>
+        </div>
+        <div class="pl-create__group" *ngIf="newDepartments.length">
+          <span class="pl-create__label">{{ 'people.placement.new_departments' | translate }}</span>
+          <div class="pl-chips"><span class="ui-pill ui-pill--brand" *ngFor="let n of newDepartments">{{ n }}</span></div>
+        </div>
+        <div class="pl-create__group" *ngIf="newJobTitles.length">
+          <span class="pl-create__label">{{ 'people.placement.new_job_titles' | translate }}</span>
+          <div class="pl-chips"><span class="ui-pill ui-pill--brand" *ngFor="let n of newJobTitles">{{ n }}</span></div>
+        </div>
+        <div class="pl-create__group" *ngIf="newFields.length">
+          <span class="pl-create__label">{{ 'people.placement.new_fields' | translate }}</span>
+          <div class="pl-chips">
+            <span class="ui-pill ui-pill--info" *ngFor="let f of newFields">{{ fieldLabel(f.key) }} <small class="ui-muted">· {{ f.type }}</small></span>
+          </div>
+        </div>
+        <div class="pl-create__group" *ngFor="let o of newOptions">
+          <span class="pl-create__label">{{ 'people.placement.new_options' | translate }} — {{ fieldLabel(o.key) }}</span>
+          <div class="pl-chips"><span class="ui-pill ui-pill--neutral" *ngFor="let v of o.values">{{ v }}</span></div>
+        </div>
+      </section>
+
+      <section class="ui-section ui-section--flush">
+        <div class="ui-section__head pl-rows-head">
+          <div class="ui-filters">
+            <button type="button" class="ui-filter" [class.is-active]="filter === 'all'" (click)="filter = 'all'">
+              {{ 'people.placement.filter_all' | translate }} <span class="ui-filter__count">{{ rows.length }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="filter === 'changes'" (click)="filter = 'changes'">
+              {{ 'people.placement.filter_changes' | translate }} <span class="ui-filter__count">{{ summary.update }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="filter === 'unmatched'" (click)="filter = 'unmatched'">
+              {{ 'people.placement.not_found' | translate }} <span class="ui-filter__count">{{ summary.unmatched }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="filter === 'error'" (click)="filter = 'error'">
+              {{ 'people.placement.errors' | translate }} <span class="ui-filter__count">{{ summary.error }}</span>
+            </button>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="filter === 'unmatched' && summary.unmatched > 0" (click)="copyUnmatched()">
+            <i class="bi me-1" [ngClass]="copied ? 'bi-check2' : 'bi-clipboard'"></i>{{ (copied ? 'plan.import.copied' : 'plan.import.copy_emails') | translate }}
+          </button>
+        </div>
+
+        <div class="table-responsive pl-table">
+          <table class="table table-hover align-middle mb-0">
+            <thead><tr>
+              <th>{{ 'plan.import.col_row' | translate }}</th>
+              <th>{{ 'plan.import.col_name' | translate }}</th>
+              <th></th>
+              <th>{{ 'people.placement.filter_changes' | translate }}</th>
+            </tr></thead>
+            <tbody>
+              <tr *ngFor="let r of visibleRows">
+                <td class="ui-num">{{ r.row }}</td>
+                <td>
+                  <div class="pl-person">
+                    <strong>{{ r.name || '—' }}</strong>
+                    <span class="ui-muted small">{{ r.email }}</span>
+                  </div>
+                </td>
+                <td><span class="ui-pill" [ngClass]="actionPill(r.action)"><span class="ui-pill__dot"></span>{{ actionLabel(r.action) | translate }}</span></td>
+                <td>
+                  <ul class="pl-changes" *ngIf="r.changes.length">
+                    <li *ngFor="let c of r.changes">
+                      <span class="pl-changes__label">{{ changeLabel(c.field, c.label) }}:</span>
+                      <s class="pl-old" *ngIf="c.old">{{ c.old }}</s>
+                      <span class="ui-muted" *ngIf="c.old">→</span>
+                      <strong>{{ c.new }}</strong>
+                    </li>
+                  </ul>
+                  <div class="text-danger small" *ngIf="r.error"><i class="bi bi-x-circle me-1"></i>{{ r.error }}</div>
+                  <div class="text-warning-emphasis small" *ngFor="let w of r.warnings"><i class="bi bi-exclamation-triangle me-1"></i>{{ w }}</div>
+                  <span class="ui-muted small" *ngIf="!r.changes.length && !r.error && !r.warnings.length">—</span>
+                </td>
+              </tr>
+              <tr *ngIf="visibleRows.length === 0">
+                <td colspan="4" class="text-center ui-muted py-4">{{ 'plan.import.no_rows' | translate }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pl-foot">
+          <button type="button" class="btn btn-outline-secondary" (click)="restart()" [disabled]="working">{{ 'common.back' | translate }}</button>
+          <button type="button" class="btn btn-primary ms-auto" (click)="apply()" [disabled]="working || summary.update === 0">
+            <span class="spinner-border spinner-border-sm me-1" *ngIf="working"></span>
+            {{ 'people.placement.apply' | translate:{ count: summary.update } }}
+          </button>
+        </div>
+      </section>
+    </ng-container>
+
+    <!-- Step 3 — done -->
+    <ng-container *ngIf="step === 'done' && result as r">
+      <section class="ui-section">
+        <div class="ui-state">
+          <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
+          <p>{{ 'people.placement.done' | translate:{ updated: r.updated, unchanged: r.unchanged, unmatched: r.unmatched } }}</p>
+          <div class="pl-chips justify-content-center" *ngIf="createdLookups || r.customFieldsCreated.length">
+            <span class="ui-pill ui-pill--brand" *ngIf="r.lookupsCreated.department">{{ 'people.placement.new_departments' | translate }} · {{ r.lookupsCreated.department }}</span>
+            <span class="ui-pill ui-pill--brand" *ngIf="r.lookupsCreated.job_title">{{ 'people.placement.new_job_titles' | translate }} · {{ r.lookupsCreated.job_title }}</span>
+            <span class="ui-pill ui-pill--info" *ngFor="let k of r.customFieldsCreated">{{ fieldLabel(k) }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="failedRows.length" class="mt-3">
+          <h3 class="pl-sub text-danger"><i class="bi bi-x-octagon me-1"></i>{{ 'people.placement.errors' | translate }} · {{ r.failed }}</h3>
+          <div class="table-responsive pl-table">
+            <table class="table table-sm mb-0">
+              <thead><tr><th>{{ 'plan.import.col_row' | translate }}</th><th>{{ 'plan.import.col_email' | translate }}</th><th>{{ 'plan.import.col_reason' | translate }}</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let f of failedRows"><td class="ui-num">{{ f.row }}</td><td>{{ f.email }}</td><td class="text-danger">{{ f.reason }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pl-foot pl-foot--plain">
+          <button type="button" class="btn btn-outline-secondary" (click)="restart()">{{ 'plan.import.another' | translate }}</button>
+          <a routerLink="/admin/users" class="btn btn-primary ms-auto">{{ 'common.done' | translate }}</a>
+        </div>
+      </section>
+    </ng-container>
+  </div>
+</main>

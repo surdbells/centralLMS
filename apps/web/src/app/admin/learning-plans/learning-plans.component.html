@@ -9,7 +9,15 @@
         <h1>{{ 'plan.admin_title' | translate }}</h1>
         <p>{{ 'plan.admin_subtitle' | translate }}</p>
       </div>
+      <div class="ui-page-header__actions">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="openImport()">
+          <i class="bi bi-file-earmark-spreadsheet me-1"></i>{{ 'plan.import.button' | translate }}
+        </button>
+      </div>
     </header>
+
+    <app-plan-import *ngIf="importing"
+                     (closed)="closeImport()" (imported)="onImported()" (openPlan)="openImportedPlan($event)"></app-plan-import>
 
     <div class="alert alert-success" *ngIf="message">{{ message }}</div>
     <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
@@ -32,7 +40,7 @@
              [class.active]="selected?.id === plan.id" (click)="select(plan)">
           <div class="pr-main">
             <strong>{{ plan.year }} · {{ plan.title }}</strong>
-            <span class="pr-meta">{{ plan.itemCount }} {{ 'plan.items' | translate }} · {{ plan.memberCount }} {{ 'plan.people' | translate }}</span>
+            <span class="pr-meta">{{ plan.itemCount }} {{ 'plan.items' | translate }}<ng-container *ngIf="plan.personalItemCount"> · {{ 'plan.personal_count' | translate:{ count: plan.personalItemCount } }}</ng-container> · {{ plan.memberCount }} {{ 'plan.people' | translate }}</span>
           </div>
           <span class="ui-pill" [attr.data-status]="plan.status"
                 [class.ui-pill--success]="plan.status === 'published'"
@@ -85,7 +93,94 @@
           </div>
         </div>
 
-        <h3 class="sub">{{ 'plan.items' | translate }}</h3>
+        <div class="ui-filters editor-tabs" role="tablist">
+          <button type="button" class="ui-filter" role="tab" [class.is-active]="editorTab === 'shared'" (click)="setEditorTab('shared')">
+            {{ 'plan.shared_items' | translate }} <span class="ui-filter__count">{{ plan.itemCount }}</span>
+          </button>
+          <button type="button" class="ui-filter" role="tab" [class.is-active]="editorTab === 'personal'" (click)="setEditorTab('personal')">
+            {{ 'plan.personal_items' | translate }} <span class="ui-filter__count">{{ plan.personalItemCount ?? 0 }}</span>
+          </button>
+        </div>
+
+        <!-- Per-person items, grouped by person -->
+        <div class="personal" *ngIf="editorTab === 'personal'">
+          <div class="personal-filters">
+            <app-select size="sm" class="pf-person" [options]="memberOptions" bindLabel="label" bindValue="id" [clearable]="true"
+                        placeholder="{{ 'plan.filter_person' | translate }}"
+                        [ngModel]="personFilter" (ngModelChange)="onPersonFilter($event)" />
+            <app-select size="sm" class="pf-cat" [options]="categoryOptions" bindLabel="label" bindValue="value" [clearable]="true"
+                        [searchable]="false" placeholder="{{ 'plan.filter_category' | translate }}"
+                        [ngModel]="categoryFilter" (ngModelChange)="onCategoryFilter($event)" />
+            <label class="ui-search pf-search">
+              <i class="bi bi-search"></i>
+              <input type="search" [placeholder]="'plan.search_items' | translate"
+                     [ngModel]="personalQuery" (ngModelChange)="onPersonalQuery($event)">
+            </label>
+          </div>
+
+          <app-skeleton *ngIf="personalLoading && !personal" variant="list" [rows]="4"></app-skeleton>
+
+          <div class="ui-state" *ngIf="personalFailed && !personalLoading">
+            <span class="ui-state__icon"><i class="bi bi-exclamation-triangle"></i></span>
+            <p>{{ 'plan.load_failed' | translate }}</p>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="loadPersonal()">{{ 'common.retry' | translate }}</button>
+          </div>
+
+          <div class="ui-state" *ngIf="personal && !personalFailed && personal.people.length === 0 && !personalLoading">
+            <span class="ui-state__icon"><i class="bi bi-person-lines-fill"></i></span>
+            <p>{{ 'plan.no_personal_items' | translate }}</p>
+            <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="!personFilter && !categoryFilter && !personalQuery" (click)="openImport()">
+              <i class="bi bi-file-earmark-spreadsheet me-1"></i>{{ 'plan.import.button' | translate }}
+            </button>
+          </div>
+
+          <div class="person-list" *ngIf="personal && !personalFailed" [class.is-loading]="personalLoading">
+            <article class="person-card" *ngFor="let person of personal.people">
+              <header class="person-head">
+                <app-avatar [name]="person.name || person.email" [size]="34" />
+                <div class="ph-main">
+                  <strong>{{ person.name || person.email }}</strong>
+                  <span class="ph-meta">{{ person.email }}<ng-container *ngIf="person.department"> · {{ person.department }}</ng-container></span>
+                </div>
+                <span class="ui-pill ui-pill--neutral">{{ person.items.length }} {{ 'plan.items' | translate }}</span>
+              </header>
+              <ul class="pi-items">
+                <li *ngFor="let item of person.items">
+                  <div class="pi-main">
+                    <div class="pi-title">
+                      <span class="ui-pill lp-cat" *ngIf="item.category" [attr.data-cat]="item.category">{{ ('plan.cat_' + item.category) | translate }}</span>
+                      <span>{{ item.title }}</span>
+                    </div>
+                    <div class="pi-meta">
+                      <span *ngIf="item.provider"><i class="bi bi-building me-1"></i>{{ item.provider }}</span>
+                      <span *ngIf="item.plannedStart; else noPlanned">
+                        <i class="bi bi-calendar-event me-1"></i>{{ item.plannedStart | date: 'mediumDate' }}<ng-container *ngIf="item.plannedEnd && item.plannedEnd !== item.plannedStart"> – {{ item.plannedEnd | date: 'mediumDate' }}</ng-container>
+                      </span>
+                      <ng-template #noPlanned>
+                        <span class="muted"><i class="bi bi-calendar me-1"></i>{{ item.scheduleText || ('plan.date_tbc' | translate) }}</span>
+                      </ng-template>
+                    </div>
+                  </div>
+                  <span class="ui-pill" [ngClass]="statusPill(item.status)"><span class="ui-pill__dot"></span>{{ ('plan.status_' + item.status) | translate }}</span>
+                  <button type="button" class="btn btn-sm btn-link text-danger" (click)="removePersonalItem(person, item)"
+                          [attr.aria-label]="'common.delete' | translate"><i class="bi bi-trash"></i></button>
+                </li>
+              </ul>
+            </article>
+          </div>
+
+          <nav class="personal-pager" *ngIf="personal && personalPages > 1">
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="personalPage <= 1 || personalLoading" (click)="goPersonalPage(personalPage - 1)">
+              <i class="bi bi-chevron-left"></i> {{ 'common.prev' | translate }}
+            </button>
+            <span class="muted small">{{ 'common.page_of' | translate:{ current: personalPage, total: personalPages } }}</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="personalPage >= personalPages || personalLoading" (click)="goPersonalPage(personalPage + 1)">
+              {{ 'common.next' | translate }} <i class="bi bi-chevron-right"></i>
+            </button>
+          </nav>
+        </div>
+
+        <ng-container *ngIf="editorTab === 'shared'">
         <ul class="item-admin-list">
           <li *ngFor="let item of items">
             <span class="ia-title">
@@ -107,6 +202,7 @@
           <label class="mand"><input type="checkbox" class="form-check-input mt-0" [(ngModel)]="newItem.isMandatory"> {{ 'plan.mandatory' | translate }}</label>
           <button class="btn btn-primary btn-sm" [disabled]="saving" (click)="addItem()">{{ 'plan.add_item' | translate }}</button>
         </div>
+        </ng-container>
       </section>
     </div>
   </div>

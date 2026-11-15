@@ -1,0 +1,299 @@
+<div class="pi-overlay" role="dialog" aria-modal="true" [attr.aria-label]="'plan.import.title' | translate">
+  <div class="pi-panel">
+    <header class="pi-head">
+      <div class="ui-page-header__icon" aria-hidden="true"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+      <div class="pi-head__titles">
+        <h2>{{ 'plan.import.title' | translate }}</h2>
+        <p>{{ 'plan.import.subtitle' | translate }}</p>
+      </div>
+      <button type="button" class="btn-close" (click)="close()" [attr.aria-label]="'common.close' | translate"></button>
+    </header>
+
+    <ol class="pi-steps">
+      <li [class.is-active]="step === 'upload'" [class.is-done]="step !== 'upload'"><span>1</span>{{ 'plan.import.step_upload' | translate }}</li>
+      <li [class.is-active]="step === 'review'" [class.is-done]="step === 'done'"><span>2</span>{{ 'plan.import.step_review' | translate }}</li>
+      <li [class.is-active]="step === 'done'"><span>3</span>{{ 'plan.import.step_done' | translate }}</li>
+    </ol>
+
+    <div class="pi-body">
+      <div class="alert alert-danger d-flex align-items-start" *ngIf="error">
+        <i class="bi bi-exclamation-triangle me-2 mt-1"></i>
+        <div class="flex-grow-1">{{ error }}</div>
+        <button type="button" class="btn-close" (click)="error = null"></button>
+      </div>
+
+      <!-- Step 1 — upload -->
+      <section class="ui-section mb-0" *ngIf="step === 'upload'">
+        <div class="drop-zone" [class.dragging]="dragging"
+             (dragover)="onDragOver($event)" (dragleave)="onDragLeave()" (drop)="onDrop($event)"
+             (click)="!working && fileInput.click()">
+          <div *ngIf="!working">
+            <span class="ui-state__icon"><i class="bi bi-file-earmark-spreadsheet"></i></span>
+            <p class="drop-zone__title">{{ 'plan.import.drop' | translate }}</p>
+            <small class="ui-muted" *ngIf="file">{{ file.name }}</small>
+          </div>
+          <div *ngIf="working">
+            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <p class="mb-0 ui-muted">{{ 'plan.import.reading' | translate }}</p>
+          </div>
+        </div>
+        <input #fileInput type="file" class="d-none"
+               accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+               (change)="onFileSelected($event)">
+      </section>
+
+      <!-- Step 2 — review -->
+      <ng-container *ngIf="step === 'review' && preview as pv">
+        <div class="pi-file ui-muted"><i class="bi bi-file-earmark-excel me-1"></i>{{ pv.file }}</div>
+
+        <div class="ui-kpi-grid ui-kpi-grid--4">
+          <div class="ui-kpi ui-kpi--brand">
+            <span class="ui-kpi__label"><i class="bi bi-layers"></i> {{ 'plan.import.sheets' | translate }}</span>
+            <span class="ui-kpi__value">{{ selected.size }}<small> / {{ pv.totals.importableSheets }}</small></span>
+          </div>
+          <div class="ui-kpi ui-kpi--success">
+            <span class="ui-kpi__label"><i class="bi bi-person-check"></i> {{ 'plan.import.matched' | translate }}</span>
+            <span class="ui-kpi__value">{{ pv.totals.matchedPeople }}</span>
+          </div>
+          <div class="ui-kpi ui-kpi--warning">
+            <span class="ui-kpi__label"><i class="bi bi-person-x"></i> {{ 'plan.import.unmatched' | translate }}</span>
+            <span class="ui-kpi__value">{{ pv.totals.unmatchedPeople }}</span>
+          </div>
+          <div class="ui-kpi ui-kpi--info">
+            <span class="ui-kpi__label"><i class="bi bi-plus-circle"></i> {{ 'plan.import.items_create' | translate }}</span>
+            <span class="ui-kpi__value">{{ pv.totals.itemsCreate }}</span>
+            <span class="ui-kpi__sub">{{ pv.totals.itemsUpdate }} {{ 'plan.import.items_update' | translate | lowercase }} · {{ pv.totals.itemsUnchanged }} {{ 'plan.import.items_unchanged' | translate | lowercase }}</span>
+          </div>
+        </div>
+
+        <!-- one card per plan sheet -->
+        <section class="ui-section pi-sheet" *ngFor="let s of planSheets"
+                 [class.is-off]="!isSelected(s)" [class.is-disabled]="!s.importable">
+          <div class="pi-sheet__head">
+            <label class="pi-check">
+              <input type="checkbox" class="form-check-input mt-0" [disabled]="!s.importable"
+                     [ngModel]="isSelected(s)" (ngModelChange)="toggleSheet(s, $event)">
+            </label>
+            <div class="pi-sheet__titles">
+              <h3>{{ s.planTitle }}</h3>
+              <div class="pi-sheet__meta">
+                <span class="ui-muted"><i class="bi bi-table me-1"></i>{{ s.sheet }}</span>
+                <span class="ui-muted" *ngIf="s.year">· {{ s.year }}</span>
+                <span class="ui-muted" *ngIf="s.entity">· {{ s.entity }}</span>
+                <span class="ui-muted">· {{ 'plan.import.rows_count' | translate:{ count: s.rows } }}</span>
+              </div>
+            </div>
+            <span class="ui-pill ui-pill--brand" *ngIf="!s.existingPlanId"><span class="ui-pill__dot"></span>{{ 'plan.import.new_plan' | translate }}</span>
+            <span class="ui-pill ui-pill--info" *ngIf="s.existingPlanId">
+              <span class="ui-pill__dot"></span>{{ 'plan.import.existing_plan' | translate }}
+              <ng-container *ngIf="s.existingPlanStatus"> · {{ ('plan.state_' + s.existingPlanStatus) | translate }}</ng-container>
+            </span>
+          </div>
+
+          <div class="pi-kpis">
+            <div class="pi-kpi"><strong>{{ s.people.matched }}</strong><span>{{ 'plan.import.matched' | translate }}</span></div>
+            <div class="pi-kpi" [class.is-warn]="s.people.unmatched > 0"><strong>{{ s.people.unmatched }}</strong><span>{{ 'plan.import.unmatched' | translate }}</span></div>
+            <div class="pi-kpi"><strong>{{ s.items.create }}</strong><span>{{ 'plan.import.items_create' | translate }}</span></div>
+            <div class="pi-kpi"><strong>{{ s.items.update }}</strong><span>{{ 'plan.import.items_update' | translate }}</span></div>
+            <div class="pi-kpi"><strong>{{ s.items.unchanged }}</strong><span>{{ 'plan.import.items_unchanged' | translate }}</span></div>
+            <div class="pi-kpi"><strong>{{ s.dates.parsed }}</strong><span>{{ 'plan.import.dates_parsed' | translate }}</span></div>
+            <div class="pi-kpi"><strong>{{ s.dates.textOnly + s.dates.none }}</strong><span>{{ 'plan.import.dates_text' | translate }}</span></div>
+          </div>
+
+          <div class="pi-cats" *ngIf="categoriesOf(s).length">
+            <span class="ui-pill lp-cat" *ngFor="let c of categoriesOf(s)" [attr.data-cat]="c.key">
+              {{ ('plan.cat_' + c.key) | translate }} · {{ c.total }}
+            </span>
+          </div>
+
+          <div class="pi-toggles">
+            <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'matched')" (click)="toggle(s, 'matched')">
+              {{ 'plan.import.matched' | translate }} <span class="ui-filter__count">{{ s.matched.length }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'unmatched')" (click)="toggle(s, 'unmatched')" [disabled]="!s.unmatched.length">
+              {{ 'plan.import.unmatched' | translate }} <span class="ui-filter__count">{{ s.unmatched.length }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'skipped')" (click)="toggle(s, 'skipped')" [disabled]="!s.skipped.length">
+              {{ 'plan.import.skipped' | translate }} <span class="ui-filter__count">{{ s.skipped.length }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'dates')" (click)="toggle(s, 'dates')" [disabled]="!s.unparsedDates.length">
+              {{ 'plan.import.dates_text' | translate }} <span class="ui-filter__count">{{ s.unparsedDates.length }}</span>
+            </button>
+            <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'warnings')" (click)="toggle(s, 'warnings')" [disabled]="!s.warnings.length">
+              <i class="bi bi-exclamation-triangle text-warning" *ngIf="s.warnings.length"></i>
+              {{ 'plan.import.warnings' | translate }} <span class="ui-filter__count">{{ s.warnings.length }}</span>
+            </button>
+          </div>
+
+          <!-- people tables share one search box -->
+          <div class="pi-panel-tools" *ngIf="isOpen(s, 'matched') || isOpen(s, 'unmatched')">
+            <label class="ui-search">
+              <i class="bi bi-search"></i>
+              <input type="search" [placeholder]="'plan.import.search_people' | translate"
+                     [ngModel]="search[s.sheet]" (ngModelChange)="search[s.sheet] = $event">
+            </label>
+            <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="isOpen(s, 'unmatched')" (click)="copyEmails(s)">
+              <i class="bi me-1" [ngClass]="copied === s.sheet ? 'bi-check2' : 'bi-clipboard'"></i>
+              {{ (copied === s.sheet ? 'plan.import.copied' : 'plan.import.copy_emails') | translate }}
+            </button>
+          </div>
+
+          <div class="table-responsive pi-table" *ngIf="isOpen(s, 'matched')">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr>
+                <th>{{ 'plan.import.col_row' | translate }}</th><th>{{ 'plan.import.col_name' | translate }}</th>
+                <th>{{ 'plan.import.col_email' | translate }}</th><th class="text-end">{{ 'plan.import.col_items' | translate }}</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let m of filteredMatched(s)">
+                  <td class="ui-num">{{ m.row }}</td>
+                  <td>{{ m.name }}
+                    <span class="ui-pill ui-pill--warning ms-1" *ngIf="m.userStatus !== 'active' && m.userStatus !== 'invited'">{{ m.userStatus }}</span>
+                  </td>
+                  <td class="ui-muted">{{ m.email }}</td>
+                  <td class="text-end ui-num">
+                    {{ itemTotal(m.items) }}
+                    <small class="ui-muted" *ngIf="m.items.create">(+{{ m.items.create }})</small>
+                  </td>
+                </tr>
+                <tr *ngIf="filteredMatched(s).length === 0"><td colspan="4" class="ui-muted text-center">{{ 'plan.import.no_rows' | translate }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-responsive pi-table" *ngIf="isOpen(s, 'unmatched')">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr>
+                <th>{{ 'plan.import.col_row' | translate }}</th><th>{{ 'plan.import.col_name' | translate }}</th><th>{{ 'plan.import.col_email' | translate }}</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let m of filteredUnmatched(s)">
+                  <td class="ui-num">{{ m.row }}</td><td>{{ m.name }}</td><td class="ui-muted">{{ m.email }}</td>
+                </tr>
+                <tr *ngIf="filteredUnmatched(s).length === 0"><td colspan="3" class="ui-muted text-center">{{ 'plan.import.no_rows' | translate }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-responsive pi-table" *ngIf="isOpen(s, 'skipped')">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr>
+                <th>{{ 'plan.import.col_row' | translate }}</th><th>{{ 'plan.import.col_name' | translate }}</th><th>{{ 'plan.import.col_reason' | translate }}</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let k of s.skipped">
+                  <td class="ui-num">{{ k.row }}</td><td>{{ k.name || '—' }}</td>
+                  <td><span class="ui-pill ui-pill--neutral">{{ ('plan.import.reason_' + k.reason) | translate }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-responsive pi-table" *ngIf="isOpen(s, 'dates')">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr>
+                <th>{{ 'plan.import.col_row' | translate }}</th><th>{{ 'plan.import.col_email' | translate }}</th>
+                <th>{{ 'plan.import.col_training' | translate }}</th><th>{{ 'plan.provider' | translate }}</th><th>{{ 'plan.dates' | translate }}</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let d of s.unparsedDates">
+                  <td class="ui-num">{{ d.row }}</td>
+                  <td class="ui-muted">{{ d.email }}</td>
+                  <td><span class="ui-pill lp-cat me-1" [attr.data-cat]="d.category">{{ ('plan.cat_' + d.category) | translate }}</span>{{ d.title }}</td>
+                  <td>{{ d.provider || '—' }}</td>
+                  <td class="ui-muted">{{ d.scheduleText || ('plan.date_tbc' | translate) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-responsive pi-table" *ngIf="isOpen(s, 'warnings')">
+            <table class="table table-sm align-middle mb-0">
+              <thead><tr>
+                <th>{{ 'plan.import.col_row' | translate }}</th><th>{{ 'plan.import.col_code' | translate }}</th><th>{{ 'plan.import.col_message' | translate }}</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let w of s.warnings">
+                  <td class="ui-num">{{ w.row ?? '—' }}</td>
+                  <td><code class="pi-code">{{ w.code }}</code></td>
+                  <td>{{ w.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- sheets that cannot be imported as plans -->
+        <section class="ui-section ui-section--flush pi-others" *ngIf="otherSheets.length">
+          <div class="pi-other" *ngFor="let s of otherSheets">
+            <i class="bi bi-table"></i>
+            <strong>{{ s.sheet }}</strong>
+            <span class="ui-muted">{{ sheetReason(s) | translate }}</span>
+            <a *ngIf="s.kind === 'placement'" routerLink="/admin/users/import-placement" class="ms-auto small">
+              {{ 'plan.import.use_placement' | translate }} <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </section>
+
+        <div class="pi-options">
+          <label class="pi-opt">
+            <input type="checkbox" class="form-check-input mt-0" [(ngModel)]="publish">
+            {{ 'plan.import.publish' | translate }}
+          </label>
+          <label class="pi-opt" *ngIf="staleSelected > 0">
+            <input type="checkbox" class="form-check-input mt-0" [(ngModel)]="removeMissing">
+            {{ 'plan.import.remove_missing' | translate:{ count: staleSelected } }}
+          </label>
+        </div>
+      </ng-container>
+
+      <!-- Step 3 — done -->
+      <ng-container *ngIf="step === 'done' && result as r">
+        <div class="ui-state pi-done">
+          <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
+          <p>{{ 'plan.import.result_line' | translate:{ created: r.totals.itemsCreated, updated: r.totals.itemsUpdated, removed: r.totals.itemsRemoved, members: r.totals.membersAdded } }}</p>
+        </div>
+
+        <section class="ui-section ui-section--flush">
+          <div class="pi-result" *ngFor="let s of writtenSheets" [class.has-error]="s.written?.error">
+            <div class="pi-result__main">
+              <strong>{{ s.planTitle }}</strong>
+              <span class="ui-muted small">{{ s.sheet }}</span>
+              <span class="small" *ngIf="s.written as w">
+                <ng-container *ngIf="!w.error">
+                  {{ 'plan.import.result_line' | translate:{ created: w.itemsCreated, updated: w.itemsUpdated, removed: w.itemsRemoved, members: w.membersAdded } }}
+                </ng-container>
+                <span class="text-danger" *ngIf="w.error"><i class="bi bi-x-circle me-1"></i>{{ w.error }}</span>
+              </span>
+            </div>
+            <ng-container *ngIf="s.written as w">
+              <span class="ui-pill ui-pill--brand" *ngIf="w.planCreated && !w.error">{{ 'plan.import.new_plan' | translate }}</span>
+              <span class="ui-pill ui-pill--success" *ngIf="w.published && !w.error">{{ 'plan.state_published' | translate }}</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="w.planId && !w.error" (click)="goToPlan(w.planId)">
+                {{ 'plan.import.open_plan' | translate }} <i class="bi bi-arrow-right"></i>
+              </button>
+            </ng-container>
+          </div>
+        </section>
+      </ng-container>
+    </div>
+
+    <footer class="pi-foot">
+      <ng-container *ngIf="step === 'review'">
+        <button type="button" class="btn btn-outline-secondary" (click)="restart()" [disabled]="working">{{ 'common.back' | translate }}</button>
+        <span class="ui-muted small ms-auto" *ngIf="selected.size === 0">{{ 'plan.import.none_selected' | translate }}</span>
+        <button type="button" class="btn btn-primary" [class.ms-auto]="selected.size > 0" (click)="run()" [disabled]="working || selected.size === 0">
+          <span class="spinner-border spinner-border-sm me-1" *ngIf="working"></span>
+          {{ (working ? 'plan.import.importing' : 'plan.import.run') | translate:{ count: selected.size } }}
+        </button>
+      </ng-container>
+      <ng-container *ngIf="step === 'done'">
+        <button type="button" class="btn btn-outline-secondary" (click)="restart()">{{ 'plan.import.another' | translate }}</button>
+        <button type="button" class="btn btn-primary ms-auto" (click)="close()">{{ 'common.close' | translate }}</button>
+      </ng-container>
+      <ng-container *ngIf="step === 'upload'">
+        <button type="button" class="btn btn-outline-secondary ms-auto" (click)="close()">{{ 'common.cancel' | translate }}</button>
+      </ng-container>
+    </footer>
+  </div>
+</div>

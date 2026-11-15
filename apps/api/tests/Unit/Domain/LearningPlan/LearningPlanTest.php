@@ -53,4 +53,14 @@ final class LearningPlanTest extends TestCase
         self::assertNull($plan->description);
         self::assertSame('Plan', $plan->toArray()['title']);
     }
+
+    public function testCarriesThePersonalItemCount(): void
+    {
+        $plan = new LearningPlan('id', self::T, 2026, 'Plan', itemCount: 3, memberCount: 2, personalItemCount: 40);
+        $out  = $plan->toArray();
+
+        self::assertSame(3, $out['itemCount']);
+        self::assertSame(40, $out['personalItemCount']);
+        self::assertSame(0, $this->make(['year' => 2026, 'title' => 'Plan'])->toArray()['personalItemCount']);
+    }
 }

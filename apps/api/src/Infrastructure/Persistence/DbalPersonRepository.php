@@ -319,6 +319,71 @@ final class DbalPersonRepository implements PersonRepository
         ) > 0;
     }
 
+    public function placementSnapshot(string $tenantId): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT u.id, lower(btrim(u.email)) AS email, u.status::text AS status,
+                    NULLIF(btrim(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')), '') AS name,
+                    u.employee_id, u.department_id, u.job_title_id, u.custom_fields
+             FROM users u
+             WHERE u.tenant_id = :tenant AND u.deleted_at IS NULL",
+            ['tenant' => $tenantId],
+        );
+
+        $out = [];
+
+        foreach ($rows as $row) {
+            $custom  = [];
+            $decoded = is_string($row['custom_fields'] ?? null) ? json_decode($row['custom_fields'], true) : null;
+
+            foreach (is_array($decoded) ? $decoded : [] as $key => $value) {
+                if (is_string($value) || is_bool($value) || is_int($value) || is_float($value)) {
+                    $custom[(string) $key] = is_int($value) ? (float) $value : $value;
+                }
+            }
+
+            $out[] = [
+                'id'           => (string) $row['id'],
+                'email'        => (string) $row['email'],
+                'name'         => (string) ($row['name'] ?? ''),
+                'status'       => (string) $row['status'],
+                'employeeId'   => $this->text($row['employee_id'] ?? null),
+                'departmentId' => $this->text($row['department_id'] ?? null),
+                'jobTitleId'   => $this->text($row['job_title_id'] ?? null),
+                'customFields' => $custom,
+            ];
+        }
+
+        return $out;
+    }
+
+    public function applyPlacement(string $tenantId, string $userId, array $columns): bool
+    {
+        $allowed = ['employee_id' => 'employeeId', 'department_id' => 'departmentId', 'job_title_id' => 'jobTitleId'];
+        $sets    = [];
+        $params  = ['id' => $userId, 'tenant' => $tenantId];
+
+        foreach ($allowed as $column => $param) {
+            if (array_key_exists($column, $columns)) {
+                $sets[]         = sprintf('%s = :%s', $column, $param);
+                $params[$param] = $columns[$column];
+            }
+        }
+
+        if ($sets === []) {
+            return false;
+        }
+
+        return $this->connection->executeStatement(
+            sprintf(
+                'UPDATE users SET %s, updated_at = now()
+                 WHERE id = :id AND tenant_id = :tenant AND deleted_at IS NULL',
+                implode(', ', $sets),
+            ),
+            $params,
+        ) > 0;
+    }
+
     public function setPasswordHash(string $tenantId, string $id, string $hash): bool
     {
         // Status moves off `invited` in the same statement: somebody who has

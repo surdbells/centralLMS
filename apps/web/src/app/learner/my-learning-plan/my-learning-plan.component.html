@@ -41,13 +41,19 @@
           </div>
         </div>
 
+        <ng-container *ngFor="let group of groupsFor(plan)">
+        <h4 class="cat-heading" *ngIf="group.key !== undefined">
+          <span class="ui-pill lp-cat" [attr.data-cat]="group.key ?? 'general'">{{ ('plan.cat_' + (group.key ?? 'general')) | translate }}</span>
+          <span class="cat-count">{{ group.items.length }}</span>
+        </h4>
         <ul class="ui-list item-list">
-          <li class="plan-item" *ngFor="let item of plan.items" [attr.data-status]="item.status">
+          <li class="plan-item" *ngFor="let item of group.items" [attr.data-status]="item.status">
             <div class="item-main">
               <span class="item-title">
                 <i class="bi" [ngClass]="item.isCourse ? 'bi-journal-text' : 'bi-easel'"></i>
                 {{ item.title }}
                 <span class="ui-pill ui-pill--warning mandatory" *ngIf="item.isMandatory">{{ 'plan.mandatory' | translate }}</span>
+                <span class="ui-pill lp-cat" *ngIf="item.category" [attr.data-cat]="item.category">{{ ('plan.cat_' + item.category) | translate }}</span>
               </span>
               <span class="ui-pill status-badge" [attr.data-status]="item.status"
                     [class.ui-pill--success]="item.status === 'completed'"
@@ -56,6 +62,16 @@
                     [class.ui-pill--neutral]="item.status === 'not_scheduled'">
                 <span class="ui-pill__dot"></span>{{ statusKey(item.status) | translate }}
               </span>
+            </div>
+
+            <div class="item-details" *ngIf="item.provider || item.plannedStart || item.scheduleText">
+              <span *ngIf="item.provider"><i class="bi bi-building me-1"></i>{{ 'plan.provider' | translate }}: {{ item.provider }}</span>
+              <span *ngIf="item.plannedStart; else rawDates">
+                <i class="bi bi-calendar-event me-1"></i>{{ item.plannedStart | date: 'mediumDate' }}<ng-container *ngIf="item.plannedEnd && item.plannedEnd !== item.plannedStart"> – {{ item.plannedEnd | date: 'mediumDate' }}</ng-container>
+              </span>
+              <ng-template #rawDates>
+                <span class="raw-dates" *ngIf="item.scheduleText"><i class="bi bi-calendar me-1"></i>{{ item.scheduleText }}</span>
+              </ng-template>
             </div>
 
             <div class="item-controls">
@@ -77,6 +93,7 @@
             </div>
           </li>
         </ul>
+        </ng-container>
       </section>
     </ng-container>
   </ng-container>

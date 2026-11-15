@@ -56,6 +56,14 @@ export const usersRoutes: Routes = [
         title: 'Import People',
       },
       {
+        path: 'import-placement',
+        loadComponent: () =>
+          import('./components/placement-import/placement-import.component').then((m) => m.PlacementImportComponent),
+        canActivate: [permissionGuard],
+        data: { permission: 'user.manage' },
+        title: 'Import Staff Placement',
+      },
+      {
         path: 'activity',
         loadComponent: () =>
           import('./components/user-activity-log/user-activity-log.component')

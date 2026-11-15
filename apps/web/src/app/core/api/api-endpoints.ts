@@ -85,6 +85,16 @@ export const Endpoints = {
   },
 
   /**
+   * Staff placement from a workbook (staff ID, department, job title,
+   * function and grade bands). The commit re-reads the same file; nothing is
+   * held between the two calls.
+   */
+  people: {
+    placementPreview: '/people/import/placement/preview',
+    placementCommit: '/people/import/placement/commit',
+  },
+
+  /**
    * The audit trail: who did what, to what, and from where.
    *
    * Read-only. There is no route that writes an entry — they come from the
@@ -182,6 +192,11 @@ export const Endpoints = {
     item: (id: string, itemId: string) => `/learning-plans/${id}/items/${itemId}`,
     members: (id: string) => `/learning-plans/${id}/members`,
     member: (id: string, userId: string) => `/learning-plans/${id}/members/${userId}`,
+    /** Per-person items, paginated by person. */
+    personalItems: (id: string) => `/learning-plans/${id}/personal-items`,
+    /** Excel import: preview writes nothing; commit re-reads the same file. */
+    importPreview: '/learning-plans/import/preview',
+    importCommit: '/learning-plans/import/commit',
   },
 
   modules: {

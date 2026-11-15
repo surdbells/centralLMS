@@ -1,8 +1,18 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, filter, map } from 'rxjs';
 import { ApiClient, Endpoints } from '../core/api';
 
 export type PlanItemStatus = 'not_scheduled' | 'scheduled' | 'in_progress' | 'completed';
+
+/** What kind of training a plan item is; null for a hand-made shared item. */
+export type PlanCategory =
+  | 'functional' | 'conference' | 'certification' | 'behavioural'
+  | 'organisational' | 'leadership' | 'other';
+
+/** Display order of the categories, matching the server's sort_order bands. */
+export const PLAN_CATEGORY_ORDER: readonly PlanCategory[] = [
+  'functional', 'conference', 'certification', 'behavioural', 'organisational', 'leadership', 'other',
+];
 
 export interface PlanItem {
   id: string;
@@ -14,6 +24,12 @@ export interface PlanItem {
   status: PlanItemStatus;
   scheduledDate: string | null;
   progress: number | null;
+  category?: PlanCategory | null;
+  provider?: string | null;
+  scheduleText?: string | null;
+  plannedStart?: string | null;
+  plannedEnd?: string | null;
+  isPersonal?: boolean;
 }
 
 export interface LearnerPlan {
@@ -39,6 +55,8 @@ export interface LearningPlan {
   status: 'draft' | 'published' | 'archived';
   itemCount: number;
   memberCount: number;
+  /** Items that belong to one person each (e.g. imported from Excel). */
+  personalItemCount?: number;
 }
 
 export interface AdminPlanItem {
@@ -49,7 +67,112 @@ export interface AdminPlanItem {
   is_mandatory: boolean;
   sort_order: number;
   course_title: string | null;
+  category?: PlanCategory | null;
+  provider?: string | null;
+  schedule_text?: string | null;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  source?: 'manual' | 'import';
 }
+
+// --- Excel import ------------------------------------------------------------
+
+export type ImportSheetKind = 'plan' | 'placement' | 'empty' | 'unrecognised';
+
+export interface ImportItemCounts { create: number; update: number; unchanged: number; }
+
+export interface ImportWarning { row: number | null; code: string; message: string; }
+
+export interface ImportSheetPreview {
+  sheet: string;
+  index: number;
+  kind: ImportSheetKind;
+  importable: boolean;
+  year: number | null;
+  entity: string | null;
+  planTitle: string | null;
+  existingPlanId: string | null;
+  existingPlanStatus: 'draft' | 'published' | 'archived' | null;
+  columns: { index: number; header: string; category: PlanCategory; providerIndex: number | null }[];
+  rows: number;
+  people: { matched: number; unmatched: number; noEmail: number; duplicate: number };
+  matched: { row: number; email: string; userId: string; name: string; userStatus: string; items: ImportItemCounts }[];
+  unmatched: { row: number; email: string; name: string }[];
+  skipped: { row: number; name: string; reason: 'no_email' | 'duplicate_email' }[];
+  items: ImportItemCounts & { stale: number; byCategory: Partial<Record<PlanCategory, ImportItemCounts>> };
+  dates: { parsed: number; textOnly: number; none: number };
+  unparsedDates: {
+    row: number; email: string; category: PlanCategory; title: string; provider: string | null; scheduleText: string | null;
+  }[];
+  warnings: ImportWarning[];
+}
+
+export interface ImportTotals {
+  sheets: number;
+  importableSheets: number;
+  matchedPeople: number;
+  unmatchedPeople: number;
+  itemsCreate: number;
+  itemsUpdate: number;
+  itemsUnchanged: number;
+  itemsStale: number;
+}
+
+export interface ImportPreview {
+  file: string;
+  sheets: ImportSheetPreview[];
+  totals: ImportTotals;
+}
+
+export interface ImportSheetWritten {
+  planId: string | null;
+  planCreated: boolean;
+  membersAdded: number;
+  itemsCreated: number;
+  itemsUpdated: number;
+  itemsUnchanged: number;
+  itemsRemoved: number;
+  published: boolean;
+  error: string | null;
+}
+
+export interface ImportCommitResult {
+  file: string;
+  sheets: (ImportSheetPreview & { written?: ImportSheetWritten })[];
+  totals: ImportTotals & { itemsCreated: number; itemsUpdated: number; itemsRemoved: number; membersAdded: number };
+}
+
+export interface PersonalItem {
+  id: string;
+  category: PlanCategory | null;
+  title: string;
+  provider: string | null;
+  scheduleText: string | null;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  scheduledDate: string | null;
+  status: PlanItemStatus;
+  courseId: string | null;
+  source: 'manual' | 'import';
+}
+
+export interface PersonalItemsPerson {
+  userId: string;
+  name: string;
+  email: string;
+  department: string | null;
+  items: PersonalItem[];
+}
+
+export interface PersonalItemsPage {
+  people: PersonalItemsPerson[];
+  total: number;
+  page: number;
+  perPage: number;
+  categories: Partial<Record<PlanCategory, number>>;
+}
+
+export interface PlanMember { id: string; name: string; email: string; assigned_at?: string; }
 
 @Injectable({ providedIn: 'root' })
 export class LearningPlansService {
@@ -101,7 +224,11 @@ export class LearningPlansService {
 
   saveItem(
     id: string,
-    item: { id?: string; courseId?: string | null; title: string; description?: string | null; isMandatory?: boolean; sortOrder?: number },
+    item: {
+      id?: string; courseId?: string | null; title: string; description?: string | null; isMandatory?: boolean; sortOrder?: number;
+      userId?: string | null; category?: PlanCategory | null; provider?: string | null; scheduleText?: string | null;
+      plannedStart?: string | null; plannedEnd?: string | null;
+    },
   ): Observable<AdminPlanItem> {
     return this.api.post<AdminPlanItem>(Endpoints.learningPlans.items(id), item);
   }
@@ -112,5 +239,48 @@ export class LearningPlansService {
 
   assign(id: string, body: { userIds?: string[]; departmentId?: string; everyone?: boolean }): Observable<{ assigned: number }> {
     return this.api.post<{ assigned: number }>(Endpoints.learningPlans.members(id), body);
+  }
+
+  members(id: string, perPage = 200): Observable<{ items: PlanMember[]; total: number }> {
+    return this.api.get<{ items: PlanMember[]; total: number }>(Endpoints.learningPlans.members(id), { page: 1, perPage });
+  }
+
+  /** Per-person items, a page of people at a time. */
+  personalItems(
+    planId: string,
+    q: { userId?: string | null; category?: PlanCategory | null; q?: string | null; page: number; perPage: number },
+  ): Observable<PersonalItemsPage> {
+    return this.api.get<PersonalItemsPage>(Endpoints.learningPlans.personalItems(planId), {
+      userId: q.userId || undefined,
+      category: q.category || undefined,
+      q: q.q?.trim() || undefined,
+      page: q.page,
+      perPage: q.perPage,
+    });
+  }
+
+  // --- Excel import ----------------------------------------------------------
+
+  /** Reads the workbook and reports what an import would do. Writes nothing. */
+  previewImport(file: File): Observable<ImportPreview> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.api.upload<ImportPreview>(Endpoints.learningPlans.importPreview, form).pipe(
+      filter((e): e is typeof e & { result: ImportPreview } => e.state === 'done'),
+      map((e) => e.result),
+    );
+  }
+
+  /** Re-sends the same workbook with the sheets to write; the server re-parses it. */
+  commitImport(file: File, sheets: string[], publish: boolean, removeMissing: boolean): Observable<ImportCommitResult> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('sheets', JSON.stringify(sheets));
+    form.append('publish', publish ? 'true' : 'false');
+    form.append('removeMissing', removeMissing ? 'true' : 'false');
+    return this.api.upload<ImportCommitResult>(Endpoints.learningPlans.importCommit, form).pipe(
+      filter((e): e is typeof e & { result: ImportCommitResult } => e.state === 'done'),
+      map((e) => e.result),
+    );
   }
 }

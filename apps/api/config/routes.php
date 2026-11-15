@@ -42,6 +42,7 @@ use Central\Api\Application\Action\Analytics\EngagementAnalyticsAction;
 use Central\Api\Application\Action\Analytics\AnalyticsSummaryAction;
 use Central\Api\Application\Action\Analytics\AnalyticsByFieldAction;
 use Central\Api\Application\Action\Analytics\MyEngagementAction;
+use Central\Api\Application\Action\LearningPlan\ImportLearningPlansAction;
 use Central\Api\Application\Action\LearningPlan\ManageLearningPlanAction;
 use Central\Api\Application\Action\LearningPlan\MyLearningPlanAction;
 use Central\Api\Application\Action\Feedback\TeamFeedbackAction;
@@ -140,6 +141,7 @@ use Central\Api\Application\Action\Saas\OperatorBillingAction;
 use Central\Api\Application\Action\Saas\BillingAction;
 use Central\Api\Application\Action\Saas\PaymentWebhookAction;
 use Central\Api\Application\Action\People\ImportPeopleAction;
+use Central\Api\Application\Action\People\ImportPlacementAction;
 use Central\Api\Application\Action\People\ManagePeopleAction;
 use Central\Api\Application\Action\People\MyProfileAction;
 use Central\Api\Application\Action\People\StreamAvatarAction;
@@ -465,12 +467,16 @@ return static function (App $app): void {
             $secure->group('/learning-plans', function (RouteCollectorProxy $g) use ($uuid): void {
                 $g->get('', [ManageLearningPlanAction::class, 'list'])->setName('learning-plans.list');
                 $g->post('', [ManageLearningPlanAction::class, 'create'])->setName('learning-plans.create');
+                // Excel import (literal paths, before the {id} routes).
+                $g->post('/import/preview', [ImportLearningPlansAction::class, 'preview'])->setName('learning-plans.import.preview');
+                $g->post('/import/commit', [ImportLearningPlansAction::class, 'commit'])->setName('learning-plans.import.commit');
                 $g->get('/{id:' . $uuid . '}', [ManageLearningPlanAction::class, 'show'])->setName('learning-plans.show');
                 $g->put('/{id:' . $uuid . '}', [ManageLearningPlanAction::class, 'update'])->setName('learning-plans.update');
                 $g->patch('/{id:' . $uuid . '}/status', [ManageLearningPlanAction::class, 'setStatus'])->setName('learning-plans.status');
                 $g->delete('/{id:' . $uuid . '}', [ManageLearningPlanAction::class, 'delete'])->setName('learning-plans.delete');
                 $g->get('/{id:' . $uuid . '}/items', [ManageLearningPlanAction::class, 'items'])->setName('learning-plans.items');
                 $g->post('/{id:' . $uuid . '}/items', [ManageLearningPlanAction::class, 'saveItem'])->setName('learning-plans.items.save');
+                $g->get('/{id:' . $uuid . '}/personal-items', [ManageLearningPlanAction::class, 'personalItems'])->setName('learning-plans.personal-items');
                 $g->delete('/{id:' . $uuid . '}/items/{itemId:' . $uuid . '}', [ManageLearningPlanAction::class, 'deleteItem'])->setName('learning-plans.items.delete');
                 $g->get('/{id:' . $uuid . '}/members', [ManageLearningPlanAction::class, 'members'])->setName('learning-plans.members');
                 $g->post('/{id:' . $uuid . '}/members', [ManageLearningPlanAction::class, 'assign'])->setName('learning-plans.members.assign');
@@ -1276,6 +1282,16 @@ return static function (App $app): void {
 
             // --- people ---------------------------------------------------
             //
+            // Staff placement from a workbook (staff ID, department, job
+            // title, division and grade bands). The commit re-reads the same
+            // file; nothing is kept between the two calls.
+            $secure->group('/people/import/placement', function (RouteCollectorProxy $p): void {
+                $p->post('/preview', [ImportPlacementAction::class, 'preview'])
+                    ->setName('people.placement.preview');
+                $p->post('/commit', [ImportPlacementAction::class, 'commit'])
+                    ->setName('people.placement.commit');
+            });
+
             // `statistics`, `instructors` and `roles` are declared before
             // `/{id}` so none of them is read as a user id.
             $secure->group('/users', function (RouteCollectorProxy $u) use ($uuid): void {

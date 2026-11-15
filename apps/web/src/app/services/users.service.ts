@@ -183,6 +183,47 @@ export interface ImportResult {
   rows: ImportOutcome[];
 }
 
+// --- staff placement from a workbook ---------------------------------------
+
+export type PlacementField = 'employeeId' | 'department' | 'jobTitle' | 'division' | 'jobGroup' | 'salaryGroup' | 'jobCategory';
+
+export interface PlacementChange { field: PlacementField; label: string; old: string | null; new: string; }
+
+export interface PlacementPreviewRow {
+  row: number;
+  email: string;
+  name: string | null;
+  userId: string | null;
+  action: 'update' | 'unchanged' | 'unmatched' | 'error';
+  changes: PlacementChange[];
+  warnings: string[];
+  error: string | null;
+}
+
+export interface PlacementPreview {
+  file: string;
+  sheet: string;
+  /** Per-row detail. (The contract also names a `rows` count; JSON keeps the array.) */
+  rows: PlacementPreviewRow[];
+  /** Every sheet in the workbook with its classification (only `placement` ones are pickable). */
+  sheets?: { name: string; index: number; kind: 'placement' | 'empty' | 'other'; rows: number }[];
+  summary: { update: number; unchanged: number; unmatched: number; error: number; warnings: number };
+  lookupsToCreate: { department: string[]; job_title: string[] };
+  customFieldsToCreate: { key: string; label: string; type: string }[];
+  optionsToAdd: Partial<Record<'job_group' | 'salary_group' | 'job_category', string[]>>;
+}
+
+export interface PlacementCommitResult {
+  updated: number;
+  unchanged: number;
+  unmatched: number;
+  failed: number;
+  lookupsCreated: { department: number; job_title: number };
+  customFieldsCreated: string[];
+  optionsAdded: Record<string, string[]>;
+  rows: { row: number; email: string; outcome: 'updated' | 'unchanged' | 'unmatched' | 'error'; reason: string | null }[];
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -273,6 +314,31 @@ export class UsersService {
    */
   import(rows: ImportRowValues[], onExisting: ExistingPolicy): Observable<ImportResult> {
     return this.api.post<ImportResult>(Endpoints.users.import, { rows, onExisting });
+  }
+
+  /** Reads a staff-placement workbook and says what would change. Writes nothing. */
+  previewPlacement(file: File, sheet?: string | null): Observable<PlacementPreview> {
+    return this.api.upload<PlacementPreview>(Endpoints.people.placementPreview, this.placementForm(file, sheet)).pipe(
+      filter((event): event is typeof event & { result: PlacementPreview } => event.state === 'done'),
+      map((event) => event.result),
+    );
+  }
+
+  /** Applies the placement; the server re-reads the same file and recomputes. */
+  commitPlacement(file: File, sheet?: string | null): Observable<PlacementCommitResult> {
+    return this.api.upload<PlacementCommitResult>(Endpoints.people.placementCommit, this.placementForm(file, sheet)).pipe(
+      filter((event): event is typeof event & { result: PlacementCommitResult } => event.state === 'done'),
+      map((event) => event.result),
+    );
+  }
+
+  private placementForm(file: File, sheet?: string | null): FormData {
+    const form = new FormData();
+    form.append('file', file);
+    if (sheet) {
+      form.append('sheet', sheet);
+    }
+    return form;
   }
 
   /** What this person can do, derived from the courses they have finished. */

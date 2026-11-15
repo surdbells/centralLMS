@@ -1,5 +1,32 @@
 // Look comes from the global UI kit (sections, filters, pills, progress).
+@use '../../admin/learning-plans/plan-category';
+
 :host { display: block; }
+
+.lp-cat[data-cat='general'] { --cat-rgb: 71, 85, 105; }
+
+.cat-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 2px;
+  font-size: .8125rem;
+  font-weight: 650;
+
+  &:first-of-type { margin-top: 6px; }
+  .cat-count { font-size: .75rem; color: var(--ui-text-muted); font-weight: 500; }
+}
+
+.item-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 4px;
+  font-size: .78rem;
+  color: var(--ui-text-muted);
+
+  .raw-dates { font-style: italic; }
+}
 
 .lp-wrap { color: var(--ui-text); }
 

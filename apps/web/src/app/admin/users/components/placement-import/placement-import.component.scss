@@ -1,0 +1,52 @@
+// Upload → Review → Done for staff placement. Page chrome comes from the UI kit.
+
+.pl-steps {
+  display: flex; gap: 6px; list-style: none; margin: 0 0 16px; padding: 0; flex-wrap: wrap;
+  li { display: inline-flex; align-items: center; gap: 8px; font-size: .8125rem; color: var(--ui-text-muted);
+    padding: 4px 12px 4px 4px; border-radius: 999px;
+    span { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+      font-size: .75rem; font-weight: 650; background: var(--ui-surface-2); border: 1px solid var(--ui-border); }
+    &.is-active { color: var(--ui-text); font-weight: 600; background: rgba(var(--brand-primary-rgb), .07);
+      span { background: var(--brand-primary); border-color: var(--brand-primary); color: #fff; } }
+    &.is-done span { background: rgba(var(--brand-primary-rgb), .12); color: var(--brand-primary); border-color: transparent; } }
+}
+
+.drop-zone { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 240px;
+  padding: 40px 16px; border: 1px dashed var(--ui-border-strong); border-radius: var(--ui-radius-card);
+  background: var(--ui-surface-2); cursor: pointer; transition: border-color .15s ease, background .15s ease; }
+.drop-zone:hover { border-color: rgba(var(--brand-primary-rgb), .45); }
+.drop-zone.dragging { border-color: var(--brand-primary); background: rgba(var(--brand-primary-rgb), .06); }
+.drop-zone__title { margin: 12px 0 4px; font-size: .9375rem; font-weight: 600; color: var(--ui-text); }
+
+.pl-file { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: .8125rem;
+  .pl-sheet { display: inline-flex; align-items: center; gap: 8px; min-width: 240px;
+    app-select { flex: 1 1 220px; } } }
+
+.pl-create { padding: 14px 18px;
+  .ui-section__head { margin-bottom: 8px; }
+  .pl-create__group { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-top: 1px solid var(--ui-border);
+    &:first-of-type { border-top: 0; } }
+  .pl-create__label { font-size: .75rem; font-weight: 600; color: var(--ui-text-muted); } }
+
+.pl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pl-rows-head { align-items: center; flex-wrap: wrap; gap: 10px; padding-bottom: 14px; margin-bottom: 0; }
+
+.pl-table { border-top: 1px solid var(--ui-border); max-height: 560px; overflow-y: auto;
+  thead th { position: sticky; top: 0; z-index: 1; background: var(--ui-surface-2); font-size: .75rem; font-weight: 600;
+    color: var(--ui-text-muted); white-space: nowrap; }
+  td { font-size: .8125rem; vertical-align: top; } }
+
+.pl-person { display: flex; flex-direction: column; min-width: 0;
+  strong { font-weight: 600; } span { word-break: break-all; } }
+
+.pl-changes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px;
+  li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+  .pl-changes__label { color: var(--ui-text-muted); font-size: .75rem; }
+  .pl-old { color: var(--ui-text-muted); }
+  strong { font-weight: 600; } }
+
+.pl-foot { display: flex; align-items: center; gap: 10px; padding: 14px 22px 18px; border-top: 1px solid var(--ui-border);
+  &.pl-foot--plain { padding: 14px 0 0; margin-top: 16px; } }
+
+.pl-sub { font-size: .875rem; font-weight: 650; margin: 0 0 8px; }

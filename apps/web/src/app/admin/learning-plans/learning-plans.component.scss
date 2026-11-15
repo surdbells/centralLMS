@@ -1,5 +1,6 @@
 // Page chrome (header, sections, pills, states) comes from the global UI kit;
 // this file only lays out the plan list + editor.
+@use './plan-category';
 
 .lp-create { padding: 14px 16px; }
 
@@ -49,3 +50,31 @@
 @media (max-width: 680px) { .add-item { grid-template-columns: 1fr; } }
 
 .muted { color: var(--ui-text-muted); } .small { font-size: .8125rem; }
+
+// --- shared / per-person tabs ---------------------------------------------------
+.editor-tabs { margin: 20px 0 12px; }
+
+.personal-filters { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px;
+  margin-bottom: 12px; align-items: center;
+  .pf-search { min-width: 0; } }
+@media (max-width: 680px) { .personal-filters { grid-template-columns: 1fr; } }
+
+.person-list { display: flex; flex-direction: column; gap: 10px; transition: opacity .15s ease;
+  &.is-loading { opacity: .55; pointer-events: none; } }
+
+.person-card { border: 1px solid var(--ui-border); border-radius: var(--ui-radius-ctl); background: var(--ui-surface); }
+
+.person-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-surface-2); border-radius: var(--ui-radius-ctl) var(--ui-radius-ctl) 0 0;
+  .ph-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto;
+    strong { font-size: .8125rem; font-weight: 650; }
+    .ph-meta { font-size: .72rem; color: var(--ui-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } } }
+
+.pi-items { list-style: none; margin: 0; padding: 0 12px;
+  li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--ui-border);
+    &:last-child { border-bottom: 0; } }
+  .pi-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .pi-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: .8125rem; font-weight: 600; }
+  .pi-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .72rem; color: var(--ui-text-muted); } }
+
+.personal-pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }

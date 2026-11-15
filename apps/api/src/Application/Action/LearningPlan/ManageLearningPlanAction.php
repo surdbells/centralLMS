@@ -125,6 +125,40 @@ final class ManageLearningPlanAction
         return Json::noContent($response);
     }
 
+    /**
+     * GET /v1/learning-plans/{id}/personal-items?userId=&category=&q=&page=&perPage=
+     * Per-person items, paged by person.
+     *
+     * @param array<string, string> $args
+     */
+    public function personalItems(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
+    {
+        $tenant = $this->tenant($request);
+        $planId = $args['id'] ?? '';
+
+        if ($this->plans->find($tenant, $planId) === null) {
+            throw new EntityNotFound('Learning plan', $planId);
+        }
+
+        $query = $request->getQueryParams();
+        $str   = static fn (mixed $v): ?string => is_string($v) && trim($v) !== '' ? trim($v) : null;
+        $user  = $str($query['userId'] ?? null);
+
+        if ($user !== null && !\Ramsey\Uuid\Uuid::isValid($user)) {
+            throw \Central\Api\Domain\Exception\ValidationFailed::fromArray(['userId' => 'Not a valid person id.']);
+        }
+
+        return Json::ok($response, $this->plans->personalItems(
+            $tenant,
+            $planId,
+            $user,
+            $str($query['category'] ?? null),
+            $str($query['q'] ?? null),
+            max(1, (int) ($query['page'] ?? 1)),
+            min(100, max(1, (int) ($query['perPage'] ?? 25))),
+        ));
+    }
+
     // --- members --------------------------------------------------------------
 
     /** @param array<string, string> $args */

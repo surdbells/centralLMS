@@ -30,6 +30,8 @@ final readonly class LearningPlan
         /** Counted for the list view, never stored. */
         public int $itemCount = 0,
         public int $memberCount = 0,
+        /** Items that belong to one person (user_id set); itemCount is shared items only. */
+        public int $personalItemCount = 0,
     ) {
     }
 
@@ -88,6 +90,7 @@ final readonly class LearningPlan
             'status'      => $this->status,
             'itemCount'   => $this->itemCount,
             'memberCount' => $this->memberCount,
+            'personalItemCount' => $this->personalItemCount,
             'createdAt'   => $this->createdAt?->format(\DateTimeInterface::ATOM),
             'updatedAt'   => $this->updatedAt?->format(\DateTimeInterface::ATOM),
         ];
