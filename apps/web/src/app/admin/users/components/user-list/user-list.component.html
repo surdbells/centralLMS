@@ -64,6 +64,11 @@
           <button type="button" class="btn btn-sm btn-outline-secondary" (click)="bulkAction('activate')"><i class="bi bi-check-circle me-1 text-success"></i>{{ 'admin.users.activate' | translate }}</button>
           <button type="button" class="btn btn-sm btn-outline-secondary" (click)="bulkAction('suspend')"><i class="bi bi-pause-circle me-1 text-warning"></i>{{ 'admin.users.suspend' | translate }}</button>
           <button type="button" class="btn btn-sm btn-outline-danger" (click)="bulkAction('delete')"><i class="bi bi-trash me-1"></i>{{ 'common.delete' | translate }}</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="selectedInvitedIds.length" [disabled]="resending" (click)="resendInvitations()">
+            <span class="spinner-border spinner-border-sm me-1" *ngIf="resending"></span>
+            <i class="bi bi-envelope-arrow-up me-1" *ngIf="!resending"></i>{{ 'admin.users.resend_invitation' | translate }}
+            <span class="ui-muted">({{ selectedInvitedIds.length }})</span>
+          </button>
           <div class="dropdown d-inline-block">
             <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">{{ 'admin.users.assign_role' | translate }}</button>
             <ul class="dropdown-menu">

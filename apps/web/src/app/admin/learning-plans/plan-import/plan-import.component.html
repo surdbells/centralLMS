@@ -55,7 +55,12 @@
             <span class="ui-kpi__label"><i class="bi bi-person-check"></i> {{ 'plan.import.matched' | translate }}</span>
             <span class="ui-kpi__value">{{ pv.totals.matchedPeople }}</span>
           </div>
-          <div class="ui-kpi ui-kpi--warning">
+          <div class="ui-kpi ui-kpi--brand" *ngIf="createMissing">
+            <span class="ui-kpi__label"><i class="bi bi-person-plus"></i> {{ 'people.create.kpi_to_create' | translate }}</span>
+            <span class="ui-kpi__value">{{ createCount }}</span>
+            <span class="ui-kpi__sub" *ngIf="cannotCreateCount">{{ 'people.create.kpi_cannot_sub' | translate:{ count: cannotCreateCount } }}</span>
+          </div>
+          <div class="ui-kpi ui-kpi--warning" *ngIf="!createMissing">
             <span class="ui-kpi__label"><i class="bi bi-person-x"></i> {{ 'plan.import.unmatched' | translate }}</span>
             <span class="ui-kpi__value">{{ pv.totals.unmatchedPeople }}</span>
           </div>
@@ -65,6 +70,12 @@
             <span class="ui-kpi__sub">{{ pv.totals.itemsUpdate }} {{ 'plan.import.items_update' | translate | lowercase }} · {{ pv.totals.itemsUnchanged }} {{ 'plan.import.items_unchanged' | translate | lowercase }}</span>
           </div>
         </div>
+
+        <!-- people the workbook names who are not on the platform yet -->
+        <app-import-people-options class="pi-people" [createCount]="createCount" [disabled]="working"
+                                   *ngIf="canCreatePeople && (pv.totals.unmatchedPeople > 0 || createCount > 0 || cannotCreateCount > 0)"
+                                   [createMissing]="createMissing" (createMissingChange)="onCreateMissing($event)"
+                                   [(sendInvites)]="sendInvites" [(roleId)]="roleId" />
 
         <!-- one card per plan sheet -->
         <section class="ui-section pi-sheet" *ngFor="let s of planSheets"
@@ -92,7 +103,8 @@
 
           <div class="pi-kpis">
             <div class="pi-kpi"><strong>{{ s.people.matched }}</strong><span>{{ 'plan.import.matched' | translate }}</span></div>
-            <div class="pi-kpi" [class.is-warn]="s.people.unmatched > 0"><strong>{{ s.people.unmatched }}</strong><span>{{ 'plan.import.unmatched' | translate }}</span></div>
+            <div class="pi-kpi is-new" *ngIf="createMissing"><strong>{{ toCreateOf(s).length }}</strong><span>{{ 'people.create.kpi_to_create' | translate }}</span></div>
+            <div class="pi-kpi" *ngIf="!createMissing" [class.is-warn]="s.people.unmatched > 0"><strong>{{ s.people.unmatched }}</strong><span>{{ 'plan.import.unmatched' | translate }}</span></div>
             <div class="pi-kpi"><strong>{{ s.items.create }}</strong><span>{{ 'plan.import.items_create' | translate }}</span></div>
             <div class="pi-kpi"><strong>{{ s.items.update }}</strong><span>{{ 'plan.import.items_update' | translate }}</span></div>
             <div class="pi-kpi"><strong>{{ s.items.unchanged }}</strong><span>{{ 'plan.import.items_unchanged' | translate }}</span></div>
@@ -110,9 +122,18 @@
             <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'matched')" (click)="toggle(s, 'matched')">
               {{ 'plan.import.matched' | translate }} <span class="ui-filter__count">{{ s.matched.length }}</span>
             </button>
-            <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'unmatched')" (click)="toggle(s, 'unmatched')" [disabled]="!s.unmatched.length">
+            <button type="button" class="ui-filter" *ngIf="!createMissing" [class.is-active]="isOpen(s, 'unmatched')" (click)="toggle(s, 'unmatched')" [disabled]="!s.unmatched.length">
               {{ 'plan.import.unmatched' | translate }} <span class="ui-filter__count">{{ s.unmatched.length }}</span>
             </button>
+            <ng-container *ngIf="createMissing">
+              <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'create')" (click)="toggle(s, 'create')" [disabled]="!toCreateOf(s).length">
+                <i class="bi bi-person-plus"></i> {{ 'people.create.will_create' | translate:{ count: toCreateOf(s).length } }}
+              </button>
+              <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'cannot')" (click)="toggle(s, 'cannot')" [disabled]="!cannotCreateOf(s).length">
+                <i class="bi bi-person-x text-danger" *ngIf="cannotCreateOf(s).length"></i>
+                {{ 'people.create.cannot_create' | translate }} <span class="ui-filter__count">{{ cannotCreateOf(s).length }}</span>
+              </button>
+            </ng-container>
             <button type="button" class="ui-filter" [class.is-active]="isOpen(s, 'skipped')" (click)="toggle(s, 'skipped')" [disabled]="!s.skipped.length">
               {{ 'plan.import.skipped' | translate }} <span class="ui-filter__count">{{ s.skipped.length }}</span>
             </button>
@@ -126,13 +147,13 @@
           </div>
 
           <!-- people tables share one search box -->
-          <div class="pi-panel-tools" *ngIf="isOpen(s, 'matched') || isOpen(s, 'unmatched')">
+          <div class="pi-panel-tools" *ngIf="isOpen(s, 'matched') || isOpen(s, 'unmatched') || isOpen(s, 'create') || isOpen(s, 'cannot')">
             <label class="ui-search">
               <i class="bi bi-search"></i>
               <input type="search" [placeholder]="'plan.import.search_people' | translate"
                      [ngModel]="search[s.sheet]" (ngModelChange)="search[s.sheet] = $event">
             </label>
-            <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="isOpen(s, 'unmatched')" (click)="copyEmails(s)">
+            <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="isOpen(s, 'unmatched') || isOpen(s, 'cannot')" (click)="copyEmails(s)">
               <i class="bi me-1" [ngClass]="copied === s.sheet ? 'bi-check2' : 'bi-clipboard'"></i>
               {{ (copied === s.sheet ? 'plan.import.copied' : 'plan.import.copy_emails') | translate }}
             </button>
@@ -174,6 +195,9 @@
               </tbody>
             </table>
           </div>
+
+          <app-import-people-table *ngIf="createMissing && isOpen(s, 'create')" mode="create" [toCreate]="filteredToCreate(s)" />
+          <app-import-people-table *ngIf="createMissing && isOpen(s, 'cannot')" mode="cannot" [cannotCreate]="filteredCannotCreate(s)" />
 
           <div class="table-responsive pi-table" *ngIf="isOpen(s, 'skipped')">
             <table class="table table-sm align-middle mb-0">
@@ -252,6 +276,12 @@
         <div class="ui-state pi-done">
           <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
           <p>{{ 'plan.import.result_line' | translate:{ created: r.totals.itemsCreated, updated: r.totals.itemsUpdated, removed: r.totals.itemsRemoved, members: r.totals.membersAdded } }}</p>
+          <div class="pi-done__pills" *ngIf="createdTotal(r) || invitedTotal(r) || r.invitationsFailed?.length">
+            <span class="ui-pill ui-pill--success" *ngIf="createdTotal(r)"><i class="bi bi-person-plus me-1"></i>{{ 'people.create.result_created' | translate:{ count: createdTotal(r) } }}</span>
+            <span class="ui-pill ui-pill--info" *ngIf="invitedTotal(r)"><i class="bi bi-envelope-check me-1"></i>{{ 'people.create.result_invited' | translate:{ count: invitedTotal(r) } }}</span>
+            <span class="ui-pill ui-pill--danger" *ngIf="r.invitationsFailed?.length" [title]="failedInvites(r)"><i class="bi bi-envelope-x me-1"></i>{{ 'people.create.result_invite_failed' | translate:{ count: r.invitationsFailed!.length } }}</span>
+          </div>
+          <p class="ui-muted small mb-0" *ngIf="createdTotal(r) && !invitedTotal(r)">{{ 'people.create.invite_later_hint' | translate }}</p>
         </div>
 
         <section class="ui-section ui-section--flush">
@@ -262,6 +292,7 @@
               <span class="small" *ngIf="s.written as w">
                 <ng-container *ngIf="!w.error">
                   {{ 'plan.import.result_line' | translate:{ created: w.itemsCreated, updated: w.itemsUpdated, removed: w.itemsRemoved, members: w.membersAdded } }}
+                  <ng-container *ngIf="w.peopleCreated"> · {{ 'people.create.result_created' | translate:{ count: w.peopleCreated } }}</ng-container>
                 </ng-container>
                 <span class="text-danger" *ngIf="w.error"><i class="bi bi-x-circle me-1"></i>{{ w.error }}</span>
               </span>

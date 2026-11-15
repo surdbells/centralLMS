@@ -1,6 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, filter, map } from 'rxjs';
 import { ApiClient, Endpoints } from '../core/api';
+import {
+  appendCreatePeople,
+  type CreatePeopleOptions,
+  type ImportPersonCannotCreate,
+  type ImportPersonToCreate,
+} from './users.service';
 
 export type PlanItemStatus = 'not_scheduled' | 'scheduled' | 'in_progress' | 'completed';
 
@@ -98,6 +104,10 @@ export interface ImportSheetPreview {
   people: { matched: number; unmatched: number; noEmail: number; duplicate: number };
   matched: { row: number; email: string; userId: string; name: string; userStatus: string; items: ImportItemCounts }[];
   unmatched: { row: number; email: string; name: string }[];
+  /** Unmatched rows `createMissing` would turn into invited accounts (always reported). */
+  toCreate?: ImportPersonToCreate[];
+  /** Unmatched rows that cannot become accounts, with the reason. */
+  cannotCreate?: ImportPersonCannotCreate[];
   skipped: { row: number; name: string; reason: 'no_email' | 'duplicate_email' }[];
   items: ImportItemCounts & { stale: number; byCategory: Partial<Record<PlanCategory, ImportItemCounts>> };
   dates: { parsed: number; textOnly: number; none: number };
@@ -116,10 +126,15 @@ export interface ImportTotals {
   itemsUpdate: number;
   itemsUnchanged: number;
   itemsStale: number;
+  /** Distinct people (by email, across sheets) `createMissing` would create. */
+  toCreate?: number;
+  cannotCreate?: number;
 }
 
 export interface ImportPreview {
   file: string;
+  /** Whether this preview counted the people `createMissing` would create. */
+  createMissing?: boolean;
   sheets: ImportSheetPreview[];
   totals: ImportTotals;
 }
@@ -134,12 +149,25 @@ export interface ImportSheetWritten {
   itemsRemoved: number;
   published: boolean;
   error: string | null;
+  /** People created as invited accounts on this sheet (`createMissing`). */
+  peopleCreated?: number;
+  /** Rows → the account created for them. */
+  createdPeople?: { row: number; email: string; userId: string; sheet?: string }[];
 }
 
 export interface ImportCommitResult {
   file: string;
   sheets: (ImportSheetPreview & { written?: ImportSheetWritten })[];
-  totals: ImportTotals & { itemsCreated: number; itemsUpdated: number; itemsRemoved: number; membersAdded: number };
+  totals: ImportTotals & {
+    itemsCreated: number; itemsUpdated: number; itemsRemoved: number; membersAdded: number;
+    /** People created across all sheets. */
+    peopleCreated?: number;
+  };
+  /** Everyone created, with the sheet that created them. */
+  createdPeople?: { row: number; email: string; userId: string; sheet?: string }[];
+  invitationsSent?: number;
+  /** User ids whose invitation could not be sent (see `failedInviteEmails`). */
+  invitationsFailed?: string[];
 }
 
 export interface PersonalItem {
@@ -262,9 +290,13 @@ export class LearningPlansService {
   // --- Excel import ----------------------------------------------------------
 
   /** Reads the workbook and reports what an import would do. Writes nothing. */
-  previewImport(file: File): Observable<ImportPreview> {
+  previewImport(file: File, createMissing?: boolean): Observable<ImportPreview> {
     const form = new FormData();
     form.append('file', file);
+    // With it, people who would be created count as members (items, importable sheets).
+    if (createMissing !== undefined) {
+      form.append('createMissing', createMissing ? 'true' : 'false');
+    }
     return this.api.upload<ImportPreview>(Endpoints.learningPlans.importPreview, form).pipe(
       filter((e): e is typeof e & { result: ImportPreview } => e.state === 'done'),
       map((e) => e.result),
@@ -272,12 +304,15 @@ export class LearningPlansService {
   }
 
   /** Re-sends the same workbook with the sheets to write; the server re-parses it. */
-  commitImport(file: File, sheets: string[], publish: boolean, removeMissing: boolean): Observable<ImportCommitResult> {
+  commitImport(
+    file: File, sheets: string[], publish: boolean, removeMissing: boolean, people?: CreatePeopleOptions,
+  ): Observable<ImportCommitResult> {
     const form = new FormData();
     form.append('file', file);
     form.append('sheets', JSON.stringify(sheets));
     form.append('publish', publish ? 'true' : 'false');
     form.append('removeMissing', removeMissing ? 'true' : 'false');
+    appendCreatePeople(form, people);
     return this.api.upload<ImportCommitResult>(Endpoints.learningPlans.importCommit, form).pipe(
       filter((e): e is typeof e & { result: ImportCommitResult } => e.state === 'done'),
       map((e) => e.result),

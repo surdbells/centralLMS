@@ -20,7 +20,12 @@ use Ramsey\Uuid\Uuid;
  *
  * What it may change, and nothing else: staff ID, department, job title, and
  * four custom profile fields — division, job group, salary group and job
- * category. Names are shown, never written. Nobody is created.
+ * category. Names are shown, never written.
+ *
+ * **Nobody is created unless asked.** With `createMissing`, a row whose address
+ * has no account becomes an `invited` account first ({@see ImportedPersonCreator},
+ * shared with the learning-plan import) and is then given its placement by the
+ * very same update path as everybody else.
  *
  * **A blank cell never clears anything.** The sheet is a correction feed, not
  * the system of record; a column somebody left empty means "no news".
@@ -57,6 +62,7 @@ final class PlacementImporter
         private readonly PersonRepository $people,
         private readonly LookupRepository $lookups,
         private readonly CustomFieldDefinitionRepository $fields,
+        private readonly ?ImportedPersonCreator $creator = null,
     ) {
     }
 
@@ -67,9 +73,11 @@ final class PlacementImporter
      *
      * @return array<string, mixed>
      */
-    public function preview(string $tenantId, array $parsed): array
+    public function preview(string $tenantId, array $parsed, bool $createMissing = false): array
     {
-        $plan = $this->planFor($tenantId, $parsed);
+        $snapshot   = $this->people->placementSnapshot($tenantId);
+        $candidates = self::candidates($parsed['rows'], $snapshot, $this->people->deletedEmails($tenantId));
+        $plan       = $this->planFor($tenantId, $parsed, $snapshot, $createMissing ? self::emailSet($candidates['toCreate']) : []);
 
         return [
             'sheet'                => $parsed['sheet'],
@@ -82,6 +90,13 @@ final class PlacementImporter
             'customFieldsToCreate' => $plan['customFieldsToCreate'],
             'optionsToAdd'         => $plan['optionsToAdd'],
             'rows'                 => array_map(self::publicRow(...), $plan['rows']),
+            'createMissing'        => $createMissing,
+            'toCreate'             => $candidates['toCreate'],
+            'cannotCreate'         => $candidates['cannotCreate'],
+            'totals'               => [
+                'toCreate'     => count($candidates['toCreate']),
+                'cannotCreate' => count($candidates['cannotCreate']),
+            ],
         ];
     }
 
@@ -95,9 +110,54 @@ final class PlacementImporter
      *
      * @return array<string, mixed>
      */
-    public function commit(string $tenantId, array $parsed): array
-    {
-        $plan = $this->planFor($tenantId, $parsed);
+    public function commit(
+        string $tenantId,
+        array $parsed,
+        bool $createMissing = false,
+        ?string $roleId = null,
+        ?string $actorId = null,
+    ): array {
+        // --- missing people -------------------------------------------------
+        // Created first, bare (name, email, role); the plan below is then
+        // computed against a snapshot that includes them, so their placement
+        // is written by exactly the update path everybody else goes through.
+        $createdIds     = [];
+        $createdPeople  = [];
+        $createFailures = [];
+        $candidates     = ['toCreate' => [], 'cannotCreate' => []];
+
+        if ($createMissing) {
+            if ($this->creator === null) {
+                throw new \LogicException('Creating people needs an ImportedPersonCreator.');
+            }
+
+            // Before any write, so an unknown role refuses the whole commit.
+            $roleIds    = $this->creator->roleIds($tenantId, $roleId);
+            $candidates = self::candidates(
+                $parsed['rows'],
+                $this->people->placementSnapshot($tenantId),
+                $this->people->deletedEmails($tenantId),
+            );
+
+            foreach ($candidates['toCreate'] as $candidate) {
+                try {
+                    $made = $this->creator->create($tenantId, [
+                        'email'     => $candidate['email'],
+                        'firstName' => $candidate['firstName'],
+                        'lastName'  => $candidate['lastName'],
+                    ], $roleIds, $actorId);
+
+                    if ($made['created'] && $made['person']->id !== null) {
+                        $createdIds[$candidate['email']] = $made['person']->id;
+                        $createdPeople[] = ['row' => $candidate['row'], 'email' => $candidate['email'], 'userId' => $made['person']->id];
+                    }
+                } catch (\Throwable $e) {
+                    $createFailures[$candidate['email']] = 'Could not create this person: ' . self::message($e);
+                }
+            }
+        }
+
+        $plan = $this->planFor($tenantId, $parsed, $this->people->placementSnapshot($tenantId));
 
         // --- reference data -------------------------------------------------
         $created        = ['department' => 0, 'job_title' => 0];
@@ -198,11 +258,27 @@ final class PlacementImporter
         }
 
         // --- people ---------------------------------------------------------
-        $counts   = ['updated' => 0, 'unchanged' => 0, 'unmatched' => 0, 'failed' => 0];
+        $counts   = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'unmatched' => 0, 'failed' => 0];
         $outcomes = [];
 
         foreach ($plan['rows'] as $row) {
-            $reported = ['row' => $row['row'], 'email' => $row['email'], 'name' => $row['name'], 'userId' => $row['userId']];
+            $isNew    = $row['error'] === null && isset($createdIds[$row['email']]);
+            $reported = ['row' => $row['row'], 'email' => $row['email'], 'name' => $row['name'], 'userId' => $row['userId'], 'created' => $isNew];
+
+            if ($isNew && $row['action'] !== 'update') {
+                // Created, with nothing on the row to place them by.
+                ++$counts['created'];
+                $outcomes[] = [...$reported, 'outcome' => 'created', 'reason' => null, 'changes' => []];
+
+                continue;
+            }
+
+            if ($row['action'] === 'unmatched' && isset($createFailures[$row['email']])) {
+                ++$counts['failed'];
+                $outcomes[] = [...$reported, 'outcome' => 'error', 'reason' => $createFailures[$row['email']], 'changes' => []];
+
+                continue;
+            }
 
             if ($row['action'] !== 'update') {
                 $outcome = $row['action'] === 'error' ? 'error' : $row['action'];
@@ -244,8 +320,8 @@ final class PlacementImporter
             }
 
             if ($columns === [] && $custom === []) {
-                ++$counts['failed'];
-                $outcomes[] = [...$reported, 'outcome' => 'error', 'reason' => implode(' ', $problems) ?: 'Nothing could be applied.', 'changes' => []];
+                ++$counts[$isNew ? 'created' : 'failed'];
+                $outcomes[] = [...$reported, 'outcome' => $isNew ? 'created' : 'error', 'reason' => implode(' ', $problems) ?: 'Nothing could be applied.', 'changes' => []];
 
                 continue;
             }
@@ -262,17 +338,18 @@ final class PlacementImporter
                     $this->people->saveCustomFields($tenantId, (string) $row['userId'], $values);
                 }
 
-                ++$counts['updated'];
+                ++$counts[$isNew ? 'created' : 'updated'];
                 $outcomes[] = [
                     ...$reported,
-                    'outcome' => 'updated',
+                    'outcome' => $isNew ? 'created' : 'updated',
                     // Partly applied is still applied; what was held back says why.
                     'reason'  => $problems === [] ? null : implode(' ', $problems),
                     'changes' => $row['changes'],
                 ];
             } catch (\Throwable $e) {
-                ++$counts['failed'];
-                $outcomes[] = [...$reported, 'outcome' => 'error', 'reason' => self::message($e), 'changes' => []];
+                // A new person whose placement failed still exists; say so.
+                ++$counts[$isNew ? 'created' : 'failed'];
+                $outcomes[] = [...$reported, 'outcome' => $isNew ? 'created' : 'error', 'reason' => self::message($e), 'changes' => []];
             }
         }
 
@@ -282,15 +359,104 @@ final class PlacementImporter
             'customFieldsCreated' => $fieldsCreated,
             'optionsAdded'        => (object) $optionsAdded,
             'rows'                => $outcomes,
+            'createMissing'       => $createMissing,
+            'createdPeople'       => $createdPeople,
+            'cannotCreate'        => $candidates['cannotCreate'],
         ];
     }
 
     /**
+     * Which unmatched rows could become accounts, and which could not and why.
+     *
+     * A row is a candidate when its address has no live account here. Rows the
+     * sheet already rejected as a repeat of an earlier address are left out —
+     * the earlier row speaks for that person.
+     *
+     * @param list<array{row: int, email: string, name: string, values: array<string, string>, error: ?string}> $rows
+     * @param list<array{id: string, email: string, name: string, status: string, employeeId: ?string, departmentId: ?string, jobTitleId: ?string, customFields: array<string, string|float|bool>}> $people
+     * @param list<string> $deletedEmails lower-cased addresses of deleted accounts
+     *
+     * @return array{
+     *     toCreate: list<array{row: int, email: string, firstName: string, lastName: string, jobTitle: ?string, department: ?string, employeeId: ?string, previouslyDeleted: bool}>,
+     *     cannotCreate: list<array{row: int, email: string, name: string, reason: string, message: string}>
+     * }
+     */
+    public static function candidates(array $rows, array $people, array $deletedEmails = []): array
+    {
+        $known = [];
+
+        foreach ($people as $person) {
+            $known[strtolower(trim($person['email']))] = true;
+        }
+
+        $deleted  = array_flip($deletedEmails);
+        $toCreate = [];
+        $cannot   = [];
+        $seen     = [];
+
+        foreach ($rows as $row) {
+            if ($row['error'] !== null && $row['email'] !== '') {
+                continue;
+            }
+
+            if ($row['email'] !== '' && (isset($known[$row['email']]) || isset($seen[$row['email']]))) {
+                continue;
+            }
+
+            $verdict = ImportedPersonCreator::assess($row['email'], $row['name']);
+
+            if (!$verdict['ok']) {
+                $cannot[] = [
+                    'row'     => $row['row'],
+                    'email'   => $row['email'],
+                    'name'    => $row['name'],
+                    'reason'  => (string) $verdict['reason'],
+                    'message' => (string) $verdict['message'],
+                ];
+
+                continue;
+            }
+
+            $seen[$verdict['email']] = true;
+            $toCreate[] = [
+                'row'               => $row['row'],
+                'email'             => $verdict['email'],
+                'firstName'         => $verdict['firstName'],
+                'lastName'          => $verdict['lastName'],
+                'jobTitle'          => $row['values']['jobTitle'] ?? null,
+                'department'        => $row['values']['department'] ?? null,
+                'employeeId'        => $row['values']['employeeId'] ?? null,
+                'previouslyDeleted' => isset($deleted[$verdict['email']]),
+            ];
+        }
+
+        return ['toCreate' => $toCreate, 'cannotCreate' => $cannot];
+    }
+
+    /**
+     * @param list<array{email: string}> $people
+     *
+     * @return array<string, true>
+     */
+    private static function emailSet(array $people): array
+    {
+        $set = [];
+
+        foreach ($people as $person) {
+            $set[$person['email']] = true;
+        }
+
+        return $set;
+    }
+
+    /**
      * @param array<string, mixed> $parsed
+     * @param list<array{id: string, email: string, name: string, status: string, employeeId: ?string, departmentId: ?string, jobTitleId: ?string, customFields: array<string, string|float|bool>}> $snapshot
+     * @param array<string, true> $toCreate addresses previewed as new people
      *
      * @return array<string, mixed>
      */
-    private function planFor(string $tenantId, array $parsed): array
+    private function planFor(string $tenantId, array $parsed, array $snapshot, array $toCreate = []): array
     {
         $lookups = [];
 
@@ -300,9 +466,10 @@ final class PlacementImporter
 
         return self::plan(
             $parsed['rows'],
-            $this->people->placementSnapshot($tenantId),
+            $snapshot,
             $lookups,
             $this->fields->allForTenant($tenantId, false),
+            $toCreate,
         );
     }
 
@@ -339,17 +506,19 @@ final class PlacementImporter
      * @param list<array{id: string, email: string, name: string, status: string, employeeId: ?string, departmentId: ?string, jobTitleId: ?string, customFields: array<string, string|float|bool>}> $people
      * @param array<string, list<array{id: string, name: string, isActive: bool}>> $lookups by kind value
      * @param list<CustomFieldDefinition> $definitions
+     * @param array<string, true> $toCreate addresses that will be created: their rows are
+     *                                      planned against a blank profile, as action `create`
      *
      * @return array{
      *     rows: list<array<string, mixed>>,
-     *     summary: array{update: int, unchanged: int, unmatched: int, error: int, warnings: int},
+     *     summary: array{create: int, update: int, unchanged: int, unmatched: int, error: int, warnings: int},
      *     lookupsToCreate: array{department: list<string>, job_title: list<string>},
      *     pendingLookups: array<string, array<string, string>>,
      *     customFieldsToCreate: list<array{key: string, label: string, type: string}>,
      *     optionsToAdd: array<string, list<string>>
      * }
      */
-    public static function plan(array $rows, array $people, array $lookups, array $definitions): array
+    public static function plan(array $rows, array $people, array $lookups, array $definitions, array $toCreate = []): array
     {
         $byEmail = [];
         $owners  = [];
@@ -390,7 +559,7 @@ final class PlacementImporter
         $optionsToAdd   = [];
         $staffSeen      = [];
         $planned        = [];
-        $summary        = ['update' => 0, 'unchanged' => 0, 'unmatched' => 0, 'error' => 0, 'warnings' => 0];
+        $summary        = ['create' => 0, 'update' => 0, 'unchanged' => 0, 'unmatched' => 0, 'error' => 0, 'warnings' => 0];
 
         foreach ($rows as $row) {
             $person = $row['error'] === null ? ($byEmail[$row['email']] ?? null) : null;
@@ -424,6 +593,24 @@ final class PlacementImporter
                 } else {
                     $staffSeen[$staffKey] = $row['row'];
                 }
+            }
+
+            $creating = false;
+
+            if ($person === null && isset($toCreate[$row['email']])) {
+                // A person the commit will create: planned against a blank
+                // profile so the preview shows what they will be given.
+                $creating = true;
+                $person   = [
+                    'id'           => '',
+                    'email'        => $row['email'],
+                    'name'         => $row['name'],
+                    'status'       => 'invited',
+                    'employeeId'   => null,
+                    'departmentId' => null,
+                    'jobTitleId'   => null,
+                    'customFields' => [],
+                ];
             }
 
             if ($person === null) {
@@ -550,7 +737,7 @@ final class PlacementImporter
                 }
             }
 
-            $entry['action'] = $entry['changes'] === [] ? 'unchanged' : 'update';
+            $entry['action'] = $creating ? 'create' : ($entry['changes'] === [] ? 'unchanged' : 'update');
             ++$summary[$entry['action']];
 
             if ($entry['warnings'] !== []) {

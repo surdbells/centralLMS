@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Central\Api\Application\Action\People;
 
+use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Import\ImportedPersonCreator;
+use Central\Api\Application\Import\ImportOptions;
 use Central\Api\Application\Import\PlacementImporter;
 use Central\Api\Application\Import\PlacementWorkbook;
 use Central\Api\Domain\Authz\Permission;
+use Central\Api\Domain\Authz\RoleRepository;
 use Central\Api\Domain\CustomField\CustomFieldDefinitionRepository;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\Lookup\LookupRepository;
@@ -36,17 +40,25 @@ final class ImportPlacementAction extends PeopleAction
         PersonRepository $people,
         LookupRepository $lookups,
         CustomFieldDefinitionRepository $fields,
+        RoleRepository $roles,
+        private readonly PasswordResetAction $passwords,
     ) {
         parent::__construct($people);
-        $this->importer = new PlacementImporter($people, $lookups, $fields);
+        $this->importer = new PlacementImporter(
+            $people,
+            $lookups,
+            $fields,
+            new ImportedPersonCreator($people, $lookups, $fields, $roles),
+        );
     }
 
     public function preview(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $tenantId = $this->writable($request);
+        $options  = ImportOptions::read($this->body($request));
         [$name, $parsed] = $this->parse($request);
 
-        $preview = $this->importer->preview($tenantId, $parsed);
+        $preview = $this->importer->preview($tenantId, $parsed, $options['createMissing']);
 
         return Json::ok($response, [
             'file'     => $name,
@@ -58,12 +70,35 @@ final class ImportPlacementAction extends PeopleAction
     public function commit(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $tenantId = $this->writable($request);
+        $options  = ImportOptions::read($this->body($request));
         [$name, $parsed] = $this->parse($request);
+
+        $result = $this->importer->commit(
+            $tenantId,
+            $parsed,
+            $options['createMissing'],
+            $options['roleId'],
+            $this->userId($request),
+        );
+
+        $invites = ['sent' => 0, 'failed' => []];
+
+        if ($options['sendInvites'] && $result['createdPeople'] !== []) {
+            $invites = ImportOptions::invite(
+                $this->passwords,
+                $request,
+                $tenantId,
+                array_map(static fn (array $p): string => (string) $p['userId'], $result['createdPeople']),
+            );
+        }
 
         return Json::ok($response, [
             'file'  => $name,
             'sheet' => $parsed['sheet'],
-            ...$this->importer->commit($tenantId, $parsed),
+            ...$result,
+            'sendInvites'       => $options['sendInvites'],
+            'invitationsSent'   => $invites['sent'],
+            'invitationsFailed' => $invites['failed'],
         ]);
     }
 

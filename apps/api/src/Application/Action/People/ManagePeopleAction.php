@@ -459,6 +459,79 @@ final class ManagePeopleAction extends PeopleAction
     }
 
     /**
+     * Sends the invitation again to people who have not accepted one yet.
+     *
+     * POST /v1/users/invitations/resend   {userIds: [...]}
+     *
+     * For the many accounts an import creates without emailing anybody, and
+     * for invitations that expired or went to spam. Only `invited` accounts
+     * are sent one; anybody else is reported as skipped. Each send retires the
+     * person's earlier invitation link.
+     */
+    public function resendInvitations(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        $this->caller($request)->mustHave(Permission::UserManage);
+
+        $tenantId = $this->tenantId($request);
+        $raw      = $this->body($request)['userIds'] ?? null;
+
+        if (!is_array($raw) || $raw === []) {
+            throw ValidationFailed::fromArray(['userIds' => 'Choose at least one person.']);
+        }
+
+        $ids = [];
+
+        foreach ($raw as $id) {
+            $id = is_string($id) ? trim($id) : '';
+
+            if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) === 1) {
+                $ids[strtolower($id)] = true;
+            }
+        }
+
+        if ($ids === []) {
+            throw ValidationFailed::fromArray(['userIds' => 'Choose at least one person.']);
+        }
+
+        if (count($ids) > 1000) {
+            throw ValidationFailed::fromArray(['userIds' => 'Send at most 1000 invitations at a time.']);
+        }
+
+        $sent    = 0;
+        $skipped = [];
+        $failed  = [];
+
+        foreach (array_keys($ids) as $id) {
+            $id     = (string) $id;
+            $person = $this->people->find($tenantId, $id);
+
+            if ($person === null) {
+                $skipped[] = ['userId' => $id, 'reason' => 'not_found'];
+
+                continue;
+            }
+
+            if ($person->status !== UserStatus::Invited) {
+                $skipped[] = ['userId' => $id, 'reason' => 'not_invited'];
+
+                continue;
+            }
+
+            try {
+                if ($this->passwords->send($request, $id, $tenantId, PasswordTokenPurpose::Invitation)) {
+                    ++$sent;
+                } else {
+                    $failed[] = $id;
+                }
+            } catch (\Throwable) {
+                $failed[] = $id;
+            }
+        }
+
+        return Json::ok($response, ['sent' => $sent, 'skipped' => $skipped, 'failed' => $failed]);
+    }
+
+    /**
      * The roles that can be assigned in this tenant.
      */
     public function roles(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface

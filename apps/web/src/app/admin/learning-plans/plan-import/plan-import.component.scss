@@ -72,7 +72,8 @@
     border-radius: var(--ui-radius-ctl); background: var(--ui-surface-2); min-width: 0;
     strong { font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; }
     span { font-size: .6875rem; color: var(--ui-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    &.is-warn strong { color: var(--bs-warning-text-emphasis, #b45309); } } }
+    &.is-warn strong { color: var(--bs-warning-text-emphasis, #b45309); }
+    &.is-new strong { color: var(--brand-primary); } } }
 @media (max-width: 900px) { .pi-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .pi-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
@@ -102,6 +103,9 @@
   .pi-opt { display: inline-flex; align-items: center; gap: 8px; font-size: .875rem; cursor: pointer; } }
 
 .pi-done { padding: 12px 0 18px; }
+.pi-done__pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 6px; }
+
+.pi-people { display: block; margin-bottom: 12px; }
 
 .pi-result { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--ui-border);
   flex-wrap: wrap;

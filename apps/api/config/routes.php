@@ -1304,6 +1304,11 @@ return static function (App $app): void {
                     ->setName('users.instructors');
                 $u->get('/roles', [ManagePeopleAction::class, 'roles'])->setName('users.roles');
 
+                // Re-sending the invitation to many invited people at once —
+                // the follow-up to an import that created accounts silently.
+                $u->post('/invitations/resend', [ManagePeopleAction::class, 'resendInvitations'])
+                    ->setName('users.invitations.resend');
+
                 // Adding a lot of people at once. Nothing is kept between the
                 // two calls — the client sends back the rows it was shown, and
                 // the commit revalidates them from nothing. The legacy parsed

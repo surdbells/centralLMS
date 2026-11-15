@@ -175,7 +175,10 @@ final class PlacementWorkbook
             }
 
             $line   = $offset + 2;
-            $email  = strtolower(self::value($cells, $map['columns']['email']));
+            // Normalised exactly as ImportedPersonCreator::assess() and the
+            // learning-plan reader do (all whitespace out, multibyte lower-case),
+            // so a created person and their placement row share one key.
+            $email  = mb_strtolower(trim((string) preg_replace('/\s+/u', '', self::value($cells, $map['columns']['email']))));
             $name   = isset($map['columns']['name']) ? self::value($cells, $map['columns']['name']) : '';
             $values = [];
 

@@ -64,7 +64,12 @@
           <span class="ui-kpi__label"><i class="bi bi-check2"></i> {{ 'people.placement.unchanged' | translate }}</span>
           <span class="ui-kpi__value">{{ summary.unchanged }}</span>
         </button>
-        <button type="button" class="ui-kpi ui-kpi--warning" [class.is-active]="filter === 'unmatched'" (click)="filter = 'unmatched'">
+        <button type="button" class="ui-kpi ui-kpi--brand" *ngIf="createMissing" [class.is-active]="peoplePanel === 'create'" (click)="togglePeople('create')">
+          <span class="ui-kpi__label"><i class="bi bi-person-plus"></i> {{ 'people.create.kpi_to_create' | translate }}</span>
+          <span class="ui-kpi__value">{{ createCount }}</span>
+          <span class="ui-kpi__sub" *ngIf="unmatchedCount">{{ 'people.create.kpi_not_found_sub' | translate:{ count: unmatchedCount } }}</span>
+        </button>
+        <button type="button" class="ui-kpi ui-kpi--warning" *ngIf="!createMissing" [class.is-active]="filter === 'unmatched'" (click)="filter = 'unmatched'">
           <span class="ui-kpi__label"><i class="bi bi-person-x"></i> {{ 'people.placement.not_found' | translate }}</span>
           <span class="ui-kpi__value">{{ summary.unmatched }}</span>
         </button>
@@ -98,6 +103,28 @@
         </div>
       </section>
 
+      <!-- people the workbook names who are not on the platform yet -->
+      <section class="ui-section pl-people" *ngIf="summary.unmatched > 0 || toCreate.length || cannotCreate.length">
+        <div class="ui-section__head">
+          <h2 class="ui-section__title"><i class="bi bi-person-plus me-2"></i>{{ 'people.create.section_title' | translate }}</h2>
+        </div>
+        <app-import-people-options [createCount]="createCount" [disabled]="working"
+                                   [createMissing]="createMissing" (createMissingChange)="onCreateMissing($event)"
+                                   [(sendInvites)]="sendInvites" [(roleId)]="roleId" />
+        <div class="pl-people__toggles" *ngIf="createMissing">
+          <button type="button" class="ui-filter" [class.is-active]="peoplePanel === 'create'" (click)="togglePeople('create')" [disabled]="!toCreate.length">
+            <i class="bi bi-person-plus"></i> {{ 'people.create.will_create' | translate:{ count: createCount } }}
+            <i class="bi" [ngClass]="peoplePanel === 'create' ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+          </button>
+          <button type="button" class="ui-filter" [class.is-active]="peoplePanel === 'cannot'" (click)="togglePeople('cannot')" [disabled]="!cannotCreate.length">
+            <i class="bi bi-person-x" [class.text-danger]="cannotCreate.length"></i> {{ 'people.create.cannot_create' | translate }}
+            <span class="ui-filter__count">{{ cannotCreate.length }}</span>
+          </button>
+        </div>
+        <app-import-people-table *ngIf="createMissing && peoplePanel === 'create'" mode="create" [toCreate]="toCreate" />
+        <app-import-people-table *ngIf="createMissing && peoplePanel === 'cannot'" mode="cannot" [cannotCreate]="cannotCreate" />
+      </section>
+
       <section class="ui-section ui-section--flush">
         <div class="ui-section__head pl-rows-head">
           <div class="ui-filters">
@@ -105,16 +132,16 @@
               {{ 'people.placement.filter_all' | translate }} <span class="ui-filter__count">{{ rows.length }}</span>
             </button>
             <button type="button" class="ui-filter" [class.is-active]="filter === 'changes'" (click)="filter = 'changes'">
-              {{ 'people.placement.filter_changes' | translate }} <span class="ui-filter__count">{{ summary.update }}</span>
+              {{ 'people.placement.filter_changes' | translate }} <span class="ui-filter__count">{{ changesCount }}</span>
             </button>
             <button type="button" class="ui-filter" [class.is-active]="filter === 'unmatched'" (click)="filter = 'unmatched'">
-              {{ 'people.placement.not_found' | translate }} <span class="ui-filter__count">{{ summary.unmatched }}</span>
+              {{ 'people.placement.not_found' | translate }} <span class="ui-filter__count">{{ unmatchedCount }}</span>
             </button>
             <button type="button" class="ui-filter" [class.is-active]="filter === 'error'" (click)="filter = 'error'">
               {{ 'people.placement.errors' | translate }} <span class="ui-filter__count">{{ summary.error }}</span>
             </button>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="filter === 'unmatched' && summary.unmatched > 0" (click)="copyUnmatched()">
+          <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="filter === 'unmatched' && unmatchedCount > 0" (click)="copyUnmatched()">
             <i class="bi me-1" [ngClass]="copied ? 'bi-check2' : 'bi-clipboard'"></i>{{ (copied ? 'plan.import.copied' : 'plan.import.copy_emails') | translate }}
           </button>
         </div>
@@ -136,7 +163,7 @@
                     <span class="ui-muted small">{{ r.email }}</span>
                   </div>
                 </td>
-                <td><span class="ui-pill" [ngClass]="actionPill(r.action)"><span class="ui-pill__dot"></span>{{ actionLabel(r.action) | translate }}</span></td>
+                <td><span class="ui-pill" [ngClass]="actionPill(r)"><span class="ui-pill__dot"></span>{{ actionLabel(r) | translate }}</span></td>
                 <td>
                   <ul class="pl-changes" *ngIf="r.changes.length">
                     <li *ngFor="let c of r.changes">
@@ -160,9 +187,12 @@
 
         <div class="pl-foot">
           <button type="button" class="btn btn-outline-secondary" (click)="restart()" [disabled]="working">{{ 'common.back' | translate }}</button>
-          <button type="button" class="btn btn-primary ms-auto" (click)="apply()" [disabled]="working || summary.update === 0">
+          <span class="ui-muted small ms-auto" *ngIf="createMissing && createCount > 0">
+            {{ 'people.create.apply_breakdown' | translate:{ updated: summary.update, created: createCount } }}
+          </span>
+          <button type="button" class="btn btn-primary" [class.ms-auto]="!(createMissing && createCount > 0)" (click)="apply()" [disabled]="working || applyCount === 0">
             <span class="spinner-border spinner-border-sm me-1" *ngIf="working"></span>
-            {{ 'people.placement.apply' | translate:{ count: summary.update } }}
+            {{ 'people.placement.apply' | translate:{ count: applyCount } }}
           </button>
         </div>
       </section>
@@ -174,6 +204,12 @@
         <div class="ui-state">
           <span class="ui-state__icon"><i class="bi bi-check2-circle"></i></span>
           <p>{{ 'people.placement.done' | translate:{ updated: r.updated, unchanged: r.unchanged, unmatched: r.unmatched } }}</p>
+          <div class="pl-chips justify-content-center mb-2" *ngIf="r.created || r.invitationsSent || r.invitationsFailed?.length">
+            <span class="ui-pill ui-pill--success" *ngIf="r.created"><i class="bi bi-person-plus me-1"></i>{{ 'people.create.result_created' | translate:{ count: r.created } }}</span>
+            <span class="ui-pill ui-pill--info" *ngIf="r.invitationsSent"><i class="bi bi-envelope-check me-1"></i>{{ 'people.create.result_invited' | translate:{ count: r.invitationsSent } }}</span>
+            <span class="ui-pill ui-pill--danger" *ngIf="r.invitationsFailed?.length" [title]="failedInvites(r)"><i class="bi bi-envelope-x me-1"></i>{{ 'people.create.result_invite_failed' | translate:{ count: r.invitationsFailed!.length } }}</span>
+          </div>
+          <p class="ui-muted small" *ngIf="r.created && !r.invitationsSent">{{ 'people.create.invite_later_hint' | translate }}</p>
           <div class="pl-chips justify-content-center" *ngIf="createdLookups || r.customFieldsCreated.length">
             <span class="ui-pill ui-pill--brand" *ngIf="r.lookupsCreated.department">{{ 'people.placement.new_departments' | translate }} · {{ r.lookupsCreated.department }}</span>
             <span class="ui-pill ui-pill--brand" *ngIf="r.lookupsCreated.job_title">{{ 'people.placement.new_job_titles' | translate }} · {{ r.lookupsCreated.job_title }}</span>

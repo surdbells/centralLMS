@@ -16,9 +16,12 @@ import {
   type ImportSheetPreview,
   type PlanCategory,
 } from '../../../services/learning-plans.service';
+import { failedInviteEmails, type ImportPersonCannotCreate, type ImportPersonToCreate } from '../../../services/users.service';
+import { SessionStore } from '../../../core/auth/session.store';
+import { ImportPeopleOptionsComponent, ImportPeopleTableComponent } from '../../../shared/import-people/import-people.component';
 
 type Step = 'upload' | 'review' | 'done';
-type Panel = 'matched' | 'unmatched' | 'skipped' | 'dates' | 'warnings';
+type Panel = 'matched' | 'unmatched' | 'create' | 'cannot' | 'skipped' | 'dates' | 'warnings';
 
 /**
  * Importing per-person learning plans from an Excel workbook.
@@ -26,18 +29,22 @@ type Panel = 'matched' | 'unmatched' | 'skipped' | 'dates' | 'warnings';
  * Upload → Review → Done. The review is a dry run on the server: nothing is
  * written until "Import", and the commit re-sends the same file (the server
  * keeps nothing between the two calls). One plan per sheet, matched by
- * year + title; people are matched by email and never created.
+ * year + title; people are matched by email. With "create people who aren't
+ * on the platform yet" (on by default) unmatched rows with an email and a name
+ * become invited accounts (no password) and join the plan with their items;
+ * people who already exist are never changed from a plan sheet.
  */
 @Component({
   selector: 'app-plan-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe, ImportPeopleOptionsComponent, ImportPeopleTableComponent],
   templateUrl: './plan-import.component.html',
   styleUrls: ['./plan-import.component.scss'],
 })
 export class PlanImportComponent implements OnDestroy {
   private readonly svc = inject(LearningPlansService);
   private readonly i18n = inject(I18nService);
+  private readonly session = inject(SessionStore);
   private readonly destroy$ = new Subject<void>();
 
   /** The wizard was dismissed. */
@@ -62,6 +69,19 @@ export class PlanImportComponent implements OnDestroy {
   selected = new Set<string>();
   publish = false;
   removeMissing = false;
+
+  /**
+   * Creating people needs user.manage (the plan import itself only course.manage):
+   * without it the API refuses the whole commit, so the option is hidden and the
+   * import runs exactly as a match-by-email import.
+   */
+  readonly canCreatePeople = this.session.can()('user.manage');
+  /** Create invited accounts for unmatched rows (default on here when allowed; the API defaults off). */
+  createMissing = this.canCreatePeople;
+  /** Email the invitation to each person created now (default off). */
+  sendInvites = false;
+  /** Role for new people; the options block defaults it to the learner role. */
+  roleId: string | null = null;
 
   /** Which collapsible table is open on each sheet card. */
   open: Record<string, Panel | null> = {};
@@ -105,22 +125,35 @@ export class PlanImportComponent implements OnDestroy {
     this.read();
   }
 
-  private read(): void {
+  /**
+   * Previews the file. `refresh` re-runs it for the same file after the
+   * create-people option changed, keeping what the admin already chose
+   * (ticked sheets, open panels, publish) where it still applies.
+   */
+  private read(refresh = false): void {
     const file = this.file;
     if (!file) {
       return;
     }
     this.working = true;
     this.error = null;
-    this.svc.previewImport(file).pipe(takeUntil(this.destroy$)).subscribe({
+    this.svc.previewImport(file, this.createMissing).pipe(takeUntil(this.destroy$)).subscribe({
       next: (preview) => {
         this.working = false;
+        const before = this.preview;
         this.preview = preview;
-        this.selected = new Set(preview.sheets.filter((s) => s.kind === 'plan' && s.importable).map((s) => s.sheet));
-        this.open = {};
-        this.search = {};
-        this.publish = false;
-        this.removeMissing = false;
+        const importable = preview.sheets.filter((s) => s.kind === 'plan' && s.importable).map((s) => s.sheet);
+        if (refresh && before) {
+          // Keep unticked sheets unticked; tick sheets that just became importable.
+          const wasImportable = new Set(before.sheets.filter((s) => s.importable).map((s) => s.sheet));
+          this.selected = new Set(importable.filter((n) => this.selected.has(n) || !wasImportable.has(n)));
+        } else {
+          this.selected = new Set(importable);
+          this.open = {};
+          this.search = {};
+          this.publish = false;
+          this.removeMissing = false;
+        }
         this.step = 'review';
       },
       error: (e: unknown) => {
@@ -181,6 +214,77 @@ export class PlanImportComponent implements OnDestroy {
     return t === '' ? sheet.unmatched : sheet.unmatched.filter((m) => this.hit(t, m.name, m.email));
   }
 
+  // --- people who are not on the platform yet --------------------------------
+
+  toCreateOf(sheet: ImportSheetPreview): ImportPersonToCreate[] {
+    return Array.isArray(sheet.toCreate) ? sheet.toCreate : [];
+  }
+
+  cannotCreateOf(sheet: ImportSheetPreview): ImportPersonCannotCreate[] {
+    return Array.isArray(sheet.cannotCreate) ? sheet.cannotCreate : [];
+  }
+
+  filteredToCreate(sheet: ImportSheetPreview): ImportPersonToCreate[] {
+    const t = this.term(sheet);
+    const list = this.toCreateOf(sheet);
+    return t === '' ? list : list.filter((p) => this.hit(t, `${p.firstName} ${p.lastName}`, p.email, p.jobTitle, p.department));
+  }
+
+  filteredCannotCreate(sheet: ImportSheetPreview): ImportPersonCannotCreate[] {
+    const t = this.term(sheet);
+    const list = this.cannotCreateOf(sheet);
+    return t === '' ? list : list.filter((p) => this.hit(t, p.name, p.email));
+  }
+
+  /**
+   * Distinct people (by email) the ticked sheets would create. The same email
+   * on several sheets is one account, so this is also the number of
+   * invitation emails `sendInvites` would send.
+   */
+  get createCount(): number {
+    const sheets = this.planSheets.filter((s) => this.selected.has(s.sheet));
+    if (!sheets.some((s) => Array.isArray(s.toCreate))) {
+      return this.preview?.totals.toCreate ?? 0;
+    }
+    const emails = new Set<string>();
+    sheets.forEach((s) => this.toCreateOf(s).forEach((p) => emails.add((p.email ?? '').trim().toLowerCase())));
+    emails.delete('');
+    return emails.size;
+  }
+
+  /**
+   * The checkbox changed. The server counts people it would create as plan
+   * members (their items, whether a sheet is importable at all), so the
+   * preview is recomputed for the same file.
+   */
+  onCreateMissing(on: boolean): void {
+    on = on && this.canCreatePeople;
+    this.createMissing = on;
+    if (this.step === 'review' && this.file && (this.preview?.createMissing ?? null) !== on) {
+      this.read(true);
+    }
+  }
+
+  /** People created by the commit (all sheets, distinct). */
+  createdTotal(r: ImportCommitResult): number {
+    return r.totals.peopleCreated ?? r.createdPeople?.length ?? 0;
+  }
+
+  /** Invitation emails the commit sent. */
+  invitedTotal(r: ImportCommitResult): number {
+    return r.invitationsSent ?? 0;
+  }
+
+  /** Tooltip for the failed-invitations pill: the addresses, not user ids. */
+  failedInvites(r: ImportCommitResult): string {
+    return failedInviteEmails(r);
+  }
+
+  /** Unmatched rows across the ticked sheets that cannot become accounts. */
+  get cannotCreateCount(): number {
+    return this.planSheets.filter((s) => this.selected.has(s.sheet)).reduce((n, s) => n + this.cannotCreateOf(s).length, 0);
+  }
+
   private hit(term: string, ...values: (string | null | undefined)[]): boolean {
     return values.some((v) => (v ?? '').toLowerCase().includes(term));
   }
@@ -209,7 +313,11 @@ export class PlanImportComponent implements OnDestroy {
   }
 
   copyEmails(sheet: ImportSheetPreview): void {
-    const text = sheet.unmatched.map((u) => u.email).join('\n');
+    // With creation on, only the people who still will not be on the platform.
+    const emails = this.createMissing
+      ? this.cannotCreateOf(sheet).map((u) => u.email ?? '').filter((e) => e !== '')
+      : sheet.unmatched.map((u) => u.email);
+    const text = emails.join('\n');
     const done = (): void => {
       this.copied = sheet.sheet;
       setTimeout(() => { if (this.copied === sheet.sheet) { this.copied = null; } }, 2000);
@@ -234,7 +342,11 @@ export class PlanImportComponent implements OnDestroy {
     }
     this.working = true;
     this.error = null;
-    this.svc.commitImport(file, sheets, this.publish, this.removeMissing && this.staleSelected > 0)
+    // Ask for creation only when allowed and useful, so a course-only admin (or a
+    // file where everyone already exists) never trips the API's user.manage check.
+    const create = this.canCreatePeople && this.createMissing && this.createCount > 0;
+    const people = { createMissing: create, sendInvites: create && this.sendInvites, roleId: create ? this.roleId : null };
+    this.svc.commitImport(file, sheets, this.publish, this.removeMissing && this.staleSelected > 0, people)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
@@ -277,7 +389,7 @@ export class PlanImportComponent implements OnDestroy {
 
   private errorText(e: unknown): string {
     if (e instanceof ApiError) {
-      return e.violation('file') ?? e.violation('sheets') ?? e.message ?? this.i18n.t('plan.import.failed');
+      return e.violation('file') ?? e.violation('sheets') ?? e.violation('roleId') ?? e.message ?? this.i18n.t('plan.import.failed');
     }
     return this.i18n.t('plan.import.failed');
   }

@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace Central\Api\Application\Action\LearningPlan;
 
+use Central\Api\Application\Action\Auth\PasswordResetAction;
 use Central\Api\Application\Http\Json;
+use Central\Api\Application\Import\ImportedPersonCreator;
+use Central\Api\Application\Import\ImportOptions;
 use Central\Api\Application\Import\LearningPlanImporter;
+use Central\Api\Application\Import\LearningPlanWorkbook;
 use Central\Api\Application\Import\WorkbookDecryptor;
 use Central\Api\Application\Middleware\AuthenticationMiddleware;
 use Central\Api\Domain\Authz\Permission;
+use Central\Api\Domain\Authz\RoleRepository;
+use Central\Api\Domain\CustomField\CustomFieldDefinitionRepository;
 use Central\Api\Domain\Exception\ValidationFailed;
 use Central\Api\Domain\LearningPlan\LearningPlanRepository;
+use Central\Api\Domain\Lookup\LookupRepository;
+use Central\Api\Domain\People\PersonRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
@@ -18,9 +26,14 @@ use Psr\Http\Message\UploadedFileInterface;
 /**
  * Importing per-person Learning Plans from an Excel workbook.
  *
- * POST /v1/learning-plans/import/preview   multipart file              → what would change
+ * POST /v1/learning-plans/import/preview   multipart file, createMissing? → what would change
  * POST /v1/learning-plans/import/commit    multipart file, sheets,
- *                                          publish?, removeMissing?     → what changed
+ *                                          publish?, removeMissing?,
+ *                                          createMissing?, roleId?,
+ *                                          sendInvites?                   → what changed
+ *
+ * `createMissing` creates the people the sheets name but the organisation
+ * lacks (invited, no password) and needs `user.manage` as well.
  *
  * The commit re-sends and re-reads the workbook — nothing is kept between the
  * two calls — so a commit always acts on exactly the file it is given.
@@ -30,21 +43,30 @@ final class ImportLearningPlansAction
 {
     private const MAX_BYTES = 10 * 1024 * 1024;
 
+    private readonly ImportedPersonCreator $creator;
+
     public function __construct(
         private readonly LearningPlanRepository $plans,
+        PersonRepository $people,
+        LookupRepository $lookups,
+        CustomFieldDefinitionRepository $fields,
+        RoleRepository $roles,
+        private readonly PasswordResetAction $passwords,
         private readonly WorkbookDecryptor $decryptor = new WorkbookDecryptor(),
     ) {
+        $this->creator = new ImportedPersonCreator($people, $lookups, $fields, $roles);
     }
 
     public function preview(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
-        $tenant = $this->tenant($request);
+        $tenant  = $this->tenant($request);
+        $options = ImportOptions::read((array) ($request->getParsedBody() ?? []));
         [$file, $name] = $this->upload($request);
         $path = $this->stash($file);
 
         try {
             $this->assertReadable($path);
-            $importer = new LearningPlanImporter($this->plans);
+            $importer = $this->importer();
 
             try {
                 $parsed = $importer->read($path);
@@ -57,7 +79,7 @@ final class ImportLearningPlansAction
 
         // Database work stays outside the catch: a fault there (e.g. the
         // migration not run yet) is a 500 that gets logged, not a "bad file".
-        return Json::ok($response, $importer->previewParsed($tenant, $parsed, $name));
+        return Json::ok($response, $importer->previewParsed($tenant, $parsed, $name, $options['createMissing']));
     }
 
     public function commit(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -67,13 +89,20 @@ final class ImportLearningPlansAction
         $sheets = $this->sheetNames($body);
         $publish       = filter_var($body['publish'] ?? false, FILTER_VALIDATE_BOOL);
         $removeMissing = filter_var($body['removeMissing'] ?? false, FILTER_VALIDATE_BOOL);
+        $options       = ImportOptions::read($body);
+        $caller        = AuthenticationMiddleware::require($request);
+
+        // Creating accounts is people administration, not plan administration.
+        if ($options['createMissing'] || $options['sendInvites']) {
+            $caller->mustHave(Permission::UserManage);
+        }
 
         [$file, $name] = $this->upload($request);
         $path = $this->stash($file);
 
         try {
             $this->assertReadable($path);
-            $importer = new LearningPlanImporter($this->plans);
+            $importer = $this->importer();
 
             try {
                 $parsed = $importer->read($path);
@@ -95,7 +124,41 @@ final class ImportLearningPlansAction
             }
         }
 
-        return Json::ok($response, $importer->commit($tenant, $parsed, $name, $sheets, $publish, $removeMissing));
+        $result = $importer->commit(
+            $tenant,
+            $parsed,
+            $name,
+            $sheets,
+            $publish,
+            $removeMissing,
+            $options['createMissing'],
+            $options['roleId'],
+            $caller->id,
+        );
+
+        // After every sheet has committed: nobody is emailed about an account
+        // that a rolled-back sheet took away.
+        $invites = ['sent' => 0, 'failed' => []];
+
+        if ($options['sendInvites'] && $result['createdPeople'] !== []) {
+            $invites = ImportOptions::invite(
+                $this->passwords,
+                $request,
+                $tenant,
+                array_map(static fn (array $p): string => (string) $p['userId'], $result['createdPeople']),
+            );
+        }
+
+        return Json::ok($response, $result + [
+            'sendInvites'       => $options['sendInvites'],
+            'invitationsSent'   => $invites['sent'],
+            'invitationsFailed' => $invites['failed'],
+        ]);
+    }
+
+    private function importer(): LearningPlanImporter
+    {
+        return new LearningPlanImporter($this->plans, new LearningPlanWorkbook(), $this->creator);
     }
 
     // --- plumbing -------------------------------------------------------------

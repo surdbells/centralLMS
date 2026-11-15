@@ -404,6 +404,48 @@ export class UserListComponent implements OnInit, OnDestroy {
       : [...this.selectedIds, id];
   }
 
+  /** The selected people who have not accepted their invitation yet. */
+  get selectedInvitedIds(): string[] {
+    const invited = new Set(this.users.filter((u) => u.status === 'invited').map((u) => u.id));
+    return this.selectedIds.filter((id) => invited.has(id));
+  }
+
+  resending = false;
+
+  /**
+   * Emails a fresh invitation to the selected invited people — e.g. the
+   * accounts a workbook import created without sending invitations. Anyone
+   * selected who is not `invited` is left out (and the server re-checks).
+   */
+  async resendInvitations(): Promise<void> {
+    const ids = this.selectedInvitedIds;
+    if (ids.length === 0 || this.resending) {
+      return;
+    }
+    if (!(await this.dialog.confirm(this.i18n.t('admin.users.confirm_resend_invitations', { count: ids.length }), { type: 'warning' }))) {
+      return;
+    }
+    this.resending = true;
+    this.usersService.resendInvitations(ids).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (result) => {
+        this.resending = false;
+        const sent = result?.sent ?? 0;
+        const notSent = (result?.skipped?.length ?? 0) + (result?.failed?.length ?? 0);
+        if (sent > 0) {
+          this.toast.success(this.i18n.t('admin.users.invitations_resent', { count: sent }));
+        }
+        if (notSent > 0) {
+          this.toast.warning(this.i18n.t('admin.users.invitations_skipped', { count: notSent }));
+        }
+        this.selectedIds = [];
+      },
+      error: (e: ApiError) => {
+        this.resending = false;
+        this.toast.error(e.message || this.i18n.t('admin.users.invitations_failed'));
+      },
+    });
+  }
+
   // --- one person ----------------------------------------------------------
 
   async quickAction(action: string, user: User): Promise<void> {

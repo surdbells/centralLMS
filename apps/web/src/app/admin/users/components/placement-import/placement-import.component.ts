@@ -6,18 +6,23 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import {
   UsersService,
+  failedInviteEmails,
   type PlacementCommitResult,
   type PlacementPreview,
   type PlacementPreviewRow,
+  type ImportPersonToCreate,
+  type ImportPersonCannotCreate,
 } from '../../../../services/users.service';
 import { ApiError } from '../../../../core/api';
 import { AdmintopComponent } from '../../../../partials/top/admintop/admintop.component';
 import { TranslatePipe } from '../../../../translate.pipe';
 import { I18nService } from '../../../../i18n.service';
 import { SelectComponent } from '../../../../shared/select/select.component';
+import { ImportPeopleOptionsComponent, ImportPeopleTableComponent } from '../../../../shared/import-people/import-people.component';
 
 type Step = 'upload' | 'review' | 'done';
 type RowFilter = 'all' | 'changes' | 'unmatched' | 'error';
+type PeoplePanel = 'create' | 'cannot' | null;
 
 /**
  * Staff placement from a workbook: staff ID, department, job title, function
@@ -26,13 +31,18 @@ type RowFilter = 'all' | 'changes' | 'unmatched' | 'error';
  * Upload → Review → Done. The review is a dry run: every row's "old → new" is
  * shown, plus the departments, job titles, profile fields and dropdown options
  * that the commit would create. Commit re-sends the same file; the server
- * recomputes everything. People are matched by email and never created; blank
- * cells change nothing.
+ * recomputes everything. People are matched by email; blank cells change
+ * nothing. With "create people who aren't on the platform yet" (on by
+ * default) unmatched rows with an email and a name become invited accounts —
+ * no password — placed from the same row.
  */
 @Component({
   selector: 'app-placement-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SelectComponent],
+  imports: [
+    CommonModule, FormsModule, RouterLink, AdmintopComponent, TranslatePipe, SelectComponent,
+    ImportPeopleOptionsComponent, ImportPeopleTableComponent,
+  ],
   templateUrl: './placement-import.component.html',
   styleUrls: ['./placement-import.component.scss'],
 })
@@ -54,6 +64,14 @@ export class PlacementImportComponent implements OnDestroy {
 
   filter: RowFilter = 'all';
   copied = false;
+
+  /** Create invited accounts for unmatched rows (default on here; the API defaults off). */
+  createMissing = true;
+  /** Email the invitation to each person created now (default off). */
+  sendInvites = false;
+  /** Role for new people; the options block defaults it to the learner role. */
+  roleId: string | null = null;
+  peoplePanel: PeoplePanel = null;
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -109,7 +127,7 @@ export class PlacementImportComponent implements OnDestroy {
     }
     this.working = true;
     this.error = null;
-    this.users.previewPlacement(file, this.sheet).pipe(takeUntil(this.destroy$)).subscribe({
+    this.users.previewPlacement(file, this.sheet, this.createMissing).pipe(takeUntil(this.destroy$)).subscribe({
       next: (preview) => {
         this.working = false;
         this.preview = preview;
@@ -118,7 +136,12 @@ export class PlacementImportComponent implements OnDestroy {
         this.sheetOptions = sheets.length > 1
           ? sheets.map((s) => ({ value: s.name, label: `${s.name} (${s.rows})` }))
           : [];
-        this.filter = this.summary.update > 0 ? 'changes' : 'all';
+        if (this.step !== 'review' || this.filter === 'changes' || this.filter === 'all') {
+          this.filter = this.changesCount > 0 ? 'changes' : 'all';
+        }
+        if (!this.createMissing) {
+          this.peoplePanel = null;
+        }
         this.step = 'review';
       },
       error: (e: unknown) => {
@@ -135,16 +158,74 @@ export class PlacementImportComponent implements OnDestroy {
   }
 
   get summary(): PlacementPreview['summary'] {
-    return this.preview?.summary ?? { update: 0, unchanged: 0, unmatched: 0, error: 0, warnings: 0 };
+    return this.preview?.summary ?? { update: 0, unchanged: 0, unmatched: 0, error: 0, warnings: 0, create: 0 };
   }
 
   get visibleRows(): PlacementPreviewRow[] {
     switch (this.filter) {
-      case 'changes': return this.rows.filter((r) => r.action === 'update');
-      case 'unmatched': return this.rows.filter((r) => r.action === 'unmatched');
+      case 'changes': return this.rows.filter((r) => r.action === 'update' || this.willCreate(r));
+      case 'unmatched': return this.rows.filter((r) => this.isUnmatched(r) && !this.willCreate(r));
       case 'error': return this.rows.filter((r) => r.action === 'error');
       default: return this.rows;
     }
+  }
+
+  // --- people who are not on the platform yet --------------------------------
+
+  get toCreate(): ImportPersonToCreate[] {
+    return Array.isArray(this.preview?.toCreate) ? this.preview!.toCreate! : [];
+  }
+
+  get cannotCreate(): ImportPersonCannotCreate[] {
+    return Array.isArray(this.preview?.cannotCreate) ? this.preview!.cannotCreate! : [];
+  }
+
+  /** How many accounts the commit would create (distinct emails). */
+  get createCount(): number {
+    return this.preview?.totals?.toCreate ?? this.toCreate.length;
+  }
+
+  /**
+   * The checkbox changed. The server plans new people differently (their rows
+   * become "create" with the placement they will get, and their departments
+   * and job titles count as new), so the preview is recomputed.
+   */
+  onCreateMissing(on: boolean): void {
+    this.createMissing = on;
+    if (this.step === 'review' && this.file && (this.preview?.createMissing ?? null) !== on) {
+      this.read();
+    }
+  }
+
+  private isUnmatched(r: PlacementPreviewRow): boolean {
+    return r.action === 'unmatched' || r.action === 'create';
+  }
+
+  /** This row becomes a new account on commit. */
+  willCreate(r: PlacementPreviewRow): boolean {
+    return this.createMissing && this.isUnmatched(r)
+      && (r.action === 'create' || this.toCreate.some((p) => p.row === r.row));
+  }
+
+  /** "Not found" means: not found and not going to be created. */
+  get unmatchedCount(): number {
+    return this.createMissing
+      ? this.rows.filter((r) => this.isUnmatched(r) && !this.willCreate(r)).length
+      : this.summary.unmatched;
+  }
+
+  togglePeople(panel: 'create' | 'cannot'): void {
+    this.peoplePanel = this.peoplePanel === panel ? null : panel;
+  }
+
+  /** Rows the commit writes: updates plus (when creating) new people. */
+  get changesCount(): number {
+    return this.summary.update + this.rows.filter((r) => this.willCreate(r)).length;
+  }
+
+  /** People updated plus, when creating, people created. */
+  get applyCount(): number {
+    return this.summary.update + (this.createMissing ? this.createCount : 0);
   }
 
   get newDepartments(): string[] {
@@ -187,26 +268,34 @@ export class PlacementImportComponent implements OnDestroy {
     return t && t !== key ? t : fallback;
   }
 
-  actionPill(action: PlacementPreviewRow['action']): string {
-    switch (action) {
+  actionPill(r: PlacementPreviewRow): string {
+    if (this.willCreate(r)) {
+      return 'ui-pill--brand';
+    }
+    switch (r.action) {
       case 'update': return 'ui-pill--info';
       case 'unchanged': return 'ui-pill--neutral';
-      case 'unmatched': return 'ui-pill--warning';
+      case 'unmatched':
+      case 'create': return 'ui-pill--warning';
       default: return 'ui-pill--danger';
     }
   }
 
-  actionLabel(action: PlacementPreviewRow['action']): string {
-    switch (action) {
+  actionLabel(r: PlacementPreviewRow): string {
+    if (this.willCreate(r)) {
+      return 'people.create.will_be_created';
+    }
+    switch (r.action) {
       case 'update': return 'people.placement.to_update';
       case 'unchanged': return 'people.placement.unchanged';
-      case 'unmatched': return 'people.placement.not_found';
+      case 'unmatched':
+      case 'create': return 'people.placement.not_found';
       default: return 'people.placement.errors';
     }
   }
 
   copyUnmatched(): void {
-    const text = this.rows.filter((r) => r.action === 'unmatched').map((r) => r.email).join('\n');
+    const text = this.visibleRows.filter((r) => this.isUnmatched(r)).map((r) => r.email).join('\n');
     try {
       void navigator.clipboard.writeText(text).then(() => {
         this.copied = true;
@@ -221,12 +310,13 @@ export class PlacementImportComponent implements OnDestroy {
 
   apply(): void {
     const file = this.file;
-    if (!file || this.working || this.summary.update === 0) {
+    if (!file || this.working || this.applyCount === 0) {
       return;
     }
     this.working = true;
     this.error = null;
-    this.users.commitPlacement(file, this.sheet).pipe(takeUntil(this.destroy$)).subscribe({
+    const options = { createMissing: this.createMissing, sendInvites: this.sendInvites, roleId: this.roleId };
+    this.users.commitPlacement(file, this.sheet, options).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
         this.working = false;
         this.result = result;
@@ -237,6 +327,11 @@ export class PlacementImportComponent implements OnDestroy {
         this.error = this.errorText(e);
       },
     });
+  }
+
+  /** Tooltip for the failed-invitations pill: the addresses, not user ids. */
+  failedInvites(r: PlacementCommitResult): string {
+    return failedInviteEmails(r);
   }
 
   get failedRows(): PlacementCommitResult['rows'] {
@@ -256,11 +351,12 @@ export class PlacementImportComponent implements OnDestroy {
     this.preview = null;
     this.result = null;
     this.error = null;
+    this.peoplePanel = null;
   }
 
   private errorText(e: unknown): string {
     if (e instanceof ApiError) {
-      return e.violation('file') ?? e.violation('sheet') ?? e.message ?? this.i18n.t('plan.import.failed');
+      return e.violation('file') ?? e.violation('sheet') ?? e.violation('roleId') ?? e.message ?? this.i18n.t('plan.import.failed');
     }
     return this.i18n.t('plan.import.failed');
   }

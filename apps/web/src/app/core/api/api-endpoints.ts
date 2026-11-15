@@ -82,6 +82,10 @@ export const Endpoints = {
     import: '/users/import',
     /** A colleague's picture, served through the API rather than storage. */
     avatar: (id: string) => `/users/${id}/avatar`,
+    /** The roles a person can be given (`user.view`; `/roles` needs role management). */
+    roles: '/users/roles',
+    /** Emails a fresh invitation to each of `{ userIds }` that is still invited. */
+    resendInvitations: '/users/invitations/resend',
   },
 
   /**

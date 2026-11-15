@@ -96,7 +96,7 @@ final class PlacementImporterTest extends TestCase
         self::assertSame(['JG 10', 'EM-B'], $plan['optionsToAdd']['job_group'], 'numbered bands first, then the rest');
         self::assertSame(['SG 9'], $plan['optionsToAdd']['salary_group']);
 
-        self::assertSame(['update' => 2, 'unchanged' => 1, 'unmatched' => 1, 'error' => 1, 'warnings' => 2], $plan['summary']);
+        self::assertSame(['create' => 0, 'update' => 2, 'unchanged' => 1, 'unmatched' => 1, 'error' => 1, 'warnings' => 2], $plan['summary']);
     }
 
     #[Test]

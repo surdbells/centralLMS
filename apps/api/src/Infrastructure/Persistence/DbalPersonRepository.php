@@ -357,6 +357,17 @@ final class DbalPersonRepository implements PersonRepository
         return $out;
     }
 
+    public function deletedEmails(string $tenantId): array
+    {
+        $emails = $this->connection->fetchFirstColumn(
+            'SELECT DISTINCT lower(btrim(email)) FROM users
+             WHERE tenant_id = :tenant AND deleted_at IS NOT NULL AND email IS NOT NULL',
+            ['tenant' => $tenantId],
+        );
+
+        return array_values(array_map(static fn (mixed $e): string => (string) $e, $emails));
+    }
+
     public function applyPlacement(string $tenantId, string $userId, array $columns): bool
     {
         $allowed = ['employee_id' => 'employeeId', 'department_id' => 'departmentId', 'job_title_id' => 'jobTitleId'];

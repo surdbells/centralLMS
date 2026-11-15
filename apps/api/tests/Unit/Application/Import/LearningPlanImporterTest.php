@@ -291,9 +291,12 @@ final class InMemoryPlans implements LearningPlanRepository
         return $n;
     }
 
+    /** People created during a test, e.g. by an ImportedPersonCreator. */
+    public ?\Closure $extraUsers = null;
+
     public function userEmailIndex(string $tenantId): array
     {
-        return $this->users;
+        return $this->users + ($this->extraUsers !== null ? ($this->extraUsers)() : []);
     }
 
     public function transactional(\Closure $work): mixed

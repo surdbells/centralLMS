@@ -110,6 +110,18 @@ interface PersonRepository
     public function placementSnapshot(string $tenantId): array;
 
     /**
+     * Lower-cased addresses of soft-deleted accounts in this organisation.
+     *
+     * An import that creates missing people reports these: the address is
+     * free again (the unique index only covers live accounts), so a new
+     * account is created — exactly as the user form would — but whoever runs
+     * the import should know a former account existed.
+     *
+     * @return list<string>
+     */
+    public function deletedEmails(string $tenantId): array;
+
+    /**
      * Writes the placement columns an import is allowed to touch, and nothing
      * else. Keys outside `employee_id`, `department_id` and `job_title_id` are
      * ignored, so a caller cannot widen what a spreadsheet may change.

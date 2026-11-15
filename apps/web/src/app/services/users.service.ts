@@ -183,6 +183,63 @@ export interface ImportResult {
   rows: ImportOutcome[];
 }
 
+// --- creating people a workbook names but the platform does not have yet ----
+
+/** An unmatched workbook row that the commit would turn into an invited account. */
+export interface ImportPersonToCreate {
+  row: number;
+  email: string;
+  /** As it will be saved (proper-cased when the sheet shouted). */
+  firstName: string;
+  lastName: string;
+  jobTitle?: string | null;
+  department?: string | null;
+  employeeId?: string | null;
+  /** A deleted account had this address; a new, separate account is created. */
+  previouslyDeleted?: boolean;
+  /** Which sheet it came from, when the caller flattens several. */
+  sheet?: string;
+}
+
+/** An unmatched row that cannot become an account (no usable email or name). */
+export interface ImportPersonCannotCreate {
+  row: number;
+  email: string | null;
+  name: string | null;
+  /** `missing_email` | `missing_name` | `invalid_email` | `incomplete_name` | `invalid`. */
+  reason: string;
+  /** The server's sentence for it. */
+  message?: string | null;
+  sheet?: string;
+}
+
+/** The commit options shared by the placement and learning-plan importers. */
+export interface CreatePeopleOptions {
+  /** Create invited accounts for unmatched rows that have an email and a name. */
+  createMissing: boolean;
+  /** Email the standard invitation to each person created now. */
+  sendInvites: boolean;
+  /** The role new people get; `null` lets the server use the learner role. */
+  roleId: string | null;
+}
+
+/** A role a person can be given, as `GET /users/roles` lists them. */
+export interface AssignableRole {
+  id: string;
+  slug: string;
+  name: string;
+  isSystem: boolean;
+}
+
+/** What `POST /users/invitations/resend` reports. */
+export interface ResendInvitationsResult {
+  sent: number;
+  /** Not found, or no longer `invited`. */
+  skipped: { userId: string; reason: 'not_found' | 'not_invited' | string }[];
+  /** Ids whose email could not be sent. */
+  failed: string[];
+}
+
 // --- staff placement from a workbook ---------------------------------------
 
 export type PlacementField = 'employeeId' | 'department' | 'jobTitle' | 'division' | 'jobGroup' | 'salaryGroup' | 'jobCategory';
@@ -194,7 +251,7 @@ export interface PlacementPreviewRow {
   email: string;
   name: string | null;
   userId: string | null;
-  action: 'update' | 'unchanged' | 'unmatched' | 'error';
+  action: 'update' | 'unchanged' | 'unmatched' | 'create' | 'error';
   changes: PlacementChange[];
   warnings: string[];
   error: string | null;
@@ -207,10 +264,33 @@ export interface PlacementPreview {
   rows: PlacementPreviewRow[];
   /** Every sheet in the workbook with its classification (only `placement` ones are pickable). */
   sheets?: { name: string; index: number; kind: 'placement' | 'empty' | 'other'; rows: number }[];
-  summary: { update: number; unchanged: number; unmatched: number; error: number; warnings: number };
+  summary: {
+    update: number; unchanged: number; unmatched: number; error: number; warnings: number;
+    /** Rows planned as new accounts (`action: 'create'`) — only when previewed with `createMissing`. */
+    create?: number;
+  };
+  /** Whether this preview was computed with `createMissing`. */
+  createMissing?: boolean;
+  /** Unmatched rows that would be created with `createMissing` (always reported). */
+  toCreate?: ImportPersonToCreate[];
+  /** Unmatched rows that cannot be created, with the reason. */
+  cannotCreate?: ImportPersonCannotCreate[];
+  totals?: { toCreate?: number; cannotCreate?: number };
   lookupsToCreate: { department: string[]; job_title: string[] };
   customFieldsToCreate: { key: string; label: string; type: string }[];
   optionsToAdd: Partial<Record<'job_group' | 'salary_group' | 'job_category', string[]>>;
+}
+
+/**
+ * The invitations an import commit could not send, as addresses: the API
+ * reports user ids, mapped back through the commit's `createdPeople`.
+ */
+export function failedInviteEmails(r: {
+  createdPeople?: { email: string; userId: string }[];
+  invitationsFailed?: string[];
+}): string {
+  const byId = new Map((r.createdPeople ?? []).map((p) => [p.userId, p.email] as const));
+  return (r.invitationsFailed ?? []).map((id) => byId.get(id) ?? id).join(', ');
 }
 
 export interface PlacementCommitResult {
@@ -218,10 +298,21 @@ export interface PlacementCommitResult {
   unchanged: number;
   unmatched: number;
   failed: number;
+  /** People created as invited accounts (`createMissing`). */
+  created?: number;
+  createdPeople?: { row: number; email: string; userId: string }[];
+  cannotCreate?: ImportPersonCannotCreate[];
+  /** Invitation emails sent to the people created now (`sendInvites`). */
+  invitationsSent?: number;
+  /** User ids whose invitation could not be sent (see `failedInviteEmails`). */
+  invitationsFailed?: string[];
   lookupsCreated: { department: number; job_title: number };
   customFieldsCreated: string[];
   optionsAdded: Record<string, string[]>;
-  rows: { row: number; email: string; outcome: 'updated' | 'unchanged' | 'unmatched' | 'error'; reason: string | null }[];
+  rows: {
+    row: number; email: string; outcome: 'updated' | 'unchanged' | 'unmatched' | 'created' | 'error'; reason: string | null;
+    userId?: string | null;
+  }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -316,20 +407,43 @@ export class UsersService {
     return this.api.post<ImportResult>(Endpoints.users.import, { rows, onExisting });
   }
 
-  /** Reads a staff-placement workbook and says what would change. Writes nothing. */
-  previewPlacement(file: File, sheet?: string | null): Observable<PlacementPreview> {
-    return this.api.upload<PlacementPreview>(Endpoints.people.placementPreview, this.placementForm(file, sheet)).pipe(
+  /**
+   * Reads a staff-placement workbook and says what would change. Writes
+   * nothing. With `createMissing`, rows for new people are planned as
+   * `action: 'create'` (and their departments/job titles counted as new).
+   */
+  previewPlacement(file: File, sheet?: string | null, createMissing?: boolean): Observable<PlacementPreview> {
+    const form = this.placementForm(file, sheet);
+    if (createMissing !== undefined) {
+      form.append('createMissing', createMissing ? 'true' : 'false');
+    }
+    return this.api.upload<PlacementPreview>(Endpoints.people.placementPreview, form).pipe(
       filter((event): event is typeof event & { result: PlacementPreview } => event.state === 'done'),
       map((event) => event.result),
     );
   }
 
-  /** Applies the placement; the server re-reads the same file and recomputes. */
-  commitPlacement(file: File, sheet?: string | null): Observable<PlacementCommitResult> {
-    return this.api.upload<PlacementCommitResult>(Endpoints.people.placementCommit, this.placementForm(file, sheet)).pipe(
+  /**
+   * Applies the placement; the server re-reads the same file and recomputes.
+   * With `createMissing`, unmatched rows become invited accounts.
+   */
+  commitPlacement(file: File, sheet?: string | null, options?: CreatePeopleOptions): Observable<PlacementCommitResult> {
+    const form = this.placementForm(file, sheet);
+    appendCreatePeople(form, options);
+    return this.api.upload<PlacementCommitResult>(Endpoints.people.placementCommit, form).pipe(
       filter((event): event is typeof event & { result: PlacementCommitResult } => event.state === 'done'),
       map((event) => event.result),
     );
+  }
+
+  /** The roles a new person can be given (needs only `user.view`). */
+  roles(): Observable<AssignableRole[]> {
+    return this.api.get<AssignableRole[]>(Endpoints.users.roles);
+  }
+
+  /** Emails a fresh invitation to each of these (invited) people. */
+  resendInvitations(userIds: string[]): Observable<ResendInvitationsResult> {
+    return this.api.post<ResendInvitationsResult>(Endpoints.users.resendInvitations, { userIds });
   }
 
   private placementForm(file: File, sheet?: string | null): FormData {
@@ -344,5 +458,20 @@ export class UsersService {
   /** What this person can do, derived from the courses they have finished. */
   skills(id: string): Observable<LearnerSkills> {
     return this.api.get<LearnerSkills>(Endpoints.users.skills(id));
+  }
+}
+
+/**
+ * Adds the shared create-missing-people fields to an importer's multipart
+ * commit. Absent options send nothing, so the API's defaults apply.
+ */
+export function appendCreatePeople(form: FormData, options?: CreatePeopleOptions | null): void {
+  if (!options) {
+    return;
+  }
+  form.append('createMissing', options.createMissing ? 'true' : 'false');
+  form.append('sendInvites', options.createMissing && options.sendInvites ? 'true' : 'false');
+  if (options.createMissing && options.roleId) {
+    form.append('roleId', options.roleId);
   }
 }

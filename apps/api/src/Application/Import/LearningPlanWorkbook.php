@@ -20,7 +20,8 @@ use OpenSpout\Reader\XLSX\Reader;
  * Pure: no database. {@see LearningPlanImporter} matches people and writes.
  *
  * @phpstan-type PlanItem array{category: string, title: string, provider: ?string, scheduleText: ?string, start: ?string, end: ?string, key: string, sortOrder: int}
- * @phpstan-type PlanPerson array{row: int, email: string, name: ?string, items: list<PlanItem>}
+ * @phpstan-type PlanProfile array{jobTitle: ?string, department: ?string, division: ?string, level: ?string, entity: ?string}
+ * @phpstan-type PlanPerson array{row: int, email: string, name: ?string, items: list<PlanItem>, profile: PlanProfile}
  * @phpstan-type SheetWarning array{row: ?int, code: string, message: string}
  * @phpstan-type PlanColumn array{index: int, header: string, category: string, providerIndex: ?int, mixed: bool}
  * @phpstan-type SkippedRow array{row: int, name: ?string, reason: string}
@@ -121,6 +122,17 @@ final class LearningPlanWorkbook
 
         $emailCol = $headerAt('/e-?mail/i');
         $nameCol  = $headerAt('/^names?$/i');
+
+        // Who the person is, read only to create somebody the organisation
+        // does not have yet — never written over an existing profile.
+        // "Department / Division" (one combined column) is the department.
+        $profileCols = [
+            'jobTitle'   => $headerAt('/^\s*(designation|job\s*title)\s*$/i'),
+            'department' => $headerAt('/^\s*department(\s*\/\s*(division|function))?\s*$/i'),
+            'division'   => $headerAt('/^\s*(division|function(\s*\/\s*division)?)\s*$/i'),
+            'level'      => $headerAt('/^\s*(grade|level)\s*$/i'),
+            'entity'     => $headerAt('/^\s*entity\s*$/i'),
+        ];
         $sheet['rows'] = max(0, count($nonBlank) - (self::blank($header) ? 0 : 1));
 
         if ($emailCol !== null && $headerAt('/staff\s*id/i') !== null) {
@@ -189,11 +201,25 @@ final class LearningPlanWorkbook
             }
             $seen[$email] = $rowNo;
 
+            $pick = static function (?int $col) use ($cells): ?string {
+                $value = $col !== null ? self::oneLine($cells[$col] ?? '') : '';
+
+                return $value === '' ? null : $value;
+            };
+            $profile = [
+                'jobTitle'   => $pick($profileCols['jobTitle']),
+                'department' => $pick($profileCols['department']),
+                'division'   => $pick($profileCols['division']),
+                'level'      => $pick($profileCols['level']),
+                'entity'     => $pick($profileCols['entity']),
+            ];
+
             $sheet['people'][] = [
-                'row'   => $rowNo,
-                'email' => $email,
-                'name'  => $name,
-                'items' => $this->items($cells, $columns, $email, $year, $rowNo, $sheet),
+                'row'     => $rowNo,
+                'email'   => $email,
+                'name'    => $name,
+                'items'   => $this->items($cells, $columns, $email, $year, $rowNo, $sheet),
+                'profile' => $profile,
             ];
         }
 
