@@ -8,7 +8,7 @@ namespace Central\Api\Application\Import;
  * Turns the single "Names" cell of a staff workbook into a first and a last
  * name fit for an account.
  *
- * Workbooks are typed in capitals as often as not ("ELOZINO OLANIYAN"); an
+ * Workbooks are typed in capitals as often as not ("ADA OKONKWO-BELLO"); an
  * account called that shouts at its holder on every screen and every
  * certificate. A word written entirely in capitals is therefore re-cased —
  * each part of a hyphenated or apostrophised word capitalised on its own
